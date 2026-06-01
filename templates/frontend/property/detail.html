@@ -1,0 +1,2564 @@
+{% extends 'frontend/base/base.html' %}
+{% load static %}
+
+{% block extra_head %}
+<link href="{% static 'css/property/details.css' %}" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.19/css/intlTelInput.css" />
+<style>
+    .cred-divider {
+        height: 16px;
+        width: 1px;
+        border: 0;
+        background-color: #454545A6;
+    }
+    .property-text{
+        display: flex; align-items: center; font-size: 14px; color: #000000;
+    }
+    .t-datepicker-days{
+        right: 0;
+    }
+    .availability-text {
+        text-align: center;
+        margin-top: 10px;
+        font-weight: bold;
+        padding: 8px;
+        border-radius: 8px;
+    }
+    .available { color: #0E6108; border: 0.25px solid #0E6108; }
+    .not-available { color: #dc3545; border: 0.25px solid #dc3545; }
+    
+    /* Disabled Reserve Button */
+    .reserve-btn:disabled {
+        background-color: #6c757d;
+        color: #ffffff;
+        border-color: #6c757d;
+        cursor: not-allowed;
+        opacity: 0.65;
+    }
+
+    /* Other Fees Popover */
+    .other-fees-popover {
+        background-color: #fff;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        padding: 16px;
+        width: 300px;
+        z-index: 1050;
+        position: absolute; /* Positioned by JS */
+    }
+    .other-fees-popover .table {
+        margin-bottom: 0;
+    }
+
+    /* Custom Modal Styles */
+    .custom-modal-content {
+        background-color: #fefefe;
+        margin: auto;
+        padding: 20px;
+        border: 1px solid #888;
+        width: 80%;
+        max-width: 500px;
+        border-radius: 8px;
+        position: relative;
+        box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2),0 6px 20px 0 rgba(0,0,0,0.19);
+    }
+    .custom-modal-header h5 {
+        font-size: 1.25rem;
+        font-weight: 500;
+    }
+    .custom-modal-body {
+        padding: 1rem 0;
+    }
+    .custom-modal-footer {
+        text-align: right;
+        padding-top: 1rem;
+    }
+    .check-times-divider {
+        margin: 0;
+        border: 0;
+        border-bottom: 1px solid #e5e7eb;
+    }
+    .policies-top-divider {
+        display: block;
+        margin: 30px 0 !important;
+    }
+
+    /* Gallery Modal */
+    #galleryModal {
+        position: fixed;
+        inset: 0;
+        z-index: 10050;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 16px;
+        background: radial-gradient(circle at center, rgba(18, 22, 30, 0.82) 0%, rgba(7, 10, 15, 0.96) 78%);
+        backdrop-filter: blur(2px);
+    }
+    #galleryModal .modal-content {
+        position: relative;
+        width: min(96vw, 1240px);
+        height: min(82vh, 760px);
+        max-width: none;
+        max-height: none;
+        border: 0;
+        border-radius: 16px;
+        overflow: hidden;
+        background: #0d121a;
+        box-shadow: 0 18px 48px rgba(0, 0, 0, 0.5);
+        padding: 0;
+    }
+    #galleryModal .gallery-close {
+        position: absolute;
+        top: 14px;
+        right: 14px;
+        z-index: 12;
+        width: 44px;
+        height: 44px;
+        border: 0;
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        background: rgba(0, 0, 0, 0.45);
+        color: #fff;
+        font-size: 34px;
+        line-height: 1;
+        cursor: pointer;
+        transition: background 0.2s ease, transform 0.2s ease;
+    }
+    #galleryModal .gallery-close:hover {
+        background: rgba(0, 0, 0, 0.65);
+        transform: scale(1.05);
+    }
+    .booking-card {
+        position: -webkit-sticky; /* For Safari */
+        position: sticky;
+        top: 24px; /* Adjust as needed for spacing from the top */
+        align-self: flex-start; /* Aligns the item to the start of the flex container */
+        height: fit-content;
+    }
+    .amenities-bottom-divider {
+        display: none;
+    }
+    .check-times-bottom-divider {
+        display: none;
+    }
+
+    #galleryModal #galleryMainImage {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        background: linear-gradient(180deg, #101722 0%, #0a0f17 100%);
+    }
+
+    #galleryModal .gallery-controls {
+        position: absolute;
+        bottom: 14px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: min(96vw, 1240px);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0 16px;
+        color: white;
+        z-index: 10;
+    }
+
+    #galleryModal .gallery-controls .video-tour-btn {
+        color: #fff;
+        background-color: rgba(8, 12, 18, 0.62);
+        border: 1px solid rgba(255, 255, 255, 0.25);
+        padding: 8px 12px;
+        border-radius: 999px;
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 13px;
+        line-height: 1.2;
+    }
+    #galleryModal .prev,
+    #galleryModal .next {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 52px;
+        height: 52px;
+        border: 0;
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        font-size: 34px;
+        line-height: 1;
+        color: #fff;
+        background: rgba(8, 12, 18, 0.58);
+        box-shadow: 0 8px 26px rgba(0, 0, 0, 0.36);
+        z-index: 11;
+        cursor: pointer;
+        transition: background 0.2s ease, transform 0.2s ease;
+    }
+    #galleryModal .prev {
+        left: 16px;
+    }
+    #galleryModal .next {
+        right: 16px;
+    }
+    #galleryModal .prev:hover,
+    #galleryModal .next:hover {
+        background: rgba(8, 12, 18, 0.82);
+        transform: translateY(-50%) scale(1.05);
+    }
+    .gallery-col, .thumb-item {
+        position: relative;
+        overflow: hidden; 
+    }
+    .gallery-row {
+        position: relative;
+    }
+    .gallery-play-fab {
+        position: absolute;
+        right: 8px;
+        bottom: 8px;
+        width: 80px;
+        height: 56px;
+        border-radius: 14px;
+        border: 2px solid #111;
+        background: #fff;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 7;
+        text-decoration: none;
+        box-shadow: none;
+        overflow: hidden;
+    }
+    .gallery-play-fab::before {
+        content: "";
+        position: absolute;
+        inset: 4px;
+        border-radius: 10px;
+        background: #e25341;
+        border:0px solid #111;
+    }
+    .gallery-play-fab .play-core {
+        position: relative;
+        z-index: 1;
+        width: 38px;
+        height: 26px;
+        border-radius: 7px;
+        border: 0px solid #111;
+        background: #e25341;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .gallery-play-fab .play-core svg {
+        width: 32px;
+        height: 32px;
+        margin-left: 2px;
+        color: #ffffff;
+    }
+    .main-image:hover::after, .thumb-item:hover::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.3); 
+        pointer-events: none; 
+        transition: background-color 0.3s ease;
+        border-radius: inherit; 
+    }
+    .new-action-btn-header
+    {
+        background: #454545;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 10px;
+        font-size: 14px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        transition: background 0.2s;
+    }
+
+    .property-detail-content{
+        padding: 0rem 17%;
+    }
+
+    /* Mobile/Tab property meta row (match reference design) */
+    .mobile-meta-block {
+        display: none;
+    }
+    .mobile-map-section {
+        display: none;
+    }
+    .map_title{
+        font-size: 22px;
+    }
+
+    .address_title{
+        font-size: 22px;
+    }
+    .map-section {
+        width: 100%;
+    }
+    .map-section iframe {
+        display: block;
+        width: 100% !important;
+        max-width: 100%;
+        height: 420px;
+        border: 0;
+        border-radius: 12px;
+    }
+    .booking-card {
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
+    }
+    .booking-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 10px;
+    }
+    .booking-card-price {
+        min-width: 0;
+        margin-bottom: 12px !important;
+    }
+    .booking-card-fee-link {
+        font-size: 14px;
+        text-decoration: underline;
+        cursor: pointer;
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+    .date-inputs {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+        margin-bottom: 12px;
+    }
+    .date-inputs .date-col {
+        min-width: 0;
+    }
+    .desktop-date-range-wrap {
+        display: none;
+        margin-bottom: 12px;
+        position: relative;
+    }
+    .desktop-date-range-label {
+        display: block;
+        margin-bottom: 6px;
+        font-size: 14px;
+        font-weight: 700;
+        color: #111827;
+    }
+    .desktop-date-range-trigger {
+        width: 100%;
+        border: 1px solid #ced4da;
+        border-radius: 8px;
+        background: #f3f4f6;
+        padding: 10px 12px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        color: #1f2937;
+        font-size: 18px;
+        font-weight: 700;
+        line-height: 1;
+        cursor: pointer;
+    }
+    .desktop-date-range-values {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        min-width: 0;
+    }
+    .desktop-date-range-values span {
+        white-space: nowrap;
+    }
+    .desktop-date-range-separator {
+        color: #6b7280;
+    }
+    .desktop-date-range-trigger img {
+        width: 18px;
+        height: 18px;
+        opacity: 0.7;
+    }
+    .detail-date-range-picker {
+        position: absolute;
+        top: calc(100% + 8px);
+        right: 0;
+        background: #ffffff;
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
+        padding: 12px;
+        width: min(720px, calc(100vw - 40px));
+        z-index: 9999;
+        display: none;
+        max-height: calc(100vh - 140px);
+        overflow: auto;
+    }
+    .detail-date-range-picker.open {
+        display: block;
+    }
+    .detail-date-range-picker .drp-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 10px;
+    }
+    .detail-date-range-picker .drp-nav {
+        border: 1px solid #d1d5db;
+        background: #fff;
+        border-radius: 8px;
+        width: 32px;
+        height: 32px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: background 0.15s ease, border-color 0.15s ease;
+    }
+    .detail-date-range-picker .drp-nav:hover {
+        background: #f3f4f6;
+        border-color: #9ca3af;
+    }
+    .detail-date-range-picker .drp-months {
+        display: grid;
+        grid-template-columns: repeat(var(--months, 2), minmax(0, 1fr));
+        gap: 12px;
+    }
+    .detail-date-range-picker .drp-month-title {
+        text-align: center;
+        font-weight: 600;
+        margin-bottom: 6px;
+        color: #111827;
+    }
+    .detail-date-range-picker .drp-weekdays,
+    .detail-date-range-picker .drp-days {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 0;
+    }
+    .detail-date-range-picker .drp-weekday {
+        text-align: center;
+        font-size: 12px;
+        color: #45484e;
+        padding: 4px 0;
+        font-weight: 600;
+    }
+    .detail-date-range-picker .drp-day {
+        text-align: center;
+        padding: 9px 0;
+        border-radius: 10px;
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 600;
+        color: #111827;
+        transition: background 0.1s ease, color 0.1s ease;
+        margin: 0;
+    }
+    .detail-date-range-picker .drp-day.blank {
+        cursor: default;
+    }
+    .detail-date-range-picker .drp-day:not(.blank):hover {
+        background: #6d6a68;
+    }
+    .detail-date-range-picker .drp-day.disabled {
+        color: #d1d5db;
+        cursor: not-allowed;
+    }
+    .detail-date-range-picker .drp-day.in-range {
+        background: #d8d8d8;
+        color: #111827;
+        border-radius: 0;
+    }
+    .detail-date-range-picker .drp-day.start,
+    .detail-date-range-picker .drp-day.end {
+        background: #7a7a7a;
+        color: #ffffff;
+    }
+
+    .detail-date-range-picker .drp-day.start {
+        border-top-left-radius: 12px;
+        border-bottom-left-radius: 12px;
+        border-top-right-radius: 0;
+        border-bottom-right-radius: 0;
+        box-shadow: 6px 0 0 #d8d8d8;
+    }
+
+    .detail-date-range-picker .drp-day.end {
+        border-top-right-radius: 12px;
+        border-bottom-right-radius: 12px;
+        border-top-left-radius: 0;
+        border-bottom-left-radius: 0;
+        box-shadow: -6px 0 0 #d8d8d8;
+    }
+
+    .detail-date-range-picker .drp-day.start.end {
+        border-radius: 12px;
+        box-shadow: none;
+    }
+    .section-divider-before-map{
+        margin: 32px 0px !important;
+    }
+
+    .property-details > hr{
+            margin: 30px 0 !important;
+            border: 0 !important;
+            height: 1px !important;
+            background-color: #dddddd !important;
+            opacity: 1;
+        }
+    @media (max-width: 1024px) {
+        .gallery-play-fab {
+            display: inline-flex;
+        }
+        .desktop-title,
+        .desktop-status,
+        .desktop-meta,
+        .desktop-revenue {
+            display: none !important;
+        }
+        .mobile-title-price {
+            display: block !important;
+            margin-bottom: 8px;
+            margin-top: 10px;
+            padding: 0 16px;
+        }
+        .mobile-title-price .d-flex {
+            display: flex !important;
+            align-items: flex-start !important;
+            justify-content: space-between !important;
+            gap: 10px;
+        }
+        .mobile-title-price .mobile-title-text {
+            flex: 1 1 auto;
+            min-width: 0;
+            max-width: none;
+            margin: 0;
+            font-size: 18px !important;
+            line-height: 1.35;
+            font-weight: 600 !important;
+            color: #171717;
+        }
+        .mobile-title-price .text-end {
+            flex: 0 0 auto;
+            text-align: right;
+        }
+        .mobile-title-price .mobile-price-actions {
+            display: inline-flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 2px;
+        }
+        .mobile-title-price .mobile-price-row {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .mobile-title-price .mobile-fee-row {
+            display: inline-flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 8px;
+        }
+        .mobile-title-price .mobile-price-text {
+            margin: 0;
+            font-size: 34px !important;
+            line-height: 1.2;
+            font-weight: 700 !important;
+            color: #111;
+            white-space: nowrap;
+        }
+        .mobile-action-dropdown {
+            position: relative;
+            display: inline-flex;
+        }
+        .mobile-action-dropdown.btn-group {
+            background: transparent;
+            box-shadow: none;
+            border-radius: 0;
+            overflow: visible;
+        }
+        .mobile-action-dots-btn {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            border: 1px solid #d1d5db;
+            background: #fff;
+            color: #111827;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+        }
+        .mobile-action-dots-btn::after {
+            display: none !important;
+        }
+        .mobile-action-dots-icon {
+            width: 14px;
+            height: 14px;
+            fill: currentColor;
+            display: block;
+        }
+        .mobile-action-dropdown .dropdown-menu {
+            min-width: 200px;
+            right: 0;
+            left: auto;
+            z-index: 1060;
+        }
+        .mobile-title-price .mobile-fee-link {
+            display: inline-block;
+            margin-top: 2px;
+            font-size: 11px;
+            color: #0B46FA;
+            text-decoration: underline;
+            white-space: nowrap;
+        }
+
+        .mobile-meta-block {
+            display: block !important;
+            margin: 6px 0 10px;
+        }
+
+        .mobile-property-meta {
+            display: grid !important;
+            grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+            gap: 10px 12px !important;
+            margin: 0 !important;
+            padding: 0 5px 20px 5px !important;
+            border-bottom: 1px solid #d7d7d7 !important;
+        }
+
+        .mobile-property-meta .mobile-meta-item {
+            display: inline-flex !important;
+            align-items: center !important;
+            min-width: 0;
+            gap: 7px;
+            font-size: 13px !important;
+            line-height: 1.2 !important;
+            color: #111 !important;
+            white-space: nowrap;
+        }
+
+        .mobile-property-meta .mobile-meta-icon {
+            width: 15px !important;
+            height: 15px !important;
+            object-fit: contain;
+            flex-shrink: 0;
+        }
+
+        .mobile-property-meta .mobile-meta-label {
+            white-space: nowrap;
+        }
+        .booking-card {
+            display: block !important;
+            order: 0;
+            margin: 0 16px 16px;
+            padding: 22px;
+            border: 1px solid #d6d6d6;
+            border-radius: 14px;
+            background: #fff;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+        }
+    }
+
+    @media (max-width: 576px) {
+        .mobile-property-meta {
+            gap: 10px 8px !important;
+        }
+
+        .mobile-property-meta .mobile-meta-item {
+            font-size: 12px !important;
+            gap: 6px;
+        }
+
+        .mobile-property-meta .mobile-meta-icon {
+            width: 14px !important;
+            height: 14px !important;
+        }
+    }
+
+    @media (max-width: 991px) {
+        .action-buttons{
+            display: none !important;
+        }
+        .property-detail-content{
+            padding: 0rem 0%;
+        }
+        .desktop-meta{
+
+            display: none !important;
+        }
+        .map_title{
+            font-size: 14px;
+        }
+        .cred-item{
+            align-items: flex-start;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .cred-divider {
+            display: none !important;
+        }
+
+        .credentials-card{
+            padding: 0 16px;
+        }
+        .credentials-card .cred-item img{
+            width: 16px;
+            height: 16px;
+            margin: 2px 0 0 !important;
+        }
+        .credentials-card .cred-text strong{
+            font-size: 14px;
+            line-height: 1.2;
+            margin-bottom: 2px;
+        }
+        .credentials-card .cred-text p{
+            font-size: 14px;
+            line-height: 1.35;
+            color: #000;
+        }
+        .address_title{
+            font-size: 18px !important;
+            line-height: 1.2;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+        .property-description{
+            padding-left: 16px;
+            padding-right: 16px;
+        }
+        .property-description .description-text,
+        .policies-text,
+        .policies-text p {
+            font-size: 14px;
+            line-height: 1.45;
+            color: #000;
+            margin-bottom: 10px;
+        }
+        .amenities-section{
+            margin: 0;
+            padding: 0 16px;
+        }
+        .amenities-section h2,
+        .policies-section h2{
+            font-size: 18px !important;
+            line-height: 1.2;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+        .amenities-grid{
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+            gap: 12px 16px !important;
+        }
+        .amenity-item{
+            padding: 0;
+            font-size: 14px;
+            line-height: 1.4;
+            gap: 8px;
+        }
+        .amenity-icon img{
+            width: 14px;
+            height: 14px;
+            margin-right: 0;
+        }
+        .show-more-btn,
+        .gallery-btn{
+            font-size: 11px;
+            line-height: 1;
+            padding: 6px 10px;
+            border-radius: 4px;
+            margin-top: 6px;
+        }
+        .property-details > hr{
+            margin: 30px 0 !important;
+            border: 0 !important;
+            height: 1px !important;
+            background-color: #dddddd !important;
+            opacity: 1;
+        }
+        .property-description{
+
+            margin-bottom: 5px;
+        }
+        .section-check-times{
+            margin: 20px 0px !important;
+            padding: 0 0px;
+        }
+        .section-check-times .col-6{
+            margin-bottom: 0 !important;
+        }
+        .section-check-times img{
+            width: 16px !important;
+            height: 16px !important;
+            margin-right: 8px !important;
+        }
+        .section-check-times .text-muted{
+            font-size: 14px !important;
+            line-height: 1.2;
+        }
+        .section-check-times .fw-semibold{
+            font-size: 18px !important;
+            line-height: 1.2;
+        }
+        .section-policies{
+            padding: 0 16px;
+        }
+        .map-section iframe {
+            height: auto;
+            aspect-ratio: 4 / 3;
+            min-height: 300px;
+        }
+        .mobile-map-section {
+            display: block;
+            padding: 0 0px;
+            margin: 32px 0px;
+        }
+        .desktop-map-section,
+        .desktop-map-divider {
+            display: none;
+        }
+        .section-divider-before-map {
+            display: block;
+            margin: 20px 0 !important;
+        }
+        .amenities-bottom-divider {
+            display: none;
+        }
+        .check-times-bottom-divider {
+            display: block;
+        }
+
+    }
+
+    @media (max-width: 1024px) {
+        .property-details.mobile-sequenced {
+            display: block !important;
+        }
+    }
+
+    @media (max-width: 767px) {
+        .gallery-play-fab {
+            right: 8px;
+            bottom: 8px;
+            width: 57px;
+            height: 42px;
+            border-radius: 13px;
+        }
+        #galleryModal {
+            padding: 0;
+        }
+        #galleryModal .modal-content {
+            width: 100vw;
+            height: 100vh;
+            border-radius: 0;
+        }
+        #galleryModal .gallery-close {
+            top: max(10px, env(safe-area-inset-top));
+            right: max(10px, env(safe-area-inset-right));
+            width: 40px;
+            height: 40px;
+            font-size: 30px;
+        }
+        #galleryModal .prev,
+        #galleryModal .next {
+            width: 44px;
+            height: 44px;
+            font-size: 30px;
+            top: 52%;
+        }
+        #galleryModal .prev {
+            left: 8px;
+        }
+        #galleryModal .next {
+            right: 8px;
+        }
+        #galleryModal .gallery-controls {
+            width: 100%;
+            bottom: max(10px, env(safe-area-inset-bottom));
+            padding: 0 10px;
+        }
+        #galleryModal .gallery-controls .video-tour-btn {
+            font-size: 11px;
+            padding: 7px 10px;
+            border-radius: 999px;
+        }
+        .mobile-title-price .mobile-title-text {
+            font-size: 16px !important;
+            line-height: 1;
+        }
+        .mobile-title-price .mobile-price-text {
+            font-size: 14px !important;
+        }
+        .mobile-action-dots-btn {
+            width: 24px;
+            height: 24px;
+        }
+        .mobile-action-dots-icon {
+            width: 12px;
+            height: 12px;
+        }
+        .map-section iframe {
+            min-height: 320px;
+            border-radius: 8px;
+        }
+        .booking-card {
+            padding: 16px;
+            margin: 0 0px 16px;
+        }
+        .booking-card-price {
+            font-size: 22px;
+            line-height: 1.1;
+        }
+        .booking-card-price small {
+            font-size: 0.9rem;
+        }
+        .booking-card-fee-link {
+            font-size: 13px;
+        }
+    }
+
+    @media (max-width: 576px) {
+        .booking-card {
+            margin: 0px 0px 14px;
+            padding: 16px;
+        }
+        .mobile-title-price .mobile-title-text {
+            font-size: 15px !important;
+        }
+        .mobile-title-price .mobile-price-text {
+            font-size: 17px !important;
+        }
+        .date-inputs {
+            grid-template-columns: 1fr;
+            gap: 8px;
+        }
+        .booking-card-header {
+            align-items: baseline;
+        }
+        .booking-card-fee-link {
+            white-space: normal;
+            text-align: right;
+        }
+    }
+
+    @media (min-width: 992px) {
+        .desktop-date-range-wrap {
+            display: block;
+        }
+        .native-date-inputs {
+            display: none;
+        }
+    }
+
+    @media (max-width: 991.98px) {
+        .check-times-divider {
+            display: block;
+            margin: 20px 0 !important;
+        }
+        .policies-top-divider {
+            display: none !important;
+        }
+        .policies-top-divider.show-on-mobile {
+            display: block !important;
+            margin: 20px 0 !important;
+        }
+    }
+</style>
+{% endblock extra_head %}
+
+{% block content %}
+    <!-- Action Buttons -->
+    <div class="container-fluid p-0">
+        <div class="action-buttons">
+            <div class="left-section">
+                <img src="{% static 'img/property/hotel_room_white.png' %}">
+
+                <span>Listing Details</span>
+            </div>
+            <!-- <div class="btn-group">
+                <a href="{% url 'property:property-edit' pk=property.id %}" class="btn-cancel" style="color: #1D74B2;">Edit</a>
+                <div class="btn-divider"></div>
+                <a href="javascript:void(0)" onclick="toggleStatus('{{ property.id }}', '{{ property.status }}')" class="btn-cancel">
+                    {% if property.status == 'Active' %}
+                        Inactive
+                    {% else %}
+                        Active
+                    {% endif %}
+                </a>
+                <div class="btn-divider"></div>
+                <a href="javascript:void(0);" onclick="deleteProperty('{{ property.id }}')" class="btn-cancel" style="color: #FF0000;">Delete</a>
+            </div> -->
+            <button class="new-action-btn-header dropdown-toggle" type="button" data-bs-toggle="dropdown"
+                    id="actionDropdown"
+                    aria-expanded="false" data-bs-auto-close="outside"
+                    style="background: #FFFFFF; color: #1D74B2; font-weight: 600;">
+                    Action
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="actionDropdown">
+                    {% if property.status == 'Active' %}
+                        <li>
+                        <a class="dropdown-item" href="{% url 'booking:booking-create' %}?property_id={{ property.id }}">
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                <path d="M12 2H4C2.89543 2 2 2.89543 2 4V12C2 13.1046 2.89543 14 4 14H12C13.1046 14 14 13.1046 14 12V4C14 2.89543 13.1046 2 12 2Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M11 1V3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M5 1V3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M2 7H14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                                Create a Reservation
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="{% url 'tasks:task-create' %}?property_id={{ property.id }}">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                                <rect x="3" y="3" width="18" height="18" rx="3" stroke="currentColor" stroke-width="1.6"/>
+                                <path d="M7 9L9 11L13 7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M7 14H17" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+                                <path d="M7 18L9 20L13 16" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                                Create Task
+                            </a>
+                        </li>
+                    {% endif %}
+                    <li>
+                        <a class="dropdown-item" href="{% url 'booking:booking-list' %}?property_id={{ property.id }}&status=current">
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                <path d="M11 7C12.1046 7 13 6.10457 13 5C13 3.89543 12.1046 3 11 3C9.89543 3 9 3.89543 9 5C9 6.10457 9.89543 7 11 7Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M6 13V11C6 9.89543 6.89543 9 8 9H14C15.1046 9 16 9.89543 16 11V13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M5 7C6.10457 7 7 6.10457 7 5C7 3.89543 6.10457 3 5 3C3.89543 3 3 3.89543 3 5C3 6.10457 3.89543 7 5 7Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M0 13V11C0 9.89543 0.895431 9 2 9H8C9.10457 9 10 9.89543 10 11V13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            View Guests
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item" href="{% url 'property:property-edit' pk=property.id %}">
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                <path d="M11.5 2.5L13.5 4.5L5 13H3V11L11.5 2.5Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            Edit
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item" onclick="deleteProperty('{{ property.id }}')" style="cursor: pointer;">
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                <path d="M2 4H14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M6.5 1H9.5C10.0523 1 10.5 1.44772 10.5 2V4H5.5V2C5.5 1.44772 5.94772 1 6.5 1Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M12.5 4V13C12.5 14.1046 11.6046 15 10.5 15H5.5C4.39543 15 3.5 14.1046 3.5 13V4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M6.5 7.5V11.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M9.5 7.5V11.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            Delete
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item" href="{% url 'property:property-create' %}?clone_from={{ property.id }}">
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                <path d="M4 6H2C1.44772 6 1 6.44772 1 7V14C1 14.5523 1.44772 15 2 15H9C9.55228 15 10 14.5523 10 14V12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M7 1H14C14.5523 1 15 1.44772 15 2V9C15 9.55228 14.5523 10 14 10H7C6.44772 10 6 9.55228 6 9V2C6 1.44772 6.44772 1 7 1Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            Clone
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item" href="javascript:void(0)"
+                            onclick="toggleStatus('{{ property.id }}', '{{ property.status }}')">
+                                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                    <path d="M8 15C11.866 15 15 11.866 15 8C15 4.13401 11.866 1 8 1C4.13401 1 1 4.13401 1 8C1 11.866 4.13401 15 8 15Z"
+                                        stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                    <path d="M8 4V8L11 11"
+                                        stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                                {% if property.status == "Active" %}
+                                    Make Inactive
+                                {% else %}
+                                    Make Active
+                                {% endif %}
+                        </a>
+                    </li>
+                    {% if property.status == "Active" %}
+                    <li>
+                        <a class="dropdown-item" href="/manage/{{property.id}}/" >
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                <path d="M4 6H2C1.44772 6 1 6.44772 1 7V14C1 14.5523 1.44772 15 2 15H9C9.55228 15 10 14.5523 10 14V12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M7 1H14C14.5523 1 15 1.44772 15 2V9C15 9.55228 14.5523 10 14 10H7C6.44772 10 6 9.55228 6 9V2C6 1.44772 6.44772 1 7 1Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            Channel Integration
+                        </a>
+                    </li>
+                    {% endif %}
+
+                    <li>
+                        <a class="dropdown-item" href="#" >
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                <path d="M10.125 5.875C11.025 4.975 12.475 4.975 13.375 5.875C14.275 6.775 14.275 8.225 13.375 9.125L11.75 10.75" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M5.875 10.125C4.975 11.025 3.525 11.025 2.625 10.125C1.725 9.225 1.725 7.775 2.625 6.875L4.25 5.25" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M5.25 10.75L10.75 5.25" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            Copy Guest Link
+                        </a>
+                    </li>
+
+                </ul>
+        </div>
+
+        <div class="property-detail-scroll" style="max-height: calc(100vh - 165px); overflow: auto; overflow-x: hidden;">
+            <div class="property-detail-content">
+                <div class="row property-header">
+                    <!-- Title and Status Row -->
+                    <div class="col-lg-8 col-md-8 col-sm-12 desktop-title">
+                        <span style="font-size: 24px; font-weight: 500">{{ property.title }}</span>
+                    </div>
+                    <div class="col-lg-4 col-md-4 col-sm-12 desktop-status" style="text-align: end;">
+                        {% if property.status == 'Active' %}
+                            <div class="status-badge" style="background-color: #28a745; width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 5px;"></div>
+                            <span style="font-size: 14px;color: #666;">Active <span style="color: #000; font-weight: 500;font-size: 20px;">.</span> Listed on {{ property.created_at|date:"M. d, Y" }}</span>
+                            {% else %}
+                            <div class="status-badge" style="background-color: #dc3545; width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 5px;"></div>
+                            <span style="font-size: 14px;color: #666;">Inactive</span>
+                        {% endif %}
+                    </div>
+                    <div class="col-12 mobile-title-price">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <p class="mb-0 fw-semibold mobile-title-text">{{ property.title }}</p>
+                            <div class="text-end d-flex align-items-center">
+                                <div class="mobile-price-actions">
+                                    <div class="mobile-price-row">
+                                        <p class="mb-0 fw-bold mobile-price-text">${{property.price_per_night|floatformat:2}} night</p>
+                                    </div>
+
+                                    {% if property.cleaning_fee > 0 or property.refundable_deposit > 0 or property.application_fees > 0 %}
+                                    <div class="mobile-fee-row">
+                                        <a href="#" id="openOtherFeesModalMobile" class="mobile-fee-link">Other fees</a>
+                                    </div>
+                                    {% endif %}
+
+                                </div>
+                                <div class="btn-group dropdown mobile-action-dropdown">
+                                            <button class="mobile-action-dots-btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="More actions">
+                                                <svg class="mobile-action-dots-icon" viewBox="0 0 18 18" aria-hidden="true">
+                                                    <circle cx="9" cy="4" r="1.5"></circle>
+                                                    <circle cx="9" cy="9" r="1.5"></circle>
+                                                    <circle cx="9" cy="14" r="1.5"></circle>
+                                                </svg>
+                                            </button>
+                                            <ul class="dropdown-menu dropdown-menu-end">
+                                                {% if property.status == 'Active' %}
+                                                    <li>
+                                                    <a class="dropdown-item" href="{% url 'booking:booking-create' %}?property_id={{ property.id }}">
+                                                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                                            <path d="M12 2H4C2.89543 2 2 2.89543 2 4V12C2 13.1046 2.89543 14 4 14H12C13.1046 14 14 13.1046 14 12V4C14 2.89543 13.1046 2 12 2Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                                            <path d="M11 1V3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                                            <path d="M5 1V3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                                            <path d="M2 7H14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                                            </svg>
+                                                            Create a Reservation
+                                                        </a>
+                                                    </li>
+                                                {% endif %}
+                                                <li>
+                                                    <a class="dropdown-item" href="{% url 'booking:booking-list' %}?property_id={{ property.id }}&status=current">
+                                                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                                            <path d="M11 7C12.1046 7 13 6.10457 13 5C13 3.89543 12.1046 3 11 3C9.89543 3 9 3.89543 9 5C9 6.10457 9.89543 7 11 7Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                                            <path d="M6 13V11C6 9.89543 6.89543 9 8 9H14C15.1046 9 16 9.89543 16 11V13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                                            <path d="M5 7C6.10457 7 7 6.10457 7 5C7 3.89543 6.10457 3 5 3C3.89543 3 3 3.89543 3 5C3 6.10457 3.89543 7 5 7Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                                            <path d="M0 13V11C0 9.89543 0.895431 9 2 9H8C9.10457 9 10 9.89543 10 11V13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                                        </svg>
+                                                        View Guests
+                                                    </a>
+                                                </li>
+                                                <li>
+                                                    <a class="dropdown-item" href="{% url 'property:property-edit' pk=property.id %}">
+                                                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                                            <path d="M11.5 2.5L13.5 4.5L5 13H3V11L11.5 2.5Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                                        </svg>
+                                                        Edit
+                                                    </a>
+                                                </li>
+                                                <li>
+                                                    <a class="dropdown-item" onclick="deleteProperty('{{ property.id }}')" style="cursor: pointer;">
+                                                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                                            <path d="M2 4H14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                                            <path d="M6.5 1H9.5C10.0523 1 10.5 1.44772 10.5 2V4H5.5V2C5.5 1.44772 5.94772 1 6.5 1Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                                            <path d="M12.5 4V13C12.5 14.1046 11.6046 15 10.5 15H5.5C4.39543 15 3.5 14.1046 3.5 13V4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                                            <path d="M6.5 7.5V11.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                                            <path d="M9.5 7.5V11.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                                        </svg>
+                                                        Delete
+                                                    </a>
+                                                </li>
+                                                <li>
+                                                    <a class="dropdown-item" href="{% url 'property:property-create' %}?clone_from={{ property.id }}">
+                                                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                                            <path d="M4 6H2C1.44772 6 1 6.44772 1 7V14C1 14.5523 1.44772 15 2 15H9C9.55228 15 10 14.5523 10 14V12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                                            <path d="M7 1H14C14.5523 1 15 1.44772 15 2V9C15 9.55228 14.5523 10 14 10H7C6.44772 10 6 9.55228 6 9V2C6 1.44772 6.44772 1 7 1Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                                        </svg>
+                                                        Clone
+                                                    </a>
+                                                </li>
+                                                <li>
+                                                    <a class="dropdown-item" href="javascript:void(0)"
+                                                        onclick="toggleStatus('{{ property.id }}', '{{ property.status }}')">
+                                                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                                                <path d="M8 15C11.866 15 15 11.866 15 8C15 4.13401 11.866 1 8 1C4.13401 1 1 4.13401 1 8C1 11.866 4.13401 15 8 15Z"
+                                                                    stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                                                <path d="M8 4V8L11 11"
+                                                                    stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                                            </svg>
+                                                            {% if property.status == "Active" %}
+                                                                Make Inactive
+                                                            {% else %}
+                                                                Make Active
+                                                            {% endif %}
+                                                    </a>
+                                                </li>
+                                                {% if property.status == "Active" %}
+                                                <li>
+                                                    <a class="dropdown-item" href="/manage/{{property.id}}/" >
+                                                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                                            <path d="M4 6H2C1.44772 6 1 6.44772 1 7V14C1 14.5523 1.44772 15 2 15H9C9.55228 15 10 14.5523 10 14V12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                                            <path d="M7 1H14C14.5523 1 15 1.44772 15 2V9C15 9.55228 14.5523 10 14 10H7C6.44772 10 6 9.55228 6 9V2C6 1.44772 6.44772 1 7 1Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                                        </svg>
+                                                        Channel Integration
+                                                    </a>
+                                                </li>
+                                                {% endif %}
+
+                                                <li>
+                                                    <a class="dropdown-item" href="#" >
+                                                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                                            <path d="M10.125 5.875C11.025 4.975 12.475 4.975 13.375 5.875C14.275 6.775 14.275 8.225 13.375 9.125L11.75 10.75" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                                            <path d="M5.875 10.125C4.975 11.025 3.525 11.025 2.625 10.125C1.725 9.225 1.725 7.775 2.625 6.875L4.25 5.25" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                                            <path d="M5.25 10.75L10.75 5.25" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                                        </svg>
+                                                        Copy Guest Link
+                                                    </a>
+                                                </li>
+                                            </ul>
+                                        </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Property Details Row -->
+                    <div class="col-lg-12 col-md-9 col-sm-12 desktop-meta" style="margin-top: 10px;">
+                        <div class="property-meta" style="display: flex; align-items: center; flex-wrap: wrap; gap: 15px;">
+                                                      
+                            
+                            <span class="property-text">
+                                <img src="{% static 'img/property/guest.svg' %}">
+                                {{ property.guest }} guests (max)
+                            </span>
+                            
+                            <div class="cred-divider"></div>
+                            
+                            <span class="property-text">
+                                <img src="{% static 'img/property/room.svg' %}">
+                                {{ property.get_property_type_display }}
+                            </span>
+                            
+                            <div class="cred-divider"></div>
+                            
+                            <span class="property-text">
+                                <img src="{% static 'img/property/bathtub.svg' %}">
+                                {{ property.get_bathroom_type_display }} Bathroom
+                            </span>
+                            
+                            <div class="cred-divider"></div>
+                            
+                            <span class="property-text">
+                                <img src="{% static 'img/property/bed.svg' %}">
+                                {{ property.bed_type }} Bed
+                            </span>
+
+                            <div class="cred-divider"></div>
+                            
+                            <span class="property-text">
+                                <img src="{% static 'img/property/min_nights.svg' %}">
+                                {{ property.minimum_booking }} nights (min)
+                            </span>
+
+                            {% for amenity in property.amenities.all %}
+                                {% if amenity.name == "Pet Friendly" %}
+                                <div class="cred-divider"></div>
+
+                                <span class="property-text">
+                                    <img src="{{ amenity.icon.url }}" alt="Pet Friendly">
+                                    Pet Friendly
+                                </span>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
+                    <!-- Revenue and Occupancy Row -->
+                    <!-- <div class="col-lg-3 col-md-3 col-sm-12 desktop-revenue" style="text-align: end; margin-top: 10px;">
+                        <div style="font-size: 14px; color: #666;">
+                            <span style="display: inline-flex; align-items: center; gap: 4px; margin-right: 10px;">
+                                <img src="{% static 'img/property/revenue.svg' %}">
+                                Revenue: <strong>$0</strong>
+                            </span>
+                            <span style="display: inline-flex; align-items: center; gap: 4px;">
+                                <img src="{% static 'img/property/occupancy.svg' %}">
+                                Occupancy: <strong>0%</strong>
+                            </span>
+                        </div>
+                    </div> -->
+                </div>
+
+                <!-- Gallery Section -->
+                <div class="gallery-row">
+                    {% if images|length == 1 %}
+                        <div class="gallery-col main-image" style="flex: 2; border-radius: 12px; cursor: pointer;">
+                            <img src="{{ images.0.image.url }}" alt="{{ property.title }}" style="border-radius: 12px;" onclick="openGalleryModal(0)">
+                        </div>
+                    {% elif images|length == 2 %}
+                        <div class="gallery-col main-image" style="cursor: pointer;">
+                            <img src="{{ images.0.image.url }}" alt="{{ property.title }}" onclick="openGalleryModal(0)">
+                        </div>
+                        <div class="gallery-col main-image" style="position: relative; border-radius: 0 12px 12px 0; cursor: pointer;">
+                            <img src="{{ images.1.image.url }}" alt="{{ property.title }}" style="border-radius: 0 12px 12px 0;" onclick="openGalleryModal(1)">
+                            <div class="gallery-overlay-btns">
+                                <button 
+                                    onclick="showAllPhotos(this)" 
+                                    data-images='[{% for img in images %}"{{ img.image.url }}"{% if not forloop.last %},{% endif %}{% endfor %}]'
+                                    style="display: flex; align-items: center; justify-content: center;">
+                                    <img src="{% static 'img/property/gallery.svg' %}" style="height: 30px; width: 30px;">
+                                    Show all {{ images|length }} photos
+                                </button>
+                                {% if property.youtube_link %}
+                                <a href="{{ property.youtube_link }}" target="_blank" style="display: flex; align-items: center; justify-content: center; text-decoration: none;">
+                                    <button onclick="showVideoTour()" style="display: flex; align-items: center; justify-content: center;">
+                                    <img src="{% static 'img/property/video_icon.svg' %}" style="height: 30px; width: 30px;">
+                                    Video Tour</button>
+                                </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% elif images|length == 3 %}
+                        <div class="gallery-col main-image" style="cursor: pointer;">
+                            <img src="{{ images.0.image.url }}" alt="{{ property.title }}" onclick="openGalleryModal(0)">
+                        </div>
+                        <div class="gallery-col" style="display: flex; flex-direction: column; gap: 8px;">
+                            <div class="thumb-item" style="flex: 1; border-radius: 0 12px 0 0; cursor: pointer;">
+                                <img src="{{ images.1.image.url }}" alt="{{ property.title }} image 2" onclick="openGalleryModal(1)">
+                            </div>
+                            <div class="thumb-item" style="flex: 1; position: relative; border-radius: 0 0 12px 0; cursor: pointer;">
+                                <img src="{{ images.2.image.url }}" alt="{{ property.title }} image 3" onclick="openGalleryModal(2)">
+                                <div class="gallery-overlay-btns">
+                                    <button 
+                                        onclick="showAllPhotos(this)" 
+                                        data-images='[{% for img in images %}"{{ img.image.url }}"{% if not forloop.last %},{% endif %}{% endfor %}]'
+                                        style="display: flex; align-items: center; justify-content: center;">
+                                        <img src="{% static 'img/property/gallery.svg' %}" style="height: 30px; width: 30px;">
+                                        Show all {{ images|length }} photos
+                                    </button>
+                                    {% if property.youtube_link %}
+                                    <a href="{{ property.youtube_link }}" target="_blank" style="display: flex; align-items: center; justify-content: center; text-decoration: none;">
+                                        <button onclick="showVideoTour()" style="display: flex; align-items: center; justify-content: center;">
+                                        <img src="{% static 'img/property/video_icon.svg' %}" style="height: 30px; width: 30px;">
+                                        Video Tour</button>
+                                    </a>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    {% elif images|length == 4 %}
+                        <div class="gallery-col main-image" style="cursor: pointer;">
+                            <img src="{{ images.0.image.url }}" alt="{{ property.title }}" onclick="openGalleryModal(0)">
+                        </div>
+                        <div class="gallery-col thumbnails">
+                            <div class="thumb-item" style="cursor: pointer;">
+                                <img src="{{ images.1.image.url }}" alt="{{ property.title }} image 2" onclick="openGalleryModal(1)">
+                            </div>
+                            <div class="thumb-item" style="cursor: pointer;">
+                                <img src="{{ images.2.image.url }}" alt="{{ property.title }} image 3" onclick="openGalleryModal(2)">
+                            </div>
+                            <div class="thumb-item" style="grid-column: span 2; position: relative; border-radius: 0 0 12px 0; cursor: pointer;">
+                                <img src="{{ images.3.image.url }}" alt="{{ property.title }} image 4" onclick="openGalleryModal(3)">
+                                <div class="gallery-overlay-btns">
+                                    <button 
+                                        onclick="showAllPhotos(this)" 
+                                        data-images='[{% for img in images %}"{{ img.image.url }}"{% if not forloop.last %},{% endif %}{% endfor %}]'
+                                        style="display: flex; align-items: center; justify-content: center;">
+                                        <img src="{% static 'img/property/gallery.svg' %}" style="height: 30px; width: 30px;">
+                                        Show all {{ images|length }} photos
+                                    </button>
+                                    {% if property.youtube_link %}
+                                    <a href="{{ property.youtube_link }}" target="_blank" style="display: flex; align-items: center; justify-content: center; text-decoration: none;">
+                                        <button onclick="showVideoTour()" style="display: flex; align-items: center; justify-content: center;">
+                                        <img src="{% static 'img/property/video_icon.svg' %}" style="height: 30px; width: 30px;">
+                                        Video Tour</button>
+                                    </a>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    {% else %}
+                        <div class="gallery-col main-image" style="cursor: pointer;">
+                            <img src="{{ images.0.image.url }}" alt="{{ property.title }}" onclick="openGalleryModal(0)">
+                        </div>
+                        <div class="gallery-col thumbnails">
+                            {% for image in images|slice:"1:5" %}
+                            <div class="thumb-item" style="cursor: pointer;">
+                                <img src="{{ image.image.url }}" alt="{{ property.title }} image {{ forloop.counter }}" onclick="openGalleryModal({{ forloop.counter }})">
+                                {% if forloop.last %}
+                                <div class="gallery-overlay-btns">
+                                    <button 
+                                        onclick="showAllPhotos(this)" 
+                                        data-images='[{% for img in images %}"{{ img.image.url }}"{% if not forloop.last %},{% endif %}{% endfor %}]'
+                                        style="display: flex; align-items: center; justify-content: center;">
+                                        <img src="{% static 'img/property/gallery.svg' %}" style="height: 30px; width: 30px;">
+                                        Show all {{ images|length }} photos
+                                    </button>
+                                    {% if property.youtube_link %}
+                                    <a href="{{ property.youtube_link }}" target="_blank" style="display: flex; align-items: center; justify-content: center; text-decoration: none;">
+                                        <button onclick="showVideoTour()" style="display: flex; align-items: center; justify-content: center;">
+                                        <img src="{% static 'img/property/video_icon.svg' %}" style="height: 30px; width: 30px;">
+                                        Video Tour</button>
+                                    </a>
+                                    {% endif %}
+                                </div>
+                                {% endif %}
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                    {% if property.youtube_link %}
+                    <a href="{{ property.youtube_link }}" class="gallery-play-fab" aria-label="Open YouTube">
+                        <span class="play-core">
+                            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                                <path d="M8 6v12l10-6z"></path>
+                            </svg>
+                        </span>
+                    </a>
+                     {% endif %}
+                </div>
+                <div class="mobile-meta-block mb-3">
+                    <div class="property-meta mobile-property-meta">
+                        <span class="property-text mobile-meta-item">
+                            <img class="mobile-meta-icon" src="{% static 'img/property/guest.svg' %}" alt="Guests">
+                            <span class="mobile-meta-label">{{ property.guest }} guests (max)</span>
+                        </span>
+                        <span class="property-text mobile-meta-item">
+                            <img class="mobile-meta-icon" src="{% static 'img/property/room.svg' %}" alt="Room type">
+                            <span class="mobile-meta-label">{{ property.get_property_type_display }}</span>
+                        </span>
+                        <span class="property-text mobile-meta-item">
+                            <img class="mobile-meta-icon" src="{% static 'img/property/bathtub.svg' %}" alt="Bathroom type">
+                            <span class="mobile-meta-label">{{ property.get_bathroom_type_display }} Bath</span>
+                        </span>
+                        <span class="property-text mobile-meta-item">
+                            <img class="mobile-meta-icon" src="{% static 'img/property/bed.svg' %}" alt="Bed type">
+                            <span class="mobile-meta-label">{{ property.bed_type }} Bed</span>
+                        </span>
+                        <span class="property-text mobile-meta-item">
+                            <img class="mobile-meta-icon" src="{% static 'img/property/min_nights.svg' %}" alt="Minimum nights">
+                            <span class="mobile-meta-label">{{ property.minimum_booking }} nights (min)</span>
+                        </span>
+                        {% for amenity in property.amenities.all %}
+                            {% if amenity.name == "Pet Friendly" %}
+                            <span class="property-text mobile-meta-item">
+                                <img class="mobile-meta-icon" src="{{ amenity.icon.url }}" alt="Pet Friendly">
+                                <span class="mobile-meta-label">Pet friendly</span>
+                            </span>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="map-section section-map mobile-map-section">
+                    <h2 class="map_title">Where you’ll be staying</h2>
+                    <iframe
+                        frameborder="0"
+                        src="https://maps.google.com/maps?q={{ property.street_address|urlencode }}+{{ property.city|urlencode }}+{{ property.state|urlencode }}+{{ property.zip|urlencode }}&amp;z=14&amp;ie=UTF8&amp;iwloc=&amp;output=embed"
+                        allowfullscreen
+                        loading="lazy"
+                        class="mb-3"
+                        referrerpolicy="no-referrer-when-downgrade">
+                    </iframe>
+                    <p>{{ property.city }}, {{ property.state }}</p>
+                </div>
+
+                <!-- Property Info Section -->
+                <div class="property-info">
+                    <div class="property-details mobile-sequenced">
+
+                        <div class="credentials-card section-address">
+                            <h2 class="address_title">Address and Room credentials</h2>
+
+                            <div class="cred-item">
+                                <img src="{% static 'img/property/location.svg' %}" style="margin-left: 10px;margin-right: 10px;">
+                                <div class="cred-text">
+                                    <strong>Location</strong>
+                                    <p>{{ property.city }}, {{ property.state }}</p>
+                                </div>
+                            </div>
+
+                            <div class="cred-item">
+                                <img src="{% static 'img/property/address.png' %}" style="margin-right: 10px;">
+                                <div class="cred-text">
+                                    <strong>Address</strong>
+                                    <p>{{ property.street_address }}, {{ property.city }}, {{ property.state }}, {{property.country}}, {{ property.zip }}</p>
+                                </div>
+                            </div>
+
+                            <hr class="cred-divider" style="margin: 0rem 0;">
+
+                            <div class="cred-item">
+                                <img src="{% static 'img/property/room_password.png' %}" style="margin-right: 10px;">
+                                <div class="cred-text">
+                                    <strong>Room Password</strong>
+                                    
+                                    <p>
+                                        {% if property.room_password %} 
+                                        {{ property.room_password }} 
+                                        {% else %} 
+                                            NA
+                                        {% endif %}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <hr class="cred-divider" style="margin: 0rem 0;">
+
+                            <div class="cred-item">
+                                <img src="{% static 'img/property/wifi.png' %}" style="margin-right: 10px;">
+                                <div class="cred-text me-5">
+                                    <strong>Wifi Name</strong>
+                                    <p>
+                                        {% if property.network_name %} 
+                                        {{ property.network_name }} 
+                                        {% else %} 
+                                            NA
+                                        {% endif %}
+                                    </p>
+                                </div>
+                                <div class="cred-text">
+                                    <strong>Wifi Password</strong>
+                                    <p>
+                                        {% if property.wifi_password %} 
+                                        {{ property.wifi_password }} 
+                                        {% else %} 
+                                            NA
+                                        {% endif %}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <hr class="checkin-docs-top-divider">
+                        
+                        <div class="property-description section-about">
+                            <h2 class="address_title">About this property</h2>
+                            <p class="description-text" data-full="{{ property.description|linebreaksbr }}"></p>
+                            <button class="show-more-btn">Show more</button>
+                        </div>
+
+
+                        {% if amenities|length > 0 %}
+                        <!-- Amenities Section -->
+                        <hr>
+                        <div class="amenities-section section-amenities">
+                            <h2 style="font-size: 22px;">What this property offers</h2>
+                            <div class="amenities-grid">
+                                {% for amenity in amenities %}
+                                <div class="amenity-item {% if forloop.counter > 10 %}hidden-amenity{% endif %}">
+                                    {% if amenity.icon %}
+                                    <span class="amenity-icon">
+                                        <img src="{{ amenity.icon.url }}" alt="{{ amenity.name }}">
+                                    </span>
+                                    {% endif %}
+                                    <span class="offer-text">{{ amenity.name }}</span>
+                                </div>
+                                {% endfor %}
+                            </div>
+
+                            {% if amenities|length > 10 %}
+                            <button class="gallery-btn" id="toggle-amenities">Show all amenities</button>
+                            {% endif %}
+                        </div>
+                        <hr class="amenities-bottom-divider">
+                        
+                        {% endif %}
+
+                        <hr class="desktop-map-divider">
+
+                        <div class="map-section section-map desktop-map-section">
+                            <h2  class="map_title">Where you’ll be staying</h2>
+                            <iframe
+                                frameborder="0"
+                                src="https://maps.google.com/maps?q={{ property.street_address|urlencode }}+{{ property.city|urlencode }}+{{ property.state|urlencode }}+{{ property.zip|urlencode }}&amp;z=14&amp;ie=UTF8&amp;iwloc=&amp;output=embed"
+                                allowfullscreen
+                                loading="lazy"
+                                class="mb-3"
+                                referrerpolicy="no-referrer-when-downgrade">
+                            </iframe>
+                            <p>{{ property.city }}, {{ property.state }}</p>
+                        </div>
+
+                        <hr class="section-divider-before-map">
+                        <!-- Check in/out times -->
+                        <div class="row mb-3 section-check-times">
+                            <!-- Check In -->
+                            <div class="col-lg-6 col-md-6 col-6 d-flex align-items-center mb-3">
+                                <img src="{% static 'img/property/checkin.png' %}" alt="Check In" style="width:28px; height:28px; margin-right:12px;">
+                                <div class="text-start">
+                                    <p class="text-muted mb-0" style="font-size:15px;">Check In after:</p>
+                                    <p class="fw-semibold mb-0" style="font-size:20px; color:#000;">{{ property.check_in_time|time:"g:00 A" }}</p>
+                                </div>
+                            </div>
+
+                            <!-- Check Out -->
+                            <div class="col-lg-6 col-md-6 col-6 d-flex align-items-center mb-3">
+                                <img src="{% static 'img/property/checkout.png' %}" alt="Check Out" style="width:28px; height:28px; margin-right:12px;">
+                                <div class="text-start">
+                                    <p class="text-muted mb-0" style="font-size:15px;">Check Out before:</p>
+                                    <p class="fw-semibold mb-0" style="font-size:20px; color:#000;">{{ property.check_out_time|time:"g:00 A" }}</p>
+                                </div>
+                            </div>
+                        </div>
+                        {% if not check_in_docs and not check_out_docs %}
+                        <hr class="check-times-bottom-divider">
+                        {% endif %}
+
+
+
+                        {% if check_in_docs or check_out_docs %}
+                        <hr class="check-times-divider">
+                        <div class="row mb-3  section-check-times">
+                            <div class="col-6">
+                                {% if check_in_docs|length > 0 %}
+                                <p class=" mb-3" style="font-weight: bold;">Check-in instructions</p>
+                                <a href="#" id="openCheckInDocsModal" class="d-inline-flex align-items-center text-decoration-underline" style="color: #0B46FA;">
+                                    <img src="{% static 'img/booking/attachment_icon_blue.svg' %}" alt="Attachments" style="width: 20px; height: 20px; margin-right: 8px;">
+                                    <span>Attachments ({{ check_in_docs|length }})</span>
+                                </a>
+                                {% endif %}
+                            </div>
+                            <div class="col-6">
+                                {% if check_out_docs|length > 0 %}
+                                <p class=" mb-3" style="font-weight: bold;">Check-out instructions</p>
+                                <a href="#" id="openCheckOutDocsModal" class="d-inline-flex align-items-center text-decoration-underline" style="color: #0B46FA;">
+                                    <img src="{% static 'img/booking/attachment_icon_blue.svg' %}" alt="Attachments" style="width: 20px; height: 20px; margin-right: 8px;">
+                                    <span>Attachments ({{ check_out_docs|length }})</span>
+                                </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endif %}
+
+
+                        <!-- Policies Section -->
+                        {% if property.rules %}
+                        <hr class="policies-top-divider {% if check_in_docs or check_out_docs %}show-on-mobile{% endif %}">
+                        <div class="policies-section section-policies">
+                            <h2 style="font-size: 22px;">Cancellation, other Policies and rules</h2>
+                            <div class="policies-text">
+                                <p class="rules-text" data-full="{{ property.rules|linebreaksbr }}"></p>
+                            </div>
+                            <button class="show-more-btn">Show more</button>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Booking Card -->
+                    <div class="booking-card">
+<div class="booking-card-header">
+                            <h3 class="fw-bold text-center me-2 booking-card-price">${{property.price_per_night|floatformat:2}}<small class="text-muted fw-normal"> night</small></h3>
+                            {% if property.cleaning_fee > 0 or property.refundable_deposit > 0 or property.application_fees > 0 %}
+                            <a href="#" id="openOtherFeesModal" class="booking-card-fee-link">*Other Fee</a>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="desktop-date-range-wrap">
+                            <label class="desktop-date-range-label">Date Range *</label>
+                            <button type="button" class="desktop-date-range-trigger" id="detail-date-range-trigger" aria-label="Select date range">
+                                <span class="desktop-date-range-values">
+                                    <span id="detail-checkin-display">Check-in</span>
+                                    <span class="desktop-date-range-separator">—</span>
+                                    <span id="detail-checkout-display">Check-out</span>
+                                </span>
+                                <img src="{% static 'img/property/uit_calendar.svg' %}" alt="Calendar">
+                            </button>
+                            <div id="detail-date-range-picker" class="detail-date-range-picker" aria-hidden="true"></div>
+                        </div>
+
+                        <div class="date-inputs native-date-inputs">
+                            <div class="date-col">
+                                <div class="d-flex flex-column">
+                                    <label for="checkin-date" class="form-label mb-1 fw-bold">Check In *</label>
+                                    <input type="date" id="checkin-date" name="check_in" class="form-control" style="padding: 8px; border-radius: 4px; border: 1px solid #ced4da; color: #000;">
+                                </div>
+                            </div>
+                            <div class="date-col">
+                                <div class="d-flex flex-column">
+                                    <label for="checkout-date" class="form-label mb-1 fw-bold">Check Out*</label>
+                                    <input type="date" id="checkout-date" name="check_out" class="form-control" style="padding: 8px; border-radius: 4px; border: 1px solid #ced4da; color: #000;">
+                                </div>
+                            </div>
+                        </div>
+                        <label for="" class="form-label mb-1 fw-bold" style="font-size: 14px;">Guests*</label>
+                        <select class="guests-input" id="guests-input">
+                            {% for i in "x"|ljust:property.guest %}
+                            <option value="{{ forloop.counter }}" {% if forloop.last %}selected{% endif %}>{{ forloop.counter }} guest{% if forloop.counter > 1 %}s{% endif %}</option>
+                            {% endfor %}
+                        </select>
+                        <button class="reserve-btn" id="create-reservation-btn" style="display: none;">Create Reservation</button>
+                        <button class="reserve-btn" id="create-availability-btn" {% if property.status != 'Active' %}disabled{% endif %}>Check Availability</button>
+                        <div id="availability-status" class="availability-text" style="display: none;"></div>
+                        {% if property.status != 'Active' %}
+                            <div class="availability-text not-available" style="display: block;">This listing is currently inactive.</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% include 'frontend/base/footer.html' %}
+
+
+        </div>
+    </div>
+
+    <div id="galleryModal" class="modal" style="display:none;">
+        <button type="button" class="gallery-close" onclick="closeGalleryModal()" aria-label="Close gallery">&times;</button>
+        
+        <!-- Left Arrow -->
+        <button type="button" class="prev" onclick="changeImage(-1)" aria-label="Previous image">&#10094;</button>
+        
+        <!-- Image Display -->
+        <div class="modal-content">
+            <img id="galleryMainImage" src="" alt="Property Image">
+        </div>
+        
+        <!-- Right Arrow -->
+        <button type="button" class="next" onclick="changeImage(1)" aria-label="Next image">&#10095;</button>
+
+        <!-- Gallery Controls -->
+        <div class="gallery-controls">
+            <span class="video-tour-btn" id="image-counter"></span>
+            {% if property.youtube_link %}
+            <a href="{{ property.youtube_link }}" target="_blank" class="video-tour-btn">
+                <img src="{% static 'img/property/video_icon.svg' %}" style="height: 30px; width: 30px; filter: brightness(0) invert(1);">
+                Video Tour
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Custom Delete Confirmation Modal -->
+    <div id="deleteModal" class="modal" style="display:none;">
+        <div class="custom-modal-content">
+            <span class="close" onclick="closeDeleteModal()">&times;</span>
+            <div class="custom-modal-header">
+            <h5 id="deleteModalLabel">Confirm Delete</h5>
+            </div>
+            <div class="custom-modal-body">
+            Are you sure you want to delete this property? This action cannot be undone.
+            </div>
+            <div class="custom-modal-footer">
+            <button type="button" class="btn btn-secondary" onclick="closeDeleteModal()">Cancel</button>
+            <form id="deleteForm" method="post" style="display:inline; margin-left: 10px;">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-danger">Delete</button>
+            </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Toggle Status Confirmation Modal -->
+    <div id="toggleStatusModal" class="modal" style="display:none;">
+        <div class="custom-modal-content">
+            <span class="close" onclick="closeToggleStatusModal()">&times;</span>
+            <div class="custom-modal-header">
+            <h5 id="toggleStatusModalLabel">Confirm Status Change</h5>
+            </div>
+            <div class="custom-modal-body" id="toggleStatusMessage">
+            <!-- message set dynamically -->
+            </div>
+            <div class="custom-modal-footer">
+            <button type="button" class="btn btn-secondary" onclick="closeToggleStatusModal()">Cancel</button>
+            <form id="toggleStatusForm" method="post" style="display:inline; margin-left: 10px;">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-primary">Yes, change</button>
+            </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Validation Error Modal -->
+    <div id="validationModal" class="modal" style="display:none;">
+        <div class="custom-modal-content">
+            <span class="close" onclick="closeValidationModal()">&times;</span>
+            <div class="custom-modal-header">
+                <h5 id="validationModalLabel">Missing Information</h5>
+            </div>
+            <div class="custom-modal-body" id="validationModalBody">
+            </div>
+            <div class="custom-modal-footer">
+                <button type="button" class="btn btn-primary" onclick="closeValidationModal()">OK</button>
+            </div>
+        </div>
+    </div>
+
+<!-- Check-in Docs Modal -->
+<div id="checkInDocsModal" class="modal" style="display:none;background-color: transparent;">
+    <div class="custom-modal-content">
+        <a href="#" role="button" class="close" onclick="closeModal('checkInDocsModal'); return false;" style="position: absolute; top: 10px; right: 15px;">
+            <img src="{% static 'img/common/close-icon.svg' %}" alt="Close">
+        </a>
+        <div class="custom-modal-header">
+            <h5>Check-in Instructions</h5>
+        </div>
+        <hr style="margin: 0;">
+
+        <div class="custom-modal-body pt-0">
+            <div class="mt-2">
+                <p class="mb-2 fw-bold" style="font-size: 14px;">File name</p>
+                <hr style="margin: 0;">
+                <div style="border: 1px solid #ddd; border-radius: 4px; overflow: hidden;">
+                    {% for doc in check_in_docs %}
+                    <div class="d-flex align-items-center justify-content-between p-3" style="border-bottom: 1px solid #ddd; background-color: #fff;">
+                        <div class="d-flex align-items-center">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 12px; color: #666;">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                <polyline points="14 2 14 8 20 8"></polyline>
+                            </svg>
+                            <a href="{{ doc.document.url }}" target="_blank" class="text-decoration-underline" style="color: #0066cc; font-size: 14px;">
+                                {{ doc.name }}
+                            </a>
+                        </div>
+                        <a href="{{ doc.document.url }}" download class="text-decoration-none" style="color: #333;">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="7 10 12 15 17 10"></polyline>
+                                <line x1="12" y1="15" x2="12" y2="3"></line>
+                            </svg>
+                        </a>
+                    </div>
+                    {% empty %}
+                    <p class="p-3 mb-0">No check-in documents available.</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Check-out Docs Modal -->
+<div id="checkOutDocsModal" class="modal" style="display:none;background-color: transparent;">
+    <div class="custom-modal-content">
+        <a href="#" role="button" class="close" onclick="closeModal('checkOutDocsModal'); return false;" style="position: absolute; top: 10px; right: 15px;">
+            <img src="{% static 'img/common/close-icon.svg' %}" alt="Close">
+        </a>
+        <div class="custom-modal-header">
+            <h5>Check-out Instructions</h5>
+        </div>
+        <div class="custom-modal-body">
+            <div class="mt-2">
+                <p class="mb-2 fw-semibold" style="font-size: 14px;">File name</p>
+                <div style="border: 1px solid #ddd; border-radius: 4px; overflow: hidden;">
+                    {% for doc in check_out_docs %}
+                    <div class="d-flex align-items-center justify-content-between p-3" style="border-bottom: 1px solid #ddd; background-color: #fff;">
+                        <div class="d-flex align-items-center">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 12px; color: #666;">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                <polyline points="14 2 14 8 20 8"></polyline>
+                            </svg>
+                            <a href="{{ doc.document.url }}" target="_blank" class="text-decoration-underline" style="color: #0066cc; font-size: 14px;">
+                                {{ doc.name }}
+                            </a>
+                        </div>
+                        <a href="{{ doc.document.url }}" download class="text-decoration-none" style="color: #333;">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="7 10 12 15 17 10"></polyline>
+                                <line x1="12" y1="15" x2="12" y2="3"></line>
+                            </svg>
+                        </a>
+                    </div>
+                    {% empty %}
+                    <p class="p-3 mb-0">No check-out documents available.</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Other Fees Popover -->
+    <div id="otherFeesPopover" class="other-fees-popover" style="display:none;">
+        <div class="custom-modal-header pb-2">
+            <h5 class="mb-0">Other Fees</h5>
+        </div>
+        <div class="custom-modal-body pt-2">
+            <table class="table">
+                <tbody>
+                    {% if property.cleaning_fee > 0 %}
+                    <tr>
+                        <td>Cleaning Fee</td>
+                        <td class="text-end fw-bold">${{ property.cleaning_fee|floatformat:2 }}</td>
+                    </tr>
+                    {% endif %}
+                    {% if property.refundable_deposit > 0 %}
+                    <tr>
+                        <td>Refundable Deposit</td>
+                        <td class="text-end fw-bold">${{ property.refundable_deposit|floatformat:2 }}</td>
+                    </tr>
+                    {% endif %}
+                    {% if property.application_fees > 0 %}
+                    <tr>
+                        <td>Application Fee</td>
+                        <td class="text-end fw-bold">${{ property.application_fees|floatformat:2 }}</td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+{% endblock content  %}
+
+{% block extra_script %}
+<script src="{% static 'js/custom.js' %}"></script>
+
+<script>
+    const checkinDateInput = document.getElementById('checkin-date');
+    const checkoutDateInput = document.getElementById('checkout-date');
+    if (checkinDateInput) {
+        checkinDateInput.addEventListener('keydown', function(e) {
+            e.preventDefault();
+            return false;
+        });
+    }
+    if (checkoutDateInput) {
+        checkoutDateInput.addEventListener('keydown', function(e) {
+            e.preventDefault();
+            return false;
+        });
+    }
+</script>
+
+<script>
+    function setupShowMore(containerSelector, maxLength = 400) {
+        const container = document.querySelector(containerSelector);
+        if (!container) return;
+
+        const textElement = container.querySelector('p');
+        const btn = container.querySelector('.show-more-btn');
+        if (!textElement || !btn) return;
+
+        const fullText = textElement.getAttribute("data-full") || "";
+
+        if (fullText.length > maxLength) {
+            const shortText = fullText.substring(0, maxLength) + "...";
+            textElement.innerHTML = shortText;
+
+            btn.addEventListener("click", function () {
+                const isShort = textElement.innerHTML.endsWith("...");
+                textElement.innerHTML = isShort ? fullText : shortText;
+                btn.textContent = isShort ? "Show less" : "Show more";
+            });
+        } else {
+            textElement.innerHTML = fullText;
+            btn.style.display = 'none';
+        }
+    }
+</script>
+<script>
+    let galleryImages = [{% for img in images %}"{{ img.image.url }}"{% if not forloop.last %},{% endif %}{% endfor %}];
+    let currentIndex = 0;
+
+    function updateImageCounter() {
+        const counterElement = document.getElementById('image-counter');
+        if (counterElement) {
+            counterElement.textContent = `${currentIndex + 1} / ${galleryImages.length}`;
+        }
+    }
+
+    function openGalleryModal(index) {
+        currentIndex = index;
+        if (galleryImages.length > 0) {
+            document.getElementById('galleryMainImage').src = galleryImages[currentIndex];
+            document.getElementById('galleryModal').style.display = 'flex';
+            updateImageCounter();
+        }
+    }
+
+    function showAllPhotos(button) {
+        // This function is now just a specific case of openGalleryModal, starting from the first image
+        openGalleryModal(0);
+    }    
+
+    function changeImage(step) {
+        currentIndex += step;
+        if (currentIndex < 0) {
+            currentIndex = galleryImages.length - 1; // loop back
+        } else if (currentIndex >= galleryImages.length) {
+            currentIndex = 0; // loop forward
+        }
+        document.getElementById('galleryMainImage').src = galleryImages[currentIndex];
+        updateImageCounter();
+    }
+
+    function closeGalleryModal() {
+        document.getElementById('galleryModal').style.display = 'none';
+    }
+
+    // Add keyboard navigation for the gallery modal
+    document.addEventListener('keydown', function(event) {
+        const modal = document.getElementById('galleryModal');
+        if (modal.style.display === 'flex') {
+            if (event.key === 'ArrowLeft' || event.keyCode === 37) {
+                changeImage(-1);
+            } else if (event.key === 'ArrowRight' || event.keyCode === 39) {
+                changeImage(1);
+            } else if (event.key === 'Escape' || event.keyCode === 27) {
+                closeGalleryModal();
+            }
+        }
+    });
+
+    document.addEventListener("DOMContentLoaded", function () {
+        // Setup for "About this property"
+        setupShowMore('.property-description');
+
+        // Setup for "Policies"
+        setupShowMore('.policies-section');
+
+        const amenitiesBtn = document.getElementById("toggle-amenities");
+        const hiddenItems = document.querySelectorAll(".hidden-amenity");
+
+
+        if (amenitiesBtn) {
+                amenitiesBtn.addEventListener("click", function () {
+                hiddenItems.forEach(item => item.classList.toggle("hidden-amenity"));
+                amenitiesBtn.textContent = hiddenItems[0].classList.contains("hidden-amenity")
+                    ? "Show all amenities"
+                    : "Show less amenities";
+            });
+        }
+        
+    });
+
+
+</script>
+<script>
+    // Delete property
+    function deleteProperty(propertyId) {
+        const form = document.getElementById('deleteForm');
+        form.action = `/property/delete/${propertyId}/`;
+        document.getElementById('deleteModal').style.display = 'flex';
+    }
+
+    function closeDeleteModal() {
+        document.getElementById('deleteModal').style.display = 'none';
+    }
+
+    // Toggle status
+    function toggleStatus(propertyId, currentStatus) {
+        const form = document.getElementById("toggleStatusForm");
+        form.action = `/property/toggle-status/${propertyId}/`;
+
+        const newStatus = currentStatus === "Active" ? "Inactive" : "Active";
+        document.getElementById("toggleStatusMessage").innerText =
+          `Are you sure you want to make this property ${newStatus}?`;
+
+        document.getElementById('toggleStatusModal').style.display = 'flex';
+    }
+
+    function closeToggleStatusModal() {
+        document.getElementById('toggleStatusModal').style.display = 'none';
+    }
+
+    function showValidationModal(message) {
+        document.getElementById('validationModalBody').innerText = message;
+        document.getElementById('validationModal').style.display = 'flex';
+    }
+
+    function closeValidationModal() {
+        document.getElementById('validationModal').style.display = 'none';
+    }
+
+</script>
+
+<script>
+    function openModal(modalId) {
+        const modal = document.getElementById(modalId);
+        if (modal) {
+            modal.style.display = 'flex';
+        }
+    }
+
+    function closeModal(modalId) {
+        const modal = document.getElementById(modalId);
+        if (modal) {
+            modal.style.display = 'none';
+        }
+    }
+
+    function setupHoverModal(triggerId, modalId) {
+        const trigger = document.getElementById(triggerId);
+        const modal = document.getElementById(modalId);
+        let modalTimeout;
+
+        if (trigger && modal) {
+            trigger.addEventListener('mouseenter', function() {
+                clearTimeout(modalTimeout);
+                openModal(modalId);
+            });
+
+            function hideModal() {
+                modalTimeout = setTimeout(() => {
+                    closeModal(modalId);
+                }, 200);
+            }
+
+            trigger.addEventListener('mouseleave', hideModal);
+            modal.addEventListener('mouseenter', () => clearTimeout(modalTimeout));
+            modal.addEventListener('mouseleave', hideModal);
+        }
+    }
+
+    setupHoverModal('openCheckInDocsModal', 'checkInDocsModal');
+    setupHoverModal('openCheckOutDocsModal', 'checkOutDocsModal');
+
+    // --- Other Fees Popover Logic ---
+    const otherFeesLinks = [
+        document.getElementById('openOtherFeesModal'),
+        document.getElementById('openOtherFeesModalMobile')
+    ].filter(Boolean);
+    const otherFeesPopover = document.getElementById('otherFeesPopover');
+    let feesPopoverTimeout;
+
+    if (otherFeesLinks.length > 0 && otherFeesPopover) {
+        function showPopover(anchorEl) {
+            clearTimeout(feesPopoverTimeout);
+            const linkRect = anchorEl.getBoundingClientRect();
+            otherFeesPopover.style.display = 'block';
+            
+            // Position popover below the link
+            otherFeesPopover.style.top = `${linkRect.bottom + window.scrollY + 5}px`;
+            
+            // Position it to the left, but don't let it go off-screen
+            const popoverRect = otherFeesPopover.getBoundingClientRect();
+            let leftPosition = linkRect.right - popoverRect.width;
+            if (leftPosition < 0) {
+                leftPosition = 10; // Add some padding from the edge
+            }
+            otherFeesPopover.style.left = `${leftPosition + window.scrollX}px`;
+        }
+
+        otherFeesLinks.forEach((linkEl) => {
+            linkEl.addEventListener('mouseenter', function() {
+                showPopover(linkEl);
+            });
+            linkEl.addEventListener('click', function(e) {
+                e.preventDefault();
+                const isVisible = otherFeesPopover.style.display === 'block';
+                if (isVisible) {
+                    otherFeesPopover.style.display = 'none';
+                } else {
+                    showPopover(linkEl);
+                }
+            });
+            linkEl.addEventListener('mouseleave', hidePopover);
+        });
+
+        function hidePopover() {
+            feesPopoverTimeout = setTimeout(() => {
+                otherFeesPopover.style.display = 'none';
+            }, 200); // Small delay to allow moving mouse between link and popover
+        }
+
+        otherFeesPopover.addEventListener('mouseenter', () => clearTimeout(feesPopoverTimeout));
+        otherFeesPopover.addEventListener('mouseleave', hidePopover);
+    }
+</script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const propertyId = "{{ property.id }}";
+        const reservationBtn = document.getElementById('create-reservation-btn');
+        const availabilityBtn = document.getElementById('create-availability-btn');
+        const statusDiv = document.getElementById('availability-status');
+        const guestsInput = document.getElementById('guests-input');
+        const checkinEl = document.getElementById('checkin-date');
+        const checkoutEl = document.getElementById('checkout-date');
+        const desktopDateTrigger = document.getElementById('detail-date-range-trigger');
+        const desktopCheckinDisplay = document.getElementById('detail-checkin-display');
+        const desktopCheckoutDisplay = document.getElementById('detail-checkout-display');
+        const desktopRangePicker = document.getElementById('detail-date-range-picker');
+
+        function formatLocalIso(dateObj) {
+            const y = dateObj.getFullYear();
+            const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+            const d = String(dateObj.getDate()).padStart(2, '0');
+            return `${y}-${m}-${d}`;
+        }
+
+        function parseIsoDate(value) {
+            if (!value) return null;
+            const [y, m, d] = value.split('-').map(Number);
+            return new Date(y, m - 1, d);
+        }
+
+        function addDaysIso(value, days) {
+            const base = parseIsoDate(value);
+            if (!base) return '';
+            base.setDate(base.getDate() + days);
+            return formatLocalIso(base);
+        }
+
+        // Set minimum date to today for both date pickers
+        const today = formatLocalIso(new Date());
+        if (checkinEl) {
+            checkinEl.setAttribute('min', today);
+        }
+        if (checkoutEl) {
+            const nextFromToday = addDaysIso(today, 1);
+            checkoutEl.setAttribute('min', nextFromToday);
+        }
+
+        // Ensure check-out date is not before check-in date
+        if (checkinEl && checkoutEl) {
+            checkinEl.addEventListener('change', function() {
+                const nextDay = addDaysIso(this.value, 1);
+                if (!nextDay) return;
+
+                // Checkout must be at least one day after check-in
+                checkoutEl.min = nextDay;
+
+                // Do not auto-select checkout date; only clear invalid previous value
+                if (checkoutEl.value && checkoutEl.value < nextDay) {
+                    checkoutEl.value = '';
+                    checkoutEl.dispatchEvent(new Event('input'));
+                    checkoutEl.dispatchEvent(new Event('change'));
+                }
+
+                // Mobile: open checkout picker immediately after selecting check-in
+                if (window.innerWidth < 992) {
+                    setTimeout(() => {
+                        if (typeof checkoutEl.showPicker === 'function') {
+                            checkoutEl.showPicker();
+                        } else {
+                            checkoutEl.focus();
+                            checkoutEl.click();
+                        }
+                    }, 80);
+                }
+            });
+
+            // Initial sync when values already exist (edit/back navigation cases)
+            if (checkinEl.value) {
+                const nextDay = addDaysIso(checkinEl.value, 1);
+                if (nextDay) {
+                    checkoutEl.min = nextDay;
+                    if (checkoutEl.value && checkoutEl.value < nextDay) {
+                        checkoutEl.value = '';
+                    }
+                }
+            }
+
+            checkoutEl.addEventListener('change', function() {
+                if (!this.value) return;
+                const selected = parseIsoDate(this.value);
+                const minAllowed = parseIsoDate(this.min);
+                if (selected && minAllowed && selected < minAllowed) {
+                    this.value = '';
+                }
+            });
+        }
+
+        function formatDateDisplay(dateString) {
+            if (!dateString) return '';
+            const [year, month, day] = dateString.split('-').map(Number);
+            const date = new Date(year, month - 1, day);
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        }
+
+        function updateDesktopDateDisplay() {
+            if (!desktopCheckinDisplay || !desktopCheckoutDisplay || !checkinEl || !checkoutEl) return;
+            desktopCheckinDisplay.textContent = checkinEl.value ? formatDateDisplay(checkinEl.value) : 'Check-in';
+            desktopCheckoutDisplay.textContent = checkoutEl.value ? formatDateDisplay(checkoutEl.value) : 'Check-out';
+        }
+
+        if (checkinEl) {
+            checkinEl.addEventListener('input', updateDesktopDateDisplay);
+            checkinEl.addEventListener('change', updateDesktopDateDisplay);
+        }
+        if (checkoutEl) {
+            checkoutEl.addEventListener('input', updateDesktopDateDisplay);
+            checkoutEl.addEventListener('change', updateDesktopDateDisplay);
+        }
+        updateDesktopDateDisplay();
+
+        // Desktop date range picker
+        if (desktopRangePicker && desktopDateTrigger && checkinEl && checkoutEl) {
+            const minDate = new Date();
+            minDate.setHours(0, 0, 0, 0);
+
+            function parseDateInput(val) {
+                if (!val) return null;
+                const [y, m, d] = val.split('-').map(Number);
+                return new Date(y, m - 1, d);
+            }
+
+            function formatInput(date) {
+                const y = date.getFullYear();
+                const m = String(date.getMonth() + 1).padStart(2, '0');
+                const d = String(date.getDate()).padStart(2, '0');
+                return `${y}-${m}-${d}`;
+            }
+
+            function sameDay(a, b) {
+                return a && b && a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+            }
+
+            function isDisabled(dateObj) {
+                return dateObj < minDate;
+            }
+
+            let startDate = parseDateInput(checkinEl.value);
+            let endDate = parseDateInput(checkoutEl.value);
+            let hoverDate = null;
+            let viewCursor = startDate ? new Date(startDate) : new Date();
+            viewCursor.setDate(1);
+
+            function buildMonth(year, month) {
+                const firstDay = new Date(year, month, 1);
+                const daysInMonth = new Date(year, month + 1, 0).getDate();
+                const startWeekday = firstDay.getDay();
+                const cells = [];
+                for (let i = 0; i < startWeekday; i++) cells.push(null);
+                for (let d = 1; d <= daysInMonth; d++) cells.push(new Date(year, month, d));
+                while (cells.length % 7 !== 0) cells.push(null);
+
+                const monthLabel = firstDay.toLocaleString('en-US', { month: 'short', year: 'numeric' });
+                const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => `<div class="drp-weekday">${d}</div>`).join('');
+
+                const dayCells = cells.map(cell => {
+                    if (!cell) return `<div class="drp-day blank"></div>`;
+                    const iso = formatInput(cell);
+                    const disabled = isDisabled(cell);
+                    const previewStart = startDate && !endDate && hoverDate
+                        ? (hoverDate < startDate ? hoverDate : startDate)
+                        : null;
+                    const previewEnd = startDate && !endDate && hoverDate
+                        ? (hoverDate > startDate ? hoverDate : startDate)
+                        : null;
+                    const inRange = startDate && endDate && cell > startDate && cell < endDate;
+                    const inPreviewRange = previewStart && previewEnd && cell > previewStart && cell < previewEnd;
+                    const classes = ['drp-day'];
+                    if (disabled) classes.push('disabled');
+                    if (inRange) classes.push('in-range');
+                    if (inPreviewRange) classes.push('in-range');
+                    if (sameDay(cell, startDate)) classes.push('start');
+                    if (sameDay(cell, endDate)) classes.push('end');
+                    if (!endDate && hoverDate && sameDay(cell, hoverDate)) classes.push('end');
+                    return `<div class="${classes.join(' ')}" data-date="${iso}">${cell.getDate()}</div>`;
+                }).join('');
+
+                return `
+                    <div class="drp-month">
+                        <div class="drp-month-title">${monthLabel}</div>
+                        <div class="drp-weekdays">${weekdays}</div>
+                        <div class="drp-days">${dayCells}</div>
+                    </div>
+                `;
+            }
+
+            function renderRangePicker() {
+                const next = new Date(viewCursor);
+                next.setMonth(next.getMonth() + 1);
+                desktopRangePicker.style.setProperty('--months', 2);
+                desktopRangePicker.innerHTML = `
+                    <div class="drp-header">
+                        <button type="button" class="drp-nav" data-dir="-1" aria-label="Previous month">‹</button>
+                        <div style="flex:1;"></div>
+                        <button type="button" class="drp-nav" data-dir="1" aria-label="Next month">›</button>
+                    </div>
+                    <div class="drp-months">
+                        ${buildMonth(viewCursor.getFullYear(), viewCursor.getMonth())}
+                        ${buildMonth(next.getFullYear(), next.getMonth())}
+                    </div>
+                `;
+
+                desktopRangePicker.querySelectorAll('.drp-nav').forEach(btn => {
+                    btn.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        const dir = parseInt(this.dataset.dir, 10);
+                        viewCursor.setMonth(viewCursor.getMonth() + dir);
+                        const earliest = new Date(minDate);
+                        earliest.setDate(1);
+                        if (viewCursor < earliest) viewCursor = earliest;
+                        renderRangePicker();
+                    });
+                });
+
+                desktopRangePicker.querySelectorAll('.drp-day[data-date]').forEach(dayEl => {
+                    if (dayEl.classList.contains('disabled')) return;
+                    dayEl.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        const clicked = parseDateInput(this.dataset.date);
+                        if (!startDate || (startDate && endDate)) {
+                            startDate = clicked;
+                            endDate = null;
+                            hoverDate = null;
+                        } else if (clicked < startDate) {
+                            startDate = clicked;
+                            endDate = null;
+                            hoverDate = null;
+                        } else {
+                            endDate = clicked;
+                            hoverDate = null;
+                        }
+                        checkinEl.value = startDate ? formatInput(startDate) : '';
+                        checkoutEl.value = endDate ? formatInput(endDate) : '';
+                        checkinEl.dispatchEvent(new Event('input'));
+                        checkinEl.dispatchEvent(new Event('change'));
+                        checkoutEl.dispatchEvent(new Event('input'));
+                        checkoutEl.dispatchEvent(new Event('change'));
+                        renderRangePicker();
+                        if (startDate && endDate) closePicker();
+                    });
+                    dayEl.addEventListener('mouseenter', function() {
+                        if (!startDate || endDate) return;
+                        const nextHoverDate = parseDateInput(this.dataset.date);
+                        if (sameDay(hoverDate, nextHoverDate)) return;
+                        hoverDate = nextHoverDate;
+                        renderRangePicker();
+                    });
+                });
+            }
+
+            function openPicker() {
+                if (window.innerWidth < 992) return;
+                desktopRangePicker.classList.add('open');
+                startDate = parseDateInput(checkinEl.value);
+                endDate = parseDateInput(checkoutEl.value);
+                hoverDate = null;
+                viewCursor = startDate ? new Date(startDate) : new Date();
+                viewCursor.setDate(1);
+                renderRangePicker();
+            }
+
+            function closePicker() {
+                hoverDate = null;
+                desktopRangePicker.classList.remove('open');
+            }
+
+            desktopRangePicker.addEventListener('mouseleave', function() {
+                if (!startDate || endDate || !hoverDate) return;
+                hoverDate = null;
+                renderRangePicker();
+            });
+
+            desktopDateTrigger.addEventListener('click', function(e) {
+                e.stopPropagation();
+                if (desktopRangePicker.classList.contains('open')) closePicker();
+                else openPicker();
+            });
+
+            document.addEventListener('click', function(e) {
+                if (!desktopRangePicker.classList.contains('open')) return;
+                if (!desktopRangePicker.contains(e.target) && !desktopDateTrigger.contains(e.target)) {
+                    closePicker();
+                }
+            });
+
+            window.addEventListener('resize', closePicker);
+        }
+
+        // Function to reset the UI to its initial state, prompting a new check.
+        function resetAvailabilityState() {
+            reservationBtn.style.display = 'none';
+            availabilityBtn.style.display = 'block';
+            statusDiv.style.display = 'none';
+        }
+
+        function performCheck() {
+            const guestsValue = guestsInput.value;
+
+            if (checkinEl && checkoutEl && checkinEl.value.trim() && checkoutEl.value.trim() && guestsValue) {
+                const guests = parseInt(guestsValue, 10);
+                checkAvailability(checkinEl.value, checkoutEl.value, guests);
+            } else {
+                showValidationModal('Please select check-in, check-out dates, and number of guests first.');
+            }
+        }
+
+        // When date or guest count changes, reset the state.
+        if (checkinEl) checkinEl.addEventListener('change', resetAvailabilityState);
+        if (checkoutEl) checkoutEl.addEventListener('change', resetAvailabilityState);
+        if (guestsInput) guestsInput.addEventListener('change', resetAvailabilityState);
+
+
+        // When the "Check Availability" button is clicked, perform the check.
+        if (availabilityBtn) availabilityBtn.addEventListener('click', performCheck);
+
+        function checkAvailability(checkin, checkout, guests) {
+            const url = `/property/${propertyId}/check-availability/?check_in=${checkin}&check_out=${checkout}&guests=${guests}`;
+
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    
+                    // Make the status div visible once a check is performed
+                    statusDiv.style.display = 'block';
+
+                    if (data.available) {
+                        statusDiv.textContent = 'Available';
+                        statusDiv.className = 'availability-text available';
+                        reservationBtn.style.display = 'block';
+                        availabilityBtn.style.display = 'none';
+                    } else {
+                        statusDiv.textContent = 'Not Available';
+                        statusDiv.className = 'availability-text not-available';
+                        reservationBtn.style.display = 'none';
+                        availabilityBtn.style.display = 'block';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error checking availability:', error);
+                    statusDiv.style.display = 'block';
+                    statusDiv.textContent = 'Error checking availability';
+                    statusDiv.className = 'availability-text not-available';
+                    resetAvailabilityState(); // Also reset on error
+                });
+        }
+
+        // Example of how to use the buttons
+        if (reservationBtn) reservationBtn.addEventListener('click', () => {
+            const guestsValue = guestsInput.value;
+
+            if (checkinEl && checkoutEl && checkinEl.value && checkoutEl.value && guestsValue) {
+                const guests = parseInt(guestsValue, 10);
+                const bookingUrl = `{% url 'booking:booking-create' %}`;
+                const queryParams = new URLSearchParams({
+                    property_id: propertyId,
+                    check_in: checkinEl.value,
+                    check_out: checkoutEl.value,
+                    guests: guests
+                });
+                window.location.href = `${bookingUrl}?${queryParams.toString()}`;
+            } else {
+                showValidationModal('Could not retrieve reservation details. Please select dates and guests again.');
+                resetAvailabilityState();
+            }
+        });
+    });
+</script>
+
+{% endblock extra_script %}

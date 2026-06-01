@@ -1,0 +1,851 @@
+{% extends 'frontend/base/base.html' %}
+{% load static %}
+
+{% block extra_head %}
+    <link href="{% static 'css/property/create.css' %}" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/css/intlTelInput.css"/>
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+
+    <style>
+        /* Hide arrows from number inputs in the payment section */
+        /* For Chrome, Safari, Edge, Opera */
+        .price-input input[type=number]::-webkit-inner-spin-button,
+        .price-input input[type=number]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        /* For Firefox */
+        .price-input input[type=number] {
+            -moz-appearance: textfield;
+        }
+
+        .iti {
+            width: 100%;
+        }
+
+        .select2-container {
+            margin-bottom: 0;
+        }
+
+        .select2-container--default .select2-selection--single {
+            height: auto;
+            min-height: 44px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            padding: 8px 12px;
+            font-size: 1rem;
+            border: 1px solid #e5e7eb;
+            background: #fff;
+            box-shadow: none;
+            transition: all 0.2s;
+        }
+
+        .select2-container--default .select2-selection--single:hover {
+            border-color: #d1d5db;
+        }
+
+        .select2-container--default.select2-container--focus .select2-selection--single {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .select2-container--default .select2-selection--single .select2-selection__rendered {
+            line-height: normal;
+            padding-left: 0;
+            padding-right: 40px;
+            display: flex;
+            align-items: center;
+        }
+
+        .select2-container--default .select2-selection--single .select2-selection__arrow {
+            height: 100%;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        .select2-selection__rendered .property-card-select2 {
+            border: none !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            box-shadow: none !important;
+            background: transparent !important;
+        }
+
+        .select2-dropdown {
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.12);
+            border: 1px solid #e5e7eb;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+
+        .select2-results__options {
+            max-height: 400px;
+            padding: 8px;
+        }
+
+        .select2-results__option {
+            padding: 0 !important;
+            background: transparent !important;
+            border: none !important;
+        }
+
+        .property-card-select2 {
+            display: flex;
+            align-items: center;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 14px 16px;
+            background: #fff;
+            margin: 6px 0;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        .select2-results__option--highlighted .property-card-select2 {
+            box-shadow: 0 2px 12px rgba(59, 130, 246, 0.15);
+            border-color: #3b82f6;
+            background: #f0f7ff;
+        }
+
+        .select2-results__option--selected .property-card-select2 {
+            background: #eff6ff;
+            border-color: #93c5fd;
+        }
+
+        .property-card-img {
+            width: 72px;
+            height: 60px;
+            object-fit: cover;
+            border-radius: 10px;
+            margin-right: 16px;
+            border: 1px solid #e5e7eb;
+            flex-shrink: 0;
+        }
+
+        .property-card-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+       
+    </style>
+    <style>
+        .task_phone .iti__country-list--dropup{
+            max-width: 324px;
+            overflow-x: hidden;
+        }
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+        }
+
+        .form-section {
+            margin-bottom: 14px;
+        }
+
+        .form-section.full-width {
+            grid-column: 1 / -1;
+        }
+
+        label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .required {
+            color: #e53e3e;
+        }
+
+        .listing-select {
+            width: 100%;
+            padding: 12px 40px 12px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 14px;
+            background: white;
+            cursor: pointer;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%23666' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+        }
+
+        .listing-option {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: white;
+            margin-bottom: 10px;
+        }
+
+        .listing-option:hover {
+            border-color: #3b82f6;
+            background: #f8fafc;
+        }
+
+        .listing-option.selected {
+            border-color: #3b82f6;
+            background: #eff6ff;
+        }
+
+        .listing-image {
+            width: 60px;
+            height: 60px;
+            border-radius: 6px;
+            object-fit: cover;
+            margin-right: 12px;
+        }
+
+        .listing-info {
+            flex: 1;
+        }
+
+        .listing-title {
+            font-weight: 600;
+            font-size: 14px;
+            color: #111;
+            margin-bottom: 4px;
+        }
+
+        .listing-location {
+            font-size: 12px;
+            color: #6b7280;
+            margin-bottom: 4px;
+        }
+
+        .listing-price {
+            font-size: 13px;
+            color: #374151;
+            font-weight: 500;
+        }
+
+        .checkmark {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: #3b82f6;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 16px;
+        }
+
+        .listing-option.selected .checkmark {
+            display: flex;
+        }
+
+        input[type="text"],
+        input[type="date"],
+        input[type="tel"],
+        select,
+        textarea {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: inherit;
+            transition: border-color 0.2s;
+        }
+
+        input:focus,
+        select:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #3b82f6;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .phone-input {
+            display: flex;
+            gap: 8px;
+        }
+
+        .country-code {
+            width: 80px;
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            background: white;
+            cursor: pointer;
+        }
+
+        .flag {
+            margin-right: 6px;
+        }
+
+        .phone-number {
+            flex: 1;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .checkbox-group label {
+            margin: 0;
+            cursor: pointer;
+            font-weight: 400;
+        }
+
+        .main_row_div{
+            padding: 0 2% !important;
+            min-height: 82vh;
+        }
+
+        @media (max-width: 640px) {
+            .main_row_div{
+                padding: 0rem 0% !important; 
+            } 
+        }   
+        @media (max-width: 991.98px) {
+            .main_row_div{
+                padding: 0rem 3% !important; 
+            }
+
+            .action-buttons {
+                background: #ffffff !important;
+                border-radius: 0 !important;
+                border-bottom: 1px solid #e5e7eb;
+                padding: 10px 12px !important;
+            }
+
+            .action-buttons > .d-flex.align-items-center span {
+                color: #000000 !important;
+            }
+
+            .action-buttons > .d-flex.align-items-center img {
+                filter: brightness(0);
+            }
+
+            .action-buttons .btn-group {
+                background: #ffffff;
+                border: 2px solid #7f8a95;
+                border-radius: 20px;
+                box-shadow: none;
+                overflow: hidden;
+            }
+
+            .action-buttons .btn-create,
+            .action-buttons .btn-cancel {
+                background: #ffffff;
+                color: #1d74b2;
+                font-weight: 700;
+                padding: 8px 16px;
+            }
+
+            .action-buttons .btn-divider {
+                background: #7f8a95;
+                margin: 6px 0;
+            }
+
+            /* Reduce large gap between stacked left and right columns */
+            .main_row_div > .col-lg-6 {
+                padding: 0 !important;
+            }
+
+            .main_row_div > .col-lg-6:first-child .form-section.full-width {
+                margin-bottom: 10px !important;
+                padding-top: 15px;
+            }
+
+            /* Keep all stacked fields aligned on mobile/tablet */
+            .main_row_div .row {
+                --bs-gutter-x: 0 !important;
+            }
+
+            .main_row_div > [class*="col-"] {
+                padding-left: 0 !important;
+                padding-right: 0 !important;
+            }
+
+            .main_row_div .row > [class*="col-"] {
+                padding-left: 0 !important;
+                padding-right: 0 !important;
+            }
+
+            .main_row_div .form-section {
+                padding-right: 0 !important;
+            }
+            .form-section {
+                margin-bottom: 14px;
+            }
+            .form-grid {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 10px;
+            }
+        }
+
+
+        @media (max-width: 768px) {
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+    <style>
+        .time_dropdown-toggle::after{
+            background: none !important;
+        }
+        .char-count {
+            display: block;
+            text-align: right;
+            font-size: 12px;
+            color: #9ca3af;
+            margin-top: 4px;
+        }
+
+        .textarea-wrapper {
+            position: relative;
+        }
+
+        .select2-container--default .select2-results>.select2-results__options {
+            max-height: 45vh;
+        }
+
+        .custom-select-wrapper {
+            position: relative;
+            width: 100%;
+        }
+
+        .custom-select-wrapper::after {
+    content: '';
+    position: absolute;
+    right: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-top: 5px solid #333;
+    pointer-events: none; /* so it doesn't interfere with the select click */
+        }
+
+        .custom-select {
+            /* remove native arrow for consistent styling */
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            padding-right: 2.5rem; /* ensure room for the arrow */
+        }
+    </style>
+{% endblock extra_head %}
+
+
+{% block content %}
+<div style="display: flex; flex-direction: column; min-height: calc(100vh - 82px); padding: 5px;">
+    <form method="post" enctype="multipart/form-data" id="propertyForm" style="flex-grow: 1;">
+        {% csrf_token %}
+        <div class="row m-0 p-0">
+            <div class="col-12 d-flex justify-content-between align-items-center action-buttons">
+                <div class="d-flex align-items-center">
+                    <img src="{% static 'img/task/create_task.svg' %}" alt="Create Listing Icon">
+                    <span class="ms-2">{% if is_edit %}Edit{% else %}Create{% endif %} Task</span>
+                </div>
+                <div class="d-flex btn-group">
+                    <button type="submit" class="btn-create">
+                        {% if is_edit %}Update{% else %}Create{% endif %}
+                    </button>
+                    <div class="btn-divider"></div>
+                    <a href="{% url 'tasks:task-list' %}" class="btn-cancel">Cancel</a>
+                </div>
+            </div>
+        </div>
+        <div style="max-height: calc(100vh - 136px);min-height: calc(100vh - 136px); overflow-y:auto;">
+            <div class="row m-0 main_row_div">
+                <div class="col-lg-6 p-lg-3 p-2">
+                    <div class="form-section full-width">
+                        <label>Select the listing<span class="required">*</span></label>
+                        <select name="property" class="form-control property-select" id="id_property" required {% if is_edit and task.repeat != 'None' %}disabled{% endif %} {% if request.GET.property_id %}disabled{% endif %}>
+                            {% if not is_edit and not request.GET.property_id %}
+                                <option value="" selected disabled>Select a listing</option>
+                            {% endif %}
+                            {% for prop in properties %}
+                                <option value="{{ prop.id }}"
+                                        data-image="{{ prop.get_primary_image_url }}"
+                                        data-location="{{ prop.location_display }}"
+                                        data-price="{{ prop.price_per_night }}"
+                                        data-guest="{{ prop.guest }}"
+                                        {% if is_edit and task.property.id == prop.id %}selected{% endif %}
+                                        {% if request.GET.property_id and request.GET.property_id == prop.id|stringformat:"s" %}selected{% endif %}>
+                                    {{ prop.title }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                        {% if request.GET.property_id %}
+                            <input type="hidden" name="property" value="{{ request.GET.property_id }}">
+                        {% endif %}
+
+                    </div>
+                </div>
+                <div class="col-lg-6 p-lg-3 p-2">
+                    <div class="form-section full-width">
+                        <label>Task details<span class="required">*</span></label>
+                        <div class="textarea-wrapper">
+                            <textarea name="details" placeholder="Briefly describe the task in 100 characters" maxlength="100" id="taskDetails" rows="3" required>{{ form.details.value|default_if_none:'' }}</textarea>
+                        </div>
+                        <span class="char-count" id="charCount">0/100</span>
+                    </div>
+
+                    <div class="form-grid">
+                        <div class="form-section">
+                            <label for="{{ form.date.id_for_label }}">Date<span class="required">*</span></label>
+                            {{ form.date }}
+                        </div>
+
+                        <div class="form-section">
+                            <label>Time</label>
+                            <div class="time_dropdown custom-select-wrapper" id="taskTimeDropdown">
+                                <div class="time_dropdown-toggle"></div>
+                                <div class="time_dropdown-menu">
+                                    <div class="scroll-arrow top" data-dir="up">▲</div>
+                                    <div class="options"></div>
+                                    <div class="scroll-arrow bottom" data-dir="down">▼</div>
+                                </div>
+                            </div>
+                            {{ form.time }}
+                        </div>
+
+                        <div class="form-section">
+                            <label for="{{ form.repeat.id_for_label }}">Repeat<span class="required">*</span></label>
+                            <div class="custom-select-wrapper">
+                                {{ form.repeat }}
+                            </div>
+                        </div>
+
+                        <div id="repeatTillSection">
+                            <div class="form-section">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <label>Repeat till<span class="required">*</span></label>                           
+                                </div>
+                                <div style="display: flex; gap: 10px; align-items: center;">
+                                    {{ form.repeat_till }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-section">
+                            <label for="{{ form.task_type.id_for_label }}">Type<span class="required">*</span></label>
+                            <div class="custom-select-wrapper">
+                                {{ form.task_type }}
+                            </div>
+                        </div>
+
+                        <div class="form-section">
+                            <label>If others, explain</label>
+                            <input type="text" name="other_explanation" id="otherExplanation" placeholder="Explain if type is 'Other'" value="{{ form.other_explanation.value|default_if_none:'' }}" disabled>
+                        </div>
+
+                        <div class="form-section">
+                            <label>Assigned to<span class="required">*</span></label>
+                            <input type="text" name="assigned_to" id="assignedTo" placeholder="Enter name" value="{{ form.assigned_to.value|default_if_none:'' }}" required>
+                        </div>
+
+                        <div class="form-section task_phone">
+                            <label class="form-label">Phone<span class="required">*</span></label>
+                            <input type="tel" name="phone" id="phone" class="form-input" placeholder="Enter phone number" value="{{ form.phone.value|default_if_none:'' }}" required>
+                            <input type="hidden" name="country_code" id="id_country_code">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% include 'frontend/base/footer.html' %}
+        </div>
+    </form>
+</div>
+{% endblock content  %}
+{% block extra_script %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/js/intlTelInput.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script>
+    document.getElementById('taskDate').addEventListener('keydown', function(e) {
+        e.preventDefault();
+        return false;
+    });
+
+    document.getElementById('repeatTill').addEventListener('keydown', function(e) {
+        e.preventDefault();
+        return false;
+    });
+        
+    </script>
+<script>
+    const taskDetailsTextarea = document.getElementById('taskDetails');
+    const charCount = document.getElementById('charCount');
+    const repeatTillInput = document.getElementById('repeatTill');
+    const repeatOptionSelect = document.getElementById('repeatOption');
+    const repeatTillSection = document.getElementById('repeatTillSection');
+
+    taskDetailsTextarea.addEventListener('input', function() {
+        const count = this.value.length;
+        charCount.textContent = count + '/100';
+    });
+
+    function toggleRepeatTillSection() {
+        if (repeatOptionSelect.value === 'None' || repeatOptionSelect.value === '') {
+            repeatTillInput.disabled = true;
+            repeatTillInput.required = false;
+        } else {
+            repeatTillInput.disabled = false;
+            repeatTillInput.required = true;
+        }
+    }
+
+    repeatOptionSelect.addEventListener('change', toggleRepeatTillSection);
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initial state setup
+        toggleRepeatTillSection();
+        
+        const taskTypeSelect = document.getElementById('taskType');
+        const otherExplanationInput = document.getElementById('otherExplanation');
+
+        function toggleOtherExplanationField() {
+            if (taskTypeSelect.value === 'other') {
+                otherExplanationInput.disabled = false;
+            } else {
+                otherExplanationInput.disabled = true;
+                otherExplanationInput.value = ''; // Clear value when disabled
+            }
+        }
+
+        taskTypeSelect.addEventListener('change', toggleOtherExplanationField);
+        toggleOtherExplanationField(); // Set initial state on page load
+
+        {% if is_edit %}
+            // When editing a repeating task, the time dropdown toggle should be disabled.
+            const timeToggle = document.querySelector('#taskTimeDropdown .time_dropdown-toggle');
+            if (timeToggle && '{{ task.repeat }}' !== 'None') timeToggle.style.pointerEvents = 'none';
+        {% endif %}
+
+        // Set minimum date for taskDate to today, but only for new tasks
+        {% if not is_edit %}
+            const taskDateInput = document.getElementById('taskDate');
+            const today = new Date().toISOString().split('T')[0];
+            taskDateInput.setAttribute('min', today);
+        {% endif %}
+
+        const taskDateInputForRepeat = document.getElementById('taskDate');
+        const repeatTillInputForRepeat = document.getElementById('repeatTill');
+
+        function updateRepeatTillMinDate() {
+            if (taskDateInputForRepeat.value) {
+                repeatTillInputForRepeat.min = taskDateInputForRepeat.value;
+                if (repeatTillInputForRepeat.value && repeatTillInputForRepeat.value < taskDateInputForRepeat.value) {
+                    repeatTillInputForRepeat.value = '';
+                }
+            }
+        }
+        taskDateInputForRepeat.addEventListener('change', updateRepeatTillMinDate);
+        updateRepeatTillMinDate(); // Initial check
+
+        const propertySelect = $('#id_property');
+        const propertyPreview = document.getElementById('propertyPreview');
+
+        function formatProperty(property) {
+            if (!property.id) return property.text;
+            const $el = $(property.element);
+            const imageUrl = $el.data('image') || '{% static "img/property/placeholder-image.png" %}';
+            const title = property.text;
+            const location = $el.data('location') || '';
+            const price = $el.data('price') || '';
+            const guest = $el.data('guest') || '';
+            return $(
+                `<div class="property-card-select2">
+                    <img src="${imageUrl}" class="property-card-img" />
+                    <div class="property-card-info">
+                        <div class="listing-title">${title}</div>
+                        <div class="listing-location">${location}</div>
+                        <div class="listing-price">
+                            ${price ? `$${parseFloat(price).toLocaleString(undefined, {minimumFractionDigits: 2})} night` : ''}
+                            ${guest ? `, ${guest} Guests (max)` : ''}
+                        </div>
+                    </div>
+                </div>`
+            );
+        }
+
+        propertySelect.select2({
+            templateResult: formatProperty,
+            templateSelection: formatProperty,
+            dropdownAutoWidth: true,
+            width: '100%',
+            minimumResultsForSearch: 5,
+            closeOnSelect: true
+        });
+        
+
+        propertySelect.on('change', function() {
+            const selected = $(this).find('option:selected');
+
+            $(this).select2('close');
+
+            if (!selected.val()) {
+                propertyPreview.innerHTML = '';
+                propertyPreview.style.display = 'none';
+                return;
+            }
+
+            const imageUrl = selected.data('image') || '{% static "img/property/placeholder-image.png" %}';
+            const title = selected.text();
+            const location = selected.data('location') || '';
+            const price = selected.data('price') || '';
+            const guest = selected.data('guest') || '';
+
+            propertyPreview.innerHTML = `
+                <div class="property-card-select2" style="margin-top: 15px; cursor: default;">
+                    <img src="${imageUrl}" class="property-card-img" />
+                    <div class="property-card-info">
+                        <div class="listing-title">${title}</div>
+                        <div class="listing-location">${location}</div>
+                        <div class="listing-price">
+                            ${price ? `$${parseFloat(price).toLocaleString(undefined, {minimumFractionDigits: 2})} night` : ''}
+                            ${guest ? `, ${guest} Guests (max)` : ''}
+                        </div>
+                    </div>
+                </div>`;
+            propertyPreview.style.display = 'block';
+        });
+
+        // --- intl-tel-input initialization ---
+        const phoneInputField = document.querySelector("#phone");
+        const countryCodeHiddenInput = document.querySelector("#id_country_code");
+
+        const phoneInput = window.intlTelInput(phoneInputField, {
+            initialCountry: "auto",
+            geoIpLookup: function(callback) {
+                fetch("https://ipapi.co/json")
+                    .then(res => res.json())
+                    .then(data => callback(data.country_code))
+                    .catch(() => callback("us"));
+            },
+            separateDialCode: true,
+            utilsScript: "https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/js/utils.js",
+        });
+
+        // Restrict phone input to only numbers
+        phoneInputField.addEventListener('input', function() {
+            this.value = this.value.replace(/[^0-9]/g, '');
+        });
+
+        // On form submission, update the hidden input with the full number and country code
+        const form = phoneInputField.closest('form');
+        if (form) {
+            form.addEventListener('submit', function() {
+                if (phoneInput.isValidNumber()) {
+                    phoneInputField.value = phoneInput.getNumber();
+                    countryCodeHiddenInput.value = phoneInput.getSelectedCountryData().iso2;
+                }
+            });
+        }
+        // The fetchAllProperties function is no longer needed as options are rendered by Django.
+
+        function generateTimes() {
+            const times = [];
+            for (let h = 0; h < 24; h++) {
+                for (let m = 0; m < 60; m += 30) {
+                    const value = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+                    const hour12 = ((h % 12) || 12);
+                    const ampm = h < 12 ? 'AM' : 'PM';
+                    const display = `${hour12.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')} ${ampm}`;
+                    times.push({ value, display });
+                }
+            }
+            return times;
+        }
+
+        function setupDropdown(dropdownId, defaultTime, hiddenInputId) {
+            const dropdown = document.getElementById(dropdownId);
+            if (!dropdown) return;
+            const toggle = dropdown.querySelector('.time_dropdown-toggle');
+            const menu = dropdown.querySelector('.time_dropdown-menu');
+            const optionsDiv = dropdown.querySelector('.options');
+            const hiddenInput = document.getElementById(hiddenInputId);
+            const times = generateTimes();
+
+            function formatTimeForDisplay(time24) {
+                if (!/^\d{2}:\d{2}$/.test(time24)) return defaultTime;
+                const [hours, minutes] = time24.split(':');
+                const hour24 = parseInt(hours, 10);
+                const ampm = hour24 >= 12 ? 'PM' : 'AM';
+                const hour12 = ((hour24 % 12) || 12);
+                return `${hour12.toString().padStart(2, '0')}:${minutes} ${ampm}`;
+            }
+
+            let currentValue = hiddenInput.value || defaultTime;
+            toggle.textContent = formatTimeForDisplay(currentValue);
+
+            optionsDiv.innerHTML = '';
+            let selectedOptionDiv = null;
+            times.forEach(timeObj => {
+                const div = document.createElement('div');
+                div.textContent = timeObj.display;
+                div.classList.add("option");
+                div.dataset.value = timeObj.value;
+
+                if (currentValue === timeObj.value) {
+                    div.classList.add('selected');
+                    selectedOptionDiv = div;
+                }
+
+                div.addEventListener('click', () => {
+                    toggle.textContent = timeObj.display;
+                    hiddenInput.value = timeObj.value;
+                    optionsDiv.querySelectorAll('.option').forEach(opt => opt.classList.remove('selected'));
+                    div.classList.add('selected');
+                    dropdown.classList.remove('open');
+                });
+                optionsDiv.appendChild(div);
+            });
+
+            if (selectedOptionDiv) {
+                setTimeout(() => { optionsDiv.scrollTop = selectedOptionDiv.offsetTop - optionsDiv.offsetTop; }, 0);
+            }
+
+            toggle.addEventListener('click', () => {
+                dropdown.classList.toggle('open');
+                if (dropdown.classList.contains('open') && selectedOptionDiv) {
+                    optionsDiv.scrollTop = selectedOptionDiv.offsetTop - optionsDiv.offsetTop;
+                }
+            });
+
+            document.addEventListener('click', (e) => {
+                if (!dropdown.contains(e.target)) {
+                    dropdown.classList.remove('open');
+                }
+            });
+        }
+
+        // Initialize the time dropdown
+        setupDropdown("taskTimeDropdown", "09:00", "task_time_input");
+    });
+</script>
+{% endblock extra_script %}

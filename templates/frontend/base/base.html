@@ -1,0 +1,217 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <title>Bookaid</title>
+  <meta content="width=device-width, initial-scale=1.0" name="viewport">
+  <meta content="" name="keywords">
+  <meta content="" name="description">
+
+  <!-- Favicon -->
+  <link href="img/favicon.ico" rel="icon">
+
+  <!-- Google Web Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Icon Font Stylesheet -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.10.0/css/all.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.4.1/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="https://unpkg.com/lucide@latest" rel="stylesheet">
+
+
+  <!-- Customized Bootstrap Stylesheet -->
+  <link href="{% static 'css/bootstrap.min.css' %}" rel="stylesheet">
+  <link href="{% static 'css/t-datepicker.min.css' %}" rel="stylesheet" type="text/css">
+  <link href="{% static 'css/t-datepicker-blue.css' %}" rel="stylesheet" type="text/css">
+
+  <!-- Template Stylesheet -->
+  <link href="{% static 'css/style.css' %}" rel="stylesheet">
+  <link href="{% static 'css/header.css' %}" rel="stylesheet">
+
+  <style>
+    body {
+      font-family: "Heebo", sans-serif;
+      background: white;
+      /* padding: 0rem 5rem; */
+    }
+
+    #loader-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+      z-index: 9999;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding-top: 20vh;
+      color: white;
+    }
+
+    #loader-overlay>div {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-top: 10%;
+    }
+
+    #loader-text {
+      font-size: 1.2rem;
+      margin-bottom: 1rem;
+    }
+
+    .loader-spinner {
+      border: 8px solid #f3f3f3;
+      /* Light grey */
+      border-top: 8px solid #3498db;
+      /* Blue */
+      border-radius: 50%;
+      width: 60px;
+      height: 60px;
+      animation: spin 1s linear infinite;
+    }
+
+    .main-content-body{
+      overflow:auto;
+      min-height: calc(100vh - 66px);
+      max-height: calc(100vh - 60px); 
+      padding: 3px 8px;
+    }
+
+
+
+    @keyframes spin {
+      0% {
+        transform: rotate(0deg);
+      }
+
+      100% {
+        transform: rotate(360deg);
+      }
+    }
+
+    @media (max-width: 768px) {
+     .main-content-body{
+      min-height: calc(100vh - 66px);
+      max-height: calc(100vh - 66px); 
+      
+        padding: 4px 5px !important;
+    }
+      
+    }
+  </style>
+  {% block extra_head %} {% endblock %}
+</head>
+
+<body>
+  <div id="loader-overlay">
+    <div>
+      <span id="loader-text">Loading...</span>
+      <div class="loader-spinner"></div>
+    </div>
+  </div>
+  <div class="container-fluid position-relative bg-white d-flex p-0">
+
+    <!-- Content Start -->
+    <div class="content w-100">
+      {% block header %}
+      {% include './header.html' %}
+      {% endblock header %}
+      <!-- main content goes here -->
+      <div class="main-content-body p-1" style="">
+        {% if messages %}
+        <div class="toast-messages-container"
+          style="position: fixed; top: 30px; left: 50%; transform: translateX(-50%); z-index: 1055;">
+          {% for message in messages %}
+          <div class="toast-message {{ message.tags }}">
+            {{ message }}
+            <span class="toast-close" onclick="this.parentElement.style.display='none';">&times;</span>
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+        <div>
+          {% block content %}{% endblock content %}
+
+
+        </div>
+        <!-- {% include './footer.html' %} -->
+
+      </div>
+
+
+    </div>
+    <!-- Content End -->
+
+  </div>
+
+  <!-- JavaScript Libraries -->
+  <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>
+    lucide.createIcons();
+  </script>
+  <script>
+    // Auto-hide toasts after 4 seconds
+    document.addEventListener('DOMContentLoaded', function () {
+      document.querySelectorAll('.toast-message').forEach(function (toast) {
+        setTimeout(function () {
+          toast.style.display = 'none';
+        }, 4000);
+      });
+    });
+  </script>
+
+  <script>
+    // --- Global Loader for API calls & Page Navigation ---
+    const loader = document.getElementById('loader-overlay');
+    const loaderText = document.getElementById('loader-text');
+
+    function showLoader(text) {
+      if (loaderText && text) loaderText.textContent = text;
+      if (loader) loader.style.display = 'flex';
+      document.body.style.overflow = 'hidden';
+    }
+
+    function hideLoader() {
+      if (loader) loader.style.display = 'none';
+      document.body.style.overflow = 'auto';
+    }
+
+    // Hide loader once page is fully loaded
+    window.addEventListener('load', hideLoader);
+
+    // 1. Loader for fetch() API calls
+    const originalFetch = window.fetch;
+    window.fetch = function (...args) {
+      showLoader('Loading...');
+      // Use finally to ensure the loader is always hidden, even if the call fails
+      return originalFetch(...args).finally(() => hideLoader());
+    };
+
+    // 2. Loader for standard page navigations (link clicks, form submissions, etc.)
+    window.addEventListener('beforeunload', () => showLoader('Loading...'));
+
+    // Hide loader if a page is restored from the back-forward cache (bfcache)
+    window.addEventListener('pageshow', function (event) {
+      if (event.persisted) {
+        hideLoader();
+      }
+    });
+  </script>
+
+  <!-- Template Javascript -->
+  <!-- <script src="{% static 'assets/frontend/js/main.js' %}"></script> -->
+
+  {% block extra_script %}
+  {% endblock extra_script %}
+</body>
+
+</html>

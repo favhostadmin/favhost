@@ -1,0 +1,586 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guest Receipt</title>
+    <!-- Customized Bootstrap Stylesheet -->
+    <link href="{% static 'css/booking/details.css' %}" rel="stylesheet">
+    <link href="{% static 'css/bootstrap.min.css' %}" rel="stylesheet">
+
+
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body{
+            font-family: "Heebo", sans-serif;
+            background: white;
+            padding: 0rem 5rem;
+        }
+        
+        .container {
+            margin: 0 auto;
+            background-color: white;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: end;
+            padding: 20px 30px;
+            padding-bottom: 10px;
+            padding-top: 10px;
+            background-color: white;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .header-left {
+            display: flex;
+            align-items: end;
+            gap: 15px;
+        }
+        
+        .header-left h1 {
+            font-size: 18px;
+            font-weight: 500;
+            color: #333;
+            margin: 0px;
+        }
+        
+        .header-left span {
+            font-size: 14px;
+            color: #999;
+        }
+        
+        .header-right {
+            display: flex;
+            align-items: end;
+            gap: 12px;
+        }
+        
+        .generated-text {
+            font-size: 12px;
+            color: #999;
+        }
+        
+        .logo {
+            height: 40px;
+        }
+        
+        .actions-btn {
+            background-color: white;
+            border: 1px solid #e0e0e0;
+            color: #333;
+            padding: 6px 16px;
+            border-radius: 4px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        
+        .content_div {
+            padding: 30px;
+        }
+        
+        .guest-info-section {
+            display: flex;
+            gap: 25px;
+            margin-bottom: 30px;
+            padding: 25px;
+            border-radius: 8px;
+        }
+        
+        .property-image {
+            width: 100%;
+            height: 245px;
+            object-fit: cover;
+            border-radius: 8px;
+            flex-shrink: 0;
+        }
+        
+        .guest-details {
+            flex: 1;
+        }
+        
+        .guest-name {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #333;
+        }
+        
+        .contact-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 18px;
+            font-size: 13px;
+            color: #666;
+        }
+        
+        .contact-info svg {
+            width: 14px;
+            height: 14px;
+        }
+        
+        .info-row {
+            display: flex;
+            align-items: start;
+            gap: 8px;
+            margin-bottom: 10px;
+            font-size: 13px;
+        }
+        
+        .info-row svg {
+            width: 16px;
+            height: 16px;
+            margin-top: 2px;
+            color: #666;
+            flex-shrink: 0;
+        }
+        
+        .info-label {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 2px;
+        }
+        
+        .info-value {
+            color: #666;
+            font-size: 13px;
+        }
+        
+        .property-link {
+            color: #0066cc;
+            text-decoration: none;
+            font-size: 13px;
+        }
+        
+        .property-link:hover {
+            text-decoration: underline;
+        }
+        
+        .check-details {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            margin-left: auto;
+            min-width: 200px;
+            align-items: flex-end;
+        }
+        
+        .check-item {
+            text-align: right;
+        }
+        
+        .check-item label {
+            display: block;
+            font-size: 11px;
+            color: #999;
+            margin-bottom: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .check-item .time {
+            font-size: 14px;
+            font-weight: 500;
+            color: #333;
+        }
+        
+        .guests-info {
+            text-align: right;
+        }
+        
+        .guests-info label {
+            display: block;
+            font-size: 11px;
+            color: #999;
+            margin-bottom: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .guests-count {
+            font-size: 22px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .guests-detail {
+            font-size: 13px;
+            color: #666;
+        }
+        
+        .payment-section {
+            padding: 25px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .payment-details h2 {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #333;
+        }
+        
+        .payment-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 14px;
+            min-width: 350px;
+        }
+        
+        .payment-label {
+            color: #666;
+        }
+        
+        .payment-amount {
+            color: #333;
+            font-weight: 500;
+        }
+        
+        .paid-badge {
+            width: 90px;
+            height: 90px;
+        }
+        
+       
+        
+        .host-image {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+        
+        .host-info {
+            flex: 1;
+            text-align: right;
+        }
+        
+        
+       
+
+.host-section {
+    align-items: center;
+    gap: 32px;
+    padding: 25px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 -2px 8px rgba(0,0,0,0.08);
+}
+
+.host-image {
+    width: 110px;
+    height: 110px;
+    border-radius: 16px;
+    object-fit: cover;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+.host-info {
+    text-align: left;
+    min-width: 260px;
+}
+
+.host-thank {
+    font-size: 16px;
+    color: #666;
+    margin-bottom: 6px;
+}
+
+.host-name {
+    font-size: 18px;
+    font-weight: 700;
+    color: #333;
+    margin-bottom: 6px;
+}
+
+.host-contact {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 6px;
+    font-size: 15px;
+    color: #333;
+}
+
+ 
+        .host-contact svg {
+            width: 14px;
+            height: 14px;
+        }
+
+.host-icon {
+    width: 22px;
+    height: 22px;
+    color: #666;
+}
+/* ...existing code... */
+    </style>
+    <style>
+        .payment-divider {
+            width: 1px;
+            background-color: #e5e7eb;
+            margin: 0 1rem;
+        }
+        @media (max-width: 991.98px) {
+            .payment-divider {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="header-left">
+                <h1>Guest Receipt</h1>
+                <span>Reservation #{{ booking.booking_id}}</span>
+            </div>
+            <div class="header-right">
+                <span class="generated-text">generated with</span>
+                <img src="{% static 'img/login/bookaid_icon.png' %}" class="logo" alt="BookAid"/>
+                <div class="dropdown">
+                    <button class="new-action-btn-header dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" data-bs-auto-close="outside" style="background: #FFFFFF; color: #1D74B2; font-weight: 600; border: 0.75px solid #00000080; padding: 4px 10px;">
+                        Action
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="newDropdown" style="transform: translate(0px, 39px) !important;">
+                            
+
+                            <!-- Download PDF -->
+                            <li>
+                                <!-- <a class="dropdown-item" href="javascript:window.print()"> -->
+                                <a class="dropdown-item" href="#">
+                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M8 1V10M8 10L5 7M8 10L11 7M2 14H14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                    </svg>
+                                    Download PDF
+                                </a>
+                            </li>
+ 
+                            <li>
+                                <a class="dropdown-item email-guest-btn" href="#" data-booking-id="{{ booking.id }}">
+                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M3 4H13C13.5523 4 14 4.44772 14 5V11C14 11.5523 13.5523 12 13 12H3C2.44772 12 2 11.5523 2 11V5C2 4.44772 2.44772 4 3 4Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                        <path d="M14 5L8 8.5L2 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                    </svg>
+                                    Email Guest
+                                </a>
+                            </li>
+ 
+                            <li>
+                                <!-- <a class="dropdown-item" href="javascript:window.print()"> -->
+                                <a class="dropdown-item" href="#">
+                                    <img src="{% static 'img/common/print_symbol.svg'  %}" alt="" srcset="" style="height: 20px;">
+                                    Print
+                                </a>
+                            </li>
+                    </ul>
+            </div>
+            </div>
+        </div>
+        
+        <div class="content_div">
+            <div class="row">
+                <div class="col-lg-3">
+                        <img src="{{ booking.property.get_primary_image_url }}" alt="Property" class="property-image">
+                </div>
+                <div class="col-lg-9">
+                    <div class="booking-card" style="padding: 20px 28px;">
+                        <div class="card-content">
+                            <div class="left-section">
+                                <h1 class="guest-name">{{ booking.first_name }} {{ booking.last_name }}</h1>
+                                
+                                <div class="contact-info">
+                                    <div class="contact-item" style="color: #000;">
+                                        <img src="{% static 'img/booking/email_icon.svg' %}" alt="Email">
+                                        <span>{{ booking.email }}</span>
+                                    </div>
+                                    
+                                    <span class="divider">|</span>
+
+                                    <div class="contact-item" style="color: #000;">
+                                        <img src="{% static 'img/booking/phone_icon.svg' %}" alt="Phone">
+                                        <span>{{ booking.phone }}</span>
+                                    </div>
+
+
+                                </div>
+
+                                <div class="rental-section">
+                                    <div class="rental-label" style="align-items: start;">
+                                        <img src="{% static 'img/booking/rentalIcon.svg' %}" alt="Rental" style="height: 20px;">
+                                        <div >
+                                            <span style="color: #000;">Rental</span><br>
+                                            <a href="{% url 'property:property-detail' slug=booking.property.slug %}" class="rental-link">{{ booking.property.title }}</a>
+                                        </div>
+                                    </div>
+                                    
+                                    
+                                    <div class="booking-platform" style="align-items: start;">
+                                        <img src="{% static 'img/booking/booked_icon.svg' %}" alt="Booked via" style="height: 20px;">
+                                        <div>
+                                            <span style="color: #000;">Booked through</span><br>
+                                            <span><strong>{{ booking.channel.name|default:"N/A" }}</strong></span>
+
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-lg-auto d-none d-lg-flex align-items-center p-0"><div class="payment-divider h-100"></div></div>
+
+
+                            <div class="right-section">
+                                <div class="date-item">
+                                    <div class="date-label" style="color: #000;">Check-In</div>
+                                    <div class="date-value stat-value">{{ booking.check_in_date|date:"D, M d, Y" }}, {{ booking.check_in_time|time:"g:i a" }}</div>
+                                </div>
+
+                                <div class="date-item">
+                                    <div class="date-label" style="color: #000;">Check-Out</div>
+                                    <div class="date-value stat-value">{{ booking.check_out_date|date:"D, M d, Y" }}, {{ booking.check_out_time|time:"g:i a" }}</div>
+                                </div>
+
+                                <div class="stats-row">
+                                    <div class="stat-item">
+                                        <div class="stat-label" style="color: #000;">Nights</div>
+                                        <div class="stat-value">{{ nights }}</div>
+                                    </div>
+                                    <div class="stat-item mt-2">
+                                        <div class="stat-label" style="color: #000;">Guests</div>
+                                        <div class="stat-value">{{ booking.guest_count }}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="booking-card payment-section">
+                        <div class="payment-details">
+                            <h2>Payment Summary</h2>
+                            <div class="payment-row">
+                                <span class="payment-label" style="color: #000;">${{ booking.price_per_night|floatformat:2 }} x {{ nights }} nights</span>
+                                <span class="payment-amount" style="color: #000;">${{ booking.price|floatformat:2 }}</span>
+                            </div>
+                            {% if booking.property.cleaning_fee > 0 %}
+                            <div class="payment-row">
+                                <span class="payment-label" style="color: #000;">Cleaning fee</span>
+                                <span class="payment-amount" style="color: #000;">${{ booking.property.cleaning_fee|floatformat:2 }}</span>
+                            </div>
+                            {% endif %}
+                            {% if booking.property.application_fees > 0 %}
+                            <div class="payment-row">
+                                <span class="payment-label" style="color: #000;">Application fee</span>
+                                <span class="payment-amount" style="color: #000;">${{ booking.property.application_fees|floatformat:2 }}</span>
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <img src="{% static 'img/booking/paid_icon.svg'  %}" alt="" srcset="" style="margin-right: 5rem;height: 20vh;">
+                    </div>
+                    
+                    <div class="booking-card host-section border-0" style="box-shadow: none; margin-top: 5vh;">
+                        <div class="row">
+                            <div class="col-6"></div>
+                            <div class="col-6">
+                                <div style="display: flex;">
+                                    <div>
+                                        {% with guest_image=booking.images.first %}
+                                        <img src="{% if guest_image %}{{ guest_image.image.url }}{% else %}{% static 'img/common/default_user.svg' %}{% endif %}" alt="Host" class="host-image">
+                                        {% endwith %}
+                                    </div>
+                                    <div class="host-info ms-3">
+                                    <div class="host-thank" style="color: #000;">Thank You for staying!</div>
+                                    <div class="host-name" style="color: #000;"><strong>Erica Hernan (Host)</strong></div>
+                                    <div class="host-contact">
+                                        <svg class="host-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 16.92V19a2 2 0 01-2.18 2A19.86 19.86 0 013 5.18 2 2 0 015 3h2.09a2 2 0 012 1.72c.13 1.13.37 2.25.72 3.32a2 2 0 01-.45 2.11l-1.27 1.27a16 16 0 006.58 6.58l1.27-1.27a2 2 0 012.11-.45c1.07.35 2.19.59 3.32.72a2 2 0 011.72 2z"/></svg>
+                                        <!-- <span>{{ booking.property.created_by.phone }}</span> -->
+                                        <span style="color: #000;">+91 xxxxx xxxxx</span>
+                                    </div>
+                                    <div class="host-contact">
+                                        <svg class="host-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 4h16v16H4V4zm8 8l8-5H4l8 5zm0 2l-8-5v10h16V9l-8 5z"/></svg>
+                                        <span style="color: #000;">{{ booking.property.created_by.email }}</span>
+                                    </div>
+                                </div>
+                                </div>
+                                
+
+                                
+                            </div>
+                        </div>
+                        
+                    </div>
+
+                </div>
+            </div>
+            
+        </div>
+    </div>
+
+    <!-- Email Guest Modal -->
+    <div id="emailGuestModal" class="modal" style="display: none; position: fixed; z-index: 1050; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.5); align-items: center; justify-content: center;">
+        <div class="modal-content" style="background-color: #fefefe; margin: auto; padding: 0; border: 1px solid #888; width: 80%; max-width: 800px; border-radius: 8px; position: relative; box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2),0 6px 20px 0 rgba(0,0,0,0.19);">
+            <div class="modal-body" style="padding: 0;">
+                <!-- Content will be loaded here via AJAX -->
+                <div id="email-modal-content-placeholder">Loading...</div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const emailModal = document.getElementById('emailGuestModal');
+            const emailModalPlaceholder = document.getElementById('email-modal-content-placeholder');
+
+            document.querySelectorAll('.email-guest-btn').forEach(button => {
+                button.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const bookingId = this.dataset.bookingId;
+                    const url = `{% url 'booking:render-email-form' %}?booking_id=${bookingId}`;
+
+                    emailModalPlaceholder.innerHTML = '<div style="text-align: center; padding: 40px;">Loading...</div>';
+                    emailModal.style.display = 'flex';
+
+                    fetch(url)
+                        .then(response => response.text())
+                        .then(html => {
+                            emailModalPlaceholder.innerHTML = html;
+                            const closeEmailBtn = emailModal.querySelector('.btn-cancel-email');
+                            if (closeEmailBtn) {
+                                closeEmailBtn.onclick = () => emailModal.style.display = 'none';
+                            }
+                        })
+                        .catch(error => {
+                            emailModalPlaceholder.innerHTML = '<p style="text-align: center; padding: 40px; color: red;">Error loading email form. Please try again.</p>';
+                            console.error('Error fetching email form:', error);
+                        });
+                });
+            });
+
+            window.onclick = function(event) {
+                if (event.target == emailModal) {
+                    emailModal.style.display = 'none';
+                }
+            }
+        });
+    </script>
+</body>
+</html>

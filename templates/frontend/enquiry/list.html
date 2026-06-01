@@ -1,0 +1,2338 @@
+{% extends 'frontend/base/base.html' %}
+{% load static %}
+{% load i18n %}
+
+{% block extra_head %}
+<link href="{% static 'css/task/listing.css' %}" rel="stylesheet">
+<link href="{% static 'css/booking/list.css' %}" rel="stylesheet">
+
+<style>
+    .task-list-row {
+        transition: background-color 0.2s ease;
+        border-radius: 6px;
+        position: relative;
+        overflow: visible;
+    }
+    .task-list-row:hover {
+        background-color: #f3f4f6;
+    }
+    .options-btn {
+        /* opacity: 0; */
+        transition: opacity 0.2s ease;
+        padding: 0px;
+    }
+    .task-actions-col .dropdown-menu {
+        background-color: #fff !important;
+        --bs-dropdown-bg: #fff;
+        opacity: 1 !important;
+    }
+    /* .task-list-row:hover .options-btn, .options-btn.show {
+        opacity: 1;
+    } */
+    .mobile-status-action {
+        display: none;
+    }
+    .task-property-title-mobile {
+        display: none;
+    }
+    .task-property-address-mobile {
+        display: none;
+        border-bottom: none !important;
+        text-decoration: none !important;
+    }
+    .task-property-address-mobile a,
+    .task-property-address-mobile a[x-apple-data-detectors],
+    .task-property-address-mobile a[href^="tel"],
+    .task-property-address-mobile a[href^="sms"],
+    .task-property-address-mobile a[href^="mailto"] {
+        color: inherit !important;
+        text-decoration: none !important;
+        border-bottom: none !important;
+    }
+    .task-repeat-inline {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        margin-left: 12px;
+        font-size: 14px;
+        font-weight: 500;
+        color: #111827;
+    }
+    .task-repeat-inline img {
+        width: 16px;
+        height: 16px;
+    }
+    .assignment-icon,
+    .task-assignee-mobile {
+        display: none;
+    }
+    .main_body_div{
+        padding: 0rem 2%;
+        min-height: calc(100vh - 200px);
+    }
+    .mobile-search-toggle {
+        display: none;
+    }
+    .no-task-heading {
+        margin-top: 16px;
+        margin-bottom: 4px;
+        font-size: 24px;
+        font-weight: 700;
+        line-height: 1.2;
+        color: #202020;
+    }
+    .no-task-subtext {
+        margin-top: 0;
+        margin-bottom: 0;
+        font-size: 17px;
+        font-weight: 500;
+        line-height: 1.3;
+        color: #868686;
+    }
+    .task-actions-col{
+        padding: 0px;
+        margin: 0px;
+    }
+    .task-list-row{
+        padding: 10px 0px;
+        margin: 0px;
+        cursor: pointer;
+    }
+
+    .task-thumbnail {
+        width: 70px;
+        height: 80px;
+        border-radius: 6px;
+        object-fit: cover;
+        margin-right: 16px;
+        border: 1px solid #e5e7eb;
+    }
+    .task-property-card {
+        display: flex;
+        align-items: center;
+    }
+    .property-thumb-block {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        margin-right: 16px;
+        flex: 0 0 auto;
+    }
+    .task-main-col .property-thumb-block .task-thumbnail {
+        width: 120px;
+        height: 108px;
+        border-radius: 16px;
+        margin-right: 0;
+    }
+    .property-availability {
+        margin: 8px 0 0;
+        font-size: 16px;
+        font-weight: 700;
+        line-height: 1;
+        color: #2a9a34;
+    }
+    .property-not-availability {
+        margin: 8px 0 0;
+        font-size: 16px;
+        font-weight: 700;
+        line-height: 1;
+        color: #df0808;
+    }
+    .task-property-title {
+        margin: 0;
+        font-size: 17px;
+        font-weight: 700;
+        line-height: 1.25;
+        color: #111827;
+    }
+    .task-property-address {
+        margin: 6px 0 0;
+        font-size: 16px;
+        font-weight: 500;
+        line-height: 1.35;
+        color: #7a7a7a;
+    }
+    .guest-meta-mobile {
+        display: none;
+    }
+    .enquiry-mobile-card {
+        display: none;
+    }
+    .guest-count-list {
+        display: inline-flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+    .task-side-col .task-assignee-name.guest-count-list {
+        display: inline-flex;
+        align-items: flex-start;
+    }
+    .guest-count-row {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        line-height: 1.2;
+    }
+    .enquiry-sent-block {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 2px;
+        color: #111827;
+        font-size: 14px;
+        line-height: 1.3;
+    }
+    .enquiry-sent-block .enquiry-sent-date {
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+    }
+    .enquiry-sent-block .date-value {
+        font-weight: 700;
+    }
+    .enquiry-sent-block .reservation-line {
+        font-size: 13px;
+        line-height: 1.2;
+        white-space: nowrap;
+    }
+    .enquiry-sent-block .reservation-id {
+        font-weight: 700;
+    }
+    .enquiry-sent-block .reservation-status {
+        font-size: 13px;
+        font-weight: 700;
+        line-height: 1.15;
+    }
+    .enquiry-sent-block .reservation-status.confirmed {
+        color: #15803d;
+    }
+    .enquiry-sent-block .reservation-status.cancelled {
+        color: #dc2626;
+    }
+    .enquiry-sent-block-mobile {
+        display: none;
+    }
+    .guest-count-icon {
+        width: 18px;
+        height: 18px;
+        object-fit: contain;
+        flex: 0 0 18px;
+    }
+    .guest-count-icon.small {
+        width: 15px;
+        height: 15px;
+        flex-basis: 15px;
+    }
+
+    .nav-title img {
+        width: 25px;
+        height: 25px;
+    }
+    @media (max-width: 991.98px) {
+        .custom-header {
+            position: sticky;
+            top: 0;
+            z-index: 1100;
+            background: #fff;
+            transition: transform 0.24s ease, max-height 0.24s ease, opacity 0.24s ease;
+            will-change: transform;
+            max-height: 120px;
+            overflow: hidden;
+        }
+        .custom-header.mobile-header-hidden {
+            transform: translateY(-100%);
+            max-height: 0 !important;
+            opacity: 0;
+            pointer-events: none;
+        }
+        .custom-header.mobile-menu-open {
+            max-height: 100vh !important;
+            overflow: visible !important;
+            opacity: 1 !important;
+            pointer-events: auto !important;
+            transform: translateY(0) !important;
+        }
+        .custom-header .dropdown-menu,
+        .custom-header .profile-dropdown-menu,
+        .custom-header .notification-dropdown-menu {
+            z-index: 2200 !important;
+        }
+        .header-nav {
+            transition: transform 0.24s ease, max-height 0.24s ease, opacity 0.24s ease, padding 0.24s ease;
+            will-change: transform;
+            max-height: 140px;
+            overflow: hidden;
+        }
+        .header-nav.mobile-header-hidden {
+            transform: translateY(-100%);
+            max-height: 0 !important;
+            opacity: 0;
+            pointer-events: none;
+            padding-top: 0 !important;
+            padding-bottom: 0 !important;
+            margin-top: 0 !important;
+            margin-bottom: 0 !important;
+            border: 0 !important;
+        }
+        .header-nav.mobile-menu-open {
+            max-height: 140px !important;
+            opacity: 1 !important;
+            pointer-events: auto !important;
+            transform: translateY(0) !important;
+        }
+    }
+    @media (min-width: 992px) {
+        .task-list-row {
+            display: grid !important;
+            grid-template-columns: minmax(280px, 1.6fr) minmax(240px, 1.2fr) minmax(130px, 0.7fr) minmax(150px, 0.8fr) 36px;
+            align-items: center !important;
+            column-gap: 18px;
+            padding: 12px 14px;
+        }
+
+        .task-property-col,
+        .guest-card-col,
+        .task-side-col,
+        .task-sent-col,
+        .task-actions-col {
+            width: auto !important;
+            max-width: none !important;
+            min-width: 0;
+            padding: 0 !important;
+            margin: 0 !important;
+        }
+
+        .property-card-col {
+            display: flex !important;
+            align-items: center !important;
+        }
+
+        .task-main-col .property-thumb-block .task-thumbnail {
+            width: 58px;
+            height: 58px;
+            border-radius: 10px;
+        }
+
+        .property-card-col .property-availability {
+            margin-top: 4px;
+            font-size: 12px;
+            line-height: 1;
+        }
+
+        .property-card-col  .property-not-availability {
+            margin-top: 4px;
+            font-size: 12px;
+            line-height: 1;
+        }
+
+        .property-card-info .task-property-title {
+            font-size: 14px;
+            line-height: 1.2;
+            margin-bottom: 4px;
+        }
+
+        .property-card-info .task-property-address {
+            margin-top: 2px;
+            font-size: 12px;
+            line-height: 1.25;
+        }
+
+        .task-property-date-line {
+            margin: 0 0 4px;
+            font-size: 12px;
+            font-weight: 700;
+            color: #111827;
+            line-height: 1.2;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .guest-card-col {
+            display: flex !important;
+            align-items: center !important;
+        }
+
+        .guest-card-col .task-thumbnail {
+            width: 72px;
+            height: 72px;
+            border-radius: 8px;
+            margin-right: 12px;
+        }
+
+        .guest-card-info {
+            display: block !important;
+        }
+
+        .guest-card-info .task-title {
+            font-size: 14px;
+            line-height: 1.2;
+            margin-bottom: 6px;
+        }
+
+        .guest-card-info .task-description {
+            font-size: 12px;
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: #111827 !important;
+        }
+
+        .task-side-col {
+            display: block !important;
+        }
+
+        .task-side-col .task-assignment-label {
+            display: none !important;
+        }
+
+        .task-side-col .guest-count-list {
+            display: inline-flex !important;
+            gap: 2px;
+        }
+
+        .task-side-col .guest-count-row {
+            font-size: 12px;
+        }
+
+        .task-sent-col {
+            display: block;
+            text-align: left;
+            color: #111827;
+            font-size: 13px;
+            line-height: 1.3;
+            white-space: nowrap;
+        }
+
+        .task-sent-col .label {
+            color: #111827;
+            font-weight: 500;
+            margin-right: 4px;
+        }
+
+        .task-sent-col .date {
+            font-weight: 700;
+        }
+
+        .task-date-group,
+        .task-date-group > div,
+        .task-list-row {
+            overflow: visible !important;
+        }
+
+        .task-date-group {
+            position: relative;
+            z-index: 1;
+        }
+
+        .task-date-group::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            pointer-events: none;
+            z-index: 6;
+        }
+
+        .task-date-group:has(.task-actions-col .dropdown.show),
+        .task-date-group.menu-open {
+            z-index: 90;
+        }
+
+        .task-date-group:has(.task-actions-col .dropdown.show)::after,
+        .task-date-group.menu-open::after {
+            display: none;
+        }
+
+        .task-list-row {
+            position: relative;
+            z-index: 1;
+        }
+
+        .task-list-row:has(.task-actions-col .dropdown.show),
+        .task-list-row.menu-open {
+            z-index: 9990;
+        }
+
+        .task-actions-col {
+            position: relative;
+            z-index: 100;
+            padding-right: 0 !important;
+            justify-content: flex-end !important;
+        }
+
+        .task-actions-col .dropdown {
+            position: relative !important;
+            z-index: 101;
+            margin-right: 0 !important;
+        }
+
+        .task-actions-col .options-btn {
+            width: 30px;
+            height: 30px;
+            min-width: 30px;
+            min-height: 30px;
+            box-sizing: border-box;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 !important;
+        }
+
+        .task-list-row:hover .task-actions-col .options-btn,
+        .task-actions-col .dropdown.show .options-btn {
+            box-shadow: none !important;
+        }
+
+        .task-actions-col .dropdown-menu {
+            z-index: 10000 !important;
+        }
+    }
+
+    @media (max-width: 991px) {
+        .task-date-group {
+            overflow: visible;
+        }
+
+        .task-actions-col .dropdown {
+            position: relative !important;
+        }
+
+        .task-actions-col .dropdown-menu {
+            position: absolute !important;
+            top: calc(100% + 6px) !important;
+            right: 0 !important;
+            left: auto !important;
+            transform: none !important;
+            min-width: 150px;
+            z-index: 3000;
+            border: 1px solid #d1d5db;
+            border-radius: 10px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.16);
+            padding: 6px 0;
+            background: #fff;
+        }
+
+        .task-actions-col .dropdown-menu .dropdown-item {
+            white-space: nowrap;
+            padding: 10px 14px;
+            font-size: 14px;
+        }
+
+        .mobile-status-action {
+            display: block;
+        }
+        .main_body_div{
+            padding: 0rem 0%;
+            min-height: calc(100vh - 200px);
+        }
+        .no-task-heading {
+            font-size: 26px;
+        }
+        .no-task-subtext {
+            font-size: 22px;
+        }
+
+        .header-nav .nav-title img {
+            filter: brightness(0) saturate(100%);
+        }
+
+        .header-nav .task-header-row {
+            --bs-gutter-x: 0;
+            padding: 0px 0px;
+            display: grid;
+            grid-template-columns: auto 1fr;
+            grid-template-areas:
+                "title search"
+                "tabs tabs";
+            align-items: center;
+            column-gap: 10px;
+            row-gap: 8px;
+            margin-left: 0;
+            margin-right: 0;
+            width: 100%;
+        }
+
+        .header-nav .task-header-row > .col-auto:first-child {
+            grid-area: title;
+            min-width: 0;
+        }
+
+        .header-nav .task-header-row > .col.d-flex {
+            grid-area: tabs;
+            width: 100%;
+            min-width: 0;
+            justify-content: flex-start !important;
+            overflow: hidden;
+            gap: 8px;
+        }
+
+        .header-nav .task-header-row > .col-auto:last-child {
+            grid-area: search;
+            justify-self: end;
+            min-width: 0;
+        }
+
+        .header-nav .nav-left {
+            flex-wrap: nowrap;
+            gap: 8px;
+        }
+
+        .header-nav .nav-title {
+            padding-right: 0;
+            color: #111827;
+            gap: 8px;
+            white-space: nowrap;
+        }
+
+        .header-nav .nav-tabs {
+            margin-left: 0 !important;
+            flex-wrap: nowrap;
+            gap: 12px;
+            overflow-x: auto;
+            overflow-y: hidden;
+            width: 100%;
+            justify-content: flex-start !important;
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+            flex: 1 1 auto;
+            min-width: 0;
+        }
+
+        .header-nav .nav-tabs::-webkit-scrollbar {
+            display: none;
+        }
+
+        .header-nav .nav-tabs .divider {
+            display: none !important;
+        }
+
+        .header-nav .nav-item {
+            padding: 0;
+            font-size: 14px;
+            color: #6b7280;
+            white-space: nowrap;
+        }
+
+        .header-nav .nav-item a {
+            color: #6b7280;
+        }
+
+        .header-nav .nav-item.active a {
+            color: #374151 !important;
+            text-decoration: underline;
+            text-underline-offset: 3px;
+        }
+
+        .header-nav .header-actions {
+            width: auto;
+        }
+
+        .header-nav .search-box input {
+            width: clamp(140px, 42vw, 210px);
+            max-width: 100%;
+            border: 1px solid #d1d5db;
+        }
+
+        .task-main-content {
+            padding-top: 1rem;
+        }
+
+        .task-main-content > div {
+            padding: 0 0px !important;
+        }
+
+        .task-date-group {
+            border: 2px solid #cfcfcf;
+            border-radius: 24px;
+            overflow: hidden;
+            margin-bottom: 16px;
+            background: #fff;
+        }
+
+        .task-date-header {
+            background: #d9d9d9;
+            border-bottom: 0;
+            padding: 14px 18px;
+            font-size: 16px;
+        }
+
+        .task-date-title {
+            gap: 12px;
+            font-size: 18px;
+            font-weight: 700;
+            color: #111827;
+        }
+
+        .task-date-title img {
+            width: 24px;
+            height: 24px;
+        }
+
+        .task-repeat-inline {
+            margin-left: 10px;
+            font-size: 14px;
+            gap: 5px;
+        }
+
+        .task-repeat-inline img {
+            width: 18px;
+            height: 18px;
+        }
+
+        .task-status-badge {
+            font-size: 18px;
+            font-weight: 700;
+            padding: 0;
+            border-radius: 0;
+            background: transparent;
+            color: #1b8b22;
+            white-space: nowrap;
+        }
+
+        .task-status-overdue {
+            color: #dc2626;
+            background: transparent;
+        }
+
+        .task-status-upcoming {
+            color: #1b8b22;
+            background: transparent;
+        }
+
+        .task-list-row {
+            padding: 14px 16px;
+            display: grid;
+            grid-template-columns: 72px minmax(0, 1fr) minmax(160px, 220px);
+            grid-template-areas:
+                "property property property"
+                "listing type side"
+                "actions actions actions";
+            column-gap: 18px;
+            row-gap: 12px;
+            align-items: start !important;
+            border-bottom: 0;
+        }
+
+        .task-property-title-mobile {
+            display: block;
+            grid-area: property;
+            font-size: 17px;
+            font-weight: 600;
+            color: #111827;
+            line-height: 1.35;
+            margin-bottom: 2px;
+        }
+
+        .task-property-address-mobile {
+            display: block;
+            margin-top: 2px;
+            font-size: 13px;
+            font-weight: 500;
+            color: #4b5563;
+            line-height: 1.35;
+            overflow-wrap: anywhere;
+            word-break: break-word;
+        }
+
+        .task-type-col {
+            grid-area: type !important;
+            width: 100%;
+            margin: 0;
+            display: flex !important;
+            align-items: flex-start;
+            color: #000;
+            min-width: 0;
+        }
+
+        .task-property-col {
+            grid-area: listing !important;
+            width: 100%;
+            margin: 0;
+            display: flex !important;
+            align-items: flex-start;
+            color: #000;
+            min-width: 0;
+        }
+
+        .task-main-col .task-thumbnail {
+            width: 64px;
+            height: 64px;
+            border-radius: 10px;
+            margin-right: 0;
+        }
+        .task-main-col .property-thumb-block .task-thumbnail {
+            width: 76px;
+            height: 72px;
+            border-radius: 10px;
+        }
+        .property-availability {
+            margin-top: 4px;
+            font-size: 11px;
+        }
+        .property-not-availability {
+           
+            margin-top: 4px;
+            font-size: 11px;
+        }
+        .task-property-title {
+            font-size: 15px;
+            line-height: 1.3;
+        }
+        .task-property-address {
+            margin-top: 4px;
+            font-size: 12px;
+        }
+
+        .task-main-col .task-title {
+            font-size: 14px;
+            margin-bottom: 4px;
+            line-height: 1.1;
+            gap: 8px;
+        }
+
+        .task-main-col .task-title img {
+            width: 18px;
+            height: 18px;
+        }
+
+        .task-main-col .task-description {
+            font-size: 12px;
+            color: #212121;
+            line-height: 1.35;
+            margin-bottom: 0;
+            overflow-wrap: anywhere;
+            word-break: break-word;
+        }
+
+        .task-property-col .task-list-info-main {
+            display: none;
+        }
+
+        .task-side-col {
+            grid-area: side;
+            margin: 0;
+            /* border-left: 2px solid #cfcfcf; */
+            padding-left: 18px;
+            min-height: 100%;
+        }
+
+        .task-side-col .task-list-info-side {
+            padding-left: 0;
+            display: block;
+        }
+
+        .task-side-col .task-assignment-label {
+            font-size: 14px;
+            font-weight: 700;
+            color: #111827;
+            margin-bottom: 8px;
+        }
+        .task-side-col .task-assignment-label::after {
+            content: "Assigned to";
+            display: inline;
+            font-size: 14px;
+            font-weight: 700;
+            color: #111827;
+            margin-left: 6px;
+        }
+
+        .task-side-col .task-assignee-name {
+            font-size: 16px;
+            line-height: 1.3;
+            font-weight: 500;
+        }
+        .task-side-col .task-assignee-desktop {
+            display: none;
+        }
+        .task-side-col .task-assignee-mobile {
+            display: flex;
+        }
+        .task-side-col .task-assignment-label .assignment-icon {
+            display: inline-block;
+        }
+        .task-side-col .task-assignment-section {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .task-side-col .task-assignment-label,
+        .task-side-col .task-assignee-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .task-side-col .task-assignment-section svg {
+            width: 18px !important;
+            height: 18px !important;
+            min-width: 18px;
+            min-height: 18px;
+            max-width: 18px;
+            max-height: 18px;
+            flex: 0 0 18px;
+            display: block;
+            fill: none;
+            stroke: currentColor;
+        }
+
+        .task-side-col .task-detail-icons {
+            margin-top: 8px;
+            gap: 8px;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .task-side-col .task-detail-icon {
+            font-size: 14px;
+            gap: 8px;
+        }
+
+        .task-side-col .task-detail-icon img {
+            width: 26px;
+            height: 26px;
+        }
+        .task-side-col .task-repeat-side {
+            display: none;
+        }
+
+        .task-actions-col {
+            grid-area: actions;
+            margin: 0;
+            display: flex !important;
+            width: 100%;
+            justify-content: flex-end !important;
+            align-items: center;
+            padding-top: 2px;
+        }
+
+        .task-actions-col .task-completion {
+            display: none;
+        }
+
+        .task-actions-col .task-completion span {
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .task-actions-col .dropdown {
+            margin-left: 8px !important;
+        }
+
+        .task-actions-col .options-btn {
+            opacity: 1;
+            transform: none;
+            width: auto;
+            height: auto;
+            padding: 0 4px;
+            border-radius: 0;
+            box-shadow: none !important;
+            line-height: 1;
+        }
+
+        .task-actions-col .options-btn img {
+            display: none;
+        }
+
+        .task-actions-col .options-btn::before {
+            content: "\22EE";
+            font-size: 28px;
+            font-weight: 700;
+            color: #111827;
+        }
+
+        .task-actions-col .options-btn:hover {
+            box-shadow: none !important;
+            background: transparent;
+        }
+    }
+
+    @media (max-width: 767px) {
+        .header-nav .task-header-row {
+            grid-template-columns: auto minmax(0, 1fr);
+            grid-template-areas:
+                "title tabs"
+                "search search";
+            row-gap: 8px;
+        }
+
+        .header-nav .task-header-row > .col.d-flex {
+            justify-content: center !important;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .header-nav .task-header-row > .col-auto:last-child {
+            grid-area: search;
+            justify-self: stretch;
+            width: 100%;
+            display: none;
+        }
+
+        .header-nav.search-open .task-header-row > .col-auto:last-child {
+            display: block;
+        }
+
+        .header-nav .header-actions,
+        .header-nav .search-box {
+            width: 100%;
+        }
+
+        .mobile-search-toggle {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 30px;
+            height: 30px;
+            border: 1px solid #d1d5db;
+            border-radius: 50%;
+            background: #fff;
+            color: #111827;
+            flex: 0 0 auto;
+            padding: 0;
+            position: absolute;
+            right: 0;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        .mobile-search-toggle svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        .header-nav .nav-tabs {
+            flex: 0 1 auto;
+            max-width: calc(100% - 40px);
+            justify-content: center !important;
+            margin-right: 40px !important;
+        }
+
+        .header-nav .nav-item {
+            font-size: 13px;
+        }
+
+        .header-nav .search-box input {
+            width: 100%;
+            max-width: 100%;
+        }
+
+        .task-date-group {
+            border-radius: 14px;
+            border-width: 1px;
+            margin-bottom: 10px;
+        }
+
+        .task-date-header {
+            padding: 10px 12px;
+        }
+
+        .task-date-title {
+            font-size: 13px;
+            gap: 8px;
+        }
+
+        .task-date-title img {
+            width: 20px;
+            height: 20px;
+        }
+
+        .task-repeat-inline {
+            margin-left: 8px;
+            font-size: 13px;
+        }
+
+        .task-repeat-inline img {
+            width: 15px;
+            height: 15px;
+        }
+
+        .task-status-badge {
+            font-size: 13px;
+            padding: 6px 10px;
+            border-radius: 12px;
+            background: #d1fae0;
+            color: #16a34a;
+        }
+
+        .task-status-overdue {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+
+        .task-list-row {
+            position: relative;
+            grid-template-columns: 56px minmax(0, 1fr) 130px;
+            grid-template-areas:
+                "property property property"
+                "listing type side";
+            row-gap: 10px;
+            padding: 10px 12px;
+        }
+
+        .task-property-title-mobile {
+            font-size: 15px;
+            padding-right: 44px;
+        }
+
+        .task-property-address-mobile {
+            font-size: 12px;
+            padding-right: 20px;
+        }
+
+        .task-main-col .task-thumbnail {
+            width: 56px;
+            height: 56px;
+            border-radius: 8px;
+            margin-right: 0;
+        }
+        .task-main-col .property-thumb-block .task-thumbnail {
+            width: 68px;
+            height: 64px;
+            border-radius: 10px;
+        }
+        .property-availability {
+            margin-top: 4px;
+            font-size: 10px;
+        }
+        .property-not-availability{
+
+            margin-top: 4px;
+            font-size: 10px;
+        }
+        .task-property-title {
+            font-size: 14px;
+        }
+        .task-property-address {
+            margin-top: 3px;
+            font-size: 12px;
+        }
+
+        .task-property-col .task-list-info-main {
+            display: none;
+        }
+
+        .task-property-col {
+            align-items: flex-start !important;
+        }
+
+        .task-main-col .task-title {
+            font-size: 14px;
+        }
+
+        .task-main-col .task-title img {
+            width: 18px;
+            height: 18px;
+        }
+
+        .task-main-col .task-description {
+            font-size: 12px;
+            overflow-wrap: anywhere;
+            word-break: break-word;
+        }
+
+        .task-side-col {
+            /* border-left: 1px solid #787d83; */
+            padding-left: 10px;
+        }
+
+        .task-side-col .task-assignment-label {
+            font-size: 13px;
+            margin-bottom: 2px;
+        }
+        .task-side-col .task-assignment-label::after {
+            content: "Assigned to";
+            display: inline;
+            font-size: 12px;
+            font-weight: 700;
+            color: #111827;
+            margin-left: 4px;
+        }
+
+        .task-side-col .task-assignee-name {
+            font-size: 13px;
+            display: block;
+            line-height: 1.25;
+        }
+        .task-side-col .task-assignee-desktop {
+            display: none !important;
+        }
+        .task-side-col .task-assignee-mobile {
+            display: flex !important;
+            align-items: center;
+        }
+        .task-side-col .task-assignment-section {
+            gap: 4px;
+        }
+        .task-side-col .task-assignee-row {
+            margin-top: 2px;
+            gap: 6px;
+        }
+        .task-side-col .task-assignee-row span {
+            line-height: 1.2;
+            word-break: break-word;
+        }
+        .task-side-col .task-assignee-row.phone-row {
+            gap: 4px;
+        }
+        .task-side-col .task-assignee-row.phone-row span {
+            white-space: normal;
+            word-break: break-word;
+            overflow-wrap: anywhere;
+            font-size: 12px;
+        }
+        .task-side-col .task-assignment-section svg {
+            width: 14px !important;
+            height: 14px !important;
+            min-width: 14px;
+            min-height: 14px;
+            max-width: 14px;
+            max-height: 14px;
+            flex: 0 0 14px;
+        }
+
+        .task-side-col .task-detail-icon {
+            font-size: 12px;
+        }
+
+        .task-side-col .task-detail-icon img {
+            width: 16px;
+            height: 16px;
+        }
+
+        .task-actions-col {
+            position: absolute;
+            top: 6px;
+            right: 6px;
+            width: auto;
+            grid-area: unset;
+            justify-content: flex-end !important;
+        }
+
+        .task-actions-col .dropdown {
+            margin-left: 0 !important;
+        }
+
+        .task-actions-col .options-btn {
+            width: 30px;
+            height: 30px;
+            padding: 0;
+            border-radius: 50%;
+            border: 1px solid #d1d5db;
+            background: #fff;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .task-actions-col .options-btn::before {
+            font-size: 18px;
+            line-height: 1;
+        }
+
+        .task-date-group,
+        .task-date-group > div,
+        .task-list-row {
+            overflow: visible !important;
+        }
+
+        .task-actions-col {
+            z-index: 3100;
+        }
+
+        .task-actions-col .dropdown {
+            position: relative !important;
+            z-index: 3101;
+        }
+
+        .task-actions-col .dropdown-menu {
+            position: absolute !important;
+            top: calc(100% + 6px) !important;
+            bottom: auto !important;
+            right: 0 !important;
+            left: auto !important;
+            transform: none !important;
+            min-width: 160px;
+            max-width: min(86vw, 240px);
+            z-index: 3200 !important;
+            border: 1px solid #d1d5db;
+            border-radius: 10px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            background: #fff;
+            padding: 6px 0;
+        }
+
+        .task-actions-col .dropdown-menu .dropdown-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            white-space: nowrap;
+            padding: 10px 14px;
+            font-size: 14px;
+        }
+
+        .task-actions-col .dropdown.show .options-btn {
+            opacity: 0 !important;
+            pointer-events: none;
+        }
+
+        .task-actions-col .dropdown-menu svg {
+            flex: 0 0 16px;
+        }
+    }
+
+    @media (max-width: 991px) {
+        .task-list-row {
+            position: relative;
+            display: block !important;
+            padding: 10px;
+            border: 1px solid #d7d7d7;
+            border-radius: 18px;
+            background: #fff;
+            min-height: 156px;
+        }
+
+        .task-property-title-mobile,
+        .property-card-col,
+        .guest-card-col,
+        .task-side-col,
+        .task-sent-col {
+            display: none !important;
+        }
+
+        .enquiry-mobile-card {
+            display: grid;
+            grid-template-columns: 132px minmax(0, 1fr) 132px;
+            gap: 12px;
+            align-items: start;
+            padding-right: 34px;
+        }
+
+        .enquiry-mobile-guest-img {
+            width: 132px;
+            height: 132px;
+            border-radius: 12px;
+            object-fit: cover;
+            border: 1px solid #b9b9b9;
+        }
+
+        .enquiry-mobile-details {
+            min-width: 0;
+            padding-top: 2px;
+        }
+
+        .enquiry-mobile-name {
+            margin: 0;
+            font-size: 19px;
+            font-weight: 700;
+            line-height: 1.2;
+            color: #111827;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .enquiry-mobile-meta {
+            margin: 10px 0 0;
+            font-size: 15px;
+            line-height: 1.2;
+            font-weight: 700;
+            color: #111827;
+        }
+
+        .enquiry-mobile-submeta {
+            margin: 10px 0 0;
+            font-size: 12px;
+            line-height: 1.3;
+            font-weight: 600;
+            color: #7a7a7a;
+        }
+
+        .enquiry-mobile-desc {
+            margin: 10px 0 0;
+            font-size: 16px;
+            line-height: 1.25;
+            font-weight: 700;
+            color: #111827;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .enquiry-mobile-property {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .enquiry-mobile-property-img {
+            width: 132px;
+            height: 90px;
+            border-radius: 12px;
+            object-fit: cover;
+            border: 1px solid #d5d5d5;
+        }
+
+        .enquiry-mobile-status {
+            margin-top: 8px;
+            font-size: 33px;
+            line-height: 1;
+            font-weight: 700;
+            color: #1f8a28;
+        }
+
+        .task-actions-col {
+            position: absolute !important;
+            top: 50%;
+            right: 6px;
+            transform: translateY(-50%);
+            width: auto;
+            padding: 0;
+            margin: 0;
+            z-index: 20;
+        }
+
+        .task-actions-col .dropdown {
+            margin-left: 0 !important;
+        }
+
+        .task-actions-col .options-btn {
+            width: 26px;
+            height: 26px;
+            border: 0;
+            background: transparent;
+            border-radius: 50%;
+            padding: 0;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .task-actions-col .options-btn::before {
+            font-size: 24px;
+            color: #111827;
+            line-height: 1;
+        }
+
+        .task-actions-col .options-btn img {
+            display: none;
+        }
+    }
+
+    @media (max-width: 767px) {
+        .task-list-row {
+            min-height: 86px;
+            border-radius: 14px;
+        }
+
+        .enquiry-mobile-card {
+            padding-left: 0px;
+            grid-template-columns: 64px minmax(0, 1fr) 70px;
+            gap: 10px;
+            padding-right: 26px;
+        }
+
+        .enquiry-mobile-guest-img {
+            width: 70px;
+            height: 70px;
+            border-radius: 10px;
+        }
+
+        .enquiry-mobile-name {
+            font-size: 14px;
+        }
+
+        .enquiry-mobile-meta {
+            margin-top: 6px;
+            font-size: 9px;
+        }
+
+        .enquiry-mobile-submeta {
+            margin-top: 6px;
+            font-size: 11px;
+        }
+
+        .enquiry-mobile-desc {
+            margin-top: 6px;
+            font-size: 12px;
+        }
+
+        .enquiry-mobile-property-img {
+            width: 70px;
+            height: 70px;
+            border-radius: 10px;
+        }
+
+        .enquiry-mobile-status {
+            margin-top: 6px;
+            margin-bottom: 2px;
+            font-size: 11px;
+        }
+
+        .task-actions-col .options-btn {
+            width: 22px;
+            height: 22px;
+        }
+
+        .task-actions-col .options-btn::before {
+            font-size: 18px;
+        }
+    }
+
+    @media (max-width: 1199px) {
+        .task-list-row {
+            position: relative !important;
+            display: block !important;
+            padding: 12px !important;
+            border: 1px solid #d7d7d7 !important;
+            border-radius: 14px !important;
+            background: #fff !important;
+        }
+
+        .property-card-col,
+        .guest-card-col,
+        .task-side-col {
+            display: none !important;
+        }
+
+        .enquiry-mobile-card {
+            display: grid !important;
+            grid-template-columns: 64px minmax(0, 1fr) 72px !important;
+            gap: 10px !important;
+            align-items: stretch !important;
+            padding-right: 14px !important;
+        }
+
+        .enquiry-mobile-guest-img,
+        .enquiry-mobile-property-img {
+            width: 64px !important;
+            height: 100% !important;
+            border-radius: 10px !important;
+        }
+
+        .enquiry-mobile-details {
+            display: flex !important;
+            flex-direction: column !important;
+        }
+
+        .enquiry-mobile-name {
+            font-size: 14px !important;
+            line-height: 1.2 !important;
+        }
+
+        .enquiry-mobile-meta {
+            margin-top: 6px !important;
+            font-size: 9px !important;
+            line-height: 1.25 !important;
+        }
+
+        .enquiry-mobile-submeta {
+            margin-top: 6px !important;
+            font-size: 9px !important;
+            line-height: 1.25 !important;
+        }
+
+        .enquiry-mobile-desc {
+            margin-top: 6px !important;
+            font-size: 9px !important;
+            line-height: 1.2 !important;
+        }
+
+        .enquiry-mobile-status,
+        .property-not-availability {
+            margin-top: 6px !important;
+            font-size: 9px !important;
+            line-height: 1.1 !important;
+        }
+
+        .task-actions-col {
+            position: static !important;
+            display: block !important;
+            width: 100% !important;
+            margin: 8px 0 0 !important;
+            padding: 0 !important;
+            transform: none !important;
+        }
+
+        .task-actions-col .dropdown {
+            position: absolute !important;
+            top: 50% !important;
+            right: 8px !important;
+            transform: translateY(-50%) !important;
+            margin-left: 0 !important;
+            z-index: 40 !important;
+        }
+
+        .task-actions-col .options-btn {
+            width: 24px !important;
+            height: 24px !important;
+            padding: 0 !important;
+            border: 0 !important;
+            background: transparent !important;
+        }
+
+        .task-actions-col .dropdown.show .options-btn {
+            opacity: 1 !important;
+            pointer-events: auto !important;
+        }
+
+        .enquiry-sent-block {
+            margin-top: 2px !important;
+            gap: 4px !important;
+            font-size: 12px !important;
+            line-height: 1.25 !important;
+            align-items: flex-start !important;
+        }
+
+        .enquiry-sent-block .enquiry-sent-date {
+            display: flex !important;
+            gap: 6px !important;
+            flex-wrap: wrap !important;
+        }
+
+        .enquiry-sent-block .reservation-line,
+        .enquiry-sent-block .reservation-status {
+            font-size: 12px !important;
+            white-space: normal !important;
+            /* display: none; */
+        }
+
+        .task-actions-col .enquiry-sent-block {
+            display: none !important;
+        }
+
+        .enquiry-sent-block-mobile {
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 3px !important;
+            margin-top: 8px !important;
+            font-size: 12px !important;
+            line-height: 1.3 !important;
+            color: #111827 !important;
+        }
+
+        .enquiry-sent-block-mobile .enquiry-sent-date {
+            display: flex !important;
+            align-items: baseline !important;
+            gap: 6px !important;
+        }
+
+        .enquiry-sent-block-mobile .date-value {
+            font-weight: 700 !important;
+        }
+
+        .enquiry-sent-block-mobile .reservation-line,
+        .enquiry-sent-block-mobile .reservation-status {
+            font-size: 12px !important;
+        }
+    }
+</style>
+{% endblock extra_head %}
+
+{% block content %}
+<div class="container-fluid p-1">
+    <!-- Header Navigation -->
+    <div class="header-nav" style="padding: 8px 16px;">
+        <div class="row align-items-center w-100 g-3 task-header-row">
+            <div class="col-auto">
+                <div class="nav-left">
+                    <div class="nav-title">
+                        <img src="{% static 'img/public_host_website/inquiry_mail.png'%}" alt="">
+                        <span>Inquiry</span>
+                    </div>
+                </div>
+            </div>
+            <div class="col d-flex justify-content-center">
+                <div class="nav-tabs nav-tabs-center d-flex justify-content-center">
+                    <!-- <div class="nav-item {% if status_filter == 'all' or not status_filter %}active{% endif %}">
+                        <a href="{% url 'tasks:task-list' %}?status=all">
+                        All ({{ all_tasks_count }})
+                        </a>
+                    </div> -->
+                    <!-- <div class="divider" style="right: 35px; top: 50%; height: 16px; width: 1px; background-color: #ccc;"></div> -->
+                    <div class="nav-item {% if status_filter == 'new' %}active{% endif %}">
+                        <a href="{% url 'booking:enquiry-list' %}?status=new">
+                            New ({{ new_enquiry }})
+                        </a>
+                    </div>
+                    <div class="divider"
+                        style="right: 35px; top: 50%; height: 16px; width: 1px; background-color: #ccc;"></div>
+                    <div class="nav-item {% if status_filter == 'archive' %}active{% endif %}">
+                        <a href="{% url 'booking:enquiry-list' %}?status=archive">
+                            Archived ({{ archive_enquiry }})
+                        </a>
+                    </div>
+                    <div class="divider"
+                        style="right: 35px; top: 50%; height: 16px; width: 1px; background-color: #ccc;"></div>
+                    <div class="nav-item {% if status_filter == 'reserved' %}active{% endif %}">
+                        <a href="{% url 'booking:enquiry-list' %}?status=reserved">
+                            Reserved ({{ total_reserved }})
+                        </a>
+                    </div>
+                </div>
+                <button id="mobileSearchToggle" class="mobile-search-toggle" type="button" aria-label="Toggle search" aria-expanded="false">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <path d="m21 21-4.35-4.35"></path>
+                    </svg>
+                </button>
+            </div>
+            <div class="col-auto">
+                <div class="header-actions">
+                    <!-- <a href="{% url 'tasks:task-create' %}" class="btn"
+                        style="background-color: #ffffff; color: #1D74B2; padding: 4px 11px;">Create</a> -->
+
+                    <div class="search-box">
+                        <input type="text" name="search" placeholder="Search" value="{{ search_query|default:'' }}">
+                        <div class="search-icon" onclick="performSearchNow()">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" style="color: black;">
+                                <circle cx="11" cy="11" r="8"></circle>
+                                <path d="m21 21-4.35-4.35"></path>
+                            </svg>
+                        </div>
+                        <div class="divider"
+                            style="position: absolute; right: 35px; top: 50%; transform: translateY(-50%); height: 16px; width: 1px; background-color: #ccc;">
+                        </div>
+
+                        <div class="clear-icon" onclick="clearSearchAndReload()"
+                            style="display: none; cursor: pointer; right: 40px;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" style="color: black;">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <line x1="15" y1="9" x2="9" y2="15"></line>
+                                <line x1="9" y1="9" x2="15" y2="15"></line>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <main class="task-main-content" style="max-height: calc(100vh - 133px); overflow-y:auto">
+        <div class="main_body_div" >
+                    <div id="enquiryResults">
+                    {% if page_obj.object_list %}
+                    {% for enquiry in page_obj.object_list %} 
+                    {% ifchanged enquiry.date %}
+                    {% if not forloop.first %}</div>
+        </div>{% endif %}
+        <div class="task-date-group">
+            <div>
+                {% endifchanged %}
+                <div class="row task-list-row align-items-center" data-detail-url="{% url 'booking:enquiry-detail' unique_id=enquiry.unique_id %}">
+                    <div class="task-property-title-mobile">
+                        {{ enquiry.property.title }}
+                        <div class="task-property-address-mobile">
+                            {{ enquiry.property.street_address }}, {{ enquiry.property.city }}, {{ enquiry.property.state }}, {{ enquiry.property.zip }}
+                        </div>
+                    </div>
+
+                    <div class="enquiry-mobile-card">
+                        {% with guest_image=enquiry.images.first %}
+                        <img 
+                        class="enquiry-mobile-guest-img" 
+                        src="{% if guest_image %}{{ guest_image.image.url }}{% else %}{% static 'img/common/default_user_icon.png' %}{% endif %}" 
+                        alt="{{ enquiry.first_name }}"
+                        >
+                        {% endwith %}
+                        <div class="enquiry-mobile-details">
+                            <p class="enquiry-mobile-name">{{ enquiry.first_name }} {{ enquiry.last_name }}</p>
+                            <p class="enquiry-mobile-meta">
+                                {{ enquiry.check_in_date|date:"M j, Y" }} - {{ enquiry.check_out_date|date:"M j, Y" }} ({{ enquiry.nights }} night{{ enquiry.nights|pluralize }})
+                            </p>
+                            <p class="enquiry-mobile-submeta">Check-in in {{ enquiry.days_until_checkin }} day{{ enquiry.days_until_checkin|pluralize }}, {{ enquiry.guest_count }} guest{{ enquiry.guest_count|pluralize }}</p>
+                            <p class="enquiry-mobile-desc">{{ enquiry.property.title }}</p>
+                            <div class="enquiry-sent-block-mobile">
+                                <div class="enquiry-sent-date">
+                                    <span>Sent on</span>
+                                    <span class="date-value">{{ enquiry.created_at|date:"M j, Y" }}</span>
+                                </div>
+                                {% if enquiry.reservation %}
+                                    <div class="reservation-line">Reservation <span class="reservation-id">#{{ enquiry.reservation.booking_id }}</span></div>
+                                    {% if enquiry.reservation.status == 'confirmed' %}
+                                        <span class="reservation-status confirmed">Reserved</span>
+                                    {% else %}
+                                        <span class="reservation-status cancelled">Cancelled</span>
+                                    {% endif %}
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="enquiry-mobile-property">
+                            <img class="enquiry-mobile-property-img" src="{{ enquiry.property.get_primary_image_url }}" alt="{{ enquiry.property.title }}">
+                            {% if status_filter != 'reserved' %}
+                                {% if enquiry.is_available %}
+                                <p class="enquiry-mobile-status">Available</p>
+                                {% else %}
+                                <p class="property-not-availability">Not Available</p>
+                                {% endif %}
+                            {% endif %}
+                        </div>
+
+                    </div>
+                    
+                    <div class="col-lg-3 task-main-col task-property-col property-card-col align-items-center task-property-card" style="color: #000;">
+                        <span class="property-thumb-block">
+                            <img class="task-thumbnail" src="{{ enquiry.property.get_primary_image_url }}"
+                            alt="{{ enquiry.property.title }}" title="{{ enquiry.property.title }}">
+                            {% if status_filter != 'reserved' %}
+                                {% if enquiry.is_available %}
+                                <p class="property-availability">Available</p>
+                                {% else %}
+                                <p class="property-not-availability">Not Available</p>
+                                {% endif %}
+                            {% endif %}
+                        </span>
+                        <div class="task-list-info-main property-card-info">
+                            <div class="task-property-date-line">
+                                {{ enquiry.check_in_date|date:"M j, Y" }} - {{ enquiry.check_out_date|date:"M j, Y" }} 
+                                ({{ enquiry.total_nights }} night{{ enquiry.total_nights|pluralize }})
+                            </div>
+                            <div class="task-title task-property-title">
+                                {{ enquiry.property.title }}
+                            </div>
+                            <div class="task-description task-property-address">
+                                {{ enquiry.property.street_address }}, {{ enquiry.property.city }}, {{ enquiry.property.state }}, {{ enquiry.property.zip }}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-lg-3 task-main-col task-property-col guest-card-col align-items-center" style="display: flex; color: #000;">
+                        {% with guest_image=enquiry.images.first %}
+                        <img class="task-thumbnail" src="{% if guest_image %}{{ guest_image.image.url }}{% else %}{% static 'img/common/default_user_icon.png' %}{% endif %}"
+                            alt="{{ enquiry.first_name }}" title="{{ enquiry.first_name }}">
+                        {% endwith %}
+                        <div class="task-list-info-main guest-card-info">
+                            <div class="task-title">
+                                {{ enquiry.first_name }} {{ enquiry.last_name }}
+                            </div>
+                            <div class="task-description" style="color: #000;">
+                                <img src="{% static 'img\common\email.png' %}" alt="" srcset="" style="height: 18px;">
+                                {{ enquiry.email }}
+                            </div>
+                            <div class="task-description" style="color: #000;">
+                                <img src="{% static 'img\common\phone_no_icon.svg' %}" alt="" srcset="" style="height: 14px;">
+                                <span>
+                                    {% if enquiry.phone and enquiry.phone != "Not available" %}
+                                        {% if enquiry.phone_code %}{{ enquiry.phone_code }}{% endif %} {{ enquiry.phone }}
+                                    {% else %}
+                                        Not available
+                                    {% endif %}
+                                </span>
+                            </div>
+                            <div class="guest-meta-mobile">
+                                {{ enquiry.adults }} Adult{{ enquiry.adults|pluralize }}, {{ enquiry.children }} Child{{ enquiry.children|pluralize }}, {{ enquiry.pets }} Pet{{ enquiry.pets|pluralize }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-2 task-side-col" style="padding-left: 0;">
+                        <div class="task-list-info-side">
+                            <div>
+                                <div class="task-assignment-section">
+                                    <span class="task-assignment-label" style="color: #000;">
+                                        <svg class="assignment-icon" viewBox="0 0 24 24" fill="none" stroke-width="2">
+                                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                            <circle cx="12" cy="7" r="4"></circle>
+                                        </svg>
+                                        <!-- <span>Assigned to</span> -->
+                                    </span>
+                                    <span class="task-assignee-name task-assignee-desktop guest-count-list" style="color: #000;">
+                                        <span class="guest-count-row">
+                                            <img src="{% static 'img/common/default_user.svg' %}" alt="" srcset="" class="guest-count-icon">
+                                            <span>{{ enquiry.adults }} Adult{{ enquiry.adults|pluralize }}</span>
+                                        </span>
+                                        <span class="guest-count-row">
+                                            <img src="{% static 'img/common/child.png' %}" alt="" srcset="" class="guest-count-icon">
+                                            <span>{{ enquiry.children }} Child{{ enquiry.children|pluralize }}</span>
+                                        </span>
+                                        <span class="guest-count-row">
+                                            <img src="{% static 'img/common/pet_paw.png' %}" alt="" srcset="" class="guest-count-icon">
+                                            <span>{{ enquiry.pets }} Pet{{ enquiry.pets|pluralize }}</span>
+                                            {% if enquiry.pet_details %}
+                                            <img src="{% static 'img/common/notification.png' %}" alt="" srcset="" class="guest-count-icon small" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ enquiry.pet_details }}">
+                                            {% endif %}
+                                        </span>
+
+                                        
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-4 d-flex justify-content-end align-items-center task-actions-col">
+                        <div class="enquiry-sent-block">
+                            <div class="enquiry-sent-date">
+                                <span>Sent on</span>
+                                <span class="date-value">{{ enquiry.created_at|date:"M j, Y" }}</span>
+                            </div>
+                            {% if enquiry.reservation %}
+                                <div class="reservation-line">Reservation <span class="reservation-id">#{{ enquiry.reservation.booking_id }}</span></div>
+                                {% if enquiry.reservation.status == 'confirmed' %}
+                                    <span class="reservation-status confirmed">Reserved</span>
+                                {% else %}
+                                    <span class="reservation-status cancelled">Cancelled</span>
+                                {% endif %}
+                            {% endif %}
+
+                        </div>
+                        <div class="dropdown  ms-lg-auto">
+                                <button class="options-btn " type="button" data-bs-toggle="dropdown" data-toggle="dropdown" aria-expanded="false" data-bs-boundary="window" data-boundary="window">
+                                    <img src="{% static 'img/booking/horizontal_dots.svg' %}">
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end dropdown-menu-right">
+                                    
+                                    <li>
+                                        <a class="dropdown-item" href="{% url 'booking:enquiry-detail' unique_id=enquiry.unique_id %}">
+                                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                                <path d="M2 8C3.3 5.7 5.3 4.5 8 4.5C10.7 4.5 12.7 5.7 14 8C12.7 10.3 10.7 11.5 8 11.5C5.3 11.5 3.3 10.3 2 8Z"
+                                                    stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                                                <circle cx="8" cy="8" r="1.75" stroke="currentColor" stroke-width="1.5" />
+                                            </svg>
+                                            Details
+                                        </a>
+                                    </li>
+                                    {% if enquiry.is_available and not enquiry.is_booked %}
+                                    <li>
+                                        <a class="dropdown-item" href="{% url 'booking:booking-create' %}?enquiry_id={{ enquiry.unique_id }}">
+                                            <img class="create-menu-icon" src="{% static 'img/header/hotel-room.png' %}" alt="Reservation">
+                                            Create Reservation
+                                        </a>
+                                    </li>
+                                    {% endif %}
+    
+                                    {% if status_filter != 'archive' %}
+                                    <li>
+                                        <a class="dropdown-item enquiry-archive-btn" href="#" data-enquiry-id="{{ enquiry.unique_id }}">
+                                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="stroke: currentColor;">
+                                                <rect x="2" y="3" width="12" height="3" rx="1" stroke="currentColor" stroke-width="1.5" />
+                                                <path d="M3.5 6V12.5C3.5 13.0523 3.94772 13.5 4.5 13.5H11.5C12.0523 13.5 12.5 13.0523 12.5 12.5V6"
+                                                    stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                                                <path d="M6 8.5H10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+                                            </svg>
+                                            Archive
+                                        </a>
+                                    </li>
+                                    {% endif %}
+                                </ul>
+                            </div>
+
+                        
+                    </div>
+                </div>
+                {% if forloop.last %}
+            </div>
+        </div>
+        {% endif %}
+        {% endfor %}
+        {% else %}
+        <div class="no-tasks" style="border: none;">
+            <img src="{% static 'img/common/no_task_found.svg' %}" style="height: 239px;">
+            <h6 class="no-task-heading">No enquiry is available to display</h6>
+        </div>
+        {% endif %}
+        {% include 'frontend/base/pagination.html' %}
+        </div>
+        </div>
+        {% include 'frontend/base/footer.html' %}
+
+    </main>
+</div>
+
+{% include 'frontend/common/confirmation_modal.html' with modal_id="archiveEnquiryModal" title="Confirm Archive" message="Are you sure you want to archive this enquiry?" form_id="archiveEnquiryForm" confirm_text="Archive" confirm_btn_class="btn-danger" %}
+
+{% endblock content %}
+
+{% block extra_script %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // Initialize Bootstrap tooltips
+        const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+
+        const SEARCH_FOCUS_KEY = 'taskListSearchFocus';
+        const searchInput = document.querySelector('.search-box input[name="search"]');
+        const clearIcon = document.querySelector('.search-box .clear-icon');
+        const mobileSearchToggle = document.getElementById('mobileSearchToggle');
+        const headerNav = document.querySelector('.header-nav');
+        const enquiryResults = document.getElementById('enquiryResults');
+        let searchKeydownTimer = null;
+        let activeSearchController = null;
+
+        function toggleClearIcon() {
+            clearIcon.style.display = searchInput.value ? 'block' : 'none';
+        }
+
+        if (searchInput) {
+            searchInput.dataset.searchInstance = searchInput.dataset.searchInstance || 'task-search-main';
+            searchInput.addEventListener('input', function () {
+                toggleClearIcon.call(this);
+            });
+            searchInput.addEventListener('keydown', function (event) {
+                if (event.key === 'Enter') {
+                    if (searchKeydownTimer) {
+                        clearTimeout(searchKeydownTimer);
+                        searchKeydownTimer = null;
+                    }
+                    performSearchNow(this);
+                    return;
+                }
+
+                if (event.key.length > 1 && !['Backspace', 'Delete'].includes(event.key)) return;
+
+                if (searchKeydownTimer) clearTimeout(searchKeydownTimer);
+                searchKeydownTimer = setTimeout(() => {
+                    performSearchNow(this);
+                }, 400);
+            });
+        }
+        if (searchInput) toggleClearIcon();
+
+        function focusStoredSearch() {
+            const stored = sessionStorage.getItem(SEARCH_FOCUS_KEY);
+            let target = stored && document.querySelector(`[data-search-instance="${stored}"]`);
+            if (!target) target = searchInput;
+            if (target) {
+                setTimeout(() => {
+                    target.focus();
+                    target.setSelectionRange(target.value.length, target.value.length);
+                }, 50);
+            }
+        }
+
+        focusStoredSearch();
+        window.addEventListener('pageshow', focusStoredSearch);
+        window.addEventListener('load', focusStoredSearch);
+
+        if (mobileSearchToggle && headerNav && searchInput) {
+            if (window.matchMedia('(max-width: 767px)').matches && searchInput.value.trim()) {
+                headerNav.classList.add('search-open');
+                mobileSearchToggle.setAttribute('aria-expanded', 'true');
+            }
+
+            mobileSearchToggle.addEventListener('click', function () {
+                const isOpen = headerNav.classList.toggle('search-open');
+                mobileSearchToggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+                if (isOpen) {
+                    setTimeout(() => searchInput.focus(), 0);
+                }
+            });
+        }
+
+        function initResultInteractions(root) {
+            const scope = root || document;
+
+            const tooltipTriggerList = [].slice.call(scope.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            tooltipTriggerList.forEach(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+
+            scope.querySelectorAll('.task-actions-col .dropdown').forEach(dropdown => {
+                if (dropdown.dataset.boundMenuEvents === '1') return;
+                dropdown.dataset.boundMenuEvents = '1';
+
+                const row = dropdown.closest('.task-list-row');
+                const group = dropdown.closest('.task-date-group');
+                if (!row) return;
+
+                dropdown.addEventListener('show.bs.dropdown', function () {
+                    row.classList.add('menu-open');
+                    if (group) group.classList.add('menu-open');
+                });
+
+                dropdown.addEventListener('hide.bs.dropdown', function () {
+                    row.classList.remove('menu-open');
+                    if (group) group.classList.remove('menu-open');
+                });
+            });
+
+            scope.querySelectorAll('.task-list-row[data-detail-url]').forEach(row => {
+                if (row.dataset.boundRowClick === '1') return;
+                row.dataset.boundRowClick = '1';
+                row.addEventListener('click', function (event) {
+                    if (event.target.closest('a, button, .dropdown, input, select, textarea, [data-bs-toggle]')) {
+                        return;
+                    }
+                    const detailUrl = this.dataset.detailUrl;
+                    if (detailUrl) {
+                        window.location.href = detailUrl;
+                    }
+                });
+            });
+        }
+
+        initResultInteractions(document);
+
+
+
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        const csrfToken = getCookie('csrftoken');
+        const archiveModalElement = document.getElementById('archiveEnquiryModal');
+        const archiveForm = document.getElementById('archiveEnquiryForm');
+        const archiveSubmitBtn = archiveForm ? archiveForm.querySelector('button[type=\"submit\"]') : null;
+        const archiveModal = archiveModalElement ? new bootstrap.Modal(archiveModalElement) : null;
+        let pendingArchiveEnquiryId = null;
+
+        function bindArchiveButtons(root) {
+            const scope = root || document;
+            scope.querySelectorAll('.enquiry-archive-btn').forEach(button => {
+                if (button.dataset.boundArchiveClick === '1') return;
+                button.dataset.boundArchiveClick = '1';
+                button.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    const enquiryId = this.dataset.enquiryId;
+                    if (!enquiryId || !archiveModal) return;
+                    pendingArchiveEnquiryId = enquiryId;
+                    archiveModal.show();
+                });
+            });
+        }
+
+        bindArchiveButtons(document);
+
+        window.performSearchNow = async function (element) {
+            const SEARCH_FOCUS_KEY = 'taskListSearchFocus';
+            const activeSearchInput = element || document.querySelector('.search-box input[name="search"]');
+            if (!activeSearchInput) return;
+
+            const instance = activeSearchInput.dataset.searchInstance || 'task-search-main';
+            sessionStorage.setItem(SEARCH_FOCUS_KEY, instance);
+
+            const query = activeSearchInput.value;
+            const params = new URLSearchParams(window.location.search);
+
+            if (query.trim()) {
+                params.set('search', query.trim());
+            } else {
+                params.delete('search');
+            }
+
+            params.delete('page');
+            const newUrl = new URL(window.location.pathname, window.location.origin);
+            newUrl.search = params.toString();
+
+            if (!enquiryResults) {
+                window.location.href = newUrl.toString();
+                return;
+            }
+
+            if (activeSearchController) {
+                activeSearchController.abort();
+            }
+            activeSearchController = new AbortController();
+
+            try {
+                const response = await fetch(newUrl.toString(), {
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                    signal: activeSearchController.signal
+                });
+                if (!response.ok) throw new Error('Search request failed');
+
+                const html = await response.text();
+                const parsedDoc = new DOMParser().parseFromString(html, 'text/html');
+                const newResults = parsedDoc.getElementById('enquiryResults');
+                if (!newResults) throw new Error('Results block missing');
+
+                enquiryResults.innerHTML = newResults.innerHTML;
+                window.history.replaceState({}, '', newUrl.toString());
+                initResultInteractions(enquiryResults);
+                bindArchiveButtons(enquiryResults);
+            } catch (error) {
+                if (error.name === 'AbortError') return;
+                console.error('Error performing search:', error);
+                window.location.href = newUrl.toString();
+            }
+        };
+
+        window.clearSearchAndReload = function () {
+            const activeSearchInput = document.querySelector('.search-box input[name="search"]');
+            if (!activeSearchInput) return;
+            activeSearchInput.value = '';
+            toggleClearIcon();
+            window.performSearchNow(activeSearchInput);
+        };
+
+        if (archiveForm) {
+            archiveForm.addEventListener('submit', function (e) {
+                e.preventDefault();
+                if (!pendingArchiveEnquiryId) return;
+
+                if (archiveSubmitBtn) {
+                    archiveSubmitBtn.disabled = true;
+                    archiveSubmitBtn.textContent = 'Archiving...';
+                }
+
+                fetch(`/booking/enquiry/archive/${pendingArchiveEnquiryId}/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': csrfToken,
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        window.location.reload();
+                    } else {
+                        alert('Error: ' + (data.error || 'Failed to archive enquiry'));
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred while archiving the enquiry.');
+                })
+                .finally(() => {
+                    if (archiveSubmitBtn) {
+                        archiveSubmitBtn.disabled = false;
+                        archiveSubmitBtn.textContent = 'Archive';
+                    }
+                });
+            });
+        }
+
+        if (archiveModalElement) {
+            archiveModalElement.addEventListener('hidden.bs.modal', function () {
+                pendingArchiveEnquiryId = null;
+            });
+        }
+
+        // Mobile header behavior for enquiry list:
+        // hide on scroll down, show on scroll up.
+        const mobileHeader = document.querySelector('.custom-header');
+        const taskMainContent = document.querySelector('.task-main-content');
+        const mobileHeaderMq = window.matchMedia('(max-width: 991.98px)');
+        const mobileNavbarContent = document.getElementById('navbarContent');
+        let lastScrollTop = 0;
+        let scrollTicking = false;
+        const scrollDelta = 6;
+
+        function getScrollTopValue() {
+            if (taskMainContent && taskMainContent.scrollHeight > taskMainContent.clientHeight) {
+                return taskMainContent.scrollTop || 0;
+            }
+            return window.pageYOffset || document.documentElement.scrollTop || 0;
+        }
+
+        function toggleMobileHeaderOnScroll() {
+            if (!mobileHeader || !mobileHeaderMq.matches) return;
+            if (mobileNavbarContent && mobileNavbarContent.classList.contains('show')) return;
+
+            const currentScrollTop = getScrollTopValue();
+            if (Math.abs(currentScrollTop - lastScrollTop) <= scrollDelta) return;
+
+            if (currentScrollTop > lastScrollTop && currentScrollTop > 40) {
+                mobileHeader.classList.add('mobile-header-hidden');
+                if (headerNav) headerNav.classList.add('mobile-header-hidden');
+            } else {
+                mobileHeader.classList.remove('mobile-header-hidden');
+                if (headerNav) headerNav.classList.remove('mobile-header-hidden');
+            }
+
+            lastScrollTop = Math.max(0, currentScrollTop);
+        }
+
+        function onMobileScroll() {
+            if (!scrollTicking) {
+                window.requestAnimationFrame(function () {
+                    toggleMobileHeaderOnScroll();
+                    scrollTicking = false;
+                });
+                scrollTicking = true;
+            }
+        }
+
+        window.addEventListener('scroll', onMobileScroll, { passive: true });
+        if (taskMainContent) {
+            taskMainContent.addEventListener('scroll', onMobileScroll, { passive: true });
+        }
+        lastScrollTop = getScrollTopValue();
+
+        if (mobileNavbarContent) {
+            mobileNavbarContent.addEventListener('show.bs.collapse', function () {
+                if (mobileHeader) {
+                    mobileHeader.classList.remove('mobile-header-hidden');
+                    mobileHeader.classList.add('mobile-menu-open');
+                }
+                if (headerNav) {
+                    headerNav.classList.remove('mobile-header-hidden');
+                    headerNav.classList.add('mobile-menu-open');
+                }
+            });
+
+            mobileNavbarContent.addEventListener('hidden.bs.collapse', function () {
+                if (mobileHeader) {
+                    mobileHeader.classList.remove('mobile-menu-open');
+                }
+                if (headerNav) {
+                    headerNav.classList.remove('mobile-menu-open');
+                }
+                lastScrollTop = getScrollTopValue();
+                onMobileScroll();
+            });
+        }
+
+        if (mobileHeader) {
+            mobileHeader.querySelectorAll('.dropdown').forEach(function (dropdownEl) {
+                dropdownEl.addEventListener('show.bs.dropdown', function () {
+                    if (!mobileHeaderMq.matches) return;
+                    mobileHeader.classList.remove('mobile-header-hidden');
+                    mobileHeader.classList.add('mobile-menu-open');
+                    if (headerNav) {
+                        headerNav.classList.remove('mobile-header-hidden');
+                        headerNav.classList.add('mobile-menu-open');
+                    }
+                });
+
+                dropdownEl.addEventListener('hidden.bs.dropdown', function () {
+                    if (!mobileHeaderMq.matches) return;
+                    const hasOpenHeaderDropdown = !!mobileHeader.querySelector('.dropdown.show');
+                    const navExpanded = !!(mobileNavbarContent && mobileNavbarContent.classList.contains('show'));
+                    if (hasOpenHeaderDropdown || navExpanded) return;
+
+                    mobileHeader.classList.remove('mobile-menu-open');
+                    if (headerNav) {
+                        headerNav.classList.remove('mobile-menu-open');
+                    }
+                    lastScrollTop = getScrollTopValue();
+                    onMobileScroll();
+                });
+            });
+        }
+
+        if (mobileHeaderMq.addEventListener) {
+            mobileHeaderMq.addEventListener('change', function (e) {
+                if (!e.matches && mobileHeader) {
+                    mobileHeader.classList.remove('mobile-header-hidden');
+                    mobileHeader.classList.remove('mobile-menu-open');
+                }
+                if (!e.matches && headerNav) {
+                    headerNav.classList.remove('mobile-header-hidden');
+                    headerNav.classList.remove('mobile-menu-open');
+                }
+                lastScrollTop = getScrollTopValue();
+            });
+        }
+    });
+</script>
+{% endblock extra_script %}

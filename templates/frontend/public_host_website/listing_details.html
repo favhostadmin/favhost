@@ -1,0 +1,1657 @@
+{% extends 'frontend/base/base.html' %}
+{% load static %}
+
+{% block extra_head %}
+<link href="{% static 'css/property/details.css' %}" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.19/css/intlTelInput.css" />
+<link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+    crossorigin=""
+/>
+
+<link href="{% static 'css/public_host_website/listing_details.css' %}" rel="stylesheet">
+
+{% endblock extra_head %}
+
+{% block header %}{% endblock header %}
+
+{% block content %}
+    <!-- Action Buttons -->
+    <div class="container-fluid  ">
+        <div class="banner-head">
+            <div class="ld-header">
+                <div class="ld-top">
+                    <div class="ld-brand">
+                        <span>Created with</span>
+                        <img src="{% static 'img/login/favhost.png' %}" alt="FavHost" style="height:24px;">
+                    </div>
+                    <!-- <div class="ld-placeholder"></div> -->
+                </div>
+                <div class="ld-bar">
+                    <div class="ld-bar-left">
+                        <img src="{% static 'img/property/hotel_room_white.png' %}" alt="">
+                        <span>Listing Details</span>
+                    </div>
+                    <div class="ld-bar-right">
+                        <img src="{% static 'img/public_host_website/phone.png' %}" alt="">
+                        <a href="tel:{{ host.phone }}" style="color: inherit; text-decoration: none;">
+                            <span>{{ host.phone|default:'+1012 3456 789' }}</span>
+                        </a>
+                        <a href="#" id="sharePageLink" class="share-page-link" title="Share this listing" style="display: inline-flex; align-items: center; margin-left: 5px;">
+                            <img src="{% static 'img/public_host_website/share.png' %}" alt="Share">
+                        </a>
+    
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+
+        <div class="property-detail-scroll">
+            <div class="property-detail-content">
+                <div class="row property-header">
+                    <!-- Title and Status Row -->
+                    <div class="col-lg-8 col-md-8 col-sm-12 desktop-title">
+                        <span style="font-size: 24px; font-weight: 500">{{ property.title }}</span>
+                    </div>
+                    <div class="col-lg-4 col-md-4 col-sm-12 desktop-status" style="text-align: end;">
+                        {% if property.status == 'Active' %}
+                            <div class="status-badge" style="background-color: #28a745; width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 5px;"></div>
+                            <span style="font-size: 14px;color: #666;">Active <span style="color: #000; font-weight: 500;font-size: 20px;">.</span> Listed on {{ property.created_at|date:"M. d, Y" }}</span>
+                            {% else %}
+                            <div class="status-badge" style="background-color: #dc3545; width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 5px;"></div>
+                            <span style="font-size: 14px;color: #666;">Inactive</span>
+                        {% endif %}
+                    </div>
+                    <div class="col-12 mobile-title-price">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <p class="mb-0 fw-semibold mobile-title-text">{{ property.title }}</p>
+                        </div>
+                    </div>
+
+                    <div class="col-12 desktop-meta desktop-meta-top">
+                        <div class="property-meta desktop-property-meta-row">
+                            <span class="property-text">
+                                <img src="{% static 'img/property/guest.svg' %}">
+                                {{ property.guest }} guests (max)
+                            </span>
+
+                            <div class="cred-divider"></div>
+
+                            <span class="property-text">
+                                <img src="{% static 'img/property/room.svg' %}">
+                                {{ property.get_property_type_display }}
+                            </span>
+
+                            <div class="cred-divider"></div>
+
+                            <span class="property-text">
+                                <img src="{% static 'img/property/bathtub.svg' %}">
+                                {{ property.get_bathroom_type_display }} Bathroom
+                            </span>
+
+                            <div class="cred-divider"></div>
+
+                            <span class="property-text">
+                                <img src="{% static 'img/property/bed.svg' %}">
+                                {{ property.bed_type }} Bed
+                            </span>
+
+                            <div class="cred-divider"></div>
+
+                            <span class="property-text">
+                                <img src="{% static 'img/property/min_nights.svg' %}">
+                                {{ property.minimum_booking }} nights (min)
+                            </span>
+
+                            {% for amenity in property.amenities.all %}
+                                {% if amenity.name == "Pet Friendly" %}
+                                <div class="cred-divider"></div>
+                                <span class="property-text">
+                                    <img src="{{ amenity.icon.url }}" alt="Pet Friendly">
+                                    Pet Friendly
+                                </span>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
+                    <!-- Revenue and Occupancy Row -->
+                    <!-- <div class="col-lg-3 col-md-3 col-sm-12 desktop-revenue" style="text-align: end; margin-top: 10px;">
+                        <div style="font-size: 14px; color: #666;">
+                            <span style="display: inline-flex; align-items: center; gap: 4px; margin-right: 10px;">
+                                <img src="{% static 'img/property/revenue.svg' %}">
+                                Revenue: <strong>$0</strong>
+                            </span>
+                            <span style="display: inline-flex; align-items: center; gap: 4px;">
+                                <img src="{% static 'img/property/occupancy.svg' %}">
+                                Occupancy: <strong>0%</strong>
+                            </span>
+                        </div>
+                    </div> -->
+                </div>
+
+                <!-- Gallery Section -->
+                <div class="gallery-row">
+                    <a class="share-page-link mobile-gallery-share" href="#" aria-label="Share">
+                        <img src="{% static 'img/public_host_website/share_new.png' %}" alt="Share icon">
+                    </a>
+                    <button type="button" class="mobile-gallery-nav mobile-gallery-prev" aria-label="Previous image">
+                        &#10094;
+                    </button>
+                    <button type="button" class="mobile-gallery-nav mobile-gallery-next" aria-label="Next image">
+                        &#10095;
+                    </button>
+                    {% if images|length == 1 %}
+                        <div class="gallery-col main-image" style="flex: 2; border-radius: 12px; cursor: pointer;">
+                            <img src="{{ images.0.image.url }}" alt="{{ property.title }}" style="border-radius: 12px;" onclick="openGalleryModal(0)">
+                        </div>
+                    {% elif images|length == 2 %}
+                        <div class="gallery-col main-image" style="cursor: pointer;">
+                            <img src="{{ images.0.image.url }}" alt="{{ property.title }}" onclick="openGalleryModal(0)">
+                        </div>
+                        <div class="gallery-col main-image" style="position: relative; border-radius: 0 12px 12px 0; cursor: pointer;">
+                            <img src="{{ images.1.image.url }}" alt="{{ property.title }}" style="border-radius: 0 12px 12px 0;" onclick="openGalleryModal(1)">
+                            <div class="gallery-overlay-btns">
+                                <button 
+                                    onclick="showAllPhotos(this)" 
+                                    data-images='[{% for img in images %}"{{ img.image.url }}"{% if not forloop.last %},{% endif %}{% endfor %}]'
+                                    style="display: flex; align-items: center; justify-content: center;">
+                                    <img src="{% static 'img/property/gallery.svg' %}" style="height: 30px; width: 30px;">
+                                    Show all {{ images|length }} photos
+                                </button>
+                                {% if property.youtube_link %}
+                                <a href="{{ property.youtube_link }}" target="_blank" style="display: flex; align-items: center; justify-content: center; text-decoration: none;">
+                                    <button onclick="showVideoTour()" style="display: flex; align-items: center; justify-content: center;">
+                                    <img src="{% static 'img/property/video_icon.svg' %}" style="height: 30px; width: 30px;">
+                                    Video Tour</button>
+                                </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% elif images|length == 3 %}
+                        <div class="gallery-col main-image" style="cursor: pointer;">
+                            <img src="{{ images.0.image.url }}" alt="{{ property.title }}" onclick="openGalleryModal(0)">
+                        </div>
+                        <div class="gallery-col" style="display: flex; flex-direction: column; gap: 8px;">
+                            <div class="thumb-item" style="flex: 1; border-radius: 0 12px 0 0; cursor: pointer;">
+                                <img src="{{ images.1.image.url }}" alt="{{ property.title }} image 2" onclick="openGalleryModal(1)">
+                            </div>
+                            <div class="thumb-item" style="flex: 1; position: relative; border-radius: 0 0 12px 0; cursor: pointer;">
+                                <img src="{{ images.2.image.url }}" alt="{{ property.title }} image 3" onclick="openGalleryModal(2)">
+                                <div class="gallery-overlay-btns">
+                                    <button 
+                                        onclick="showAllPhotos(this)" 
+                                        data-images='[{% for img in images %}"{{ img.image.url }}"{% if not forloop.last %},{% endif %}{% endfor %}]'
+                                        style="display: flex; align-items: center; justify-content: center;">
+                                        <img src="{% static 'img/property/gallery.svg' %}" style="height: 30px; width: 30px;">
+                                        Show all {{ images|length }} photos
+                                    </button>
+                                    {% if property.youtube_link %}
+                                    <a href="{{ property.youtube_link }}" target="_blank" style="display: flex; align-items: center; justify-content: center; text-decoration: none;">
+                                        <button onclick="showVideoTour()" style="display: flex; align-items: center; justify-content: center;">
+                                        <img src="{% static 'img/property/video_icon.svg' %}" style="height: 30px; width: 30px;">
+                                        Video Tour</button>
+                                    </a>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    {% elif images|length == 4 %}
+                        <div class="gallery-col main-image" style="cursor: pointer;">
+                            <img src="{{ images.0.image.url }}" alt="{{ property.title }}" onclick="openGalleryModal(0)">
+                        </div>
+                        <div class="gallery-col thumbnails">
+                            <div class="thumb-item" style="cursor: pointer;">
+                                <img src="{{ images.1.image.url }}" alt="{{ property.title }} image 2" onclick="openGalleryModal(1)">
+                            </div>
+                            <div class="thumb-item" style="cursor: pointer;">
+                                <img src="{{ images.2.image.url }}" alt="{{ property.title }} image 3" onclick="openGalleryModal(2)">
+                            </div>
+                            <div class="thumb-item" style="grid-column: span 2; position: relative; border-radius: 0 0 12px 0; cursor: pointer;">
+                                <img src="{{ images.3.image.url }}" alt="{{ property.title }} image 4" onclick="openGalleryModal(3)">
+                                <div class="gallery-overlay-btns">
+                                    <button 
+                                        onclick="showAllPhotos(this)" 
+                                        data-images='[{% for img in images %}"{{ img.image.url }}"{% if not forloop.last %},{% endif %}{% endfor %}]'
+                                        style="display: flex; align-items: center; justify-content: center;">
+                                        <img src="{% static 'img/property/gallery.svg' %}" style="height: 30px; width: 30px;">
+                                        Show all {{ images|length }} photos
+                                    </button>
+                                    {% if property.youtube_link %}
+                                    <a href="{{ property.youtube_link }}" target="_blank" style="display: flex; align-items: center; justify-content: center; text-decoration: none;">
+                                        <button onclick="showVideoTour()" style="display: flex; align-items: center; justify-content: center;">
+                                        <img src="{% static 'img/property/video_icon.svg' %}" style="height: 30px; width: 30px;">
+                                        Video Tour</button>
+                                    </a>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    {% else %}
+                        <div class="gallery-col main-image" style="cursor: pointer;">
+                            <img src="{{ images.0.image.url }}" alt="{{ property.title }}" onclick="openGalleryModal(0)">
+                        </div>
+                        <div class="gallery-col thumbnails">
+                            {% for image in images|slice:"1:5" %}
+                            <div class="thumb-item" style="cursor: pointer;">
+                                <img src="{{ image.image.url }}" alt="{{ property.title }} image {{ forloop.counter }}" onclick="openGalleryModal({{ forloop.counter }})">
+                                {% if forloop.last %}
+                                <div class="gallery-overlay-btns">
+                                    <button 
+                                        onclick="showAllPhotos(this)" 
+                                        data-images='[{% for img in images %}"{{ img.image.url }}"{% if not forloop.last %},{% endif %}{% endfor %}]'
+                                        style="display: flex; align-items: center; justify-content: center;">
+                                        <img src="{% static 'img/property/gallery.svg' %}" style="height: 30px; width: 30px;">
+                                        Show all {{ images|length }} photos
+                                    </button>
+                                    {% if property.youtube_link %}
+                                    <a href="{{ property.youtube_link }}" target="_blank" style="display: flex; align-items: center; justify-content: center; text-decoration: none;">
+                                        <button onclick="showVideoTour()" style="display: flex; align-items: center; justify-content: center;">
+                                        <img src="{% static 'img/property/video_icon.svg' %}" style="height: 30px; width: 30px;">
+                                        Video Tour</button>
+                                    </a>
+                                    {% endif %}
+                                </div>
+                                {% endif %}
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                    {% if property.youtube_link %}
+                    <a href="{{ property.youtube_link }}" class="gallery-play-fab" aria-label="Open YouTube">
+                        <span class="play-core">
+                            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                                <path d="M8 6v12l10-6z"></path>
+                            </svg>
+                        </span>
+                    </a>
+                     {% endif %}
+                </div>
+
+                <div class="mobile-meta-block mb-3">
+                    <div class="property-meta mobile-property-meta">
+                        <span class="property-text mobile-meta-item">
+                            <img class="mobile-meta-icon" src="{% static 'img/property/guest.svg' %}" alt="Guests">
+                            <span class="mobile-meta-label">{{ property.guest }} guests (max)</span>
+                        </span>
+                        <span class="property-text mobile-meta-item">
+                            <img class="mobile-meta-icon" src="{% static 'img/property/room.svg' %}" alt="Room type">
+                            <span class="mobile-meta-label">{{ property.get_property_type_display }}</span>
+                        </span>
+                        <span class="property-text mobile-meta-item">
+                            <img class="mobile-meta-icon" src="{% static 'img/property/bathtub.svg' %}" alt="Bathroom type">
+                            <span class="mobile-meta-label">{{ property.get_bathroom_type_display }} Bath</span>
+                        </span>
+                        <span class="property-text mobile-meta-item">
+                            <img class="mobile-meta-icon" src="{% static 'img/property/bed.svg' %}" alt="Bed type">
+                            <span class="mobile-meta-label">{{ property.bed_type }} Bed</span>
+                        </span>
+                        <span class="property-text mobile-meta-item">
+                            <img class="mobile-meta-icon" src="{% static 'img/property/min_nights.svg' %}" alt="Minimum nights">
+                            <span class="mobile-meta-label">{{ property.minimum_booking }} nights (min)</span>
+                        </span>
+                        {% for amenity in property.amenities.all %}
+                            {% if amenity.name == "Pet Friendly" %}
+                            <span class="property-text mobile-meta-item">
+                                <img class="mobile-meta-icon" src="{{ amenity.icon.url }}" alt="Pet Friendly">
+                                <span class="mobile-meta-label">Pet friendly</span>
+                            </span>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="map-section section-map mobile-map-section">
+                    <h2 class="map_title">Where you’ll be staying</h2>
+                    <div id="property-map-mobile" class="map-canvas mb-3 property-map-canvas-dynamic" aria-label="Property location map (mobile)"></div>
+                    <p>{{ property.city }}, {{ property.state }}</p>
+                </div>
+
+                <!-- Property Info Section -->
+                <div class="property-info">
+                    <div class="property-details mobile-sequenced">
+
+                        <div class="credentials-card section-address">
+                            <h2 class="address_title">Address and Room credentials</h2>
+
+                            <div class="cred-item">
+                                <img src="{% static 'img/property/location.svg' %}" style="margin-left: 10px;margin-right: 10px;">
+                                <div class="cred-text">
+                                    <strong>Location</strong>
+                                    <p>{{ property.city }}, {{ property.state }}</p>
+                                </div>
+                            </div>
+
+                            
+
+                            <hr class="cred-divider" style="margin: 0rem 0;">
+                            
+                        </div>
+
+                        <hr class="checkin-docs-top-divider">
+                        
+                        <div class="property-description section-about">
+                            <h2 class="address_title">About this property</h2>
+                            <p class="description-text" data-full="{{ property.description|linebreaksbr }}"></p>
+                            <button class="show-more-btn">Show more</button>
+                        </div>
+
+
+                        {% if amenities|length > 0 %}
+                        <!-- Amenities Section -->
+                        <hr>
+                        <div class="amenities-section section-amenities">
+                            <h2 style="font-size: 22px;">What this property offers</h2>
+                            <div class="amenities-grid">
+                                {% for amenity in amenities %}
+                                <div class="amenity-item {% if forloop.counter > 10 %}hidden-amenity{% endif %}">
+                                    {% if amenity.icon %}
+                                    <span class="amenity-icon">
+                                        <img src="{{ amenity.icon.url }}" alt="{{ amenity.name }}">
+                                    </span>
+                                    {% endif %}
+                                    <span class="offer-text">{{ amenity.name }}</span>
+                                </div>
+                                {% endfor %}
+                            </div>
+
+                            {% if amenities|length > 10 %}
+                            <button class="gallery-btn" id="toggle-amenities">Show all amenities</button>
+                            {% endif %}
+                        </div>
+                        <hr class="amenities-bottom-divider">
+                        
+                        {% endif %}
+
+                        <hr class="desktop-map-divider">
+
+                        <div class="map-section section-map desktop-map-section">
+                            <h2  class="map_title">Where you’ll be staying</h2>
+                            <div id="property-map-desktop" class="map-canvas mb-3 property-map-canvas-dynamic" aria-label="Property location map (desktop)"></div>
+                            <p>{{ property.city }}, {{ property.state }}</p>
+                        </div>
+
+                        <hr class="section-divider-before-map">
+                        <!-- Check in/out times -->
+                        <div class="row mb-3 section-check-times">
+                            <!-- Check In -->
+                            <div class="col-lg-6 col-md-6 col-6 d-flex align-items-center mb-3">
+                                <img src="{% static 'img/property/checkin.png' %}" alt="Check In" style="width:28px; height:28px; margin-right:12px;">
+                                <div class="text-start">
+                                    <p class="text-muted mb-0" style="font-size:15px;">Check In after:</p>
+                                    <p class="fw-semibold mb-0" style="font-size:20px; color:#000;">{{ property.check_in_time|time:"g:00 A" }}</p>
+                                </div>
+                            </div>
+
+                            <!-- Check Out -->
+                            <div class="col-lg-6 col-md-6 col-6 d-flex align-items-center mb-3">
+                                <img src="{% static 'img/property/checkout.png' %}" alt="Check Out" style="width:28px; height:28px; margin-right:12px;">
+                                <div class="text-start">
+                                    <p class="text-muted mb-0" style="font-size:15px;">Check Out before:</p>
+                                    <p class="fw-semibold mb-0" style="font-size:20px; color:#000;">{{ property.check_out_time|time:"g:00 A" }}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Policies Section -->
+                        {% if property.rules %}
+                        <hr class="policies-top-divider show-on-mobile">
+                        <div class="policies-section section-policies">
+                            <h2 style="font-size: 22px;">Cancellation, other Policies and rules</h2>
+                            <div class="policies-text">
+                                <p class="rules-text" data-full="{{ property.rules|linebreaksbr }}"></p>
+                            </div>
+                            <button class="show-more-btn">Show more</button>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Booking Card (desktop only) -->
+                    <div class="booking-card desktop-only">
+                        <div class="booking-card-header">
+                            <h3 class="fw-bold text-center me-2 booking-card-price">${{property.price_per_night|floatformat:2}}<small class="text-muted fw-normal"> night</small></h3>
+                            {% if property.cleaning_fee > 0 or property.refundable_deposit > 0 or property.application_fees > 0 %}
+                            <a href="#" id="openOtherFeesModal" class="booking-card-fee-link">*Other Fee</a>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="desktop-date-range-wrap">
+                            <label class="desktop-date-range-label">Date Range *</label>
+                            <button type="button" class="desktop-date-range-trigger" id="detail-date-range-trigger" aria-label="Select date range">
+                                <span class="desktop-date-range-values">
+                                    <span id="detail-checkin-display">Check-in</span>
+                                    <span class="desktop-date-range-separator">—</span>
+                                    <span id="detail-checkout-display">Check-out</span>
+                                </span>
+                                <img src="{% static 'img/property/uit_calendar.svg' %}" alt="Calendar">
+                            </button>
+                            <div id="detail-date-range-picker" class="detail-date-range-picker" aria-hidden="true"></div>
+                        </div>
+
+                        <div class="date-inputs native-date-inputs">
+                            <div class="date-col">
+                                <div class="d-flex flex-column">
+                                    <label for="checkin-date" class="form-label mb-1 fw-bold">Check In *</label>
+                                    <input type="date" id="checkin-date" name="check_in" class="form-control" style="padding: 8px; border-radius: 4px; border: 1px solid #ced4da; color: #000;">
+                                </div>
+                            </div>
+                            <div class="date-col">
+                                <div class="d-flex flex-column">
+                                    <label for="checkout-date" class="form-label mb-1 fw-bold">Check Out*</label>
+                                    <input type="date" id="checkout-date" name="check_out" class="form-control" style="padding: 8px; border-radius: 4px; border: 1px solid #ced4da; color: #000;">
+                                </div>
+                            </div>
+                        </div>
+                        <label for="" class="form-label mb-1 fw-bold" style="font-size: 14px;">Guests*</label>
+                        <select class="guests-input" id="guests-input">
+                            {% for i in "x"|ljust:property.guest %}
+                            <option value="{{ forloop.counter }}" {% if forloop.last %}selected{% endif %}>{{ forloop.counter }} guest{% if forloop.counter > 1 %}s{% endif %}</option>
+                            {% endfor %}
+                        </select>
+                        <button class="reserve-btn" id="create-reservation-btn" style="display: none;">Request to book</button>
+                        <button class="reserve-btn" id="create-availability-btn" {% if property.status != 'Active' %}disabled{% endif %}>
+                            Check Availability
+                        </button>
+                        <div id="availability-status" class="availability-text" style="display: none;"></div>
+                        {% if property.status != 'Active' %}
+                            <div class="availability-text not-available" style="display: block;">This listing is currently inactive.</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% include 'frontend/base/footer.html' %}
+
+
+        </div>
+    </div>
+
+    <!-- Mobile Sticky CTA -->
+    <div class="mobile-cta-bar d-lg-none d-md-none">
+        <div class="mobile-cta-price">
+            <span class="amount">${{ property.price_per_night|floatformat:2 }} <small class="text-muted">night</small></span>
+            {% if property.cleaning_fee > 0 or property.refundable_deposit > 0 or property.application_fees > 0 %}
+            <a href="#" id="openOtherFeesModalMobileBar" class="fee-link">Other fees</a>
+            {% endif %}
+            <!-- <span class="next-available-text">Next Available 25-May-26</span> -->
+        </div>
+        <button type="button" id="openMobileBookingModal" class="mobile-cta-button">Check Availability</button>
+    </div>
+
+    <!-- Mobile Booking Modal -->
+    <div id="mobileBookingModal" class="mobile-booking-modal" role="dialog" aria-modal="true" aria-labelledby="mobileBookingModalTitle">
+        <div class="modal-card">
+            <button type="button" class="close-btn" id="closeMobileBookingModal" aria-label="Close">&times;</button>
+            <div class="booking-card">
+                <div class="booking-card-header">
+                    <h3 id="mobileBookingModalTitle" class="fw-bold text-center me-2 booking-card-price">${{property.price_per_night|floatformat:2}}<small class="text-muted fw-normal"> night</small></h3>
+                    {% if property.cleaning_fee > 0 or property.refundable_deposit > 0 or property.application_fees > 0 %}
+                    <a href="#" id="openOtherFeesModalMobileModal" class="booking-card-fee-link">*Other Fee</a>
+                    {% endif %}
+                </div>
+
+                <div class="date-inputs native-date-inputs">
+                    <div class="date-col">
+                        <div class="d-flex flex-column">
+                            <label for="checkin-date-mobile" class="form-label mb-1 fw-bold">Check In *</label>
+                            <input type="date" id="checkin-date-mobile" name="check_in_mobile" class="form-control" style="padding: 8px; border-radius: 4px; border: 1px solid #ced4da; color: #000;">
+                        </div>
+                    </div>
+                    <div class="date-col">
+                        <div class="d-flex flex-column">
+                            <label for="checkout-date-mobile" class="form-label mb-1 fw-bold">Check Out*</label>
+                            <input type="date" id="checkout-date-mobile" name="check_out_mobile" class="form-control" style="padding: 8px; border-radius: 4px; border: 1px solid #ced4da; color: #000;">
+                        </div>
+                    </div>
+                </div>
+                <label for="guests-input-mobile" class="form-label mb-1 fw-bold" style="font-size: 14px;">Guests*</label>
+                <select class="guests-input" id="guests-input-mobile">
+                    {% for i in "x"|ljust:property.guest %}
+                    <option value="{{ forloop.counter }}" {% if forloop.last %}selected{% endif %}>{{ forloop.counter }} guest{% if forloop.counter > 1 %}s{% endif %}</option>
+                    {% endfor %}
+                </select>
+                <button class="reserve-btn" id="create-reservation-btn-mobile" style="display: none;">Request to book</button>
+                <button class="reserve-btn" id="create-availability-btn-mobile" {% if property.status != 'Active' %}disabled{% endif %}>Check Availability</button>
+                <div id="availability-status-mobile" class="availability-text" style="display: none;"></div>
+                {% if property.status != 'Active' %}
+                    <div class="availability-text not-available" style="display: block;">This listing is currently inactive.</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div id="galleryModal" class="modal" style="display:none;">
+        <button type="button" class="gallery-close" onclick="closeGalleryModal()" aria-label="Close gallery">&times;</button>
+        
+        <!-- Left Arrow -->
+        <button type="button" class="prev" onclick="changeImage(-1)" aria-label="Previous image">&#10094;</button>
+        
+        <!-- Image Display -->
+        <div class="modal-content">
+            <img id="galleryMainImage" src="" alt="Property Image">
+        </div>
+        
+        <!-- Right Arrow -->
+        <button type="button" class="next" onclick="changeImage(1)" aria-label="Next image">&#10095;</button>
+
+        <!-- Gallery Controls -->
+        <div class="gallery-controls">
+            <span class="video-tour-btn" id="image-counter"></span>
+            {% if property.youtube_link %}
+            <a href="{{ property.youtube_link }}" target="_blank" class="video-tour-btn">
+                <img src="{% static 'img/property/video_icon.svg' %}" style="height: 30px; width: 30px; filter: brightness(0) invert(1);">
+                Video Tour
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Validation Error Modal -->
+    <div id="validationModal" class="modal" style="display:none;">
+        <div class="custom-modal-content">
+            <span class="close" onclick="closeValidationModal()">&times;</span>
+            <div class="custom-modal-header">
+                <h5 id="validationModalLabel">Missing Information</h5>
+            </div>
+            <div class="custom-modal-body" id="validationModalBody">
+            </div>
+            <div class="custom-modal-footer">
+                <button type="button" class="btn btn-primary" onclick="closeValidationModal()">OK</button>
+            </div>
+        </div>
+    </div>
+
+<!-- Booking Note Modal -->
+<div id="bookingNoteModal" class="note-modal" role="dialog" aria-modal="true" aria-labelledby="bookingNoteTitle">
+    <div class="note-card">
+        <button type="button" id="bookingNoteClose" class="note-close" aria-label="Close">&times;</button>
+        <h4 id="bookingNoteTitle">Important Note:</h4>
+        <p>While sending the booking request to the host please note the following carefully.</p>
+        <p>At Favhost, we connect the right guest to the host with zero commission. We do not take payments/commission from any guest for booking requests. For any payment/booking related queries, we encourage open communication directly with the hosts for any concerns.</p>
+        <p>Always communicate in writing with the host. Get all important details, terms, and stay conditions (like check-in/out timing, amenities, extra pricing, cancellation and refund policy) clearly confirmed over message or email before making a payment.</p>
+        <p>Check social media presence, website or Google business profile of the host if applicable.</p>
+        <p>If anything seems unclear or you need help, our support team is here for you—just reach out.</p>
+        <p>Thanks for your business. 😊</p>
+        <div class="note-footer">
+            <button type="button" id="bookingNoteAgree" class="note-button">
+                <img src="{% static 'img/booking/like_blue.png' %}" alt="" style="width:18px; height:18px;">
+                Agree and Continue
+            </button>
+        </div>
+    </div>
+</div>
+
+
+<!-- Other Fees Popover -->
+    <div id="otherFeesPopover" class="other-fees-popover" style="display:none;">
+        <div class="custom-modal-header pb-2">
+            <h5 class="mb-0">Other Fees</h5>
+        </div>
+        <div class="custom-modal-body pt-2">
+            <table class="table">
+                <tbody>
+                    {% if property.cleaning_fee > 0 %}
+                    <tr>
+                        <td>Cleaning Fee</td>
+                        <td class="text-end fw-bold">${{ property.cleaning_fee|floatformat:2 }}</td>
+                    </tr>
+                    {% endif %}
+                    {% if property.refundable_deposit > 0 %}
+                    <tr>
+                        <td>Refundable Deposit</td>
+                        <td class="text-end fw-bold">${{ property.refundable_deposit|floatformat:2 }}</td>
+                    </tr>
+                    {% endif %}
+                    {% if property.application_fees > 0 %}
+                    <tr>
+                        <td>Application Fee</td>
+                        <td class="text-end fw-bold">${{ property.application_fees|floatformat:2 }}</td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+<div class="modal fade" id="shareListingModal" tabindex="-1" aria-labelledby="shareListingModalLabel" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="shareListingModalLabel">Share Listing</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body" id="shareListingModalBody">
+        Copied
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% with wa_number=host.whatsapp_number|default:host.phone|default:'+10123456789' %}
+{% if wa_number %}
+<a class="whatsapp-fab" href="https://wa.me/{{ wa_number|cut:'+'|cut:' '|cut:'-'|cut:'('|cut:')' }}" aria-label="Chat on WhatsApp" target="_blank" rel="noopener">
+    <svg viewBox="0 0 32 32" fill="currentColor" aria-hidden="true">
+        <path d="M16.04 3.5C9.66 3.5 4.4 8.65 4.4 15c0 2.25.64 4.33 1.74 6.11L4 28.5l7.6-1.97a11.9 11.9 0 0 0 4.44.85c6.38 0 11.64-5.15 11.64-11.5C27.68 8.65 22.42 3.5 16.04 3.5Zm0 21.04c-1.4 0-2.76-.37-3.95-1.07l-.28-.16-4.52 1.17 1.21-4.3-.18-.28A9.6 9.6 0 0 1 6.6 15c0-5.19 4.29-9.4 9.44-9.4 5.15 0 9.44 4.21 9.44 9.4 0 5.19-4.29 9.44-9.44 9.44Zm5.36-7.06c-.3-.15-1.77-.87-2.05-.97-.27-.1-.47-.15-.66.15-.2.3-.77.97-.94 1.17-.17.2-.35.23-.65.08-.3-.15-1.25-.46-2.38-1.47-.88-.78-1.48-1.73-1.65-2.03-.17-.3-.02-.46.13-.61.13-.13.3-.35.46-.52.15-.17.2-.3.3-.5.1-.2.05-.38-.02-.53-.07-.15-.66-1.58-.9-2.17-.24-.58-.48-.5-.66-.5-.17 0-.38 0-.58 0-.2 0-.52.07-.8.38-.27.3-1.05 1-1.05 2.43 0 1.43 1.08 2.8 1.23 2.98.15.2 2.13 3.35 5.17 4.56 3.05 1.22 3.05.82 3.6.77.55-.05 1.77-.72 2.02-1.42.25-.7.25-1.3.17-1.42-.07-.12-.27-.2-.57-.35Z" />
+    </svg>
+</a>
+{% endif %}
+{% endwith %}
+{% endblock content  %}
+
+{% block extra_script %}
+<script src="{% static 'js/custom.js' %}"></script>
+
+<script>
+    const dateInputs = [
+        document.getElementById('checkin-date'),
+        document.getElementById('checkout-date'),
+        document.getElementById('checkin-date-mobile'),
+        document.getElementById('checkout-date-mobile')
+    ].filter(Boolean);
+
+    dateInputs.forEach((el) => {
+        el.addEventListener('keydown', function(e) {
+            e.preventDefault();
+            return false;
+        });
+    });
+</script>
+
+<script>
+    function setupShowMore(containerSelector, maxLength = 400) {
+        const container = document.querySelector(containerSelector);
+        if (!container) return;
+
+        const textElement = container.querySelector('p');
+        const btn = container.querySelector('.show-more-btn');
+        if (!textElement || !btn) return;
+
+        const fullText = textElement.getAttribute("data-full") || "";
+
+        if (fullText.length > maxLength) {
+            const shortText = fullText.substring(0, maxLength) + "...";
+            textElement.innerHTML = shortText;
+
+            btn.addEventListener("click", function () {
+                const isShort = textElement.innerHTML.endsWith("...");
+                textElement.innerHTML = isShort ? fullText : shortText;
+                btn.textContent = isShort ? "Show less" : "Show more";
+            });
+        } else {
+            textElement.innerHTML = fullText;
+            btn.style.display = 'none';
+        }
+    }
+</script>
+<script>
+    let galleryImages = [{% for img in images %}"{{ img.image.url }}"{% if not forloop.last %},{% endif %}{% endfor %}];
+    let currentIndex = 0;
+
+    function updateImageCounter() {
+        const counterElement = document.getElementById('image-counter');
+        if (counterElement) {
+            counterElement.textContent = `${currentIndex + 1} / ${galleryImages.length}`;
+        }
+    }
+
+    function openGalleryModal(index) {
+        currentIndex = index;
+        if (galleryImages.length > 0) {
+            document.getElementById('galleryMainImage').src = galleryImages[currentIndex];
+            document.getElementById('galleryModal').style.display = 'flex';
+            updateImageCounter();
+        }
+    }
+
+    function showAllPhotos(button) {
+        // This function is now just a specific case of openGalleryModal, starting from the first image
+        openGalleryModal(0);
+    }
+
+    function updateMobileGalleryPreview() {
+        if (window.innerWidth > 1024 || galleryImages.length === 0) return;
+
+        const mobilePreviewImage = document.querySelector('.gallery-row > .gallery-col:first-of-type img');
+        if (!mobilePreviewImage) return;
+
+        mobilePreviewImage.src = galleryImages[currentIndex];
+        mobilePreviewImage.setAttribute('onclick', `openGalleryModal(${currentIndex})`);
+    }
+
+    function changeImage(step) {
+        currentIndex += step;
+        if (currentIndex < 0) {
+            currentIndex = galleryImages.length - 1; // loop back
+        } else if (currentIndex >= galleryImages.length) {
+            currentIndex = 0; // loop forward
+        }
+        document.getElementById('galleryMainImage').src = galleryImages[currentIndex];
+        updateImageCounter();
+    }
+
+    function closeGalleryModal() {
+        document.getElementById('galleryModal').style.display = 'none';
+    }
+
+    // Add keyboard navigation for the gallery modal
+    document.addEventListener('keydown', function(event) {
+        const modal = document.getElementById('galleryModal');
+        if (modal.style.display === 'flex') {
+            if (event.key === 'ArrowLeft' || event.keyCode === 37) {
+                changeImage(-1);
+            } else if (event.key === 'ArrowRight' || event.keyCode === 39) {
+                changeImage(1);
+            } else if (event.key === 'Escape' || event.keyCode === 27) {
+                closeGalleryModal();
+            }
+        }
+    });
+
+    document.addEventListener("DOMContentLoaded", function () {
+        // Setup for "About this property"
+        setupShowMore('.property-description');
+
+        // Setup for "Policies"
+        setupShowMore('.policies-section');
+
+        const amenitiesBtn = document.getElementById("toggle-amenities");
+        const hiddenItems = document.querySelectorAll(".hidden-amenity");
+
+        const mobilePrevBtn = document.querySelector('.mobile-gallery-prev');
+        const mobileNextBtn = document.querySelector('.mobile-gallery-next');
+        const galleryRow = document.querySelector('.gallery-row');
+        const canNavigateMobileGallery = galleryImages.length > 1 && galleryRow;
+
+        if (canNavigateMobileGallery) {
+            const changeMobileImage = (step) => {
+                currentIndex = (currentIndex + step + galleryImages.length) % galleryImages.length;
+                updateMobileGalleryPreview();
+            };
+
+            if (mobilePrevBtn) {
+                mobilePrevBtn.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    changeMobileImage(-1);
+                });
+            }
+
+            if (mobileNextBtn) {
+                mobileNextBtn.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    changeMobileImage(1);
+                });
+            }
+
+            updateMobileGalleryPreview();
+            window.addEventListener('resize', updateMobileGalleryPreview);
+        } else if (galleryImages.length <= 1) {
+            if (mobilePrevBtn) mobilePrevBtn.style.display = 'none';
+            if (mobileNextBtn) mobileNextBtn.style.display = 'none';
+        }
+
+
+        if (amenitiesBtn) {
+                amenitiesBtn.addEventListener("click", function () {
+                hiddenItems.forEach(item => item.classList.toggle("hidden-amenity"));
+                amenitiesBtn.textContent = hiddenItems[0].classList.contains("hidden-amenity")
+                    ? "Show all amenities"
+                    : "Show less amenities";
+            });
+        }
+        
+    });
+
+
+</script>
+
+<script>
+    function openModal(modalId) {
+        const modal = document.getElementById(modalId);
+        if (modal) {
+            modal.style.display = 'flex';
+        }
+    }
+
+    function closeModal(modalId) {
+        const modal = document.getElementById(modalId);
+        if (modal) {
+            modal.style.display = 'none';
+        }
+    }
+
+    function setupHoverModal(triggerId, modalId) {
+        const trigger = document.getElementById(triggerId);
+        const modal = document.getElementById(modalId);
+        let modalTimeout;
+
+        if (trigger && modal) {
+            trigger.addEventListener('mouseenter', function() {
+                clearTimeout(modalTimeout);
+                openModal(modalId);
+            });
+
+            function hideModal() {
+                modalTimeout = setTimeout(() => {
+                    closeModal(modalId);
+                }, 200);
+            }
+
+            trigger.addEventListener('mouseleave', hideModal);
+            modal.addEventListener('mouseenter', () => clearTimeout(modalTimeout));
+            modal.addEventListener('mouseleave', hideModal);
+        }
+    }
+
+    setupHoverModal('openCheckInDocsModal', 'checkInDocsModal');
+    setupHoverModal('openCheckOutDocsModal', 'checkOutDocsModal');
+
+    // --- Other Fees Popover Logic ---
+    const otherFeesLinks = [
+        document.getElementById('openOtherFeesModal'),
+        document.getElementById('openOtherFeesModalMobile'),
+        document.getElementById('openOtherFeesModalMobileBar'),
+        document.getElementById('openOtherFeesModalMobileModal')
+    ].filter(Boolean);
+    const otherFeesPopover = document.getElementById('otherFeesPopover');
+    let feesPopoverTimeout;
+
+    if (otherFeesLinks.length > 0 && otherFeesPopover) {
+        function showPopover(anchorEl) {
+            clearTimeout(feesPopoverTimeout);
+            const linkRect = anchorEl.getBoundingClientRect();
+            otherFeesPopover.style.display = 'block';
+            
+            // Position popover below the link
+            otherFeesPopover.style.top = `${linkRect.bottom + window.scrollY + 5}px`;
+            
+            // Position it to the left, but don't let it go off-screen
+            const popoverRect = otherFeesPopover.getBoundingClientRect();
+            let leftPosition = linkRect.right - popoverRect.width;
+            if (leftPosition < 0) {
+                leftPosition = 10; // Add some padding from the edge
+            }
+            otherFeesPopover.style.left = `${leftPosition + window.scrollX}px`;
+        }
+
+        otherFeesLinks.forEach((linkEl) => {
+            linkEl.addEventListener('mouseenter', function() {
+                showPopover(linkEl);
+            });
+            linkEl.addEventListener('click', function(e) {
+                e.preventDefault();
+                const isVisible = otherFeesPopover.style.display === 'block';
+                if (isVisible) {
+                    otherFeesPopover.style.display = 'none';
+                } else {
+                    showPopover(linkEl);
+                }
+            });
+            linkEl.addEventListener('mouseleave', hidePopover);
+        });
+
+        function hidePopover() {
+            feesPopoverTimeout = setTimeout(() => {
+                otherFeesPopover.style.display = 'none';
+            }, 200); // Small delay to allow moving mouse between link and popover
+        }
+
+        otherFeesPopover.addEventListener('mouseenter', () => clearTimeout(feesPopoverTimeout));
+        otherFeesPopover.addEventListener('mouseleave', hidePopover);
+    }
+</script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const mapContainers = Array.from(document.querySelectorAll('.property-map-canvas-dynamic'));
+        if (!mapContainers.length) return;
+        const fullAddressRaw = "{{ property.street_address|default_if_none:''|escapejs }}, {{ property.city|default_if_none:''|escapejs }}, {{ property.state|default_if_none:''|escapejs }} {{ property.zip|default_if_none:''|escapejs }}";
+        const streetAddress = "{{ property.street_address|default_if_none:''|escapejs }}".trim();
+        const city = "{{ property.city|default_if_none:''|escapejs }}".trim();
+        const state = "{{ property.state|default_if_none:''|escapejs }}".trim();
+        const zipCode = "{{ property.zip|default_if_none:''|escapejs }}".trim();
+        const cityStateRaw = "{{ property.city|default_if_none:''|escapejs }}, {{ property.state|default_if_none:''|escapejs }}";
+        const fullAddress = fullAddressRaw
+            .split(',')
+            .map((part) => part.replace(/\s+/g, ' ').trim())
+            .filter(Boolean)
+            .join(', ');
+        const cityState = cityStateRaw
+            .split(',')
+            .map((part) => part.replace(/\s+/g, ' ').trim())
+            .filter(Boolean)
+            .join(', ');
+        const mapQuery = fullAddress || cityState || "New York, NY";
+        const MAP_ZOOM = 13;
+        const fallbackCenter = { lat: 40.7128, lng: -74.0060 };
+
+        function buildLeafletMap(center) {
+            if (!window.L) return;
+
+            mapContainers.forEach((container) => {
+                if (container.dataset.mapInitialized === "1") return;
+                container.dataset.mapInitialized = "1";
+
+                const map = L.map(container, {
+                    zoomControl: false,
+                    attributionControl: false,
+                }).setView([center.lat, center.lng], MAP_ZOOM);
+
+                L.control.zoom({ position: 'topright' }).addTo(map);
+
+                L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+                    maxZoom: 19,
+                }).addTo(map);
+
+                L.circle([center.lat, center.lng], {
+                    radius: 500,
+                    color: '#e42841',
+                    weight: 2,
+                    opacity: 0.95,
+                    fillColor: '#e42841',
+                    fillOpacity: 0.16,
+                }).addTo(map);
+
+                L.control.scale({ position: 'bottomright', imperial: false }).addTo(map);
+            });
+        }
+
+        function geocodeAndRender() {
+            if (!window.L) return false;
+            const geocodeUrl = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(mapQuery)}`;
+
+            fetch(geocodeUrl, {
+                headers: { 'Accept': 'application/json' }
+            })
+                .then((response) => response.ok ? response.json() : [])
+                .then((data) => {
+                    if (Array.isArray(data) && data.length > 0) {
+                        const lat = parseFloat(data[0].lat);
+                        const lng = parseFloat(data[0].lon);
+                        if (!Number.isNaN(lat) && !Number.isNaN(lng)) {
+                            buildLeafletMap({ lat, lng });
+                            return;
+                        }
+                    }
+                    buildLeafletMap(fallbackCenter);
+                })
+                .catch(() => {
+                    buildLeafletMap(fallbackCenter);
+                });
+            return true;
+        }
+
+        if (!geocodeAndRender()) {
+            let tries = 0;
+            const retryTimer = setInterval(function() {
+                tries += 1;
+                if (geocodeAndRender() || tries > 80) {
+                    clearInterval(retryTimer);
+                }
+            }, 150);
+        }
+
+        const propertyId = "{{ property.id }}";
+        const reservationBtn = document.getElementById('create-reservation-btn');
+        const availabilityBtn = document.getElementById('create-availability-btn');
+        const statusDiv = document.getElementById('availability-status');
+        const guestsInput = document.getElementById('guests-input');
+        const checkinEl = document.getElementById('checkin-date');
+        const checkoutEl = document.getElementById('checkout-date');
+
+        const reservationBtnMobile = document.getElementById('create-reservation-btn-mobile');
+        const availabilityBtnMobile = document.getElementById('create-availability-btn-mobile');
+        const statusDivMobile = document.getElementById('availability-status-mobile');
+        const guestsInputMobile = document.getElementById('guests-input-mobile');
+        const checkinElMobile = document.getElementById('checkin-date-mobile');
+        const checkoutElMobile = document.getElementById('checkout-date-mobile');
+        const desktopDateTrigger = document.getElementById('detail-date-range-trigger');
+        const desktopCheckinDisplay = document.getElementById('detail-checkin-display');
+        const desktopCheckoutDisplay = document.getElementById('detail-checkout-display');
+        const desktopRangePicker = document.getElementById('detail-date-range-picker');
+        const requestBookUrl = "{% url 'property:request-book-page-detail' pk=property.id %}";
+
+        function formatLocalIso(dateObj) {
+            const y = dateObj.getFullYear();
+            const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+            const d = String(dateObj.getDate()).padStart(2, '0');
+            return `${y}-${m}-${d}`;
+        }
+
+        function parseIsoDate(value) {
+            if (!value) return null;
+            const [y, m, d] = value.split('-').map(Number);
+            return new Date(y, m - 1, d);
+        }
+
+        function addDaysIso(value, days) {
+            const base = parseIsoDate(value);
+            if (!base) return '';
+            base.setDate(base.getDate() + days);
+            return formatLocalIso(base);
+        }
+
+        function isValidIsoDate(value) {
+            return /^\d{4}-\d{2}-\d{2}$/.test(value || '');
+        }
+
+        // Prefill booking fields from listing page query params
+        const incomingParams = new URLSearchParams(window.location.search);
+        const incomingCheckIn = incomingParams.get('check_in') || '';
+        const incomingCheckOut = incomingParams.get('check_out') || '';
+        const incomingGuests = incomingParams.get('guests') || '';
+        if (isValidIsoDate(incomingCheckIn)) {
+            if (checkinEl) checkinEl.value = incomingCheckIn;
+            if (checkinElMobile) checkinElMobile.value = incomingCheckIn;
+        }
+        if (isValidIsoDate(incomingCheckOut)) {
+            if (checkoutEl) checkoutEl.value = incomingCheckOut;
+            if (checkoutElMobile) checkoutElMobile.value = incomingCheckOut;
+        }
+        if (incomingGuests) {
+            if (guestsInput && guestsInput.querySelector(`option[value="${incomingGuests}"]`)) {
+                guestsInput.value = incomingGuests;
+            }
+            if (guestsInputMobile && guestsInputMobile.querySelector(`option[value="${incomingGuests}"]`)) {
+                guestsInputMobile.value = incomingGuests;
+            }
+        }
+
+        // Set minimum date to today for both date pickers
+        const today = formatLocalIso(new Date());
+        if (checkinEl) {
+            checkinEl.setAttribute('min', today);
+        }
+        if (checkoutEl) {
+            const nextFromToday = addDaysIso(today, 1);
+            checkoutEl.setAttribute('min', nextFromToday);
+        }
+        if (checkinElMobile) {
+            checkinElMobile.setAttribute('min', today);
+        }
+        if (checkoutElMobile) {
+            const nextFromToday = addDaysIso(today, 1);
+            checkoutElMobile.setAttribute('min', nextFromToday);
+        }
+
+        // Ensure check-out date is not before check-in date
+        if (checkinEl && checkoutEl) {
+            checkinEl.addEventListener('change', function() {
+                const nextDay = addDaysIso(this.value, 1);
+                if (!nextDay) return;
+
+                // Checkout must be at least one day after check-in
+                checkoutEl.min = nextDay;
+
+                // Do not auto-select checkout date; only clear invalid previous value
+                if (checkoutEl.value && checkoutEl.value < nextDay) {
+                    checkoutEl.value = '';
+                    checkoutEl.dispatchEvent(new Event('input'));
+                    checkoutEl.dispatchEvent(new Event('change'));
+                }
+
+                // Mobile: open checkout picker immediately after selecting check-in
+                if (window.innerWidth < 992) {
+                    setTimeout(() => {
+                        if (typeof checkoutEl.showPicker === 'function') {
+                            checkoutEl.showPicker();
+                        } else {
+                            checkoutEl.focus();
+                            checkoutEl.click();
+                        }
+                    }, 80);
+                }
+            });
+
+            // Initial sync when values already exist (edit/back navigation cases)
+            if (checkinEl.value) {
+                const nextDay = addDaysIso(checkinEl.value, 1);
+                if (nextDay) {
+                    checkoutEl.min = nextDay;
+                    if (checkoutEl.value && checkoutEl.value < nextDay) {
+                        checkoutEl.value = '';
+                    }
+                }
+            }
+
+            checkoutEl.addEventListener('change', function() {
+                if (!this.value) return;
+                const selected = parseIsoDate(this.value);
+                const minAllowed = parseIsoDate(this.min);
+                if (selected && minAllowed && selected < minAllowed) {
+                    this.value = '';
+                }
+            });
+        }
+
+        if (checkinElMobile && checkoutElMobile) {
+            checkinElMobile.addEventListener('change', function() {
+                const nextDay = addDaysIso(this.value, 1);
+                if (!nextDay) return;
+                checkoutElMobile.min = nextDay;
+                if (checkoutElMobile.value && checkoutElMobile.value < nextDay) {
+                    checkoutElMobile.value = '';
+                }
+            });
+
+            checkoutElMobile.addEventListener('change', function() {
+                if (!this.value) return;
+                const selected = parseIsoDate(this.value);
+                const minAllowed = parseIsoDate(this.min);
+                if (selected && minAllowed && selected < minAllowed) {
+                    this.value = '';
+                }
+            });
+        }
+
+        function formatDateDisplay(dateString) {
+            if (!dateString) return '';
+            const [year, month, day] = dateString.split('-').map(Number);
+            const date = new Date(year, month - 1, day);
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        }
+
+        function updateDesktopDateDisplay() {
+            if (!desktopCheckinDisplay || !desktopCheckoutDisplay || !checkinEl || !checkoutEl) return;
+            desktopCheckinDisplay.textContent = checkinEl.value ? formatDateDisplay(checkinEl.value) : 'Check-in';
+            desktopCheckoutDisplay.textContent = checkoutEl.value ? formatDateDisplay(checkoutEl.value) : 'Check-out';
+        }
+
+        if (checkinEl) {
+            checkinEl.addEventListener('input', updateDesktopDateDisplay);
+            checkinEl.addEventListener('change', updateDesktopDateDisplay);
+        }
+        if (checkoutEl) {
+            checkoutEl.addEventListener('input', updateDesktopDateDisplay);
+            checkoutEl.addEventListener('change', updateDesktopDateDisplay);
+        }
+        updateDesktopDateDisplay();
+
+        // Desktop date range picker
+        if (desktopRangePicker && desktopDateTrigger && checkinEl && checkoutEl) {
+            const minDate = new Date();
+            minDate.setHours(0, 0, 0, 0);
+
+            function parseDateInput(val) {
+                if (!val) return null;
+                const [y, m, d] = val.split('-').map(Number);
+                return new Date(y, m - 1, d);
+            }
+
+            function formatInput(date) {
+                const y = date.getFullYear();
+                const m = String(date.getMonth() + 1).padStart(2, '0');
+                const d = String(date.getDate()).padStart(2, '0');
+                return `${y}-${m}-${d}`;
+            }
+
+            function sameDay(a, b) {
+                return a && b && a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+            }
+
+            function isDisabled(dateObj) {
+                return dateObj < minDate;
+            }
+
+            let startDate = parseDateInput(checkinEl.value);
+            let endDate = parseDateInput(checkoutEl.value);
+            let hoverDate = null;
+            let viewCursor = startDate ? new Date(startDate) : new Date();
+            viewCursor.setDate(1);
+
+            function buildMonth(year, month) {
+                const firstDay = new Date(year, month, 1);
+                const daysInMonth = new Date(year, month + 1, 0).getDate();
+                const startWeekday = firstDay.getDay();
+                const cells = [];
+                for (let i = 0; i < startWeekday; i++) cells.push(null);
+                for (let d = 1; d <= daysInMonth; d++) cells.push(new Date(year, month, d));
+                while (cells.length % 7 !== 0) cells.push(null);
+
+                const monthLabel = firstDay.toLocaleString('en-US', { month: 'short', year: 'numeric' });
+                const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => `<div class="drp-weekday">${d}</div>`).join('');
+
+                const dayCells = cells.map(cell => {
+                    if (!cell) return `<div class="drp-day blank"></div>`;
+                    const iso = formatInput(cell);
+                    const disabled = isDisabled(cell);
+                    const previewStart = startDate && !endDate && hoverDate
+                        ? (hoverDate < startDate ? hoverDate : startDate)
+                        : null;
+                    const previewEnd = startDate && !endDate && hoverDate
+                        ? (hoverDate > startDate ? hoverDate : startDate)
+                        : null;
+                    const inRange = startDate && endDate && cell > startDate && cell < endDate;
+                    const inPreviewRange = previewStart && previewEnd && cell > previewStart && cell < previewEnd;
+                    const classes = ['drp-day'];
+                    if (disabled) classes.push('disabled');
+                    if (inRange) classes.push('in-range');
+                    if (inPreviewRange) classes.push('in-range');
+                    if (sameDay(cell, startDate)) classes.push('start');
+                    if (sameDay(cell, endDate)) classes.push('end');
+                    if (!endDate && hoverDate && sameDay(cell, hoverDate)) classes.push('end');
+                    return `<div class="${classes.join(' ')}" data-date="${iso}">${cell.getDate()}</div>`;
+                }).join('');
+
+                return `
+                    <div class="drp-month">
+                        <div class="drp-month-title">${monthLabel}</div>
+                        <div class="drp-weekdays">${weekdays}</div>
+                        <div class="drp-days">${dayCells}</div>
+                    </div>
+                `;
+            }
+
+            function renderRangePicker() {
+                const next = new Date(viewCursor);
+                next.setMonth(next.getMonth() + 1);
+                desktopRangePicker.style.setProperty('--months', 2);
+                desktopRangePicker.innerHTML = `
+                    <div class="drp-header">
+                        <button type="button" class="drp-nav" data-dir="-1" aria-label="Previous month">‹</button>
+                        <div style="flex:1;"></div>
+                        <button type="button" class="drp-nav" data-dir="1" aria-label="Next month">›</button>
+                    </div>
+                    <div class="drp-months">
+                        ${buildMonth(viewCursor.getFullYear(), viewCursor.getMonth())}
+                        ${buildMonth(next.getFullYear(), next.getMonth())}
+                    </div>
+                `;
+
+                desktopRangePicker.querySelectorAll('.drp-nav').forEach(btn => {
+                    btn.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        const dir = parseInt(this.dataset.dir, 10);
+                        viewCursor.setMonth(viewCursor.getMonth() + dir);
+                        const earliest = new Date(minDate);
+                        earliest.setDate(1);
+                        if (viewCursor < earliest) viewCursor = earliest;
+                        renderRangePicker();
+                    });
+                });
+
+                desktopRangePicker.querySelectorAll('.drp-day[data-date]').forEach(dayEl => {
+                    if (dayEl.classList.contains('disabled')) return;
+                    dayEl.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        const clicked = parseDateInput(this.dataset.date);
+                        if (!startDate || (startDate && endDate)) {
+                            startDate = clicked;
+                            endDate = null;
+                            hoverDate = null;
+                        } else if (clicked < startDate) {
+                            startDate = clicked;
+                            endDate = null;
+                            hoverDate = null;
+                        } else {
+                            endDate = clicked;
+                            hoverDate = null;
+                        }
+                        checkinEl.value = startDate ? formatInput(startDate) : '';
+                        checkoutEl.value = endDate ? formatInput(endDate) : '';
+                        checkinEl.dispatchEvent(new Event('input'));
+                        checkinEl.dispatchEvent(new Event('change'));
+                        checkoutEl.dispatchEvent(new Event('input'));
+                        checkoutEl.dispatchEvent(new Event('change'));
+                        renderRangePicker();
+                        if (startDate && endDate) closePicker();
+                    });
+                    dayEl.addEventListener('mouseenter', function() {
+                        if (!startDate || endDate) return;
+                        const nextHoverDate = parseDateInput(this.dataset.date);
+                        if (sameDay(hoverDate, nextHoverDate)) return;
+                        hoverDate = nextHoverDate;
+                        renderRangePicker();
+                    });
+                });
+            }
+
+            function openPicker() {
+                if (window.innerWidth < 992) return;
+                desktopRangePicker.classList.add('open');
+                startDate = parseDateInput(checkinEl.value);
+                endDate = parseDateInput(checkoutEl.value);
+                hoverDate = null;
+                viewCursor = startDate ? new Date(startDate) : new Date();
+                viewCursor.setDate(1);
+                renderRangePicker();
+            }
+
+            function closePicker() {
+                hoverDate = null;
+                desktopRangePicker.classList.remove('open');
+            }
+
+            desktopRangePicker.addEventListener('mouseleave', function() {
+                if (!startDate || endDate || !hoverDate) return;
+                hoverDate = null;
+                renderRangePicker();
+            });
+
+            desktopDateTrigger.addEventListener('click', function(e) {
+                e.stopPropagation();
+                if (desktopRangePicker.classList.contains('open')) closePicker();
+                else openPicker();
+            });
+
+            document.addEventListener('click', function(e) {
+                if (!desktopRangePicker.classList.contains('open')) return;
+                if (!desktopRangePicker.contains(e.target) && !desktopDateTrigger.contains(e.target)) {
+                    closePicker();
+                }
+            });
+
+            window.addEventListener('resize', closePicker);
+        }
+
+        // Mobile booking modal controls
+        const mobileModal = document.getElementById('mobileBookingModal');
+        const openMobileModalBtn = document.getElementById('openMobileBookingModal');
+        const closeMobileModalBtn = document.getElementById('closeMobileBookingModal');
+
+        function openMobileModal() {
+            if (mobileModal) mobileModal.style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeMobileModal() {
+            if (mobileModal) mobileModal.style.display = 'none';
+            document.body.style.overflow = '';
+        }
+
+        if (openMobileModalBtn) openMobileModalBtn.addEventListener('click', openMobileModal);
+        if (closeMobileModalBtn) closeMobileModalBtn.addEventListener('click', closeMobileModal);
+        if (mobileModal) {
+            mobileModal.addEventListener('click', function(e) {
+                if (e.target === mobileModal) closeMobileModal();
+            });
+        }
+
+        const forms = [
+            {
+                checkinEl,
+                checkoutEl,
+                guestsInput,
+                statusDiv,
+                reservationBtn,
+                availabilityBtn
+            },
+            {
+                checkinEl: checkinElMobile,
+                checkoutEl: checkoutElMobile,
+                guestsInput: guestsInputMobile,
+                statusDiv: statusDivMobile,
+                reservationBtn: reservationBtnMobile,
+                availabilityBtn: availabilityBtnMobile
+            }
+        ].filter(f => f.checkinEl && f.checkoutEl && f.guestsInput && f.statusDiv && f.availabilityBtn);
+
+        function resetAvailabilityState(form) {
+            if (form.reservationBtn) form.reservationBtn.style.display = 'none';
+            if (form.availabilityBtn) form.availabilityBtn.style.display = 'block';
+            if (form.statusDiv) form.statusDiv.style.display = 'none';
+        }
+
+        function checkAvailability(checkin, checkout, guests, form) {
+            const url = `/property/${propertyId}/check-availability/?check_in=${checkin}&check_out=${checkout}&guests=${guests}`;
+
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    if (form.statusDiv) form.statusDiv.style.display = 'block';
+
+                    if (data.available) {
+                        form.statusDiv.textContent = 'Available';
+                        form.statusDiv.className = 'availability-text available';
+                        if (form.reservationBtn) form.reservationBtn.style.display = 'block';
+                        if (form.availabilityBtn) form.availabilityBtn.style.display = 'none';
+                    } else {
+                        form.statusDiv.textContent = 'Not Available';
+                        form.statusDiv.className = 'availability-text not-available';
+                        if (form.reservationBtn) form.reservationBtn.style.display = 'none';
+                        if (form.availabilityBtn) form.availabilityBtn.style.display = 'block';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error checking availability:', error);
+                    if (form.statusDiv) {
+                        form.statusDiv.style.display = 'block';
+                        form.statusDiv.textContent = 'Error checking availability';
+                        form.statusDiv.className = 'availability-text not-available';
+                    }
+                    resetAvailabilityState(form);
+                });
+        }
+
+        function performCheck(form) {
+            const guestsValue = form.guestsInput.value;
+
+            if (form.checkinEl && form.checkoutEl && form.checkinEl.value.trim() && form.checkoutEl.value.trim() && guestsValue) {
+                const guests = parseInt(guestsValue, 10);
+                checkAvailability(form.checkinEl.value, form.checkoutEl.value, guests, form);
+            } else {
+                showValidationModal('Please select check-in, check-out dates, and number of guests first.');
+            }
+        }
+
+        // Booking note modal gating
+        const noteModal = document.getElementById('bookingNoteModal');
+        const noteAgreeBtn = document.getElementById('bookingNoteAgree');
+        const noteCloseBtn = document.getElementById('bookingNoteClose');
+        let pendingForm = null;
+
+        function openNote(form) {
+            pendingForm = form;
+            if (noteModal) noteModal.style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeNote() {
+            if (noteModal) noteModal.style.display = 'none';
+            document.body.style.overflow = '';
+            pendingForm = null;
+        }
+
+        if (noteCloseBtn) noteCloseBtn.addEventListener('click', closeNote);
+        if (noteAgreeBtn) noteAgreeBtn.addEventListener('click', () => {
+            if (pendingForm) {
+                const checkinVal = pendingForm.checkinEl?.value;
+                const checkoutVal = pendingForm.checkoutEl?.value;
+                const guestsVal = pendingForm.guestsInput?.value;
+                // Build redirect with query params
+                const params = new URLSearchParams();
+                if (checkinVal) params.set('check_in', checkinVal);
+                if (checkoutVal) params.set('check_out', checkoutVal);
+                if (guestsVal) params.set('guests', guestsVal);
+                window.location.href = `${requestBookUrl}?${params.toString()}`;
+            }
+            closeNote();
+        });
+        if (noteModal) {
+            noteModal.addEventListener('click', (e) => {
+                if (e.target === noteModal) closeNote();
+            });
+        }
+
+        forms.forEach((form) => {
+            form.checkinEl.addEventListener('change', () => resetAvailabilityState(form));
+            form.checkoutEl.addEventListener('change', () => resetAvailabilityState(form));
+            form.guestsInput.addEventListener('change', () => resetAvailabilityState(form));
+
+            if (form.availabilityBtn) {
+                form.availabilityBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    performCheck(form);
+                });
+            }
+
+            if (form.reservationBtn) {
+                form.reservationBtn.addEventListener('click', () => {
+                    openNote(form);
+                });
+            }
+        });
+
+        
+        // Share Page URL Logic (Publicly accessible URL)
+        const sharePageLinks = document.querySelectorAll(".share-page-link");
+        const shareListingModalEl = document.getElementById("shareListingModal");
+        const shareListingModal = (shareListingModalEl && window.bootstrap && window.bootstrap.Modal)
+            ? new bootstrap.Modal(shareListingModalEl)
+            : null;
+        const shareListingModalBody = document.getElementById("shareListingModalBody");
+
+        function copyShareLink() {
+            const shareUrl = window.location.href;
+
+            function notifySuccess() {
+                if (shareListingModalBody) {
+                    shareListingModalBody.textContent = "Share Listing Link is Copied";
+                }
+                if (shareListingModal) {
+                    shareListingModal.show();
+                }
+            }
+
+            function notifyFailure() {
+                if (shareListingModalBody) {
+                    shareListingModalBody.textContent = "Could not copy link";
+                }
+                if (shareListingModal) {
+                    shareListingModal.show();
+                }
+            }
+
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(shareUrl).then(notifySuccess, function(err) {
+                    console.error("Could not copy URL:", err);
+                    notifyFailure();
+                });
+            } else {
+                const textArea = document.createElement("textarea");
+                textArea.value = shareUrl;
+                textArea.style.position = "fixed";
+                textArea.style.left = "-9999px";
+                textArea.style.top = "0";
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+                try {
+                    if (document.execCommand("copy")) notifySuccess();
+                    else notifyFailure();
+                } catch (err) {
+                    console.error("Fallback copy failed", err);
+                    notifyFailure();
+                }
+                document.body.removeChild(textArea);
+            }
+        }
+
+        sharePageLinks.forEach(function (sharePageLink) {
+            sharePageLink.addEventListener("click", function (e) {
+                e.preventDefault();
+                copyShareLink();
+            });
+        });
+
+    });
+</script>
+<script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+    crossorigin=""
+    defer
+></script>
+<script>
+    // Mobile banner behavior: scroll down => hide (slide up), scroll up => show (slide down)
+    document.addEventListener("DOMContentLoaded", function () {
+        const mobileHeader = document.querySelector(".banner-head");
+        const scrollContainer = document.querySelector(".property-detail-scroll");
+        const contentScrollContainer = document.querySelector(".property-detail-content");
+        const mobileMq = window.matchMedia("(max-width: 1024px)");
+        if (!mobileHeader) return;
+
+        let lastScrollTop = 0;
+        const delta = 2;
+        const minScrollToHide = 16;
+        let ticking = false;
+
+        function getScrollTop() {
+            const containerTop = scrollContainer ? (scrollContainer.scrollTop || 0) : 0;
+            const contentTop = contentScrollContainer ? (contentScrollContainer.scrollTop || 0) : 0;
+            const windowTop = window.pageYOffset || document.documentElement.scrollTop || 0;
+            return Math.max(containerTop, contentTop, windowTop);
+        }
+
+        function showHeader() {
+            mobileHeader.style.transform = "translateY(0)";
+            mobileHeader.classList.remove("header-hidden-on-scroll");
+            document.body.classList.remove("mobile-header-hidden");
+        }
+
+        function hideHeader() {
+            mobileHeader.style.transform = "translateY(calc(-100% - 8px))";
+            mobileHeader.classList.add("header-hidden-on-scroll");
+            document.body.classList.add("mobile-header-hidden");
+        }
+
+        function onScroll() {
+            if (!mobileMq.matches) {
+                showHeader();
+                return;
+            }
+
+            const st = getScrollTop();
+            if (Math.abs(st - lastScrollTop) <= delta) return;
+
+            if (st <= 0) {
+                showHeader();
+            } else if (st > lastScrollTop && st > minScrollToHide) {
+                hideHeader();
+            } else if (st < lastScrollTop) {
+                showHeader();
+            }
+
+            lastScrollTop = Math.max(0, st);
+        }
+
+        function onScrollTick() {
+            if (ticking) return;
+            ticking = true;
+            requestAnimationFrame(function () {
+                onScroll();
+                ticking = false;
+            });
+        }
+
+        mobileHeader.style.transition = "transform 0.24s ease";
+        mobileHeader.style.willChange = "transform";
+
+        window.addEventListener("scroll", onScrollTick, { passive: true });
+        if (scrollContainer) {
+            scrollContainer.addEventListener("scroll", onScrollTick, { passive: true });
+            scrollContainer.addEventListener("touchmove", onScrollTick, { passive: true });
+        }
+        if (contentScrollContainer) {
+            contentScrollContainer.addEventListener("scroll", onScrollTick, { passive: true });
+            contentScrollContainer.addEventListener("touchmove", onScrollTick, { passive: true });
+        }
+        document.addEventListener("touchmove", onScrollTick, { passive: true });
+
+        lastScrollTop = getScrollTop();
+        onScroll();
+
+        mobileMq.addEventListener("change", function () {
+            lastScrollTop = getScrollTop();
+            onScroll();
+        });
+    });
+</script>
+
+{% endblock extra_script %}

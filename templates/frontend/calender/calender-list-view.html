@@ -1,0 +1,856 @@
+{% extends 'frontend/base/base.html' %}
+{% load static %}
+
+{% block extra_head %}
+<link href="{% static 'css/booking/list.css' %}" rel="stylesheet">
+<link href="{% static 'css/calender/list.css' %}" rel="stylesheet">
+<style>
+    .calendar-header {
+        background: white;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+    }
+    .header-nav .nav-title {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: 600;
+    }
+    .header-nav .nav-title img {
+        width: 20px;
+        height: 20px;
+    }
+    .header-nav .header-actions-group {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .mobile-actions {
+        display: none;
+        position: relative;
+    }
+    .mobile-actions-toggle {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        border: 1px solid #e5e7eb;
+        background: #ffffff;
+        color: #111827;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        line-height: 1;
+    }
+    .mobile-actions-menu {
+        position: absolute;
+        right: 0;
+        top: calc(100% + 8px);
+        background: #5a5a5a;
+        border-radius: 10px;
+        padding: 10px 12px;
+        display: none;
+        gap: 16px;
+        align-items: center;
+        z-index: 1200;
+    }
+    .mobile-actions-menu.open {
+        display: flex;
+    }
+    .mobile-actions-menu .btn {
+        width: 30px;
+        height: 30px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: transparent;
+        border-radius: 6px;
+    }
+    .mobile-actions-menu img {
+        width: 18px;
+        height: 18px;
+        filter: brightness(0) invert(1);
+    }
+
+    .nav-button-header {
+        width: 40px;
+        height: 40px;
+        border: none;
+        border-radius: 50%;
+        background: white;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: background-color 0.2s;
+    }
+
+    .nav-button-header svg {
+        width: 24px;
+        height: 24px;
+        color: #374151;
+    }
+
+    .month-display {
+        font-size: 20px;
+        font-weight: 600;
+        color: #1f2937;
+        text-align: center;
+        width: 150px;
+        white-space: nowrap;
+    }
+    .month-picker-wrapper {
+        position: relative;
+    }
+    .month-display-btn {
+        border: 0;
+        background: transparent;
+        cursor: pointer;
+        padding: 0;
+    }
+    .month-year-panel {
+        position: absolute;
+        top: calc(100% + 10px);
+        left: 50%;
+        transform: translateX(-50%);
+        background: #ffffff;
+        border: 1px solid #d1d5db;
+        border-radius: 10px;
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.18);
+        padding: 12px;
+        min-width: 250px;
+        z-index: 6000;
+    }
+    .month-year-panel[hidden] {
+        display: none !important;
+    }
+    .month-year-controls {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 10px;
+    }
+    .month-year-select {
+        flex: 1;
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+        padding: 8px 10px;
+        font-size: 14px;
+        color: #1f2937;
+        background: #fff;
+    }
+    .month-year-actions {
+        display: block;
+    }
+    .month-year-apply {
+        width: 100%;
+        border: 1px solid #d1d5db;
+        border-radius: 4px;
+        background: #ffffff;
+        color: #1d74b2;
+        font-size: 18px;
+        font-weight: 700;
+        line-height: 1.2;
+        padding: 10px 15px;
+        text-align: center;
+        cursor: pointer;
+        transition: background-color 0.2s ease, border-color 0.2s ease;
+        font-family: sans-serif;
+    }
+    .month-year-apply:hover {
+        background: #f8fafc;
+        border-color: #c5ccd3;
+    }
+    .month-year-apply:focus-visible {
+        outline: 2px solid #1d74b2;
+        outline-offset: 2px;
+    }
+
+    .divider {
+        width: 1px;
+        height: 32px;
+        background-color: #d1d5db;
+        margin: 0 4px;
+    }
+
+
+    .calendar-page-shell {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        min-height: 0;
+    }
+
+    .calendar-list-page {
+        min-height: calc(100vh - 72px);
+        display: flex;
+        flex-direction: column;
+    }
+
+    .timeline-region {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        min-height: 0;
+    }
+
+    .calendar-list-container {
+        padding: 0rem 10%;
+        border-radius: 12px;
+        background: #fff;
+        flex: 1;
+        min-height: 0;
+        overflow-y: auto;
+        margin-bottom: 0;
+    }
+
+    .calendar-list-container.is-empty {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .calendar-list-empty-state {
+        font-size: 24px;
+        font-weight: 600;
+        color: #111827;
+        text-align: center;
+        line-height: 1.2;
+        padding: 20px;
+    }
+
+    .calendar-footer-wrap {
+        margin-top: auto;
+    }
+
+    .calendar-page-shell .header-nav {
+        margin-left: 0;
+        margin-right: 0;
+    }
+
+    .calendar-list-container::-webkit-scrollbar {
+        width: 10px;
+    }
+
+    .calendar-list-container::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .calendar-list-container::-webkit-scrollbar-thumb {
+        background: rgba(135, 135, 135, 0.5);
+        border-radius: 999px;
+    }
+
+    .calendar-list-container::-webkit-scrollbar-thumb:hover {
+        background: rgba(129, 129, 130, 0.8);
+    }
+
+    /* .calendar-list-container {
+        scrollbar-width: thin;
+        scrollbar-color: #7c3aed transparent;
+    } */
+
+    .calendar-list-container::-webkit-scrollbar {
+        width: 10px;
+    }
+
+
+    @media (max-width: 992px) {
+        .header-nav {
+            background: #ffffff;
+            border-radius: 12px;
+            padding: 0px !important;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+        }
+        .header-nav .nav-title span {
+            color: #ffffff;
+            font-weight: 600;
+        }
+        .header-nav .nav-title img {
+            filter: brightness(0) invert(1);
+        }
+        .calendar-header {
+            margin-right: 0 !important;
+        }
+        .header-nav .row {
+            row-gap: 10px;
+        }
+        .header-nav .calendar-header {
+            justify-content: space-between;
+            width: 100%;
+            background: #ffffff;
+            border-radius: 10px;
+            padding: 6px 10px;
+            gap: 8px;
+        }
+        .header-nav .header-actions-group {
+            display: none;
+        }
+        .mobile-actions {
+            display: block;
+        }
+        .header-nav .actions-col {
+            display: none;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .header-nav .row {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        .header-nav .col-auto {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+        }
+        .header-nav .nav-left {
+            justify-content: center;
+            width: 100%;
+        }
+        .header-nav .calendar-header {
+            gap: 8px;
+            padding: 0px 6px;
+        }
+        .header-nav .month-display {
+            font-size: 16px;
+        }
+        .header-nav .divider {
+            height: 28px;
+        }
+        .header-nav .header-actions-group {
+            gap: 16px;
+        }
+        .calendar-header {
+            margin-right: 0 !important;
+            justify-content: center;
+            width: 100%;
+            margin-bottom: 4px;
+        }
+        .month-display {
+            font-size: 16px;
+            width: auto;
+        }
+        .header-nav .actions-col {
+            display: none;
+        }
+
+        .calendar-page-shell {
+            padding: 0 12px;
+        }
+        .calendar-list-container {
+            padding: 0rem 1%;
+            box-shadow: none;
+            border-radius: 0;
+            margin-top: 16px;
+        }
+        .calendar-list-empty-state {
+            font-size: 22px;
+        }   
+    }
+
+
+    
+    @media (max-width: 1200px) {
+        .calendar-page-shell {
+            padding: 0 1%;
+        }
+    }
+
+</style>
+
+{% endblock extra_head %}
+
+{% block content %}
+
+<div class="container-fluid calendar-list-page">
+    <!-- Header Navigation -->
+    <div class="header-nav" style="padding: 8px;">
+        <div class="row align-items-center justify-content-between w-100 g-3">
+            <div class="col-auto actions-col">
+                <div class="nav-left">
+                    <div class="nav-title">
+                        <img src="{% static 'img/calender/calendar_dashboard_icon.svg' %}">
+                        <span>Calendar - List View</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-auto calendar-header" style="margin-right: 4rem;">
+                <button class="nav-button-header" id="prevBtn" aria-label="Previous month">
+                    <img src="{% static 'img/calender/left_arrow.svg' %}">
+                </button>
+
+                <div class="month-picker-wrapper">
+                    <button class="month-display month-display-btn" id="monthDisplay" type="button" aria-haspopup="dialog" aria-expanded="false">
+                        {{ current_month|date:"F Y" }}
+                    </button>
+                    <div class="month-year-panel" id="monthYearPanel" hidden>
+                        <div class="month-year-controls">
+                            <select class="month-year-select" id="monthPickerSelect">
+                                <option value="0">January</option>
+                                <option value="1">February</option>
+                                <option value="2">March</option>
+                                <option value="3">April</option>
+                                <option value="4">May</option>
+                                <option value="5">June</option>
+                                <option value="6">July</option>
+                                <option value="7">August</option>
+                                <option value="8">September</option>
+                                <option value="9">October</option>
+                                <option value="10">November</option>
+                                <option value="11">December</option>
+                            </select>
+                            <select class="month-year-select" id="yearPickerSelect"></select>
+                        </div>
+                        <div class="month-year-actions">
+                            <button class="month-year-apply" id="monthYearApplyBtn" type="button">Show Calendar</button>
+                        </div>
+                    </div>
+                </div>
+
+                <button class="nav-button-header" id="nextBtn" aria-label="Next month">
+                    <img src="{% static 'img/calender/right_arrow.svg' %}">
+                </button>
+
+                <div class="divider"></div>
+
+                <button class="nav-button-header today-btn" id="todayBtn" aria-label="Go to today">
+                    <img src="{% static 'img/calender/today_icon.svg' %}">
+                </button>
+
+                <div class="mobile-actions">
+                    <button class="mobile-actions-toggle" id="mobileActionsToggle" aria-label="Open actions">⋮</button>
+                    <div class="mobile-actions-menu" id="mobileActionsMenu">
+                        <button class="btn p-0" id="mobilePrintBtn" style="border:none">
+                            <img src="{% static 'img/calender/print_icon.svg' %}">
+                        </button>
+                        <button class="btn p-0" id="mobileRefreshBtn" style="border:none">
+                            <img src="{% static 'img/calender/refresh_icon.svg' %}">
+                        </button>
+                        <button class="btn p-0" style="border:none" title="List View">
+                            <img src="{% static 'img/calender/prime_list.svg' %}">
+                        </button>
+                        <a class="btn p-0" href="{% url 'calendar-grid-view' %}" style="border:none" title="Timeline View">
+                            <img src="{% static 'img/calender/circum_view-timeline.svg' %}">
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-auto actions-col">
+                <div class="d-flex">
+                    <div class="header-actions-group">
+                        <button class="btn p-0" id="printBtn" style="border:none">
+                            <img src="{% static 'img/calender/print_icon.svg' %}">
+                        </button>
+                        <button class="btn p-0" id="refreshBtn" title="Refresh" style="border:none">
+                            <img src="{% static 'img/calender/refresh_icon.svg' %}">
+                        </button>
+                        <button class="btn p-0" style="border:none" title="List View">
+                            <img src="{% static 'img/calender/prime_list.svg' %}">
+                        </button>
+                        <button class="btn p-0" style="border:none">
+                            <a href="{% url 'calendar-grid-view' %}">
+                            <img src="{% static 'img/calender/circum_view-timeline.svg' %}">
+                            </a>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="calendar-page-shell">
+    <div class="timeline-region">
+        <!-- Dynamic list container -->
+        <div class="container-fluid calendar-list-container" id="timelineContainer">
+            <div style="padding:20px;" id="loading">Loading...</div>
+        </div>
+    </div>
+    <div class="calendar-footer-wrap">
+        {% include 'frontend/base/footer.html' %}
+    </div>
+    </div>
+    </div>
+</div>
+{% endblock content %}
+
+{% block extra_script %}
+<script>
+    let currentDisplayDate = new Date();
+
+    function updateMonthDisplay() {
+        const el = document.getElementById('monthDisplay');
+        el.textContent = currentDisplayDate.toLocaleDateString('en-US', {
+            month: 'long',
+            year: 'numeric'
+        });
+    }
+
+    function fetchEvents() {
+        const month = currentDisplayDate.getMonth() + 1;
+        const year = currentDisplayDate.getFullYear();
+        const url = `?month=${month}&year=${year}`;
+        const container = document.getElementById('timelineContainer');
+
+        container.classList.remove('is-empty');
+        container.innerHTML =
+            '<div style="padding:20px;" id="loading">Loading...</div>';
+
+        return fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+            .then(r => r.json());
+    }
+
+    function groupByDateAndType(events) {
+        const byDate = {};
+        events.forEach(ev => {
+            ev._normalizedGroup = normalizeEventGroup(ev.group);
+            if (!byDate[ev.date]) byDate[ev.date] = [];
+            byDate[ev.date].push(ev);
+        });
+
+        Object.keys(byDate).forEach(d => {
+            const groups = { Checkin: [], Checkout: [], Payment: [], Task: [] };
+            byDate[d].forEach(ev => {
+                const group = ev._normalizedGroup;
+                if (!groups[group]) groups[group] = [];
+                groups[group].push(ev);
+            });
+            byDate[d] = groups;
+        });
+        return byDate;
+    }
+
+    const EVENT_ICON_MAP = {
+        Checkin: "{% static 'img/calender/check_in_icon.svg' %}",
+        Checkout: "{% static 'img/calender/check_out_icon.svg' %}",
+        Payment: "{% static 'img/task/type/payment.svg' %}",
+        Maintenance: "{% static 'img/task/type/maintenance.svg' %}",
+        Cleaning: "{% static 'img/task/type/cleaning.svg' %}",
+        Other: "{% static 'img/task/type/others.svg' %}",
+    };
+    const DEFAULT_AVATAR = "{% static 'img/common/default_user_icon_1.png' %}";
+    const DEFAULT_PROPERTY_IMAGE = "{% static 'img/not-found/no_property.jpg' %}";
+    const EMAIL_ICON = "{% static 'img/booking/listing/email_icon.svg' %}";
+    const PHONE_ICON = "{% static 'img/booking/listing/phone_icon.svg' %}";
+
+    function normalizeEventGroup(group) {
+        const normalized = String(group || '')
+            .toLowerCase()
+            .replace(/[\s_-]+/g, '');
+
+        if (normalized === 'checkin') return 'Checkin';
+        if (normalized === 'checkout') return 'Checkout';
+        if (normalized === 'payment') return 'Payment';
+        if (normalized === 'task') return 'Task';
+        return group || 'Other';
+    }
+
+    function eventTypeLabel(ev) {
+        const group = ev._normalizedGroup || normalizeEventGroup(ev.group);
+        if (group === 'Checkin') return 'Checkin';
+        if (group === 'Checkout') return 'Checkout';
+        if (group === 'Payment') return 'Payment';
+        return ev.title || 'Others';
+    }
+
+    function eventTypeIcon(ev) {
+        const group = ev._normalizedGroup || normalizeEventGroup(ev.group);
+        if (group === 'Task') {
+            if ((ev.title || '').toLowerCase().includes('maintenance')) return EVENT_ICON_MAP.Maintenance;
+            if ((ev.title || '').toLowerCase().includes('cleaning')) return EVENT_ICON_MAP.Cleaning;
+            if ((ev.title || '').toLowerCase().includes('payment')) return EVENT_ICON_MAP.Payment;
+            return EVENT_ICON_MAP.Other;
+        }
+        return EVENT_ICON_MAP[group] || EVENT_ICON_MAP.Other;
+    }
+
+    function eventSubText(ev) {
+        const group = ev._normalizedGroup || normalizeEventGroup(ev.group);
+        if (group === 'Task') return ev.details || 'Mention the task details here ...';
+        if (group === 'Payment') {
+            const amount = Number(ev.amount || 0).toFixed(2);
+            return `$${amount}${ev.paid ? '  Paid' : ''}`;
+        }
+        return ev.stay || '';
+    }
+
+    function guestEmail(ev) {
+        if (ev.guest_email) return ev.guest_email;
+        return '-';
+    }
+
+    function guestPhone(ev) {
+        if (ev.guest_phone) return ev.guest_phone;
+        if (ev.guest_id) return ev.guest_id;
+        return '-';
+    }
+
+    function renderCard(ev) {
+        const typeLabel = eventTypeLabel(ev);
+        const icon = eventTypeIcon(ev);
+        const subText = eventSubText(ev);
+        const avatar = (ev.avatar && String(ev.avatar).trim()) ? ev.avatar : DEFAULT_AVATAR;
+        const propertyImage = ev.property_image || ev.property_image_url || DEFAULT_PROPERTY_IMAGE;
+        const email = guestEmail(ev);
+        const phone = guestPhone(ev);
+        return `
+      <div class="booking-card-scroll">
+      <div class="booking-card">
+        <div class="event-col event-col-type">
+          <img src="${icon}" class="event-type-icon" alt="${typeLabel}">
+          <div class="event-type-content">
+            <h3 class="event-title">${typeLabel}</h3>
+            ${subText ? `<p class="event-subtitle">${subText}</p>` : ''}
+          </div>
+        </div>
+        <div class="event-col event-col-guest">
+          <img src="${avatar}" class="guest-avatar" alt="${ev.guest_name || 'Guest'}" onerror="this.onerror=null;this.src='${DEFAULT_AVATAR}';">
+          <div class="guest-meta">
+            <div class="guest-name">${ev.guest_name || '-'}</div>
+            <div class="guest-line"><img src="${EMAIL_ICON}" alt=""> ${email}</div>
+            <div class="guest-line"><img src="${PHONE_ICON}" alt=""> ${phone}</div>
+          </div>
+        </div>
+        <div class="event-col event-col-property">
+          <img src="${propertyImage}" class="property-image" alt="${ev.property || 'Property'}">
+          <div class="property-meta">
+            <div class="property-name">${ev.property || ''}</div>
+            <div class="property-location">${ev.location || ''}</div>
+          </div>
+        </div>
+      </div>
+      </div>
+    `;
+    }
+
+    function renderTimeline(events) {
+        const container = document.getElementById('timelineContainer');
+
+        if (!events || events.length === 0) {
+            container.classList.add('is-empty');
+            container.innerHTML = '<div class="calendar-list-empty-state">No events for this month</div>';
+            return;
+        }
+        container.classList.remove('is-empty');
+
+        const grouped = groupByDateAndType(events);
+        const dates = Object.keys(grouped).sort(); // ISO
+
+        let html = '';
+        dates.forEach(iso => {
+            const d = new Date(iso + 'T00:00:00'); // Treat as local date
+            const month = d.toLocaleDateString('en-US', { month: 'short' });
+            const day = d.getDate();
+            const year = d.getFullYear();
+            const weekday = d.toLocaleDateString('en-US', { weekday: 'short' });
+            const label = `${month} ${day}, ${year}, ${weekday}`;
+
+            const blocks = grouped[iso];
+            const now = new Date();
+            const todayIso = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+            const todayBadge = iso === todayIso ? '<span class="today-pill">Today</span>' : '';
+
+            html += `
+                <div class="date-section" id="date-${iso}">
+                    <div class="date">
+                        <span><img src="{% static 'img/calender/black_calender.svg' %}"></span>
+                    <span>${label}</span>
+                </div>
+                ${todayBadge}
+                </div>
+            `;
+
+            ['Checkout', 'Checkin', 'Payment', 'Task'].forEach(type => {
+                (blocks[type] || []).forEach(ev => {
+                    html += renderCard(ev);
+                });
+            });
+        });
+
+        container.innerHTML = html;
+    }
+
+    function refreshMonth() {
+        updateMonthDisplay();
+        return fetchEvents().then(data => {
+            renderTimeline(data.events || []);
+        });
+    }
+
+    function populateYearPicker() {
+        const yearSelect = document.getElementById('yearPickerSelect');
+        if (!yearSelect) return;
+        yearSelect.innerHTML = '';
+        const currentYear = new Date().getFullYear();
+        for (let year = currentYear - 5; year <= currentYear + 5; year += 1) {
+            const opt = document.createElement('option');
+            opt.value = String(year);
+            opt.textContent = year;
+            yearSelect.appendChild(opt);
+        }
+    }
+
+    function syncMonthYearPicker() {
+        const monthSelect = document.getElementById('monthPickerSelect');
+        const yearSelect = document.getElementById('yearPickerSelect');
+        if (!monthSelect || !yearSelect) return;
+        monthSelect.value = String(currentDisplayDate.getMonth());
+        if (!yearSelect.querySelector(`option[value=\"${currentDisplayDate.getFullYear()}\"]`)) {
+            populateYearPicker();
+        }
+        yearSelect.value = String(currentDisplayDate.getFullYear());
+    }
+
+    function openMonthYearPanel() {
+        populateYearPicker();
+        syncMonthYearPicker();
+        const panel = document.getElementById('monthYearPanel');
+        const monthDisplay = document.getElementById('monthDisplay');
+        if (!panel || !monthDisplay) return;
+        panel.hidden = false;
+        monthDisplay.setAttribute('aria-expanded', 'true');
+    }
+
+    function closeMonthYearPanel() {
+        const panel = document.getElementById('monthYearPanel');
+        const monthDisplay = document.getElementById('monthDisplay');
+        if (!panel || !monthDisplay) return;
+        panel.hidden = true;
+        monthDisplay.setAttribute('aria-expanded', 'false');
+    }
+
+    function toggleMonthYearPanel(event) {
+        if (event) event.stopPropagation();
+        const panel = document.getElementById('monthYearPanel');
+        if (!panel) return;
+        if (panel.hidden) openMonthYearPanel();
+        else closeMonthYearPanel();
+    }
+
+    function applyMonthYearSelection() {
+        const monthSelect = document.getElementById('monthPickerSelect');
+        const yearSelect = document.getElementById('yearPickerSelect');
+        if (!monthSelect || !yearSelect) return;
+        const month = Number(monthSelect.value);
+        const year = Number(yearSelect.value);
+        if (Number.isNaN(month) || Number.isNaN(year)) return;
+        currentDisplayDate = new Date(year, month, 1);
+        closeMonthYearPanel();
+        refreshMonth();
+    }
+
+    function goToPrevMonth() {
+        currentDisplayDate.setMonth(currentDisplayDate.getMonth() - 1, 1);
+        refreshMonth();
+    }
+
+    function goToNextMonth() {
+        currentDisplayDate.setMonth(currentDisplayDate.getMonth() + 1, 1);
+        refreshMonth();
+    }
+
+    function goToToday() {
+        currentDisplayDate = new Date();
+        refreshMonth().then(() => {
+            const d = new Date();
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            const todayIso = `${year}-${month}-${day}`;
+
+            const sections = Array.from(document.querySelectorAll('.date-section[id^="date-"]'));
+            if (!sections.length) return;
+
+            let target = document.getElementById(`date-${todayIso}`);
+            if (!target) {
+                // If today's section does not exist, jump to the next available date.
+                // If no future date exists in this month, use the nearest available past date.
+                let nearestFuture = null;
+                let nearestPast = null;
+
+                sections.forEach(section => {
+                    const iso = section.id.replace('date-', '');
+                    if (!iso) return;
+                    if (iso >= todayIso) {
+                        if (!nearestFuture || iso < nearestFuture.id.replace('date-', '')) nearestFuture = section;
+                    } else {
+                        if (!nearestPast || iso > nearestPast.id.replace('date-', '')) nearestPast = section;
+                    }
+                });
+
+                target = nearestFuture || nearestPast || null;
+            }
+
+            if (target) {
+                requestAnimationFrame(() => {
+                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                });
+            }
+        });
+    }
+
+    const mobileActionsToggle = document.getElementById('mobileActionsToggle');
+    const mobileActionsMenu = document.getElementById('mobileActionsMenu');
+    const mobilePrintBtn = document.getElementById('mobilePrintBtn');
+    const mobileRefreshBtn = document.getElementById('mobileRefreshBtn');
+
+    if (mobileActionsToggle && mobileActionsMenu) {
+        mobileActionsToggle.addEventListener('click', (event) => {
+            event.stopPropagation();
+            mobileActionsMenu.classList.toggle('open');
+        });
+
+        document.addEventListener('click', (event) => {
+            if (!mobileActionsMenu.contains(event.target) && event.target !== mobileActionsToggle) {
+                mobileActionsMenu.classList.remove('open');
+            }
+        });
+    }
+
+    if (mobilePrintBtn) {
+        mobilePrintBtn.addEventListener('click', () => {
+            const desktopPrintBtn = document.getElementById('printBtn');
+            if (desktopPrintBtn) {
+                desktopPrintBtn.click();
+            } else {
+                window.print();
+            }
+        });
+    }
+
+    if (mobileRefreshBtn) {
+        mobileRefreshBtn.addEventListener('click', () => {
+            const desktopRefreshBtn = document.getElementById('refreshBtn');
+            if (desktopRefreshBtn) {
+                desktopRefreshBtn.click();
+            }
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        updateMonthDisplay();
+        refreshMonth();
+
+        const monthDisplay = document.getElementById('monthDisplay');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const todayBtn = document.getElementById('todayBtn');
+        const refreshBtn = document.getElementById('refreshBtn');
+        const monthYearApplyBtn = document.getElementById('monthYearApplyBtn');
+        const monthYearPanel = document.getElementById('monthYearPanel');
+
+        if (monthDisplay) monthDisplay.addEventListener('click', toggleMonthYearPanel);
+        if (prevBtn) prevBtn.addEventListener('click', goToPrevMonth);
+        if (nextBtn) nextBtn.addEventListener('click', goToNextMonth);
+        if (todayBtn) todayBtn.addEventListener('click', goToToday);
+        if (refreshBtn) refreshBtn.addEventListener('click', refreshMonth);
+        if (monthYearApplyBtn) monthYearApplyBtn.addEventListener('click', applyMonthYearSelection);
+        if (monthYearPanel) monthYearPanel.addEventListener('click', function(event) { event.stopPropagation(); });
+        document.addEventListener('click', () => closeMonthYearPanel());
+    });
+</script>
+{% endblock extra_script %}

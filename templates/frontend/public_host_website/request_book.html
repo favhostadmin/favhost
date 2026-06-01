@@ -1,0 +1,744 @@
+{% extends 'frontend/base/base.html' %}
+{% load static %}
+
+{% block extra_head %}
+<link href="{% static 'css/property/details.css' %}" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/intl-tel-input@25.12.1/build/css/intlTelInput.css">
+
+<link href="{% static 'css/public_host_website/request_book.css' %}" rel="stylesheet">
+<style>
+    .iti{
+        width: 100%;
+    }
+    .rb-warning-modal-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.35);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 2000;
+        padding: 16px;
+    }
+    .rb-warning-modal-overlay.is-open {
+        display: flex;
+    }
+    .rb-warning-modal {
+        width: min(530px, 100%);
+        background: #fff;
+        color: #202124;
+        border-radius: 6px;
+        box-shadow: 0 14px 36px rgba(0, 0, 0, 0.28);
+        border: 1px solid #d8d8d8;
+        overflow: hidden;
+    }
+    .rb-warning-modal-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 14px 16px;
+        border-bottom: 1px solid #e3e3e3;
+        background: #f7f7f7;
+    }
+    .rb-warning-modal-title {
+        margin: 0;
+        font-size: 24px;
+        font-weight: 700;
+        line-height: 1.25;
+    }
+    .rb-warning-modal-close {
+        border: 0;
+        background: transparent;
+        color: #7c7c7c;
+        font-size: 40px;
+        line-height: 1;
+        cursor: pointer;
+        padding: 0;
+    }
+    .rb-warning-modal-body {
+        padding: 18px 16px 16px;
+    }
+    .rb-warning-modal-message {
+        margin: 0;
+        font-size: 20px;
+        line-height: 1.4;
+    }
+    .rb-warning-modal-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        padding: 16px;
+        border-top: 1px solid #e3e3e3;
+        background: #f7f7f7;
+    }
+    .rb-warning-modal-btn-cancel,
+    .rb-warning-modal-btn-confirm {
+        /* height: 54px; */
+        border-radius: 6px;
+        border: 0;
+        padding: 6px 30px;
+        font-size: 16px;
+        font-weight: 500;
+        cursor: pointer;
+    }
+    .rb-warning-modal-btn-cancel {
+        background: #6c757d;
+        color: #fff;
+    }
+    .rb-warning-modal-btn-confirm {
+        background: #dc3545;
+        color: #fff;
+    }
+    .rb-warning-modal-btn-cancel:focus-visible,
+    .rb-warning-modal-btn-confirm:focus-visible,
+    .rb-warning-modal-close:focus-visible {
+        outline: 2px solid #202124;
+        outline-offset: 2px;
+    }
+    .rb-warning-modal-btn-cancel.is-hidden {
+        display: none;
+    }
+    @media (max-width: 576px) {
+        .rb-warning-modal-title {
+            font-size: 26px;
+        }
+        .rb-warning-modal-message {
+            font-size: 18px;
+        }
+        .rb-warning-modal-btn-cancel,
+        .rb-warning-modal-btn-confirm {
+            font-size: 18px;
+        }
+    }
+    .rb-mobile-header {
+        transition: transform 0.24s ease;
+        will-change: transform;
+    }
+    @media (max-width: 991px) {
+        .rb-mobile-header.is-hidden {
+            transform: translateY(calc(-100% - 8px));
+        }
+    }
+</style>
+
+{% endblock extra_head %}
+
+{% block header %}{% endblock header %}
+
+{% block content %}
+<div class="rb-wrapper">
+    <div class="rb-mobile-header" id="rbMobileHeader">
+        <div class="banner-head">
+          <div class="created-with">
+            <small>Created with</small>
+            <!-- <strong>FavHost</strong> -->
+              <img src="{% static 'img/login/favhost.png' %}" alt="Logo" style="height: 30px;" />
+          </div>
+        </div>
+
+        <div class="rb-titlebar">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0b2c4a" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 9h18"/></svg>
+            <span class="rb-title-text" style="flex:1;">Request to book</span>
+            <div class="rb-phone" style="background:#595959; color:#fff; border-color:#595959;">
+                <span style="width:35px; height:35px; border-radius:50%; background:#777; display:inline-flex; align-items:center; justify-content:center;">
+                <img src="{{ host.profile_picture.url|default:'/static/img/public_host_website/person.png' }}" alt="{{ host.get_full_name }}" style="width:35px; height:35px; border-radius:50%; object-fit:cover;">
+
+                </span>
+
+                <img class="rb-phone-icon" src="{% static 'img/public_host_website/phone.png' %}" alt="" style="width:16px; height:16px;">
+                <a href="tel:{{ host.phone }}" style="color: inherit; text-decoration: none;">
+                    <span class="rb-phone-number">{{ host.phone|default:'+1012 3456 789' }}</span>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="rb-grid">
+        <div class="rb-card">
+            <form id="rb-form" enctype="multipart/form-data">
+                {% csrf_token %}
+                <input type="hidden" name="property_id" value="{{ property.id }}">
+                <input type="hidden" name="check_in_date" id="hidden-check-in">
+                <input type="hidden" name="check_out_date" id="hidden-check-out">
+                <div class="rb-form-grid">
+                    <div class="rb-field">
+                        <label>Guest First Name*</label>
+                        <input class="rb-input" type="text" name="first_name" required>
+                    </div>
+                    <div class="rb-field">
+                        <label>Last Name*</label>
+                        <input class="rb-input" type="text" name="last_name" required>
+                    </div>
+                    <div class="rb-field">
+                        <label>Email*</label>
+                        <input class="rb-input" type="email" name="email" required>
+                    </div>
+                    <div class="rb-field">
+                        <label>Phone*</label>
+                        <div class="phone-control">
+                            <input
+                                id="phoneInput"
+                                type="tel"
+                                name="phone"
+                                class="rb-input"
+                                aria-label="Phone number"
+                                autocomplete="tel"
+                                placeholder="Enter phone number"
+                                required
+                            >
+                            <input type="hidden" id="countryCodeInput" name="country_code" value="us">
+                            <input type="hidden" id="phoneCodeInput" name="phone_code" value="+1">
+                        </div>
+                    </div>
+                    <div class="rb-field">
+                        <label>Notes for the host (optional)</label>
+                        <textarea class="rb-textarea" name="notes" placeholder="Purpose of travel, special requests, pets, early check-in, luggage storage etc."></textarea>
+                    </div>
+                    <div class="rb-field">
+                        <label for="guest_photo">Upload guest photo (optional)</label>
+                        <label class="rb-upload-control">
+                            <input id="guest_photo" type="file" name="guest_photo" accept=".png,.jpg,.jpeg,.gif">
+                            <div class="rb-upload">
+                                <!-- <span class="rb-upload-icon">⌃</span> -->
+                                <span class="rb-upload-title">Click to upload or drag and drop</span>
+                                <span class="rb-upload-sub">PNG, JPG, GIF up to 2MB each</span>
+                            </div>
+                        </label>
+                        <div class="rb-upload-filename" id="guest_photo_name" aria-live="polite"></div>
+                    </div>
+                    <div class="rb-inline-1">
+                        <div class="rb-field">
+                            <label>Adults (Age above 13)*</label>
+                            <input id="rb-adults" name="adults" class="rb-input" type="number" min="1" value="1" required readonly>
+                        </div>
+                        <div class="rb-field mt-3">
+                            <label>Children (under 13) (optional)</label>
+                            <input id="rb-children" name="children" class="rb-input" type="number" min="0" value="0" required>
+                        </div>
+                    </div>
+                    <div class="rb-inline-1">
+                        <div class="rb-field">
+                            <label>Pets (optional)</label>
+                            <input class="rb-input" name="pets" type="number" min="0" value="0">
+                        </div>
+                        <div class="rb-field mt-3">
+                            <label>Pet details (optional)</label>
+                            <input class="rb-input" name="pet_details" type="text" placeholder="Pet type, size, breed etc.">
+                        </div>
+                    </div>
+                    <div class="rb-field">
+                        <label for="attachments">Upload attachment(s) (Optional) <img src="{% static 'img/common/info.svg' %}" alt="" style="width:14px; height:14px; vertical-align:middle;"></label>
+                        <label class="rb-upload-control">
+                            <input id="attachments" type="file" name="attachments" accept=".png,.jpg,.jpeg,.gif" multiple>
+                            <div class="rb-upload">
+                                <!-- <span class="rb-upload-icon">⌃</span> -->
+                                <span class="rb-upload-title">Click to upload or drag and drop</span>
+                                <span class="rb-upload-sub">PNG, JPG, GIF up to 2MB each</span>
+                            </div>
+                        </label>
+                        <div class="rb-upload-filename" id="attachments_name" aria-live="polite"></div>
+                    </div>
+                    {% comment %}
+                    <div class="rb-field">
+                        <label>Captcha</label>
+                        <label class="rb-captcha">
+                            <input type="checkbox" style="width: 20px; height: 20px;" name="captcha_ack" aria-label="I am not a robot" required>
+                            <span>I'm not a robot</span>
+                            <span class="rb-captcha-badge" aria-hidden="true">S</span>
+                            <span class="rb-captcha-logo" aria-hidden="true">reCAP</span>
+                        </label>
+                    </div>
+                    {% endcomment %}
+                </div>
+                <div class="rb-consent">
+                    By sending the request you agree to the <a href="#">cancellation, other policies and property rules</a>
+                </div>
+                <div class="rb-sticky-bar">
+                    <button type="submit" form="rb-form" class="rb-submit">Agree and Send booking Request</button>
+                </div>
+            </form>
+        </div>
+
+        <div class="rb-card" style="border-left:1px solid var(--border);">
+            {% static 'img/property/placeholder-image.png' as placeholder_img %}
+            <div class="rb-summary-header" style="display:block; text-align:left;">
+                <div class="rb-summary-figure" style="margin-bottom:12px; position:relative;">
+                    <img class="rb-summary-img" src="{{ property.get_primary_image_url|default:placeholder_img }}" alt="{{ property.title }}">
+                    <span class="rb-badge">Available</span>
+                </div>
+                <div>
+                    <div class="rb-summary-title" style="font-size:19px;">{{ property.title }}</div>
+                    <div class="rb-summary-meta" style="margin-bottom:6px;">{{ property.city }}, {{ property.state }}</div>
+                    <div class="rb-summary-meta" style="font-weight:600; color:#111;">${{ property.price_per_night|floatformat:0 }} night&nbsp; |&nbsp; {{ property.guest }} Guests (max)&nbsp; |&nbsp; {{ property.minimum_booking }} nights (min)</div>
+                </div>
+            </div>
+
+            <div style="border-top:1px solid var(--border); margin:14px 0 12px;"></div>
+            <div class="rb-summary-grid">
+                <div class="rb-summary-left">
+                    <div>
+                        <div style="color:#555;">Check In:</div>
+                        <div id="summary-check-in" style="font-weight:700; margin-top:2px;">-</div>
+                    </div>
+                    <div>
+                        <div style="color:#555;">Check Out:</div>
+                        <div id="summary-check-out" style="font-weight:700; margin-top:2px;">-</div>
+                    </div>
+                    <div>
+                        <div style="color:#555;">Nights:</div>
+                        <div id="summary-nights" style="font-weight:700; margin-top:2px;">0</div>
+                    </div>
+                    <div>
+                        <div style="color:#555;">Guests:</div>
+                        <div id="summary-guests" style="font-weight:700; margin-top:2px;">-</div>
+                    </div>
+                </div>
+                <div class="rb-summary-costs">
+                    <div class="rb-cost-row">
+                        <span id="cost-stay-label">${{ property.price_per_night|floatformat:2 }} x 0 nights</span>
+                        <strong id="cost-stay-total">$0.00</strong>
+                    </div>
+                    <div class="rb-cost-row">
+                        <span>Cleaning fee</span>
+                        <strong>${{ property.cleaning_fee|default:0|floatformat:2 }}</strong>
+                    </div>
+                    <div class="rb-cost-row">
+                        <span>Application fee</span>
+                        <strong>${{ property.application_fees|default:0|floatformat:2 }}</strong>
+                    </div>
+                    <div class="rb-cost-row">
+                        <span>Refundable deposit</span>
+                        <strong>${{ property.refundable_deposit|default:0|floatformat:2 }}</strong>
+                    </div>
+                    <div class="rb-cost-row" style="border-top:1px solid var(--border); padding-top:10px; margin-top:6px; font-weight:800;">
+                        <span>Total due before check-in</span>
+                        <span id="cost-total-due">$0.00</span>
+                    </div>
+                    <div class="rb-footnote" style="margin-top:12px; display:flex; gap:6px; align-items:flex-start;">
+                        <span style="font-size:14px;">ⓘ</span>
+                        <span>No credit card or payment is required to send the request. You will pay directly to the property.</span>
+                    </div>
+                </div>
+            </div>
+            
+        </div>
+    </div>
+
+    
+</div>
+<!-- Success Modal -->
+<div class="rb-modal-overlay" id="rb-success-modal" role="dialog" aria-modal="true" aria-labelledby="rb-modal-title" aria-hidden="true">
+    <div class="rb-modal">
+        <img alt="Paper plane sent illustration" src="{% static 'img/public_host_website/request_sent.png' %}" width="220" height="160">
+        <div style="display:flex; align-items:center; justify-content:center; margin:20px 0 20px;">
+            <span class="rb-checkmark">✔</span>
+            <h3 id="rb-modal-title" style="margin:0;">Your request is sent to the host</h3>
+        </div>
+        <p>You can also directly contact the host through email, phone, whatsapp</p>
+        <a class="rb-modal-btn mb-5" id="rb-modal-continue" href="{{ property.get_public_listing_url }}">Continue to the listing Page</a>
+    </div>
+</div>
+<div class="rb-warning-modal-overlay" id="rb-warning-modal" role="dialog" aria-modal="true" aria-labelledby="rb-warning-modal-title" aria-hidden="true">
+    <div class="rb-warning-modal">
+        <div class="rb-warning-modal-header">
+            <h3 class="rb-warning-modal-title" id="rb-warning-modal-title">Confirm Archive</h3>
+            <button type="button" class="rb-warning-modal-close" id="rb-warning-modal-close" aria-label="Close">×</button>
+        </div>
+        <div class="rb-warning-modal-body">
+            <p class="rb-warning-modal-message" id="rb-warning-modal-message">Are you sure you want to archive this enquiry?</p>
+        </div>
+        <div class="rb-warning-modal-actions">
+            <button type="button" class="rb-warning-modal-btn-cancel" id="rb-warning-modal-cancel">Cancel</button>
+            <button type="button" class="rb-warning-modal-btn-confirm" id="rb-warning-modal-confirm">Archive</button>
+        </div>
+    </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/intl-tel-input@25.12.1/build/js/intlTelInput.min.js"></script>
+<script>
+    (function() {
+        const warningModal = document.getElementById('rb-warning-modal');
+        const warningModalMessage = document.getElementById('rb-warning-modal-message');
+        const warningModalClose = document.getElementById('rb-warning-modal-close');
+        const warningModalCancel = document.getElementById('rb-warning-modal-cancel');
+        const warningModalConfirm = document.getElementById('rb-warning-modal-confirm');
+        const warningModalTitle = document.getElementById('rb-warning-modal-title');
+
+        function showAlertModal(message, title, confirmLabel, showCancel) {
+            if (!warningModal || !warningModalMessage || !warningModalConfirm || !warningModalCancel) return;
+            warningModalMessage.textContent = message || "Something went wrong.";
+            warningModalTitle.textContent = title || "Alert";
+            warningModalConfirm.textContent = confirmLabel || "OK";
+            warningModalCancel.classList.toggle('is-hidden', !showCancel);
+            warningModal.classList.add('is-open');
+            warningModal.setAttribute('aria-hidden', 'false');
+            document.body.style.overflow = 'hidden';
+            warningModalConfirm.focus();
+        }
+
+        function closeAlertModal() {
+            if (!warningModal) return;
+            warningModal.classList.remove('is-open');
+            warningModal.setAttribute('aria-hidden', 'true');
+            document.body.style.overflow = '';
+        }
+
+        if (warningModalClose) {
+            warningModalClose.addEventListener('click', closeAlertModal);
+        }
+        if (warningModalCancel) {
+            warningModalCancel.addEventListener('click', closeAlertModal);
+        }
+        if (warningModalConfirm) {
+            warningModalConfirm.addEventListener('click', closeAlertModal);
+        }
+        if (warningModal) {
+            warningModal.addEventListener('click', function(event) {
+                if (event.target === warningModal) {
+                    closeAlertModal();
+                }
+            });
+        }
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape' && warningModal && warningModal.classList.contains('is-open')) {
+                closeAlertModal();
+            }
+        });
+
+        const phoneInput = document.getElementById("phoneInput");
+        const countryCodeInput = document.getElementById("countryCodeInput");
+        const phoneCodeInput = document.getElementById("phoneCodeInput");
+        let phoneIntl = null;
+
+        function syncCountryCode() {
+            if (!phoneIntl) return;
+            const countryData = phoneIntl.getSelectedCountryData();
+            if (countryCodeInput) {
+                countryCodeInput.value = countryData && countryData.iso2 ? countryData.iso2 : "";
+            }
+            if (phoneCodeInput) {
+                phoneCodeInput.value = countryData && countryData.dialCode ? "+" + countryData.dialCode : "";
+            }
+        }
+
+        if (phoneInput && window.intlTelInput) {
+            phoneIntl = window.intlTelInput(phoneInput, {
+                initialCountry: "us",
+                preferredCountries: ["us", "gb", "in"],
+                separateDialCode: true,
+                utilsScript: "https://cdn.jsdelivr.net/npm/intl-tel-input@25.12.1/build/js/utils.js",
+                autoPlaceholder: "off",
+                nationalMode: true,
+                strictMode: false
+            });
+            syncCountryCode();
+            phoneInput.addEventListener("countrychange", syncCountryCode);
+        }
+
+        function bindSingleFileChip(inputId, outputId) {
+            const input = document.getElementById(inputId);
+            const output = document.getElementById(outputId);
+            if (!input || !output) return;
+            const MAX_FILE_SIZE_BYTES = 2 * 1024 * 1024;
+
+            function render() {
+                output.innerHTML = '';
+                const file = input.files && input.files[0] ? input.files[0] : null;
+                if (!file) return;
+                if (file.size > MAX_FILE_SIZE_BYTES) {
+                    showAlertModal(`"${file.name}" exceeds 2MB. Maximum file size is 2MB.`);
+                    input.value = '';
+                    return;
+                }
+
+                const chip = document.createElement('span');
+                chip.className = 'rb-file-chip';
+
+                const chipName = document.createElement('span');
+                chipName.className = 'rb-file-chip-name';
+                chipName.textContent = file.name;
+
+                const removeBtn = document.createElement('button');
+                removeBtn.type = 'button';
+                removeBtn.className = 'rb-file-chip-remove';
+                removeBtn.setAttribute('aria-label', `Remove ${file.name}`);
+                removeBtn.textContent = '×';
+                removeBtn.addEventListener('click', () => {
+                    input.value = '';
+                    render();
+                });
+
+                chip.appendChild(chipName);
+                chip.appendChild(removeBtn);
+                output.appendChild(chip);
+            }
+
+            input.addEventListener('change', render);
+
+            return {
+                clear() {
+                    input.value = '';
+                    output.innerHTML = '';
+                }
+            };
+        }
+
+        function bindAttachmentChips(inputId, outputId) {
+            const input = document.getElementById(inputId);
+            const output = document.getElementById(outputId);
+            if (!input || !output) return;
+            const MAX_FILE_SIZE_BYTES = 2 * 1024 * 1024;
+
+            let selectedFiles = [];
+
+            function syncInputFiles() {
+                const dataTransfer = new DataTransfer();
+                selectedFiles.forEach((file) => dataTransfer.items.add(file));
+                input.files = dataTransfer.files;
+            }
+
+            function renderFiles() {
+                output.innerHTML = '';
+                if (!selectedFiles.length) return;
+
+                selectedFiles.forEach((file, index) => {
+                    const chip = document.createElement('span');
+                    chip.className = 'rb-file-chip';
+
+                    const chipName = document.createElement('span');
+                    chipName.className = 'rb-file-chip-name';
+                    chipName.textContent = file.name;
+
+                    const removeBtn = document.createElement('button');
+                    removeBtn.type = 'button';
+                    removeBtn.className = 'rb-file-chip-remove';
+                    removeBtn.setAttribute('aria-label', `Remove ${file.name}`);
+                    removeBtn.textContent = '×';
+                    removeBtn.addEventListener('click', () => {
+                        selectedFiles.splice(index, 1);
+                        syncInputFiles();
+                        renderFiles();
+                    });
+
+                    chip.appendChild(chipName);
+                    chip.appendChild(removeBtn);
+                    output.appendChild(chip);
+                });
+            }
+
+            input.addEventListener('change', () => {
+                const files = Array.from(input.files || []);
+                const oversizedFile = files.find((file) => file.size > MAX_FILE_SIZE_BYTES);
+                if (oversizedFile) {
+                    showAlertModal(`"${oversizedFile.name}" exceeds 2MB. Maximum file size is 2MB.`);
+                    selectedFiles = [];
+                    syncInputFiles();
+                    renderFiles();
+                    return;
+                }
+                selectedFiles = files;
+                renderFiles();
+            });
+
+            return {
+                clear() {
+                    selectedFiles = [];
+                    syncInputFiles();
+                    renderFiles();
+                }
+            };
+        }
+        const guestPhotoChip = bindSingleFileChip('guest_photo', 'guest_photo_name');
+        const attachmentChips = bindAttachmentChips('attachments', 'attachments_name');
+
+        // Dynamic summary logic from URL
+        const params = new URLSearchParams(window.location.search);
+        const checkInVal = params.get('check_in');
+        const checkOutVal = params.get('check_out');
+        const guestsVal = parseInt(params.get('guests') || '1', 10);
+
+        if (checkInVal && checkOutVal) {
+            const d1 = new Date(checkInVal + 'T00:00:00');
+            const d2 = new Date(checkOutVal + 'T00:00:00');
+            const nights = Math.max(0, Math.round((d2 - d1) / (1000 * 60 * 60 * 24)));
+            
+            const formatDate = (date) => date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+            
+            document.getElementById('summary-check-in').textContent = formatDate(d1);
+            document.getElementById('summary-check-out').textContent = formatDate(d2);
+            document.getElementById('summary-nights').textContent = nights;
+            document.getElementById('summary-guests').textContent = `${guestsVal} Adult${guestsVal > 1 ? 's' : ''}`;
+            
+            document.getElementById('hidden-check-in').value = checkInVal;
+            document.getElementById('hidden-check-out').value = checkOutVal;
+
+            // Sync form input
+            const adultInput = document.getElementById('rb-adults');
+            if (adultInput) adultInput.value = guestsVal;
+
+            // Financial calculations
+            const pNight = parseFloat("{{ property.price_per_night|default:0 }}");
+            const cFee = parseFloat("{{ property.cleaning_fee|default:0 }}");
+            const aFee = parseFloat("{{ property.application_fees|default:0 }}");
+            const dFee = parseFloat("{{ property.refundable_deposit|default:0 }}");
+
+            const stayTotal = pNight * nights;
+            const totalDue = stayTotal + cFee + aFee + dFee;
+
+            const stayLabel = document.getElementById('cost-stay-label');
+            const stayTotalEl = document.getElementById('cost-stay-total');
+            const totalDueEl = document.getElementById('cost-total-due');
+
+            if (stayLabel) stayLabel.textContent = `$${pNight.toFixed(2)} x ${nights} night${nights !== 1 ? 's' : ''}`;
+            if (stayTotalEl) stayTotalEl.textContent = `$${stayTotal.toFixed(2)}`;
+            if (totalDueEl) totalDueEl.textContent = `$${totalDue.toFixed(2)}`;
+        }
+
+        const form = document.getElementById('rb-form');
+        const modal = document.getElementById('rb-success-modal');
+
+        if (form && modal) {
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+
+                // Captcha validation check
+                const captchaCheck = form.querySelector('input[name="captcha_ack"]');
+                if (captchaCheck && !captchaCheck.checked) {
+                    showAlertModal("Please verify the captcha checkbox.");
+                    return;
+                }
+
+                // Validate phone input
+                const phoneValue = phoneInput.value.trim();
+                if (!phoneValue) {
+                    showAlertModal("Please enter a phone number.");
+                    phoneInput.focus();
+                    return;
+                }
+                
+                // Check minimum length (at least 5 digits)
+                const phoneDigits = phoneValue.replace(/\D/g, '');
+                if (phoneDigits.length < 5) {
+                    showAlertModal("Please enter a valid phone number.");
+                    phoneInput.focus();
+                    return;
+                }
+                syncCountryCode();
+
+                const MAX_FILE_SIZE_BYTES = 2 * 1024 * 1024;
+                const guestPhotoInput = document.getElementById('guest_photo');
+                const attachmentsInput = document.getElementById('attachments');
+                const guestPhotoFile = guestPhotoInput && guestPhotoInput.files ? guestPhotoInput.files[0] : null;
+                if (guestPhotoFile && guestPhotoFile.size > MAX_FILE_SIZE_BYTES) {
+                    showAlertModal("Guest photo exceeds 2MB. Maximum file size is 2MB.");
+                    guestPhotoInput.focus();
+                    return;
+                }
+                if (attachmentsInput && attachmentsInput.files && attachmentsInput.files.length) {
+                    for (const file of attachmentsInput.files) {
+                        if (file.size > MAX_FILE_SIZE_BYTES) {
+                            showAlertModal(`"${file.name}" exceeds 2MB. Maximum file size is 2MB.`);
+                            attachmentsInput.focus();
+                            return;
+                        }
+                    }
+                }
+                
+                const submitBtn = form.querySelector('button[type="submit"]');
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Sending...';
+
+                const formData = new FormData(form);
+                
+                // Set phone number (either international format or as entered)
+                if (phoneIntl && phoneIntl.getNumber()) {
+                    formData.set("phone", phoneIntl.getNumber());
+                } else {
+                    formData.set("phone", phoneInput.value.trim());
+                }
+
+                fetch("{% url 'booking:enquiry-create' %}", {
+                    method: "POST",
+                    body: formData,
+                    headers: {
+                        "X-Requested-With": "XMLHttpRequest",
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        modal.classList.add('is-open');
+                        modal.setAttribute('aria-hidden', 'false');
+                        document.body.style.overflow = 'hidden';
+
+                        // Reset the form and clear custom UI file name displays
+                        form.reset();
+                        if (guestPhotoChip) guestPhotoChip.clear();
+                        if (attachmentChips) attachmentChips.clear();
+                    } else {
+                        showAlertModal("Error: " + (data.error || "Something went wrong"));
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = 'Agree and Send booking Request';
+                    }
+                })
+                .catch(error => {
+                    console.error("Error:", error);
+                    showAlertModal("An error occurred while sending your request.");
+                })
+                .finally(() => {
+                    // Re-enable the button and reset text regardless of outcome
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Agree and Send booking Request';
+                });
+            });
+            modal.addEventListener('click', function(e) {
+                if (e.target === modal) {
+                    modal.classList.remove('is-open');
+                    modal.setAttribute('aria-hidden', 'true');
+                    document.body.style.overflow = '';
+                }
+            });
+        }
+
+        const mobileHeader = document.getElementById('rbMobileHeader');
+        const mobileHeaderQuery = window.matchMedia('(max-width: 991px)');
+        let lastScrollTop = window.pageYOffset || document.documentElement.scrollTop;
+        let headerTicking = false;
+        const SCROLL_DELTA = 8;
+
+        function updateMobileHeaderVisibility() {
+            headerTicking = false;
+            if (!mobileHeader || !mobileHeaderQuery.matches) {
+                if (mobileHeader) mobileHeader.classList.remove('is-hidden');
+                return;
+            }
+
+            const currentScrollTop = window.pageYOffset || document.documentElement.scrollTop;
+            if (currentScrollTop <= 0) {
+                mobileHeader.classList.remove('is-hidden');
+                lastScrollTop = 0;
+                return;
+            }
+
+            // User request: hide while scrolling up, show while scrolling down.
+            if (currentScrollTop < lastScrollTop - SCROLL_DELTA) {
+                mobileHeader.classList.add('is-hidden');
+            } else if (currentScrollTop > lastScrollTop + SCROLL_DELTA) {
+                mobileHeader.classList.remove('is-hidden');
+            }
+
+            lastScrollTop = currentScrollTop;
+        }
+
+        function onScrollToggleMobileHeader() {
+            if (headerTicking) return;
+            headerTicking = true;
+            window.requestAnimationFrame(updateMobileHeaderVisibility);
+        }
+
+        window.addEventListener('scroll', onScrollToggleMobileHeader, { passive: true });
+        window.addEventListener('resize', updateMobileHeaderVisibility);
+        updateMobileHeaderVisibility();
+    })();
+</script>
+{% endblock content %}

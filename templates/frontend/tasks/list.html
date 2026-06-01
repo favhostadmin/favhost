@@ -1,0 +1,1548 @@
+{% extends 'frontend/base/base.html' %}
+{% load static %}
+{% load i18n %}
+
+{% block extra_head %}
+<link href="{% static 'css/task/listing.css' %}" rel="stylesheet">
+<link href="{% static 'css/booking/list.css' %}" rel="stylesheet">
+
+<style>
+    .task-list-row {
+        transition: background-color 0.2s ease;
+        border-radius: 6px;
+        position: relative;
+        overflow: visible;
+    }
+    .task-list-row:hover {
+        background-color: #f3f4f6;
+    }
+    .options-btn {
+        opacity: 0;
+        transition: opacity 0.2s ease;
+    }
+    .task-list-row:hover .options-btn, .options-btn.show {
+        opacity: 1;
+    }
+    .mobile-status-action {
+        display: none;
+    }
+    .task-property-title-mobile {
+        display: none;
+    }
+    .task-property-address-mobile {
+        display: none;
+        border-bottom: none !important;
+        text-decoration: none !important;
+    }
+    .task-property-address-mobile a,
+    .task-property-address-mobile a[x-apple-data-detectors],
+    .task-property-address-mobile a[href^="tel"],
+    .task-property-address-mobile a[href^="sms"],
+    .task-property-address-mobile a[href^="mailto"] {
+        color: inherit !important;
+        text-decoration: none !important;
+        border-bottom: none !important;
+    }
+    .task-repeat-inline {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        margin-left: 12px;
+        font-size: 14px;
+        font-weight: 500;
+        color: #111827;
+    }
+    .task-repeat-inline img {
+        width: 16px;
+        height: 16px;
+    }
+    .assignment-icon,
+    .task-assignee-mobile {
+        display: none;
+    }
+    .main_body_div{
+        padding: 0rem 12%;
+        min-height: calc(100vh - 200px);
+    }
+    .mobile-search-toggle {
+        display: none;
+    }
+    .no-task-heading {
+        margin-top: 16px;
+        margin-bottom: 4px;
+        font-size: 24px;
+        font-weight: 700;
+        line-height: 1.2;
+        color: #202020;
+    }
+    .no-task-subtext {
+        margin-top: 0;
+        margin-bottom: 0;
+        font-size: 17px;
+        font-weight: 500;
+        line-height: 1.3;
+        color: #868686;
+    }
+    .task-actions-col{
+        padding: 0px;
+        margin: 0px;
+    }
+    .task-list-row{
+        padding: 0px;
+        margin: 0px;
+    }
+
+    @media (min-width: 992px) {
+        .task-date-group,
+        .task-date-group > div,
+        .task-list-row {
+            overflow: visible !important;
+        }
+
+        .task-date-group {
+            position: relative;
+            z-index: 1;
+        }
+
+        .task-date-group::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            pointer-events: none;
+            z-index: 6;
+        }
+
+        .task-date-group:has(.task-actions-col .dropdown.show),
+        .task-date-group.menu-open {
+            z-index: 90;
+        }
+
+        .task-list-row {
+            position: relative;
+            z-index: 1;
+        }
+
+        .task-list-row:has(.task-actions-col .dropdown.show),
+        .task-list-row.menu-open {
+            z-index: 95;
+        }
+
+        .task-actions-col {
+            position: relative;
+            z-index: 100;
+            padding-right: 12px;
+        }
+
+        .task-actions-col .dropdown {
+            position: relative !important;
+            z-index: 101;
+            margin-right: 0 !important;
+        }
+
+        .task-actions-col .options-btn {
+            width: 36px;
+            height: 36px;
+            min-width: 36px;
+            min-height: 36px;
+            box-sizing: border-box;
+            border-radius: 10px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+        }
+
+        .task-list-row:hover .task-actions-col .options-btn,
+        .task-actions-col .dropdown.show .options-btn {
+            box-shadow: none !important;
+        }
+
+        .task-actions-col .dropdown-menu {
+            z-index: 5000;
+        }
+    }
+
+    @media (max-width: 991px) {
+        .task-date-group {
+            overflow: visible;
+        }
+
+        .task-actions-col .dropdown {
+            position: relative !important;
+        }
+
+        .task-actions-col .dropdown-menu {
+            position: absolute !important;
+            top: calc(100% + 6px) !important;
+            right: 0 !important;
+            left: auto !important;
+            transform: none !important;
+            min-width: 150px;
+            z-index: 3000;
+            border: 1px solid #d1d5db;
+            border-radius: 10px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.16);
+            padding: 6px 0;
+            background: #fff;
+        }
+
+        .task-actions-col .dropdown-menu .dropdown-item {
+            white-space: nowrap;
+            padding: 10px 14px;
+            font-size: 14px;
+        }
+
+        .mobile-status-action {
+            display: block;
+        }
+        .main_body_div{
+            padding: 0rem 0%;
+            min-height: calc(100vh - 200px);
+        }
+        .no-task-heading {
+            font-size: 26px;
+        }
+        .no-task-subtext {
+            font-size: 22px;
+        }
+
+        .header-nav .nav-title img {
+            filter: brightness(0) saturate(100%);
+        }
+
+        .header-nav .task-header-row {
+            --bs-gutter-x: 0;
+            padding: 0px 10px;
+            display: grid;
+            grid-template-columns: auto 1fr;
+            grid-template-areas:
+                "title search"
+                "tabs tabs";
+            align-items: center;
+            column-gap: 10px;
+            row-gap: 8px;
+            margin-left: 0;
+            margin-right: 0;
+            width: 100%;
+        }
+
+        .header-nav .task-header-row > .col-auto:first-child {
+            grid-area: title;
+            min-width: 0;
+        }
+
+        .header-nav .task-header-row > .col.d-flex {
+            grid-area: tabs;
+            width: 100%;
+            min-width: 0;
+            justify-content: flex-start !important;
+            overflow: hidden;
+            gap: 8px;
+        }
+
+        .header-nav .task-header-row > .col-auto:last-child {
+            grid-area: search;
+            justify-self: end;
+            min-width: 0;
+        }
+
+        .header-nav .nav-left {
+            flex-wrap: nowrap;
+            gap: 8px;
+        }
+
+        .header-nav .nav-title {
+            padding-right: 0;
+            color: #111827;
+            gap: 8px;
+            white-space: nowrap;
+        }
+
+        .header-nav .nav-tabs {
+            margin-left: 0 !important;
+            flex-wrap: nowrap;
+            gap: 12px;
+            overflow-x: auto;
+            overflow-y: hidden;
+            width: 100%;
+            justify-content: flex-start !important;
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+            flex: 1 1 auto;
+            min-width: 0;
+        }
+
+        .header-nav .nav-tabs::-webkit-scrollbar {
+            display: none;
+        }
+
+        .header-nav .nav-tabs .divider {
+            display: none !important;
+        }
+
+        .header-nav .nav-item {
+            padding: 0;
+            font-size: 14px;
+            color: #6b7280;
+            white-space: nowrap;
+        }
+
+        .header-nav .nav-item a {
+            color: #6b7280;
+        }
+
+        .header-nav .nav-item.active a {
+            color: #374151 !important;
+            text-decoration: underline;
+            text-underline-offset: 3px;
+        }
+
+        .header-nav .header-actions {
+            width: auto;
+        }
+
+        .header-nav .search-box input {
+            width: clamp(140px, 42vw, 210px);
+            max-width: 100%;
+            border: 1px solid #d1d5db;
+        }
+
+        .task-main-content {
+            padding-top: 1rem;
+        }
+
+        .task-main-content > div {
+            padding: 0 0px !important;
+        }
+
+        .task-date-group {
+            border: 2px solid #cfcfcf;
+            border-radius: 24px;
+            overflow: hidden;
+            margin-bottom: 16px;
+            background: #fff;
+        }
+
+        .task-date-header {
+            background: #d9d9d9;
+            border-bottom: 0;
+            padding: 14px 18px;
+            font-size: 16px;
+        }
+
+        .task-date-title {
+            gap: 12px;
+            font-size: 18px;
+            font-weight: 700;
+            color: #111827;
+        }
+
+        .task-date-title img {
+            width: 24px;
+            height: 24px;
+        }
+
+        .task-repeat-inline {
+            margin-left: 10px;
+            font-size: 14px;
+            gap: 5px;
+        }
+
+        .task-repeat-inline img {
+            width: 18px;
+            height: 18px;
+        }
+
+        .task-status-badge {
+            font-size: 18px;
+            font-weight: 700;
+            padding: 0;
+            border-radius: 0;
+            background: transparent;
+            color: #1b8b22;
+            white-space: nowrap;
+        }
+
+        .task-status-overdue {
+            color: #dc2626;
+            background: transparent;
+        }
+
+        .task-status-upcoming {
+            color: #1b8b22;
+            background: transparent;
+        }
+
+        .task-list-row {
+            padding: 14px 16px;
+            display: grid;
+            grid-template-columns: 72px minmax(0, 1fr) minmax(160px, 220px);
+            grid-template-areas:
+                "property property property"
+                "listing type side"
+                "actions actions actions";
+            column-gap: 18px;
+            row-gap: 12px;
+            align-items: start !important;
+            border-bottom: 0;
+        }
+
+        .task-property-title-mobile {
+            display: block;
+            grid-area: property;
+            font-size: 17px;
+            font-weight: 600;
+            color: #111827;
+            line-height: 1.35;
+            margin-bottom: 2px;
+        }
+
+        .task-property-address-mobile {
+            display: block;
+            margin-top: 2px;
+            font-size: 13px;
+            font-weight: 500;
+            color: #4b5563;
+            line-height: 1.35;
+            overflow-wrap: anywhere;
+            word-break: break-word;
+        }
+
+        .task-type-col {
+            grid-area: type !important;
+            width: 100%;
+            margin: 0;
+            display: flex !important;
+            align-items: flex-start;
+            color: #000;
+            min-width: 0;
+        }
+
+        .task-property-col {
+            grid-area: listing !important;
+            width: 100%;
+            margin: 0;
+            display: flex !important;
+            align-items: flex-start;
+            color: #000;
+            min-width: 0;
+        }
+
+        .task-main-col .task-thumbnail {
+            width: 64px;
+            height: 64px;
+            border-radius: 10px;
+            margin-right: 0;
+        }
+
+        .task-main-col .task-title {
+            font-size: 14px;
+            margin-bottom: 4px;
+            line-height: 1.1;
+            gap: 8px;
+        }
+
+        .task-main-col .task-title img {
+            width: 18px;
+            height: 18px;
+        }
+
+        .task-main-col .task-description {
+            font-size: 12px;
+            color: #212121;
+            line-height: 1.35;
+            margin-bottom: 0;
+            overflow-wrap: anywhere;
+            word-break: break-word;
+        }
+
+        .task-property-col .task-list-info-main {
+            display: none;
+        }
+
+        .task-side-col {
+            grid-area: side;
+            margin: 0;
+            /* border-left: 2px solid #cfcfcf; */
+            padding-left: 18px;
+            min-height: 100%;
+        }
+
+        .task-side-col .task-list-info-side {
+            padding-left: 0;
+            display: block;
+        }
+
+        .task-side-col .task-assignment-label {
+            font-size: 14px;
+            font-weight: 700;
+            color: #111827;
+            margin-bottom: 8px;
+        }
+        .task-side-col .task-assignment-label::after {
+            content: "Assigned to";
+            display: inline;
+            font-size: 14px;
+            font-weight: 700;
+            color: #111827;
+            margin-left: 6px;
+        }
+
+        .task-side-col .task-assignee-name {
+            font-size: 16px;
+            line-height: 1.3;
+            font-weight: 500;
+        }
+        .task-side-col .task-assignee-desktop {
+            display: none;
+        }
+        .task-side-col .task-assignee-mobile {
+            display: flex;
+        }
+        .task-side-col .task-assignment-label .assignment-icon {
+            display: inline-block;
+        }
+        .task-side-col .task-assignment-section {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .task-side-col .task-assignment-label,
+        .task-side-col .task-assignee-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .task-side-col .task-assignment-section svg {
+            width: 18px !important;
+            height: 18px !important;
+            min-width: 18px;
+            min-height: 18px;
+            max-width: 18px;
+            max-height: 18px;
+            flex: 0 0 18px;
+            display: block;
+            fill: none;
+            stroke: currentColor;
+        }
+
+        .task-side-col .task-detail-icons {
+            margin-top: 8px;
+            gap: 8px;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .task-side-col .task-detail-icon {
+            font-size: 14px;
+            gap: 8px;
+        }
+
+        .task-side-col .task-detail-icon img {
+            width: 26px;
+            height: 26px;
+        }
+        .task-side-col .task-repeat-side {
+            display: none;
+        }
+
+        .task-actions-col {
+            grid-area: actions;
+            margin: 0;
+            display: flex !important;
+            justify-content: flex-end !important;
+            align-items: center;
+            padding-top: 2px;
+        }
+
+        .task-actions-col .task-completion {
+            display: none;
+        }
+
+        .task-actions-col .task-completion span {
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .task-actions-col .dropdown {
+            margin-left: 8px !important;
+        }
+
+        .task-actions-col .options-btn {
+            opacity: 1;
+            transform: none;
+            width: auto;
+            height: auto;
+            padding: 0 4px;
+            border-radius: 0;
+            box-shadow: none !important;
+            line-height: 1;
+        }
+
+        .task-actions-col .options-btn img {
+            display: none;
+        }
+
+        .task-actions-col .options-btn::before {
+            content: "\22EE";
+            font-size: 28px;
+            font-weight: 700;
+            color: #111827;
+        }
+
+        .task-actions-col .options-btn:hover {
+            box-shadow: none !important;
+            background: transparent;
+        }
+    }
+
+    @media (max-width: 767px) {
+        .header-nav .task-header-row {
+            grid-template-columns: auto minmax(0, 1fr);
+            grid-template-areas:
+                "title tabs"
+                "search search";
+            row-gap: 8px;
+        }
+
+        .header-nav .task-header-row > .col.d-flex {
+            justify-content: center !important;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .header-nav .task-header-row > .col-auto:last-child {
+            grid-area: search;
+            justify-self: stretch;
+            width: 100%;
+            display: none;
+        }
+
+        .header-nav.search-open .task-header-row > .col-auto:last-child {
+            display: block;
+        }
+
+        .header-nav .header-actions,
+        .header-nav .search-box {
+            width: 100%;
+        }
+
+        .mobile-search-toggle {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 30px;
+            height: 30px;
+            border: 1px solid #d1d5db;
+            border-radius: 50%;
+            background: #fff;
+            color: #111827;
+            flex: 0 0 auto;
+            padding: 0;
+            position: absolute;
+            right: 0;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        .mobile-search-toggle svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        .header-nav .nav-tabs {
+            flex: 0 1 auto;
+            max-width: calc(100% - 40px);
+            justify-content: center !important;
+            margin-right: 40px !important;
+        }
+
+        .header-nav .nav-item {
+            font-size: 13px;
+        }
+
+        .header-nav .search-box input {
+            width: 100%;
+            max-width: 100%;
+        }
+
+        .task-date-group {
+            border-radius: 14px;
+            border-width: 1px;
+            margin-bottom: 10px;
+        }
+
+        .task-date-header {
+            padding: 10px 12px;
+        }
+
+        .task-date-title {
+            font-size: 13px;
+            gap: 8px;
+        }
+
+        .task-date-title img {
+            width: 20px;
+            height: 20px;
+        }
+
+        .task-repeat-inline {
+            margin-left: 8px;
+            font-size: 13px;
+        }
+
+        .task-repeat-inline img {
+            width: 15px;
+            height: 15px;
+        }
+
+        .task-status-badge {
+            font-size: 13px;
+            padding: 6px 10px;
+            border-radius: 12px;
+            background: #d1fae0;
+            color: #16a34a;
+        }
+
+        .task-status-overdue {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+
+        .task-list-row {
+            position: relative;
+            grid-template-columns: 56px minmax(0, 1fr) 130px;
+            grid-template-areas:
+                "property property property"
+                "listing type side";
+            row-gap: 10px;
+            padding: 10px 12px;
+        }
+
+        .task-property-title-mobile {
+            font-size: 15px;
+            padding-right: 44px;
+        }
+
+        .task-property-address-mobile {
+            font-size: 12px;
+            padding-right: 20px;
+        }
+
+        .task-main-col .task-thumbnail {
+            width: 56px;
+            height: 56px;
+            border-radius: 8px;
+            margin-right: 0;
+        }
+
+        .task-property-col .task-list-info-main {
+            display: none;
+        }
+
+        .task-property-col {
+            align-items: flex-start !important;
+        }
+
+        .task-main-col .task-title {
+            font-size: 14px;
+        }
+
+        .task-main-col .task-title img {
+            width: 18px;
+            height: 18px;
+        }
+
+        .task-main-col .task-description {
+            font-size: 12px;
+            overflow-wrap: anywhere;
+            word-break: break-word;
+        }
+
+        .task-side-col {
+            /* border-left: 1px solid #787d83; */
+            padding-left: 10px;
+        }
+
+        .task-side-col .task-assignment-label {
+            font-size: 13px;
+            margin-bottom: 2px;
+        }
+        .task-side-col .task-assignment-label::after {
+            content: "Assigned to";
+            display: inline;
+            font-size: 12px;
+            font-weight: 700;
+            color: #111827;
+            margin-left: 4px;
+        }
+
+        .task-side-col .task-assignee-name {
+            font-size: 13px;
+            display: block;
+            line-height: 1.25;
+        }
+        .task-side-col .task-assignee-desktop {
+            display: none !important;
+        }
+        .task-side-col .task-assignee-mobile {
+            display: flex !important;
+            align-items: center;
+        }
+        .task-side-col .task-assignment-section {
+            gap: 4px;
+        }
+        .task-side-col .task-assignee-row {
+            margin-top: 2px;
+            gap: 6px;
+        }
+        .task-side-col .task-assignee-row span {
+            line-height: 1.2;
+            word-break: break-word;
+        }
+        .task-side-col .task-assignee-row.phone-row {
+            gap: 4px;
+        }
+        .task-side-col .task-assignee-row.phone-row span {
+            white-space: normal;
+            word-break: break-word;
+            overflow-wrap: anywhere;
+            font-size: 12px;
+        }
+        .task-side-col .task-assignment-section svg {
+            width: 14px !important;
+            height: 14px !important;
+            min-width: 14px;
+            min-height: 14px;
+            max-width: 14px;
+            max-height: 14px;
+            flex: 0 0 14px;
+        }
+
+        .task-side-col .task-detail-icon {
+            font-size: 12px;
+        }
+
+        .task-side-col .task-detail-icon img {
+            width: 16px;
+            height: 16px;
+        }
+
+        .task-actions-col {
+            position: absolute;
+            top: 6px;
+            right: 6px;
+            width: auto;
+            grid-area: unset;
+            justify-content: flex-end !important;
+        }
+
+        .task-actions-col .dropdown {
+            margin-left: 0 !important;
+        }
+
+        .task-actions-col .options-btn {
+            width: 30px;
+            height: 30px;
+            padding: 0;
+            border-radius: 50%;
+            border: 1px solid #d1d5db;
+            background: #fff;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .task-actions-col .options-btn::before {
+            font-size: 18px;
+            line-height: 1;
+        }
+
+        .task-date-group,
+        .task-date-group > div,
+        .task-list-row {
+            overflow: visible !important;
+        }
+
+        .task-actions-col {
+            z-index: 3100;
+        }
+
+        .task-actions-col .dropdown {
+            position: relative !important;
+            z-index: 3101;
+        }
+
+        .task-actions-col .dropdown-menu {
+            position: absolute !important;
+            top: calc(100% + 6px) !important;
+            bottom: auto !important;
+            right: 0 !important;
+            left: auto !important;
+            transform: none !important;
+            min-width: 160px;
+            max-width: min(86vw, 240px);
+            z-index: 3200 !important;
+            border: 1px solid #d1d5db;
+            border-radius: 10px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            background: #fff;
+            padding: 6px 0;
+        }
+
+        .task-actions-col .dropdown-menu .dropdown-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            white-space: nowrap;
+            padding: 10px 14px;
+            font-size: 14px;
+        }
+
+        .task-actions-col .dropdown.show .options-btn {
+            opacity: 0 !important;
+            pointer-events: none;
+        }
+
+        .task-actions-col .dropdown-menu svg {
+            flex: 0 0 16px;
+        }
+    }
+</style>
+{% endblock extra_head %}
+
+{% block content %}
+<div class="container-fluid p-1">
+    <!-- Header Navigation -->
+    <div class="header-nav" style="padding: 8px 16px;">
+        <div class="row align-items-center w-100 g-3 task-header-row">
+            <div class="col-auto">
+                <div class="nav-left">
+                    <div class="nav-title">
+                        <img src="{% static 'img/task/task_icon.svg'%}" alt="">
+                        <span>Tasks</span>
+                    </div>
+                </div>
+            </div>
+            <div class="col d-flex justify-content-center">
+                <div class="nav-tabs nav-tabs-center d-flex justify-content-center">
+                    <!-- <div class="nav-item {% if status_filter == 'all' or not status_filter %}active{% endif %}">
+                        <a href="{% url 'tasks:task-list' %}?status=all">
+                        All ({{ all_tasks_count }})
+                        </a>
+                    </div> -->
+                    <!-- <div class="divider" style="right: 35px; top: 50%; height: 16px; width: 1px; background-color: #ccc;"></div> -->
+                    <div class="nav-item {% if status_filter == 'pending' %}active{% endif %}">
+                        <a href="{% url 'tasks:task-list' %}?status=pending">
+                            Pending ({{ pending_tasks_count }})
+                        </a>
+                    </div>
+                    <div class="divider"
+                        style="right: 35px; top: 50%; height: 16px; width: 1px; background-color: #ccc;"></div>
+                    <div class="nav-item {% if status_filter == 'done' %}active{% endif %}">
+                        <a href="{% url 'tasks:task-list' %}?status=done">
+                            Done ({{ done_tasks_count }})
+                        </a>
+                    </div>
+                </div>
+                <button id="mobileSearchToggle" class="mobile-search-toggle" type="button" aria-label="Toggle search" aria-expanded="false">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <path d="m21 21-4.35-4.35"></path>
+                    </svg>
+                </button>
+            </div>
+            <div class="col-auto">
+                <div class="header-actions">
+                    <!-- <a href="{% url 'tasks:task-create' %}" class="btn"
+                        style="background-color: #ffffff; color: #1D74B2; padding: 4px 11px;">Create</a> -->
+
+                    <div class="search-box">
+                        <input type="text" name="search" placeholder="Search" value="{{ search_query|default:'' }}">
+                        <div class="search-icon" onclick="performSearchNow()">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" style="color: black;">
+                                <circle cx="11" cy="11" r="8"></circle>
+                                <path d="m21 21-4.35-4.35"></path>
+                            </svg>
+                        </div>
+                        <div class="divider"
+                            style="position: absolute; right: 35px; top: 50%; transform: translateY(-50%); height: 16px; width: 1px; background-color: #ccc;">
+                        </div>
+
+                        <div class="clear-icon" onclick="clearSearchAndReload()"
+                            style="display: none; cursor: pointer; right: 40px;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" style="color: black;">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <line x1="15" y1="9" x2="9" y2="15"></line>
+                                <line x1="9" y1="9" x2="15" y2="15"></line>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <main class="task-main-content" style="max-height: calc(100vh - 133px); overflow-y:auto">
+        <div class="main_body_div" >
+                    {% if page_obj.object_list %}
+                    {% for task in page_obj.object_list %}
+                    {% ifchanged task.date %}
+                    {% if not forloop.first %}</div>
+        </div>{% endif %}
+        <div class="task-date-group">
+            <div class="task-date-header">
+                <span class="task-date-title">
+                    <img src="{% static 'img/task/calender.svg' %}" alt="" srcset="" style="height: 18px;">
+                    {{ task.date|date:"M d, Y, D" }}
+
+                    {% if task.time %}
+                    <span class="task-detail-icon" style="color: #000;">
+                        <img src="{% static 'img/task/clock.svg' %}" alt="" srcset="" style="height: 18px;">
+                        <span>{{ task.time|time:"g:i A" }}</span>
+                    </span>
+                    {% endif %}
+
+                    {% if task.repeat != 'None' %}
+                    <span class="task-repeat-inline task-detail-icon" style="color: #000;">
+                        <img src="{% static 'img/task/task_type.svg' %}" alt="" srcset="" style="height: 18px;">
+                        <span>{{ task.repeat }}</span>
+                    </span>
+                    {% endif %}
+                </span>
+                {% now "Y-m-d" as today_str %}
+                {% if task.completed %}
+                {# Don't show any badge for completed tasks #}
+                {% elif task.is_overdue %}
+                <span class="task-status-badge task-status-overdue">Overdue</span>
+                {% elif task.days_until_due == 0 %}
+                <span class="task-status-badge task-status-upcoming">Due today</span>
+                {% else %}
+                <span class="task-status-badge task-status-upcoming">
+                    Due in {{ task.days_until_due }} day{{ task.days_until_due|pluralize }}
+                </span>
+                {% endif %}
+            </div>
+            <div>
+                {% endifchanged %}
+                <div class="row task-list-row align-items-center">
+                    <div class="task-property-title-mobile">
+                        {{ task.property.title }}
+                        <div class="task-property-address-mobile">
+                            {{ task.property.street_address }}, {{ task.property.city }}, {{ task.property.state }}, {{ task.property.zip }}
+                        </div>
+                    </div>
+
+                    <div class="col-lg-4 task-main-col task-type-col" style="display: flex; color: #000;">
+                        <div class="task-list-info-main">
+                            <div class="task-title">
+
+                                {% if task.get_task_type_display == 'Cleaning' %}
+                                <img src="{% static 'img/task/type/cleaning.svg' %}" alt="">
+                                {% elif task.get_task_type_display == 'Maintenance' %}
+                                <img src="{% static 'img/task/type/maintenance.svg' %}" alt="">
+                                {% elif task.get_task_type_display == 'Payment' %}
+                                <img src="{% static 'img/task/type/payment.svg' %}" alt="">
+                                {% else %}
+                                <img src="{% static 'img/task/type/others.svg' %}" alt="">
+                                {% endif %}
+
+                                {{ task.get_task_type_display }}
+                            </div>
+                            <div class="task-description" style="color: #000;">
+                                {{ task.details|wordwrap:50|linebreaksbr|safe }}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-lg-4 task-main-col task-property-col align-items-center " style="display: flex; color: #000;">
+                        <img class="task-thumbnail" src="{{ task.property.get_primary_image_url }}"
+                            alt="{{ task.property.title }}" title="{{ task.property.title }}">
+                        <div class="task-list-info-main">
+                            <div class="task-title">
+                                {{ task.property.title }}
+                            </div>
+                            <div class="task-description" style="color: #000;">
+                                {{ task.property.street_address }}, {{ task.property.city }}, {{ task.property.state }}, {{ task.property.zip }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-2 task-side-col" style="padding-left: 0;">
+                        <div class="task-list-info-side">
+                            <div>
+                                <div class="task-assignment-section">
+                                    <span class="task-assignment-label" style="color: #000;">
+                                        <svg class="assignment-icon" viewBox="0 0 24 24" fill="none" stroke-width="2">
+                                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                            <circle cx="12" cy="7" r="4"></circle>
+                                        </svg>
+                                        <!-- <span>Assigned to</span> -->
+                                    </span>
+                                    <span class="task-assignee-name task-assignee-desktop" style="color: #000;">
+                                        <img src="{% static 'img\common\default_user.svg' %}" alt="" srcset="" style="height: 18px;">
+
+                                        {{ task.assigned_to }} 
+                                        <br> 
+                                        <img src="{% static 'img\common\phone_no_icon.svg' %}" alt="" srcset="" style="height: 12px;">
+
+                                        {{ task.phone }}
+                                    </span>
+                                    <span class="task-assignee-row task-assignee-name task-assignee-mobile" style="color: #000;">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke-width="2">
+                                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                            <circle cx="12" cy="7" r="4"></circle>
+                                        </svg>
+                                        <span>{{ task.assigned_to }}</span>
+                                    </span>
+                                    <span class="task-assignee-row task-assignee-name task-assignee-mobile phone-row" style="color: #000;">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke-width="2">
+                                            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+                                        </svg>
+                                        <span>{{ task.phone }}</span>
+                                    </span>
+                                </div>
+                                <!-- <div class="task-detail-icons">
+                                    {% if task.time %}
+                                    <span class="task-detail-icon" style="color: #000;">
+                                        <img src="{% static 'img/task/clock.svg' %}" alt="" srcset="">
+                                        <span>{{ task.time|time:"g:i A" }}</span>
+                                    </span>
+                                    {% endif %}
+                                    {% if task.repeat != 'None' %}
+                                    <span class="task-detail-icon task-repeat-side" style="color: #000;">
+                                        <img src="{% static 'img/task/task_type.svg' %}" alt="" srcset="">
+
+                                        <span>{{ task.repeat }}</span>
+                                    </span>
+                                    {% endif %}
+                                </div> -->
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <div class="col-lg-2 d-flex justify-content-end align-items-center task-actions-col">
+                        <div class="task-completion">
+                            <div style="display: grid;" style="width: 37px !important; ">
+                                <span class="mb-2" style="font-weight: bold; font-size: 12px;">Done ?</span>
+                                <input type="checkbox" class="task-checkbox" data-task-id="{{ task.id }}" {% if task.completed %}checked{% endif %} style="justify-self: center;">
+                            </div>
+                        </div>
+                        <div class="dropdown ms-3">
+                                <button class="options-btn" type="button" data-bs-toggle="dropdown" data-toggle="dropdown" aria-expanded="false" data-bs-boundary="window" data-boundary="window">
+                                    <img src="{% static 'img/booking/horizontal_dots.svg' %}">
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end dropdown-menu-right">
+                                    <li class="mobile-status-action">
+                                        <a class="dropdown-item task-status-toggle" href="#" data-task-id="{{ task.id }}" data-completed="{% if task.completed %}true{% else %}false{% endif %}">
+                                            {% if task.completed %}
+                                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                                                <path d="M8 14A6 6 0 1 0 8 2a6 6 0 0 0 0 12Z" stroke="currentColor" stroke-width="1.5"></path>
+                                                <path d="M8 4.5V8H10.8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
+                                            </svg>
+                                            {% else %}
+                                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                                                <path d="M8 14A6 6 0 1 0 8 2a6 6 0 0 0 0 12Z" stroke="currentColor" stroke-width="1.5"></path>
+                                                <path d="m5.5 8 1.5 1.5L10.5 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
+                                            </svg>
+                                            {% endif %}
+                                            {% if task.completed %}Pending{% else %}Done{% endif %}
+                                        </a>
+                                    </li>
+                                    <li class="mobile-status-action"><hr class="dropdown-divider"></li>
+                                    <li>
+                                        <a class="dropdown-item" href="{% url 'tasks:task-edit' pk=task.id %}">
+                                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                                <path d="M11.5 2.5L13.5 4.5L5 13H3V11L11.5 2.5Z" stroke="currentColor"
+                                                    stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                                            </svg>
+                                            Edit
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" href="#" onclick="deleteTask('{{ task.id }}', '{{ task.repeat }}', event)">
+                                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                                <path d="M2 4H14" stroke="currentColor" stroke-width="1.5"
+                                                    stroke-linecap="round" stroke-linejoin="round" />
+                                                <path
+                                                    d="M6.5 1H9.5C10.0523 1 10.5 1.44772 10.5 2V4H5.5V2C5.5 1.44772 5.94772 1 6.5 1Z"
+                                                    stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+                                                    stroke-linejoin="round" />
+                                                <path
+                                                    d="M12.5 4V13C12.5 14.1046 11.6046 15 10.5 15H5.5C4.39543 15 3.5 14.1046 3.5 13V4"
+                                                    stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+                                                    stroke-linejoin="round" />
+                                                <path d="M6.5 7.5V11.5" stroke="currentColor" stroke-width="1.5"
+                                                    stroke-linecap="round" stroke-linejoin="round" />
+                                                <path d="M9.5 7.5V11.5" stroke="currentColor" stroke-width="1.5"
+                                                    stroke-linecap="round" stroke-linejoin="round" />
+                                            </svg>
+                                            Delete
+                                        </a>
+                                    </li>
+                                </ul>
+                        </div>
+                    </div>
+
+
+                </div>
+                {% if forloop.last %}
+            </div>
+        </div>
+        {% endif %}
+        {% endfor %}
+        {% else %}
+        <div class="no-tasks" style="border: none;">
+            <img src="{% static 'img/common/no_task_found.svg' %}" style="height: 239px;">
+            <h6 class="no-task-heading">No task is available to display</h6>
+            <h6 class="no-task-subtext">Create new Task from the Create button</h6>
+
+        </div>
+        {% endif %}
+        {% include 'frontend/base/pagination.html' %}
+        </div>
+        {% include 'frontend/base/footer.html' %}
+
+    </main>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteConfirmationModal" tabindex="-1" aria-labelledby="deleteConfirmationModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius: 12px;">
+            <div class="modal-header" style="border-bottom: none; padding: 24px 24px 16px;">
+                <h5 class="modal-title" id="deleteConfirmationModalLabel" style="font-weight: 600; font-size: 18px;">
+                    What do you want to delete?
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" style="padding: 0 24px 24px;">
+                <div id="deleteOptionsContainer">
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="radio" name="deleteOption" id="deleteSingle" value="single" checked>
+                        <label class="form-check-label" for="deleteSingle">
+                            Just this task
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="deleteOption" id="deleteAll" value="all">
+                        <label class="form-check-label" for="deleteAll">
+                            All the occurrences of the task
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer"
+                style="border-top: none; padding: 0 24px 24px; display: flex; justify-content: flex-end; gap: 12px;">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"
+                    style="background-color: #f3f4f6; border-color: #d1d5db; color: #374151;">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Delete</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+{% endblock content %}
+
+{% block extra_script %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+
+        const SEARCH_FOCUS_KEY = 'taskListSearchFocus';
+        const searchInput = document.querySelector('.search-box input[name="search"]');
+        const clearIcon = document.querySelector('.search-box .clear-icon');
+        const mobileSearchToggle = document.getElementById('mobileSearchToggle');
+        const headerNav = document.querySelector('.header-nav');
+
+        function toggleClearIcon() {
+            clearIcon.style.display = searchInput.value ? 'block' : 'none';
+        }
+
+        if (searchInput) {
+            searchInput.dataset.searchInstance = searchInput.dataset.searchInstance || 'task-search-main';
+            let typingTimer;
+            searchInput.addEventListener('input', function () {
+                toggleClearIcon.call(this);
+                clearTimeout(typingTimer);
+                typingTimer = setTimeout(() => performSearchNow(this), 400);
+            });
+            searchInput.addEventListener('keydown', function (event) {
+                if (event.key === 'Enter') {
+                    clearTimeout(typingTimer);
+                    performSearchNow(this);
+                }
+            });
+            searchInput.addEventListener('input', toggleClearIcon);
+        }
+        if (searchInput) toggleClearIcon();
+
+        function focusStoredSearch() {
+            const stored = sessionStorage.getItem(SEARCH_FOCUS_KEY);
+            let target = stored && document.querySelector(`[data-search-instance="${stored}"]`);
+            if (!target) target = searchInput;
+            if (target) {
+                setTimeout(() => {
+                    target.focus();
+                    target.setSelectionRange(target.value.length, target.value.length);
+                }, 50);
+            }
+        }
+
+        focusStoredSearch();
+        window.addEventListener('pageshow', focusStoredSearch);
+        window.addEventListener('load', focusStoredSearch);
+
+        if (mobileSearchToggle && headerNav && searchInput) {
+            if (window.matchMedia('(max-width: 767px)').matches && searchInput.value.trim()) {
+                headerNav.classList.add('search-open');
+                mobileSearchToggle.setAttribute('aria-expanded', 'true');
+            }
+
+            mobileSearchToggle.addEventListener('click', function () {
+                const isOpen = headerNav.classList.toggle('search-open');
+                mobileSearchToggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+                if (isOpen) {
+                    setTimeout(() => searchInput.focus(), 0);
+                }
+            });
+        }
+
+        document.querySelectorAll('.task-actions-col .dropdown').forEach(dropdown => {
+            const row = dropdown.closest('.task-list-row');
+            const group = dropdown.closest('.task-date-group');
+            if (!row) return;
+
+            dropdown.addEventListener('show.bs.dropdown', function () {
+                row.classList.add('menu-open');
+                if (group) group.classList.add('menu-open');
+            });
+
+            dropdown.addEventListener('hide.bs.dropdown', function () {
+                row.classList.remove('menu-open');
+                if (group) group.classList.remove('menu-open');
+            });
+        });
+
+
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        const csrfToken = getCookie('csrftoken');
+
+        function syncTaskToggleUI(taskId, isCompleted) {
+            const checkbox = document.querySelector(`.task-checkbox[data-task-id="${taskId}"]`);
+            if (checkbox) {
+                checkbox.checked = isCompleted;
+            }
+
+            const toggleLink = document.querySelector(`.task-status-toggle[data-task-id="${taskId}"]`);
+            if (toggleLink) {
+                toggleLink.dataset.completed = isCompleted ? 'true' : 'false';
+                toggleLink.textContent = isCompleted ? 'Pending' : 'Done';
+            }
+        }
+
+        function handleStatusUpdate(taskId, isCompleted, taskRow, onFailure) {
+            fetch(`/tasks/update-status/${taskId}/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                },
+                body: JSON.stringify({ completed: isCompleted })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        syncTaskToggleUI(taskId, isCompleted);
+
+                        const statusFilter = '{{ status_filter }}';
+                        const shouldRemove = (statusFilter === 'pending' && isCompleted) || (statusFilter === 'done' && !isCompleted);
+
+                        if (shouldRemove && taskRow) {
+                            taskRow.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+                            taskRow.style.opacity = '0';
+                            taskRow.style.transform = 'translateX(-20px)';
+                            setTimeout(() => {
+                                const dateGroup = taskRow.parentElement;
+                                taskRow.remove();
+                                if (dateGroup && dateGroup.querySelectorAll('.task-list-row').length === 0) {
+                                    const groupWrapper = dateGroup.closest('.task-date-group');
+                                    if (groupWrapper) groupWrapper.remove();
+                                }
+
+                                if (document.querySelectorAll('.task-list-row').length === 0) {
+                                    window.location.reload();
+                                }
+                            }, 500);
+                        }
+
+                        updateTaskCounts(data.pending_tasks_count, data.done_tasks_count);
+                    } else {
+                        if (typeof onFailure === 'function') onFailure();
+                        alert('Error updating task: ' + data.error);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    if (typeof onFailure === 'function') onFailure();
+                    alert('An error occurred while updating the task.');
+                });
+        }
+
+        document.querySelectorAll('.task-checkbox').forEach(checkbox => {
+            checkbox.addEventListener('change', function () {
+                const taskId = this.dataset.taskId;
+                const isCompleted = this.checked;
+                const taskRow = this.closest('.task-list-row');
+
+                handleStatusUpdate(taskId, isCompleted, taskRow, () => {
+                    this.checked = !isCompleted;
+                });
+            });
+        });
+
+        document.querySelectorAll('.task-status-toggle').forEach(toggleLink => {
+            toggleLink.addEventListener('click', function (event) {
+                event.preventDefault();
+                const taskId = this.dataset.taskId;
+                const currentlyCompleted = this.dataset.completed === 'true';
+                const nextCompleted = !currentlyCompleted;
+                const taskRow = this.closest('.task-list-row');
+
+                handleStatusUpdate(taskId, nextCompleted, taskRow, () => {});
+            });
+        });
+
+        function updateTaskCounts(pendingCount, doneCount) {
+            const pendingTab = document.querySelector('.nav-item a[href*="status=pending"]');
+            const doneTab = document.querySelector('.nav-item a[href*="status=done"]');
+            const allTab = document.querySelector('.nav-item a[href*="status=all"]');
+
+            if (pendingTab) {
+                pendingTab.textContent = `Pending (${pendingCount})`;
+            }
+            if (doneTab) {
+                doneTab.textContent = `Done (${doneCount})`;
+            }
+            // The 'All' count doesn't change, but let's update it for consistency in case of deletions.
+            if (allTab) allTab.textContent = `All (${pendingCount + doneCount})`;
+        }
+
+        let taskToDeleteId = null;
+        const deleteModal = new bootstrap.Modal(document.getElementById('deleteConfirmationModal'));
+        const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+        const deleteOptionsContainer = document.getElementById('deleteOptionsContainer');
+
+        window.deleteTask = function (taskId, repeat, event) {
+            event.preventDefault();
+            taskToDeleteId = taskId;
+            
+            document.getElementById('deleteSingle').checked = true;
+
+            const deleteAllContainer = document.getElementById('deleteAll').closest('.form-check');
+            if (repeat === 'None' || repeat === '') {
+                deleteAllContainer.style.display = 'none';
+            } else {
+                deleteAllContainer.style.display = 'block';
+            }
+            deleteModal.show();
+        };
+
+        confirmDeleteBtn.addEventListener('click', function () {
+            if (!taskToDeleteId) return;
+
+            const taskRow = document.querySelector(`.task-checkbox[data-task-id='${taskToDeleteId}']`).closest('.task-list-row');
+            
+            let deleteMode = 'single';
+            if (deleteOptionsContainer.style.display !== 'none') {
+                if (document.getElementById('deleteAll').checked) {
+                    deleteMode = 'all';
+                }
+            }
+
+            fetch(`/tasks/delete/${taskToDeleteId}/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                },
+                body: JSON.stringify({ delete_mode: deleteMode })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        window.location.reload();
+                    } else {
+                        alert('Error deleting task: ' + data.error);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred while deleting the task.');
+                })
+                .finally(() => {
+                    taskToDeleteId = null;
+                    deleteModal.hide();
+                });
+        });
+
+    });
+</script>
+
+<script>
+    function performSearchNow(element) {
+        const SEARCH_FOCUS_KEY = 'taskListSearchFocus';
+        const searchInput = element || document.querySelector('.search-box input[name="search"]');
+        if (!searchInput) return;
+        const instance = searchInput.dataset.searchInstance || 'task-search-main';
+        sessionStorage.setItem(SEARCH_FOCUS_KEY, instance);
+
+        const query = searchInput.value;
+        const params = new URLSearchParams(window.location.search);
+
+        if (query.trim()) {
+            params.set('search', query.trim());
+        } else {
+            params.delete('search');
+        }
+
+        const newUrl = new URL(window.location.pathname, window.location.origin);
+        newUrl.search = params.toString();
+        window.location.href = newUrl.toString();
+    }
+</script>
+
+<script>
+    function clearSearchAndReload() {
+        const searchInput = document.querySelector('.search-box input[name="search"]');
+        searchInput.value = '';
+
+        const params = new URLSearchParams(window.location.search);
+        params.delete('search');
+
+        const newUrl = new URL(window.location.pathname, window.location.origin);
+        newUrl.search = params.toString();
+        window.location.href = newUrl.toString();
+    }
+</script>
+{% endblock extra_script %}

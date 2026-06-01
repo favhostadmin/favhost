@@ -1,0 +1,1739 @@
+{% extends 'frontend/base/base.html' %}
+{% load static %}
+
+{% block extra_head %}
+<link href="{% static 'css/booking/list.css' %}" rel="stylesheet">
+
+<link href="{% static 'css/booking/details.css' %}" rel="stylesheet">
+<style>
+    .guest-details h2 {
+        font-size: 24px;
+        margin-bottom: 15px;
+        color: #111827;
+    }
+
+    .contact-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 20px;
+        color: #6b7280;
+        font-size: 14px;
+    }
+
+    .attachments-link {
+        color: #3b82f6;
+        text-decoration: none;
+        font-size: 14px;
+    }
+
+    .attachments-link:hover {
+        text-decoration: underline;
+    }
+
+    .rental-info {
+        background-color: #f9fafb;
+        padding: 12px;
+        border-radius: 6px;
+        margin-top: 15px;
+    }
+
+    .rental-label {
+        font-size: 12px;
+        color: #6b7280;
+        margin-bottom: 5px;
+    }
+
+    .rental-address {
+        color: #3b82f6;
+        text-decoration: none;
+        font-size: 14px;
+    }
+
+    .rental-address:hover {
+        text-decoration: underline;
+    }
+
+    .booking-status {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 10px;
+    }
+
+    .booking-status svg {
+        width: 18px;
+        height: 18px;
+    }
+
+    .check-dates {
+        background-color: #f9fafb;
+        padding: 20px;
+        border-radius: 8px;
+    }
+
+    .check-item {
+        margin-bottom: 15px;
+    }
+
+    .check-item:last-child {
+        margin-bottom: 0;
+    }
+
+    .check-label {
+        font-size: 12px;
+        color: #6b7280;
+        margin-bottom: 3px;
+    }
+
+    .check-date {
+        font-size: 14px;
+        color: #111827;
+        font-weight: 500;
+    }
+
+    .guest-count {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 15px;
+        margin-top: 15px;
+    }
+
+    .count-item {
+        text-align: center;
+    }
+
+    .count-label {
+        font-size: 12px;
+        color: #6b7280;
+        margin-bottom: 3px;
+    }
+
+    .count-value {
+        font-size: 18px;
+        color: #111827;
+        font-weight: 600;
+    }
+
+    /* Match payment_details_partial layout */
+    .payment-schedule-container {
+        border-radius: 8px;
+        overflow: hidden;
+        background: #fff;
+        margin: auto;
+        font-family: Arial, sans-serif;
+    }
+
+    .payment-schedule-header {
+        padding: 12px 16px;
+        border-bottom: 1px solid #eee;
+        text-align: center;
+        font-weight: 600;
+        font-size: 16px;
+        background-color: #fafafa;
+    }
+
+    .payment-schedule-table {
+        width: 100%;
+    }
+
+    .payment-schedule-row {
+        display: grid;
+        grid-template-columns: 1.5fr 1fr 1fr 0.5fr;
+        padding: 10px;
+        align-items: center;
+        border-bottom: 1px solid #eee;
+        font-size: 14px;
+    }
+
+    .payment-schedule-row.row-paid {
+        background-color: #E6F1CD;
+    }
+
+    .payment-schedule-row:last-child {
+        border-bottom: none;
+    }
+
+    .custom-checkbox-container {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 18px;
+        height: 18px;
+        border-radius: 3px;
+        cursor: pointer;
+        background-color: #fff;
+        position: relative;
+        transition: all 0.2s ease;
+    }
+
+    .custom-checkbox-container {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+    }
+
+    .custom-checkbox-container input {
+        appearance: none;
+        -webkit-appearance: none;
+        width: 18px;
+        height: 18px;
+        border: 2px solid #000;
+        border-radius: 3px;
+        cursor: pointer;
+        background-color: #fff;
+        position: relative;
+        transition: all 0.2s ease;
+    }
+
+    .custom-checkbox-container input:checked {
+        background-color: #000;
+        border-color: #000;
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='20 6 9 17 4 12'/%3e%3c/svg%3e");
+        background-repeat: no-repeat;
+        background-position: center;
+        background-size: 14px;
+    }
+
+    .custom-checkbox-container input:hover {
+        transform: scale(1.05);
+    }
+
+    .custom-checkbox-container input:checked~.checkmark {
+        background-color: #111827;
+        border-color: #111827;
+    }
+
+    .col-paid {
+        display: flex;
+        justify-content: center;
+    }
+
+    .profile-image {
+        width: 100%;
+        height: 30vh;
+    }
+
+    .action-buttons {
+        gap: 12px;
+        flex-wrap: nowrap;
+        border: none !important;
+        border-bottom: none !important;
+        outline: none;
+        box-shadow: none;
+    }
+
+    .action-buttons::before,
+    .action-buttons::after {
+        content: none !important;
+        display: none !important;
+    }
+
+    .action-buttons,
+    .action-buttons .left-section,
+    .action-buttons .left-section * {
+        border-bottom: none !important;
+        box-shadow: none !important;
+        text-decoration: none;
+    }
+
+    .action-buttons .btn-group {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+        order: 2;
+        margin-left: auto;
+    }
+
+    .action-buttons .btn-group .me-4 {
+        margin-right: 0 !important;
+    }
+
+    .action-buttons .left-section {
+        gap: 8px;
+        order: 1;
+        justify-content: flex-start;
+    }
+
+    .property-image {
+        width: 100%;
+        height: 150px;
+        object-fit: cover;
+        border-radius: 6px;
+    }
+
+    .right-section.property-section {
+        min-width: 200px;
+        max-width: 200px;
+    }
+
+    .guest-top {
+        display: block;
+    }
+
+    .desktop-avatar {
+        display: block;
+    }
+
+    .mobile-avatar {
+        display: none;
+    }
+
+    .desktop-only {
+        display: block;
+    }
+
+    .mobile-only {
+        display: none;
+    }
+
+    .reservation-row {
+        align-items: stretch;
+    }
+    .guest-col {
+        display: flex;
+        align-items: stretch;
+    }
+    .guest-col .profile-image {
+        height: 100%;
+        object-fit: cover;
+    }
+
+    @media (max-width: 991.98px) {
+        .guest-name{
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        .contact-item {
+            gap: 8px;
+            margin-bottom: 8px;
+            font-size: 12px;
+        }
+        .reservation-row {
+            gap: 12px;
+        }
+
+        .guest-col {
+            display: none;
+        }
+
+        .guest-col .profile-image {
+            width: 92px;
+            height: 92px;
+            border-radius: 12px;
+        }
+
+        .details-col {
+            flex: 1 1 0;
+            max-width: 100%;
+            width: 100%;
+        }
+
+        .booking-card {
+            padding: 6px 0;
+        }
+
+        .card-content {
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .left-section {
+            padding-right: 0;
+            padding-bottom: 0px;
+            order: 1;
+        }
+
+        .guest-top {
+            display: grid;
+            grid-template-columns: 96px 1fr;
+            column-gap: 12px;
+            align-items: stretch;
+        }
+
+        .desktop-avatar {
+            display: none;
+        }
+
+        .mobile-avatar {
+            display: block;
+            width: 96px;
+            align-self: stretch;
+        }
+        .profile-image{
+            margin-bottom: 0px;
+        }
+
+        .mobile-avatar .profile-image {
+            width: 96px;
+            height: 100%;
+            border-radius: 10px;
+            border: 1px solid #b9b9b9;
+
+        }
+
+        .guest-meta {
+            flex: 1 1 auto;
+        }
+
+        .desktop-only {
+            display: none;
+        }
+
+        .mobile-only {
+            display: block;
+            order: 2;
+        }
+
+        .action-buttons {
+            background-color: #ffffff;
+            flex-direction: row;
+            align-items: center;
+            justify-content: space-between;
+            position: static !important;
+            top: auto !important;
+            left: auto !important;
+            right: auto !important;
+            bottom: auto !important;
+            margin-bottom: 5px !important;
+            padding: 2px 12px;
+        }
+
+        .action-buttons .left-section span {
+            color: #111827;
+        }
+
+        .action-buttons .left-section img {
+            filter: brightness(0) saturate(100%);
+        }
+
+        .action-buttons .left-section {
+            width: auto;
+        }
+
+        .action-buttons .btn-group {
+            width: auto;
+            justify-content: flex-end;
+            margin-left: auto;
+        }
+
+        .action-buttons .btn-group .me-4 {
+            display: none;
+        }
+
+        .action-buttons .dropdown {
+            align-self: center;
+        }
+
+        .mobile-booking-details {
+            display: flex;
+            gap: 12px;
+            align-items: stretch;
+            padding-top: 12px;
+            border-top: 1px solid #e5e7eb;
+        }
+
+        .mobile-booking-image {
+            width: 96px;
+            /* height: 100%; */
+            object-fit: cover;
+            border-radius: 10px;
+            flex: 0 0 96px;
+            align-self: stretch;
+        }
+
+        .mobile-booking-content {
+            flex: 1 1 auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .mobile-booking-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #111827;
+            margin-bottom: 8px;
+            line-height: 1.35;
+        }
+
+        .mobile-date-row {
+            display: flex;
+            gap: 8px;
+            align-items: baseline;
+            font-size: 11px;
+            color: #111827;
+            margin-bottom: 6px;
+        }
+        .mobile-date-icon {
+            width: 16px;
+            height: 16px;
+            object-fit: contain;
+            flex: 0 0 16px;
+        }
+
+        .mobile-stat-row {
+            display: flex;
+            gap: 18px;
+            align-items: center;
+            font-size: 13px;
+            color: #111827;
+            margin-top: 6px;
+        }
+        .mobile-stat-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .mobile-stat-icon {
+            width: 16px;
+            height: 16px;
+            object-fit: contain;
+            flex: 0 0 16px;
+        }
+
+        .mobile-meta-label {
+            font-size: 12px;
+            color: #6b7280;
+            min-width: 64px;
+        }
+
+        .right-section {
+            min-width: 0;
+        }
+
+        .right-section.property-section {
+            flex-direction: row;
+            align-items: center;
+            gap: 12px;
+            min-width: 0;
+            max-width: 100%;
+            order: 2;
+        }
+
+        .right-section.property-section img {
+            width: 96px;
+            height: 64px;
+        }
+
+        .right-section.property-section .rental-link {
+            margin-top: 0;
+        }
+
+        .stats-row {
+            display: flex;
+            gap: 24px;
+        }
+
+        .card-content > .right-section:not(.property-section) {
+            order: 3;
+        }
+
+        .action-buttons {
+            flex-direction: row;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .action-buttons .left-section {
+            width: auto;
+        }
+
+        .action-buttons .btn-group {
+            width: auto;
+            justify-content: flex-end;
+            flex-wrap: nowrap;
+            margin-left: auto;
+        }
+
+        .action-buttons .btn-group .me-4 {
+            display: none;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .action-buttons {
+            padding: 10px 12px;
+            flex-direction: row;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .action-buttons .btn-group {
+            flex-direction: row;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: nowrap;
+            margin-left: auto;
+        }
+
+        .action-buttons .book-info {
+            font-size: 14px;
+        }
+    }
+
+
+
+    @media (max-width: 768px) {
+        .content {
+            grid-template-columns: 1fr;
+        }
+
+
+    }
+
+    /* Modal styles */
+    .modal {
+        display: none;
+        /* Hidden by default */
+        position: fixed;
+        /* Stay in place */
+        z-index: 1050;
+        /* Sit on top */
+        left: 0;
+        top: 0;
+        width: 100%;
+        /* Full width */
+        height: 100%;
+        /* Full height */
+        overflow: auto;
+        /* Enable scroll if needed */
+        background-color: rgba(0, 0, 0, 0.5);
+        /* Black w/ opacity */
+        align-items: center;
+        justify-content: center;
+    }
+
+    .modal-content {
+        background-color: #fefefe;
+        margin: auto;
+        padding: 20px;
+        border: 1px solid #888;
+        width: 60%;
+        /* Medium size */
+        max-width: 700px;
+        border-radius: 8px;
+        position: relative;
+        box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+    }
+
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid #dee2e6;
+        padding-bottom: 10px;
+        margin-bottom: 15px;
+    }
+
+    .modal-header h2 {
+        margin: 0;
+        font-size: 1.5rem;
+    }
+
+    .close-btn {
+        color: #aaa;
+        font-size: 28px;
+        font-weight: bold;
+        cursor: pointer;
+    }
+
+    .close-btn:hover,
+    .close-btn:focus {
+        color: black;
+        text-decoration: none;
+    }
+
+    .modal-body {
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+
+    .attachment-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+        gap: 15px;
+    }
+
+    .attachment-item {
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        padding: 15px;
+        text-align: center;
+        text-decoration: none;
+        color: #374151;
+        transition: background-color 0.2s;
+    }
+
+    .attachment-item:hover {
+        background-color: #f9fafb;
+    }
+
+    .attachment-icon {
+        font-size: 2.5rem;
+    }
+
+    .attachment-name {
+        font-size: 0.8rem;
+        word-break: break-word;
+        margin-top: 5px;
+    }
+</style>
+<style>
+    .payment-divider {
+        width: 1px;
+        background-color: #e5e7eb;
+        margin: 0 1rem;
+    }
+
+    @media (max-width: 991.98px) {
+        .payment-divider {
+            display: none;
+        }
+    }
+
+    .payment-schedule-container {
+        border-radius: 8px;
+        overflow: hidden;
+        background: #fff;
+        margin: auto;
+        font-family: Arial, sans-serif;
+    }
+
+    .payment-schedule-header {
+        padding: 12px 16px;
+        border-bottom: 1px solid #eee;
+        text-align: center;
+        font-weight: 600;
+        font-size: 16px;
+        background-color: #fafafa;
+    }
+
+    .payment-schedule-table {
+        width: 100%;
+    }
+
+    .payment-schedule-row {
+        display: grid;
+        grid-template-columns: 1.5fr 1fr 1fr 0.5fr;
+        padding: 10px;
+        align-items: center;
+        border-bottom: 1px solid #eee;
+        font-size: 14px;
+    }
+
+    .payment-schedule-row.row-paid {
+        background-color: #E6F1CD;
+    }
+
+    .payment-schedule-row:last-child {
+        border-bottom: none;
+    }
+
+    .custom-checkbox-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        cursor: pointer;
+        position: relative;
+    }
+
+    .custom-checkbox-container input {
+        display: none;
+    }
+
+    .custom-checkbox-container .checkmark {
+        width: 18px;
+        height: 18px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        display: inline-block;
+        position: relative;
+    }
+
+    .custom-checkbox-container {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+    }
+
+    .custom-checkbox-container input {
+        appearance: none;
+        -webkit-appearance: none;
+        width: 18px;
+        height: 18px;
+        border: 2px solid #000;
+        border-radius: 3px;
+        cursor: pointer;
+        background-color: #fff;
+        position: relative;
+        transition: all 0.2s ease;
+    }
+
+    /* Checked state */
+    .custom-checkbox-container input:checked {
+        background-color: #000;
+        border-color: #000;
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='20 6 9 17 4 12'/%3e%3c/svg%3e");
+        background-repeat: no-repeat;
+        background-position: center;
+        background-size: 14px;
+    }
+
+    /* Hover effect (optional) */
+    .custom-checkbox-container input:hover {
+        transform: scale(1.05);
+    }
+
+    .custom-checkbox-container input:checked~.checkmark {
+        background-color: #111827;
+        border-color: #111827;
+    }
+
+
+
+
+    .col-paid {
+        display: flex;
+        justify-content: center;
+    }
+
+    .profile-image {
+        width: 100%;
+        height: 30vh;
+    }
+</style>
+<style>
+    .modal-body{
+        max-height: 100vh !important;
+        overflow-y: auto !important;
+    }
+
+    #guest-receipt-root.is-modal{
+        padding: 0 !important;
+    }
+
+    .payment-details-wrapper {
+        width: 100%;
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 0 32px 24px;
+    }
+
+    @media (max-width: 1200px) {
+        .payment-details-wrapper {
+            padding: 0 24px 20px;
+        }
+    }
+
+    @media (max-width: 991.98px) {
+        .payment-details-wrapper {
+            padding: 0 16px 16px;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .payment-details-wrapper {
+            padding: 0 12px 12px;
+        }
+    }
+
+    @media (min-width: 992px) {
+        .main_div.desktop-details-shell {
+            max-height: none !important;
+            min-height: auto !important;
+            overflow: visible !important;
+            padding: 0 2% 24px;
+        }
+
+        .main_div.desktop-details-shell > .content {
+            background: #fff;
+            border: 1px solid #c8c8c8;
+            border-radius: 8px;
+            padding: 30px 14px 14px 14px !important;
+            max-width: 1280px;
+            margin: 0 auto;
+        }
+
+        .reservation-row {
+            align-items: flex-start;
+        }
+
+        .guest-top {
+            display: flex;
+            align-items: flex-start;
+            gap: 16px;
+        }
+
+        .desktop-avatar {
+            flex: 0 0 220px;
+            max-width: 220px;
+        }
+
+        .desktop-avatar .profile-image {
+            height: 220px;
+            width: 100%;
+            border-radius: 10px;
+            border: 1px solid #d3d3d3;
+            object-fit: cover;
+            object-position: center top;
+        }
+
+        .details-col {
+            flex: 1 1 0 !important;
+            width: auto !important;
+            max-width: none !important;
+            /* padding-left: 0; */
+        }
+
+        .booking-card {
+            padding: 0;
+        }
+
+        .card-content {
+            display: flex !important;
+            flex-wrap: nowrap;
+            gap: 16px;
+            align-items: flex-start;
+        }
+
+        .left-section {
+            flex: 1 1 auto;
+            min-width: 0;
+            padding-right: 4px;
+        }
+
+        .right-section {
+            min-width: 0;
+            gap: 8px;
+        }
+
+        .card-content > .right-section.desktop-only:not(.property-section) {
+            flex: 0 0 220px;
+            /* border-left: 1px solid #d3d3d3; */
+            padding-left: 18px;
+        }
+
+        .card-content > .right-section.property-section.desktop-only {
+            flex: 0 0 220px;
+        }
+
+        .right-section.property-section {
+            min-width: 220px !important;
+            max-width: 220px !important;
+        }
+
+        .right-section.property-section img {
+            height: 220px !important;
+            border-radius: 10px !important;
+        }
+
+        .right-section.property-section .rental-link {
+            display: none !important;
+        }
+
+        .desktop-property-title {
+            font-size: 17px;
+            line-height: 1.35;
+            font-weight: 600;
+            color: #111827;
+            margin-bottom: 12px;
+        }
+
+        .details-col > hr {
+            margin: 16px 0;
+            border-color: #d3d3d3;
+            opacity: 0.25;
+        }
+
+        .notes-section p {
+            max-width: 100%;
+            line-height: 1.5;
+            word-break: break-word;
+            white-space: normal;
+            overflow-wrap: break-word;
+        }
+
+        .guest-name {
+            margin-bottom: 10px;
+        }
+
+        .contact-item {
+            margin-bottom: 11px;
+        }
+
+        .card-content .payment-divider {
+            display: none !important;
+        }
+
+        .card-content > .col-lg-auto.d-none.d-lg-flex.desktop-only {
+            display: none !important;
+        }
+
+        .payment-section {
+            /* border: 2px solid #1f92f3; */
+            padding: 10px 12px;
+            margin: 0;
+            align-items: stretch;
+        }
+
+        .payment-section > .col-lg-7 {
+            padding-right: 12px;
+        }
+
+        .payment-section > .col-lg-4 {
+            margin-top: 0 !important;
+            padding-left: 12px;
+        }
+
+        .payment-header {
+            background: #f8f8f8;
+            border: 1px solid #d0d0d0 !important;
+            padding: 8px 12px !important;
+        }
+
+        .payment-schedule-row {
+            border-color: #d3d3d3 !important;
+        }
+
+        .payment-summary h3 {
+            margin-bottom: 10px;
+        }
+
+        .payment-summary hr {
+            margin: 6px 0 12px;
+            border-color: #d3d3d3;
+            opacity: 0.25;
+        }
+    }
+
+    /* Ensure notes wrap cleanly on mobile */
+    @media (max-width: 991.98px) {
+        .notes-section {
+            padding: 0 12px 10px;
+        }
+        .notes-section h3 {
+            margin-bottom: 6px;
+        }
+        .notes-section .notes-text {
+            white-space: pre-wrap;
+            word-break: break-word;
+            overflow-wrap: anywhere;
+        }
+    }
+</style>
+{% endblock extra_head %}
+
+{% block content %}
+<div class="container-fluid p-0">
+    <div class="action-buttons">
+        <div class="left-section">
+            <img src="{% static 'img/booking/reservation_icon.svg'%}" alt="">
+            <span>Reservation details</span>
+        </div>
+        <div class="btn-group">
+            <div class="me-4">
+                {% if booking.status == 'cancelled' %}
+                <p class="book-info">Cancelled on {{ booking.updated_at|date:"M d, Y" }}</p>
+                {% else %}
+                <p class="book-info">Created on {{ booking.created_at|date:"M d, Y" }}</p>
+                {% endif %}
+                <p class="book-info">Reservation #{{ booking.booking_id}}</p>
+            </div>
+            {% if booking_status != 'cancelled' %}
+            <div class="dropdown" style="align-self: center;">
+                <button class="new-action-btn-header dropdown-toggle" type="button" data-bs-toggle="dropdown"
+                    aria-expanded="false" data-bs-auto-close="outside"
+                    style="background: #FFFFFF; color: #1D74B2; font-weight: 600;">
+                    Action
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="newDropdown"
+                    style="transform: translate(0px, 39px) !important;">
+                    {% if booking_status == 'past' or booking_status == 'current' or booking_status == 'upcoming' %}
+                    <!-- Email Guest -->
+                    <li>
+                        <a class="dropdown-item email-guest-btn" href="#" data-booking-id="{{ booking.id }}">
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"
+                                xmlns="http://www.w3.org/2000/svg">
+                                <path
+                                    d="M3 4H13C13.5523 4 14 4.44772 14 5V11C14 11.5523 13.5523 12 13 12H3C2.44772 12 2 11.5523 2 11V5C2 4.44772 2.44772 4 3 4Z"
+                                    stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+                                    stroke-linejoin="round" />
+                                <path d="M14 5L8 8.5L2 5" stroke="currentColor" stroke-width="1.5"
+                                    stroke-linecap="round" stroke-linejoin="round" />
+                            </svg>
+                            Email Guest
+                        </a>
+                    </li>
+                    {% endif %}
+
+                    {% if booking_status == 'current' or booking_status == 'upcoming' %}
+                    <!-- Edit -->
+                    <li>
+                        <a class="dropdown-item" href="{% url 'booking:booking-edit' pk=booking.id %}">
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                <path d="M11.5 2.5L13.5 4.5L5 13H3V11L11.5 2.5Z" stroke="currentColor"
+                                    stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                            </svg>
+                            Edit
+                        </a>
+                    </li>
+                    {% endif %}
+
+                    {% if time_delta or booking_status == 'past' %}
+                    <!-- Guest Receipt -->
+                    <li>
+                        <a class="dropdown-item guest-receipt-btn" href="#" data-receipt-url="{% url 'booking:guest-receipt' pk=booking.id %}">
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                <path d="M4 2h8v12l-4-2-4 2V2z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            Guest Receipt
+                        </a>
+                    </li>
+                    {% endif %}
+
+                    {% if booking_status == 'upcoming' %}
+                    <!-- Cancel Reservation -->
+                    <li class="cancel-reservation-item">
+                        <a class="dropdown-item cancel-reservation-btn"
+                            href="{% url 'booking:cancel-booking' pk=booking.id %}" data-booking-id="{{ booking.id }}">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <line x1="15" y1="9" x2="9" y2="15"></line>
+                                <line x1="9" y1="9" x2="15" y2="15"></line>
+                            </svg>
+                            Cancel Reservation
+                        </a>
+                    </li>
+                    {% endif %}
+
+                </ul>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="payment-details-wrapper">
+    <div class="main_div desktop-details-shell">
+        <div class="content" style="padding: 0rem 2%;">
+            <div class="row m-0 p-0 reservation-row">
+                
+                <div class="col-12 details-col">
+                    <div class="booking-card">
+                        <div class="card-content">
+                            <div class="left-section p-0">
+                                
+                                <div class="guest-top">
+                                    <div class="desktop-avatar">
+                                        {% with guest_image=booking.images.first %}
+                                        <img class="profile-image"
+                                            src="{% if guest_image %}{{ guest_image.image.url }}{% else %}{% static 'img/common/default_user_icon.png' %}{% endif %}"
+                                            alt="Profile">
+                                        {% endwith %}
+                                    </div>
+                                    
+                                    <div class="mobile-avatar">
+                                        {% with guest_image=booking.images.first %}
+                                        <img class="profile-image"
+                                            src="{% if guest_image %}{{ guest_image.image.url }}{% else %}{% static 'img/common/default_user_icon.png' %}{% endif %}"
+                                            alt="Profile">
+                                        {% endwith %}
+                                    </div>
+                                    <div class="guest-meta">
+                                        <h1 class="guest-name">{{ booking.first_name }} {{ booking.last_name }}</h1>
+
+                                        <div class="contact-info mb-3" style="display:block !important;">
+                                            {% if booking.email %}
+                                            <div class="contact-item">
+                                                <img class="mobile-date-icon" src="{% static 'img/booking/email_icon.svg' %}" alt="Email">
+                                                <span style="color: #000;">{{ booking.email }}</span>
+                                            </div>
+                                            {% endif %}
+                                            
+                                            {% if booking.phone %}
+                                            <div class="contact-item">
+                                                <img class="mobile-date-icon" src="{% static 'img/booking/phone_icon.svg' %}" alt="Phone">
+                                                <span style="color: #000;">{{ booking.phone }}</span>
+                                            </div>
+                                            {% endif %}
+
+                                            {% if booking.documents.all %}
+                                            <div class="contact-item">
+                                                <img class="mobile-date-icon" src="{% static 'img/booking/attachment_icon.svg' %}" alt="Attachments">
+                                                <a href="#" id="openAttachmentModal"
+                                                    style="text-decoration: underline; cursor: pointer;">Attachments ({{ booking.documents.count }})</a>
+                                            </div>
+                                            {% endif %}
+
+                                            <div class="contact-item">
+                                                <img  class="mobile-date-icon" src="{% static 'img/booking/booked_icon.svg' %}" alt="Booked via">
+                                                <div>
+                                                    <!-- <span style="color: #000;">Booked through</span><br> -->
+                                                    <span><strong>{{ booking.channel.name|default:"N/A" }}</strong></span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="booking-platform mobile-only flex" style="align-items: start;"></div>
+                                    </div>
+                                </div>
+
+                                <div class="rental-section desktop-only"></div>
+                            </div>
+
+                            <div class="mobile-only">
+                                <div class="mobile-booking-details">
+                                    <img class="mobile-booking-image" src="{{ booking.property.get_primary_image_url }}" alt="{{ booking.property.title }}">
+                                    <div class="mobile-booking-content">
+                                        <div class="mobile-booking-title">{{ booking.property.title }}</div>
+                                        <div class="mobile-date-row">
+                                            <img class="mobile-date-icon" src="{% static 'img/property/checkin.png' %}" alt="Check-in">
+                                            <span>{{ booking.check_in_date|date:"M d, Y" }}, {{ booking.check_in_time|time:"g:i a" }}</span>
+                                        </div>
+                                        <div class="mobile-date-row">
+                                            <img class="mobile-date-icon" src="{% static 'img/property/checkout.png' %}" alt="Check-out">
+                                            <span>{{ booking.check_out_date|date:"M d, Y" }}, {{ booking.check_out_time|time:"g:i a" }}</span>
+                                        </div>
+                                        <div class="mobile-stat-row">
+                                            <span class="mobile-stat-item">
+                                                <img class="mobile-stat-icon" src="{% static 'img/property/min_nights.svg' %}" alt="Nights">
+                                                {{ nights }} night{{ nights|pluralize }}
+                                            </span>
+                                            <span class="mobile-stat-item">
+                                                <img class="mobile-stat-icon" src="{% static 'img/property/guest.svg' %}" alt="Guests">
+                                                {{ booking.guest_count }} guest{{ booking.guest_count|pluralize }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-lg-auto d-none d-lg-flex align-items-center p-0 desktop-only">
+                                <div class="payment-divider h-100"></div>
+                            </div>
+
+
+                            <div class="right-section desktop-only">
+                                <div class="desktop-property-title">{{ booking.property.title }}</div>
+                                <div class="date-item">
+                                    <div class="date-label" style="color: #000;">Check-In</div>
+                                    <div class="date-value" style="font-weight: 600;">
+                                        {{ booking.check_in_date|date:"D, M d, Y" }}, {{ booking.check_in_time|time:"g:i a" }}</div>
+                                </div>
+
+                                <div class="date-item">
+                                    <div class="date-label" style="color: #000;">Check-Out</div>
+                                    <div class="date-value" style="font-weight: 600;">
+                                        {{ booking.check_out_date|date:"D, M d, Y" }}, {{ booking.check_out_time|time:"g:i a" }}</div>
+                                </div>
+
+                                <div class="stats-row">
+                                    <div class="stat-item">
+                                        <div class="stat-label" style="color: #000;">Nights</div>
+                                        <div class="stat-value" style="font-weight: 600;">{{ nights }}</div>
+                                    </div>
+                                    <div class="stat-item mt-2">
+                                        <div class="stat-label" style="color: #000;">Guests</div>
+                                        <div class="stat-value" style="font-weight: 600;">{{ booking.guest_count }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                           
+                            <div class="right-section property-section desktop-only" style="min-width: 200px; max-width: 200px;">
+                                <div class="date-item">
+                                    <img src="{{ booking.property.get_primary_image_url }}" alt="{{ booking.property.title }}" style="width: 100%; height: 150px; object-fit: cover; border-radius: 6px;">
+                                </div>
+
+                                 <a href="{% url 'property:property-detail' slug=booking.property.slug %}"
+                                                class="rental-link" style="display: block; margin-top: 8px; font-weight: 600; font-size: 14px; color: #111827;">{{ booking.property.title }}</a>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <hr>
+                    <div class="booking-card">
+                        <div class="notes-section">
+                            <h3>Notes</h3>
+                            <p class="notes-text" style="color: #000;">{{ booking.notes|default:"No notes provided."|linebreaksbr }}</p>
+                        </div>
+                    </div>
+                    <hr>
+
+                    {% if booking.status == 'confirmed' %}
+                    <div class="booking-card">
+                        <div class="payment-section row">
+                            <div class="col-lg-7 col-md-12">
+
+                                <div class="payment-schedule">
+                                    <div class="payment-header"
+                                        style="border: 0.25px solid #bdbaba; padding: 6px 10px; justify-content: center; position: relative;">
+                                        <h3 class="mb-0">Payment Schedule</h3>
+                                        <div class="toggle-btns" id="payment-toggle-btns">
+                                            <button class="toggle-btn" id="expand-payments"
+                                                style="display: none;">+</button>
+                                            <button class="toggle-btn" id="collapse-payments">−</button>
+                                        </div>
+                                    </div>
+                                    <div id="payment-body">
+                                        <div class="payment-schedule-container">
+                                            <div class="payment-schedule-table">
+                                                <div class="payment-schedule-row payment-schedule-row-head fw-bold mb-0"
+                                                    style="border: none;">
+                                                    <div class="col-payment-type">Payment Type</div>
+                                                    <div class="col-due-date">Due date</div>
+                                                    <div class="col-amount">Amount</div>
+                                                    <div class="col-paid">Paid</div>
+                                                </div>
+
+                                                {% for item in payment_schedule %}
+                                                <div id="payment-item-{{ item.id }}"
+                                                    class="payment-schedule-row {% if item.is_paid %}row-paid{% endif %}"
+                                                    style="border: 1px solid #ddd;">
+                                                    <div class="col-payment-type"
+                                                        style="color: #000; padding-right:4px; ">{{ item.name }}</div>
+                                                    <div class="col-due-date" style="color: #000; padding-left:4px; ">
+                                                        {% if item.date %}
+                                                        {{ item.date|date:"d-M-Y" }}
+                                                        {% else %}
+                                                        -
+                                                        {% endif %}
+                                                    </div>
+                                                    <div class="col-amount"
+                                                        style="font-weight: bold; padding-left:6px;">
+                                                        ${{ item.amount|floatformat:2 }}
+                                                    </div>
+                                                    <div class="col-paid">
+                                                        <label class="custom-checkbox-container"
+                                                            style="padding-left: 0px;">
+                                                            <input type="checkbox" class="payment-checkbox"
+                                                                data-payment-id="{{ item.id }}" {% if item.is_paid %}checked{% endif %} {% if request.user != booking.property.created_by %}disabled{% endif %}>
+                                                            <span class="checkmark"></span>
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                                {% empty %}
+                                                <div class="payment-schedule-row no-data">
+                                                    <div class="col-payment-type" colspan="4"
+                                                        style="text-align: center;">
+                                                        No payment schedule available.
+                                                    </div>
+                                                </div>
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-lg-auto d-none d-lg-flex align-items-center p-0">
+                                <div class="payment-divider h-100"></div>
+                            </div>
+
+
+                            <div class="col-lg-4 col-md-12 mt-3">
+                                <div class="payment-summary">
+                                    <h3>Payment Summary</h3>
+                                    <hr>
+                                    <div class="section-divider"></div>
+
+                                    <div class="summary-item">
+                                        <span class="summary-label">
+                                            ${{ booking.price_per_night|floatformat:2 }} x {{ nights }} night {{ nights|pluralize }}</span>
+                                        <span class="summary-value">${{ subtotal|floatformat:2 }}</span>
+                                    </div>
+                                    {% if nights > 30 %}
+                                    <div class="summary-item">
+                                        <span class="summary-label">Monthly Payment</span>
+                                        <span class="summary-value">${{ monthly_payment|floatformat:2 }}</span>
+                                    </div>
+                                    {% endif %}
+                                    <div class="summary-item">
+                                        <span class="summary-label">Cleaning fee</span>
+                                        <span class="summary-value">${{ booking.cleaning_fee|floatformat:2 }}</span>
+                                    </div>
+                                    <div class="summary-item">
+                                        <span class="summary-label">Refundable deposit</span>
+                                        <span class="summary-value">${{ booking.deposit_fee|floatformat:2 }}</span>
+                                    </div>
+                                    <div class="summary-item">
+                                        <span class="summary-label">Application fee</span>
+                                        <span class="summary-value">${{ booking.application_fee|floatformat:2 }}</span>
+                                    </div>
+                                    <hr>
+                                    <div class="summary-item" style="font-size: 16px;">
+                                        <span class="summary-label">Total due before checkin</span>
+                                        <span class="summary-value">${{ total_price|floatformat:2 }}</span>
+                                    </div>
+
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Attachment Modal -->
+<div id="attachmentModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Attachments</h2>
+            <span class="close-btn">&times;</span>
+        </div>
+        <div class="modal-body">
+            <div class="attachment-grid">
+                {% for doc in booking.documents.all %}
+                <a href="{{ doc.document.url }}" target="_blank" class="attachment-item">
+                    <div class="attachment-icon">📄</div>
+                    <div class="attachment-name">{{ doc.name }}</div>
+                </a>
+                {% empty %}
+                <p>No attachments found for this booking.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Email Guest Modal -->
+<div id="emailGuestModal" class="modal">
+    <div class="modal-content" style="width: 80%; max-width: 800px; max-height: 90vh; min-height: 60vh;">
+        <div class="modal-body" style="padding: 0;">
+            <!-- Content will be loaded here via AJAX -->
+            <div id="email-modal-content-placeholder">Loading...</div>
+        </div>
+    </div>
+</div>
+
+<!-- Cancel Reservation Confirmation Modal -->
+<div id="cancelReservationModal" class="modal">
+    <div class="modal-content" style="max-width: 500px;">
+        <div class="modal-header">
+            <h2>Confirm Cancellation</h2>
+            <span class="close-btn" id="closeCancelModal">&times;</span>
+        </div>
+        <div class="modal-body">
+            <p>Are you sure you want to cancel this reservation? This action cannot be undone.</p>
+        </div>
+        <div class="modal-footer" style="padding-top: 20px; display: flex; justify-content: flex-end; gap: 10px;">
+            <button type="button" class="btn btn-secondary" id="btnCancelModalClose">Close</button>
+            <button type="button" id="confirmCancelBtn" class="btn btn-danger">Yes, Cancel</button>
+        </div>
+    </div>
+</div>
+
+<!-- Guest Receipt Modal -->
+<div id="guestReceiptModal" class="modal">
+    <div class="modal-content" style="width: 90%; max-width: 960px; padding: 0;">
+        <div class="modal-body" style="padding: 0;">
+            <div id="guest-receipt-content-placeholder">Loading...</div>
+        </div>
+    </div>
+</div>
+
+{% endblock content %}
+
+{% block extra_script %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const modal = document.getElementById('attachmentModal');
+        const openBtn = document.getElementById('openAttachmentModal');
+        const closeBtn = modal.querySelector('.close-btn');
+
+        if (openBtn) {
+            openBtn.onclick = function (e) {
+                e.preventDefault();
+                modal.style.display = 'flex';
+            }
+        }
+
+        closeBtn.onclick = function () {
+            modal.style.display = 'none';
+        }
+
+        function closeDropdown(element) {
+            const dropdownMenu = element.closest('.dropdown-menu');
+            if (dropdownMenu) {
+                const dropdownToggle = dropdownMenu.previousElementSibling;
+                if (dropdownToggle) {
+                    const instance = bootstrap.Dropdown.getInstance(dropdownToggle);
+                    if (instance) {
+                        instance.hide();
+                    } else {
+                        dropdownToggle.classList.remove('show');
+                        dropdownMenu.classList.remove('show');
+                    }
+                }
+            }
+        }
+
+        // Email Guest Modal
+        const emailModal = document.getElementById('emailGuestModal'); // The modal container
+        const emailModalPlaceholder = document.getElementById('email-modal-content-placeholder'); // The div inside the modal to load content into
+
+        // Attach click event to all buttons with the class 'email-guest-btn'
+        document.querySelectorAll('.email-guest-btn').forEach(button => {
+            button.addEventListener('click', function (e) {
+                e.preventDefault();
+                closeDropdown(this);
+                const bookingId = this.dataset.bookingId;
+                const url = `{% url 'booking:render-email-form' %}?booking_id=${bookingId}`;
+
+                // Show modal and a loading message
+                emailModalPlaceholder.innerHTML = '<div style="text-align: center; padding: 40px;">Loading...</div>';
+                emailModal.style.display = 'flex';
+
+                // Fetch the email form content
+                fetch(url)
+                    .then(response => response.text())
+                    .then(html => {
+                        emailModalPlaceholder.innerHTML = html;
+                        // Find the close button inside the newly loaded content and attach an event to it
+                        const closeEmailBtn = emailModal.querySelector('.btn-cancel-email');
+                        if (closeEmailBtn) {
+                            closeEmailBtn.onclick = () => emailModal.style.display = 'none';
+                        }
+                    })
+                    .catch(error => {
+                        emailModalPlaceholder.innerHTML = '<p style="text-align: center; padding: 40px; color: red;">Error loading email form. Please try again.</p>';
+                        console.error('Error fetching email form:', error);
+                    });
+            });
+        });
+
+        // Guest Receipt Modal
+        const guestReceiptModal = document.getElementById('guestReceiptModal');
+        const guestReceiptPlaceholder = document.getElementById('guest-receipt-content-placeholder');
+
+        function initGuestReceiptActions(scope) {
+            const downloadBtn = scope.querySelector('#downloadReceiptPdf');
+            const printBtn = scope.querySelector('#printReceipt');
+            const closeBtn = scope.querySelector('#closeReceiptBtn');
+            const receiptRoot = scope.querySelector('#guest-receipt-root');
+
+            function triggerPrint(e) {
+                if (e) e.preventDefault();
+                if (receiptRoot) receiptRoot.classList.add('receipt-export');
+                window.print();
+            }
+
+            function triggerPdfDownload(e) {
+                if (e) e.preventDefault();
+                if (!receiptRoot || typeof html2pdf === 'undefined') return;
+
+                const options = {
+                    margin: [0.5, 0.5, 0.5, 0.5],
+                    filename: 'guest-receipt.pdf',
+                    image: { type: 'jpeg', quality: 0.98 },
+                    html2canvas: { scale: 2, useCORS: true },
+                    jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+                };
+
+                receiptRoot.classList.add('receipt-export');
+                html2pdf().set(options).from(receiptRoot).save().finally(() => {
+                    receiptRoot.classList.remove('receipt-export');
+                });
+            }
+
+            if (downloadBtn) downloadBtn.addEventListener('click', triggerPdfDownload);
+            if (printBtn) printBtn.addEventListener('click', triggerPrint);
+            if (closeBtn) {
+                closeBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    guestReceiptModal.style.display = 'none';
+                    guestReceiptPlaceholder.innerHTML = '';
+                });
+            }
+
+            window.addEventListener('afterprint', () => {
+                if (receiptRoot) receiptRoot.classList.remove('receipt-export');
+            });
+        }
+
+        document.querySelectorAll('.guest-receipt-btn').forEach(button => {
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                closeDropdown(this);
+                let url = this.dataset.receiptUrl;
+                url += (url.includes('?') ? '&' : '?') + 'is_modal=true';
+                guestReceiptPlaceholder.innerHTML = '<div style="text-align: center; padding: 40px;">Loading...</div>';
+                guestReceiptModal.style.display = 'flex';
+
+                fetch(url)
+                    .then(response => response.text())
+                    .then(html => {
+                        guestReceiptPlaceholder.innerHTML = html;
+                        initGuestReceiptActions(guestReceiptPlaceholder);
+                    })
+                    .catch(error => {
+                        guestReceiptPlaceholder.innerHTML = '<p style="text-align: center; padding: 40px; color: red;">Error loading guest receipt. Please try again.</p>';
+                        console.error('Error fetching guest receipt:', error);
+                    });
+            });
+        });
+
+        // Cancel Reservation Logic
+        const cancelModal = document.getElementById('cancelReservationModal');
+        const closeCancelBtn = document.getElementById('closeCancelModal');
+        const btnCancelModalClose = document.getElementById('btnCancelModalClose');
+        const confirmCancelBtn = document.getElementById('confirmCancelBtn');
+        let cancelUrl = '';
+
+        function closeCancelModalFunc() {
+            cancelModal.style.display = 'none';
+        }
+
+        if (closeCancelBtn) closeCancelBtn.onclick = closeCancelModalFunc;
+        if (btnCancelModalClose) btnCancelModalClose.onclick = closeCancelModalFunc;
+
+        document.querySelectorAll('.cancel-reservation-btn').forEach(button => {
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                closeDropdown(this);
+                cancelUrl = this.dataset.url || this.href; // Use href as fallback
+                cancelModal.style.display = 'flex';
+            });
+        });
+
+        if (confirmCancelBtn) {
+            confirmCancelBtn.addEventListener('click', function() {
+                if (!cancelUrl) return;
+                
+                // Show loading state
+                this.disabled = true;
+                this.innerText = 'Cancelling...';
+
+                fetch(cancelUrl, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': '{{ csrf_token }}',
+                        'Content-Type': 'application/json'
+                    },
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        window.location.reload();
+                    } else {
+                        alert('Failed to cancel reservation: ' + (data.error || 'Unknown error'));
+                        closeCancelModalFunc();
+                        this.disabled = false;
+                        this.innerText = 'Yes, Cancel';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred while cancelling the reservation.');
+                    closeCancelModalFunc();
+                    this.disabled = false;
+                    this.innerText = 'Yes, Cancel';
+                });
+            });
+        }
+
+        // Unified window click handler for all modals
+        window.onclick = function (event) {
+            if (event.target == modal) {
+                modal.style.display = 'none';
+            }
+            if (event.target == emailModal) {
+                emailModal.style.display = 'none';
+            }
+            if (event.target == cancelModal) {
+                cancelModal.style.display = 'none';
+            }
+            if (event.target == guestReceiptModal) {
+                guestReceiptModal.style.display = 'none';
+            }
+        }
+    });
+
+    document.querySelectorAll('.payment-checkbox').forEach(checkbox => {
+        checkbox.addEventListener('change', function () {
+            const paymentId = this.dataset.paymentId;
+            const isPaid = this.checked;
+            const statusTextElement = this.parentElement.childNodes[2]; // The "Paid" / "Unpaid" text node
+
+            fetch(`{% url 'booking:update-payment-status' %}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({
+                    payment_id: paymentId,
+                    is_paid: isPaid
+                })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Set the hash before reloading
+                        window.location.hash = `#payment-item-${paymentId}`;
+                        window.location.reload();
+                    } else {
+                        console.error('Failed to update payment status:', data.error);
+                        // Revert the checkbox state on failure
+                        this.checked = !isPaid;
+                        alert('Failed to update payment status. Please try again.');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    this.checked = !isPaid;
+                    alert('An error occurred. Please try again.');
+                });
+        });
+
+        // Payment schedule expand/collapse
+        const paymentBody = document.getElementById('payment-body');
+        const expandBtn = document.getElementById('expand-payments');
+        const collapseBtn = document.getElementById('collapse-payments');
+
+        collapseBtn.addEventListener('click', function () {
+            paymentBody.style.display = 'none';
+            collapseBtn.style.display = 'none';
+            expandBtn.style.display = 'inline-block';
+        });
+
+        expandBtn.addEventListener('click', function () {
+            paymentBody.style.display = 'block';
+            expandBtn.style.display = 'none';
+            collapseBtn.style.display = 'inline-block';
+        });
+
+        // Scroll to hash on page load
+        window.addEventListener('load', () => {
+            const hash = window.location.hash;
+            if (hash) {
+                const el = document.querySelector(hash);
+                if (el) {
+                    // Using a timeout gives the browser a moment to render, making the scroll more reliable
+                    setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100);
+                }
+            }
+        });
+    });
+
+    // Break long reservation URLs in notes on mobile/tablet
+    document.addEventListener('DOMContentLoaded', function() {
+        if (window.innerWidth <= 992) {
+            document.querySelectorAll('.notes-text').forEach(function(el) {
+                el.innerHTML = el.innerHTML.replace(/reservations\\//gi, 'reservations/<wbr>');
+            });
+        }
+    });
+</script>
+<script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"></script>
+{% endblock extra_script %}

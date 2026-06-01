@@ -1,0 +1,3888 @@
+{% extends 'frontend/base/base.html' %}
+{% load static %}
+
+{% block extra_head %}
+<link href="{% static 'css/calender/grid.css' %}" rel="stylesheet">
+<link href="{% static 'css/host_dashboard.css' %}" rel="stylesheet">
+<link href="{% static 'css/task/listing.css' %}" rel="stylesheet">
+<link href="{% static 'css/booking/list.css' %}" rel="stylesheet">
+<style>
+  .date-cell {
+    position: relative;
+    /* overflow: visible; */
+    /* ensure overlays aren't clipped */
+    /* z-index: 1; */
+  }
+  .date-row {
+    overflow: visible;
+    --cell-width: var(--timeline-cell-width, 60px);
+    --edge-gap-left: 10px;
+    --edge-gap-right: 10px;
+  }
+
+  .date-column.user-selected-date-column,
+  .date-cell.user-selected-date-column {
+    background: rgba(59, 130, 246, 0.24) !important;
+  }
+
+  .date-column.today-date-column {
+    background: rgba(22, 163, 74, 0.245) !important;
+  }
+
+  .date-cell.today-date-column {
+    background:  rgba(22, 163, 74, 0.245) !important;;
+  }
+
+  .date-column.today-date-column {
+    box-shadow: inset 0 0 0 1px rgba(13, 166, 69, 0.409) !important;
+  }
+
+  .date-cell.today-date-column {
+    box-shadow: none !important;
+  }
+
+  .date-column.today-date-column.user-selected-date-column,
+  .date-cell.today-date-column.user-selected-date-column {
+    background: rgba(34, 197, 94, 0.14) !important;
+  }
+
+  .date-column.user-selected-date-column {
+    box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.55);
+  }
+
+  .date-cell.user-selected-date-column {
+    box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.4);
+  }
+
+  .date-column,
+  .date-cell,
+  .date-row {
+    cursor: pointer;
+  }
+
+  .task-indicator {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 100;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: #111827;
+    border: 2px solid #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+    cursor: pointer;
+    pointer-events: auto;
+  }
+
+  .task-indicator svg {
+    width: 20px;
+    height: 20px;
+    stroke: #ffffff;
+  }
+
+  .task-indicator-count {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    min-width: 15px;
+    height: 15px;
+    border-radius: 999px;
+    padding: 0 4px;
+    background: #ef4444;
+    color: #ffffff;
+    border: 2px solid #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 9px;
+    font-weight: 700;
+    line-height: 1;
+  }
+
+  .payment-indicator {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 120;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: #000000;
+    border: 2px solid #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    pointer-events: auto;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  }
+
+  .payment-indicator img {
+    width: 20px;
+    height: 20px;
+    object-fit: contain;
+    filter: brightness(0) invert(1);
+  }
+
+  /* Booking Segments */
+  .booking-segment {
+    position: absolute;
+    padding: 10px 5px;
+    top: 2px;
+    bottom: 2px;
+    left: 28px !important;
+    transition: all 0.2s;
+    left: 0;
+    width: 100%;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+    overflow: visible;
+    position: relative;
+    z-index: 5;
+  }
+
+  .booking-row-layer {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 4;
+  }
+
+  .booking-span-block {
+    position: absolute;
+    top: 3px;
+    bottom: 3px;
+    --span-gap: calc(var(--cell-width) * 0.85);
+    --boundary-start-adjust: 0px;
+    --boundary-end-adjust: 0px;
+    left: calc((var(--cell-width) * var(--start)) + var(--edge-gap-left) + (var(--span-gap) / 2) - var(--boundary-start-adjust));
+    width: calc((var(--cell-width) * var(--len)) - (var(--edge-gap-left) + var(--edge-gap-right) + var(--span-gap)) + var(--boundary-start-adjust) + var(--boundary-end-adjust));
+    border-radius: 8px;
+    pointer-events: auto;
+    display: flex;
+    align-items: center;
+    justify-content: left;
+    padding: 0 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+    overflow: hidden;
+    min-width: 0;
+    max-width: 100%;
+    white-space: nowrap;
+  }
+  .booking-span-block.carry-start {
+    --boundary-start-adjust: calc(var(--edge-gap-left) + (var(--span-gap) / 2));
+  }
+  .booking-span-block.carry-end {
+    --boundary-end-adjust: calc(var(--edge-gap-right) + (var(--span-gap) / 2));
+  }
+
+  .booking-span-block.rounded-left {
+    border-top-left-radius: 8px;
+    border-bottom-left-radius: 8px;
+  }
+
+  .booking-span-block.rounded-right {
+    border-top-right-radius: 8px;
+    border-bottom-right-radius: 8px;
+  }
+  .booking-segment:hover {
+    z-index: 6;
+  }
+  .booking-segment.expand-to-label {
+    width: auto;
+    min-width: max-content;
+    max-width: none;
+    border-radius: 8px;
+  }
+
+  /* Rounded ends */
+  .booking-segment.rounded-left {
+    border-top-left-radius: 8px;
+    border-bottom-left-radius: 8px;
+  }
+
+  .booking-segment.rounded-right {
+    border-top-right-radius: 8px;
+    border-bottom-right-radius: 8px;
+  }
+
+  /* Position variants */
+  .booking-segment.pos-left {
+    left: 0;
+    width: calc(50% - 8px);
+    /* Leave small gap */
+    display: none;
+  }
+
+  .booking-segment.pos-right {
+    left: calc(50% + 2px);
+    width: calc(50% - 1px);
+    /* Extend 1px to cover right border */
+  }
+
+  .booking-segment.pos-full {
+    left: 0;
+    width: calc(100% + 1px);
+    display:none;
+    /* Extend 1px to cover right border */
+  }
+
+  .segment-content {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+  }
+  /* Content inside the segment (avatar etc) */
+  .booking-segment .segment-content {
+    width: 100%;
+    height: 100%;
+    display: flex !important;
+    align-items: center;
+    justify-content: flex-start;
+    padding-left: 8px;
+    padding-right: 8px;
+    overflow: visible;
+    /* Allow pop out */
+    white-space: nowrap;
+    position: relative;
+    z-index: 20;
+    gap: 6px;
+    flex-wrap: nowrap;
+    line-height: 1;
+  }
+  .booking-segment .segment-content span {
+    max-width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .segment-guest-name {
+    color: #fff !important;
+    font-size: 18px;
+  }
+  .booking-segment .segment-content .segment-guest-name {
+    color: #fff !important;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1;
+  }
+
+  @media (max-width: 768px) {
+    .booking-segment .segment-content .segment-guest-name,
+    .booking-span-block .segment-guest-name {
+      display: inline;
+    }
+    .booking-segment .segment-content span {
+      display: inline;
+    }
+  }
+  .channel-icon {
+        margin-top: 0px !important;
+        margin-right: 5px !important;
+  }
+  .booking-segment .channel-icon {
+    display: block;
+    margin: 0 !important;
+    height: 16px;
+    width: 16px;
+    object-fit: contain;
+    flex: 0 0 auto;
+    vertical-align: middle;
+  }
+  .booking-segment .blocked-icon {
+    display: block;
+    margin: 0 !important;
+    height: 16px;
+    width: 16px;
+    object-fit: contain;
+    flex: 0 0 auto;
+    vertical-align: middle;
+    filter: brightness(0) saturate(100%) invert(1);
+  }
+  .booking-home-icon {
+    width: 20px;
+    height: 20px;
+    margin-right: 6px;
+    flex: 0 0 auto;
+    display: inline-block;
+  }
+
+  .booking-segment .avatar-group {
+    position: relative;
+    display: flex;
+    align-items: center;
+    margin-right: 0;
+    height: auto;
+    line-height: 0;
+  }
+
+
+
+  /* Hover Tooltip */
+  .booking-segment:hover .booking-tooltip {
+    visibility: visible;
+    opacity: 1;
+  }
+
+  .booking-tooltip {
+    visibility: hidden;
+    opacity: 0;
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+    /* Dark gray */
+    color: white;
+    padding: 12px;
+    border-radius: 8px;
+    width: 260px;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    /* Shadow-lg */
+    z-index: 100;
+    z-index: 10000;
+    transition: opacity 0.2s, visibility 0.2s;
+    pointer-events: none;
+    font-size: 13px;
+    line-height: 1.5;
+    margin-bottom: 8px;
+    text-align: left;
+    white-space: normal;
+    /* Allow text wrapping */
+  }
+
+  .booking-tooltip h4 {
+    margin: 0 0 4px 0;
+    font-size: 16px;
+    font-weight: 700;
+    color: white;
+  }
+
+  .booking-tooltip .info-row {
+    margin-bottom: 2px;
+    color: #e2e8f0;
+    font-weight: 500;
+  }
+
+  .booking-tooltip .highlight {
+    color: #f8fafc;
+    font-weight: 600;
+  }
+
+  /* Tooltip flip for top row */
+  .booking-tooltip.tooltip-bottom {
+    bottom: auto;
+    top: 100%;
+    margin-top: 8px;
+    margin-bottom: 0;
+  }
+
+  /* Reservation Side Panel */
+  .reservation-sidebar {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 80%;
+    height: calc(100vh - 60px);
+    background: white;
+    z-index: 6000;
+    box-shadow: -4px 0 15px rgba(0, 0, 0, 0.1);
+    transform: translateX(100%);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    flex-direction: column;
+  }
+
+  @media (min-width: 768px) and (max-width: 1199.98px) {
+    .reservation-sidebar {
+      width: 100%;
+    }
+    .sidebar-content {
+      padding: 10px;
+    }
+  }
+
+  .reservation-sidebar.open {
+    transform: translateX(0);
+  }
+
+	  .sidebar-header {
+	    padding: 10px;
+	    border-bottom: 1px solid #e5e7eb;
+	    display: flex;
+	    justify-content: space-between;
+	    align-items: center;
+	  }
+
+  .sidebar-header-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .sidebar-header-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .sidebar-header-actions:empty {
+    display: none;
+  }
+
+  .sidebar-edit-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border-radius: 6px;
+    padding: 6px 12px;
+    border: 1px solid #d1d5db;
+    background: #eff3ff;
+    color: #1d4ed8;
+    font-weight: 600;
+    font-size: 14px;
+    text-decoration: none;
+    transition: background 0.2s, border-color 0.2s;
+  }
+
+  .sidebar-edit-btn svg {
+    width: 16px;
+    height: 16px;
+    stroke: currentColor;
+  }
+
+  .sidebar-edit-btn:hover {
+    background: #dbeafe;
+    border-color: #93c5fd;
+  }
+
+  .sidebar-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: #111827;
+  }
+
+  @media (max-width: 767.98px) {
+    .sidebar-header-actions {
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .sidebar-edit-btn {
+      display: inline-flex !important;
+    }
+  }
+
+  .close-sidebar-btn {
+    background: none;
+    border: none;
+    font-size: 24px;
+    color: #6b7280;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 50%;
+    transition: background 0.2s;
+  }
+
+  .close-sidebar-btn:hover {
+    background: #f3f4f6;
+  }
+
+  .sidebar-content {
+    padding: 24px;
+    overflow-y: auto;
+    flex: 1;
+  }
+
+  .detail-group {
+    margin-bottom: 24px;
+  }
+
+  .detail-label {
+    font-size: 13px;
+    color: #6b7280;
+    font-weight: 500;
+    margin-bottom: 4px;
+  }
+
+  .detail-value {
+    font-size: 16px;
+    color: #1f2937;
+    font-weight: 600;
+  }
+
+  .overlay-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.3);
+    z-index: 5500;
+    display: none;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  .overlay-backdrop.open {
+    display: block;
+    opacity: 1;
+  }
+
+  .calendar-header {
+    background: white;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .header-nav .nav-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+  }
+  .header-nav .nav-title img {
+    width: 20px;
+    height: 20px;
+  }
+  .header-nav .header-actions-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .mobile-actions {
+    display: none;
+    position: relative;
+    z-index: 2500;
+  }
+
+  .mobile-actions-toggle {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 1px solid #e5e7eb;
+    background: #ffffff;
+    color: #111827;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    line-height: 1;
+  }
+
+  .mobile-actions-menu {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 8px);
+    background: #5a5a5a;
+    border-radius: 10px;
+    padding: 10px 12px;
+    display: none;
+    gap: 16px;
+    align-items: center;
+    z-index: 4000;
+  }
+
+  .mobile-actions-menu.open {
+    display: flex;
+  }
+
+  .mobile-actions-menu .btn {
+    width: 30px;
+    height: 30px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border-radius: 6px;
+  }
+
+  .mobile-actions-menu img {
+    width: 18px;
+    height: 18px;
+    display: block;
+    filter: brightness(0) invert(1);
+  }
+
+  .tooltip-light {
+    position: relative;
+  }
+
+  .tooltip-light:hover::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    left: 50%;
+    top: calc(100% + 8px);
+    transform: translateX(-50%);
+    background: #ffffff;
+    color: #111827;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    padding: 4px 8px;
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 1.2;
+    white-space: nowrap;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
+    z-index: 12000;
+    pointer-events: none;
+  }
+
+  .tooltip-light:hover::before {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: calc(100% + 4px);
+    transform: translateX(-50%);
+    width: 8px;
+    height: 8px;
+    background: #ffffff;
+    border-right: 1px solid #d1d5db;
+    border-bottom: 1px solid #d1d5db;
+    transform-origin: center;
+    rotate: 45deg;
+    z-index: 11999;
+    pointer-events: none;
+  }
+
+  .tooltip-light.tooltip-right:hover::after {
+    left: auto;
+    right: 0;
+    transform: none;
+  }
+
+  .tooltip-light.tooltip-right:hover::before {
+    left: auto;
+    right: 12px;
+    transform: none;
+    rotate: 45deg;
+  }
+
+  /* Task Details Panel in Navbar */
+  #taskDetailsPanel {
+    position: fixed;
+    top: 65px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: white;
+    border: 2px solid #1d74b2;
+    border-radius: 8px;
+    padding: 16px 20px;
+    z-index: 1000;
+    display: none;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    max-width: 500px;
+    animation: slideDown 0.3s ease-out;
+    pointer-events: auto;
+  }
+
+  #taskDetailsPanel.show {
+    display: block;
+  }
+
+  @keyframes slideDown {
+    from {
+      opacity: 0;
+      transform: translateX(-50%) translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+  }
+
+  #taskDetailsPanel h5 {
+    margin: 0 0 8px 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: #1f2937;
+  }
+
+  #taskDetailsPanel .task-item-nav {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 8px;
+    padding: 8px;
+    background: #f9fafb;
+    border-radius: 6px;
+  }
+
+  #taskDetailsPanel .task-item-nav:last-child {
+    margin-bottom: 0;
+  }
+
+  #taskDetailsPanel .task-badge {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 4px;
+    text-transform: capitalize;
+    color: white;
+    min-width: 60px;
+    text-align: center;
+  }
+
+  #taskDetailsPanel .task-info-nav {
+    flex: 1;
+  }
+
+  #taskDetailsPanel .task-info-nav > div {
+    font-size: 12px;
+    color: #4b5563;
+    line-height: 1.4;
+  }
+
+  #taskDetailsPanel .task-status {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    background: #f0f0f0;
+    color: #666;
+  }
+
+  .nav-button-header {
+    width: 40px;
+    height: 40px;
+    border: none;
+    border-radius: 50%;
+    background: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s;
+  }
+
+  .nav-button-header svg {
+    width: 24px;
+    height: 24px;
+    color: #374151;
+  }
+
+  .month-display {
+    font-size: 20px;
+    font-weight: 600;
+    color: #1f2937;
+    text-align: center;
+    width: 150px;
+    white-space: nowrap;
+
+  }
+  .month-picker-wrapper {
+    position: relative;
+  }
+  .month-display-btn {
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+    padding: 0;
+  }
+  .month-year-panel {
+    position: absolute;
+    top: calc(100% + 10px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: #ffffff;
+    border: 1px solid #d1d5db;
+    border-radius: 10px;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.18);
+    padding: 12px;
+    min-width: 250px;
+    z-index: 6000;
+  }
+  .month-year-panel[hidden] {
+    display: none !important;
+  }
+  .month-year-controls {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .month-year-select {
+    flex: 1;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 14px;
+    color: #1f2937;
+    background: #fff;
+  }
+  .month-year-actions {
+    display: block;
+  }
+  .month-year-apply {
+    width: 100%;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    background: #ffffff;
+    color: #1d74b2;
+    font-size: 18px;
+    font-weight: 700;
+    line-height: 1.2;
+    padding: 10px 15px;
+    text-align: center;
+    cursor: pointer;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+    font-family: sans-serif;
+  }
+  .month-year-apply:hover {
+    background: #f8fafc;
+    border-color: #c5ccd3;
+  }
+  .month-year-apply:focus-visible {
+    outline: 2px solid #1d74b2;
+    outline-offset: 2px;
+  }
+
+  .divider {
+    width: 1px;
+    height: 32px;
+    background-color: #d1d5db;
+    margin: 0 4px;
+  }
+
+  /* Block Calendar Modal Styles */
+  .bc-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 3000;
+    display: none;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .bc-container {
+    width: 100%;
+    max-width: 500px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    margin: 20px;
+  }
+
+  .bc-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px;
+    border-bottom: 1px solid #e0e0e0;
+  }
+
+  .bc-header-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 20px;
+    font-weight: 600;
+  }
+
+  .bc-content {
+    padding: 20px;
+  }
+
+  .bc-property-card {
+    display: flex;
+    gap: 15px;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    margin-bottom: 25px;
+  }
+
+  .bc-property-image {
+    width: 80px;
+    height: 80px;
+    border-radius: 8px;
+    object-fit: cover;
+  }
+
+  .bc-property-title {
+    font-size: 15px;
+    font-weight: 500;
+    line-height: 1.4;
+    color: #333;
+  }
+
+  .bc-date-inputs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+
+  .bc-input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .bc-date-input-wrapper {
+    position: relative;
+  }
+
+  .bc-calendar-icon-input {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+    color: #666;
+  }
+
+  .bc-success-message {
+    display: none;
+    padding: 15px;
+    background: #d4edda;
+    color: #155724;
+    border-radius: 6px;
+    margin-top: 20px;
+    text-align: center;
+    font-size: 14px;
+  }
+
+  .bc-success-message.show {
+    display: block;
+  }
+
+  /* Search Bar Styles */
+  .properties-column .search-bar {
+    /* padding: 16px; */
+    border-bottom: 1px solid #e0e0e0;
+  }
+
+  .properties-column .search-input {
+    width: 100%;
+    padding: 10px 16px;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 14px;
+    outline: none;
+    background-color: #f9fafb;
+    padding-right: 30px; /* Space for clear button */
+  }
+
+  .property-hover-tooltip {
+    position: fixed;
+    z-index: 100001;
+    display: none;
+    width: fit-content;
+    min-width: 340px;
+    max-width: min(420px, calc(100vw - 20px));
+    background: #000000cd;
+    border-radius: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+    color: #ffffff;
+    padding: 10px;
+    pointer-events: none;
+  }
+
+  .property-hover-tooltip .property-preview-card {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+  }
+
+  .property-hover-tooltip .property-preview-image {
+    width: 120px;
+    height: 120px;
+    border-radius: 12px;
+    object-fit: cover;
+    flex: 0 0 auto;
+    background: #d1d5db;
+  }
+
+  .property-hover-tooltip .property-preview-content {
+    min-width: 0;
+    flex: 1;
+    max-width: 260px;
+  }
+
+  .property-hover-tooltip .property-preview-title {
+    font-size: 18px;
+    font-weight: 700;
+    line-height: 1.2;
+    margin-bottom: 8px;
+    color: #ffffff;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+
+  .property-hover-tooltip .property-preview-line {
+    font-size: 15px;
+    line-height: 1.25;
+    margin-bottom: 8px;
+    color: #e5e7eb;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .property-hover-tooltip .property-preview-line:last-child {
+    margin-bottom: 0;
+  }
+
+  .property-hover-tooltip .property-preview-line.price-line {
+    color: #ffffff;
+    font-weight: 600;
+  }
+
+  .property-hover-tooltip .property-preview-line.meta-line {
+    color: #e5e7eb;
+  }
+
+  /* Global Tooltip Styles */
+  #globalTooltip {
+    position: fixed;
+    background-color: #000000cd;
+    color: white;
+    padding: 12px;
+    border-radius: 8px;
+    width: 400px;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2), 0 4px 6px -2px rgba(0, 0, 0, 0.1);
+    z-index: 100000; /* Highest z-index to sit on top of everything */
+    pointer-events: none;
+    font-size: 13px;
+    line-height: 1.5;
+    display: none;
+  }
+  #globalTooltip h4 {
+    margin: 0 0 4px 0;
+    font-size: 16px;
+    font-weight: 700;
+    color: white;
+  }
+  #globalTooltip .info-row {
+    margin-bottom: 2px;
+    color: white;
+  }
+  #globalTooltip .highlight {
+    color: white;
+    font-weight: 600;
+  }
+
+  #globalTooltip.booking-tooltip-variant {
+    background-color: #000000cd;
+    border: 1px solid rgba(32, 31, 31, 0.849);
+    border-radius: 16px;
+    padding: 14px;
+    width: max-content;
+    max-width: min(540px, calc(100vw - 20px));
+  }
+
+  #globalTooltip.booking-tooltip-variant .booking-tooltip-card {
+    display: flex;
+    align-items: stretch;
+    gap: 14px;
+  }
+
+  #globalTooltip.booking-tooltip-variant .booking-tooltip-avatar-wrap {
+    width: 140px;
+    min-width: 140px;
+    max-width: 140px;
+    flex: 0 0 140px;
+    align-self: stretch;
+    position: relative;
+    overflow: hidden;
+    border-radius: 14px;
+  }
+
+  #globalTooltip.booking-tooltip-variant .booking-tooltip-avatar {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    object-fit: cover;
+    background: #d1d5db;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    display: block;
+  }
+
+  #globalTooltip.booking-tooltip-variant .booking-tooltip-info {
+    flex: 1;
+    min-width: 0;
+    max-width: 320px;
+  }
+
+  #globalTooltip.booking-tooltip-variant .booking-tooltip-name {
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 1.15;
+    margin-bottom: 5px;
+    margin-top: 5px;
+    color: #ffffff;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    word-break: break-word;
+  }
+
+  #globalTooltip.booking-tooltip-variant .booking-tooltip-date {
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.2;
+    color: #ffffff;
+    margin-bottom: 7px;
+  }
+
+  #globalTooltip.booking-tooltip-variant .booking-tooltip-meta {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 14px;
+    margin-bottom: 10px;
+    color: #ededed;
+    font-size: 12px;
+    font-weight: 500;
+  }
+
+  #globalTooltip.booking-tooltip-variant .booking-tooltip-meta-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  #globalTooltip.booking-tooltip-variant .booking-tooltip-meta-item svg {
+    width: 16px;
+    height: 16px;
+    stroke: #ededed;
+  }
+
+  #globalTooltip.booking-tooltip-variant .booking-tooltip-line {
+    color: #f3f4f6;
+    font-size: 13px;
+    line-height: 1.25;
+    margin-bottom: 6px;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    word-break: break-word;
+  }
+
+  #globalTooltip.booking-tooltip-variant .booking-tooltip-line:last-child {
+    margin-bottom: 0;
+  }
+
+  #globalTooltip.booking-tooltip-variant .booking-tooltip-line strong {
+    color: #ffffff;
+    font-weight: 700;
+  }
+
+  #globalTooltip.booking-tooltip-variant .booking-tooltip-channel {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  #globalTooltip.booking-tooltip-variant .booking-tooltip-channel img {
+    width: 16px;
+    height: 16px;
+    object-fit: contain;
+    filter: brightness(0) invert(1);
+  }
+
+  #globalTooltip.task-tooltip-variant {
+    background: rgba(0, 0, 0, 0.82);
+    padding: 0;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 10px;
+    width: 300px;
+    overflow: hidden;
+  }
+
+  #globalTooltip.task-tooltip-variant .task-tooltip-list {
+    padding: 6px 0;
+  }
+
+  #globalTooltip.task-tooltip-variant .task-tooltip-item {
+    position: relative;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 12px;
+  }
+
+  #globalTooltip.task-tooltip-variant .task-tooltip-item + .task-tooltip-item::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 38px;
+    right: 12px;
+    border-top: 1px solid rgba(255, 255, 255, 0.25);
+  }
+
+  #globalTooltip.task-tooltip-variant .task-tooltip-icon {
+    width: 18px;
+    height: 18px;
+    margin-top: 2px;
+    object-fit: contain;
+    filter: brightness(0) invert(1);
+    opacity: 0.95;
+    flex: 0 0 auto;
+  }
+
+  #globalTooltip.task-tooltip-variant .task-tooltip-content {
+    flex: 1;
+    min-width: 0;
+  }
+
+  #globalTooltip.task-tooltip-variant .task-tooltip-title {
+    font-size: 15px;
+    font-weight: 700;
+    line-height: 1.2;
+    color: #ffffff;
+    margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  #globalTooltip.task-tooltip-variant .task-tooltip-line {
+    font-size: 13px;
+    color: #f3f4f6;
+    line-height: 1.2;
+    margin-bottom: 2px;
+  }
+
+  #globalTooltip.task-tooltip-variant .task-tooltip-line b {
+    font-weight: 700;
+    color: #ffffff;
+  }
+
+  #globalTooltip.task-tooltip-variant .task-tooltip-line:last-child {
+    margin-bottom: 0;
+  }
+
+  #globalTooltip.payment-tooltip-variant {
+    background: rgba(0, 0, 0, 0.82);
+    border: none;
+    border-radius: 10px;
+    padding: 0;
+    width: min(320px, calc(100vw - 20px));
+    overflow: hidden;
+  }
+
+  #globalTooltip.payment-tooltip-variant .payment-tooltip-card {
+    color: #ffffff;
+    font-family: Arial, sans-serif;
+  }
+
+  #globalTooltip.payment-tooltip-variant .payment-tooltip-amount {
+    font-size: 20px;
+    font-weight: 700;
+    line-height: 1.1;
+    padding: 12px 12px 8px;
+  }
+
+  #globalTooltip.payment-tooltip-variant .payment-tooltip-status {
+    font-size: 15px;
+    font-weight: 700;
+    line-height: 1.1;
+    padding: 0 12px 10px;
+    border-top: none;
+  }
+
+  #globalTooltip.payment-tooltip-variant .payment-tooltip-meta {
+    font-size: 14px;
+    line-height: 1.15;
+    padding: 8px 12px 10px;
+    border-top: none;
+  }
+
+  #globalTooltip.payment-tooltip-variant .payment-tooltip-dates {
+    font-size: 13px;
+    line-height: 1.15;
+    padding: 8px 12px 12px;
+    border-top: none;
+  }
+
+  @media (max-width: 991.98px) {
+    #globalTooltip:not(.payment-tooltip-variant):not(.task-tooltip-variant),
+    .booking-tooltip {
+      display: none !important;
+      visibility: hidden !important;
+      opacity: 0 !important;
+    }
+
+    #globalTooltip.payment-tooltip-variant {
+      display: block !important;
+      visibility: visible !important;
+      opacity: 1 !important;
+      width: min(300px, calc(100vw - 20px));
+    }
+
+    #globalTooltip.task-tooltip-variant {
+      display: block !important;
+      visibility: visible !important;
+      opacity: 1 !important;
+    }
+
+    #globalTooltip.payment-tooltip-variant .payment-tooltip-amount {
+      font-size: 18px;
+      line-height: 1.25;
+    }
+
+    #globalTooltip.payment-tooltip-variant .payment-tooltip-status {
+      font-size: 15px;
+      line-height: 1.3;
+    }
+
+    #globalTooltip.payment-tooltip-variant .payment-tooltip-meta {
+      font-size: 14px;
+      line-height: 1.3;
+    }
+
+    #globalTooltip.payment-tooltip-variant .payment-tooltip-dates {
+      font-size: 13px;
+      line-height: 1.3;
+    }
+  }
+
+  /* Scroll Fixes */
+  .calendar-container {
+    height: calc(100vh - 197px);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  .calendar-wrapper {
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+    align-items: flex-start;
+    min-height: 0;
+    position: relative;
+  }
+
+  .properties-column {
+    width: 250px;
+    flex-shrink: 0;
+    background: #fff;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: visible;
+    border-right: 1px solid #e0e0e0;
+    position: relative;
+    z-index: 20;
+    isolation: isolate;
+  }
+  
+  /* Show properties-list scrollbar (single vertical scrollbar on left pane) */
+  #propertiesList::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  #propertiesList::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  #propertiesList::-webkit-scrollbar-thumb {
+    background: #d1d5db;
+    border-radius: 4px;
+  }
+
+  .properties-column .search-bar {
+    flex-shrink: 0;
+    z-index: 40;
+    background: #fff;
+  }
+
+  .property-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    overflow: hidden;
+  }
+  .property-avatar img {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+  }
+
+  .dates-scroll-container {
+    flex: 1;
+    height: 100%;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    --timeline-cell-width: 60px;
+    --timeline-grid-width: 0px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .dates-header-scroll {
+    flex-shrink: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    background: #f8f9fa;
+  }
+
+  .dates-header-scroll::-webkit-scrollbar {
+    height: 0;
+  }
+
+  .dates-body-scroll {
+    flex: 1;
+    min-height: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: thin;
+    position: relative;
+  }
+
+  .calendar-empty-state {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 56px;
+    bottom: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    font-weight: 600;
+    color: #1f2937;
+    text-align: center;
+    pointer-events: none;
+    z-index: 3;
+  }
+
+  #propertiesList {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: visible;
+    scrollbar-width: thin;
+    padding-bottom: 8px;
+  }
+
+  .property-row:hover,
+  .property-row:hover .property-link,
+  .property-row:hover .property-link *,
+  .property-row:hover .property-info,
+  .property-row:hover .property-name {
+    cursor: pointer;
+  }
+
+  .properties-column .dropdown-menu {
+    z-index: 4500;
+  }
+
+  .property-actions .dropdown {
+    position: relative;
+    overflow: visible;
+  }
+
+  .property-actions .dropdown-menu {
+    position: absolute;
+    left: 100%;
+    top: 0;
+    margin-left: 6px;
+    min-width: 210px;
+    z-index: 5000;
+  }
+
+  .property-actions .dropdown-menu.floating-dropdown-menu {
+    position: fixed !important;
+    margin: 0 !important;
+    inset: auto auto auto auto !important;
+    transform: none !important;
+    z-index: 100000 !important;
+  }
+
+  .dates-body-scroll::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  .dates-body-scroll::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .dates-body-scroll::-webkit-scrollbar-thumb {
+    background: #d1d5db;
+    border-radius: 4px;
+  }
+
+  .dates-header {
+    position: relative;
+    z-index: 999;
+    background: #f8f9fa;
+    border-bottom: 1px solid #e0e0e0;
+    width: max(100%, var(--timeline-grid-width));
+    min-width: 100%;
+  }
+
+  .dates-grid {
+    position: relative;
+    width: max(100%, var(--timeline-grid-width));
+    min-width: 100%;
+  }
+
+  .dates-grid.has-user-selected-column::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: calc(var(--selected-column-index, -1) * var(--timeline-cell-width, 60px));
+    width: var(--timeline-cell-width, 60px);
+    background: rgba(59, 130, 246, 0.22);
+    pointer-events: none;
+    z-index: 2;
+  }
+
+  .dates-grid.has-today-column::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: calc(var(--today-column-index, -1) * var(--timeline-cell-width, 60px));
+    width: var(--timeline-cell-width, 60px);
+    background: rgba(22, 163, 74, 0.2);
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  .date-cell.user-selected-date-column {
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+
+  .date-cell.today-date-column.user-selected-date-column {
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+
+  .date-column {
+    min-width: var(--timeline-cell-width, 60px);
+    flex: 0 0 var(--timeline-cell-width, 60px);
+  }
+
+  .date-row {
+    width: max(100%, var(--timeline-grid-width));
+    min-width: 100%;
+  }
+
+  .date-cell {
+    min-width: var(--timeline-cell-width, 60px);
+    flex: 0 0 var(--timeline-cell-width, 60px);
+  }
+
+  /* Responsive Adjustments */
+  @media (max-width: 992px) {
+    .header-nav,
+    .header-nav .calendar-header {
+      position: relative;
+      overflow: visible;
+      /* z-index: 2500; */
+    }
+
+    .header-nav {
+      background: #ffffff;
+      border-radius: 12px;
+      padding: 0px !important;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+    }
+    .header-nav .nav-title span {
+      color: #ffffff;
+      font-weight: 600;
+    }
+    .header-nav .nav-title img {
+      filter: brightness(0) invert(1);
+    }
+    .calendar-header {
+      margin-right: 0 !important;
+    }
+    .header-nav .row {
+      row-gap: 10px;
+    }
+    .header-nav .calendar-header {
+      justify-content: space-between;
+      width: 100%;
+      background: #ffffff;
+      border-radius: 10px;
+      padding: 6px 10px;
+      gap: 8px;
+    }
+    .header-nav .header-actions-group {
+      display: none;
+    }
+    .mobile-actions {
+      display: block;
+    }
+    .header-nav .actions-col {
+      display: none;
+    }
+    #propertiesList {
+      padding-bottom: 0px;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .header-nav .row {
+      flex-direction: column;
+      align-items: stretch;
+    }
+    .header-nav .col-auto {
+      width: 100%;
+      display: flex;
+      justify-content: center;
+    }
+    .header-nav .nav-left {
+      justify-content: center;
+      width: 100%;
+    }
+    .header-nav .calendar-header {
+      gap: 8px;
+      padding: 0px 8px;
+    }
+    .header-nav .month-display {
+      font-size: 16px;
+    }
+    .header-nav .divider {
+      height: 28px;
+    }
+    .header-nav .header-actions-group {
+      gap: 16px;
+    }
+
+    .sidebar-content {
+      padding: 5px 5px;
+      
+    }
+    .header-nav .actions-col {
+      display: none;
+    }
+
+    .reservation-sidebar {
+      width: 100%;
+    }
+
+    body.reservation-panel-open .header-nav {
+      display: none !important;
+    }
+    .properties-column {
+      width: 140px;
+    }
+    .property-name {
+      font-size: 12px;
+    }
+    .calendar-container {
+      height: calc(100vh - 210px);
+    }
+    .calendar-header {
+      margin-right: 0 !important;
+      justify-content: center;
+      width: 100%;
+      margin-bottom: 10px;
+    }
+    .month-display {
+      font-size: 16px;
+      width: auto;
+    }
+
+    /* Mobile table layout to match compact timeline view */
+    .calendar-container {
+      margin-top: 8px;
+      border-radius: 10px;
+    }
+    .booking-segment {
+      top: 0;
+      bottom: 0;
+      box-shadow: none;
+      border: none;
+    }
+
+    .booking-row-layer {
+      z-index: 4;
+    }
+
+    .booking-span-block {
+      top: 3px;
+      bottom: 3px;
+      box-shadow: none;
+      min-width: 0;
+      overflow: hidden;
+    }
+
+    .booking-segment,
+    .booking-segment * {
+      outline: none !important;
+      border-top: none !important;
+    }
+    .calendar-wrapper {
+      align-items: stretch;
+      min-height: 0;
+    }
+    .properties-column {
+      width: 90px;
+      border-right: 1px solid #e0e0e0;
+      overflow: visible;
+      min-height: 0;
+      z-index: 19 !important;
+    }
+    .properties-column .search-bar {
+      display: none;
+    }
+    .properties-column::before {
+      content: "";
+      display: block;
+      height: 56px;
+      background: #fff;
+      border-bottom: 1px solid #e0e0e0;
+    }
+    #propertiesList {
+      min-height: 0;
+      overflow-y: auto;
+      overflow-x: visible;
+      scrollbar-width: thin;
+    }
+    .dates-body-scroll {
+      overflow-y: auto;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+    .calendar-empty-state {
+      font-size: 20px;
+      padding: 0 12px;
+    }
+    .dates-body-scroll::-webkit-scrollbar {
+      width: 0;
+      height: 0;
+      display: none;
+    }
+    .property-row {
+      justify-content: flex-start;
+      padding: 0 6px;
+      height: 56px;
+      overflow: visible;
+      cursor: pointer;
+    }
+    .property-row:hover {
+      cursor: pointer;
+    }
+    .property-row > .property-link,
+    .property-row > .property-link * {
+      cursor: pointer;
+    }
+    .property-avatar {
+      width: 40px;
+      height: 35px;
+      border-radius: 50%;
+      overflow: hidden;
+    }
+    .property-avatar img {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      object-fit: cover;
+    }
+    .property-info {
+      display: none;
+    }
+    .property-name {
+      display: none;
+    }
+    .property-actions {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      margin-left: 6px;
+    }
+    .property-actions .btn {
+      padding: 0;
+      width: 22px;
+      height: 22px;
+      line-height: 1;
+    }
+    .property-actions .dropdown-menu.show {
+      inset: auto auto auto auto !important;
+      transform: none !important;
+      left: 100% !important;
+      top: 0 !important;
+      z-index: 5000 !important;
+    }
+    .dates-header {
+      height: 56px;
+    }
+    .date-column {
+      min-width: 52px;
+      flex: 0 0 52px;
+      padding: 6px 2px;
+    }
+    .date-row {
+      height: 56px;
+    }
+    .date-cell {
+      min-width: 52px;
+      flex: 0 0 52px;
+      height: 52px;
+    }
+
+    .date-row {
+      --cell-width: 52px;
+      --edge-gap-left: 10px;
+      --edge-gap-right: 10px;
+    }
+    .booking-segment .segment-content {
+      padding: 0 6px;
+      width: 100%;
+      max-width: 100%;
+      overflow: hidden;
+      justify-content: flex-start;
+    }
+    .booking-segment .segment-content span {
+      font-size: 11px;
+      line-height: 1.1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .booking-home-icon {
+      display: none;
+    }
+    .booking-segment {
+      overflow: visible;
+      min-width: max-content;
+    }
+    .booking-segment.expand-to-label {
+      width: auto;
+      min-width: max-content;
+    }
+    .booking-segment .segment-content {
+      width: max-content;
+      max-width: none;
+    }
+  }
+
+  body {
+    overflow: hidden;
+  }
+  
+</style>
+{% endblock extra_head %}
+
+{% block content %}
+<div class="container-fluid p-1">
+  <!-- Header Navigation (Active - New Design) -->
+  <div class="header-nav" style="padding: 8px;">
+    <div class="row align-items-center justify-content-between w-100 g-3">
+      <div class="col-auto actions-col">
+        <div class="nav-left">
+          <div class="nav-title">
+            <img src="{% static 'img/calender/calendar_dashboard_icon.svg' %}">
+            <span>Calendar - Timeline view</span>
+          </div>
+        </div>
+      </div>
+      <div class="col-auto calendar-header" style="margin-right: 4rem;">
+        <button class="nav-button-header" id="prevBtn" aria-label="Previous month">
+          <img src="{% static 'img/calender/left_arrow.svg' %}">
+        </button>
+
+        <div class="month-picker-wrapper">
+          <button class="month-display month-display-btn" id="monthDisplay" type="button" aria-haspopup="dialog" aria-expanded="false">
+            {{ current_month|date:"F Y" }}
+          </button>
+          <div class="month-year-panel" id="monthYearPanel" hidden>
+            <div class="month-year-controls">
+              <select class="month-year-select" id="monthPickerSelect">
+                <option value="0">January</option>
+                <option value="1">February</option>
+                <option value="2">March</option>
+                <option value="3">April</option>
+                <option value="4">May</option>
+                <option value="5">June</option>
+                <option value="6">July</option>
+                <option value="7">August</option>
+                <option value="8">September</option>
+                <option value="9">October</option>
+                <option value="10">November</option>
+                <option value="11">December</option>
+              </select>
+              <select class="month-year-select" id="yearPickerSelect"></select>
+            </div>
+            <div class="month-year-actions">
+              <button class="month-year-apply" id="monthYearApplyBtn" type="button">Show Calendar</button>
+            </div>
+          </div>
+        </div>
+
+        <button class="nav-button-header" id="nextBtn" aria-label="Next month">
+          <img src="{% static 'img/calender/right_arrow.svg' %}">
+        </button>
+
+        <div class="divider"></div>
+
+        <button class="nav-button-header today-btn tooltip-light" id="todayBtn" aria-label="Go to today" data-tooltip="Return to current month">
+          <img src="{% static 'img/calender/today_icon.svg' %}">
+        </button>
+
+        <div class="mobile-actions">
+          <button class="mobile-actions-toggle" id="mobileActionsToggle" aria-label="Open actions" >⋮</button>
+          <div class="mobile-actions-menu" id="mobileActionsMenu">
+            <button class="btn p-0 tooltip-light" id="mobilePrintBtn" style="border:none" data-tooltip="Print">
+              <img src="{% static 'img/calender/print_icon.svg' %}">
+            </button>
+            <button class="btn p-0 tooltip-light" id="mobileRefreshBtn" style="border:none" data-tooltip="Refresh">
+              <img src="{% static 'img/calender/refresh_icon.svg' %}">
+            </button>
+            <a class="btn p-0 tooltip-light" href="{% url 'calendar-list-view' %}" style="border:none" data-tooltip="List View">
+              <img src="{% static 'img/calender/prime_list.svg' %}">
+            </a>
+            <button class="btn p-0 tooltip-light tooltip-right" style="border:none" data-tooltip="Timeline View" >
+              <img src="{% static 'img/calender/circum_view-timeline.svg' %}">
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-auto actions-col">
+        <!-- <div class="header-actions">
+          <a href="#" class="btn refresh-btn" style="background-color: #ffffff; color: #1D74B2; padding: 4px 11px;"
+            id="refreshBtn">Refresh</a>
+        </div> -->
+        <div class="d-flex">
+          <div></div>
+          <div class="header-actions-group">
+            <button class="btn p-0 tooltip-light" style="border:none" data-tooltip="Print">
+              <img src="{% static 'img/calender/print_icon.svg' %}">
+            </button>
+            <button class="btn p-0 tooltip-light" id="refreshBtn" style="border:none" data-tooltip="Refresh">
+              <img src="{% static 'img/calender/refresh_icon.svg' %}">
+            </button>
+            <button class="btn p-0 tooltip-light" style="border:none" data-tooltip="List View">
+              <a href="{% url 'calendar-list-view' %}">
+                <img src="{% static 'img/calender/prime_list.svg' %}">
+              </a>
+
+            </button>
+            <button class="btn p-0 tooltip-light tooltip-right" style="border:none" data-tooltip="Timeline View">
+                <img src="{% static 'img/calender/circum_view-timeline.svg' %}">
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Calendar Content -->
+  <div class="calendar-container mt-3">
+    <div class="loading-indicator" id="loadingIndicator">Loading...</div>
+    <div class="calendar-wrapper">
+      <div class="properties-column">
+        <div class="search-bar" style="position: relative;">
+          <div style="position: absolute; left: 20px; top: 50%; transform: translateY(-50%); pointer-events: none;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2" style="color: black;">
+                <circle cx="11" cy="11" r="8"></circle>
+                <path d="m21 21-4.35-4.35"></path>
+            </svg>
+          </div>
+          <input type="text" id="propertySearchInput" class="search-input" placeholder="Search listings"
+            onkeyup="filterProperties()" style="padding-left: 35px;" />
+          <span id="clearSearchBtn" onclick="clearSearch()" 
+                style="position: absolute; right: 25px; top: 50%; transform: translateY(-50%); cursor: pointer; display: none; color: #9ca3af; font-size: 18px; line-height: 1;">
+            &times;
+          </span>
+        </div>
+        <div id="propertiesList"></div>
+      </div>
+      <div class="dates-scroll-container" id="datesPane">
+        <div class="dates-header-scroll" id="datesHeaderScroll">
+          <div class="dates-header" id="datesHeader"></div>
+        </div>
+        <div class="dates-body-scroll" id="datesContainer">
+          <div class="dates-grid" id="datesGrid"></div>
+        </div>
+      </div>
+      <div class="calendar-empty-state" id="calendarEmptyState">No data to display</div>
+    </div>
+  </div>
+  {% include 'frontend/base/footer.html' %}
+
+	  <!-- Reservation Sidebar -->
+	  <div class="overlay-backdrop" id="overlayBackdrop" onclick="closeReservationPanel()"></div>
+	  <div class="reservation-sidebar" id="reservationSidebar">
+	    <div class="sidebar-header">
+	      <div class="sidebar-title">Reservation Details</div>
+	      <div class="sidebar-header-right">
+	        <div class="sidebar-header-actions" id="sidebarHeaderActions"></div>
+	        <button class="close-sidebar-btn" onclick="closeReservationPanel()">&times;</button>
+	      </div>
+	    </div>
+	    <div class="sidebar-content" id="sidebarContent">
+	      <!-- Dynamic Content Loaded Here -->
+	    </div>
+	  </div>
+
+	  <!-- Guest Receipt Modal (used by calendar sidebar actions) -->
+	  <div id="guestReceiptModal" class="modal" style="display: none;">
+	    <div class="modal-content" style="width: 90%; max-width: 960px; padding: 0;">
+	      <div class="modal-body" style="padding: 0;">
+	        <div id="guest-receipt-content-placeholder">Loading...</div>
+	      </div>
+	    </div>
+	  </div>
+
+	  <!-- Block Calendar Modal -->
+	  <div id="blockCalendarModal" class="bc-modal-overlay">
+	    <div class="bc-container">
+      <div class="bc-header">
+        <div class="bc-header-title">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="16" y1="2" x2="16" y2="6"></line>
+            <line x1="8" y1="2" x2="8" y2="6"></line>
+            <line x1="3" y1="10" x2="21" y2="10"></line>
+          </svg>
+          <span>Block Calendar</span>
+        </div>
+        <div class="header-buttons" style="display: flex; align-items: center; gap: 8px; border: 0.5px solid #00000080; border-radius: 6px; box-shadow: 0px 4px 4px 0px #94949440;">
+          <button onclick="handleBlockSubmit()" class="btn" style="color: #1D74B2; padding: 8px; border: none; background: transparent;">
+            <span style="font-weight:600">Block</span>
+          </button>
+          <div style="width: 1px; height: 16px; background-color: #ccc;"></div>
+          
+           <a href="javascript:void(0)" onclick="closeBlockCalendarModal()" style="color:#00000080; text-decoration: none; font-weight:600; padding:8px">
+            Cancel
+          </a>
+        </div>
+      </div>
+
+      <div class="bc-content mb-5">
+        <input type="hidden" id="bcPropertyId">
+        <div class="bc-property-card">
+          <img id="bcPropertyImage" src="" alt="Property" class="bc-property-image">
+          <div class="property-info">
+            <div id="bcPropertyTitle" class="bc-property-title"></div>
+          </div>
+        </div>
+
+        <div style="font-size: 14px; font-weight: 600; margin-bottom: 15px; color: #333;">Select Dates to block the Calendar</div>
+
+        <div class="bc-date-inputs">
+          <div class="bc-input-group">
+            <label style="font-size: 13px; color: #666; font-weight: 500;">From</label>
+            <div class="bc-date-input-wrapper">
+              <input type="date" id="bcFromDate" class="form-control">
+            </div>
+          </div>
+
+          <div class="bc-input-group">
+            <label style="font-size: 13px; color: #666; font-weight: 500;">To</label>
+            <div class="bc-date-input-wrapper">
+              <input type="date" id="bcToDate" class="form-control">
+            </div>
+          </div>
+        </div>
+
+        <div id="bcSuccessMessage" class="bc-success-message">
+          Calendar blocked successfully!
+        </div>
+        <div id="bcErrorMessage" class="bc-error-message" style="display: none; padding: 15px; background: #f8d7da; color: #721c24; border-radius: 6px; margin-top: 20px; text-align: center; font-size: 14px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Unblock Calendar Modal -->
+  <div id="unblockCalendarModal" class="bc-modal-overlay">
+    <div class="bc-container">
+      <div class="bc-header">
+        <div class="bc-header-title">
+          <span>Unblock Calendar</span>
+        </div>
+        <div class="header-buttons" style="display: flex; align-items: center; gap: 8px;">
+           <a href="javascript:void(0)" onclick="closeUnblockModal()" style="color:#00000080; text-decoration: none; font-weight:600; padding:8px">
+            &times;
+          </a>
+        </div>
+      </div>
+
+      <div class="bc-content">
+        <p style="font-size: 15px; color: #333; margin-bottom: 15px;">Are you sure you want to unblock this date range?</p>
+        <div id="unblockDateRange" style="font-size: 16px; font-weight: 600; color: #1D74B2; margin-bottom: 25px; text-align: center; background: #f0f7ff; padding: 10px; border-radius: 6px;"></div>
+        <input type="hidden" id="unblockBookingId">
+        
+        <div style="display: flex; gap: 10px; justify-content: flex-end;">
+            <button onclick="closeUnblockModal()" class="btn" style="border: 1px solid #ccc; color: #333;">Cancel</button>
+            <button onclick="handleUnblockSubmit()" class="btn" style="background-color: #EF4444; color: white;">Unblock</button>
+        </div>
+        <div id="unblockErrorMessage" class="bc-error-message" style="display: none; padding: 15px; background: #f8d7da; color: #721c24; border-radius: 6px; margin-top: 20px; text-align: center; font-size: 14px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Global Tooltip Container -->
+  <div id="globalTooltip"></div>
+  <div id="propertyHoverTooltip" class="property-hover-tooltip"></div>
+  
+  <!-- Task Details Panel in Navbar -->
+  <div id="taskDetailsPanel" onmouseenter="if(hideTaskPanelTimeout) clearTimeout(hideTaskPanelTimeout); this.classList.add('show');" onmouseleave="hideTasksFromNavbar()">
+    <h5>Scheduled Tasks</h5>
+    <div id="taskDetailsList"></div>
+  </div>
+
+  <!-- Error Modal -->
+  <div class="modal fade" id="errorModal" tabindex="-1" aria-labelledby="errorModalLabel" aria-hidden="true" style="z-index: 5000;">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="errorModalLabel">Error</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body" id="errorModalBody"></div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-primary" data-bs-dismiss="modal">OK</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock content %}
+
+{% block extra_script %}
+<script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"></script>
+<script>
+  const properties = {{ rooms_data| safe }};
+  let bookings = {{ bookings_data| safe }};
+  let tasks = [];
+  let allDates = [];
+  let isLoading = false;
+  let filteredProperties = properties; // Track currently filtered properties
+  let hideTaskPanelTimeout = null; // Timeout for hiding task panel
+  let timelineResizeTimer = null;
+  let rightWheelRaf = null;
+  let rightWheelDeltaY = 0;
+  let selectedDateKey = null;
+  let hasManualDateSelection = false;
+  const MONTH_PICKER_YEAR_RANGE = 15;
+
+  // Global currentDisplayDate for month display
+  let currentDisplayDate = new Date(); // Starts at today
+  let reservationPanelWasOpenBeforeReceipt = false;
+
+  function toISODateString(date) {
+    return date.getFullYear() + '-' +
+      ('0' + (date.getMonth() + 1)).slice(-2) + '-' +
+      ('0' + date.getDate()).slice(-2);
+  }
+
+  function toDateOnlyString(dateStr) {
+    return dateStr.split('T')[0];
+  }
+
+  function addDaysToISO(dateStr, days) {
+    const [y, m, d] = dateStr.split('-').map(Number);
+    const dt = new Date(y, m - 1, d);
+    dt.setDate(dt.getDate() + days);
+    return toISODateString(dt);
+  }
+
+  // Get tasks for a specific date and property
+  function getTasksForDateAndProperty(dateStr, propertyId) {
+    console.log('🔍 getTasksForDateAndProperty - dateStr:', dateStr, ', propertyId:', propertyId);
+    const result = tasks.filter(t => {
+      const dateMatch = t.date === dateStr;
+      const propMatch = String(t.propertyId) === String(propertyId);
+      console.log(`  Task: date=${t.date} (match: ${dateMatch}), propId=${t.propertyId} (match: ${propMatch})`);
+      return dateMatch && propMatch;
+    });
+    console.log('  Result count:', result.length);
+    return result;
+  }
+
+  // Update month display function
+  function updateMonthDisplay() {
+    const monthDisplay = document.getElementById('monthDisplay');
+    const options = { month: 'long', year: 'numeric' };
+    monthDisplay.textContent = currentDisplayDate.toLocaleDateString('en-US', options);
+  }
+
+  function populateYearPicker() {
+    const yearSelect = document.getElementById('yearPickerSelect');
+    if (!yearSelect) return;
+
+    const selectedYear = currentDisplayDate.getFullYear();
+    const startYear = selectedYear - MONTH_PICKER_YEAR_RANGE;
+    const endYear = selectedYear + MONTH_PICKER_YEAR_RANGE;
+
+    yearSelect.innerHTML = '';
+    for (let year = startYear; year <= endYear; year++) {
+      const option = document.createElement('option');
+      option.value = String(year);
+      option.textContent = String(year);
+      yearSelect.appendChild(option);
+    }
+    yearSelect.value = String(selectedYear);
+  }
+
+  function syncMonthYearPickerFromCurrentDate() {
+    const monthSelect = document.getElementById('monthPickerSelect');
+    const yearSelect = document.getElementById('yearPickerSelect');
+    if (!monthSelect || !yearSelect) return;
+
+    monthSelect.value = String(currentDisplayDate.getMonth());
+
+    const currentYear = String(currentDisplayDate.getFullYear());
+    if (!yearSelect.querySelector(`option[value="${currentYear}"]`)) {
+      populateYearPicker();
+    }
+    yearSelect.value = currentYear;
+  }
+
+  function openMonthYearPanel() {
+    populateYearPicker();
+    syncMonthYearPickerFromCurrentDate();
+    const panel = document.getElementById('monthYearPanel');
+    const monthDisplay = document.getElementById('monthDisplay');
+    if (!panel || !monthDisplay) return;
+    panel.hidden = false;
+    monthDisplay.setAttribute('aria-expanded', 'true');
+  }
+
+  function closeMonthYearPanel() {
+    const panel = document.getElementById('monthYearPanel');
+    const monthDisplay = document.getElementById('monthDisplay');
+    if (!panel || !monthDisplay) return;
+    panel.hidden = true;
+    monthDisplay.setAttribute('aria-expanded', 'false');
+  }
+
+  function toggleMonthYearPanel(event) {
+    if (event) event.stopPropagation();
+    const panel = document.getElementById('monthYearPanel');
+    if (!panel) return;
+    if (panel.hidden) {
+      openMonthYearPanel();
+    } else {
+      closeMonthYearPanel();
+    }
+  }
+
+  function applyMonthYearSelection() {
+    const monthSelect = document.getElementById('monthPickerSelect');
+    const yearSelect = document.getElementById('yearPickerSelect');
+    if (!monthSelect || !yearSelect) return;
+
+    const selectedMonth = Number(monthSelect.value);
+    const selectedYear = Number(yearSelect.value);
+    if (Number.isNaN(selectedMonth) || Number.isNaN(selectedYear)) return;
+
+    currentDisplayDate = new Date(selectedYear, selectedMonth, 1);
+    closeMonthYearPanel();
+    refreshView();
+  }
+
+  async function fetchBookings() {
+    isLoading = true;
+    showLoadingIndicator();
+
+    // Safety check just in case
+    if (allDates.length === 0) {
+      hideLoadingIndicator();
+      isLoading = false;
+      return;
+    }
+
+    const firstDate = allDates[0];
+    const lastDate = allDates[allDates.length - 1];
+
+    // Ensure we cover the full range of the view
+    const url = `?start_date=${toISODateString(firstDate)}&end_date=${toISODateString(lastDate)}`;
+
+    try {
+      const response = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+      const data = await response.json();
+      bookings = data.bookings;
+      tasks = data.tasks || [];
+      
+      console.log('✅ API Response received');
+      console.log('Fetched tasks:', tasks);
+      console.log('Tasks count:', tasks.length);
+      
+      if (tasks.length > 0) {
+        console.log('📋 First task structure:', tasks[0]);
+        console.log('   - Keys:', Object.keys(tasks[0]));
+      } else {
+        console.warn('⚠️ No tasks returned from API');
+      }
+
+      // Process dates for JS
+      bookings.forEach(b => {
+        const startDateStr = toDateOnlyString(b.start_date);
+        const endDateStr = toDateOnlyString(b.end_date);
+        const [sy, sm, sd] = startDateStr.split('-').map(Number);
+        const [ey, em, ed] = endDateStr.split('-').map(Number);
+        b.startDate = new Date(sy, sm - 1, sd);
+        b.endDate = new Date(ey, em - 1, ed + 1);
+        b.startDateStr = startDateStr;
+        b.endDateStr = addDaysToISO(endDateStr, 1);
+      });
+
+      renderDatesGrid();
+    } catch (error) {
+      console.error('Error fetching bookings:', error);
+    } finally {
+      hideLoadingIndicator();
+      isLoading = false;
+    }
+  }
+
+  function generateDates() {
+    allDates = [];
+    const year = currentDisplayDate.getFullYear();
+    const month = currentDisplayDate.getMonth();
+
+    // specific to the requested month view: 1st to Last Day of month
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0); // 0th day of next month is last day of current
+
+    for (let d = new Date(firstDay); d <= lastDay; d.setDate(d.getDate() + 1)) {
+      allDates.push(new Date(d));
+    }
+  }
+
+  function isBooked(propertyId, date) {
+    const dateStr = toISODateString(date);
+    return bookings.find(
+      booking => booking.propertyId === propertyId &&
+        dateStr >= booking.startDateStr && dateStr < booking.endDateStr
+    );
+  }
+
+  function getBookingSpan(propertyId, dates) {
+    const spans = [];
+    const viewStartStr = toISODateString(dates[0]);
+    const viewEndExclusiveStr = addDaysToISO(toISODateString(dates[dates.length - 1]), 1);
+    bookings.forEach(booking => {
+      if (booking.propertyId === propertyId) {
+        // Find overlap between booking and current view dates
+        const startIndex = dates.findIndex(date => {
+          const dateStr = toISODateString(date);
+          return dateStr >= booking.startDateStr && dateStr < booking.endDateStr;
+        });
+        const endIndex = dates.findLastIndex(date => {
+          const dateStr = toISODateString(date);
+          return dateStr >= booking.startDateStr && dateStr < booking.endDateStr;
+        });
+
+        if (startIndex !== -1 && endIndex !== -1) {
+          spans.push({
+            ...booking,
+            startIndex,
+            endIndex,
+            length: endIndex - startIndex + 1,
+            startsBeforeView: booking.startDateStr < viewStartStr,
+            endsAfterView: booking.endDateStr > viewEndExclusiveStr
+          });
+        }
+      }
+    });
+    return spans;
+  }
+
+  function renderProperties(propertiesToRender = properties) {
+    const propertiesList = document.getElementById('propertiesList');
+    propertiesList.innerHTML = propertiesToRender.map(property => {
+      const detailHref = property.slug ? `/property/detail/${property.slug}/` : (property.detail_url || property.url || '#');
+      return `
+        <div class="property-row"
+             data-id="${property.id}"
+             data-detail="${detailHref}"
+             onmouseenter="showPropertyPreview(event, '${property.id}')"
+             onmouseleave="hidePropertyPreview()">
+          <div class="property-link" style="display:inline-flex;align-items:center;gap:10px;text-decoration:none;color:inherit;">
+            <div class="property-avatar"><img src="${property.image}" alt="${property.title}" style="width:40px;height:40px;border-radius:50%; object-fit:cover;" /></div>
+          </div>
+          <div class="property-info">
+            <div class="property-name">${property.title.substring(0, 16)}</div>
+          </div>
+          <div class="property-actions">
+              <div class="dropdown dropend">
+                  <button class="btn btn-sm" type="button" data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false">
+                      ⋮
+                  </button>
+                  <ul class="dropdown-menu">
+                      <li><a class="dropdown-item" href="{% url 'booking:booking-create' %}?property_id=${property.id}">Create a new Booking</a></li>
+                      <li><a class="dropdown-item" href="javascript:void(0)" onclick="openBlockCalendarModal('${property.id}')">Block Calendar</a></li>
+                      <li><a class="dropdown-item" href="/manage/${property.id}/">Channel integration</a></li>
+                      <li><a class="dropdown-item" href="{% url 'tasks:task-create' %}?property_id=${property.id}">Create Task</a></li>
+                      <li><a class="dropdown-item" href="#">Report</a></li>
+                      <li><a class="dropdown-item" href="${detailHref}" target="_blank" rel="noopener noreferrer">Listing Details</a></li>
+                  </ul>
+              </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    propertiesToRender.forEach(property => {
+      const row = propertiesList.querySelector(`.property-row[data-id="${property.id}"]`);
+      if (!row) return;
+      const detailUrl = row.dataset.detail;
+
+      row.addEventListener('click', (event) => {
+        if (event.target.closest('.property-actions')) return;
+        if (detailUrl && detailUrl !== '#') window.open(detailUrl, '_blank', 'noopener,noreferrer');
+      });
+    });
+  }
+
+  function formatPropertyPrice(priceValue) {
+    const priceNumber = Number(priceValue);
+    if (Number.isNaN(priceNumber)) return null;
+    return `$${priceNumber.toFixed(2)} night`;
+  }
+
+  function showPropertyPreview(event, propertyId) {
+    if (activePropertyDropdown) return;
+
+    const tooltip = document.getElementById('propertyHoverTooltip');
+    if (!tooltip) return;
+
+    const property = properties.find(p => String(p.id) === String(propertyId));
+    if (!property) return;
+
+    const title = property.title || 'Property';
+    const location = property.location_display || property.location || property.city || '';
+    const priceText = formatPropertyPrice(property.price_per_night ?? property.basePrice ?? property.price);
+    const guestCount = property.guest ?? property.guests;
+    const minNights = property.min_nights ?? property.minimum_nights ?? property.min_stay;
+
+    tooltip.innerHTML = `
+      <div class="property-preview-card">
+        <img src="${property.image || ''}" alt="${title}" class="property-preview-image">
+        <div class="property-preview-content">
+          <div class="property-preview-title">${title}</div>
+          ${location ? `<div class="property-preview-line">${location}</div>` : ''}
+          ${priceText ? `<div class="property-preview-line price-line">${priceText}</div>` : ''}
+          ${(guestCount || minNights) ? `<div class="property-preview-line meta-line">${guestCount ? `${guestCount} Guests (max)` : ''}${guestCount && minNights ? ' . ' : ''}${minNights ? `${minNights} nights (min)` : ''}</div>` : ''}
+        </div>
+      </div>
+    `;
+
+    tooltip.style.display = 'block';
+
+    const targetRect = event.currentTarget.getBoundingClientRect();
+    const tooltipRect = tooltip.getBoundingClientRect();
+    const gap = 10;
+    let left = targetRect.left + 8;
+    let top = targetRect.bottom + gap;
+
+    if (left + tooltipRect.width > window.innerWidth - 10) {
+      left = window.innerWidth - tooltipRect.width - 10;
+    }
+    if (left < 10) left = 10;
+    if (top < 10) top = 10;
+    if (top + tooltipRect.height > window.innerHeight - 10) {
+      top = Math.max(10, targetRect.top - tooltipRect.height - gap);
+    }
+
+    tooltip.style.left = `${left}px`;
+    tooltip.style.top = `${top}px`;
+  }
+
+  function hidePropertyPreview() {
+    const tooltip = document.getElementById('propertyHoverTooltip');
+    if (!tooltip) return;
+    tooltip.style.display = 'none';
+  }
+
+
+
+  function renderDatesHeader() {
+    syncTimelineDimensions();
+    const datesHeader = document.getElementById('datesHeader');
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    datesHeader.innerHTML = allDates.map(date => {
+      const dateKey = toISODateString(date);
+      const isToday = date.toDateString() === today.toDateString();
+      const isWeekend = date.getDay() === 0 || date.getDay() === 6;
+      const isUserSelected = hasManualDateSelection && selectedDateKey === dateKey && !isToday;
+      return `
+          <div class="date-column ${isWeekend ? 'weekend' : ''} ${isToday ? 'today-column today-date-column' : ''} ${isUserSelected ? 'user-selected-date-column' : ''}"
+               data-date="${dateKey}"
+               onclick="selectDateColumn('${dateKey}')">
+            <div class="date-number">${date.getDate()}</div>
+            <div class="date-day">${date.toLocaleDateString('en-US', { weekday: 'short' })}</div>
+          </div>
+        `;
+    }).join('');
+  }
+
+  function renderDatesGrid(propertiesToRender = filteredProperties) {
+    syncTimelineDimensions();
+    const datesGrid = document.getElementById('datesGrid');
+    const emptyState = document.getElementById('calendarEmptyState');
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const isMobile = window.innerWidth <= 768;
+    const paymentIconUrl = "{% static 'img/calender/new_payment_icon.svg' %}";
+    const blockedIconUrl = "{% static 'img/common/close_icon.png' %}";
+    const labelCharLimit = 5;
+    const shortSpanMaxNights = 3;
+    const todayDateKey = toISODateString(today);
+    const todayColIndex = allDates.findIndex(d => toISODateString(d) === todayDateKey);
+    const selectedColIndex = (hasManualDateSelection && selectedDateKey && selectedDateKey !== todayDateKey)
+      ? allDates.findIndex(d => toISODateString(d) === selectedDateKey)
+      : -1;
+
+    if (selectedColIndex >= 0) {
+      datesGrid.classList.add('has-user-selected-column');
+      datesGrid.style.setProperty('--selected-column-index', String(selectedColIndex));
+    } else {
+      datesGrid.classList.remove('has-user-selected-column');
+      datesGrid.style.removeProperty('--selected-column-index');
+    }
+
+    if (todayColIndex >= 0) {
+      datesGrid.classList.add('has-today-column');
+      datesGrid.style.setProperty('--today-column-index', String(todayColIndex));
+    } else {
+      datesGrid.classList.remove('has-today-column');
+      datesGrid.style.removeProperty('--today-column-index');
+    }
+
+    const daysBetweenISO = (startISO, endISO) => {
+      const [sy, sm, sd] = startISO.split('-').map(Number);
+      const [ey, em, ed] = endISO.split('-').map(Number);
+      const start = Date.UTC(sy, sm - 1, sd);
+      const end = Date.UTC(ey, em - 1, ed);
+      return Math.round((end - start) / (1000 * 60 * 60 * 24));
+    };
+
+    let hasVisibleCalendarData = false;
+
+    datesGrid.innerHTML = propertiesToRender.map((property, rowIndex) => {
+      const spans = getBookingSpan(property.id, allDates);
+      if (spans.length > 0) {
+        hasVisibleCalendarData = true;
+      }
+
+      const spanOverlays = spans.map(b => {
+        const isBlocked = b.type === 'blocked';
+        const onClick = isBlocked ? `onclick="openUnblockModal(event, '${b.id}')"` : `onclick="openReservationPanel(event, '${b.id || 101}')"`;
+        const cursor = 'pointer';
+        const bgColor = isBlocked ? '#9ca3af' : (b.color || '#3b82f6');
+        const spanStart = b.startIndex;
+        const spanLength = Math.max(1, b.length);
+        const carryStartClass = b.startsBeforeView ? 'carry-start' : '';
+        const carryEndClass = b.endsAfterView ? 'carry-end' : '';
+        const nights = Math.max(1, daysBetweenISO(b.startDateStr, b.endDateStr) - 1);
+        const showFullLabel = nights > shortSpanMaxNights;
+        const guestName = b.guestName || '';
+        const shortName = guestName.length > labelCharLimit
+          ? `${guestName.slice(0, labelCharLimit)}...`
+          : guestName;
+        const labelText = showFullLabel ? guestName : shortName;
+        const shouldShowLabel = nights > 1;
+
+        let content = `
+          <div class="segment-content">
+             <div class="avatar-group">
+                 ${b.channelIcon ? `<img class="channel-icon" src="${b.channelIcon}" />` : ''}
+             </div>
+             <div>
+              ${shouldShowLabel ? `<span class="segment-guest-name">${labelText}</span>` : ''}
+              </div>
+          </div>
+        `;
+        if (isBlocked) {
+          const blockedLabel = nights <= 3 ? 'Block...' : 'Blocked';
+          content = `
+            <div class="segment-content">
+              <img class="blocked-icon" src="${blockedIconUrl}" alt="Blocked" />
+              <span style="color: #fff; font-size: 18px; font-weight: 500; margin-left:3px;">${blockedLabel}</span>
+            </div>
+          `;
+        }
+
+        return `
+          <div class="booking-span-block rounded-left rounded-right ${carryStartClass} ${carryEndClass}"
+               ${onClick}
+               onmouseenter="showGlobalTooltip(event, '${b.id}')"
+               onmouseleave="hideGlobalTooltip()"
+               style="--start:${spanStart}; --len:${spanLength}; background-color:${bgColor}; cursor:${cursor};">
+            ${content}
+          </div>
+        `;
+      }).join('');
+
+      const rowHtml = allDates.map((date, index) => {
+        const isWeekend = date.getDay() === 0 || date.getDay() === 6;
+        const isToday = toISODateString(date) === todayDateKey;
+        const isPast = date < today;
+        let cellClasses = 'date-cell';
+        if (isWeekend) cellClasses += ' weekend';
+        if (isToday) cellClasses += ' today-date-column';
+        if (isPast) cellClasses += ' past-date';
+
+        const dateStr = toISODateString(date);
+        const tasksForCell = getTasksForDateAndProperty(dateStr, property.id);
+        
+        if (tasksForCell.length > 0) {
+          console.log(`📍 Cell ${dateStr} (property ${property.id}) has ${tasksForCell.length} task(s):`, tasksForCell.map(t => t.details));
+        }
+        
+        const bookingWithPayment = bookings.find(x => x.propertyId == property.id && x.paymentsInfo && x.paymentsInfo[dateStr]);
+        if (bookingWithPayment || tasksForCell.length > 0) {
+          hasVisibleCalendarData = true;
+        }
+
+        const paymentBadge = bookingWithPayment ? `
+          <div class="payment-indicator"
+               onclick="handlePaymentIndicatorClick(event, '${bookingWithPayment.id}', '${dateStr}')"
+               onmouseenter="showPaymentTooltip(event, '${bookingWithPayment.id}', '${dateStr}')"
+               onmouseleave="handleIndicatorHoverLeave()">
+            <img src="${paymentIconUrl}" alt="payment" />
+          </div>
+        ` : '';
+
+        const taskCountBadge = tasksForCell.length > 0 ? `
+          <div class="task-indicator"
+               onclick="handleTaskIndicatorClick(event, '${dateStr}', '${property.id}')"
+               onmouseenter="showTaskTooltip(event, '${dateStr}', '${property.id}')"
+               onmouseleave="handleIndicatorHoverLeave()">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="4" y="5" width="16" height="15" rx="2.5" stroke-width="2"></rect>
+              <path d="M8 3.5V7" stroke-width="2" stroke-linecap="round"></path>
+              <path d="M16 3.5V7" stroke-width="2" stroke-linecap="round"></path>
+              <path d="M4 9.5H20" stroke-width="2" stroke-linecap="round"></path>
+              <path d="M9 14L11 16L15 12.5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+            </svg>
+            <div class="task-indicator-count">${tasksForCell.length}</div>
+          </div>
+        ` : '';
+
+        return `
+          <div
+            class="${cellClasses} ${(hasManualDateSelection && selectedDateKey === dateStr && dateStr !== todayDateKey) ? 'user-selected-date-column' : ''}"
+            data-date="${dateStr}"
+            data-property="${property.id}"
+            onclick="selectDate('${dateStr}', ${property.id})"
+            style="position: relative;"
+          >
+            ${taskCountBadge}
+            ${paymentBadge}
+          </div>
+        `;
+      }).join('');
+
+      return `<div class="date-row" style="position: relative;">
+        <div class="booking-row-layer">${spanOverlays}</div>
+        ${rowHtml}
+      </div>`;
+    }).join('');
+
+    if (emptyState) {
+      emptyState.style.display = hasVisibleCalendarData ? 'none' : 'flex';
+    }
+  }
+
+  function filterProperties() {
+    const input = document.getElementById('propertySearchInput');
+    const clearBtn = document.getElementById('clearSearchBtn');
+    const searchTerm = input.value.toLowerCase();
+
+    if (searchTerm.length > 0) {
+      clearBtn.style.display = 'block';
+    } else {
+      clearBtn.style.display = 'none';
+    }
+
+    // Update global filtered properties state
+    filteredProperties = properties.filter(p => p.title.toLowerCase().includes(searchTerm));
+    renderProperties(filteredProperties);
+    renderDatesGrid(filteredProperties);
+  }
+
+  function clearSearch() {
+    const input = document.getElementById('propertySearchInput');
+    input.value = '';
+    filteredProperties = properties; // Reset to all properties
+    filterProperties();
+  }
+
+  function showLoadingIndicator() {
+    document.getElementById('loadingIndicator').style.display = 'block';
+  }
+
+  function hideLoadingIndicator() {
+    document.getElementById('loadingIndicator').style.display = 'none';
+  }
+
+  function selectDateColumn(dateKey, isManual = true) {
+    selectedDateKey = dateKey;
+    hasManualDateSelection = !!isManual;
+    renderDatesHeader();
+    renderDatesGrid(filteredProperties);
+  }
+
+  function selectDate(dateString, propertyId) {
+    selectDateColumn(toDateOnlyString(dateString));
+  }
+
+  // --- Global Tooltip Logic ---
+  const fmtDate = d => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
+  function getTooltipContent(b) {
+      // Adjust end date for display (remove the +1 day added during parsing)
+      const displayEndDate = new Date(b.endDate);
+      displayEndDate.setDate(displayEndDate.getDate() - 1);
+
+      const nights = Math.ceil((displayEndDate - b.startDate) / (1000 * 60 * 60 * 24));
+      const guestCount = b.guest_count || b.guests || 1;
+      const channelLogo = b.channelIcon || "{% static 'img/not-found/no_channel.svg' %}";
+      
+      if (b.type === 'blocked') {
+         return `
+            <h4>Blocked</h4>
+            <div class="info-row highlight">${fmtDate(b.startDate)} - ${fmtDate(displayEndDate)}</div>
+            <div class="info-row">${b.reason || ''}</div>
+         `;
+      }
+
+      return `
+        <div class="booking-tooltip-card">
+          <div class="booking-tooltip-avatar-wrap">
+            <img src="${b.guestAvatar}" alt="Guest" class="booking-tooltip-avatar">
+          </div>
+          <div class="booking-tooltip-info">
+            <div class="booking-tooltip-name">${b.guestName || 'Guest'}</div>
+            <div class="booking-tooltip-date">${fmtDate(b.startDate)} - ${fmtDate(displayEndDate)}</div>
+            <div class="booking-tooltip-meta">
+              <span class="booking-tooltip-meta-item">
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                   <path d="M21 12.79A9 9 0 1 1 11.21 3C11.5 3 11.64 3.35 11.43 3.56A7 7 0 0 0 20.44 12.57C20.65 12.36 21 12.5 21 12.79Z" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+                </svg>
+                ${nights} nights
+              </span>
+              
+            </div>
+            <div class="booking-tooltip-meta">
+              <span class="booking-tooltip-meta-item">
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M20 21V19C20 16.791 18.209 15 16 15H8C5.791 15 4 16.791 4 19V21" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+                  <circle cx="12" cy="7" r="4" stroke-width="1.8"></circle>
+                </svg>
+                ${guestCount} guests
+              </span>
+            </div>
+            <div class="booking-tooltip-line">Reservation #: <strong>${b.bookingId || '-'}</strong></div>
+            <div class="booking-tooltip-line booking-tooltip-channel">
+              <img src="${channelLogo}" alt="${b.channelName || 'Channel'}">
+              <strong>${b.channelName || 'N/A'}</strong>
+            </div>
+          </div>
+        </div>
+      `;
+  }
+
+  function showPaymentTooltip(event, bookingId, dateStr) {
+      event.stopPropagation();
+      const b = bookings.find(x => x.id == bookingId);
+      if (!b || !b.paymentsInfo || !b.paymentsInfo[dateStr]) return;
+      
+      const info = b.paymentsInfo[dateStr];
+      const tooltip = document.getElementById('globalTooltip');
+      setTooltipVariant(tooltip, 'payment');
+      tooltip.style.maxWidth = '';
+      
+      const statusText = info.is_paid ? 'Paid' : 'Unpaid';
+      
+      // Format dateStr
+      const [y, m, d] = dateStr.split('-');
+      const dateObj = new Date(y, m - 1, d);
+      const formattedDate = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
+      const displayEndDate = new Date(b.endDate);
+      displayEndDate.setDate(displayEndDate.getDate() - 1);
+      const nights = Math.ceil((displayEndDate - b.startDate) / (1000 * 60 * 60 * 24));
+
+      tooltip.innerHTML = `
+        <div class="payment-tooltip-card">
+          <div class="payment-tooltip-amount">$${info.amount.toFixed(2)}, due on ${formattedDate}</div>
+          <div class="payment-tooltip-status">Status: ${statusText}</div>
+          <div class="payment-tooltip-meta">Guest name: ${b.guestName}</div>
+          <div class="payment-tooltip-dates">${fmtDate(b.startDate)} - ${fmtDate(displayEndDate)} (${nights} nights)</div>
+        </div>
+      `;
+
+      
+      tooltip.style.width = 'auto';
+      tooltip.style.display = 'block';
+      tooltip.dataset.source = 'payment';
+      tooltip.dataset.bookingId = String(bookingId);
+      tooltip.dataset.dateStr = String(dateStr);
+      positionTooltip(event, tooltip);
+  }
+
+  function isMobileOrTabletView() {
+      return window.matchMedia('(max-width: 991.98px)').matches;
+  }
+
+  function handleIndicatorHoverLeave() {
+      if (isMobileOrTabletView()) return;
+      hideGlobalTooltip();
+  }
+
+  function handlePaymentIndicatorClick(event, bookingId, dateStr) {
+      event.stopPropagation();
+      event.preventDefault();
+
+      if (!isMobileOrTabletView()) return;
+
+      const tooltip = document.getElementById('globalTooltip');
+      if (!tooltip) return;
+
+      const isSamePaymentTooltipOpen =
+        tooltip.style.display === 'block' &&
+        tooltip.dataset.source === 'payment' &&
+        tooltip.dataset.bookingId === String(bookingId) &&
+        tooltip.dataset.dateStr === String(dateStr);
+
+      if (isSamePaymentTooltipOpen) {
+        hideGlobalTooltip();
+        return;
+      }
+
+      showPaymentTooltip(event, bookingId, dateStr);
+  }
+
+  function positionTooltip(event, tooltip) {
+      console.log('📍 positionTooltip called');
+      let target = event.target;
+      console.log('  Target element:', target);
+      
+      // Try to position relative to the segment for stability, fallback to target (icon)
+      if (target.closest('.booking-segment')) {
+         target = target.closest('.booking-segment');
+         console.log('  Found closest booking-segment');
+      } else {
+        console.log('  No booking-segment found, using target');
+      }
+      
+      const rect = target.getBoundingClientRect();
+      console.log('  Target rect:', { top: rect.top, left: rect.left, width: rect.width, height: rect.height });
+      
+      const tooltipRect = tooltip.getBoundingClientRect();
+      console.log('  Tooltip rect:', { width: tooltipRect.width, height: tooltipRect.height });
+      
+      // If tooltip hasn't rendered yet (width/height are 0), estimate based on content
+      let tooltipWidth = tooltipRect.width || 320;
+      let tooltipHeight = tooltipRect.height || 200;
+      
+      console.log('  Using dimensions - width:', tooltipWidth, 'height:', tooltipHeight);
+      
+      let top = rect.top - tooltipHeight - 10;
+      let left = rect.left + (rect.width / 2) - (tooltipWidth / 2);
+
+      if (top < 0) {
+          top = rect.bottom + 10;
+          console.log('  Tooltip would go off top, repositioning to bottom');
+      }
+      
+      if (left < 10) left = 10;
+      if (left + tooltipWidth > window.innerWidth - 10) {
+          left = window.innerWidth - tooltipWidth - 10;
+      }
+
+      console.log('  Final position - top:', top, 'left:', left);
+      tooltip.style.top = `${top}px`;
+      tooltip.style.left = `${left}px`;
+      
+      console.log('📍 positionTooltip complete');
+  }
+
+  function showGlobalTooltip(event, bookingId) {
+      const b = bookings.find(x => x.id == bookingId);
+      if (!b) return;
+
+      const tooltip = document.getElementById('globalTooltip');
+      setTooltipVariant(tooltip, b.type === 'blocked' ? 'default' : 'booking');
+      tooltip.innerHTML = getTooltipContent(b);
+      tooltip.style.width = '';
+      tooltip.style.maxWidth = '';
+      tooltip.style.display = 'block';
+      
+      positionTooltip(event, tooltip);
+  }
+
+  function hideGlobalTooltip() {
+      console.log('🔴 hideGlobalTooltip called - hiding tooltip');
+      const tooltip = document.getElementById('globalTooltip');
+      if (tooltip) {
+        tooltip.style.display = 'none';
+        delete tooltip.dataset.source;
+        delete tooltip.dataset.bookingId;
+        delete tooltip.dataset.dateStr;
+        delete tooltip.dataset.taskDate;
+        delete tooltip.dataset.taskProperty;
+        tooltip.style.width = '';
+        tooltip.style.maxWidth = '';
+        setTooltipVariant(tooltip, 'default');
+        console.log('🔴 Tooltip hidden');
+      } else {
+        console.log('🔴 Tooltip element not found');
+      }
+  }
+
+  function setTooltipVariant(tooltip, variant = 'default') {
+    if (!tooltip) return;
+    tooltip.classList.remove('booking-tooltip-variant');
+    tooltip.classList.remove('task-tooltip-variant');
+    tooltip.classList.remove('payment-tooltip-variant');
+    if (variant === 'booking') tooltip.classList.add('booking-tooltip-variant');
+    if (variant === 'task') tooltip.classList.add('task-tooltip-variant');
+    if (variant === 'payment') tooltip.classList.add('payment-tooltip-variant');
+  }
+
+  function showTaskTooltip(event, dateStr, propertyId) {
+    // console.log('🟢🟢🟢 SHOWTOOLTIP START - dateStr:', dateStr, 'propertyId:', propertyId);
+    event.stopPropagation();
+    event.preventDefault();
+    
+    // console.log('🟢 showTaskTooltip called - dateStr:', dateStr, 'propertyId:', propertyId, 'type:', typeof propertyId);
+    // console.log('🟢 All tasks array:', tasks);
+    // console.log('🟢 Total tasks count:', tasks.length);
+    
+    // Debug individual tasks
+    // if (tasks.length > 0) {
+    //   console.log('🟢 First task sample:', tasks[0]);
+    //   console.log('🟢 First task propertyId:', tasks[0].propertyId, 'type:', typeof tasks[0].propertyId);
+    //   console.log('🟢 First task date:', tasks[0].date);
+    // }
+    
+    const tasksArray = getTasksForDateAndProperty(dateStr, propertyId);
+    // console.log('🟢 Filtered tasksArray:', tasksArray);
+    // console.log('🟢 Filtered tasks count:', tasksArray.length);
+    
+    if (!tasksArray || tasksArray.length === 0) {
+      // console.log('⚠️ No tasks found for this date and property');
+      // console.log('  Date string to match:', dateStr);
+      // console.log('  PropertyId to match:', propertyId, 'type:', typeof propertyId);
+      // console.log('  Available task dates:', tasks.map(t => t.date));
+      // console.log('  Available propertyIds:', tasks.map(t => ({ id: t.propertyId, type: typeof t.propertyId })));
+      return;
+    }
+
+    // console.log('✅ Found', tasksArray.length, 'tasks, rendering tooltip...');
+    
+    const tooltip = document.getElementById('globalTooltip');
+    if (!tooltip) {
+      console.error('❌ globalTooltip element not found!');
+      return;
+    }
+    
+    // console.log('✅ Tooltip element found');
+    
+    const taskIcons = {
+        'cleaning': "{% static 'img/task/type/cleaning.svg' %}",
+        'maintenance': "{% static 'img/task/type/maintenance.svg' %}",
+        'payment': "{% static 'img/task/type/payment.svg' %}",
+        'other': "{% static 'img/task/type/others.svg' %}"
+    };
+
+    let content = `<div class="task-tooltip-list">`;
+
+      tasksArray.forEach((t, index) => {
+          const iconUrl = taskIcons[t.task_type] || taskIcons['other'];
+          const assignedTo = t.assigned_to || 'Not assigned';
+          const taskStatus = t.completed ? 'Done' : 'Pending';
+          const taskTitle = (t.details || '').trim() || 'Task details...';
+
+          content += `
+            <div class="task-tooltip-item">
+              <img src="${iconUrl}" class="task-tooltip-icon" alt="${t.task_type || 'task'}" />
+              <div class="task-tooltip-content">
+                <div class="task-tooltip-title">${taskTitle}</div>
+                <div class="task-tooltip-line">Assigned to : <b>${assignedTo}</b></div>
+                <div class="task-tooltip-line">Status: <b>${taskStatus}</b></div>
+              </div>
+            </div>
+          `;
+      });
+
+      content += `</div>`;
+
+
+    // console.log('🟢 Setting tooltip innerHTML');
+    setTooltipVariant(tooltip, 'task');
+    tooltip.innerHTML = content;
+    tooltip.dataset.source = 'task';
+    tooltip.dataset.taskDate = String(dateStr);
+    tooltip.dataset.taskProperty = String(propertyId);
+    
+    // console.log('🟢 Setting tooltip width and maxWidth');
+    tooltip.style.width = '300px';
+    tooltip.style.maxWidth = '300px';
+    
+    // console.log('🟢 Setting tooltip display to block');
+    tooltip.style.display = 'block';
+    
+    // console.log('🟢 Tooltip should now be visible, calling positionTooltip...');
+    positionTooltip(event, tooltip);
+    
+    // console.log('🟢🟢🟢 SHOWTOOLTIP END - Tooltip positioned and displayed');
+  }
+
+  function handleTaskIndicatorClick(event, dateStr, propertyId) {
+    event.stopPropagation();
+    event.preventDefault();
+
+    if (!isMobileOrTabletView()) return;
+
+    const tooltip = document.getElementById('globalTooltip');
+    if (!tooltip) return;
+
+    const isSameTaskTooltipOpen =
+      tooltip.style.display === 'block' &&
+      tooltip.dataset.source === 'task' &&
+      tooltip.dataset.taskDate === String(dateStr) &&
+      tooltip.dataset.taskProperty === String(propertyId);
+
+    if (isSameTaskTooltipOpen) {
+      hideGlobalTooltip();
+      return;
+    }
+
+    showTaskTooltip(event, dateStr, propertyId);
+  }
+
+  // --- Dynamic Reservation Side Panel & Logic ---
+  function openReservationPanel(event, bookingId) {
+    if (event) event.stopPropagation();
+    hideGlobalTooltip();
+    const sidebar = document.getElementById('reservationSidebar');
+    const backdrop = document.getElementById('overlayBackdrop');
+    const contentDiv = document.getElementById('sidebarContent');
+    document.body.classList.add('reservation-panel-open');
+    sidebar.classList.add('open');
+    backdrop.classList.add('open');
+    contentDiv.innerHTML = `
+        <div style="display:flex;justify-content:center;align-items:center;height:200px;">
+            <div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div>
+        </div>`;
+
+    // Fetch logic
+    const fetchUrl = `/booking/payment-details/${bookingId}/?partial=true`;
+    fetch(fetchUrl)
+      .then(r => { if (!r.ok) throw new Error('Network error'); return r.text(); })
+      .then(html => { contentDiv.innerHTML = html; initSidebarInteractions(); })
+      .catch(e => {
+        contentDiv.innerHTML = `<div style="padding:20px;text-align:center;color:red;"><p>Failed to load.</p><p style="font-size:12px;">${e.message}</p></div>`;
+      });
+  }
+
+  function closeReservationPanel() {
+    hideGlobalTooltip();
+    document.getElementById('reservationSidebar').classList.remove('open');
+    document.getElementById('overlayBackdrop').classList.remove('open');
+    document.body.classList.remove('reservation-panel-open');
+    const headerActions = document.getElementById('sidebarHeaderActions');
+    if (headerActions) headerActions.innerHTML = '';
+    reservationPanelWasOpenBeforeReceipt = false;
+  }
+
+  function hideReservationOverlayForReceipt() {
+    const sidebar = document.getElementById('reservationSidebar');
+    const backdrop = document.getElementById('overlayBackdrop');
+    if (!sidebar || !backdrop) return;
+    reservationPanelWasOpenBeforeReceipt = sidebar.classList.contains('open');
+    sidebar.classList.remove('open');
+    backdrop.classList.remove('open');
+    document.body.classList.remove('reservation-panel-open');
+  }
+
+  function restoreReservationOverlayAfterReceipt() {
+    if (!reservationPanelWasOpenBeforeReceipt) return;
+    const sidebar = document.getElementById('reservationSidebar');
+    const backdrop = document.getElementById('overlayBackdrop');
+    if (!sidebar || !backdrop) return;
+    sidebar.classList.add('open');
+    backdrop.classList.add('open');
+    document.body.classList.add('reservation-panel-open');
+    reservationPanelWasOpenBeforeReceipt = false;
+  }
+
+  // --- Block Calendar Modal Logic ---
+  function openBlockCalendarModal(propertyId) {
+    const property = properties.find(p => p.id == propertyId);
+    if (!property) return;
+
+    document.getElementById('bcPropertyTitle').textContent = property.title;
+    document.getElementById('bcPropertyImage').src = property.image;
+    document.getElementById('bcPropertyId').value = property.id;
+    
+    // Reset inputs
+    const today = new Date().toISOString().split('T')[0];
+    const fromInput = document.getElementById('bcFromDate');
+    const toInput = document.getElementById('bcToDate');
+    
+    fromInput.value = '';
+    toInput.value = '';
+    fromInput.setAttribute('min', today);
+    toInput.setAttribute('min', today);
+    document.getElementById('bcSuccessMessage').classList.remove('show');
+    document.getElementById('bcErrorMessage').style.display = 'none';
+
+    // Setup listeners
+    fromInput.onchange = function() {
+        toInput.setAttribute('min', this.value);
+        if (toInput.value && toInput.value < this.value) {
+            toInput.value = '';
+        }
+    };
+
+    document.getElementById('blockCalendarModal').style.display = 'flex';
+  }
+
+  function closeBlockCalendarModal() {
+    document.getElementById('blockCalendarModal').style.display = 'none';
+  }
+
+  function showErrorModal(message) {
+    document.getElementById('errorModalBody').innerText = message;
+    const errorModal = new bootstrap.Modal(document.getElementById('errorModal'));
+    errorModal.show();
+  }
+
+  function handleBlockSubmit() {
+    const propertyId = document.getElementById('bcPropertyId').value;
+    const fromDate = document.getElementById('bcFromDate').value;
+    const toDate = document.getElementById('bcToDate').value;
+    const errorMsg = document.getElementById('bcErrorMessage');
+
+    const showBcError = (msg) => {
+        errorMsg.innerText = msg;
+        errorMsg.style.display = 'block';
+        setTimeout(() => { errorMsg.style.display = 'none'; }, 3000);
+    };
+
+    if (!fromDate || !toDate) {
+        showBcError('Please select both From and To dates');
+        return;
+    }
+
+    if (new Date(toDate) < new Date(fromDate)) {
+        showBcError('To date must be after From date');
+        return;
+    }
+
+    // API Call
+    fetch("{% url 'property:ajax-block-dates' %}", {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify({
+            property_id: propertyId,
+            start_date: fromDate,
+            end_date: toDate
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            errorMsg.style.display = 'none';
+            const successMsg = document.getElementById('bcSuccessMessage');
+            successMsg.classList.add('show');
+            setTimeout(() => {
+                successMsg.classList.remove('show');
+                closeBlockCalendarModal();
+                if (typeof refreshData === 'function') refreshData();
+            }, 2000);
+        } else {
+            showBcError('Error: ' + (data.error || 'Failed to block dates'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showBcError('An error occurred while blocking dates.');
+    });
+  }
+
+  // --- Unblock Calendar Modal Logic ---
+  function openUnblockModal(event, bookingId) {
+    if (event) event.stopPropagation();
+    const booking = bookings.find(b => b.id == bookingId);
+    if (!booking) return;
+
+    document.getElementById('unblockBookingId').value = bookingId;
+    
+    const options = { month: 'short', day: 'numeric', year: 'numeric' };
+    
+    // Adjust end date for display (remove the +1 day added during parsing)
+    const displayEndDate = new Date(booking.endDate);
+    displayEndDate.setDate(displayEndDate.getDate() - 1);
+
+    const startStr = booking.startDate.toLocaleDateString('en-US', options);
+    const endStr = displayEndDate.toLocaleDateString('en-US', options);
+    
+    document.getElementById('unblockDateRange').textContent = `${startStr} - ${endStr}`;
+    document.getElementById('unblockCalendarModal').style.display = 'flex';
+    document.getElementById('unblockErrorMessage').style.display = 'none';
+  }
+
+  function closeUnblockModal() {
+    document.getElementById('unblockCalendarModal').style.display = 'none';
+  }
+
+  function handleUnblockSubmit() {
+    const bookingId = document.getElementById('unblockBookingId').value;
+    const errorMsg = document.getElementById('unblockErrorMessage');
+
+    const showUnblockError = (msg) => {
+        errorMsg.innerText = msg;
+        errorMsg.style.display = 'block';
+        setTimeout(() => { errorMsg.style.display = 'none'; }, 3000);
+    };
+    
+    fetch("{% url 'property:ajax-unblock-dates' %}", {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify({ booking_id: bookingId })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            closeUnblockModal();
+            if (typeof refreshData === 'function') refreshData();
+        } else {
+            showUnblockError('Error: ' + (data.error || 'Failed to unblock'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showUnblockError('An error occurred while unblocking.');
+    });
+  }
+
+	  function initSidebarInteractions() {
+	    const sidebarRoot = document.getElementById('reservationSidebar');
+	    const sidebarContent = document.getElementById('sidebarContent');
+	    if (!sidebarRoot || !sidebarContent) return;
+	
+	    function closeDropdown(element) {
+	      const dropdownMenu = element.closest('.dropdown-menu');
+	      if (!dropdownMenu) return;
+	      const dropdownToggle = dropdownMenu.previousElementSibling;
+	      if (!dropdownToggle) return;
+	      const instance = bootstrap.Dropdown.getInstance(dropdownToggle);
+	      if (instance) instance.hide();
+	      else {
+	        dropdownToggle.classList.remove('show');
+	        dropdownMenu.classList.remove('show');
+	      }
+	    }
+	
+    function syncSidebarHeaderActions() {
+      const headerActions = document.getElementById('sidebarHeaderActions');
+      if (!headerActions) return;
+      headerActions.innerHTML = '';
+
+      const dropdownContainer = sidebarContent.querySelector('.action-buttons .dropdown');
+      if (!dropdownContainer) return;
+
+      const editItem = dropdownContainer.querySelector('.dropdown-item[href*="booking-edit"]');
+      if (editItem) {
+        const editButton = document.createElement('a');
+        editButton.className = 'sidebar-edit-btn';
+        editButton.href = editItem.getAttribute('href');
+        editButton.setAttribute('aria-label', 'Edit reservation');
+        const editIcon = editItem.querySelector('svg');
+        if (editIcon) editButton.insertAdjacentHTML('beforeend', editIcon.outerHTML);
+        const editLabel = document.createElement('span');
+        editLabel.textContent = 'Edit';
+        editButton.appendChild(editLabel);
+        headerActions.appendChild(editButton);
+      }
+      headerActions.appendChild(dropdownContainer);
+      const actionButtons = sidebarContent.querySelector('.action-buttons');
+      if (actionButtons) actionButtons.style.display = 'none';
+
+      // Ensure Guest Receipt still has the expected attributes after moving DOM node.
+      dropdownContainer.querySelectorAll('a[href]').forEach((anchor) => {
+        const label = (anchor.textContent || '').trim().toLowerCase();
+        if (label !== 'guest receipt') return;
+        anchor.classList.add('guest-receipt-btn');
+        if (!anchor.dataset.receiptUrl) anchor.dataset.receiptUrl = anchor.getAttribute('href');
+        anchor.setAttribute('href', '#');
+      });
+    }
+	
+	    syncSidebarHeaderActions();
+	
+	    // 1. Attachment Modal
+	    const attachmentModal = sidebarContent.querySelector('#attachmentModal');
+	    const openAttachmentBtn = sidebarContent.querySelector('#openAttachmentModal');
+	    if (attachmentModal && openAttachmentBtn) {
+	      const closeBtn = attachmentModal.querySelector('.close-btn');
+	      openAttachmentBtn.onclick = (e) => { e.preventDefault(); attachmentModal.style.display = 'flex'; };
+	      if (closeBtn) closeBtn.onclick = () => { attachmentModal.style.display = 'none'; };
+	      window.addEventListener('click', (e) => { if (e.target == attachmentModal) attachmentModal.style.display = 'none'; });
+	    }
+	
+	    // 2. Email Guest Modal
+	    const emailModal = sidebarContent.querySelector('#emailGuestModal');
+	    const emailBtns = sidebarRoot.querySelectorAll('.email-guest-btn');
+	    if (emailModal && emailBtns.length > 0) {
+	      const placeholder = emailModal.querySelector('#email-modal-content-placeholder');
+	      emailBtns.forEach(btn => {
+	        btn.addEventListener('click', function(e) {
+	          e.preventDefault();
+	          closeDropdown(this);
+	          const bookingId = this.dataset.bookingId;
+	          const url = `{% url 'booking:render-email-form' %}?booking_id=${bookingId}`;
+	          placeholder.innerHTML = '<div style="text-align: center; padding: 40px;">Loading...</div>';
+	          emailModal.style.display = 'flex';
+	          fetch(url).then(r => r.text()).then(html => {
+	            placeholder.innerHTML = html;
+	            const closeEmailBtn = emailModal.querySelector('.btn-cancel-email');
+	            if (closeEmailBtn) closeEmailBtn.onclick = () => emailModal.style.display = 'none';
+	          });
+	        });
+	      });
+	      window.addEventListener('click', (e) => { if (e.target == emailModal) emailModal.style.display = 'none'; });
+	    }
+	
+	    // 3. Guest Receipt Modal
+	    const guestReceiptModal = document.getElementById('guestReceiptModal');
+	    const guestReceiptPlaceholder = document.getElementById('guest-receipt-content-placeholder');
+	
+	    function initGuestReceiptActions(scope) {
+	      if (!scope) return;
+	      const downloadBtn = scope.querySelector('#downloadReceiptPdf');
+	      const printBtn = scope.querySelector('#printReceipt');
+	      const closeBtn = scope.querySelector('#closeReceiptBtn');
+	      const receiptRoot = scope.querySelector('#guest-receipt-root');
+	
+	      function triggerPrint(e) {
+	        if (e) e.preventDefault();
+	        if (receiptRoot) receiptRoot.classList.add('receipt-export');
+	        window.print();
+	      }
+	
+	      function triggerPdfDownload(e) {
+	        if (e) e.preventDefault();
+	        if (!receiptRoot || typeof html2pdf === 'undefined') return;
+	
+	        const options = {
+	          margin: [0.5, 0.5, 0.5, 0.5],
+	          filename: 'guest-receipt.pdf',
+	          image: { type: 'jpeg', quality: 0.98 },
+	          html2canvas: { scale: 2, useCORS: true },
+	          jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+	        };
+	
+	        receiptRoot.classList.add('receipt-export');
+	        html2pdf().set(options).from(receiptRoot).save().finally(() => {
+	          receiptRoot.classList.remove('receipt-export');
+	        });
+	      }
+	
+	      if (downloadBtn) downloadBtn.addEventListener('click', triggerPdfDownload);
+	      if (printBtn) printBtn.addEventListener('click', triggerPrint);
+      if (closeBtn) {
+        closeBtn.addEventListener('click', function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          guestReceiptModal.style.display = 'none';
+          guestReceiptPlaceholder.innerHTML = '';
+          restoreReservationOverlayAfterReceipt();
+        });
+      }
+	
+	      if (!window.__bookaidReceiptAfterprintBound) {
+	        window.__bookaidReceiptAfterprintBound = true;
+	        window.addEventListener('afterprint', () => {
+	          const root = document.querySelector('#guest-receipt-root');
+	          if (root) root.classList.remove('receipt-export');
+	        });
+	      }
+	    }
+	
+	    const guestReceiptBtns = sidebarRoot.querySelectorAll('.guest-receipt-btn');
+	    if (guestReceiptModal && guestReceiptPlaceholder && guestReceiptBtns.length > 0) {
+	      guestReceiptBtns.forEach(btn => {
+        btn.addEventListener('click', function(e) {
+          e.preventDefault();
+          closeDropdown(this);
+          hideReservationOverlayForReceipt();
+          let url = this.dataset.receiptUrl;
+          if (!url) return;
+          url += (url.includes('?') ? '&' : '?') + 'is_modal=true';
+          guestReceiptPlaceholder.innerHTML = '<div style="text-align: center; padding: 40px;">Loading...</div>';
+	          guestReceiptModal.style.display = 'flex';
+	
+	          fetch(url)
+	            .then(response => response.text())
+	            .then(html => {
+	              guestReceiptPlaceholder.innerHTML = html;
+	              initGuestReceiptActions(guestReceiptPlaceholder);
+	            })
+	            .catch(error => {
+	              guestReceiptPlaceholder.innerHTML = '<p style="text-align: center; padding: 40px; color: red;">Error loading guest receipt. Please try again.</p>';
+	              console.error('Error fetching guest receipt:', error);
+	            });
+	        });
+	      });
+	
+	      if (!window.__bookaidReceiptOutsideClickBound) {
+	        window.__bookaidReceiptOutsideClickBound = true;
+        window.addEventListener('click', (e) => {
+          if (e.target == guestReceiptModal) {
+            guestReceiptModal.style.display = 'none';
+            guestReceiptPlaceholder.innerHTML = '';
+            restoreReservationOverlayAfterReceipt();
+          }
+        });
+	      }
+	    }
+	
+	    // 4. Cancel Reservation
+	    const cancelModal = sidebarContent.querySelector('#cancelReservationModal');
+	    const cancelBtns = sidebarRoot.querySelectorAll('.cancel-reservation-btn');
+	    if (cancelModal && cancelBtns.length > 0) {
+	      const closeCancelBtn = cancelModal.querySelector('#closeCancelModal');
+	      const btnCancelModalClose = cancelModal.querySelector('#btnCancelModalClose');
+	      const confirmCancelBtn = cancelModal.querySelector('#confirmCancelBtn');
+	      let cancelUrl = '';
+	
+	      const closeFunc = () => cancelModal.style.display = 'none';
+	      if (closeCancelBtn) closeCancelBtn.onclick = closeFunc;
+	      if (btnCancelModalClose) btnCancelModalClose.onclick = closeFunc;
+	
+	      cancelBtns.forEach(btn => {
+	        btn.addEventListener('click', function(e) {
+	          e.preventDefault();
+	          closeDropdown(this);
+	          cancelUrl = this.dataset.url || this.href;
+	          cancelModal.style.display = 'flex';
+	        });
+	      });
+	
+	      if (confirmCancelBtn) {
+	        confirmCancelBtn.onclick = function() {
+	          if (!cancelUrl) return;
+	          this.disabled = true; this.innerText = 'Cancelling...';
+	          fetch(cancelUrl, {
+	            method: 'POST',
+	            headers: { 'X-CSRFToken': '{{ csrf_token }}', 'Content-Type': 'application/json' }
+	          }).then(r => r.json()).then(data => {
+	            if (data.success) { window.location.reload(); }
+	            else { alert('Failed: ' + data.error); closeFunc(); this.disabled = false; this.innerText = 'Yes, Cancel'; }
+	          }).catch(e => { console.error(e); closeFunc(); this.disabled = false; this.innerText = 'Yes, Cancel'; });
+	        };
+	      }
+	      window.addEventListener('click', (e) => { if (e.target == cancelModal) cancelModal.style.display = 'none'; });
+	    }
+	
+	    // 5. Payment Checkboxes
+	    sidebarContent.querySelectorAll('.payment-checkbox').forEach(checkbox => {
+	      checkbox.addEventListener('change', function () {
+	        const paymentId = this.dataset.paymentId;
+	        const isPaid = this.checked;
+	        fetch("{% url 'booking:update-payment-status' %}", {
+	          method: 'POST',
+	          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+	          body: JSON.stringify({ payment_id: paymentId, is_paid: isPaid })
+	        }).then(r => r.json()).then(data => {
+	          if (data.success) {
+	            const row = document.getElementById(`payment-item-${paymentId}`);
+	            if (isPaid) row.classList.add('row-paid'); else row.classList.remove('row-paid');
+	          } else { this.checked = !isPaid; alert('Failed to update.'); }
+	        }).catch(e => { console.error(e); this.checked = !isPaid; });
+	      });
+	    });
+	
+	    // 6. Payment Schedule Toggle
+	    const expandBtn = sidebarContent.querySelector('#expand-payments');
+	    const collapseBtn = sidebarContent.querySelector('#collapse-payments');
+	    const paymentBody = sidebarContent.querySelector('#payment-body');
+	    if (expandBtn && collapseBtn && paymentBody) {
+	      collapseBtn.onclick = () => { paymentBody.style.display = 'none'; collapseBtn.style.display = 'none'; expandBtn.style.display = 'inline-block'; };
+	      expandBtn.onclick = () => { paymentBody.style.display = 'block'; expandBtn.style.display = 'none'; collapseBtn.style.display = 'inline-block'; };
+	    }
+	  }
+
+  function refreshView() {
+    updateMonthDisplay();
+    generateDates();
+    if (selectedDateKey && !allDates.some(d => toISODateString(d) === selectedDateKey)) {
+      selectedDateKey = null;
+      hasManualDateSelection = false;
+    }
+    syncTimelineDimensions();
+    renderDatesHeader();
+    renderProperties(filteredProperties);
+    renderDatesGrid(filteredProperties);
+    fetchBookings();
+  }
+
+  function syncTimelineDimensions() {
+    const datesPane = document.getElementById('datesPane');
+    const datesContainer = document.getElementById('datesContainer');
+    if (!datesPane || !datesContainer || allDates.length === 0) return;
+
+    const isMobile = window.innerWidth <= 768;
+    const minCellWidth = isMobile ? 52 : 60;
+    const containerWidth = datesContainer.clientWidth || 0;
+    const autoCellWidth = containerWidth > 0 ? Math.floor(containerWidth / allDates.length) : minCellWidth;
+    const cellWidth = Math.max(minCellWidth, autoCellWidth);
+    const gridWidth = cellWidth * allDates.length;
+
+    datesPane.style.setProperty('--timeline-cell-width', `${cellWidth}px`);
+    datesPane.style.setProperty('--timeline-grid-width', `${gridWidth}px`);
+  }
+
+  function goToPrevMonth() {
+    currentDisplayDate.setMonth(currentDisplayDate.getMonth() - 1, 1);
+    refreshView();
+  }
+
+  function goToNextMonth() {
+    currentDisplayDate.setMonth(currentDisplayDate.getMonth() + 1, 1);
+    refreshView();
+  }
+
+  function goToToday() {
+    currentDisplayDate = new Date();
+    refreshView();
+    scrollToToday();
+  }
+
+  function scrollToToday() {
+    setTimeout(() => {
+      const container = document.getElementById('datesContainer');
+      const todayEl = container.querySelector('.today-column');
+      if (todayEl) {
+        todayEl.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+      }
+    }, 100);
+  }
+
+  function refreshData() {
+    fetchBookings();
+  }
+
+  let activePropertyDropdown = null;
+
+  function positionFloatingPropertyDropdown(dropdownEl, menuEl) {
+    if (!dropdownEl || !menuEl) return;
+
+    const toggleBtn = dropdownEl.querySelector('[data-bs-toggle="dropdown"]');
+    if (!toggleBtn) return;
+
+    const toggleRect = toggleBtn.getBoundingClientRect();
+    const menuRect = menuEl.getBoundingClientRect();
+    const viewportGap = 8;
+
+    let left = toggleRect.right + 8;
+    let top = toggleRect.top;
+
+    if (left + menuRect.width > window.innerWidth - viewportGap) {
+      left = Math.max(viewportGap, toggleRect.left - menuRect.width - 8);
+    }
+
+    if (top + menuRect.height > window.innerHeight - viewportGap) {
+      top = Math.max(viewportGap, window.innerHeight - menuRect.height - viewportGap);
+    }
+
+    menuEl.style.setProperty('left', `${left}px`, 'important');
+    menuEl.style.setProperty('top', `${top}px`, 'important');
+  }
+
+  function bindPropertyDropdownFloating() {
+    document.addEventListener('click', function(event) {
+      const toggleButton = event.target.closest('.property-actions [data-bs-toggle="dropdown"]');
+      if (!toggleButton) return;
+      hidePropertyPreview();
+    });
+
+    document.addEventListener('shown.bs.dropdown', function(event) {
+      const dropdownEl = event.target && event.target.classList && event.target.classList.contains('dropdown')
+        ? event.target
+        : event.target.closest('.dropdown');
+      if (!dropdownEl || !dropdownEl.closest('.property-actions')) return;
+
+      const menuEl = dropdownEl.querySelector('.dropdown-menu');
+      if (!menuEl) return;
+
+      menuEl.classList.add('floating-dropdown-menu');
+      activePropertyDropdown = { dropdownEl, menuEl };
+      hidePropertyPreview();
+      requestAnimationFrame(() => positionFloatingPropertyDropdown(dropdownEl, menuEl));
+    });
+
+    document.addEventListener('hidden.bs.dropdown', function(event) {
+      const dropdownEl = event.target && event.target.classList && event.target.classList.contains('dropdown')
+        ? event.target
+        : event.target.closest('.dropdown');
+      if (!dropdownEl || !dropdownEl.closest('.property-actions')) return;
+
+      const menuEl = dropdownEl.querySelector('.dropdown-menu');
+      if (!menuEl) return;
+
+      menuEl.classList.remove('floating-dropdown-menu');
+      menuEl.style.removeProperty('left');
+      menuEl.style.removeProperty('top');
+
+      if (activePropertyDropdown && activePropertyDropdown.menuEl === menuEl) {
+        activePropertyDropdown = null;
+      }
+    });
+
+    window.addEventListener('resize', function() {
+      if (!activePropertyDropdown) return;
+      positionFloatingPropertyDropdown(activePropertyDropdown.dropdownEl, activePropertyDropdown.menuEl);
+    });
+
+    document.addEventListener('scroll', function() {
+      if (!activePropertyDropdown) return;
+      positionFloatingPropertyDropdown(activePropertyDropdown.dropdownEl, activePropertyDropdown.menuEl);
+    }, true);
+  }
+
+  function init() {
+    currentDisplayDate = new Date();
+    renderProperties();
+    refreshView();
+    bindPropertyDropdownFloating();
+
+    // Scroll to today initially (instant)
+    setTimeout(() => {
+      const container = document.getElementById('datesContainer');
+      const todayEl = container.querySelector('.today-column');
+      if (todayEl) {
+        todayEl.scrollIntoView({ inline: 'center', block: 'nearest' });
+      }
+    }, 100);
+
+    // Event listeners
+    document.getElementById('prevBtn').addEventListener('click', goToPrevMonth);
+    document.getElementById('nextBtn').addEventListener('click', goToNextMonth);
+    document.getElementById('todayBtn').addEventListener('click', goToToday);
+    document.getElementById('refreshBtn').addEventListener('click', refreshData);
+    document.getElementById('monthDisplay').addEventListener('click', toggleMonthYearPanel);
+    document.getElementById('monthYearApplyBtn').addEventListener('click', applyMonthYearSelection);
+    document.getElementById('monthYearPanel').addEventListener('click', function(event) {
+      event.stopPropagation();
+    });
+    document.addEventListener('click', function() {
+      closeMonthYearPanel();
+    });
+    document.addEventListener('click', function(event) {
+      if (!isMobileOrTabletView()) return;
+      if (event.target.closest('.payment-indicator') || event.target.closest('.task-indicator')) return;
+      hideGlobalTooltip();
+    });
+
+    // Sync scrolling
+    const propertiesList = document.getElementById('propertiesList');
+    const datesContainer = document.getElementById('datesContainer');
+    const datesHeaderScroll = document.getElementById('datesHeaderScroll');
+    
+    let isSyncingProps = false;
+    let isSyncingDates = false;
+    let isSyncingHeader = false;
+    let isSyncingBody = false;
+
+    propertiesList.addEventListener('scroll', function() {
+      hidePropertyPreview();
+      if (!isSyncingProps) {
+        isSyncingDates = true;
+        datesContainer.scrollTop = this.scrollTop;
+      }
+      isSyncingProps = false;
+    });
+
+    datesContainer.addEventListener('scroll', function() {
+      if (!isSyncingDates) {
+        isSyncingProps = true;
+        propertiesList.scrollTop = this.scrollTop;
+      }
+      isSyncingDates = false;
+
+      if (!isSyncingBody) {
+        isSyncingHeader = true;
+        datesHeaderScroll.scrollLeft = this.scrollLeft;
+      }
+      isSyncingHeader = false;
+    });
+
+    datesHeaderScroll.addEventListener('scroll', function() {
+      if (!isSyncingHeader) {
+        isSyncingBody = true;
+        datesContainer.scrollLeft = this.scrollLeft;
+      }
+      isSyncingBody = false;
+    });
+
+    // Right pane should scroll calendar rows on wheel hover, but without showing a right vertical scrollbar.
+    datesContainer.addEventListener('wheel', function(event) {
+      // Allow browser/page zoom shortcuts (Ctrl/Cmd + wheel / trackpad pinch).
+      if (event.ctrlKey || event.metaKey) return;
+      if (Math.abs(event.deltaX) > Math.abs(event.deltaY)) return;
+      event.preventDefault();
+
+      let deltaY = event.deltaY;
+      if (event.deltaMode === 1) {
+        deltaY *= 16;
+      } else if (event.deltaMode === 2) {
+        deltaY *= propertiesList.clientHeight;
+      }
+
+      rightWheelDeltaY += deltaY;
+      if (rightWheelRaf) return;
+
+      rightWheelRaf = requestAnimationFrame(() => {
+        propertiesList.scrollTop += rightWheelDeltaY;
+        rightWheelDeltaY = 0;
+        rightWheelRaf = null;
+      });
+    }, { passive: false });
+
+    window.addEventListener('resize', function() {
+      if (timelineResizeTimer) clearTimeout(timelineResizeTimer);
+      timelineResizeTimer = setTimeout(() => {
+        syncTimelineDimensions();
+      }, 120);
+    });
+  }
+
+  // Show tasks in navbar panel on task icon hover
+  function showTasksInNavbar(dateStr, propertyId) {
+    console.log('showTasksInNavbar called with:', dateStr, propertyId);
+    console.log('Available tasks:', tasks);
+    
+    // Clear any pending hide timeout
+    if (hideTaskPanelTimeout) clearTimeout(hideTaskPanelTimeout);
+    
+    const tasksArray = tasks.filter(t => {
+      const match = t.date === dateStr && String(t.propertyId) === String(propertyId);
+      console.log(`Checking task - date: ${t.date} === ${dateStr}? ${t.date === dateStr}, propertyId: ${t.propertyId} === ${propertyId}? ${String(t.propertyId) === String(propertyId)}`);
+      return match;
+    });
+    
+    console.log('Filtered tasks:', tasksArray);
+    
+    const panel = document.getElementById('taskDetailsPanel');
+    const listDiv = document.getElementById('taskDetailsList');
+
+    if (!tasksArray || tasksArray.length === 0) {
+      listDiv.innerHTML = '<div style="font-size: 12px; color: #9ca3af; padding: 8px;">No tasks for this date</div>';
+      panel.classList.add('show');
+      return;
+    }
+
+    const taskTypeColors = { 'cleaning': '#10b981', 'maintenance': '#f59e0b', 'payment': '#3b82f6', 'other': '#8b5cf6' };
+    
+    listDiv.innerHTML = tasksArray.map(t => {
+      const timeStr = t.time ? new Date(`2000-01-01T${t.time}`).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : 'No time';
+      const badgeBg = taskTypeColors[t.task_type] || '#6b7280';
+      const completedClass = t.completed ? 'style="text-decoration: line-through; opacity: 0.6;"' : '';
+      
+      return `
+        <div class="task-item-nav" ${completedClass}>
+          <div class="task-badge" style="background-color: ${badgeBg}; color: white; text-transform: capitalize;">${t.task_type}</div>
+          <div class="task-info-nav">
+            <div>${t.details || 'Task'}</div>
+            <div style="font-size: 11px; color: #6b7280;">🕐 ${timeStr}</div>
+            ${t.assigned_to ? `<div style="font-size: 11px; color: #6b7280;">👤 ${t.assigned_to}</div>` : ''}
+          </div>
+          <div class="task-status">${t.completed ? '✓ Done' : '⏳ Pending'}</div>
+        </div>
+      `;
+    }).join('');
+
+    panel.classList.add('show');
+  }
+
+  // Hide tasks navbar panel with delay
+  function hideTasksFromNavbar() {
+    if (hideTaskPanelTimeout) clearTimeout(hideTaskPanelTimeout);
+    hideTaskPanelTimeout = setTimeout(() => {
+      const panel = document.getElementById('taskDetailsPanel');
+      if (panel) {
+        panel.classList.remove('show');
+      }
+    }, 300);
+  }
+
+  document.addEventListener('DOMContentLoaded', init);
+
+  const mobileActionsToggle = document.getElementById('mobileActionsToggle');
+  const mobileActionsMenu = document.getElementById('mobileActionsMenu');
+  const mobilePrintBtn = document.getElementById('mobilePrintBtn');
+  const mobileRefreshBtn = document.getElementById('mobileRefreshBtn');
+
+  if (mobileActionsToggle && mobileActionsMenu) {
+    mobileActionsToggle.addEventListener('click', (event) => {
+      event.stopPropagation();
+      mobileActionsMenu.classList.toggle('open');
+    });
+
+    document.addEventListener('click', (event) => {
+      if (!mobileActionsMenu.contains(event.target) && event.target !== mobileActionsToggle) {
+        mobileActionsMenu.classList.remove('open');
+      }
+    });
+  }
+
+  if (mobilePrintBtn) {
+    mobilePrintBtn.addEventListener('click', () => {
+      const desktopPrintBtn = document.getElementById('printBtn');
+      if (desktopPrintBtn) {
+        desktopPrintBtn.click();
+      } else {
+        window.print();
+      }
+    });
+  }
+
+  if (mobileRefreshBtn) {
+    mobileRefreshBtn.addEventListener('click', () => {
+      const desktopRefreshBtn = document.getElementById('refreshBtn');
+      if (desktopRefreshBtn) {
+        desktopRefreshBtn.click();
+      }
+    });
+  }
+</script>
+{% endblock extra_script %}

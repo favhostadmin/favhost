@@ -1,0 +1,1057 @@
+{% extends 'frontend/base/base.html' %}
+{% load static %}
+
+{% block extra_head %}
+    <link href="{% static 'css/host_dashboard.css' %}" rel="stylesheet">
+    <link href="{% static 'css/task/listing.css' %}" rel="stylesheet">
+    <link href="{% static 'css/booking/list.css' %}" rel="stylesheet">
+    <style>
+
+        html, body {
+            height: 100%;
+            margin: 0;
+            overflow: hidden; /* kill browser scroll */
+        }
+
+        
+        /* Dashboard header (grey bar) */
+        .header-nav {
+            position: fixed;
+            top: 65px; /* height of top global navbar */
+            left: 15px;
+            right: 15px;
+            height: 52px;
+            z-index: 999;
+            background: #5A5A5A;
+        }
+        .main {
+            position: fixed;
+            top: 116px; /* 64px navbar + 52px dashboard bar */
+            left: 0;
+            right: 0;
+            bottom: 0;
+
+            overflow-y: auto;
+            overflow-x: hidden;
+
+            padding: 16px;
+            background: #f9fafb;
+        }
+
+        .stats-grid {
+            margin-top: 1rem;
+        }
+
+        .enquiry-mobile-status {
+            margin-top: 8px;
+            font-size: 33px;
+            line-height: 1;
+            font-weight: 700;
+            color: #1f8a28;
+        }
+
+        .enquiry-mobile-status,
+        .property-not-availability {
+            margin-top: 6px !important;
+            font-size: 13px !important;
+            line-height: 1.1 !important;
+        }
+
+        .tab-header {
+        display: flex;
+        gap: 1.5rem;
+        /* border-bottom: 2px solid #e0e0e0; */
+        /* margin-bottom: 1rem; */
+        }
+        .tab-header .tab {
+        cursor: pointer;
+        padding-bottom: 0.25rem;
+        font-size: 1.1rem;
+        color: #6c757d;
+        }
+        .tab-header .tab.active {
+        color: #000;
+        border-bottom: 2px solid #000;
+        font-weight: 500;
+        }
+
+        .stat-card {
+            background: #fff;
+            border-radius: 14px;
+            padding: 20px;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+            height: 100%;
+        }
+
+        .stat-label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #111827;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .stat-label img {
+            width: 20px;
+            height: 20px;
+        }
+
+        .stat-number {
+            margin-top: 12px;
+            font-size: 32px;
+            font-weight: 700;
+            color: #000;
+        }
+
+       
+        .stat-card .h5 {
+        margin: 0;
+        font-size: 1.5rem;
+        font-weight: bold;
+        }
+        .stat-card .label {
+        font-size: 0.9rem;
+        color: #6c757d;
+        }
+        .start-card-removed-css{
+            border: none; 
+            border-radius: 0; 
+            border-right: 1px solid #e5e7eb; 
+            min-height: auto; 
+            padding: 0px;
+        }
+        .tab-header a {
+            text-decoration: none;
+        }
+        .tab-header a:hover {
+            text-decoration: none;
+        }
+        .month-picker {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            padding: 6px 16px;
+            border: 2px solid #000;
+            border-radius: 10px;      /* pill shape */
+            /* font-family: system-ui, sans-serif; */
+        }
+        .month-picker button {
+            border: none;
+            background: none;
+            font-size: 20px;
+            cursor: pointer;
+        }
+        #month-label {
+            font-weight: 600;
+        }
+        .year-select {
+            padding: 2px 14px;
+            font-size: 12px;
+            border-radius: 6px;      
+            border: 1px solid #000;
+            background-color: #fff;
+            appearance: none;         
+            -moz-appearance: none;
+            -webkit-appearance: none;
+            background-image: linear-gradient(45deg, transparent 50%, #000 50%),
+                                linear-gradient(135deg, #000 50%, transparent 50%);
+            background-position: calc(100% - 8px) 50%, calc(100% - 4px) 50%;
+            background-size: 4px 4px, 4px 4px;
+            background-repeat: no-repeat;
+        }
+
+        .chart {
+            position: relative;
+        }
+
+        .chart-empty-state {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #191e26;
+            font-size: 18px;
+            font-weight: 500;
+            pointer-events: none;
+            text-align: center;
+        }
+
+        .stat-number-font{
+            font-size: 18px !important;
+        }
+
+        .nav-title span {
+            white-space: nowrap;
+            font-weight: 500;
+            color: #fff;
+        }
+
+        .refresh-btn {
+            background-color: #ffffff;
+            color: #1D74B2 !important;
+            padding: 4px 11px;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+
+       
+         /* Responsive spacing */
+        @media (max-width: 576px) {
+            .stat-number-font{
+                font-size: 14px !important;
+            }
+            .stat-number {
+                font-size: 26px;
+            }
+            .main {
+                padding: 0px !important;
+                background: none;
+            }
+            .stats-grid{
+                margin-top: 0rem !important;
+            }
+            .main_div{
+                padding: 0px;
+            }
+             .inquiries_mobile_view {
+                display: none !important;
+            }
+
+            .chart-card {
+                display: none !important;
+            }
+            /* Stats container */
+            .upcoming-section .row.text-center {
+                background: #fff;
+                border-radius: 18px;
+                box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+                padding: 10px 6px;
+                margin: 0;
+            }
+
+            /* Force 3 columns per row */
+            .upcoming-section .row.text-center > div {
+                flex: 0 0 33.3333%;
+                max-width: 33.3333%;
+                padding: 8px 4px;
+            }
+
+            /* Remove card look */
+            .stat-card {
+                /* box-shadow: none; */
+                padding: 0;
+                background: transparent;
+            }
+
+            .stat-card .card-body {
+                padding: 6px 0;
+            }
+
+            /* Vertical divider (except last in row) */
+            .upcoming-section .row.text-center > div:not(:nth-child(3n)) {
+                border-right: 1px solid #e5e7eb;
+            }
+
+            /* Horizontal divider for first row */
+            .upcoming-section .row.text-center > div:nth-child(-n+3) {
+                border-bottom: 1px solid #e5e7eb;
+            }
+
+            /* Numbers */
+            .stat-card .h5 {
+                font-size: 22px;
+                font-weight: 700;
+                margin-bottom: 2px;
+            }
+
+            /* Labels */
+            .stat-card .label {
+                font-size: 12px;
+                color: #6b7280;
+                white-space: nowrap;
+            }
+
+            /* Remove old borders */
+            .start-card-removed-css {
+                border: none !important;
+            }
+            .upcoming-header {
+                font-size: 22px;
+                font-weight: 600;
+                margin-bottom: 0px;
+            }
+
+            .month-picker {
+                gap: 8px;
+                padding: 3px 14px;
+            }
+        }
+
+        /* ===== Tablet + Mobile stats layout ===== */
+        @media (max-width: 991.98px) {
+
+            html, body {
+                height: auto;
+                overflow: auto;
+            }
+
+            .header-nav {
+                position: static;
+                top: auto;
+                left: auto;
+                right: auto;
+                height: auto;
+                background: #ffffff;
+                padding: 16px 20px !important;
+                border-radius: 0;
+                box-shadow: none;
+            }
+            .header_title{
+                color: #000000 !important;
+            }
+            .header_logo{
+                content: url("{% static 'img/dashboard/dashboard_icon.png' %}");
+
+            }
+            .nav-title {
+                padding-bottom: 0px;
+            }
+
+            .header-actions {
+                width: 100%;
+                text-align: right;
+            }
+            .refresh-btn {
+                display: none;
+            }
+            .main {
+                position: static;
+                top: auto;
+                left: auto;
+                right: auto;
+                bottom: auto;
+                overflow: visible;
+                padding: 16px 16px 24px;
+            }
+            /* Stats wrapper */
+            .upcoming-section .row.text-center {
+                background: #fff;
+                border-radius: 18px;
+                box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+                padding: 12px 8px;
+                margin: 0;
+            }
+
+            /* Force 3 columns per row */
+            .upcoming-section .row.text-center > div {
+                flex: 0 0 33.3333%;
+                max-width: 33.3333%;
+                padding: 10px 6px;
+            }
+
+            /* Remove card styling */
+            .stat-card {
+                background: transparent;
+                /* box-shadow: none; */
+                padding: 10px;
+                height: auto;
+            }
+
+            .stat-card .card-body {
+                padding: 6px 0;
+            }
+
+            /* Vertical dividers */
+            .upcoming-section .row.text-center > div:not(:nth-child(3n)) {
+                border-right: 1px solid #e5e7eb;
+            }
+
+            /* Horizontal divider between rows */
+            .upcoming-section .row.text-center > div:nth-child(-n+3) {
+                border-bottom: 1px solid #e5e7eb;
+            }
+
+            /* Numbers */
+            .stat-card .h5 {
+                font-size: 22px;
+                font-weight: 700;
+                margin-bottom: 4px;
+            }
+
+            /* Labels */
+            .stat-card .label {
+                font-size: 12px;
+                color: #6b7280;
+                white-space: nowrap;
+            }
+
+            /* Remove old borders */
+            .start-card-removed-css {
+                border: none !important;
+            }
+        }
+    </style>
+{% endblock extra_head %}
+
+
+{% block content %}
+<div class="container-fluid  ">
+     <!-- Header Navigation -->
+    <div class="header-nav" style="padding: 8px 16px; ">
+        <div class="row align-items-center justify-content-between w-100 g-3">
+    
+            <!-- Left: Dashboard title -->
+            <div class="col-6 col-md-auto">
+                <div class="nav-left d-flex align-items-center">
+                    <div class="nav-title d-flex align-items-center gap-2">
+                        <img src="{% static 'img/dashboard/dashboard_icon_white.svg' %}" style="color: #1D74B2;" class="header_logo" alt="Dashboard">
+                        <span class="header_title">Dashboard</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right: Refresh button -->
+            <div class="col-6 col-md-auto text-md-end">
+                <div class="header-actions">
+                    <a href="#" class="btn refresh-btn">Refresh</a>
+                    <!-- Subhankar don't active, wait for my response -->
+                    <!-- <a href="{% url 'manual-sync' %}" class="btn refresh-btn">Refresh</a> -->
+                    <!-- Subhankar don't active, wait for my response -->
+
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+    <main class="main">
+        {% comment %} Card section {% endcomment %}
+        <div class="row stats-grid g-3">
+            <div class="col-lg-3 col-md-6 col-sm-6 col-6 ">
+                <div class="stat-card">
+                    <div class="stat-label">
+                        <img src="{% static 'img/dashboard/active_listing.svg' %}">
+                        <span class="stat-number  stat-number-font">Active Listings</span>
+                    </div>
+                    <div class="stat-number" style="margin-left: 28px;">{{active_listings_count}}</div>
+                    <!-- <div style="font-size: 12px; color: #000000; margin-top: 4px;">Total active properties</div> -->
+                </div>
+            </div>
+
+            <div class="col-lg-3 col-md-6 col-sm-6 col-6 ">
+                <div class="stat-card">
+                    <div class="stat-label">
+                        <img src="{% static 'img/dashboard/revenue.svg' %}">
+                        <span class="stat-number  stat-number-font ">Total revenue </span>
+                    </div>
+                    <div class="stat-number" style="margin-left: 28px;">$ {{total_revenue}}</div>
+                    <!-- <div style="font-size: 12px; color: #000000; margin-top: 4px;">Next 30 days</div> -->
+                </div>
+            </div>
+
+            <div class="col-lg-3 col-md-6 col-sm-6 col-6 ">
+                <div class="stat-card">
+                    <div class="stat-label">
+                        <img src="{% static 'img/dashboard/pending_task.svg' %}">
+                        <span class="stat-number  stat-number-font">Pending Tasks</span>
+                    </div>
+                    <div class="stat-number" style="margin-left: 28px;">{{pending_tasks_count}}</div>
+                    <!-- <div style="font-size: 12px; color: #000000; margin-top: 4px;">To be completed</div> -->
+                </div>
+            </div>
+
+            <div class="col-lg-3 col-md-6 col-sm-6 col-6 ">
+                <div class="stat-card">
+                    <div class="stat-label">
+                        <img src="{% static 'img/dashboard/new_Inquiries.png' %}">
+                        <span class="stat-number stat-number-font">New Inquiries</span>
+                    </div>
+                    <div style="font-size: 12px; color: #000000; margin-top: 4px;">
+                        
+                    </div>
+                    <div class="stat-number" style="margin-left: 28px;">{{ new_enquiry_count|default:0 }}</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-3 align-items-stretch">
+            <div class="col-lg-6 col-12 inquiries_mobile_view">
+                <div class="row">
+                    <div class="col-12 d-flex">
+                        <div class="inquiries-section flex-fill">
+                            <div class="section-header">
+                                <h2 class="section-title" style="font-size: 20px;">New Inquiries</h2>
+                                <a href="{% url 'booking:enquiry-list' %}?status=new" class="view-all" style="color: #000000; text-decoration: underline;">
+                                    View all
+                                </a>
+                            </div>
+
+
+                            {% for inquiry in new_enquiry_list %}
+                                <div class="inquiry-item align-items-center">
+                                    <div class="inquiry-image">
+                                        <img src="{{inquiry.property.get_primary_image_url}}" style="width:100%; height: 100%; border-radius: 10px;"/>
+                                        {% if status_filter != 'reserved' %}
+                                            {% if inquiry.is_available %}
+                                            <p class="enquiry-mobile-status">Available</p>
+                                            {% else %}
+                                            <p class="property-not-availability">Not Available</p>
+                                            {% endif %}
+                                        {% endif %}
+                                    </div>
+                                    <div class="inquiry-details">
+                                        <div class="inquiry-dates d-flex justify-content-between">
+                                            <span>{{ inquiry.check_in_date|date:"M d, Y" }} - {{ inquiry.check_out_date|date:"M d, Y" }} ({{ inquiry.total_nights }} nights)</span>
+                                            <span>Sent On <span style="font-weight:800; font-size: 16px; margin-right: 8px;">{{ inquiry.created_at|date:"M d, Y" }}</span></span>
+                                        </div>
+                                        <div class="inquiry-room d-flex justify-content-between align-items-center">
+                                            <span>{{ inquiry.property.title }}</span>
+                                            <div class="dropdown ms-3">
+                                                <button class="options-btn" type="button" data-bs-toggle="dropdown" data-toggle="dropdown" aria-expanded="false" data-bs-boundary="window" data-boundary="window">
+                                                    <img src="{% static 'img/booking/horizontal_dots.svg' %}">
+                                                </button>
+                                                <ul class="dropdown-menu dropdown-menu-end dropdown-menu-right">
+                                                    <li>
+                                                        <a class="dropdown-item" href="{% url 'booking:enquiry-detail' unique_id=inquiry.unique_id %}">
+                                                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                                                <path d="M2 8C3.3 5.7 5.3 4.5 8 4.5C10.7 4.5 12.7 5.7 14 8C12.7 10.3 10.7 11.5 8 11.5C5.3 11.5 3.3 10.3 2 8Z"
+                                                                    stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                                                                <circle cx="8" cy="8" r="1.75" stroke="currentColor" stroke-width="1.5" />
+                                                            </svg>
+                                                            Details
+                                                        </a>
+                                                    </li>
+                                                    {% if inquiry.is_available and not inquiry.is_booked %}
+                                                    <li>
+                                                        <a class="dropdown-item" href="{% url 'booking:booking-create' %}?enquiry_id={{ inquiry.unique_id }}">
+                                                            <img class="create-menu-icon" src="{% static 'img/header/hotel-room.png' %}" alt="Reservation">
+                                                            Create Reservation
+                                                        </a>
+                                                    </li>
+                                                    {% endif %}
+                                                    <li>
+                                                        <a class="dropdown-item enquiry-archive-btn" href="#" data-enquiry-id="{{ inquiry.unique_id }}">
+                                                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="stroke: currentColor;">
+                                                                <rect x="2" y="3" width="12" height="3" rx="1" stroke="currentColor" stroke-width="1.5" />
+                                                                <path d="M3.5 6V12.5C3.5 13.0523 3.94772 13.5 4.5 13.5H11.5C12.0523 13.5 12.5 13.0523 12.5 12.5V6"
+                                                                    stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                                                                <path d="M6 8.5H10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+                                                            </svg>
+                                                            Archive
+                                                        </a>
+                                                    </li>
+                                                </ul>
+                                            </div>
+                                        </div>
+                                        <div class="inquiry-guest">
+                                            {{ inquiry.guest_name }} 
+                                            | 
+                                            {{ inquiry.adults }} guest{{ inquiry.adults|pluralize }}
+                                            , {{ inquiry.children }} Child {% if inquiry.children > 1 %}ren{% endif %}
+                                            , {{ inquiry.pets }} pet{{ inquiry.pets|pluralize }}
+                                        </div>
+                                    </div>
+                                </div>
+                            {% empty %}
+                                <p>No new inquiries available.</p>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                <div class="row mt-5">
+                    <div class="col-12 d-flex">
+                        <div class="chart-card flex-fill">
+                            <div class="chart-header d-flex justify-content-between align-items-start">
+                                <div class="chart-title">
+                                    <p> Monthly Average: $ {{monthly_average}}</p>
+                                    
+                                </div>
+
+                                <div style="display: flex;  text-align: right;">
+                                    <!-- <div class="chart-title">$ YTD Earnings</div>
+                                    <div class="chart-value" id="ytd-value">$0</div>
+                                    <div class="chart-subtitle">Year to date</div> -->
+                                    <div class="d-flex me-3">
+                                        <img src="{% static 'img/dashboard/monthly_profit.svg' %}">
+                                        <span>+0%</span>
+                                    </div>
+
+
+                                    <select id="year-select" class="year-select">
+                                        {% for y in total_years %}
+                                            <option value="{{ y }}" {% if y == selected_year %}selected{% endif %}>
+                                            {{ y }}
+                                            </option>
+                                        {% endfor %}
+                                    </select>
+
+                                </div>
+                            </div>
+
+                            <!-- Chart -->
+                            <div class="chart" id="earnings-chart"></div>
+
+                            <!-- Month Labels -->
+                            <div class="chart-labels d-flex justify-content-between">
+                            <div>Jan</div><div>Feb</div><div>Mar</div><div>Apr</div>
+                            <div>May</div><div>Jun</div><div>Jul</div><div>Aug</div>
+                            <div>Sep</div><div>Oct</div><div>Nov</div><div>Dec</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+
+            <div class="col-lg-6 col-12 upcoming-section">
+
+                <div class="tab-header">
+                    <a href="?type=today" class="tab {% if not selected_type or selected_type == 'today' %}active{% endif %}">Today</a>
+                    <a href="?type=tomorrow" class="tab {% if selected_type == 'tomorrow' %}active{% endif %}">Tomorrow</a>
+                </div>
+                <hr>
+
+                <!-- Stats boxes row -->
+                <div class="row text-center">
+                    <div class="col-lg-2 col-md-2 col-6 m-0 p-0">
+                        <div class="card stat-card start-card-removed-css">
+                            <div class="card-body">
+                            <div class="h5">{{total_checkin}}</div>
+                            <div class="label">Check-ins</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-2 col-md-2 col-6 m-0 p-0">
+                        <div class="card stat-card start-card-removed-css">
+                            <div class="card-body">
+                            <div class="h5">{{total_checkout}}</div>
+                            <div class="label">Check-outs</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-2 col-md-2 col-6 m-0 p-0">
+                        <div class="card stat-card start-card-removed-css">
+                            <div class="card-body">
+                            <div class="h5">{{total_inhouse}}</div>
+                            <div class="label">In-house</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-2 col-md-2 col-6 m-0 p-0">
+                        <div class="card stat-card start-card-removed-css">
+                            <div class="card-body">
+                            <div class="h5">{{total_vacant}}</div>
+                            <div class="label">Vacant</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-2 col-md-2 col-6 m-0 p-0">
+                        <div class="card stat-card start-card-removed-css">
+                            <div class="card-body">
+                            <div class="h5">{{total_payment}}</div>
+                            <div class="label">Payment</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-2 col-md-2 col-6 m-0 p-0">
+                        <div class="card stat-card start-card-removed-css border-0">
+                            <div class="card-body">
+                            <div class="h5">{{total_tasks}}</div>
+                            <div class="label">Tasks</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <hr>
+
+                <div class="row" style="max-height: 466px; overflow: auto;">
+                    <div class="col-12">
+                        <div class=" flex-fill">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h2 class="upcoming-header">Upcoming</h2>
+                                <div class="month-picker">
+                                    <button id="prev-month" aria-label="Previous month">‹</button>
+                                    <span id="month-label" data-month="{{ upcoming_month }}" data-year="{{ upcoming_year }}"></span>
+                                    <button id="next-month" aria-label="Next month">›</button>
+                                </div>
+                            </div>
+                            {% if upcoming_groups %}
+                                {% for group in upcoming_groups %}
+                                    <div class="upcoming-item">
+                                        <div class="upcoming-date">
+                                            <div class="left">
+                                                <img src="{% static 'img/dashboard/upcoming_event_calender.png' %}"/>
+                                                {{ group.date|date:"M d, Y, D" }}
+                                            </div>
+                                            <div class="due-badge {{ group.status_code }}">{{ group.status_label }}</div>
+                                        </div>
+                                        <div class="upcoming-entries">
+                                            {% for item in group.items %}
+                                                <div class="upcoming-entry">
+                                                    <div class="entry-left">
+                                                        <div class="entry-title">
+                                                            <img src="{% static item.icon %}" class="entry-icon" alt="">
+                                                            <span class="entry-label">
+                                                                {{ item.title }}
+                                                                {% if item.amount %}
+                                                                    ${{ item.amount }}
+                                                                {% endif %}
+                                                            </span>
+                                                            {% if item.group == "Payment" %}
+                                                                <span class="payment-status {% if item.paid %}paid{% else %}unpaid{% endif %}">
+                                                                    {% if item.paid %}Paid{% else %}Not paid{% endif %}
+                                                                </span>
+                                                            {% endif %}
+                                                        </div>
+                                                        <div class="entry-subtitle">
+                                                            <img src="{{ item.property_image }}" class="entry-property-icon" alt="">
+                                                            <span>{{ item.property }}</span>
+                                                        </div>
+                                                    </div>
+                                                    <div class="entry-right">
+                                                        <div class="guest-avatar-wrap">
+                                                            <img src="{{ item.avatar }}" class="user-avatar" alt="Guest">
+                                                            <div class="guest-tooltip">
+                                                                <div class="tooltip-name">{{ item.guest_name }}</div>
+                                                                {% if item.guest_phone %}
+                                                                    <div class="tooltip-line">{{ item.guest_phone }}</div>
+                                                                {% endif %}
+                                                                {% if item.guest_email %}
+                                                                    <div class="tooltip-line">{{ item.guest_email }}</div>
+                                                                {% endif %}
+                                                                {% if item.stay %}
+                                                                    <div class="tooltip-line">{{ item.stay }}</div>
+                                                                {% endif %}
+                                                                {% if item.channel_name %}
+                                                                    <div class="tooltip-line">{{ item.channel_name }}</div>
+                                                                {% endif %}
+                                                            </div>
+                                                        </div>
+                                                        <div class="user-name" data-full="{{ item.guest_name }}">{{ item.guest_name|truncatewords:2 }}</div>
+                                                    </div>
+                                                </div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            {% else %}
+                                <div class="upcoming-item">
+                                    <div class="upcoming-date">
+                                        <div class="left">
+                                            <img src="{% static 'img/dashboard/upcoming_event_calender.png' %}"/>
+                                            No upcoming events
+                                        </div>
+                                        <div class="due-badge upcoming">This month</div>
+                                    </div>
+                                </div>
+                            {% endif %}
+
+                            
+                        </div>
+                    </div>
+                </div>
+                
+            </div>
+        </div>
+        <br>
+            
+        {% include 'frontend/base/footer.html' %}
+    </main>
+</div>
+
+{% include 'frontend/common/confirmation_modal.html' with modal_id="archiveEnquiryModal" title="Confirm Archive" message="Are you sure you want to archive this enquiry?" form_id="archiveEnquiryForm" confirm_text="Archive" confirm_btn_class="btn-danger" %}
+
+{% endblock content  %}
+
+
+{% block extra_script %}
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <script>
+        // Archive Enquiry Functionality
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        const csrfToken = getCookie('csrftoken');
+        const archiveModalElement = document.getElementById('archiveEnquiryModal');
+        const archiveForm = document.getElementById('archiveEnquiryForm');
+        const archiveSubmitBtn = archiveForm ? archiveForm.querySelector('button[type="submit"]') : null;
+        const archiveModal = archiveModalElement ? new bootstrap.Modal(archiveModalElement) : null;
+        let pendingArchiveEnquiryId = null;
+
+        function bindArchiveButtons(root) {
+            const scope = root || document;
+            scope.querySelectorAll('.enquiry-archive-btn').forEach(button => {
+                if (button.dataset.boundArchiveClick === '1') return;
+                button.dataset.boundArchiveClick = '1';
+                button.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    const enquiryId = this.dataset.enquiryId;
+                    if (!enquiryId || !archiveModal) return;
+                    pendingArchiveEnquiryId = enquiryId;
+                    archiveModal.show();
+                });
+            });
+        }
+
+        bindArchiveButtons(document);
+
+        if (archiveForm) {
+            archiveForm.addEventListener('submit', function (e) {
+                e.preventDefault();
+                if (!pendingArchiveEnquiryId) return;
+
+                if (archiveSubmitBtn) {
+                    archiveSubmitBtn.disabled = true;
+                    archiveSubmitBtn.textContent = 'Archiving...';
+                }
+
+                fetch(`/booking/enquiry/archive/${pendingArchiveEnquiryId}/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': csrfToken,
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        window.location.reload();
+                    } else {
+                        alert('Error: ' + (data.error || 'Failed to archive enquiry'));
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred while archiving the enquiry.');
+                })
+                .finally(() => {
+                    if (archiveSubmitBtn) {
+                        archiveSubmitBtn.disabled = false;
+                        archiveSubmitBtn.textContent = 'Archive';
+                    }
+                });
+            });
+        }
+
+        if (archiveModalElement) {
+            archiveModalElement.addEventListener('hidden.bs.modal', function () {
+                pendingArchiveEnquiryId = null;
+            });
+        }
+    </script>
+
+    <script>
+        // New button functionality
+        const newBtn = document.querySelector('.new-btn');
+        if (newBtn) {
+            newBtn.addEventListener('click', function() {
+                // In a real app, this would open a dropdown menu
+                alert('New menu would open here');
+            });
+        }
+
+        // Refresh / Manual Sync functionality
+        const refreshBtn = document.querySelector('.refresh-btn');
+        if (refreshBtn) {
+            refreshBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                const btn = this;
+                
+                // Visual feedback: Disable button and show loading state
+                btn.innerText = 'Syncing...';
+                btn.style.opacity = '0.7';
+                btn.style.pointerEvents = 'none';
+
+                fetch('{% url "manual-sync" %}', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': '{{ csrf_token }}',
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    // Reload the page to display updated booking and block information
+                    window.location.reload();
+                })
+                .catch(error => {
+                    console.error('Error triggering sync:', error);
+                    window.location.reload();
+                });
+            });
+        }
+
+        // Notification click
+        document.querySelector('.notification').addEventListener('click', function() {
+            // In a real app, this would open notifications panel
+            alert('Notifications panel would open here');
+        });
+
+        // Navigation items
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.addEventListener('click', function(e) {
+                e.preventDefault();
+                document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
+                this.classList.add('active');
+            });
+        });
+
+        // View all link
+        document.querySelector('.view-all').addEventListener('click', function(e) {
+            e.preventDefault();
+            alert('View all inquiries would open here');
+        });
+
+        // Chart animation on load
+        window.addEventListener('load', function() {
+            const bars = document.querySelectorAll('.bar:not(.future)');
+            bars.forEach((bar, index) => {
+                bar.style.transform = 'scaleY(0)';
+                bar.style.transformOrigin = 'bottom';
+                bar.style.transition = `transform 0.5s ease ${index * 0.1}s`;
+                
+                setTimeout(() => {
+                    bar.style.transform = 'scaleY(1)';
+                }, 100);
+            });
+        });
+
+        // Simulate real-time updates
+        setInterval(function() {
+            const newInquiries = document.querySelector('.stat-card:last-child .stat-number');
+            let current = parseInt(newInquiries.textContent);
+            
+            // Randomly update inquiries count
+            if (Math.random() > 0.95) {
+                newInquiries.textContent = String(current + 1).padStart(2, '0');
+                newInquiries.style.color = '#ef4444';
+                setTimeout(() => {
+                    newInquiries.style.color = '#1a1a1a';
+                }, 1000);
+            }
+        }, 5000);
+    </script>
+
+    <script>
+        document.getElementById('year-select').addEventListener('change', function () {
+            const year = this.value;
+            const url = new URL(window.location.href);
+            url.searchParams.set('year', year);
+            window.location.href = url.toString();
+        });
+    </script>
+
+    <script>
+        // Example earnings data (per month)
+        // const monthlyEarnings = [0, 0, 0, 100, 0, 6748, 0, 0, 0, 0, 0, 0];
+        const monthlyEarnings = {{ monthly_earnings_js }};
+
+        console.log(monthlyEarnings);
+        
+
+        // Current month index (0=Jan, 11=Dec)
+        const currentMonth = new Date().getMonth();
+
+        const maxValue = Math.max(...monthlyEarnings);
+        const chart = document.getElementById("earnings-chart");
+        chart.innerHTML = "";
+        const hasChartData = monthlyEarnings.some(value => Number(value) > 0);
+
+        if (!hasChartData) {
+            const emptyState = document.createElement("div");
+            emptyState.classList.add("chart-empty-state");
+            emptyState.innerText = "No data found to display";
+            chart.appendChild(emptyState);
+        }
+
+        monthlyEarnings.forEach((value, i) => {
+        const bar = document.createElement("div");
+        bar.classList.add("bar");
+
+        if (i === currentMonth) {
+            bar.classList.add("current"); // highlight current month
+        } else if (i < currentMonth && value > 0) {
+            bar.classList.add("active");
+        } else if (i > currentMonth) {
+            bar.classList.add("future");
+        }
+
+        const heightPercent = maxValue > 0 ? (value / maxValue) * 100 : 0;
+        bar.style.height = `${heightPercent}%`;
+
+        if (value > 0) {
+            const label = document.createElement("span");
+            label.innerText = `$${value.toLocaleString()}`;
+            bar.appendChild(label);
+        }
+
+        chart.appendChild(bar);
+        });
+
+        // Update YTD earnings
+        const ytdValueElement = document.getElementById("ytd-value");
+        if (ytdValueElement) {
+            ytdValueElement.innerText =
+            "$" + monthlyEarnings.reduce((a, b) => a + b, 0).toLocaleString();
+        }
+    </script>
+
+    <script>
+        const label = document.getElementById('month-label');
+        const prevBtn = document.getElementById('prev-month');
+        const nextBtn = document.getElementById('next-month');
+
+        let current;
+        if (label && label.dataset && label.dataset.month && label.dataset.year) {
+            current = new Date(parseInt(label.dataset.year, 10), parseInt(label.dataset.month, 10) - 1, 1);
+        } else {
+            current = new Date(); // today
+        }
+
+        function formatMonthYear(date) {
+        const month = date.toLocaleString('en-US', { month: 'short' }); // Jun
+        const year = date.getFullYear();
+        return `${month} ${year}`;
+        }
+
+        function updateLabel() {
+        label.textContent = formatMonthYear(current);
+        }
+
+        function goToMonth(date) {
+            const url = new URL(window.location.href);
+            url.searchParams.set('upcoming_month', String(date.getMonth() + 1));
+            url.searchParams.set('upcoming_year', String(date.getFullYear()));
+            window.location.href = url.toString();
+        }
+
+        prevBtn.addEventListener('click', () => {
+        current.setMonth(current.getMonth() - 1);  // go to previous month
+        goToMonth(current);
+        });
+
+        nextBtn.addEventListener('click', () => {
+        current.setMonth(current.getMonth() + 1);  // go to next month
+        goToMonth(current);
+        });
+
+        updateLabel(); // initial render
+
+    </script>
+{% endblock extra_script %}

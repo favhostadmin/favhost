@@ -1,0 +1,747 @@
+{% load static %}
+{% if not is_modal %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guest Receipt</title>
+{% endif %}
+    <style>
+        #guest-receipt-root,
+        #guest-receipt-root * {
+            box-sizing: border-box;
+        }
+
+        #guest-receipt-root {
+            font-family: "Heebo", sans-serif;
+            color: #1f2937;
+            padding: 18px;
+        }
+
+        #guest-receipt-root.is-modal {
+            padding: 12px 16px;
+        }
+
+        #guest-receipt-root .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            background: #fff;
+            border-radius: 12px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        #guest-receipt-root .receipt-close-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            border: 1px solid #d1d5db;
+            background: #fff;
+            color: #6b7280;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            flex-shrink: 0;
+            z-index: 10;
+        }
+
+        #guest-receipt-root .receipt-close-btn:hover {
+            color: #111827;
+            border-color: #9ca3af;
+        }
+
+        #guest-receipt-root .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 52px 10px 24px;
+            border-bottom: 1px solid #e6cd95;
+        }
+
+        #guest-receipt-root .header-left {
+            display: flex;
+            align-items: baseline;
+            gap: 12px;
+        }
+
+        #guest-receipt-root .header-left h1 {
+            margin: 0;
+            font-size: 16px;
+            font-weight: 600;
+            color: #111827;
+        }
+
+        #guest-receipt-root .header-left span {
+            font-size: 11px;
+            color: #6b7280;
+        }
+
+        #guest-receipt-root .header-right {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        #guest-receipt-root .generated-text {
+            font-size: 11px;
+            color: #6b7280;
+        }
+
+        #guest-receipt-root .logo {
+            height: 28px;
+        }
+
+        #guest-receipt-root .new-action-btn-header {
+            background: #fff;
+            color: #1d74b2;
+            font-weight: 600;
+            border: 1px solid #00000080;
+            padding: 4px 10px;
+            border-radius: 10px;
+            font-size: 13px;
+            cursor: pointer;
+        }
+
+        #guest-receipt-root .content_div {
+            padding: 24px 42px 30px;
+        }
+
+        #guest-receipt-root .section-divider {
+            border: 0;
+            border-top: 1px solid #e5e7eb;
+            margin: 16px 0;
+        }
+
+        #guest-receipt-root .top-layout {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 265px;
+            gap: 20px;
+            align-items: start;
+        }
+
+        #guest-receipt-root .guest-name {
+            font-size: 22px;
+            font-weight: 600;
+            line-height: 1.15;
+            margin-bottom: 12px;
+            color: #111827;
+        }
+
+        #guest-receipt-root .guest-line {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            color: #1f2937;
+            margin-bottom: 7px;
+            line-height: 1.25;
+        }
+
+        #guest-receipt-root .guest-line img,
+        #guest-receipt-root .host-contact img {
+            width: 14px;
+            height: 14px;
+            flex-shrink: 0;
+        }
+
+        #guest-receipt-root .guest-line a {
+            color: #2563eb;
+            text-decoration: underline;
+        }
+
+        #guest-receipt-root .top-right {
+            border-left: 1px solid #e5e7eb;
+            padding-left: 18px;
+        }
+
+        #guest-receipt-root .property-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: #111827;
+            margin-bottom: 10px;
+            line-height: 1.25;
+        }
+
+        #guest-receipt-root .top-right-block {
+            margin-bottom: 6px;
+        }
+
+        #guest-receipt-root .top-right-label {
+            font-size: 10px;
+            color: #4b5563;
+            margin-bottom: 2px;
+        }
+
+        #guest-receipt-root .top-right-value {
+            font-size: 13px;
+            font-weight: 700;
+            color: #111827;
+            line-height: 1.25;
+        }
+
+        #guest-receipt-root .payment-heading {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        #guest-receipt-root .payment-heading h2 {
+            margin: 0;
+            font-size: 22px;
+            font-weight: 600;
+            color: #111827;
+        }
+
+        #guest-receipt-root .payment-status-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 96px;
+            height: 24px;
+            padding: 0 12px;
+            border-radius: 999px;
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.2px;
+            border: 1px solid #f59e0b;
+            color: #a16207;
+            background: #fef3c7;
+        }
+
+        #guest-receipt-root .payment-status-badge.paid {
+            border-color: #65a30d;
+            color: #3f6212;
+            background: #d9f99d;
+            text-transform: none;
+        }
+
+        #guest-receipt-root .payment-table {
+            max-width: 470px;
+        }
+
+        #guest-receipt-root .payment-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 8px;
+            font-size: 14px;
+            color: #111827;
+            line-height: 1.2;
+        }
+
+        #guest-receipt-root .payment-row .amount {
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        #guest-receipt-root .payment-total {
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid #d1d5db;
+            font-weight: 700;
+        }
+
+        #guest-receipt-root .host-section {
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        #guest-receipt-root .host-info {
+            min-width: 280px;
+            text-align: left;
+        }
+
+        #guest-receipt-root .host-thank {
+            font-size: 14px;
+            color: #111827;
+            margin-bottom: 6px;
+        }
+
+        #guest-receipt-root .host-name {
+            font-size: 14px;
+            font-weight: 700;
+            color: #111827;
+            margin-bottom: 8px;
+        }
+
+        #guest-receipt-root .host-contact {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 11px;
+            color: #111827;
+            margin-bottom: 6px;
+        }
+
+        #guest-receipt-root.receipt-export .receipt-actions {
+            display: none !important;
+        }
+
+        @media (max-width: 1100px) {
+            #guest-receipt-root .content_div {
+                padding: 20px 26px 26px;
+            }
+
+            #guest-receipt-root .payment-heading h2 {
+                font-size: 30px;
+            }
+        }
+
+        @media (max-width: 991.98px) {
+            #guest-receipt-root .top-layout {
+                grid-template-columns: 1fr;
+                gap: 18px;
+            }
+
+            #guest-receipt-root .top-right {
+                padding-left: 0;
+                border-left: 0;
+                border-top: 1px solid #e5e7eb;
+                padding-top: 12px;
+            }
+
+            #guest-receipt-root .top-right-block {
+                display: flex;
+                justify-content: space-between;
+                flex-wrap: wrap;
+            }
+
+            #guest-receipt-root .payment-heading h2 {
+                font-size: 24px;
+            }
+
+            #guest-receipt-root .payment-row {
+                font-size: 13px;
+            }
+
+            #guest-receipt-root .guest-line {
+                flex-wrap: wrap;
+                gap: 6px;
+            }
+
+            #guest-receipt-root .guest-line a {
+                width: 100%;
+                word-break: break-word;
+                overflow-wrap: anywhere;
+            }
+        }
+
+        @media (max-width: 767.98px) {
+            #guest-receipt-root {
+                padding: 8px;
+            }
+
+            #guest-receipt-root .content_div {
+                padding: 16px;
+            }
+
+            #guest-receipt-root .header {
+                padding: 10px 44px 10px 16px;
+                flex-wrap: wrap;
+            }
+
+            #guest-receipt-root .top-layout {
+                grid-template-columns: 1fr;
+                gap: 14px;
+            }
+
+            #guest-receipt-root .top-right {
+                border-left: 0;
+                border-top: 1px solid #e5e7eb;
+                padding-left: 0;
+                padding-top: 14px;
+            }
+
+            #guest-receipt-root .guest-name {
+                font-size: 24px;
+            }
+
+            #guest-receipt-root .guest-line {
+                font-size: 14px;
+                flex-wrap: wrap;
+                gap: 6px;
+            }
+
+            #guest-receipt-root .property-title {
+                font-size: 15px;
+            }
+
+            #guest-receipt-root .guest-line a {
+                width: 100%;
+                word-break: break-word;
+            }
+
+            #guest-receipt-root .top-right-block {
+                justify-content: space-between;
+            }
+
+            #guest-receipt-root .top-right-value {
+                font-size: 13px;
+            }
+
+            #guest-receipt-root .payment-heading h2 {
+                font-size: 22px;
+            }
+
+            #guest-receipt-root .payment-row {
+                font-size: 13px;
+            }
+
+            #guest-receipt-root .host-info {
+                min-width: 0;
+                width: 100%;
+            }
+
+            #guest-receipt-root .host-thank,
+            #guest-receipt-root .host-name {
+                font-size: 14px;
+            }
+
+            #guest-receipt-root .host-contact {
+                font-size: 12px;
+            }
+        }
+
+        @media (max-width: 991.98px) {
+            #guest-receipt-root .container {
+                overflow: visible;
+            }
+
+            #guest-receipt-root .header {
+                position: sticky;
+                top: 0;
+                left: 0;
+                right: 0;
+                z-index: 20;
+                background: #fff;
+                padding: 10px 16px;
+                box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+                border-radius: 12px 12px 0 0;
+            }
+
+            #guest-receipt-root .header-right {
+                flex: 1;
+                justify-content: flex-end;
+            }
+        }
+
+        @media print {
+            .custom-header,
+            .custom-header * {
+                visibility: hidden !important;
+            }
+
+            #guest-receipt-root,
+            #guest-receipt-root * {
+                box-shadow: none !important;
+                text-shadow: none !important;
+                filter: none !important;
+            }
+
+            #guest-receipt-root .container {
+                box-shadow: none !important;
+                border: none !important;
+            }
+
+            #guest-receipt-root .receipt-close-btn,
+            #guest-receipt-root .receipt-actions {
+                display: none !important;
+            }
+        }
+    </style>
+{% if not is_modal %}
+</head>
+<body>
+{% endif %}
+    <div id="guest-receipt-root" class="guest-receipt{% if is_modal %} is-modal{% endif %}">
+    <div class="container" style="box-shadow: none; padding: 0 !important; margin: 0 !important;">
+        <button type="button" class="receipt-close-btn" id="closeReceiptBtn" aria-label="Close receipt">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <path d="M4 4L12 12M12 4L4 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+        </button>
+        <div class="header">
+            <div class="header-left">
+                <h1>Guest Receipt</h1>
+                <span>Reservation #{{ booking.booking_id}}</span>
+            </div>
+            <div class="header-right">
+                <span class="generated-text">generated with</span>
+                <img src="{% static 'img/login/favhost.png' %}" class="logo" alt="BookAid"/>
+                <div class="dropdown receipt-actions">
+                    <button class="new-action-btn-header dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" data-bs-auto-close="outside" style="background: #FFFFFF; color: #1D74B2; font-weight: 600; border: 0.75px solid #00000080; padding: 4px 10px;">
+                        Action
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="newDropdown" style="transform: translate(0px, 39px) !important;">
+                        <!-- Download PDF -->
+                        <li>
+                            <!-- <a class="dropdown-item" href="javascript:window.print()"> -->
+                            <a class="dropdown-item" href="#" id="downloadReceiptPdf">
+                                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M8 1V10M8 10L5 7M8 10L11 7M2 14H14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                                Download PDF
+                            </a>
+                        </li>
+
+                        <li>
+                            <a class="dropdown-item email-guest-btn" href="#" data-booking-id="{{ booking.id }}">
+                                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M3 4H13C13.5523 4 14 4.44772 14 5V11C14 11.5523 13.5523 12 13 12H3C2.44772 12 2 11.5523 2 11V5C2 4.44772 2.44772 4 3 4Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                    <path d="M14 5L8 8.5L2 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                                Email Guest
+                            </a>
+                        </li>
+
+                        <li>
+                            <!-- <a class="dropdown-item" href="javascript:window.print()"> -->
+                            <a class="dropdown-item" href="#" id="printReceipt">
+                                <img src="{% static 'img/common/print_symbol.svg'  %}" alt="" srcset="" style="height: 20px;">
+                                Print
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <div class="content_div">
+            <div class="top-layout">
+                <div class="top-left">
+                    <div class="guest-name">{{ booking.first_name }} {{ booking.last_name }}</div>
+
+                    <div class="guest-line">
+                        <img src="{% static 'img/booking/email_icon.svg' %}" alt="Email">
+                        <span>{{ booking.email }}</span>
+                    </div>
+
+                    <div class="guest-line">
+                        <img src="{% static 'img/booking/phone_icon.svg' %}" alt="Phone">
+                        <span>{{ booking.phone }}</span>
+                    </div>
+
+                    <!-- <div class="guest-line">
+                        <img src="{% static 'img/booking/attachment_icon.svg' %}" alt="Attachments">
+                        <a href="{% url 'booking:payment-details' pk=booking.id %}">Attachments ({{ booking.documents.count }})</a>
+                    </div> -->
+
+                    <div class="guest-line">
+                        <img src="{% static 'img/booking/booked_icon.svg' %}" alt="Source">
+                        <span>{{ booking.channel.name|default:"N/A" }}</span>
+                    </div>
+                </div>
+
+                <div class="top-right">
+                    <div class="property-title">{{ booking.property.title }}</div>
+
+                    <div class="top-right-block">
+                        <div class="top-right-label">Check In:</div>
+                        <div class="top-right-value">{{ booking.check_in_date|date:"D, M d, Y" }}, {{ booking.check_in_time|time:"g:i a" }}</div>
+                    </div>
+
+                    <div class="top-right-block">
+                        <div class="top-right-label">Check Out:</div>
+                        <div class="top-right-value">{{ booking.check_out_date|date:"D, M d, Y" }}, {{ booking.check_out_time|time:"g:i a" }}</div>
+                    </div>
+
+                    <div class="top-right-block">
+                        <div class="top-right-label">Nights:</div>
+                        <div class="top-right-value">{{ nights }}</div>
+                    </div>
+
+                    <div class="top-right-block">
+                        <div class="top-right-label">Guests:</div>
+                        <div class="top-right-value">{{ booking.guest_count }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <hr class="section-divider">
+
+            <div class="payment-heading">
+                <h2>Payment Summary</h2>
+                <!-- <span class="payment-status-badge">Pending Payment</span>
+                {% if all_paid %}
+                <span class="payment-status-badge paid">Paid</span>
+                {% endif %} -->
+            </div>
+
+            <div class="payment-table">
+                <div class="payment-row">
+                    <span>${{ booking.price_per_night|floatformat:2 }} x {{ nights }} nights</span>
+                    <span class="amount">${{ booking.price|floatformat:2 }}</span>
+                </div>
+
+                {% if booking.cleaning_fee > 0 %}
+                <div class="payment-row">
+                    <span>Cleaning fee</span>
+                    <span class="amount">${{ booking.cleaning_fee|floatformat:2 }}</span>
+                </div>
+                {% endif %}
+
+                {% if booking.deposit_fee > 0 %}
+                <div class="payment-row">
+                    <span>Refundable deposit</span>
+                    <span class="amount">${{ booking.deposit_fee|floatformat:2 }}</span>
+                </div>
+                {% endif %}
+
+                {% if booking.application_fee > 0 %}
+                <div class="payment-row">
+                    <span>Application fee</span>
+                    <span class="amount">${{ booking.application_fee|floatformat:2 }}</span>
+                </div>
+                {% endif %}
+
+                <div class="payment-row payment-total">
+                    <span>Total</span>
+                    <span class="amount">${{ booking.price|add:booking.cleaning_fee|add:booking.deposit_fee|add:booking.application_fee|floatformat:2 }}</span>
+                </div>
+            </div>
+
+            <hr class="section-divider">
+
+            <div class="host-section">
+                <div class="host-info">
+                    <div class="host-thank">Thank You for staying!</div>
+                    <div class="host-name">{{ booking.property.created_by.get_full_name }} (Host)</div>
+                    <div class="host-contact">
+                        <img src="{% static 'img/booking/phone_icon.svg' %}" alt="Phone">
+                        <span>{{ booking.property.created_by.phone }}</span>
+                    </div>
+                    <div class="host-contact">
+                        <img src="{% static 'img/booking/email_icon.svg' %}" alt="Email">
+                        <span>{{ booking.property.created_by.email }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if not is_modal %}
+    <!-- Email Guest Modal -->
+    <div id="emailGuestModal" class="modal" style="display: none; position: fixed; z-index: 1050; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.5); align-items: center; justify-content: center;">
+        <div class="modal-content" style="background-color: #fefefe; margin: auto; padding: 0; border: 1px solid #888; width: 80%; max-width: 800px; border-radius: 8px; position: relative; box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2),0 6px 20px 0 rgba(0,0,0,0.19);">
+            <div class="modal-body" style="padding: 0;">
+                <!-- Content will be loaded here via AJAX -->
+                <div id="email-modal-content-placeholder">Loading...</div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"></script>
+
+    <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const emailModal = document.getElementById('emailGuestModal');
+            const emailModalPlaceholder = document.getElementById('email-modal-content-placeholder');
+            const downloadBtn = document.getElementById('downloadReceiptPdf');
+            const printBtn = document.getElementById('printReceipt');
+            const closeReceiptBtn = document.getElementById('closeReceiptBtn');
+            const receiptRoot = document.getElementById('guest-receipt-root');
+
+            document.querySelectorAll('.email-guest-btn').forEach(button => {
+                button.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const bookingId = this.dataset.bookingId;
+                    const url = `{% url 'booking:render-email-form' %}?booking_id=${bookingId}`;
+
+                    emailModalPlaceholder.innerHTML = '<div style="text-align: center; padding: 40px;">Loading...</div>';
+                    emailModal.style.display = 'flex';
+
+                    fetch(url)
+                        .then(response => response.text())
+                        .then(html => {
+                            emailModalPlaceholder.innerHTML = html;
+                            const closeEmailBtn = emailModal.querySelector('.btn-cancel-email');
+                            if (closeEmailBtn) {
+                                closeEmailBtn.onclick = () => emailModal.style.display = 'none';
+                            }
+                        })
+                        .catch(error => {
+                            emailModalPlaceholder.innerHTML = '<p style="text-align: center; padding: 40px; color: red;">Error loading email form. Please try again.</p>';
+                            console.error('Error fetching email form:', error);
+                        });
+                });
+            });
+
+            window.onclick = function(event) {
+            if (event.target == emailModal) {
+                emailModal.style.display = 'none';
+            }
+        }
+
+            function triggerPrint(e) {
+                if (e) e.preventDefault();
+                window.print();
+            }
+
+            function triggerPdfDownload(e) {
+                if (e) e.preventDefault();
+                if (!receiptRoot) return;
+
+                const filename = "guest-receipt.pdf";
+                const options = {
+                    margin: [0, 0, 0, 0],
+                    filename: filename,
+                    image: { type: 'jpeg', quality: 0.98 },
+                    html2canvas: { scale: 2, useCORS: true },
+                    jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+                };
+
+                receiptRoot.classList.add('receipt-export');
+                html2pdf().set(options).from(receiptRoot).save().then(() => {
+                    receiptRoot.classList.remove('receipt-export');
+                }).catch(() => {
+                    receiptRoot.classList.remove('receipt-export');
+                });
+            }
+
+            if (downloadBtn) downloadBtn.addEventListener('click', triggerPdfDownload);
+            if (printBtn) printBtn.addEventListener('click', triggerPrint);
+
+            if (closeReceiptBtn) {
+                closeReceiptBtn.addEventListener('click', function() {
+                    const modalElement = closeReceiptBtn.closest('.modal') || receiptRoot.closest('.modal');
+
+                    if (modalElement) {
+                        if (window.bootstrap && window.bootstrap.Modal) {
+                            const modalInstance = window.bootstrap.Modal.getInstance(modalElement) || new window.bootstrap.Modal(modalElement);
+                            modalInstance.hide();
+                        } else {
+                            modalElement.style.display = 'none';
+                            modalElement.classList.remove('show');
+                            document.body.classList.remove('modal-open');
+                            document.body.style.removeProperty('overflow');
+                            document.body.style.removeProperty('padding-right');
+                            document.querySelectorAll('.modal-backdrop').forEach(backdrop => backdrop.remove());
+                        }
+                        return;
+                    }
+
+                    if (window.history.length > 1) {
+                        window.history.back();
+                    } else {
+                        window.location.href = "{% url 'booking:booking-list' %}";
+                    }
+                });
+            }
+        });
+    </script>
+    {% endif %}
+    </div>
+{% if not is_modal %}
+</body>
+</html>
+{% endif %}
