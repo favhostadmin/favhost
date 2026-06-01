@@ -201,15 +201,13 @@ class HostDashboardAPIView(LoginRequiredMixin, TemplateView):
         # print("monthly_average==>",monthly_average)
         
 
-        # 6) Years for dropdown (optional, unchanged from before)
-        total_years = (
+        # 6) Years for dropdown — use values_list + set for SQLite compatibility
+        total_years = sorted(set(
             Booking.objects
             .filter(property__created_by=self.request.user)
             .exclude(status='cancelled')
-            .order_by('check_in_date__year')
             .values_list('check_in_date__year', flat=True)
-            .distinct('check_in_date__year')
-        )
+        ))
 
         context['current_year'] = current_year
         context['selected_year'] = selected_year
