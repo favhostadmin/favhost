@@ -59,7 +59,9 @@ class MyUser(AbstractBaseUser):
     instagram_url = models.URLField(max_length=1000, null=True, blank=True)
     facebook_url = models.URLField(max_length=1000, null=True, blank=True)
     youtube_url = models.URLField(max_length=1000, null=True, blank=True)
-    whatsapp_number = models.CharField(max_length=20, null=True, blank=True)
+    whatsapp_number = models.URLField(max_length=1000, null=True, blank=True)
+    linkedin_url = models.URLField(max_length=1000, null=True, blank=True)
+    twitter_url = models.URLField(max_length=1000, null=True, blank=True)
 
     # About me section
     about_me = models.TextField(null=True, blank=True)
@@ -71,6 +73,7 @@ class MyUser(AbstractBaseUser):
     created_by = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True, related_name='created_by_user')
     updated_by = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True, related_name='updated_by_user')
     timezone = models.CharField(max_length=63, default='America/New_York', help_text="User's timezone for date/time calculations")
+    language = models.CharField(max_length=100, default='English', null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -158,3 +161,19 @@ class MyUser(AbstractBaseUser):
         if self.short_code:
             return reverse('public_profile', kwargs={'short_code': self.short_code})
         return None
+
+
+class UserDocument(models.Model):
+    DOCUMENT_TYPES = [
+        ('govt_id', 'Government ID'),
+        ('permission', 'Local Authority Permission'),
+    ]
+    user = models.ForeignKey(MyUser, on_delete=models.CASCADE, related_name='documents')
+    document = models.FileField(upload_to='user_documents/')
+    doc_type = models.CharField(max_length=50, choices=DOCUMENT_TYPES)
+    name = models.CharField(max_length=255, null=True, blank=True)
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.user.username} - {self.get_doc_type_display()} - {self.name or self.document.name}"
+

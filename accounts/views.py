@@ -1,6 +1,10 @@
+import os
 import random
 import string
-from django.shortcuts import render, redirect
+from email.mime.image import MIMEImage
+from datetime import timedelta
+from django.utils import timezone
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.views import LoginView
 from django.contrib.auth import login as auth_login
 from django.urls import reverse_lazy
@@ -8,9 +12,11 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
-from django.core.mail import send_mail
+from django.core.mail import send_mail, EmailMultiAlternatives
+from django.template.loader import render_to_string
 from django.views.decorators.http import require_POST, require_http_methods
-from .models import MyUser
+from django.contrib.staticfiles import finders
+from .models import MyUser, UserDocument
 
 
 # ─────────────────────────────────────────────
@@ -22,8 +28,8 @@ class CustomLoginView(LoginView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        # Default to login mode
-        context['show_signup'] = False
+        # Default to login mode; ?mode=signup shows signup view
+        context['show_signup'] = self.request.GET.get('mode') == 'signup'
         return context
 
     def form_valid(self, form):
@@ -47,6 +53,43 @@ class CustomLoginView(LoginView):
 # ─────────────────────────────────────────────
 def _generate_otp():
     return ''.join(random.choices(string.digits, k=4))
+
+
+def _send_otp_email(email, first_name, otp, subject, template_name, is_forgot=False, is_resend=False):
+    """Sends HTML email with inline attached logo."""
+    try:
+        html_body = render_to_string(template_name, {
+            'first_name': first_name,
+            'otp_code': otp,
+            'logo_url': 'cid:logo',
+        })
+        
+        new_prefix = "new " if is_resend else ""
+        if is_forgot:
+            plain_body = f'Dear {first_name},\n\nYour {new_prefix}password reset code is: {otp}\n\nThis code will expire in 15 minutes.\n\nBest regards,\nTeam Favhost\nsupport@favhost.com'
+        else:
+            plain_body = f'Dear {first_name},\n\nYour {new_prefix}FavHost verification code is: {otp}\n\nThis code will expire in 15 minutes.\n\nBest regards,\nTeam Favhost\nsupport@favhost.com'
+            
+        email_msg = EmailMultiAlternatives(
+            subject=subject,
+            body=plain_body,
+            from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@favhost.com'),
+            to=[email],
+        )
+        email_msg.attach_alternative(html_body, 'text/html')
+        email_msg.mixed_subtype = 'related'
+        
+        # Attach logo inline
+        logo_path = finders.find('img/login/favhost_new_logo.png')
+        if logo_path and os.path.exists(logo_path):
+            with open(logo_path, 'rb') as f:
+                img = MIMEImage(f.read())
+                img.add_header('Content-ID', '<logo>')
+                email_msg.attach(img)
+                
+        email_msg.send(fail_silently=True)
+    except Exception:
+        pass
 
 
 @require_http_methods(["GET", "POST"])
@@ -96,17 +139,14 @@ def register_view(request):
             'password': password1,
         }
 
-        # Send OTP email
-        try:
-            send_mail(
-                subject='FavHost - Verify Your Account',
-                message=f'Your verification code is: {otp}\n\nThis code will expire in 15 minutes.',
-                from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@favhost.com'),
-                recipient_list=[email],
-                fail_silently=True,
-            )
-        except Exception:
-            pass
+        # Send OTP email (HTML format matching email template)
+        _send_otp_email(
+            email=email,
+            first_name=first_name,
+            otp=otp,
+            subject='Favhost verification code',
+            template_name='frontend/emails/signup_otp.html'
+        )
 
         return render(request, 'frontend/auth/login.html', {
             'show_signup': True,
@@ -179,16 +219,16 @@ def resend_otp_view(request):
     otp = _generate_otp()
     request.session['signup_otp'] = otp
 
-    try:
-        send_mail(
-            subject='FavHost - Verify Your Account (Resend)',
-            message=f'Your new verification code is: {otp}\n\nThis code will expire in 15 minutes.',
-            from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@favhost.com'),
-            recipient_list=[email],
-            fail_silently=True,
-        )
-    except Exception:
-        pass
+    signup_data_session = request.session.get('signup_data', {})
+    fn = signup_data_session.get('first_name', 'User')
+    _send_otp_email(
+        email=email,
+        first_name=fn,
+        otp=otp,
+        subject='Favhost verification code',
+        template_name='frontend/emails/signup_otp.html',
+        is_resend=True
+    )
 
     return JsonResponse({'success': True})
 
@@ -222,16 +262,16 @@ def forgot_password_view(request):
 
         try:
             user = MyUser.objects.get(email=email)
-            send_mail(
-                subject='FavHost - Reset Your Password',
-                message=f'Your password reset code is: {otp}\n\nThis code will expire in 15 minutes.',
-                from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@favhost.com'),
-                recipient_list=[email],
-                fail_silently=True,
+            fn = user.first_name if user.first_name else user.email
+            _send_otp_email(
+                email=email,
+                first_name=fn,
+                otp=otp,
+                subject='Reset password - Favhost',
+                template_name='frontend/emails/forgot_password_otp.html',
+                is_forgot=True
             )
         except MyUser.DoesNotExist:
-            pass
-        except Exception:
             pass
 
         return render(request, 'frontend/auth/forgot_password.html', {
@@ -321,16 +361,17 @@ def forgot_resend_otp_view(request):
     otp = _generate_otp()
     request.session['forgot_otp'] = otp
 
-    try:
-        send_mail(
-            subject='FavHost - Reset Your Password (Resend)',
-            message=f'Your new password reset code is: {otp}\n\nThis code will expire in 15 minutes.',
-            from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@favhost.com'),
-            recipient_list=[email],
-            fail_silently=True,
-        )
-    except Exception:
-        pass
+    user = MyUser.objects.filter(email=email).first()
+    fn = user.first_name if user and user.first_name else email
+    _send_otp_email(
+        email=email,
+        first_name=fn,
+        otp=otp,
+        subject='Reset password - Favhost',
+        template_name='frontend/emails/forgot_password_otp.html',
+        is_forgot=True,
+        is_resend=True
+    )
 
     return JsonResponse({'success': True})
 
@@ -340,4 +381,155 @@ def forgot_resend_otp_view(request):
 # ─────────────────────────────────────────────
 @login_required
 def profile_view(request):
-    return render(request, 'frontend/auth/profile.html', {'user': request.user})
+    user = request.user
+    permission_docs = user.documents.filter(doc_type='permission')
+    govt_id_docs = user.documents.filter(doc_type='govt_id')
+
+    now = timezone.now()
+    trial_start = user.created_at
+    trial_end = trial_start + timedelta(days=90)
+    trial_days_left = (trial_end - now).days
+    if trial_days_left < 0:
+        trial_days_left = 0
+
+    context = {
+        'user': user,
+        'permission_docs': permission_docs,
+        'govt_id_docs': govt_id_docs,
+        'permission_count': permission_docs.count(),
+        'govt_id_count': govt_id_docs.count(),
+        'trial_start': trial_start,
+        'trial_end': trial_end,
+        'trial_days_left': trial_days_left,
+    }
+    return render(request, 'frontend/auth/profile.html', context)
+
+
+@login_required
+def profile_edit_view(request):
+    user = request.user
+    if request.method == 'POST':
+        # Retrieve text fields
+        user.first_name = request.POST.get('first_name', '').strip()
+        user.last_name = request.POST.get('last_name', '').strip()
+        user.email = request.POST.get('email', '').strip()
+
+        # Phone code + phone number
+        phone_code = request.POST.get('phone_code', '').strip()
+        phone_number = request.POST.get('phone_number', '').strip()
+        if phone_code and phone_number:
+            user.phone = f"{phone_code} {phone_number}".strip()
+        else:
+            user.phone = phone_number or user.phone
+
+        user.country = request.POST.get('country', '').strip()
+        user.state = request.POST.get('state', '').strip()
+        user.currency = request.POST.get('currency', 'USD').strip()
+        user.language = request.POST.get('language', 'English').strip()
+        user.about_me = request.POST.get('about_me', '').strip()
+
+        # Social URLs
+        user.instagram_url = request.POST.get('instagram_url', '').strip()
+        user.facebook_url = request.POST.get('facebook_url', '').strip()
+        user.twitter_url = request.POST.get('twitter_url', '').strip()
+        user.youtube_url = request.POST.get('youtube_url', '').strip()
+        user.linkedin_url = request.POST.get('linkedin_url', '').strip()
+        user.whatsapp_number = request.POST.get('whatsapp_number', '').strip()
+
+        # Handle Profile Picture
+        if 'profile_picture' in request.FILES:
+            user.profile_picture = request.FILES['profile_picture']
+
+        user.save()
+
+        # Handle Government ID Card
+        if 'govt_id_document' in request.FILES:
+            # Delete old government ID documents
+            old_govt_ids = user.documents.filter(doc_type='govt_id')
+            for doc in old_govt_ids:
+                if doc.document:
+                    doc.document.delete(save=False)
+                doc.delete()
+            # Save new one
+            file_obj = request.FILES['govt_id_document']
+            UserDocument.objects.create(
+                user=user,
+                document=file_obj,
+                doc_type='govt_id',
+                name=file_obj.name
+            )
+
+        # Handle Local Authority Permission Documents (multiple)
+        if 'permission_documents' in request.FILES:
+            files = request.FILES.getlist('permission_documents')
+            for file_obj in files:
+                UserDocument.objects.create(
+                    user=user,
+                    document=file_obj,
+                    doc_type='permission',
+                    name=file_obj.name
+                )
+
+        messages.success(request, 'Profile updated successfully!')
+        return redirect('profile')
+
+    permission_docs = user.documents.filter(doc_type='permission')
+    govt_id_docs = user.documents.filter(doc_type='govt_id')
+
+    # Parse phone number into code and number
+    phone_code = '+1'
+    phone_number = ''
+    if user.phone:
+        parts = user.phone.strip().split(' ', 1)
+        if len(parts) == 2 and parts[0].startswith('+'):
+            phone_code = parts[0]
+            phone_number = parts[1]
+        else:
+            phone_number = user.phone
+
+    context = {
+        'user': user,
+        'permission_docs': permission_docs,
+        'govt_id_docs': govt_id_docs,
+        'permission_count': permission_docs.count(),
+        'govt_id_count': govt_id_docs.count(),
+        'phone_code': phone_code,
+        'phone_number': phone_number,
+    }
+    return render(request, 'frontend/auth/profile_edit.html', context)
+
+
+@login_required
+@require_http_methods(["POST", "DELETE"])
+def delete_document_view(request, doc_id):
+    doc = get_object_or_404(UserDocument, id=doc_id, user=request.user)
+    try:
+        if doc.document:
+            doc.document.delete(save=False)
+        doc.delete()
+        return JsonResponse({'status': 'success'})
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+
+SOCIAL_FIELDS = {
+    'instagram': 'instagram_url',
+    'facebook': 'facebook_url',
+    'youtube': 'youtube_url',
+    'twitter': 'twitter_url',
+    'linkedin': 'linkedin_url',
+    'whatsapp': 'whatsapp_number',
+}
+
+@login_required
+@require_POST
+def update_social_url(request):
+    platform = request.POST.get('platform', '').strip()
+    url = request.POST.get('url', '').strip()
+    field = SOCIAL_FIELDS.get(platform)
+    if not field:
+        return JsonResponse({'status': 'error', 'message': 'Invalid platform'}, status=400)
+    setattr(request.user, field, url)
+    request.user.save(update_fields=[field])
+    return JsonResponse({'status': 'success', 'platform': platform, 'url': url})
+

@@ -1,0 +1,413 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Edit Profile - {{ user.username }}</title>
+  <link
+    href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'css/bookaid-profile.css' %}">
+</head>
+
+<body>
+
+  <form method="POST" enctype="multipart/form-data" action="{% url 'profile_edit' %}">
+    {% csrf_token %}
+
+    <div class="profile-header">
+      <div class="profile-header-left">
+        <svg viewBox="0 0 24 24">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+          <circle cx="12" cy="7" r="4" />
+        </svg>
+        Edit Profile
+      </div>
+      <div class="profile-header-right">
+        {% if user.date_joined %}
+        <span class="profile-header-meta">Created on {{ user.date_joined|date:"M d, Y" }}</span>
+        {% endif %}
+        <button type="submit" class="btn-save">Save</button>
+        <a href="{% url 'profile' %}" class="btn-cancel"
+          style="text-decoration: none; display: inline-block; text-align: center;">Cancel</a>
+      </div>
+    </div>
+
+    <!-- MAIN -->
+    <main>
+      <div class="profile-card">
+
+        <!-- Two-column body -->
+        <div class="profile-body">
+
+          <!-- LEFT: personal info -->
+          <div class="form-left">
+            <div class="form-row">
+              <div class="form-group">
+                <label>First Name<span class="req">*</span></label>
+                <input type="text" name="first_name" value="{{ user.first_name|default:'' }}" required>
+              </div>
+              <div class="form-group">
+                <label>Last Name<span class="req">*</span></label>
+                <input type="text" name="last_name" value="{{ user.last_name|default:'' }}" required>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label>Email<span class="req">*</span></label>
+                <input type="email" name="email" value="{{ user.email|default:'' }}" required>
+              </div>
+              <div class="form-group">
+                <label>Phone<span class="req">*</span></label>
+                <div class="phone-wrap">
+                  <div class="phone-flag">
+                    <span id="flag-emoji">🇺🇸</span>
+                    <select name="phone_code" id="phoneCodeSelect">
+                      <option value="+1" {% if phone_code == '+1' %}selected{% endif %}>+1</option>
+                      <option value="+44" {% if phone_code == '+44' %}selected{% endif %}>+44</option>
+                      <option value="+91" {% if phone_code == '+91' %}selected{% endif %}>+91</option>
+                    </select>
+                  </div>
+                  <input type="text" class="phone-input" name="phone_number" value="{{ phone_number|default:'' }}"
+                    placeholder="Phone number" required>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label>Country<span class="req">*</span></label>
+                <div class="select-wrap">
+                  <select name="country" required>
+                    <option value="">Select country</option>
+                    <option value="United States" {% if user.country == 'United States' %}selected{% endif %}>United
+                      States</option>
+                    <option value="United Kingdom" {% if user.country == 'United Kingdom' %}selected{% endif %}>United
+                      Kingdom</option>
+                    <option value="India" {% if user.country == 'India' %}selected{% endif %}>India</option>
+                    <option value="Canada" {% if user.country == 'Canada' %}selected{% endif %}>Canada</option>
+                    <option value="France" {% if user.country == 'France' %}selected{% endif %}>France</option>
+                    <option value="Germany" {% if user.country == 'Germany' %}selected{% endif %}>Germany</option>
+                    <option value="Australia" {% if user.country == 'Australia' %}selected{% endif %}>Australia</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-group">
+                <label>State<span class="req">*</span></label>
+                <input type="text" name="state" value="{{ user.state|default:'' }}" required>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label>Currency<span class="req">*</span></label>
+                <div class="select-wrap">
+                  <select name="currency" required>
+                    <option value="USD" {% if user.currency == 'USD' %}selected{% endif %}>USD $</option>
+                    <option value="EUR" {% if user.currency == 'EUR' %}selected{% endif %}>EUR €</option>
+                    <option value="GBP" {% if user.currency == 'GBP' %}selected{% endif %}>GBP £</option>
+                    <option value="INR" {% if user.currency == 'INR' %}selected{% endif %}>INR ₹</option>
+                    <option value="CAD" {% if user.currency == 'CAD' %}selected{% endif %}>CAD $</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Language I speak<span class="req">*</span></label>
+                <div class="select-wrap">
+                  <select name="language" required>
+                    <option value="">Select language</option>
+                    <option value="English" {% if user.language == 'English' %}selected{% endif %}>English</option>
+                    <option value="Spanish" {% if user.language == 'Spanish' %}selected{% endif %}>Spanish</option>
+                    <option value="French" {% if user.language == 'French' %}selected{% endif %}>French</option>
+                    <option value="German" {% if user.language == 'German' %}selected{% endif %}>German</option>
+                    <option value="Hindi" {% if user.language == 'Hindi' %}selected{% endif %}>Hindi</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-group textarea-grow" style="margin-top:2px">
+              <label>Tell us about yourselves and your hosting experience<span class="req">*</span></label>
+              <textarea name="about_me" placeholder="Introduce yourself..."
+                required>{{ user.about_me|default:'' }}</textarea>
+            </div>
+          </div>
+
+          <!-- RIGHT: uploads + social -->
+          <div class="form-right">
+
+            <!-- Top uploads row: Profile Photo + Local Authority Permission side by side -->
+            <div class="upload-section">
+              <div class="upload-grid">
+                <div>
+                  <p class="upload-label">Upload Profile Photo<span class="req">*</span></p>
+                  <div class="upload-box" role="button" tabindex="0" data-file-trigger="profile-photo-input">
+                    <svg viewBox="0 0 24 24">
+                      <polyline points="16 16 12 12 8 16" />
+                      <line x1="12" y1="12" x2="12" y2="21" />
+                      <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3" />
+                    </svg>
+                    <p>Click to upload or drag and drop<br>PNG, JPG, GIF up to 5MB (Profile image)</p>
+                  </div>
+                  <input class="hidden-file-input" id="profile-photo-input" name="profile_picture" type="file"
+                    accept=".png,.jpg,.jpeg,.gif">
+                  <div class="upload-file-list" id="profile-photo-input-files" aria-live="polite">
+                    {% if user.profile_picture %}
+                    <div class="upload-file-item">
+                      <span class="upload-file-name">
+                        <a href="{{ user.profile_picture.url }}" target="_blank">{{ user.profile_picture.name }}</a>
+                      </span>
+                    </div>
+                    {% endif %}
+                  </div>
+                </div>
+                <div>
+                  <p class="upload-label">Upload documents for local authority permission</p>
+                  <div class="upload-box" role="button" tabindex="0" data-file-trigger="local-permission-input">
+                    <svg viewBox="0 0 24 24">
+                      <polyline points="16 16 12 12 8 16" />
+                      <line x1="12" y1="12" x2="12" y2="21" />
+                      <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3" />
+                    </svg>
+                    <p>Click to upload or drag and drop<br>PNG, JPG, GIF, PDF up to 5MB</p>
+                  </div>
+                  <input class="hidden-file-input" id="local-permission-input" name="permission_documents" type="file"
+                    accept=".png,.jpg,.jpeg,.gif,.pdf" multiple>
+                  <div class="upload-file-list" id="local-permission-input-files" aria-live="polite">
+                    {% for doc in permission_docs %}
+                    <div class="upload-file-item" id="doc-item-{{ doc.id }}">
+                      <span class="upload-file-name">
+                        <a href="{{ doc.document.url }}" target="_blank">{{ doc.name|default:doc.document.name }}</a>
+                      </span>
+                      <button type="button" class="upload-file-remove" onclick="deleteDocument({{ doc.id }})"
+                        aria-label="Remove document">×</button>
+                    </div>
+                    {% endfor %}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Govt ID — full width below the two boxes -->
+            <div class="upload-section upload-section-govtid">
+              <p class="upload-label">Upload govt. issued ID card<span class="req">*</span></p>
+              <div class="upload-box" style="margin-top:6px" role="button" tabindex="0"
+                data-file-trigger="govt-id-input">
+                <svg viewBox="0 0 24 24">
+                  <polyline points="16 16 12 12 8 16" />
+                  <line x1="12" y1="12" x2="12" y2="21" />
+                  <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3" />
+                </svg>
+                <p>Click to upload or drag and drop<br>PNG, JPG, GIF, PDF up to 5MB</p>
+              </div>
+              <input class="hidden-file-input" id="govt-id-input" name="govt_id_document" type="file"
+                accept=".png,.jpg,.jpeg,.gif,.pdf">
+              <div class="upload-file-list" id="govt-id-input-files" aria-live="polite">
+                {% for doc in govt_id_docs %}
+                <div class="upload-file-item" id="doc-item-{{ doc.id }}">
+                  <span class="upload-file-name">
+                    <a href="{{ doc.document.url }}" target="_blank">{{ doc.name|default:doc.document.name }}</a>
+                  </span>
+                  <button type="button" class="upload-file-remove" onclick="deleteDocument({{ doc.id }})"
+                    aria-label="Remove document">×</button>
+                </div>
+                {% endfor %}
+              </div>
+            </div>
+
+            <!-- Social Media -->
+            <div class="social-section">
+              <h3>Social Media links</h3>
+              <div class="social-grid">
+                <div class="social-item">
+                  <label>
+                    <span class="social-icon">
+                      <img src="{% static 'img/instagram_icon_profile.png' %}" alt="instagram">
+                    </span>
+                    Instagram (Optional)
+                  </label>
+                  <input type="text" name="instagram_url" value="{{ user.instagram_url|default:'' }}"
+                    placeholder="https://instagram.com/username">
+                </div>
+                <div class="social-item">
+                  <label>
+                    <span class="social-icon">
+                      <img src="{% static 'img/facebook_outline_icon_profile.png' %}" alt="facebook_outline">
+                    </span>
+                    Facebook (Optional)
+                  </label>
+                  <input type="text" name="facebook_url" value="{{ user.facebook_url|default:'' }}"
+                    placeholder="https://facebook.com/username">
+                </div>
+                <div class="social-item">
+                  <label>
+                    <span class="social-icon">
+                      <img src="{% static 'img/twitter_icon_profile.png' %}" alt="twitter">
+                    </span>
+                    X (Optional)
+                  </label>
+                  <input type="text" name="twitter_url" value="{{ user.twitter_url|default:'' }}"
+                    placeholder="https://x.com/username">
+                </div>
+                <div class="social-item">
+                  <label>
+                    <span class="social-icon">
+                      <img src="{% static 'img/youtube_icon_profile.png' %}" alt="youtube">
+                    </span>
+                    Youtube (Optional)
+                  </label>
+                  <input type="text" name="youtube_url" value="{{ user.youtube_url|default:'' }}"
+                    placeholder="https://youtube.com/channel">
+                </div>
+                <div class="social-item">
+                  <label>
+                    <span class="social-icon">
+                      <img src="{% static 'img/linkedin_icon_profile.png' %}" alt="linkedin">
+                    </span>
+                    Linkedin (Optional)
+                  </label>
+                  <input type="text" name="linkedin_url" value="{{ user.linkedin_url|default:'' }}"
+                    placeholder="https://linkedin.com/in/username">
+                </div>
+                <div class="social-item">
+                  <label>
+                    <span class="social-icon">
+                      <img src="{% static 'img/whatsapp_icon_profile.png' %}" alt="WhatsApp">
+                    </span>
+                    Whatsapp number (Optional)
+                  </label>
+                  <input type="text" name="whatsapp_number" value="{{ user.whatsapp_number|default:'' }}"
+                    placeholder="+10123456789">
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </main>
+  </form>
+
+  <script>
+    (function () {
+      // Dynamic Flag Selector Script
+      const flagMap = {
+        '+1': '🇺🇸',
+        '+44': '🇬🇧',
+        '+91': '🇮🇳'
+      };
+      const codeSelect = document.getElementById('phoneCodeSelect');
+      const flagEmoji = document.getElementById('flag-emoji');
+      if (codeSelect && flagEmoji) {
+        function updateFlag() {
+          const val = codeSelect.value;
+          flagEmoji.textContent = flagMap[val] || '🇺🇸';
+        }
+        codeSelect.addEventListener('change', updateFlag);
+        updateFlag();
+      }
+
+      const uploadBoxes = document.querySelectorAll('.upload-box[data-file-trigger]');
+
+      function createInputFiles(input, files) {
+        if (typeof DataTransfer === 'undefined') return;
+        const dataTransfer = new DataTransfer();
+        files.forEach(function (file) {
+          dataTransfer.items.add(file);
+        });
+        input.files = dataTransfer.files;
+      }
+
+      function renderFileList(input) {
+        const list = document.getElementById(input.id + '-files');
+        if (!list) return;
+
+        // Remove previously staged temp files (not backend doc-item-* ones)
+        const tempItems = list.querySelectorAll('.upload-file-item:not([id^="doc-item-"])');
+        tempItems.forEach(el => el.remove());
+
+        Array.from(input.files).forEach(function (file, index) {
+          const item = document.createElement('div');
+          item.className = 'upload-file-item';
+
+          const name = document.createElement('span');
+          name.className = 'upload-file-name';
+          name.textContent = file.name;
+
+          const removeBtn = document.createElement('button');
+          removeBtn.type = 'button';
+          removeBtn.className = 'upload-file-remove';
+          removeBtn.setAttribute('aria-label', 'Remove ' + file.name);
+          removeBtn.textContent = '×';
+          removeBtn.addEventListener('click', function () {
+            const currentFiles = Array.from(input.files);
+            currentFiles.splice(index, 1);
+            if (typeof DataTransfer === 'undefined') {
+              input.value = '';
+            } else {
+              createInputFiles(input, currentFiles);
+            }
+            renderFileList(input);
+          });
+
+          item.appendChild(name);
+          item.appendChild(removeBtn);
+          list.appendChild(item);
+        });
+      }
+
+      uploadBoxes.forEach(function (box) {
+        const inputId = box.getAttribute('data-file-trigger');
+        const fileInput = inputId ? document.getElementById(inputId) : null;
+        if (!fileInput) return;
+
+        box.addEventListener('click', function () {
+          fileInput.click();
+        });
+
+        box.addEventListener('keydown', function (event) {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            fileInput.click();
+          }
+        });
+
+        fileInput.addEventListener('change', function () {
+          renderFileList(fileInput);
+        });
+      });
+    })();
+
+    // Document Deletion AJAX
+    function deleteDocument(docId) {
+      if (confirm('Are you sure you want to delete this document?')) {
+        fetch(`/accounts/profile/document/delete/${docId}/`, {
+          method: 'POST',
+          headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json'
+          }
+        })
+          .then(response => response.json())
+          .then(data => {
+            if (data.status === 'success') {
+              const item = document.getElementById(`doc-item-${docId}`);
+              if (item) item.remove();
+            } else {
+              alert('Failed to delete document: ' + (data.message || 'Unknown error'));
+            }
+          })
+          .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while deleting the document.');
+          });
+      }
+    }
+  </script>
+</body>
+
+
+</html>

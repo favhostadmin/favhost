@@ -39,7 +39,7 @@ def send_enquiry_notification_to_host(sender, instance, created, **kwargs):
         email.mixed_subtype = 'related'  # Required for CID embedding
 
         # 1. Attach FavHost Logo
-        logo_path = finders.find('img/email/favhost.png')
+        logo_path = finders.find('img/login/favhost_new_logo.png')
         if logo_path and os.path.exists(logo_path):
             with open(logo_path, 'rb') as f:
                 img = MIMEImage(f.read())
