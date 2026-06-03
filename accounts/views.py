@@ -16,7 +16,8 @@ from django.core.mail import send_mail, EmailMultiAlternatives
 from django.template.loader import render_to_string
 from django.views.decorators.http import require_POST, require_http_methods
 from django.contrib.staticfiles import finders
-from .models import MyUser, UserDocument
+from .models import MyUser, UserDocument, CoHost
+from .utils import get_effective_user
 
 
 # ─────────────────────────────────────────────
@@ -381,7 +382,12 @@ def forgot_resend_otp_view(request):
 # ─────────────────────────────────────────────
 @login_required
 def profile_view(request):
-    user = request.user
+    # Co-hosts do not have their own profile page
+    if CoHost.objects.filter(co_host=request.user).exists():
+        messages.error(request, 'Profile page is not available for co-hosts.')
+        return redirect('dashboard')
+
+    user = get_effective_user(request.user)
     permission_docs = user.documents.filter(doc_type='permission')
     govt_id_docs = user.documents.filter(doc_type='govt_id')
 
@@ -407,7 +413,12 @@ def profile_view(request):
 
 @login_required
 def profile_edit_view(request):
-    user = request.user
+    # Co-hosts do not have access to profile editing
+    if CoHost.objects.filter(co_host=request.user).exists():
+        messages.error(request, 'Profile editing is not available for co-hosts.')
+        return redirect('dashboard')
+
+    user = get_effective_user(request.user)
     if request.method == 'POST':
         # Retrieve text fields
         user.first_name = request.POST.get('first_name', '').strip()
@@ -502,7 +513,8 @@ def profile_edit_view(request):
 @login_required
 @require_http_methods(["POST", "DELETE"])
 def delete_document_view(request, doc_id):
-    doc = get_object_or_404(UserDocument, id=doc_id, user=request.user)
+    user = get_effective_user(request.user)
+    doc = get_object_or_404(UserDocument, id=doc_id, user=user)
     try:
         if doc.document:
             doc.document.delete(save=False)
@@ -529,7 +541,108 @@ def update_social_url(request):
     field = SOCIAL_FIELDS.get(platform)
     if not field:
         return JsonResponse({'status': 'error', 'message': 'Invalid platform'}, status=400)
-    setattr(request.user, field, url)
-    request.user.save(update_fields=[field])
+    user = get_effective_user(request.user)
+    setattr(user, field, url)
+    user.save(update_fields=[field])
     return JsonResponse({'status': 'success', 'platform': platform, 'url': url})
+
+
+# ─────────────────────────────────────────────
+# CO-HOST MANAGEMENT
+# ─────────────────────────────────────────────
+@login_required
+def manage_cohost_view(request):
+    """List, add, edit, and delete co-hosts for the host.
+
+    If the current user is a co-host, all operations act on behalf
+    of the host (get_effective_user). This gives every co-host the
+    same management powers as the host.
+    """
+    effective_host = get_effective_user(request.user)
+
+    if request.method == 'POST':
+        action = request.POST.get('action', '')
+        if action == 'add':
+            email = request.POST.get('cohostEmail', '').strip()
+            password = request.POST.get('cohostPassword', '').strip()
+            full_name = request.POST.get('cohostFullname', '').strip()
+            phone = request.POST.get('cohostPhone', '').strip()
+            name_parts = full_name.split(' ', 1)
+            first_name = name_parts[0]
+            last_name = name_parts[1] if len(name_parts) > 1 else ''
+
+            if not email or not password:
+                messages.error(request, 'Email and password are required.')
+                return redirect('manage_cohost')
+
+            co_host_user, created = MyUser.objects.get_or_create(
+                email=email,
+                defaults={
+                    'username': email,
+                    'first_name': first_name,
+                    'last_name': last_name,
+                    'phone': phone,
+                    'is_active': True,
+                }
+            )
+            co_host_user.set_password(password)
+            co_host_user.first_name = first_name
+            co_host_user.last_name = last_name
+            co_host_user.phone = phone
+            co_host_user.is_active = True
+            co_host_user.save()
+
+            CoHost.objects.get_or_create(
+                host=effective_host,
+                co_host=co_host_user,
+                defaults={'display_password': password}
+            )
+            if not created:
+                CoHost.objects.filter(host=effective_host, co_host=co_host_user).update(display_password=password)
+
+            messages.success(request, f'Co-host {email} added successfully.')
+            return redirect('manage_cohost')
+
+        elif action == 'edit':
+            cohost_id = request.POST.get('cohost_id', '').strip()
+            email = request.POST.get('cohostEmail', '').strip()
+            password = request.POST.get('cohostPassword', '').strip()
+            full_name = request.POST.get('cohostFullname', '').strip()
+            phone = request.POST.get('cohostPhone', '').strip()
+
+            cohost_rel = get_object_or_404(CoHost, id=cohost_id, host=effective_host)
+            co_host_user = cohost_rel.co_host
+
+            name_parts = full_name.split(' ', 1)
+            co_host_user.first_name = name_parts[0]
+            co_host_user.last_name = name_parts[1] if len(name_parts) > 1 else ''
+            co_host_user.phone = phone
+            if email:
+                co_host_user.email = email
+                co_host_user.username = email
+            if password:
+                co_host_user.set_password(password)
+                cohost_rel.display_password = password
+            co_host_user.save()
+            cohost_rel.save()
+
+            messages.success(request, 'Co-host updated successfully.')
+            return redirect('manage_cohost')
+
+        elif action == 'delete':
+            cohost_id = request.POST.get('cohost_id', '').strip()
+            cohost_rel = get_object_or_404(CoHost, id=cohost_id, host=effective_host)
+            co_host_user = cohost_rel.co_host
+            cohost_rel.delete()
+            co_host_user.is_active = False
+            co_host_user.save()
+            messages.success(request, f'Co-host {co_host_user.email} removed and deactivated.')
+            return redirect('manage_cohost')
+
+    cohosts = CoHost.objects.filter(host=effective_host).select_related('co_host')
+    context = {
+        'cohosts': cohosts,
+        'current_user': request.user,
+    }
+    return render(request, 'frontend/auth/manage_co-host.html', context)
 

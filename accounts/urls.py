@@ -11,6 +11,7 @@ from .views import (
     forgot_resend_otp_view,
     delete_document_view,
     update_social_url,
+    manage_cohost_view,
 )
 
 urlpatterns = [
@@ -29,5 +30,9 @@ urlpatterns = [
     path('forgot-password/', forgot_password_view, name='forgot_password'),
     path('forgot-resend-otp/', forgot_resend_otp_view, name='forgot_resend_otp'),
     path('profile/update-social/', update_social_url, name='update_social_url'),
+
+    # Co-host Management
+    path('profile/manage-co-host/', manage_cohost_view, name='manage_cohost'),
+    path('profile/manage-co-host/<int:cohost_id>/', manage_cohost_view, name='manage_cohost_detail'),
 ]
 

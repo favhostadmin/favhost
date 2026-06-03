@@ -164,6 +164,29 @@ class MyUser(AbstractBaseUser):
             return reverse('public_profile', kwargs={'short_code': self.short_code})
         return None
 
+    @property
+    def profile_picture_url(self):
+        """Safely return profile picture URL, or None if file missing."""
+        try:
+            if self.profile_picture and self.profile_picture.name:
+                return self.profile_picture.url
+        except (ValueError, FileNotFoundError):
+            pass
+        return None
+
+
+class CoHost(models.Model):
+    host = models.ForeignKey(MyUser, on_delete=models.CASCADE, related_name='host_cohosts')
+    co_host = models.ForeignKey(MyUser, on_delete=models.CASCADE, related_name='co_host_relationships')
+    display_password = models.CharField(max_length=255, null=True, blank=True, help_text="Plain text password for UI display only")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('host', 'co_host')
+
+    def __str__(self):
+        return f"{self.co_host.get_full_name() or self.co_host.email} (co-host of {self.host.get_full_name() or self.host.email})"
+
 
 class UserDocument(models.Model):
     DOCUMENT_TYPES = [
