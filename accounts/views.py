@@ -429,7 +429,10 @@ def profile_edit_view(request):
         phone_code = request.POST.get('phone_code', '').strip()
         phone_number = request.POST.get('phone_number', '').strip()
         if phone_code and phone_number:
-            user.phone = f"{phone_code} {phone_number}".strip()
+            if phone_number.startswith('+'):
+                user.phone = phone_number
+            else:
+                user.phone = f"{phone_code} {phone_number}".strip()
         else:
             user.phone = phone_number or user.phone
 
@@ -491,12 +494,24 @@ def profile_edit_view(request):
     phone_code = '+1'
     phone_number = ''
     if user.phone:
-        parts = user.phone.strip().split(' ', 1)
-        if len(parts) == 2 and parts[0].startswith('+'):
-            phone_code = parts[0]
-            phone_number = parts[1]
+        phone = user.phone.strip()
+        if phone.startswith('+'):
+            # Try space-separated: "+1 2248176919" → code "+1", number "2248176919"
+            parts = phone.split(' ', 1)
+            if len(parts) == 2:
+                phone_code = parts[0]
+                phone_number = parts[1]
+            else:
+                # No space: "+1(224)8176919" → try to separate code from rest
+                import re
+                m = re.match(r'^(\+\d{1,4})(.*)$', phone)
+                if m:
+                    phone_code = m.group(1)
+                    phone_number = m.group(2)
+                else:
+                    phone_number = phone
         else:
-            phone_number = user.phone
+            phone_number = phone
 
     context = {
         'user': user,
@@ -575,6 +590,11 @@ def manage_cohost_view(request):
                 messages.error(request, 'Email and password are required.')
                 return redirect('manage_cohost')
 
+            # Check if this email is already a co-host of this host
+            if CoHost.objects.filter(host=effective_host, co_host__email=email).exists():
+                messages.error(request, 'This email is already a co-host. Please use a different email.')
+                return redirect('manage_cohost')
+
             co_host_user, created = MyUser.objects.get_or_create(
                 email=email,
                 defaults={
@@ -640,9 +660,11 @@ def manage_cohost_view(request):
             return redirect('manage_cohost')
 
     cohosts = CoHost.objects.filter(host=effective_host).select_related('co_host')
+    cohost_limit_reached = cohosts.count() >= 5
     context = {
         'cohosts': cohosts,
         'current_user': request.user,
+        'cohost_limit_reached': cohost_limit_reached,
     }
     return render(request, 'frontend/auth/manage_co-host.html', context)
 

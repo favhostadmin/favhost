@@ -72,13 +72,14 @@ class PropertyForm(forms.ModelForm):
         clone_from_id = kwargs.pop('clone_from_id', None)
         super().__init__(*args, **kwargs)
 
-        # Initialize country and state choices
-        self.fields['country'].choices = [('', 'Select Country')]
-        self.fields['state'].choices = [('', 'Select State')]
+        # Initialize country choices — CharField allows any value (hardcoded in template)
+        self.fields['country'] = forms.CharField(widget=forms.Select(attrs={'class': 'form-input country', 'id': 'country'}))
+        # State is a text input (manually typed)
+        self.fields['state'] = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-input', 'id': 'state', 'placeholder': 'Enter state'}))
 
         if self.instance and self.instance.pk: # For editing an existing property
             self.fields['country'].widget.attrs['data-selected'] = self.instance.country
-            self.fields['state'].widget.attrs['data-selected'] = self.instance.state
+            self.fields['state'].initial = self.instance.state
 
             # Set initial values for time fields in 24-hour format (HH:MM)
             if self.instance.check_in_time:
@@ -106,7 +107,7 @@ class PropertyForm(forms.ModelForm):
             try:
                 original_property = Property.objects.get(pk=clone_from_id)
                 self.fields['country'].widget.attrs['data-selected'] = original_property.country
-                self.fields['state'].widget.attrs['data-selected'] = original_property.state
+                self.fields['state'].initial = original_property.state
             except Property.DoesNotExist:
                 pass
         
