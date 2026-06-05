@@ -18,6 +18,7 @@
         .price-input input[type=number],
         .number-input input[type=number] {
             -moz-appearance: textfield;
+            appearance: textfield;
         }
 
         .char-count {
@@ -41,7 +42,7 @@
             }
 
             .action-buttons {
-                background: #ffffff !important;
+                background: #E7E7E9 !important;
                 border-radius: 0 !important;
                 border-bottom: 1px solid #e5e7eb;
                 padding: 10px 12px !important;
@@ -155,6 +156,37 @@
         .listing-success-btn:hover {
             background: #eef2f7;
         }
+        @media (max-width: 576px) {
+            .listing-success-backdrop {
+                padding: 0;
+                align-items: flex-end;
+            }
+            .listing-success-card {
+                border-radius: 16px 16px 0 0;
+                padding: 24px 20px 20px;
+                max-width: 100%;
+            }
+            .listing-success-card img {
+                max-width: 200px;
+                margin-bottom: 14px;
+            }
+            .listing-success-title {
+                font-size: 15px;
+                flex-direction: column;
+                gap: 4px;
+            }
+            .listing-success-title .icon {
+                font-size: 18px;
+            }
+            .listing-success-sub {
+                font-size: 13px;
+            }
+            .listing-success-btn {
+                width: 100%;
+                padding: 12px;
+                font-size: 15px;
+            }
+        }
         .form-group select {
             padding-right: 3rem !important;
             box-sizing: border-box;
@@ -165,7 +197,7 @@
 
 {% block content %}
 <div class="p-1">
-    <form method="post" enctype="multipart/form-data" id="propertyForm">
+    <form method="post" enctype="multipart/form-data" id="propertyForm" data-is-edit="{{ is_edit|yesno:'true,false' }}">
     {% csrf_token %}
     <div class="row m-0 p-0">
         <div class="col-12 d-flex justify-content-between align-items-center action-buttons">
@@ -213,7 +245,7 @@
                         <div class="upload-area" id="upload-area">
                             <div><img src="{% static 'img/property/upload.png' %}" alt="Upload Photo"></div>
                             <div class="upload-text">Click to upload or drag and drop</div>
-                            <div class="upload-subtext">PNG, JPG, GIF up to 15MB each</div>
+                            <div class="upload-subtext">PNG, JPG, GIF up to 5MB each</div>
                         </div>
                         <input type="file" id="file-input" name="property_images" accept="image/*" multiple style="display: none;">
                         <div class="error-message" id="error-message"></div>
@@ -235,7 +267,7 @@
                                             <img src="{{ image.image.url }}" alt="Preview" class="preview-doc">
                                         </a>
                                         {% if is_edit %}
-                                        <button type="button" class="remove-btn" onclick="deleteExistingImage({{ image.id }})">×</button>
+                                        <button type="button" class="remove-btn" onclick="deleteExistingImage(this.parentElement.dataset.imageId)">×</button>
                                         {% elif is_clone %}
                                         <button type="button" class="remove-btn" onclick="deleteClonedFile(this)">×</button>
                                         <input type="hidden" name="clone_images" value="{{ image.id }}">
@@ -360,9 +392,9 @@
                             <div class="upload-area" id="checkin-doc-upload-area">
                                 <div><img src="{% static 'img/property/upload.png' %}" alt="Upload Photo"></div>
                                 <div class="upload-text text-sm text-gray-600">Click to upload or drag and drop</div>
-                                <div class="upload-subtext">Documents, images up to 15MB each</div>
+                                <div class="upload-subtext">Single file only, up to 5MB</div>
                             </div>
-                            <input type="file" id="checkin-doc-input" name="check_in_documents" multiple accept=".pdf,.doc,.docx,image/*" style="display: none;">
+                            <input type="file" id="checkin-doc-input" name="check_in_documents" accept=".pdf,.doc,.docx,image/*" style="display: none;">
                             <div class="error-message" id="checkin-doc-error-message"></div>
                         </div>
                         <div class="doc-preview-container" id="checkin-document-preview-container">
@@ -376,7 +408,7 @@
                                     <div class="preview-doc-item" data-doc-id="{{ doc.id }}">
                                         <a href="{{ doc.document.url }}" target="_blank" class="doc-link">📄 <span>{{ doc.name }}</span></a>
                                         {% if is_edit %}
-                                        <button type="button" class="remove-btn" onclick="deleteExistingDocument({{ doc.id }})">×</button>
+                                        <button type="button" class="remove-btn" onclick="deleteExistingDocument(this.parentElement.dataset.docId)">×</button>
                                         {% elif is_clone %}
                                         <button type="button" class="remove-btn" onclick="deleteClonedFile(this)">×</button>
                                         <input type="hidden" name="clone_documents" value="{{ doc.id }}">
@@ -396,9 +428,9 @@
                             <div class="upload-area" id="checkout-doc-upload-area">
                                 <div><img src="{% static 'img/property/upload.png' %}" alt="Upload Photo"></div>
                                 <div class="upload-text text-sm text-gray-600">Click to upload or drag and drop</div>
-                                <div class="upload-subtext">Documents, images up to 15MB each</div>
+                                <div class="upload-subtext">Single file only, up to 5MB</div>
                             </div>
-                            <input type="file" id="checkout-doc-input" name="check_out_documents" multiple accept=".pdf,.doc,.docx,image/*" style="display: none;">
+                            <input type="file" id="checkout-doc-input" name="check_out_documents" accept=".pdf,.doc,.docx,image/*" style="display: none;">
                             <div class="error-message" id="checkout-doc-error-message"></div>
                         </div>
                         <div class="doc-preview-container" id="checkout-document-preview-container">
@@ -412,7 +444,7 @@
                                     <div class="preview-doc-item" data-doc-id="{{ doc.id }}">
                                         <a href="{{ doc.document.url }}" target="_blank" class="doc-link">📄 <span>{{ doc.name }}</span></a>
                                         {% if is_edit %}
-                                        <button type="button" class="remove-btn" onclick="deleteExistingDocument({{ doc.id }})">×</button>
+                                        <button type="button" class="remove-btn" onclick="deleteExistingDocument(this.parentElement.dataset.docId)">×</button>
                                         {% elif is_clone %}
                                         <button type="button" class="remove-btn" onclick="deleteClonedFile(this)">×</button>
                                         <input type="hidden" name="clone_documents" value="{{ doc.id }}">
@@ -436,11 +468,19 @@
                     </div>
                 </div>
 
-                <!-- Cancellation, Other Policies and Rules -->
+                <!-- House Rules -->
                 <div class="row m-0 form-section">
                     <div class="col-lg-12 col-12 p-0 form-group">
-                        <label class="form-label">Cancellation, Other Policies and Rules</label>
-                        {{ form.rules }}
+                        <label class="form-label">House Rules</label>
+                        {{ form.house_rules }}
+                    </div>
+                </div>
+
+                <!-- Cancellation Policy -->
+                <div class="row m-0 form-section">
+                    <div class="col-lg-12 col-12 p-0 form-group">
+                        <label class="form-label">Cancellation Policy</label>
+                        {{ form.cancellation_policy }}
                     </div>
                 </div>
             </div>
@@ -536,14 +576,16 @@
                     <h2 class="section-title">Ammenities</h2>
                     {% for item in amenities %}
                     <div class="col-6 m-0 p-0 form-group" >
-                        <div class="amenities-grid" onclick="toggleAmenity(this, {{ item.id }}, event)">
+                        <div class="amenities-grid" data-amenity-id="{{ item.id }}" onclick="toggleAmenity(this, this.dataset.amenityId, event)">
                             <div class="amenity-item {% if item.id in selected_amenities %}selected{% endif %}">
-                                <div class="amenity-icon me-2">
-                                    <img src="{{ item.icon.url }}" alt="{{ item.name }}">
-                                </div>
-                                <span class="amenity-text flex-grow-1" style="color: black;">{{ item.name }}</span>
-                                <input type="checkbox" name="amenities" value="{{ item.id }}" {% if item.id in selected_amenities %}checked{% endif %}>
-                            </div>
+    <div class="amenity-icon me-2">
+        {% if item.icon %}
+            <img src="{{ item.icon.url }}" alt="{{ item.name }}">
+        {% endif %}
+    </div>
+    <span class="amenity-text flex-grow-1" style="color: black;">{{ item.name }}</span>
+    <input type="checkbox" name="amenities" value="{{ item.id }}" {% if item.id in selected_amenities %}checked{% endif %}>
+</div>
 
                         </div>
                     </div>
@@ -588,6 +630,7 @@
     // Use getElementById instead of querySelector with classes
     var countrySelect = document.getElementById('country') || document.querySelector('select[name="country"]');
     var stateSelect = document.getElementById('state') || document.querySelector('select[name="state"]');
+    var allData = null;
 
     function loadCountries() {
         if (!countrySelect) {
@@ -595,37 +638,28 @@
             return;
         }
 
-        fetch('{% url "global:country-list" %}') // Use Django's URL tag for internal API
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            return response.json();
-        })
-        .then(data => {
-            // Clear existing options except the first one
+        fetch('{% static "data/countries_states.json" %}')
+        .then(function(r) { if (!r.ok) throw Error(); return r.json(); })
+        .then(function(data) {
+            allData = data;
             countrySelect.innerHTML = '<option value="">Select Country</option>';
-            
-            data.forEach(country => {
-                const option = document.createElement('option');
-                option.value = country.name;
-                option.setAttribute('data-country-code', country.iso2); // Store ISO2 code for fetching states
-                option.textContent = country.name;
-                countrySelect.appendChild(option);
+            data.forEach(function(country) {
+                var opt = document.createElement('option');
+                opt.value = country.name;
+                opt.setAttribute('data-country-code', country.iso2);
+                opt.textContent = country.name;
+                countrySelect.appendChild(opt);
             });
-
-            // Restore previously selected country if editing
-            const selectedCountry = countrySelect.getAttribute('data-selected');
+            var selectedCountry = countrySelect.getAttribute('data-selected');
             if (selectedCountry) {
                 countrySelect.value = selectedCountry;
-                loadStates(); // Load states for the selected country
+                loadStates();
             }
         })
-        .catch(error => {
-            console.error('Error loading countries:', error);
+        .catch(function(err) {
+            console.error('Error loading countries:', err);
         });
 
-        // Initially disable state select
         if (stateSelect) {
             stateSelect.disabled = true;
             stateSelect.style.pointerEvents = 'none';
@@ -633,70 +667,80 @@
     }
 
     function loadStates() {
-        if (!stateSelect || !countrySelect) {
-            console.error('State or Country select element not found');
-            return;
-        }
+        if (!stateSelect || !countrySelect) return;
 
-        // Get the ISO2 code from the selected option's data attribute
-        const selectedOption = countrySelect.options[countrySelect.selectedIndex]; // Get the currently selected option element
-        const selectedCountryCode = selectedOption ? selectedOption.getAttribute('data-country-code') : ''; // Retrieve the country code from its data attribute
-        
-        if (!selectedCountryCode) {
+        var opt = countrySelect.options[countrySelect.selectedIndex];
+        var code = opt ? opt.getAttribute('data-country-code') : '';
+
+        if (!code) {
             stateSelect.disabled = true;
             stateSelect.style.pointerEvents = 'none';
             stateSelect.innerHTML = '<option value="">Select State</option>';
+            removeStateInput();
+            stateSelect.style.display = '';
             return;
         }
 
-        // Enable state select
         stateSelect.disabled = false;
         stateSelect.style.pointerEvents = 'auto';
-        
-        // Show loading state
         stateSelect.innerHTML = '<option value="">Loading states...</option>';
 
-        // Use Django's URL tag for internal API, replacing placeholder '00' with the actual country code
-        fetch(`{% url "global:state-list" country_code="00" %}`.replace('00', selectedCountryCode))
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+        if (allData) {
+            var countryData = null;
+            for (var i = 0; i < allData.length; i++) {
+                if (allData[i].iso2 === code) { countryData = allData[i]; break; }
             }
-            return response.json();
-        })
-        .then(data => {
-            // Clear loading message
-            stateSelect.innerHTML = '<option value="">Select State</option>';
-            
-            if (data && data.length > 0) {
-                data.forEach(state => {
-                    const option = document.createElement('option');
-                    option.value = state.name;
-                    option.setAttribute('data-state-code', state.iso2); // Store ISO2 code for states if needed
-                    option.textContent = state.name;
-                    stateSelect.appendChild(option);
+            var states = countryData && countryData.states ? countryData.states : [];
+            if (states.length > 0) {
+                removeStateInput();
+                stateSelect.style.display = '';
+                stateSelect.disabled = false;
+                stateSelect.style.pointerEvents = 'auto';
+                stateSelect.innerHTML = '<option value="">Select State</option>';
+                states.forEach(function(s) {
+                    var opt2 = document.createElement('option');
+                    opt2.value = s.name;
+                    opt2.setAttribute('data-state-code', s.iso2);
+                    opt2.textContent = s.name;
+                    stateSelect.appendChild(opt2);
                 });
-
-                // Restore previously selected state if editing
-                const selectedState = stateSelect.getAttribute('data-selected');
-                if (selectedState) {
-                    stateSelect.value = selectedState;
-                }
+                var selectedState = stateSelect.getAttribute('data-selected');
+                if (selectedState) stateSelect.value = selectedState;
             } else {
-                stateSelect.innerHTML = '<option value="">No states available</option>';
+                showStateInput();
             }
-        })
-        .catch(error => {
-            console.error('Error loading states:', error);
-            stateSelect.innerHTML = '<option value="">Error loading states</option>';
-        });
+        } else {
+            showStateInput();
+        }
+    }
+
+    function showStateInput() {
+        stateSelect.style.display = 'none';
+        stateSelect.disabled = true;
+        if (document.getElementById('state-input-fallback')) return;
+        var input = document.createElement('input');
+        input.type = 'text';
+        input.id = 'state-input-fallback';
+        input.name = 'state';
+        input.className = 'form-input';
+        input.placeholder = 'Enter state/province';
+        input.required = true;
+        var prevValue = stateSelect.getAttribute('data-selected');
+        if (prevValue) input.value = prevValue;
+        stateSelect.parentNode.insertBefore(input, stateSelect.nextSibling);
+    }
+
+    function removeStateInput() {
+        var input = document.getElementById('state-input-fallback');
+        if (input) input.remove();
+        stateSelect.style.display = '';
     }
 
     // Add event listener for country change
     document.addEventListener('DOMContentLoaded', function() {
         if (countrySelect) {
             countrySelect.addEventListener('change', loadStates);
-            loadCountries(); // Load countries on page load
+            loadCountries();
         }
     });
 
@@ -1186,11 +1230,11 @@
     let selectedFiles = [];
     const photoError = document.getElementById('error-message');
     const photoAllowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif'];
-    const photoMaxSize = 15 * 1024 * 1024;
+    const photoMaxSize = 5 * 1024 * 1024;
 
     setupUpload('upload-area', 'file-input', handlePhotoFiles);
     function handlePhotoFiles(e) {
-        handleFileSelection(e, selectedFiles, (file, errEl) => validateFile(file, errEl, photoAllowedTypes, photoMaxSize, 'Please upload only PNG, JPG, or GIF files.', 'File size must be less than 15MB.'), createPhotoPreview, 'error-message', true);
+        handleFileSelection(e, selectedFiles, (file, errEl) => validateFile(file, errEl, photoAllowedTypes, photoMaxSize, 'Please upload only PNG, JPG, or GIF files.', 'File size must be less than 5MB.'), createPhotoPreview, 'error-message', true);
     }
     function createPhotoPreview(file) {
         createPreview(file, 'preview-grid', 'preview-item', 'removePhoto');
@@ -1204,11 +1248,34 @@
     let selectedCheckinDocs = [];
     const checkinError = document.getElementById('checkin-doc-error-message');
     const docAllowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'image/png', 'image/jpeg', 'image/jpg', 'image/gif'];
-    const docMaxSize = 15 * 1024 * 1024;
+    const docMaxSize = 5 * 1024 * 1024;
+
+    function removeExistingDocs(containerId) {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+        const parent = container.parentElement;
+        if (!parent) return;
+        parent.querySelectorAll('[data-doc-id]').forEach(el => {
+            const docId = el.dataset.docId;
+            fetch('{% url "property:delete-document" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                },
+                body: JSON.stringify({document_id: docId})
+            }).catch(() => {});
+            el.remove();
+        });
+    }
 
     setupUpload('checkin-doc-upload-area', 'checkin-doc-input', handleCheckinDocFiles);
     function handleCheckinDocFiles(e) {
-        handleFileSelection(e, selectedCheckinDocs, (file, errEl) => validateFile(file, errEl, docAllowedTypes, docMaxSize, 'Please upload PDF, DOC, DOCX, or image files only.', 'File size must be less than 15MB.'), createCheckinDocPreview, 'checkin-doc-error-message');
+        removeExistingDocs('checkin-document-preview-container');
+        selectedCheckinDocs.length = 0;
+        document.getElementById('checkin-doc-preview').innerHTML = '';
+        document.getElementById('checkin-document-preview-container').style.display = 'none';
+        handleFileSelection(e, selectedCheckinDocs, (file, errEl) => validateFile(file, errEl, docAllowedTypes, docMaxSize, 'Please upload PDF, DOC, DOCX, or image files only.', 'File size must be less than 5MB.'), createCheckinDocPreview, 'checkin-doc-error-message');
         updateFileInput('checkin-doc-input', selectedCheckinDocs);
     }
     function createCheckinDocPreview(file) {
@@ -1225,7 +1292,11 @@
 
     setupUpload('checkout-doc-upload-area', 'checkout-doc-input', handleCheckoutDocFiles);
     function handleCheckoutDocFiles(e) {
-        handleFileSelection(e, selectedCheckoutDocs, (file, errEl) => validateFile(file, errEl, docAllowedTypes, docMaxSize, 'Please upload PDF, DOC, DOCX, or image files only.', 'File size must be less than 15MB.'), createCheckoutDocPreview, 'checkout-doc-error-message');
+        removeExistingDocs('checkout-document-preview-container');
+        selectedCheckoutDocs.length = 0;
+        document.getElementById('checkout-doc-preview').innerHTML = '';
+        document.getElementById('checkout-document-preview-container').style.display = 'none';
+        handleFileSelection(e, selectedCheckoutDocs, (file, errEl) => validateFile(file, errEl, docAllowedTypes, docMaxSize, 'Please upload PDF, DOC, DOCX, or image files only.', 'File size must be less than 5MB.'), createCheckoutDocPreview, 'checkout-doc-error-message');
         updateFileInput('checkout-doc-input', selectedCheckoutDocs);
     }
     function createCheckoutDocPreview(file) {
@@ -1278,7 +1349,7 @@
 
     document.addEventListener('DOMContentLoaded', function() {
         const form = document.getElementById('propertyForm');
-        const isEdit = {{ is_edit|yesno:"true,false" }};
+        const isEdit = document.getElementById('propertyForm').dataset.isEdit === 'true';
 
         form.addEventListener('submit', function(event) {
             // The 'submit' event only fires if browser-native validation (e.g. required fields) passes.
@@ -1288,6 +1359,8 @@
             // Validation for Country and State
             const countrySelect = document.getElementById('country') || document.querySelector('select[name="country"]');
             const stateSelect = document.getElementById('state') || document.querySelector('select[name="state"]');
+            const stateInput = document.getElementById('state-input-fallback');
+            const stateValue = stateInput ? stateInput.value.trim() : (stateSelect ? stateSelect.value : '');
 
             if (countrySelect && !countrySelect.value) {
                 event.preventDefault();
@@ -1297,11 +1370,11 @@
                 return;
             }
 
-            if (stateSelect && !stateSelect.value) {
+            if (!stateValue) {
                 event.preventDefault();
                 hideLoader();
                 showToastMessage('Please select a state.', 'error');
-                stateSelect.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                (stateInput || stateSelect).scrollIntoView({ behavior: 'smooth', block: 'center' });
                 return;
             }
 

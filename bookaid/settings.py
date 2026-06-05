@@ -242,3 +242,6 @@ LOGOUT_REDIRECT_URL = 'login'
 
 # Base URL for generating absolute URLs in emails
 BASE_URL = os.getenv('BASE_URL', 'http://favhost.com')
+
+# Allow same-origin framing (needed for detail modal on list page)
+X_FRAME_OPTIONS = 'SAMEORIGIN'

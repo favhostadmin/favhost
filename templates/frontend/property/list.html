@@ -29,13 +29,24 @@
     .copy-success {
         color: #198754;
         font-size: 14px;
-        margin-top: 8px;
         opacity: 0;
         transition: opacity 0.3s ease;
     }
     
     .copy-success.show {
         opacity: 1;
+    }
+
+    #copySuccess {
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
+        white-space: nowrap;
+        z-index: 1;
+    }
+
+    .modal#shareItineraryModal .d-flex.align-items-center {
+        position: relative;
     }
 
 
@@ -554,7 +565,7 @@
 
     @media (max-width: 991px) {
         .mobile-filter-section {
-            background: #fff;
+            background: #E7E7E9;
             border-bottom: 1px solid #e5e7eb;
             padding: 10px 0 8px;
             position: sticky;
@@ -953,13 +964,212 @@
         }
     }
 </style>
+
+<!-- Listing Detail Modal CSS (Zillow-style) -->
+<style>
+.listing-detail-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1050;
+  display: flex;
+  justify-content: center;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.25s ease, visibility 0.25s ease;
+}
+.listing-detail-modal.is-open {
+  opacity: 1;
+  visibility: visible;
+}
+.listing-detail-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.8);
+}
+.listing-detail-container {
+  position: relative;
+  width: 88vw;
+  max-width: 1200px;
+  height: 100vh;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  z-index: 1;
+  transform: scale(0.97);
+  transition: transform 0.2s ease;
+}
+.listing-detail-modal.is-open .listing-detail-container {
+  transform: scale(1);
+}
+.listing-detail-bar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 8px 12px;
+  background: #fff;
+  border-bottom: 1px solid #e9ecef;
+  flex-shrink: 0;
+  z-index: 2;
+}
+.listing-detail-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: #f0f2f5;
+  border-radius: 50%;
+  cursor: pointer;
+  color: #222;
+  transition: background 0.15s;
+}
+.listing-detail-close:hover {
+  background: #dc3545;
+  color: #fff;
+}
+.listing-detail-iframe {
+  flex: 1;
+  width: 100%;
+  border: none;
+  background: #fff;
+}
+.listing-detail-loader {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  z-index: 3;
+  transition: opacity 0.3s ease;
+}
+.listing-detail-loader.is-hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+.listing-detail-spinner {
+  width: 44px;
+  height: 44px;
+  border: 4px solid #e9ecef;
+  border-top-color: #dc3545;
+  border-radius: 50%;
+  animation: ld-spin 0.8s linear infinite;
+}
+
+@keyframes ld-spin {
+  to { transform: rotate(360deg); }
+}
+@media (max-width: 768px) {
+  .listing-detail-container {
+    width: 100vw;
+    height: calc(100vh - 60px);
+    margin-top: 60px;
+    max-width: none;
+    max-height: none;
+    border-radius: 0;
+  }
+  .listing-detail-bar {
+    padding: 4px 8px;
+  }
+}
+
+@media (max-width: 576px) {
+  .listing-detail-container {
+    width: 100vw;
+    height: calc(100vh - 60px);
+    margin-top: 60px;
+    border-radius: 0;
+  }
+  .listing-detail-close {
+    width: 32px;
+    height: 32px;
+  }
+  .listing-detail-bar {
+    padding: 4px 6px;
+  }
+  .listing-detail-spinner {
+    width: 32px;
+    height: 32px;
+    border-width: 3px;
+  }
+
+  /* Share modal — phone */
+  .modal#shareItineraryModal .modal-dialog {
+    margin: 60px 0 0;
+    max-width: 100%;
+    height: calc(100% - 60px);
+  }
+  .modal#shareItineraryModal .modal-content {
+    border-radius: 0;
+    min-height: 100%;
+  }
+  .modal#shareItineraryModal .modal-body {
+    padding: 16px !important;
+  }
+  .modal#shareItineraryModal .btn-group {
+    flex-wrap: wrap;
+    gap: 8px;
+    width: 100%;
+  }
+  .modal#shareItineraryModal .btn-group .btn {
+    flex: 1;
+    min-width: 0;
+    text-align: center;
+    font-size: 13px;
+    padding: 8px 6px;
+  }
+
+  /* Validation / Error modals — phone */
+  .modal#validationModal .modal-dialog,
+  .modal#errorModal .modal-dialog {
+    margin: 16px;
+    max-width: calc(100% - 32px);
+  }
+  .modal#validationModal .modal-content,
+  .modal#errorModal .modal-content {
+    border-radius: 12px;
+  }
+
+  /* Confirmation modals — phone */
+  .modal[id$="Modal"] .modal-dialog {
+    margin: 16px;
+    max-width: calc(100% - 32px);
+  }
+  .modal[id$="Modal"] .modal-content {
+    border-radius: 12px;
+  }
+  .modal[id$="Modal"] .modal-footer {
+    flex-direction: column;
+    gap: 8px;
+  }
+  .modal[id$="Modal"] .modal-footer .btn,
+  .modal[id$="Modal"] .modal-footer form {
+    width: 100%;
+  }
+  .modal[id$="Modal"] .modal-footer form {
+    display: block !important;
+  }
+}
+
+/* Desktop modal border-radius */
+.modal#shareItineraryModal .modal-content,
+.modal#validationModal .modal-content,
+.modal#errorModal .modal-content,
+.modal[id$="Modal"] .modal-content {
+  border-radius: 10px;
+}
+</style>
 {% endblock extra_head %}
 
 {% block content %}
 
 
 <!-- Desktop Header -->
-<div class="desktop-header d-none d-lg-block" style="padding: 4px 8px;">
+<div class="desktop-header d-none d-lg-block">
     <div class="header-filter" >
         <!-- Left Logo Section -->
         <div class="header-filter-logo-section header-filter-left">
@@ -1145,7 +1355,7 @@
                 {% for item in page_obj.object_list %}
                 <div class="property-card-col col-12 col-sm-6 col-md-3 col-lg-3 col-xl-3 p-2">
                     <div class="listing-card" data-property-id="{{ item.id }}">
-                        <a href="{% url 'property:property-detail' slug=item.slug %}" class="listing-card-link" target="_blank" rel="noopener noreferrer">
+                        <a href="{% url 'property:property-detail' slug=item.slug %}" class="listing-card-link" rel="noopener noreferrer">
                             <div class="listing-image-container">
                                 {% with images=item.images.all %}
                                 {% if images %}
@@ -1181,17 +1391,17 @@
                             </div>
                         </a>
                         <div class="listing-info">
-                            <a href="{% url 'property:property-detail' slug=item.slug %}" target="_blank" rel="noopener noreferrer">
+                            <a href="{% url 'property:property-detail' slug=item.slug %}" rel="noopener noreferrer">
                                 <h3 class="listing-title">
                                     {{ item.title }}
                                 </h3>
                             </a>
-                            <a href="{% url 'property:property-detail' slug=item.slug %}" target="_blank" rel="noopener noreferrer">
+                            <a href="{% url 'property:property-detail' slug=item.slug %}" rel="noopener noreferrer">
                                 <p class="listing-location">{{ item.city }}, {{ item.state }}</p>
                             </a>
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
-                                    <a href="{% url 'property:property-detail' slug=item.slug %}" target="_blank" rel="noopener noreferrer">
+                                    <a href="{% url 'property:property-detail' slug=item.slug %}" rel="noopener noreferrer">
                                     <p class="listing-price">${{ item.price_per_night|floatformat:2 }} <span class="price-period">night</span></p>
                                     </a>
                                 </div>
@@ -1461,6 +1671,23 @@
 </div>
 
 {% include 'frontend/common/confirmation_modal.html' %}
+
+<!-- Listing Detail Modal (Zillow-style) -->
+<div id="listingDetailModal" class="listing-detail-modal" aria-hidden="true">
+  <div class="listing-detail-backdrop" id="listingDetailBackdrop"></div>
+  <div class="listing-detail-container" role="dialog" aria-modal="true" aria-labelledby="listingDetailTitle">
+    <div class="listing-detail-bar">
+      <button type="button" id="listingDetailClose" class="listing-detail-close" aria-label="Close listing details">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+      </button>
+    </div>
+    <iframe id="listingDetailIframe" class="listing-detail-iframe" title="Listing details"></iframe>
+    <div id="listingDetailLoader" class="listing-detail-loader">
+      <div class="listing-detail-spinner"></div>
+    </div>
+  </div>
+</div>
+
 {% endblock content  %}
 
 {% block extra_script %}
@@ -2599,5 +2826,74 @@
             });
         }, 1000);
     });
+</script>
+
+<script>
+(function() {
+    var modal = document.getElementById('listingDetailModal');
+    var iframe = document.getElementById('listingDetailIframe');
+    var closeBtn = document.getElementById('listingDetailClose');
+    var backdrop = document.getElementById('listingDetailBackdrop');
+    var loader = document.getElementById('listingDetailLoader');
+    var isOpening = false;
+
+    if (!modal || !iframe) return;
+
+    function openDetailModal(url) {
+      if (isOpening) return;
+      isOpening = true;
+      if (loader) loader.classList.remove('is-hidden');
+      modal.classList.add('is-open');
+      modal.setAttribute('aria-hidden', 'false');
+      document.body.style.overflow = 'hidden';
+      setTimeout(function() { if (closeBtn) closeBtn.focus(); }, 100);
+      iframe.src = url;
+    }
+
+    function closeDetailModal() {
+      modal.classList.remove('is-open');
+      modal.setAttribute('aria-hidden', 'true');
+      iframe.src = 'about:blank';
+      document.body.style.overflow = '';
+      if (loader) loader.classList.add('is-hidden');
+      isOpening = false;
+    }
+
+    iframe.addEventListener('load', function() {
+      if (!modal.classList.contains('is-open')) return;
+      if (loader) loader.classList.add('is-hidden');
+      isOpening = false;
+      try {
+        var doc = iframe.contentDocument;
+        var nav = doc.querySelector('.custom-header');
+        if (nav) nav.style.display = 'none';
+        var foot = doc.querySelector('.footer');
+        if (foot) foot.style.display = 'none';
+        var s = doc.createElement('style');
+        s.textContent = '.main-content-body{max-height:none!important;min-height:0!important;padding:0!important}.property-detail-scroll,.booking-scroll-area,.reservations-list,.channels-layout-container{max-height:none!important;overflow:visible!important}.booking-list-page{min-height:0!important}[style*=\"min-height: calc(100vh\"]{min-height:0!important}[style*=\"max-height: calc(100vh\"]{max-height:none!important;overflow:visible!important}.main_row_div,.main_reservation_div{padding-left:3%!important;padding-right:3%!important}.property-detail-content{padding:0 5%!important}.container-fluid.p-0{margin-bottom:0!important}#loader-overlay,#mobileNavbarBackdrop{display:none!important}';
+        doc.head.appendChild(s);
+      } catch(e) {}
+    });
+
+    if (closeBtn) closeBtn.addEventListener('click', closeDetailModal);
+    if (backdrop) backdrop.addEventListener('click', closeDetailModal);
+
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape' && modal.classList.contains('is-open')) {
+        closeDetailModal();
+      }
+    });
+
+    var container = document.querySelector('.main_content_div') || document.querySelector('.row');
+    if (container) {
+      container.addEventListener('click', function(e) {
+        var link = e.target.closest('a[href*="/property/detail/"]');
+        if (!link) return;
+        if (e.ctrlKey || e.metaKey || e.button === 1) return;
+        e.preventDefault();
+        openDetailModal(link.href);
+      });
+    }
+  })();
 </script>
 {% endblock extra_script %}
