@@ -411,36 +411,98 @@ def profile_view(request):
     last_payment_date = None
     last_payment_amount = None
     last_payment_currency = None
+    next_payment_date = None  # fetched live from Stripe subscription
     billing_interval = 'Monthly'  # default; updated from Stripe if available
     if is_premium and stripe_customer and stripe_customer.stripe_customer_id:
         try:
             import stripe as stripe_lib
+            import datetime
             from django.conf import settings as django_settings
             stripe_lib.api_key = django_settings.STRIPE_SECRET_KEY
-            # Fetch most recent paid invoice
-            invoices = stripe_lib.Invoice.list(
-                customer=stripe_customer.stripe_customer_id,
-                limit=1,
-                status='paid',
-            ).data
-            if invoices:
-                inv = invoices[0]
-                import datetime
-                last_payment_date = datetime.datetime.fromtimestamp(
-                    inv.created, tz=datetime.timezone.utc
-                )
-                last_payment_amount = inv.amount_paid / 100
-                last_payment_currency = (inv.currency or 'usd').upper()
-            # Fetch billing interval from active subscription
+
+            _interval_map = {
+                'month': 'Monthly',
+                'year': 'Yearly',
+                'week': 'Weekly',
+                'day': 'Daily',
+            }
+
+            # ── Last payment: fetch most recent paid invoice ──────────
+            try:
+                invoices = stripe_lib.Invoice.list(
+                    customer=stripe_customer.stripe_customer_id,
+                    limit=1,
+                    status='paid',
+                ).data
+                if invoices:
+                    inv = invoices[0]
+                    last_payment_date = datetime.datetime.fromtimestamp(
+                        inv.created, tz=datetime.timezone.utc
+                    )
+                    last_payment_amount = (inv.amount_paid or 0) / 100
+                    last_payment_currency = (getattr(inv, 'currency', 'usd') or 'usd').upper()
+            except Exception:
+                pass
+
+            # ── Active subscription: try by stored ID, then by customer fallback ──
+            sub = None
             if stripe_customer.stripe_subscription_id:
-                sub = stripe_lib.Subscription.retrieve(
-                    stripe_customer.stripe_subscription_id,
-                    expand=['items.data.price'],
-                )
                 try:
-                    interval = sub['items']['data'][0]['price']['recurring']['interval']
-                    billing_interval = interval.capitalize()  # e.g. "Monthly", "Yearly"
-                except (KeyError, IndexError, TypeError):
+                    sub = stripe_lib.Subscription.retrieve(
+                        stripe_customer.stripe_subscription_id,
+                        expand=['items.data.price'],
+                    )
+                except Exception:
+                    sub = None
+
+            # Fallback: list all active subscriptions for this customer
+            if not sub:
+                try:
+                    subs = stripe_lib.Subscription.list(
+                        customer=stripe_customer.stripe_customer_id,
+                        status='active',
+                        limit=1,
+                        expand=['data.items.data.price'],
+                    ).data
+                    if subs:
+                        sub = subs[0]
+                        # Persist missing subscription_id to DB
+                        if not stripe_customer.stripe_subscription_id:
+                            stripe_customer.stripe_subscription_id = sub.id
+                            stripe_customer.save(update_fields=['stripe_subscription_id'])
+                except Exception:
+                    pass
+
+            if sub:
+                # Billing interval
+                try:
+                    raw_interval = sub.items.data[0].price.recurring.interval
+                    billing_interval = _interval_map.get(raw_interval, raw_interval.capitalize())
+                except Exception:
+                    pass
+
+                # Next payment date — in flexible billing it's on items.data[0]
+                try:
+                    # Try top-level first (classic billing)
+                    period_end_ts = getattr(sub, 'current_period_end', None)
+                    # Fallback: flexible billing mode stores it on the subscription item
+                    if not period_end_ts:
+                        try:
+                            period_end_ts = sub.items.data[0].current_period_end
+                        except Exception:
+                            pass
+                    # Last fallback: billing_cycle_anchor (start of current cycle)
+                    if not period_end_ts:
+                        period_end_ts = getattr(sub, 'billing_cycle_anchor', None)
+                    if period_end_ts:
+                        next_payment_date = datetime.datetime.fromtimestamp(
+                            period_end_ts, tz=datetime.timezone.utc
+                        )
+                        # Persist to DB if missing
+                        if not stripe_customer.current_period_end:
+                            stripe_customer.current_period_end = next_payment_date
+                            stripe_customer.save(update_fields=['current_period_end'])
+                except Exception:
                     pass
         except Exception:
             pass  # Silently fall back — Stripe unavailable
@@ -460,6 +522,7 @@ def profile_view(request):
         'last_payment_date': last_payment_date,
         'last_payment_amount': last_payment_amount,
         'last_payment_currency': last_payment_currency,
+        'next_payment_date': next_payment_date,
         'billing_interval': billing_interval,
     }
     return render(request, 'frontend/auth/profile.html', context)

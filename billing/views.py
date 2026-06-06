@@ -180,27 +180,27 @@ def stripe_webhook(request):
         logger.warning("Stripe webhook: signature verification failed")
         return HttpResponse(status=400)
 
-    event_type = event['type']
-    obj = event['data']['object']
+    # stripe-python 15.x uses typed objects — use attribute access, not dict access
+    event_type = event.type
+    obj = event.data.object
 
     logger.info(f"Stripe webhook received: {event_type}")
 
-    if event_type == 'checkout.session.completed':
-        _handle_checkout_completed(obj)
+    try:
+        if event_type == 'checkout.session.completed':
+            _handle_checkout_completed(obj)
+        elif event_type == 'invoice.paid':
+            _handle_invoice_paid(obj)
+        elif event_type == 'invoice.payment_failed':
+            _handle_payment_failed(obj)
+        elif event_type == 'customer.subscription.deleted':
+            _handle_subscription_deleted(obj)
+        elif event_type == 'customer.subscription.updated':
+            _handle_subscription_updated(obj)
+    except Exception as e:
+        logger.error(f"Webhook handler error for {event_type}: {e}", exc_info=True)
 
-    elif event_type == 'invoice.paid':
-        _handle_invoice_paid(obj)
-
-    elif event_type == 'invoice.payment_failed':
-        _handle_payment_failed(obj)
-
-    elif event_type == 'customer.subscription.deleted':
-        _handle_subscription_deleted(obj)
-
-    elif event_type == 'customer.subscription.updated':
-        _handle_subscription_updated(obj)
-
-    # Always return 200 so Stripe knows we received it
+    # Always return 200 — Stripe retries on any non-2xx response
     return HttpResponse(status=200)
 
 
@@ -210,9 +210,9 @@ def stripe_webhook(request):
 
 def _handle_checkout_completed(session):
     """First payment succeeded. Save customer + subscription IDs, mark active."""
-    user_id = session.get('client_reference_id')
-    customer_id = session.get('customer')
-    subscription_id = session.get('subscription')
+    user_id = getattr(session, 'client_reference_id', None)
+    customer_id = getattr(session, 'customer', None)
+    subscription_id = getattr(session, 'subscription', None)
 
     if not user_id:
         logger.error("checkout.session.completed: missing client_reference_id")
@@ -231,13 +231,26 @@ def _handle_checkout_completed(session):
     if subscription_id:
         sc.stripe_subscription_id = subscription_id
     sc.subscription_status = 'active'
+
+    # Fetch current_period_end from Stripe subscription so it's available immediately
+    if subscription_id:
+        try:
+            sub = stripe.Subscription.retrieve(subscription_id)
+            period_end_ts = getattr(sub, 'current_period_end', None)
+            if period_end_ts:
+                sc.current_period_end = datetime.datetime.fromtimestamp(
+                    period_end_ts, tz=datetime.timezone.utc
+                )
+        except Exception as e:
+            logger.warning(f"Could not fetch subscription period_end: {e}")
+
     sc.save()
     logger.info(f"User {user.username} subscription activated")
 
 
 def _handle_invoice_paid(invoice):
     """Monthly renewal succeeded. Keep active, update period end."""
-    customer_id = invoice.get('customer')
+    customer_id = getattr(invoice, 'customer', None)
     sc = StripeCustomer.objects.filter(stripe_customer_id=customer_id).first()
     if not sc:
         return
@@ -249,7 +262,7 @@ def _handle_invoice_paid(invoice):
 
 def _handle_payment_failed(invoice):
     """Monthly renewal failed. Mark past_due — prompt user to update card."""
-    customer_id = invoice.get('customer')
+    customer_id = getattr(invoice, 'customer', None)
     sc = StripeCustomer.objects.filter(stripe_customer_id=customer_id).first()
     if not sc:
         return
@@ -260,7 +273,7 @@ def _handle_payment_failed(invoice):
 
 def _handle_subscription_deleted(subscription):
     """Subscription was cancelled. Mark as canceled."""
-    customer_id = subscription.get('customer')
+    customer_id = getattr(subscription, 'customer', None)
     sc = StripeCustomer.objects.filter(stripe_customer_id=customer_id).first()
     if not sc:
         return
@@ -271,20 +284,21 @@ def _handle_subscription_deleted(subscription):
 
 def _handle_subscription_updated(subscription):
     """Subscription was updated (e.g. resumed). Sync the status."""
-    customer_id = subscription.get('customer')
+    customer_id = getattr(subscription, 'customer', None)
     sc = StripeCustomer.objects.filter(stripe_customer_id=customer_id).first()
     if not sc:
         return
-    sc.subscription_status = subscription.get('status', sc.subscription_status)
+    sc.subscription_status = getattr(subscription, 'status', sc.subscription_status)
     sc.save()
 
 
 def _update_period_end(sc, invoice):
     """Extract and store the billing period end timestamp."""
     try:
-        lines = invoice.get('lines', {}).get('data', [])
+        lines = getattr(getattr(invoice, 'lines', None), 'data', []) or []
         if lines:
-            period_end = lines[0].get('period', {}).get('end')
+            period = getattr(lines[0], 'period', None)
+            period_end = getattr(period, 'end', None) if period else None
             if period_end:
                 sc.current_period_end = datetime.datetime.fromtimestamp(
                     period_end, tz=datetime.timezone.utc
@@ -327,25 +341,32 @@ def subscription_detail(request):
                 )
 
             if subscription:
-                item = subscription['items']['data'][0]
-                price = item['price']
-                product = price.get('product', {})
+                # stripe-python 15.x: use attribute access, not dict/dict.get()
+                item = subscription.items.data[0]
+                price = item.price
+                product = getattr(price, 'product', None)
+                product_name = (
+                    getattr(product, 'name', 'FavHost Premium')
+                    if product and not isinstance(product, str)
+                    else 'FavHost Premium'
+                )
+                period_start_ts = getattr(subscription, 'current_period_start', None)
+                period_end_ts = getattr(subscription, 'current_period_end', None)
                 plan = {
-                    'name': product.get('name', 'FavHost Premium') if isinstance(product, dict) else 'FavHost Premium',
-                    'amount': price['unit_amount'] / 100,
-                    'currency': price['currency'].upper(),
-                    'interval': price['recurring']['interval'],
-                    'status': subscription['status'],
-                    'cancel_at_period_end': subscription['cancel_at_period_end'],
+                    'name': product_name,
+                    'amount': price.unit_amount / 100,
+                    'currency': price.currency.upper(),
+                    'interval': price.recurring.interval,
+                    'status': subscription.status,
+                    'cancel_at_period_end': subscription.cancel_at_period_end,
                     'period_start': datetime.datetime.fromtimestamp(
-                        subscription['current_period_start'], tz=datetime.timezone.utc
-                    ),
+                        period_start_ts, tz=datetime.timezone.utc
+                    ) if period_start_ts else None,
                     'period_end': datetime.datetime.fromtimestamp(
-                        subscription['current_period_end'], tz=datetime.timezone.utc
-                    ),
+                        period_end_ts, tz=datetime.timezone.utc
+                    ) if period_end_ts else None,
                 }
-                # Payment method from subscription
-                payment_method = subscription.get('default_payment_method')
+                payment_method = getattr(subscription, 'default_payment_method', None)
 
             # ── Payment method fallback: customer default ─────────
             if not payment_method:
@@ -353,7 +374,11 @@ def subscription_detail(request):
                     sc.stripe_customer_id,
                     expand=['invoice_settings.default_payment_method']
                 )
-                payment_method = customer.invoice_settings.default_payment_method
+                payment_method = getattr(
+                    getattr(customer, 'invoice_settings', None),
+                    'default_payment_method',
+                    None
+                )
 
             # ── Invoice / transaction history ─────────────────────
             raw_invoices = stripe.Invoice.list(
@@ -363,17 +388,17 @@ def subscription_detail(request):
 
             for inv in raw_invoices:
                 description = 'FavHost Premium'
-                if inv.lines and inv.lines.data:
+                if getattr(inv, 'lines', None) and inv.lines.data:
                     description = inv.lines.data[0].description or description
                 invoices.append({
                     'date': datetime.datetime.fromtimestamp(inv.created, tz=datetime.timezone.utc),
                     'description': description,
-                    'amount': inv.amount_paid / 100,
+                    'amount': (inv.amount_paid or 0) / 100,
                     'currency': inv.currency.upper(),
                     'status': inv.status,
-                    'pdf_url': inv.invoice_pdf,
-                    'hosted_url': inv.hosted_invoice_url,
-                    'number': inv.number or '—',
+                    'pdf_url': getattr(inv, 'invoice_pdf', None),
+                    'hosted_url': getattr(inv, 'hosted_invoice_url', None),
+                    'number': getattr(inv, 'number', None) or '—',
                 })
 
         except stripe.error.StripeError as e:
