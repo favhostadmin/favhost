@@ -398,6 +398,53 @@ def profile_view(request):
     if trial_days_left < 0:
         trial_days_left = 0
 
+    try:
+        stripe_customer = user.stripe_customer
+        subscription_status = stripe_customer.subscription_status
+        is_premium = stripe_customer.is_active
+    except Exception:
+        stripe_customer = None
+        subscription_status = ''
+        is_premium = False
+
+    # Fetch last payment info from Stripe for premium users
+    last_payment_date = None
+    last_payment_amount = None
+    last_payment_currency = None
+    billing_interval = 'Monthly'  # default; updated from Stripe if available
+    if is_premium and stripe_customer and stripe_customer.stripe_customer_id:
+        try:
+            import stripe as stripe_lib
+            from django.conf import settings as django_settings
+            stripe_lib.api_key = django_settings.STRIPE_SECRET_KEY
+            # Fetch most recent paid invoice
+            invoices = stripe_lib.Invoice.list(
+                customer=stripe_customer.stripe_customer_id,
+                limit=1,
+                status='paid',
+            ).data
+            if invoices:
+                inv = invoices[0]
+                import datetime
+                last_payment_date = datetime.datetime.fromtimestamp(
+                    inv.created, tz=datetime.timezone.utc
+                )
+                last_payment_amount = inv.amount_paid / 100
+                last_payment_currency = (inv.currency or 'usd').upper()
+            # Fetch billing interval from active subscription
+            if stripe_customer.stripe_subscription_id:
+                sub = stripe_lib.Subscription.retrieve(
+                    stripe_customer.stripe_subscription_id,
+                    expand=['items.data.price'],
+                )
+                try:
+                    interval = sub['items']['data'][0]['price']['recurring']['interval']
+                    billing_interval = interval.capitalize()  # e.g. "Monthly", "Yearly"
+                except (KeyError, IndexError, TypeError):
+                    pass
+        except Exception:
+            pass  # Silently fall back — Stripe unavailable
+
     context = {
         'user': user,
         'permission_docs': permission_docs,
@@ -407,6 +454,13 @@ def profile_view(request):
         'trial_start': trial_start,
         'trial_end': trial_end,
         'trial_days_left': trial_days_left,
+        'stripe_customer': stripe_customer,
+        'subscription_status': subscription_status,
+        'is_premium': is_premium,
+        'last_payment_date': last_payment_date,
+        'last_payment_amount': last_payment_amount,
+        'last_payment_currency': last_payment_currency,
+        'billing_interval': billing_interval,
     }
     return render(request, 'frontend/auth/profile.html', context)
 
