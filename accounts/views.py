@@ -99,7 +99,7 @@ def register_view(request):
     if request.method == 'POST':
         first_name = request.POST.get('first_name', '').strip()
         last_name = request.POST.get('last_name', '').strip()
-        email = request.POST.get('email', '').strip()
+        email = request.POST.get('email', '').strip().lower()
         password1 = request.POST.get('password1', '')
         password2 = request.POST.get('password2', '')
 
@@ -111,9 +111,9 @@ def register_view(request):
             errors['last_name'] = 'Last name is required.'
         if not email:
             errors['email'] = 'Email is required.'
-        elif MyUser.objects.filter(email=email).exists():
+        elif MyUser.objects.filter(email__iexact=email).exists():
             errors['email'] = 'An account with this email already exists.'
-        elif MyUser.objects.filter(username=email).exists():
+        elif MyUser.objects.filter(username__iexact=email).exists():
             errors['email'] = 'An account with this email already exists.'
         if not password1:
             errors['password1'] = 'Password is required.'
@@ -695,7 +695,7 @@ def manage_cohost_view(request):
     if request.method == 'POST':
         action = request.POST.get('action', '')
         if action == 'add':
-            email = request.POST.get('cohostEmail', '').strip()
+            email = request.POST.get('cohostEmail', '').strip().lower()
             password = request.POST.get('cohostPassword', '').strip()
             full_name = request.POST.get('cohostFullname', '').strip()
             phone = request.POST.get('cohostPhone', '').strip()
@@ -708,7 +708,7 @@ def manage_cohost_view(request):
                 return redirect('manage_cohost')
 
             # Check if this email is already a co-host of this host
-            if CoHost.objects.filter(host=effective_host, co_host__email=email).exists():
+            if CoHost.objects.filter(host=effective_host, co_host__email__iexact=email).exists():
                 messages.error(request, 'This email is already a co-host. Please use a different email.')
                 return redirect('manage_cohost')
 
@@ -742,7 +742,7 @@ def manage_cohost_view(request):
 
         elif action == 'edit':
             cohost_id = request.POST.get('cohost_id', '').strip()
-            email = request.POST.get('cohostEmail', '').strip()
+            email = request.POST.get('cohostEmail', '').strip().lower()
             password = request.POST.get('cohostPassword', '').strip()
             full_name = request.POST.get('cohostFullname', '').strip()
             phone = request.POST.get('cohostPhone', '').strip()
@@ -770,10 +770,10 @@ def manage_cohost_view(request):
             cohost_id = request.POST.get('cohost_id', '').strip()
             cohost_rel = get_object_or_404(CoHost, id=cohost_id, host=effective_host)
             co_host_user = cohost_rel.co_host
+            email = co_host_user.email
             cohost_rel.delete()
-            co_host_user.is_active = False
-            co_host_user.save()
-            messages.success(request, f'Co-host {co_host_user.email} removed and deactivated.')
+            co_host_user.delete()
+            messages.success(request, f'Co-host {email} removed and account deleted.')
             return redirect('manage_cohost')
 
     cohosts = CoHost.objects.filter(host=effective_host).select_related('co_host')
