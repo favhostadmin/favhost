@@ -66,6 +66,8 @@ class Property(models.Model):
     # Instructions and Rules
     email_guest = models.BooleanField(default=False, verbose_name='Email guest before Check-in')
     rules = models.TextField(blank=True, null=True, verbose_name='Cancellation, Other Policies and Rules')
+    house_rules = models.TextField(blank=True, null=True, verbose_name='House Rules')
+    cancellation_policy = models.TextField(blank=True, null=True, verbose_name='Cancellation Policy')
     
     # Pricing
     price_per_night = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='Price/Night')
