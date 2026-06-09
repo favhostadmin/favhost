@@ -44,7 +44,7 @@ def pricing_page(request):
         'period_end': period_end,
         'stripe_publishable_key': settings.STRIPE_PUBLISHABLE_KEY,
     }
-    return render(request, 'billing/pricing.html', context)
+    return render(request, 'frontend/billing/pricing.html', context)
 
 
 # ─────────────────────────────────────────────────────────────
@@ -95,7 +95,7 @@ def create_checkout_session(request):
 
     except stripe.error.StripeError as e:
         logger.error(f"Stripe error creating checkout: {e}")
-        return render(request, 'billing/error.html', {'error': str(e)})
+        return render(request, 'frontend/billing/error.html', {'error': str(e)})
 
 
 # ─────────────────────────────────────────────────────────────
@@ -108,7 +108,7 @@ def checkout_success(request):
     NOTE: This page is NOT proof of payment — the webhook is.
     The webhook updates the database. This page just shows a message.
     """
-    return render(request, 'billing/success.html')
+    return render(request, 'frontend/billing/success.html')
 
 
 # ─────────────────────────────────────────────────────────────
@@ -117,7 +117,7 @@ def checkout_success(request):
 @login_required
 def checkout_cancel(request):
     """User clicked 'Back' on Stripe's Checkout page. No charge made."""
-    return render(request, 'billing/cancel.html')
+    return render(request, 'frontend/billing/cancel.html')
 
 
 # ─────────────────────────────────────────────────────────────
@@ -148,7 +148,7 @@ def customer_portal(request):
         return redirect('billing:pricing')
     except stripe.error.StripeError as e:
         logger.error(f"Stripe portal error: {e}")
-        return render(request, 'billing/error.html', {'error': str(e)})
+        return render(request, 'frontend/billing/error.html', {'error': str(e)})
 
 
 # ─────────────────────────────────────────────────────────────
@@ -412,4 +412,4 @@ def subscription_detail(request):
         'payment_method': payment_method,
         'stripe_error': stripe_error,
     }
-    return render(request, 'billing/subscription.html', context)
+    return render(request, 'frontend/billing/subscription.html', context)
