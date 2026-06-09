@@ -107,13 +107,15 @@
                             </span>
 
                             {% for amenity in property.amenities.all %}
-                                {% if amenity.name == "Pet Friendly" %}
+                                {% with an=amenity.name|lower %}
+                                {% if an == "pet friendly" or an == "breakfast" or an == "wifi" or an == "wi-fi" or an == "internet" or an == "free parking" or an == "parking" %}
                                 <div class="cred-divider"></div>
                                 <span class="property-text">
-                                    <img src="{{ amenity.icon.url }}" alt="Pet Friendly">
-                                    Pet Friendly
+                                    {% if amenity.icon %}<img src="{{ amenity.icon.url }}" alt="{{ amenity.name }}">{% endif %}
+                                    {{ amenity.name }}
                                 </span>
                                 {% endif %}
+                                {% endwith %}
                             {% endfor %}
                         </div>
                     </div>
@@ -236,8 +238,8 @@
                         </div>
                         <div class="gallery-col thumbnails">
                             {% for image in images|slice:"1:5" %}
-                            <div class="thumb-item" style="cursor: pointer;">
-                                <img src="{{ image.image.url }}" alt="{{ property.title }} image {{ forloop.counter }}" onclick="openGalleryModal({{ forloop.counter }})">
+                            <div class="thumb-item" style="cursor: pointer;" data-index="{{ forloop.counter }}">
+                                <img src="{{ image.image.url }}" alt="{{ property.title }} image {{ forloop.counter }}" onclick="openGalleryModal(parseInt(this.parentElement.dataset.index))">
                                 {% if forloop.last %}
                                 <div class="gallery-overlay-btns">
                                     <button 
@@ -294,12 +296,14 @@
                             <span class="mobile-meta-label">{{ property.minimum_booking }} nights (min)</span>
                         </span>
                         {% for amenity in property.amenities.all %}
-                            {% if amenity.name == "Pet Friendly" %}
+                            {% with an=amenity.name|lower %}
+                            {% if an == "pet friendly" or an == "breakfast" or an == "wifi" or an == "wi-fi" or an == "internet" or an == "free parking" or an == "parking" %}
                             <span class="property-text mobile-meta-item">
-                                <img class="mobile-meta-icon" src="{{ amenity.icon.url }}" alt="Pet Friendly">
-                                <span class="mobile-meta-label">Pet friendly</span>
+                                {% if amenity.icon %}<img class="mobile-meta-icon" src="{{ amenity.icon.url }}" alt="{{ amenity.name }}">{% endif %}
+                                <span class="mobile-meta-label">{{ amenity.name }}</span>
                             </span>
                             {% endif %}
+                            {% endwith %}
                         {% endfor %}
                     </div>
                 </div>
@@ -396,13 +400,25 @@
                             </div>
                         </div>
 
-                        <!-- Policies Section -->
-                        {% if property.rules %}
+                        <!-- House Rules Section -->
+                        {% if property.house_rules %}
                         <hr class="policies-top-divider show-on-mobile">
-                        <div class="policies-section section-policies">
-                            <h2 style="font-size: 22px;">Cancellation, other Policies and rules</h2>
+                        <div class="policies-section section-policies section-house-rules">
+                            <h2 style="font-size: 22px;">House Rules</h2>
                             <div class="policies-text">
-                                <p class="rules-text" data-full="{{ property.rules|linebreaksbr }}"></p>
+                                <p class="rules-text" data-full="{{ property.house_rules|linebreaksbr }}"></p>
+                            </div>
+                            <button class="show-more-btn">Show more</button>
+                        </div>
+                        {% endif %}
+
+                        <!-- Cancellation Policy Section -->
+                        {% if property.cancellation_policy %}
+                        <hr class="policies-top-divider">
+                        <div class="policies-section section-policies section-cancellation-policy">
+                            <h2 style="font-size: 22px;">Cancellation Policy</h2>
+                            <div class="policies-text">
+                                <p class="rules-text" data-full="{{ property.cancellation_policy|linebreaksbr }}"></p>
                             </div>
                             <button class="show-more-btn">Show more</button>
                         </div>
@@ -664,32 +680,33 @@
 
 <script>
     function setupShowMore(containerSelector, maxLength = 400) {
-        const container = document.querySelector(containerSelector);
-        if (!container) return;
+        const containers = document.querySelectorAll(containerSelector);
+        containers.forEach(function(container) {
+            const textElement = container.querySelector('p');
+            const btn = container.querySelector('.show-more-btn');
+            if (!textElement || !btn) return;
 
-        const textElement = container.querySelector('p');
-        const btn = container.querySelector('.show-more-btn');
-        if (!textElement || !btn) return;
+            const fullText = textElement.getAttribute("data-full") || "";
 
-        const fullText = textElement.getAttribute("data-full") || "";
+            if (fullText.length > maxLength) {
+                const shortText = fullText.substring(0, maxLength) + "...";
+                textElement.innerHTML = shortText;
 
-        if (fullText.length > maxLength) {
-            const shortText = fullText.substring(0, maxLength) + "...";
-            textElement.innerHTML = shortText;
-
-            btn.addEventListener("click", function () {
-                const isShort = textElement.innerHTML.endsWith("...");
-                textElement.innerHTML = isShort ? fullText : shortText;
-                btn.textContent = isShort ? "Show less" : "Show more";
-            });
-        } else {
-            textElement.innerHTML = fullText;
-            btn.style.display = 'none';
-        }
+                btn.addEventListener("click", function () {
+                    const isShort = textElement.innerHTML.endsWith("...");
+                    textElement.innerHTML = isShort ? fullText : shortText;
+                    btn.textContent = isShort ? "Show less" : "Show more";
+                });
+            } else {
+                textElement.innerHTML = fullText;
+                btn.style.display = 'none';
+            }
+        });
     }
 </script>
+<script id="galleryImagesData" type="application/json">[{% for img in images %}"{{ img.image.url }}"{% if not forloop.last %},{% endif %}{% endfor %}]</script>
 <script>
-    let galleryImages = [{% for img in images %}"{{ img.image.url }}"{% if not forloop.last %},{% endif %}{% endfor %}];
+    let galleryImages = JSON.parse(document.getElementById('galleryImagesData').textContent);
     let currentIndex = 0;
 
     function updateImageCounter() {
@@ -757,7 +774,8 @@
         setupShowMore('.property-description');
 
         // Setup for "Policies"
-        setupShowMore('.policies-section');
+        setupShowMore('.section-house-rules');
+        setupShowMore('.section-cancellation-policy');
 
         const amenitiesBtn = document.getElementById("toggle-amenities");
         const hiddenItems = document.querySelectorAll(".hidden-amenity");

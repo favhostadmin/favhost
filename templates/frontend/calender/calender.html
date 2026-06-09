@@ -1313,6 +1313,33 @@
     border-top: none;
   }
 
+  #globalTooltip.date-info-variant {
+    background: rgba(0, 0, 0, 0.9);
+    color: #fff;
+    padding: 16px 20px;
+    border-radius: 10px;
+    width: auto;
+    min-width: 180px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.35);
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  #globalTooltip.date-info-variant .date-info-item {
+    white-space: nowrap;
+    margin-bottom: 6px;
+  }
+  #globalTooltip.date-info-variant .date-info-item:last-child {
+    margin-bottom: 0;
+  }
+  #globalTooltip.date-info-variant .date-info-label {
+    color: #fff;
+    font-weight: 400;
+  }
+  #globalTooltip.date-info-variant .date-info-value {
+    color: #fff;
+    font-weight: 600;
+  }
+
   @media (max-width: 991.98px) {
     #globalTooltip:not(.payment-tooltip-variant):not(.task-tooltip-variant),
     .booking-tooltip {
@@ -1601,17 +1628,17 @@
     }
 
     .header-nav {
-      background: #ffffff;
+      background: #E7E7E9;
       border-radius: 12px;
       padding: 0px !important;
       box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
     }
     .header-nav .nav-title span {
-      color: #ffffff;
+      color: #000000;
       font-weight: 600;
     }
     .header-nav .nav-title img {
-      filter: brightness(0) invert(1);
+      filter: brightness(0);
     }
     .calendar-header {
       margin-right: 0 !important;
@@ -1622,7 +1649,7 @@
     .header-nav .calendar-header {
       justify-content: space-between;
       width: 100%;
-      background: #ffffff;
+      background: #E7E7E9;
       border-radius: 10px;
       padding: 6px 10px;
       gap: 8px;
@@ -1892,7 +1919,7 @@
 {% block content %}
 <div class="container-fluid p-1">
   <!-- Header Navigation (Active - New Design) -->
-  <div class="header-nav" style="padding: 8px;">
+  <div class="header-nav" style="padding: 8px 32px;">
     <div class="row align-items-center justify-content-between w-100 g-3">
       <div class="col-auto actions-col">
         <div class="nav-left">
@@ -2533,7 +2560,9 @@
       return `
           <div class="date-column ${isWeekend ? 'weekend' : ''} ${isToday ? 'today-column today-date-column' : ''} ${isUserSelected ? 'user-selected-date-column' : ''}"
                data-date="${dateKey}"
-               onclick="selectDateColumn('${dateKey}')">
+               onclick="selectDateColumn('${dateKey}')"
+               onmouseenter="showDateInfoTooltip(event, '${dateKey}')"
+               onmouseleave="hideGlobalTooltip()">
             <div class="date-number">${date.getDate()}</div>
             <div class="date-day">${date.toLocaleDateString('en-US', { weekday: 'short' })}</div>
           </div>
@@ -2963,9 +2992,11 @@
     tooltip.classList.remove('booking-tooltip-variant');
     tooltip.classList.remove('task-tooltip-variant');
     tooltip.classList.remove('payment-tooltip-variant');
+    tooltip.classList.remove('date-info-variant');
     if (variant === 'booking') tooltip.classList.add('booking-tooltip-variant');
     if (variant === 'task') tooltip.classList.add('task-tooltip-variant');
     if (variant === 'payment') tooltip.classList.add('payment-tooltip-variant');
+    if (variant === 'date-info') tooltip.classList.add('date-info-variant');
   }
 
   function showTaskTooltip(event, dateStr, propertyId) {
@@ -3055,6 +3086,36 @@
     positionTooltip(event, tooltip);
     
     // console.log('🟢🟢🟢 SHOWTOOLTIP END - Tooltip positioned and displayed');
+  }
+
+  function getDateStats(dateStr) {
+    var occupiedIds = {};
+    for (var i = 0; i < bookings.length; i++) {
+      var b = bookings[i];
+      if (dateStr >= b.startDateStr && dateStr < b.endDateStr) {
+        occupiedIds[b.propertyId] = true;
+      }
+    }
+    var total = properties.length;
+    var occupied = Object.keys(occupiedIds).length;
+    var available = total - occupied;
+    var occupancyPct = total > 0 ? Math.round((occupied / total) * 100) : 0;
+    return { bookingsCount: occupied, available: available, occupancyPct: occupancyPct };
+  }
+
+  function showDateInfoTooltip(event, dateStr) {
+    var stats = getDateStats(dateStr);
+    var tooltip = document.getElementById('globalTooltip');
+    setTooltipVariant(tooltip, 'date-info');
+    tooltip.innerHTML =
+      '<div class="date-info-item"><span class="date-info-label">Bookings: </span><span class="date-info-value">' + stats.bookingsCount + '</span></div>' +
+      '<div class="date-info-item"><span class="date-info-label">Available: </span><span class="date-info-value">' + stats.available + '</span></div>' +
+      '<div class="date-info-item"><span class="date-info-label">Occupancy: </span><span class="date-info-value">' + stats.occupancyPct + '%</span></div>';
+    tooltip.style.width = 'auto';
+    tooltip.style.maxWidth = '';
+    tooltip.style.display = 'block';
+    tooltip.dataset.source = 'date-info';
+    positionTooltip(event, tooltip);
   }
 
   function handleTaskIndicatorClick(event, dateStr, propertyId) {

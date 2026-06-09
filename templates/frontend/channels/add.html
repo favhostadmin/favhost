@@ -48,6 +48,15 @@
         background-color: #d1d5db;
         margin: 0 4px;
     }
+
+    #dynamic-messages-container {
+        position: fixed !important;
+        top: 80px !important;
+        right: auto !important;
+        left: 50% !important;
+        transform: translateX(-50%);
+        z-index: 1055 !important;
+    }
 </style>
 <style>
     .fade:not(.show) {
@@ -650,7 +659,7 @@
 {% block content %}
 <div class="container-fluid p-0 md-p-3">
     <!-- Header Navigation -->
-    <div class="header-nav" style="padding: 8px;">
+    <div class="header-nav" style="padding: 8px 32px;">
         <div class="row align-items-center justify-content-between w-100 g-3">
             <div class="col-auto">
                 <div class="nav-left">
@@ -966,18 +975,14 @@
 
     function showDynamicMessage(message, type = 'success') {
         const container = document.getElementById('dynamic-messages-container');
-        const alertType = type === 'success' ? 'alert-success' : 'alert-danger';
+        const level = type === 'danger' ? 'error' : type;
 
-        const alertDiv = document.createElement('div');
-        alertDiv.className = `alert ${alertType} alert-dismissible fade show`;
-        alertDiv.role = 'alert';
-        alertDiv.innerHTML = `
-            ${message}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        `;
-        container.appendChild(alertDiv);
+        const toast = document.createElement('div');
+        toast.className = `toast-message ${level}`;
+        toast.innerHTML = `${message} <span class="toast-close" onclick="this.parentElement.style.display='none';">&times;</span>`;
+        container.appendChild(toast);
 
-        setTimeout(() => alertDiv.remove(), 4000);
+        setTimeout(() => { toast.style.display = 'none'; }, 4000);
     }
 
     function toggleSwitch(element, hiddenInputName, channelId) {
