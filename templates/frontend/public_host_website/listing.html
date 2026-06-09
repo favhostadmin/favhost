@@ -12,26 +12,57 @@
   <link href="{% static 'css/public_host_website/listing.css' %}" rel="stylesheet">
   <style>
     #toast-container {
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      z-index: 11000;
+      position: fixed !important;
+      top: 80px !important;
+      right: auto !important;
+      left: 50% !important;
+      transform: translateX(-50%);
+      z-index: 11000 !important;
     }
     .success-toast {
-      background: #28a745;
-      color: white;
-      padding: 14px 24px;
-      border-radius: 8px;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-      font-weight: 500;
-      animation: toastIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      background: rgba(0, 0, 0, 0.9);
+      color: #4CAF50;
+      padding: 20px 58px;
+      border-radius: 10px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.35);
+      font-size: 14px;
+      font-weight: 600;
+      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+      line-height: 1.4;
+      animation: toast-fade-in 0.3s ease;
+    }
+    .success-toast::before {
+      content: "✓";
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 22px;
+      height: 22px;
+      min-width: 22px;
+      border-radius: 50%;
+      background: #4CAF50;
+      color: #fff;
+      font-size: 12px;
+      font-weight: 700;
+      line-height: 1;
+    }
+    .toast-close {
+      display: none;
     }
     .iti {
       width: 100%;
     }
-    @keyframes toastIn {
-      from { transform: translateX(100%); opacity: 0; }
-      to { transform: translateX(0); opacity: 1; }
+    @keyframes toast-fade-in {
+      from { opacity: 0; transform: translateY(-16px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @media (max-width: 576px) {
+      .success-toast {
+        white-space: nowrap;
+      }
     }
     .listing-footer {
       padding: 24px 16px 32px;
@@ -860,6 +891,11 @@
               sharePageLink.setAttribute("aria-label", originalLabel);
               sharePageLink.classList.remove("is-copied");
             }, 2000);
+            const toast = document.createElement("div");
+            toast.className = "success-toast";
+            toast.textContent = "Link copied";
+            document.getElementById("toast-container").appendChild(toast);
+            setTimeout(() => { toast.remove(); }, 2500);
           }
 
           // Try modern Clipboard API (requires HTTPS)

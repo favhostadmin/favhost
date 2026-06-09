@@ -17,16 +17,17 @@
         /* Dashboard header (grey bar) */
         .header-nav {
             position: fixed;
-            top: 65px; /* height of top global navbar */
-            left: 15px;
-            right: 15px;
+            top: 58px;
+            left: 0;
+            right: 0;
             height: 52px;
             z-index: 999;
             background: #E7E7E9;
+            border-radius: 0;
         }
         .main {
             position: fixed;
-            top: 116px; /* 64px navbar + 52px dashboard bar */
+            top: 112px;
             left: 0;
             right: 0;
             bottom: 0;
@@ -240,9 +241,18 @@
             }
 
             /* stack left/right columns full width */
-            .main > .row.align-items-start > .col-6 {
+            .main > .row.align-items-stretch > .col-6 {
                 flex: 0 0 100%;
                 max-width: 100%;
+            }
+
+            .upcoming-container-wrapper {
+                position: static !important;
+            }
+            .upcoming-scroll-content {
+                position: static !important;
+                height: auto !important;
+                max-height: 400px;
             }
 
             /* stat cards: 2 per row on phone */
@@ -486,7 +496,7 @@
 
 
 {% block content %}
-<div class="container-fluid  ">
+<div class="container-fluid p-0">
      <!-- Header Navigation -->
     <div class="header-nav" style="padding: 8px 32px;">
         <div class="row align-items-center justify-content-between w-100 g-3">
@@ -518,8 +528,8 @@
 
     <main class="main">
         {% comment %} Card section {% endcomment %}
-        <div class="row g-3 align-items-start">
-            <div class="col-6">
+        <div class="row g-3 align-items-stretch">
+            <div class="col-6 d-flex flex-column">
                 <div class="row stats-grid gx-3 ">
                     <div class="col-6">
                         <div class="stat-card">
@@ -566,8 +576,8 @@
                 </div>
 
                 <div class="row mt-3 gx-3 inquiries_mobile_view">
-                    <div class="col-12 d-flex">
-                        <div class="inquiries-section flex-fill">
+                    <div class="col-12 d-flex flex-fill">
+                        <div class="inquiries-section flex-fill d-flex flex-column">
                             <div class="section-header">
                                 <h2 class="section-title" style="font-size: 20px;">New Inquiries</h2>
                                 <a href="{% url 'booking:enquiry-list' %}?status=new" class="view-all" style="color: #000000; text-decoration: underline;">
@@ -651,21 +661,21 @@
                 </div>
             </div>
 
-            <div class="col-6">
-                <div class="upcoming-section">
+            <div class="col-6 d-flex flex-column">
+                <div class="upcoming-section flex-fill d-flex flex-column">
 
-                    <div class="row" style="max-height: 466px; overflow: auto;">
-                        <div class="col-12">
-                            <div class="flex-fill">
-                                <div class="d-flex justify-content-between align-items-center mb-3">
-                                    <h2 class="upcoming-header">Upcoming</h2>
-                                    <div class="month-picker">
-                                        <button id="prev-month" aria-label="Previous month">&#8249;</button>
-                                        <span id="month-label" data-month="{{ upcoming_month }}" data-year="{{ upcoming_year }}"></span>
-                                        <button id="next-month" aria-label="Next month">&#8250;</button>
-                                    </div>
-                                </div>
-                                {% if upcoming_groups %}
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h2 class="upcoming-header">Upcoming</h2>
+                        <div class="month-picker">
+                            <button id="prev-month" aria-label="Previous month">&#8249;</button>
+                            <span id="month-label" data-month="{{ upcoming_month }}" data-year="{{ upcoming_year }}"></span>
+                            <button id="next-month" aria-label="Next month">&#8250;</button>
+                        </div>
+                    </div>
+
+                    <div class="position-relative flex-fill upcoming-container-wrapper">
+                        <div class="position-absolute w-100 h-100 upcoming-scroll-content" style="overflow-y: auto; overflow-x: hidden; top: 0; left: 0; padding-right: 8px;">
+                            {% if upcoming_groups %}
                                     {% for group in upcoming_groups %}
                                         <div class="upcoming-item">
                                             <div class="upcoming-date">
@@ -734,8 +744,7 @@
                                             <div class="due-badge upcoming">This month</div>
                                         </div>
                                     </div>
-                                {% endif %}
-                            </div>
+                            {% endif %}
                         </div>
                     </div>
                 </div>
@@ -789,8 +798,75 @@
                 </div>
             </div>
         </div>
-        <br>
+
+        <div class="row mt-4 gx-3">
+            <div class="col-lg-6 d-flex flex-column mb-3 mb-lg-0">
+                <div class="inquiries-section flex-fill d-flex flex-column" style="background: #fff; border-radius: 18px; box-shadow: 0 6px 18px rgba(0,0,0,0.08); padding: 16px;">
+                    <div class="section-header">
+                        <h2 class="section-title" style="font-size: 20px;">Recent Bookings <span style="font-weight:400; font-size:16px; color:#6b7280;">({{ recent_bookings|length }})</span></h2>
+                    </div>
+                    <div class="inquiries-scroll" style="max-height: 400px; overflow: auto;">
+                        {% for booking in recent_bookings %}
+                        <div class="inquiry-item align-items-center mb-3">
+                            <div class="inquiry-image">
+                                <img src="{{ booking.property.get_primary_image_url }}" onerror="this.src='https://placehold.co/100x100?text=Room'" style="width:100%; height: 100%; border-radius: 10px; object-fit: cover;"/>
+                            </div>
+                            <div class="inquiry-details">
+                                <div class="inquiry-dates d-flex justify-content-between">
+                                    <span>{{ booking.check_in_date|date:"M j, Y" }} - {{ booking.check_out_date|date:"M j, Y" }} ({{ booking.total_nights }} night{{ booking.total_nights|pluralize }})</span>
+                                    <span>Booked On <span style="font-weight:800; font-size: 16px; margin-right: 8px;">{{ booking.created_at|date:"M j, Y" }}</span></span>
+                                </div>
+                                <div class="inquiry-room d-flex justify-content-between align-items-center">
+                                    <span>{{ booking.property.title }}</span>
+                                    <div class="dropdown ms-3">
+                                        <a href="{% url 'booking:booking-edit' pk=booking.id %}" style="color: #000;">
+                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                                                <polyline points="15 3 21 3 21 9"></polyline>
+                                                <line x1="10" y1="14" x2="21" y2="3"></line>
+                                            </svg>
+                                        </a>
+                                    </div>
+                                </div>
+                                <div class="inquiry-guest d-flex align-items-center mt-1">
+                                    {% if booking.channel and booking.channel.icon %}
+                                    <img src="{{ booking.channel.icon.url }}" onerror="this.style.display='none'" style="width: 20px; height: 20px; margin-right: 8px; border-radius: 50%;">
+                                    {% endif %}
+                                    <span>{{ booking.channel.name|default:"Direct"|title }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <p class="text-muted text-center py-4" style="font-size: 14px;">No recent bookings in the last 7 days</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
             
+            <div class="col-lg-6 d-flex flex-column">
+                <div class="chart-card flex-fill" style="background: #fff; border-radius: 18px; box-shadow: 0 6px 18px rgba(0,0,0,0.08); padding: 16px;">
+                    <div class="chart-header">
+                        <h2 class="section-title" style="font-size: 20px;">Bookings by Channel</h2>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 16px; margin-top: 20px; height: 250px;">
+                        <div style="position: relative; width: 220px; height: 220px; flex-shrink: 0;">
+                            <canvas id="channelPieChart"></canvas>
+                        </div>
+                        <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px;">
+                            {% for label in channel_labels %}
+                            <div style="display: flex; align-items: center; gap: 8px; font-size: 13px; padding: 4px 0;">
+                                <span style="width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; background: {% cycle '#FF5A5F' '#003580' '#111827' '#009DDF' '#E91E63' '#9C27B0' '#FF9800' '#00BCD4' %}"></span>
+                                <span style="color: #374151; font-weight: 500; min-width: 70px;">{{ label }}</span>
+                                <span style="color: #111827; font-weight: 600;">{{ channel_counts|slice:forloop.counter0|first }}</span>
+                                <span style="color: #6b7280; margin-left: auto;">${{ channel_amounts|slice:forloop.counter0|first|floatformat:2 }}</span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <br>
         {% include 'frontend/base/footer.html' %}
     </main>
 </div>
@@ -993,7 +1069,7 @@
     <script>
         // Example earnings data (per month)
         // const monthlyEarnings = [0, 0, 0, 100, 0, 6748, 0, 0, 0, 0, 0, 0];
-        const monthlyEarnings = {{ monthly_earnings_js }};
+        const monthlyEarnings = JSON.parse('{{ monthly_earnings_js|escapejs }}');
 
         console.log(monthlyEarnings);
         
@@ -1086,5 +1162,59 @@
 
         updateLabel(); // initial render
 
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        const centerTextPlugin = {
+            id: 'centerText',
+            afterDraw(chart) {
+                const { width, height, ctx } = chart;
+                const centerX = width / 2;
+                const centerY = height / 2;
+                ctx.save();
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillStyle = '#111827';
+                ctx.font = 'bold 13px system-ui, -apple-system, sans-serif';
+                ctx.fillText('Gross Bookings', centerX, centerY - 18);
+                ctx.fillStyle = '#6b7280';
+                ctx.font = '12px system-ui, -apple-system, sans-serif';
+                ctx.fillText('{{ current_year }}', centerX, centerY + 2);
+                ctx.fillStyle = '#111827';
+                ctx.font = 'bold 15px system-ui, -apple-system, sans-serif';
+                ctx.fillText('${{ gross_bookings_amount|floatformat:2 }}', centerX, centerY + 22);
+                ctx.restore();
+            }
+        };
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const ctx = document.getElementById('channelPieChart');
+            if (ctx) {
+                const colors = ['#FF5A5F', '#003580', '#111827', '#009DDF', '#E91E63', '#9C27B0', '#FF9800', '#00BCD4'];
+                const labels = {{ channel_labels_json }};
+                const counts = {{ channel_counts_json }};
+                const amounts = {{ channel_amounts_json }};
+                new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            data: counts,
+                            backgroundColor: colors.slice(0, labels.length),
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        cutout: '72%',
+                        plugins: {
+                            legend: { display: false }
+                        }
+                    },
+                    plugins: [centerTextPlugin]
+                });
+            }
+        });
     </script>
 {% endblock extra_script %}

@@ -12,7 +12,7 @@
     .divider {
         width: 1px;
         height: 20px;
-        background: #ddd;
+        background: #000;
     }
     
     /* New 3-column layout styles matching image */
@@ -556,7 +556,7 @@
 {% endblock extra_head %}
 
 {% block content %}
-<div class="container-fluid p-1 booking-list-page" style="overflow: hidden;">
+<div class="container-fluid p-0 booking-list-page" style="overflow: hidden;">
     <!-- Header Navigation -->
     <div class="header-nav">
         <div class="row align-items-center w-100 g-3 header-nav-row">
@@ -580,7 +580,7 @@
                                     <path d="m21 21-4.35-4.35"></path>
                                 </svg>
                             </div>
-                            <div class="divider" style="position: absolute; right: 35px; top: 50%; transform: translateY(-50%); height: 16px; width: 1px; background-color: #ccc;"></div>
+                            <div class="divider" style="position: absolute; right: 35px; top: 50%; transform: translateY(-50%); height: 16px; width: 1px; background-color: #000;"></div>
                             <div class="clear-icon" style="right: 40px; display: none; cursor: pointer;" onclick="clearSearch(this)">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: black;">
                                     <circle cx="12" cy="12" r="10"></circle>
@@ -632,7 +632,7 @@
                                 <path d="m21 21-4.35-4.35"></path>
                             </svg>
                         </div>
-                        <div class="divider" style="position: absolute; right: 35px; top: 50%; transform: translateY(-50%); height: 16px; width: 1px; background-color: #ccc;"></div>
+                        <div class="divider" style="position: absolute; right: 35px; top: 50%; transform: translateY(-50%); height: 16px; width: 1px; background-color: #000;"></div>
                         <div class="clear-icon" style="right: 40px; display: none; cursor: pointer;" onclick="clearSearch(this)">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: black;">
                                 <circle cx="12" cy="12" r="10"></circle>
@@ -695,7 +695,7 @@
                             </div>
                             </div>
                             <div class="compact-right">
-                                <div class="compact-actions dropup" onclick="event.stopPropagation()">
+                                <div class="compact-actions dropup">
                                     <div class="btn-group dropup">
                                         <div class="property-thumbnail-wrapper dropdown-toggle" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                             <img src="{{ booking.property_thumbnail }}" alt="{{ booking.property_name }}">
@@ -839,7 +839,7 @@
 
                                     <!-- Options Menu -->
                                     <div class="flex-shrink-0">
-                                        <div class="btn-group dropdown" onclick="event.stopPropagation()">
+                                        <div class="btn-group dropdown">
                                             <button class="options-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
                                                     <circle cx="12" cy="12" r="1.5" fill="currentColor"/>
@@ -998,6 +998,7 @@
     </div>
   </div>
 </div>
+{% include 'frontend/base/footer.html' %}
 {% endblock content %}
 
 {% block extra_script %}
@@ -1008,6 +1009,18 @@ document.addEventListener('DOMContentLoaded', function() {
     const emailModalPlaceholder = document.getElementById('email-modal-content-placeholder');
     const guestReceiptModal = document.getElementById('guestReceiptModal');
     const guestReceiptPlaceholder = document.getElementById('guest-receipt-content-placeholder');
+
+    document.querySelectorAll('.reservation-card').forEach(card => {
+        card.addEventListener('click', function(e) {
+            // Prevent redirect if clicking on dropdown or other links
+            if (e.target.closest('.dropdown') || e.target.closest('.dropup') || e.target.closest('a') || e.target.closest('button')) {
+                return;
+            }
+            if (this.dataset.url) {
+                window.location.href = this.dataset.url;
+            }
+        });
+    });
 
     function closeDropdown(element) {
         const dropdownMenu = element.closest('.dropdown-menu');
