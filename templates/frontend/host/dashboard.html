@@ -17,16 +17,17 @@
         /* Dashboard header (grey bar) */
         .header-nav {
             position: fixed;
-            top: 65px; /* height of top global navbar */
-            left: 15px;
-            right: 15px;
+            top: 58px;
+            left: 0;
+            right: 0;
             height: 52px;
             z-index: 999;
             background: #E7E7E9;
+            border-radius: 0;
         }
         .main {
             position: fixed;
-            top: 116px; /* 64px navbar + 52px dashboard bar */
+            top: 112px;
             left: 0;
             right: 0;
             bottom: 0;
@@ -200,6 +201,24 @@
             text-align: center;
         }
 
+        .inquiries-scroll::-webkit-scrollbar {
+            display: none;
+        }
+        .inquiries-scroll {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        @media (min-width: 992px) {
+            .upcoming-scroll-content::-webkit-scrollbar {
+                display: none;
+            }
+            .upcoming-scroll-content {
+                -ms-overflow-style: none;
+                scrollbar-width: none;
+            }
+        }
+
         .stat-number-font{
             font-size: 18px !important;
         }
@@ -240,9 +259,18 @@
             }
 
             /* stack left/right columns full width */
-            .main > .row.align-items-start > .col-6 {
+            .main > .row.align-items-stretch > .col-6 {
                 flex: 0 0 100%;
                 max-width: 100%;
+            }
+
+            .upcoming-container-wrapper {
+                position: static !important;
+            }
+            .upcoming-scroll-content {
+                position: static !important;
+                height: auto !important;
+                max-height: 400px;
             }
 
             /* stat cards: 2 per row on phone */
@@ -279,12 +307,16 @@
             }
             .inquiry-item {
                 flex-direction: column;
+                align-items: flex-start !important;
                 gap: 8px;
                 padding: 10px 0;
             }
             .inquiry-image {
                 width: 100%;
                 height: 140px;
+            }
+            .inquiry-details {
+                width: 100%;
             }
             .inquiry-dates {
                 font-size: 12px;
@@ -353,19 +385,6 @@
             .upcoming-date {
                 font-size: 12px;
                 padding: 4px 8px;
-                flex-wrap: wrap;
-            }
-            .upcoming-entry {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 6px;
-            }
-            .entry-right {
-                flex: 0 0 auto;
-                min-width: auto;
-                flex-direction: row;
-                gap: 8px;
-                margin-left: 0;
             }
         }
 
@@ -481,12 +500,44 @@
                 border: none !important;
             }
         }
+        
+        @media (min-width: 992px) {
+            .laptop-padded-section {
+                padding: 32px !important;
+            }
+            .laptop-legend-center {
+                flex: none !important;
+                margin: 0 !important;
+            }
+            .channel-chart-container {
+                justify-content: center !important;
+                gap: 60px !important;
+            }
+            .laptop-chart-size {
+                width: 280px !important;
+            }
+            .laptop-legend-text-size {
+                font-size: 15px !important;
+            }
+            .row.align-items-stretch > .col-6:last-child {
+                display: grid;
+            }
+            .upcoming-section {
+                height: auto !important;
+                /* Extend down exactly past the Monthly Average row, leaving a 24px gap above the pie chart */
+                margin-bottom: calc(-440px - 1rem) !important;
+                z-index: 10;
+            }
+            .monthly-avg-card-mobile-revert {
+                height: 440px !important;
+            }
+        }
     </style>
 {% endblock extra_head %}
 
 
 {% block content %}
-<div class="container-fluid  ">
+<div class="container-fluid p-0">
      <!-- Header Navigation -->
     <div class="header-nav" style="padding: 8px 32px;">
         <div class="row align-items-center justify-content-between w-100 g-3">
@@ -518,8 +569,8 @@
 
     <main class="main">
         {% comment %} Card section {% endcomment %}
-        <div class="row g-3 align-items-start">
-            <div class="col-6">
+        <div class="row g-3 align-items-stretch">
+            <div class="col-6 d-flex flex-column">
                 <div class="row stats-grid gx-3 ">
                     <div class="col-6">
                         <div class="stat-card">
@@ -566,8 +617,8 @@
                 </div>
 
                 <div class="row mt-3 gx-3 inquiries_mobile_view">
-                    <div class="col-12 d-flex">
-                        <div class="inquiries-section flex-fill">
+                    <div class="col-12 d-flex flex-fill">
+                        <div class="inquiries-section flex-fill d-flex flex-column laptop-padded-section" style="height: 400px;">
                             <div class="section-header">
                                 <h2 class="section-title" style="font-size: 20px;">New Inquiries</h2>
                                 <a href="{% url 'booking:enquiry-list' %}?status=new" class="view-all" style="color: #000000; text-decoration: underline;">
@@ -575,7 +626,7 @@
                                 </a>
                             </div>
 
-                            <div class="inquiries-scroll" style="max-height: 400px; overflow: auto;">
+                            <div class="inquiries-scroll" style="flex: 1; overflow-y: auto;">
 
                             {% for inquiry in new_enquiry_list %}
                                 <div class="inquiry-item align-items-center">
@@ -651,21 +702,21 @@
                 </div>
             </div>
 
-            <div class="col-6">
-                <div class="upcoming-section">
+            <div class="col-6 d-flex flex-column">
+                <div class="upcoming-section flex-fill d-flex flex-column laptop-padded-section">
 
-                    <div class="row" style="max-height: 466px; overflow: auto;">
-                        <div class="col-12">
-                            <div class="flex-fill">
-                                <div class="d-flex justify-content-between align-items-center mb-3">
-                                    <h2 class="upcoming-header">Upcoming</h2>
-                                    <div class="month-picker">
-                                        <button id="prev-month" aria-label="Previous month">&#8249;</button>
-                                        <span id="month-label" data-month="{{ upcoming_month }}" data-year="{{ upcoming_year }}"></span>
-                                        <button id="next-month" aria-label="Next month">&#8250;</button>
-                                    </div>
-                                </div>
-                                {% if upcoming_groups %}
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h2 class="upcoming-header">Upcoming</h2>
+                        <div class="month-picker">
+                            <button id="prev-month" aria-label="Previous month">&#8249;</button>
+                            <span id="month-label" data-month="{{ upcoming_month }}" data-year="{{ upcoming_year }}"></span>
+                            <button id="next-month" aria-label="Next month">&#8250;</button>
+                        </div>
+                    </div>
+
+                    <div class="position-relative flex-fill upcoming-container-wrapper">
+                        <div class="position-absolute w-100 h-100 upcoming-scroll-content" style="overflow-y: auto; overflow-x: hidden; top: 0; left: 0; padding-right: 8px;">
+                            {% if upcoming_groups %}
                                     {% for group in upcoming_groups %}
                                         <div class="upcoming-item">
                                             <div class="upcoming-date">
@@ -734,8 +785,7 @@
                                             <div class="due-badge upcoming">This month</div>
                                         </div>
                                     </div>
-                                {% endif %}
-                            </div>
+                            {% endif %}
                         </div>
                     </div>
                 </div>
@@ -747,7 +797,20 @@
             <div class="col-lg-6 col-12">
                 <div class="row mt-3 gx-3">
                     <div class="col-12 d-flex">
-                        <div class="chart-card flex-fill">
+                        <style>
+                            @media (max-width: 991px) {
+                                .monthly-avg-card-mobile-revert {
+                                    height: auto !important;
+                                    display: block !important;
+                                }
+                                .monthly-avg-chart-mobile-revert {
+                                    flex: none !important;
+                                    height: 180px !important;
+                                    min-height: auto !important;
+                                }
+                            }
+                        </style>
+                        <div class="chart-card flex-fill monthly-avg-card-mobile-revert laptop-padded-section" style="height: 400px; display: flex; flex-direction: column;">
                             <div class="chart-header d-flex justify-content-between align-items-start">
                                 <div class="chart-title">
                                     <p> Monthly Average: $ {{monthly_average}}</p>
@@ -776,7 +839,7 @@
                             </div>
 
                             <!-- Chart -->
-                            <div class="chart" id="earnings-chart"></div>
+                            <div class="chart monthly-avg-chart-mobile-revert" id="earnings-chart" style="flex: 1; height: 100%; min-height: 180px;"></div>
 
                             <!-- Month Labels -->
                             <div class="chart-labels d-flex justify-content-between">
@@ -789,8 +852,100 @@
                 </div>
             </div>
         </div>
-        <br>
+
+        <div class="row mt-4 gx-3">
+            <div class="col-lg-6 d-flex flex-column mb-3 mb-lg-0">
+                <div class="inquiries-section flex-fill d-flex flex-column laptop-padded-section" style="height: 400px; background: #fff; border-radius: 18px; box-shadow: 0 6px 18px rgba(0,0,0,0.08); padding: 16px;">
+                    <div class="section-header">
+                        <h2 class="section-title" style="font-size: 20px;">Recent Bookings <span style="font-weight:400; font-size:16px; color:#6b7280;">({{ recent_bookings|length }})</span></h2>
+                    </div>
+                    <div class="inquiries-scroll" style="flex: 1; overflow-y: auto;">
+                        {% for booking in recent_bookings %}
+                        <div class="inquiry-item align-items-center mb-3">
+                            <div class="inquiry-image">
+                                <img src="{{ booking.property.get_primary_image_url }}" onerror="this.src='https://placehold.co/100x100?text=Room'" style="width:100%; height: 100%; border-radius: 10px; object-fit: cover;"/>
+                            </div>
+                            <!-- Mobile Layout -->
+                            <div class="inquiry-details d-lg-none" style="flex: 1;">
+                                <div class="inquiry-dates d-flex justify-content-between">
+                                    <span>{{ booking.check_in_date|date:"M j, Y" }} - {{ booking.check_out_date|date:"M j, Y" }} ({{ booking.total_nights }} night{{ booking.total_nights|pluralize }})</span>
+                                    <span>Booked On <span style="font-weight:800; font-size: 16px; margin-right: 8px;">{{ booking.created_at|date:"M j, Y" }}</span></span>
+                                </div>
+                                <div class="inquiry-room d-flex justify-content-between align-items-center">
+                                    <span>{{ booking.property.title }}</span>
+                                    <div class="dropdown ms-3">
+                                        <a href="{% url 'booking:booking-edit' pk=booking.id %}" style="color: #000;">
+                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                                                <polyline points="15 3 21 3 21 9"></polyline>
+                                                <line x1="10" y1="14" x2="21" y2="3"></line>
+                                            </svg>
+                                        </a>
+                                    </div>
+                                </div>
+                                <div class="inquiry-guest d-flex align-items-center mt-1">
+                                    {% if booking.channel and booking.channel.icon %}
+                                    <img src="{{ booking.channel.icon.url }}" onerror="this.style.display='none'" style="width: 20px; height: 20px; margin-right: 8px; border-radius: 50%;">
+                                    {% endif %}
+                                    <span>{{ booking.channel.name|default:"Direct"|title }}</span>
+                                </div>
+                            </div>
+
+                            <!-- Desktop Layout -->
+                            <div class="inquiry-details d-none d-lg-block" style="flex: 1; padding-left: 12px;">
+                                <div class="d-flex justify-content-between align-items-start mb-1">
+                                    <span style="font-weight: 700; font-size: 15px;">{{ booking.check_in_date|date:"M j, Y" }} - {{ booking.check_out_date|date:"M j, Y" }} ({{ booking.total_nights }} night{{ booking.total_nights|pluralize }})</span>
+                                    <a href="{% url 'booking:booking-edit' pk=booking.id %}" style="color: #000; flex-shrink: 0; margin-left: 10px;">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                                            <polyline points="15 3 21 3 21 9"></polyline>
+                                            <line x1="10" y1="14" x2="21" y2="3"></line>
+                                        </svg>
+                                    </a>
+                                </div>
+                                <div class="mb-1">
+                                    <span style="color: #888; font-size: 15px;">{{ booking.property.title }}</span>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center mt-2">
+                                    <div class="d-flex align-items-center">
+                                        {% if booking.channel and booking.channel.icon %}
+                                        <img src="{{ booking.channel.icon.url }}" onerror="this.style.display='none'" style="width: 20px; height: 20px; margin-right: 6px; border-radius: 50%;">
+                                        {% endif %}
+                                        <span style="font-weight: 600; font-size: 15px;">{{ booking.channel.name|default:"Direct"|title }}</span>
+                                    </div>
+                                    <span style="font-size: 14px;">Booked on <span style="font-weight:700;">{{ booking.created_at|date:"M j, Y" }}</span></span>
+                                </div>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <p class="text-muted text-center py-4" style="font-size: 14px;">No recent bookings in the last 7 days</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
             
+            <div class="col-lg-6 d-flex flex-column">
+                <div class="chart-card flex-fill monthly-avg-card-mobile-revert" style="height: 400px; background: #fff; border-radius: 18px; box-shadow: 0 6px 18px rgba(0,0,0,0.08); padding: 16px; display: flex; flex-direction: column;">
+                    <!-- <div class="chart-header">
+                        <h2 class="section-title" style="font-size: 20px;">Bookings by Channel</h2>
+                    </div> -->
+                    <div class="channel-chart-container" style="display: flex; align-items: center; justify-content: center; align-content: center; gap: clamp(56px, 12vw, 80px); flex-wrap: nowrap; flex: 1; padding: 0 5px; width: 100%;">
+                          <div class="laptop-chart-size" style="position: relative; flex: 0 0 auto; width: clamp(100px, 40vw, 220px); aspect-ratio: 1/1;">
+                              <canvas id="channelPieChart"></canvas>
+                          </div>
+                          <div class="laptop-legend-center" style="flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: clamp(4px, 1vw, 8px);">
+                              {% for label in channel_labels %}
+                              <div class="laptop-legend-text-size" style="display: flex; align-items: center; gap: 6px; font-size: clamp(11px, 3vw, 13px);">
+                                  <span style="width: 10px; height: 10px; flex-shrink: 0; background: {% cycle '#FF5A5F' '#003580' '#111827' '#009DDF' '#E91E63' '#9C27B0' '#FF9800' '#00BCD4' %}"></span>
+                                  <span style="color: #4b5563; font-weight: 500; word-break: break-word;">{{ label }}</span>
+                              </div>
+                              {% endfor %}
+                          </div>
+                      </div>
+                </div>
+            </div>
+        </div>
+        <br>
         {% include 'frontend/base/footer.html' %}
     </main>
 </div>
@@ -993,7 +1148,7 @@
     <script>
         // Example earnings data (per month)
         // const monthlyEarnings = [0, 0, 0, 100, 0, 6748, 0, 0, 0, 0, 0, 0];
-        const monthlyEarnings = {{ monthly_earnings_js }};
+        const monthlyEarnings = JSON.parse('{{ monthly_earnings_js|escapejs }}');
 
         console.log(monthlyEarnings);
         
@@ -1086,5 +1241,58 @@
 
         updateLabel(); // initial render
 
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        const centerTextPlugin = {
+            id: 'centerText',
+            afterDraw(chart) {
+                const { width, height, ctx } = chart;
+                const centerX = width / 2;
+                const centerY = height / 2;
+                const isLaptop = window.innerWidth >= 992;
+                ctx.save();
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillStyle = '#4b5563';
+                ctx.font = `500 ${isLaptop ? 15 : 13}px system-ui, -apple-system, sans-serif`;
+                ctx.fillText('Gross Bookings', centerX, centerY - (isLaptop ? 22 : 18));
+                ctx.font = `${isLaptop ? 14 : 12}px system-ui, -apple-system, sans-serif`;
+                ctx.fillText('{{ current_year }}', centerX, centerY + 2);
+                ctx.font = `500 ${isLaptop ? 16 : 14}px system-ui, -apple-system, sans-serif`;
+                ctx.fillText('${{ gross_bookings_amount|floatformat:2 }}*', centerX, centerY + (isLaptop ? 26 : 22));
+                ctx.restore();
+            }
+        };
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const ctx = document.getElementById('channelPieChart');
+            if (ctx) {
+                const colors = ['#FF5A5F', '#003580', '#111827', '#009DDF', '#E91E63', '#9C27B0', '#FF9800', '#00BCD4'];
+                const labels = {{ channel_labels_json }};
+                const counts = {{ channel_counts_json }};
+                const amounts = {{ channel_amounts_json }};
+                new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            data: counts,
+                            backgroundColor: colors.slice(0, labels.length),
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        cutout: '65%',
+                        plugins: {
+                            legend: { display: false }
+                        }
+                    },
+                    plugins: [centerTextPlugin]
+                });
+            }
+        });
     </script>
 {% endblock extra_script %}
