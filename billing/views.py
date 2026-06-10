@@ -237,6 +237,8 @@ def _handle_checkout_completed(session):
         try:
             sub = stripe.Subscription.retrieve(subscription_id)
             period_end_ts = getattr(sub, 'current_period_end', None)
+            if not period_end_ts and getattr(sub, 'items', None) and sub.items.data:
+                period_end_ts = getattr(sub.items.data[0], 'current_period_end', None)
             if period_end_ts:
                 sc.current_period_end = datetime.datetime.fromtimestamp(
                     period_end_ts, tz=datetime.timezone.utc
@@ -350,13 +352,25 @@ def subscription_detail(request):
                     if product and not isinstance(product, str)
                     else 'FavHost Premium'
                 )
-                period_start_ts = getattr(subscription, 'current_period_start', None)
-                period_end_ts = getattr(subscription, 'current_period_end', None)
+                # Stripe flexible billing mode places period dates on the subscription items
+                period_start_ts = getattr(subscription, 'current_period_start', None) or getattr(item, 'current_period_start', None)
+                period_end_ts = getattr(subscription, 'current_period_end', None) or getattr(item, 'current_period_end', None)
+                
+                _interval_label_map = {
+                    'day': 'Daily',
+                    'week': 'Weekly',
+                    'month': 'Monthly',
+                    'year': 'Yearly',
+                }
+                raw_interval = price.recurring.interval
+                interval_label = _interval_label_map.get(raw_interval, raw_interval.title() if raw_interval else '')
+                
                 plan = {
                     'name': product_name,
                     'amount': price.unit_amount / 100,
                     'currency': price.currency.upper(),
-                    'interval': price.recurring.interval,
+                    'interval': raw_interval,
+                    'interval_label': interval_label,
                     'status': subscription.status,
                     'cancel_at_period_end': subscription.cancel_at_period_end,
                     'period_start': datetime.datetime.fromtimestamp(
