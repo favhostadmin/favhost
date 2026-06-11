@@ -261,6 +261,178 @@
 
   {% block extra_script %}
   {% endblock extra_script %}
+
+  {% if show_subscription_wall and not hide_subscription_wall %}
+  <style>
+    .sw-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(10, 10, 20, 0.82);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      z-index: 10001;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    .sw-card {
+      background: #ffffff;
+      border-radius: 16px;
+      padding: 36px 32px 30px;
+      max-width: 460px;
+      width: 100%;
+      box-shadow: 0 24px 80px rgba(0,0,0,0.28);
+      text-align: center;
+    }
+    .sw-logo {
+      height: 28px;
+      margin-bottom: 24px;
+    }
+    .sw-icon-wrap {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 18px;
+    }
+    .sw-icon-trial  { background: #fef3c7; }
+    .sw-icon-cancel { background: #fee2e2; }
+    .sw-title {
+      font-size: 20px;
+      font-weight: 700;
+      color: #111827;
+      margin: 0 0 10px;
+      line-height: 1.3;
+    }
+    .sw-subtitle {
+      font-size: 14px;
+      color: #6b7280;
+      margin: 0 0 22px;
+      line-height: 1.6;
+    }
+    .sw-features {
+      list-style: none;
+      padding: 0;
+      margin: 0 0 26px;
+      text-align: left;
+      border-top: 1px solid #f3f4f6;
+      border-bottom: 1px solid #f3f4f6;
+      padding: 14px 0;
+    }
+    .sw-features li {
+      font-size: 13px;
+      color: #374151;
+      padding: 5px 0;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .sw-features li::before {
+      content: "";
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #dcfce7;
+      flex-shrink: 0;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%23166534' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'%3E%3C/polyline%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: center;
+    }
+    .sw-price-note {
+      font-size: 12px;
+      color: #9ca3af;
+      margin: 0 0 16px;
+    }
+    .sw-btn-subscribe {
+      display: block;
+      width: 100%;
+      background: linear-gradient(135deg, #111827, #1d74b2);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 13px 20px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      margin-bottom: 10px;
+      font-family: inherit;
+      letter-spacing: 0.2px;
+    }
+    .sw-btn-subscribe:hover { opacity: 0.92; }
+    .sw-btn-signout {
+      display: block;
+      width: 100%;
+      background: transparent;
+      color: #6b7280;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 11px 20px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      font-family: inherit;
+      text-decoration: none;
+    }
+    .sw-btn-signout:hover { background: #f9fafb; color: #374151; }
+    @media (max-width: 480px) {
+      .sw-card { padding: 28px 20px 24px; }
+      .sw-title { font-size: 18px; }
+    }
+  </style>
+
+  <div class="sw-overlay">
+    <div class="sw-card">
+
+      <img src="{% static 'img/header/favhost.png' %}" alt="FavHost" class="sw-logo">
+
+      {% if wall_reason == 'canceled' %}
+      <div class="sw-icon-wrap sw-icon-cancel">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2" stroke-linecap="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="15" y1="9" x2="9" y2="15"></line>
+          <line x1="9" y1="9" x2="15" y2="15"></line>
+        </svg>
+      </div>
+      <h2 class="sw-title">Your Subscription Has Ended</h2>
+      <p class="sw-subtitle">Your FavHost subscription is no longer active. Resubscribe to regain full access to your property management tools.</p>
+      {% else %}
+      <div class="sw-icon-wrap sw-icon-trial">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2" stroke-linecap="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <polyline points="12 6 12 12 16 14"></polyline>
+        </svg>
+      </div>
+      <h2 class="sw-title">Your Free Trial Has Ended</h2>
+      <p class="sw-subtitle">You've enjoyed 90 days of FavHost Premium. Subscribe now to continue managing your properties without interruption.</p>
+      {% endif %}
+
+      <ul class="sw-features">
+        <li>Unlimited property listings</li>
+        <li>Advanced booking management</li>
+        <li>Guest communication tools</li>
+        <li>Revenue analytics &amp; reports</li>
+        <li>Priority customer support</li>
+      </ul>
+
+      <p class="sw-price-note">$9.99 / month &nbsp;·&nbsp; Cancel anytime &nbsp;·&nbsp; No hidden fees</p>
+
+      <form method="post" action="{% url 'billing:create_checkout_session' %}" style="margin:0;">
+        {% csrf_token %}
+        <button type="submit" class="sw-btn-subscribe">Subscribe Now — $9.99 / month</button>
+      </form>
+
+      <form method="post" action="{% url 'logout' %}" style="margin:0;">
+        {% csrf_token %}
+        <button type="submit" class="sw-btn-signout">Sign Out</button>
+      </form>
+
+    </div>
+  </div>
+  {% endif %}
+
 </body>
 
 </html>
