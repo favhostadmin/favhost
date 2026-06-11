@@ -30,7 +30,8 @@ def subscription_status(request):
 
     # Show the paywall when the user has no active subscription AND their trial is over
     # or their subscription was explicitly cancelled
-    show_wall = not is_premium and (trial_expired or sub_status == 'canceled')
+    # Skip entirely for users marked as subscription-free (admin toggle)
+    show_wall = not is_premium and not user.is_subscription_free and (trial_expired or sub_status == 'canceled')
 
     wall_reason = ''
     if show_wall:

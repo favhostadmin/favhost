@@ -78,6 +78,7 @@ class MyUser(AbstractBaseUser):
     linkedin_url = models.URLField(max_length=1000, null=True, blank=True)
     twitter_url = models.URLField(max_length=1000, null=True, blank=True)
     language = models.CharField(max_length=100, default='English', null=True, blank=True)
+    is_subscription_free = models.BooleanField(default=False, help_text="If enabled, user gets free access without requiring subscription payment")
 
     objects = MyUserManager()
 

@@ -407,6 +407,10 @@ def profile_view(request):
         subscription_status = ''
         is_premium = False
 
+    # Free-access users skip all subscription requirements
+    if user.is_subscription_free:
+        is_premium = True
+
     # Fetch last payment info from Stripe for premium users
     last_payment_date = None
     last_payment_amount = None
