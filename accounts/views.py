@@ -412,6 +412,7 @@ def profile_view(request):
     last_payment_amount = None
     last_payment_currency = None
     next_payment_date = None  # fetched live from Stripe subscription
+    next_payment_amount = None  # fetched live from Stripe subscription
     billing_interval = 'Monthly'  # default; updated from Stripe if available
     if is_premium and stripe_customer and stripe_customer.stripe_customer_id:
         try:
@@ -427,35 +428,41 @@ def profile_view(request):
                 'day': 'Daily',
             }
 
-            # ── Last payment: fetch most recent paid invoice ──────────
+            # ── Last payment: most recent invoice with an actual charge ──────
+            # Don't filter by status='paid' — a brand-new invoice may still be
+            # 'open' for a few seconds after resubscription while Stripe processes it.
             try:
-                invoices = stripe_lib.Invoice.list(
+                recent_invoices = stripe_lib.Invoice.list(
                     customer=stripe_customer.stripe_customer_id,
-                    limit=1,
-                    status='paid',
+                    limit=5,
                 ).data
-                if invoices:
-                    inv = invoices[0]
-                    last_payment_date = datetime.datetime.fromtimestamp(
-                        inv.created, tz=datetime.timezone.utc
-                    )
-                    last_payment_amount = (inv.amount_paid or 0) / 100
-                    last_payment_currency = (getattr(inv, 'currency', 'usd') or 'usd').upper()
+                for inv in recent_invoices:
+                    if (inv.amount_paid or 0) > 0:
+                        last_payment_date = datetime.datetime.fromtimestamp(
+                            inv.created, tz=datetime.timezone.utc
+                        )
+                        last_payment_amount = inv.amount_paid / 100
+                        last_payment_currency = (getattr(inv, 'currency', 'usd') or 'usd').upper()
+                        break
             except Exception:
                 pass
 
-            # ── Active subscription: try by stored ID, then by customer fallback ──
+            # ── Active subscription ───────────────────────────────────────────
+            # Retrieve by stored ID first, but skip it if it's already cancelled
+            # (happens after resubscription when the old ID is still in the DB).
             sub = None
             if stripe_customer.stripe_subscription_id:
                 try:
-                    sub = stripe_lib.Subscription.retrieve(
+                    fetched = stripe_lib.Subscription.retrieve(
                         stripe_customer.stripe_subscription_id,
                         expand=['items.data.price'],
                     )
+                    if getattr(fetched, 'status', 'canceled') != 'canceled':
+                        sub = fetched
                 except Exception:
-                    sub = None
+                    pass
 
-            # Fallback: list all active subscriptions for this customer
+            # Fallback: find the current active subscription for this customer
             if not sub:
                 try:
                     subs = stripe_lib.Subscription.list(
@@ -466,8 +473,8 @@ def profile_view(request):
                     ).data
                     if subs:
                         sub = subs[0]
-                        # Persist missing subscription_id to DB
-                        if not stripe_customer.stripe_subscription_id:
+                        # Always sync the subscription ID so future loads are fast
+                        if sub.id != stripe_customer.stripe_subscription_id:
                             stripe_customer.stripe_subscription_id = sub.id
                             stripe_customer.save(update_fields=['stripe_subscription_id'])
                 except Exception:
@@ -478,6 +485,14 @@ def profile_view(request):
                 try:
                     raw_interval = sub.items.data[0].price.recurring.interval
                     billing_interval = _interval_map.get(raw_interval, raw_interval.capitalize())
+                except Exception:
+                    pass
+
+                # Next payment amount — from subscription price
+                try:
+                    unit_amount = sub.items.data[0].price.unit_amount
+                    if unit_amount is not None:
+                        next_payment_amount = unit_amount / 100
                 except Exception:
                     pass
 
@@ -523,6 +538,7 @@ def profile_view(request):
         'last_payment_amount': last_payment_amount,
         'last_payment_currency': last_payment_currency,
         'next_payment_date': next_payment_date,
+        'next_payment_amount': next_payment_amount,
         'billing_interval': billing_interval,
     }
     return render(request, 'frontend/auth/profile.html', context)

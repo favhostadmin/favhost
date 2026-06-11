@@ -54,8 +54,11 @@ def pricing_page(request):
 @require_POST
 def create_checkout_session(request):
     """
-    Creates a Stripe Checkout Session and redirects the user to Stripe's
-    hosted payment page. Card details are entered THERE, not here.
+    For returning customers with a saved card: creates the subscription
+    directly via the Stripe API — no card form needed.
+
+    For first-time subscribers (or if no saved card exists): falls back
+    to the standard Stripe Checkout hosted page.
     """
     success_url = (
         request.build_absolute_uri(reverse('billing:checkout_success'))
@@ -64,7 +67,8 @@ def create_checkout_session(request):
     cancel_url = request.build_absolute_uri(reverse('billing:checkout_cancel'))
 
     try:
-        # Check if this user already has a Stripe customer ID
+        # Resolve existing Stripe customer, if any
+        sc = None
         customer_id = None
         try:
             sc = request.user.stripe_customer
@@ -73,6 +77,46 @@ def create_checkout_session(request):
         except StripeCustomer.DoesNotExist:
             pass
 
+        # ── Returning customer: try to reuse saved payment method ──────────
+        if customer_id:
+            try:
+                customer = stripe.Customer.retrieve(
+                    customer_id,
+                    expand=['invoice_settings.default_payment_method']
+                )
+                pm = getattr(
+                    getattr(customer, 'invoice_settings', None),
+                    'default_payment_method',
+                    None
+                )
+                # pm is an expanded object when the customer has a saved card
+                if pm and not isinstance(pm, str) and getattr(pm, 'id', None):
+                    subscription = stripe.Subscription.create(
+                        customer=customer_id,
+                        items=[{'price': settings.STRIPE_PRICE_ID}],
+                        default_payment_method=pm.id,
+                    )
+                    # Optimistic DB update — webhooks will also confirm this
+                    sc, _ = StripeCustomer.objects.get_or_create(user=request.user)
+                    sc.stripe_customer_id = customer_id
+                    sc.stripe_subscription_id = subscription.id
+                    sc.subscription_status = getattr(subscription, 'status', 'active')
+                    sc.cancel_at_period_end = False
+                    period_end_ts = getattr(subscription, 'current_period_end', None)
+                    if not period_end_ts and getattr(subscription, 'items', None) and subscription.items.data:
+                        period_end_ts = getattr(subscription.items.data[0], 'current_period_end', None)
+                    if period_end_ts:
+                        sc.current_period_end = datetime.datetime.fromtimestamp(
+                            period_end_ts, tz=datetime.timezone.utc
+                        )
+                    sc.save()
+                    logger.info(f"Resubscribed user {request.user.username} using saved payment method")
+                    return redirect(reverse('billing:checkout_success'))
+            except Exception as e:
+                logger.warning(f"Saved-card resubscribe failed for customer {customer_id}, falling back to Checkout: {e}")
+                # Fall through to standard Checkout below
+
+        # ── New customer or no saved card: standard Stripe Checkout ────────
         session_params = {
             'mode': 'subscription',
             'line_items': [{'price': settings.STRIPE_PRICE_ID, 'quantity': 1}],
@@ -81,16 +125,12 @@ def create_checkout_session(request):
             'cancel_url': cancel_url,
         }
 
-        # If user already has a Stripe customer, attach to that customer
-        # Otherwise pass their email so Stripe pre-fills it
         if customer_id:
             session_params['customer'] = customer_id
         else:
             session_params['customer_email'] = request.user.email or ''
 
         session = stripe.checkout.Session.create(**session_params)
-
-        # 303 prevents browser from re-posting on back navigation
         return redirect(session.url, code=303)
 
     except stripe.error.StripeError as e:
@@ -107,8 +147,9 @@ def checkout_success(request):
     Stripe redirects here after a successful payment.
     NOTE: This page is NOT proof of payment — the webhook is.
     The webhook updates the database. This page just shows a message.
+    Suppress the subscription wall so the confirmation page is fully visible.
     """
-    return render(request, 'frontend/billing/success.html')
+    return render(request, 'frontend/billing/success.html', {'hide_subscription_wall': True})
 
 
 # ─────────────────────────────────────────────────────────────
@@ -117,7 +158,7 @@ def checkout_success(request):
 @login_required
 def checkout_cancel(request):
     """User clicked 'Back' on Stripe's Checkout page. No charge made."""
-    return render(request, 'frontend/billing/cancel.html')
+    return render(request, 'frontend/billing/cancel.html', {'hide_subscription_wall': True})
 
 
 # ─────────────────────────────────────────────────────────────
@@ -231,6 +272,7 @@ def _handle_checkout_completed(session):
     if subscription_id:
         sc.stripe_subscription_id = subscription_id
     sc.subscription_status = 'active'
+    sc.cancel_at_period_end = False
 
     # Fetch current_period_end from Stripe subscription so it's available immediately
     if subscription_id:
