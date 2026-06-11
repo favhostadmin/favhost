@@ -35,7 +35,7 @@
   <style>
     body {
       font-family: "Heebo", sans-serif;
-      background: white;
+      background: #FAFAFA  !important;
       /* padding: 0rem 5rem; */
     }
 
@@ -79,9 +79,8 @@
 
     .main-content-body{
       overflow:auto;
-      min-height: calc(100vh - 66px);
       max-height: calc(100vh - 60px); 
-      padding: 3px 8px;
+      padding: 0px;
     }
 
 
@@ -98,12 +97,9 @@
 
     @media (max-width: 768px) {
      .main-content-body{
-      min-height: calc(100vh - 66px);
       max-height: calc(100vh - 66px); 
-      
-        padding: 4px 5px !important;
+        padding: 0px !important;
     }
-      
     }
   </style>
   {% block extra_head %} {% endblock %}
@@ -116,7 +112,7 @@
       <div class="loader-spinner"></div>
     </div>
   </div>
-  <div class="container-fluid position-relative bg-white d-flex p-0">
+  <div class="container-fluid position-relative d-flex p-0">
 
     <!-- Content Start -->
     <div class="content w-100">
@@ -124,7 +120,7 @@
       {% include './header.html' %}
       {% endblock header %}
       <!-- main content goes here -->
-      <div class="main-content-body p-1" style="">
+      <div class="main-content-body"  >
         {% if messages %}
         <div class="toast-messages-container"
           style="position: fixed; top: 30px; left: 50%; transform: translateX(-50%); z-index: 1055;">
@@ -204,6 +200,59 @@
       if (event.persisted) {
         hideLoader();
       }
+    });
+  </script>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      var iconMap = {
+        'copy_icon': 'Copy',
+        'copy': 'Copy',
+        'download': 'Download',
+        'upload': 'Upload',
+        'print': 'Print',
+        'refresh': 'Refresh',
+        'sync': 'Sync',
+        'save': 'Save',
+        'add_icon': 'Add',
+        'add': 'Add',
+        'search': 'Search',
+        'close': 'Close',
+        'delete': 'Delete',
+        'trash': 'Delete',
+        'remove': 'Remove',
+        'edit': 'Edit',
+        'share': 'Share',
+        'link': 'Copy Link',
+        'previous': 'Previous',
+        'prev': 'Previous',
+        'next': 'Next',
+        'dots': 'Options',
+        'horizontal_dots': 'Options',
+        'plus': 'Add'
+      };
+      document.querySelectorAll('button img, a img, .btn img, [onclick] img, .options-btn img, .copy-icon img').forEach(function (img) {
+        if (img.title || img.getAttribute('aria-label')) return;
+        var name = (img.src || '').toLowerCase().split('/').pop().split('?')[0];
+        for (var key in iconMap) {
+          if (name.indexOf(key) !== -1) {
+            img.title = iconMap[key];
+            break;
+          }
+        }
+      });
+      document.querySelectorAll('.search-icon, .clear-icon, .prev-btn, .next-btn, .btn-close').forEach(function (el) {
+        if (el.title || el.getAttribute('aria-label')) return;
+        if (el.classList.contains('search-icon')) el.title = 'Search';
+        else if (el.classList.contains('clear-icon')) el.title = 'Clear';
+        else if (el.classList.contains('prev-btn')) el.title = 'Previous';
+        else if (el.classList.contains('next-btn')) el.title = 'Next';
+        else if (el.classList.contains('btn-close')) el.title = 'Close';
+      });
+      document.querySelectorAll('a[download]').forEach(function (el) {
+        if (el.title || el.getAttribute('aria-label')) return;
+        el.title = 'Download';
+      });
     });
   </script>
 

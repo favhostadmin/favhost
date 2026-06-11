@@ -119,7 +119,7 @@ WSGI_APPLICATION = 'bookaid.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': os.getenv('DB_ENGINE', 'django.db.backends.postgresql_psycopg2'),
-        'NAME': os.getenv('DB_NAME', 'bookaid'),
+        'NAME': os.getenv('DB_NAME', 'favhost'),
         'USER': os.getenv('DB_USER', 'postgres'),
         'PASSWORD': os.getenv('DB_PASSWORD', 'postgres'),
         # 'HOST': 'localhost',
@@ -251,3 +251,6 @@ LOGOUT_REDIRECT_URL = 'login'
 
 # Base URL for generating absolute URLs in emails
 BASE_URL = os.getenv('BASE_URL', 'http://favhost.com')
+
+# Allow same-origin framing (needed for detail modal on list page)
+X_FRAME_OPTIONS = 'SAMEORIGIN'

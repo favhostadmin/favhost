@@ -513,10 +513,19 @@ def payment_details(request, pk):
         nights = booking.total_nights
         subtotal = booking.price_per_night * nights
 
-        payments = booking.payments.all().order_by('pk')
+        payments = booking.payments.prefetch_related('attachments').all().order_by('pk')
         for payment in payments:
             payment_schedule.append({
-                'id': payment.id, 'name': payment.type, 'amount': payment.amount, 'date': payment.expected_payment_date, 'is_paid': payment.is_paid
+                'id': payment.id,
+                'name': payment.type,
+                'amount': payment.amount,
+                'date': payment.expected_payment_date,
+                'is_paid': payment.is_paid,
+                'notes': payment.notes or '',
+                'attachments': [
+                    {'id': a.id, 'url': a.file.url, 'name': a.name}
+                    for a in payment.attachments.all().order_by('created_at')
+                ],
             })
         
         if nights >= 30:
@@ -569,6 +578,55 @@ def update_payment_status(request):
         payment.is_paid = is_paid
         payment.save()
         return JsonResponse({'success': True, 'message': 'Payment status updated.'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+@require_POST
+@login_required
+def add_payment_attachment(request):
+    try:
+        payment_id = request.POST.get('payment_id')
+        file = request.FILES.get('attachment')
+        if not file:
+            return JsonResponse({'success': False, 'error': 'No file provided.'}, status=400)
+        if file.size > 2 * 1024 * 1024:
+            return JsonResponse({'success': False, 'error': 'File size must not exceed 2 MB.'}, status=400)
+
+        payment = get_object_or_404(Payment, id=payment_id, booking__property__created_by=request.user)
+        att = PaymentAttachment.objects.create(payment=payment, file=file, name=file.name)
+        return JsonResponse({
+            'success': True,
+            'attachment': {'id': att.id, 'url': att.file.url, 'name': att.name},
+        })
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+
+@require_POST
+@login_required
+def delete_payment_attachment(request):
+    try:
+        data = json.loads(request.body)
+        att_id = data.get('attachment_id')
+        att = get_object_or_404(PaymentAttachment, id=att_id, payment__booking__property__created_by=request.user)
+        att.file.delete(save=False)
+        att.delete()
+        return JsonResponse({'success': True})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+
+@require_POST
+@login_required
+def update_payment_notes(request):
+    try:
+        data = json.loads(request.body)
+        payment_id = data.get('payment_id')
+        notes = data.get('notes', '').strip()
+        payment = get_object_or_404(Payment, id=payment_id, booking__property__created_by=request.user)
+        payment.notes = notes
+        payment.save()
+        return JsonResponse({'success': True, 'notes': payment.notes or ''})
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
 

@@ -57,7 +57,9 @@ class PropertyForm(forms.ModelForm):
             # Instructions and Rules
             'email_guest': forms.CheckboxInput(attrs={'id': 'emailGuest'}),
             'rules': forms.Textarea(attrs={'class': 'form-input form-textarea', 'placeholder': 'Enter your cancellation policy and house rules...'}),
-            
+            'house_rules': forms.Textarea(attrs={'class': 'form-input form-textarea', 'placeholder': 'Enter your house rules...'}),
+            'cancellation_policy': forms.Textarea(attrs={'class': 'form-input form-textarea', 'placeholder': 'Enter your cancellation policy...'}),
+
             # Pricing
             'price_per_night': forms.NumberInput(attrs={'class': 'form-input', 'min': '0', 'step': '0.01'}),
             'application_fees': forms.NumberInput(attrs={'class': 'form-input', 'min': '0', 'step': '0.01'}),

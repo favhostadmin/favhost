@@ -12,7 +12,7 @@ from collections import defaultdict
 from booking.models import Booking, BookingChannel, Payment, Enquiry
 from property.models import Property, PropertyChannel, PropertyBlockDate
 from tasks.models import Task
-from django.db.models import Sum
+from django.db.models import Sum, Count
 from django.utils import timezone
 from django.db.models.functions import ExtractYear, ExtractMonth
 from django.utils.safestring import mark_safe
@@ -105,8 +105,31 @@ class HostDashboardAPIView(LoginRequiredMixin, TemplateView):
         context['total_inhouse'] = total_inhouse
         context['total_vacant'] = total_vacant
 
-        # --- Earning monthly for a year ---
+        seven_days_ago = today - datetime.timedelta(days=7)
+        context['recent_bookings'] = Booking.objects.filter(
+            property__created_by=self.request.user,
+            created_at__date__gte=seven_days_ago,
+            created_at__date__lte=today
+        ).exclude(status='cancelled').order_by('-created_at')
+
         current_year = timezone.now().year
+        gross_qs = Booking.objects.filter(
+            property__created_by=self.request.user,
+            created_at__year=current_year
+        ).exclude(status='cancelled')
+        context['gross_bookings_amount'] = gross_qs.aggregate(total=Sum('price'))['total'] or 0
+        channel_data = gross_qs.values('channel__name').annotate(
+            count=Count('id'),
+            total=Sum('price')
+        ).order_by('-count')
+        context['channel_labels'] = [c['channel__name'] or 'Direct' for c in channel_data]
+        context['channel_counts'] = [c['count'] for c in channel_data]
+        context['channel_amounts'] = [float(c['total'] or 0) for c in channel_data]
+        context['channel_labels_json'] = mark_safe(json.dumps([c['channel__name'] or 'Direct' for c in channel_data]))
+        context['channel_counts_json'] = mark_safe(json.dumps([c['count'] for c in channel_data]))
+        context['channel_amounts_json'] = mark_safe(json.dumps([float(c['total'] or 0) for c in channel_data]))
+
+        # --- Earning monthly for a year ---
 
         # 1) Determine selected year (query param ?year=YYYY, fallback to current year)
         selected_year_str = self.request.GET.get("year")
