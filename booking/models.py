@@ -104,9 +104,20 @@ class Payment(models.Model):
     expected_payment_date = models.DateTimeField(null=True, blank=True)
     payment_date = models.DateTimeField(null=True, blank=True)
     is_paid = models.BooleanField(default=False)
+    notes = models.TextField(null=True, blank=True)
 
     def __str__(self):
         return f"Payment of {self.amount} for Booking {self.booking.id}"
+
+
+class PaymentAttachment(models.Model):
+    payment = models.ForeignKey(Payment, on_delete=models.CASCADE, related_name='attachments')
+    file = models.FileField(upload_to='payment_attachments/')
+    name = models.CharField(max_length=255)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.name} for Payment {self.payment.id}"
 
 
 

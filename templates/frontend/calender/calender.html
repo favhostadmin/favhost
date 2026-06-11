@@ -3819,6 +3819,200 @@
       collapseBtn.onclick = () => { paymentBody.style.display = 'none'; collapseBtn.style.display = 'none'; expandBtn.style.display = 'inline-block'; };
       expandBtn.onclick = () => { paymentBody.style.display = 'block'; expandBtn.style.display = 'none'; collapseBtn.style.display = 'inline-block'; };
     }
+
+    // 7. Payment Attachment Buttons
+    const existingAttachModal = document.getElementById('calPaymentAttachModal');
+    if (existingAttachModal) existingAttachModal.remove();
+
+    const attachModal = document.createElement('div');
+    attachModal.id = 'calPaymentAttachModal';
+    attachModal.style.cssText = 'display:none;position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.5);align-items:center;justify-content:center;';
+    attachModal.innerHTML = `
+      <div style="background:#fff;border-radius:8px;width:95%;max-width:500px;box-shadow:0 4px 24px rgba(0,0,0,0.18);display:flex;flex-direction:column;max-height:90vh;">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:16px 20px 12px;flex-shrink:0;">
+          <h2 style="margin:0;font-size:16px;font-weight:600;">Attachments &amp; Notes</h2>
+          <span id="calCloseAttachModal" style="cursor:pointer;font-size:20px;line-height:1;">&times;</span>
+        </div>
+        <div style="padding:0 20px 4px;overflow-y:auto;flex:1;">
+          <div style="margin-bottom:14px;">
+            <label style="display:block;font-size:13px;font-weight:500;margin-bottom:6px;">Add Attachment <span style="color:#6b7280;font-weight:400;">(max 2 MB)</span></label>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <label style="flex:1;display:flex;align-items:center;gap:8px;cursor:pointer;border:1px solid #d1d5db;border-radius:6px;padding:7px 12px;font-size:13px;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+                <span id="calAttachFileLabel">Choose file</span>
+                <input type="file" id="calAttachFile" accept=".pdf,.jpg,.jpeg,.png,.gif,.webp" style="display:none;">
+              </label>
+              <button type="button" id="calUploadAttachBtn" style="padding:7px 16px;border:none;border-radius:6px;background:#111827;color:#fff;font-size:13px;cursor:pointer;white-space:nowrap;">Upload</button>
+            </div>
+            <p id="calAttachError" style="color:#dc2626;font-size:12px;margin:5px 0 0;min-height:16px;"></p>
+          </div>
+          <div style="border-top:1px solid #e5e7eb;padding-top:12px;margin-bottom:14px;">
+            <p style="font-size:13px;font-weight:500;margin:0 0 8px;">Uploaded Attachments</p>
+            <div id="calAttachmentsList"></div>
+          </div>
+          <div style="border-top:1px solid #e5e7eb;padding-top:12px;margin-bottom:4px;">
+            <label style="display:block;font-size:13px;font-weight:500;margin-bottom:6px;">Notes</label>
+            <textarea id="calAttachNotes" rows="3" style="width:100%;border:1px solid #d1d5db;border-radius:6px;padding:8px 10px;font-size:13px;resize:vertical;box-sizing:border-box;" placeholder="Add a note for this payment…"></textarea>
+          </div>
+        </div>
+        <div style="padding:12px 20px;display:flex;justify-content:flex-end;gap:10px;border-top:1px solid #e5e7eb;flex-shrink:0;">
+          <button type="button" id="calSaveNotesBtn" style="padding:6px 16px;border:none;border-radius:6px;background:#111827;color:#fff;font-size:13px;cursor:pointer;">Save Notes</button>
+          <button type="button" id="calCancelAttachBtn" style="padding:6px 16px;border:1px solid #d1d5db;border-radius:6px;background:#fff;color:#374151;font-size:13px;cursor:pointer;">Close</button>
+        </div>
+      </div>`;
+    document.body.appendChild(attachModal);
+
+    const CSRF = '{{ csrf_token }}';
+    const calCloseBtn = attachModal.querySelector('#calCloseAttachModal');
+    const calCancelBtn = attachModal.querySelector('#calCancelAttachBtn');
+    const calFileInput = attachModal.querySelector('#calAttachFile');
+    const calFileLabel = attachModal.querySelector('#calAttachFileLabel');
+    const calNotes = attachModal.querySelector('#calAttachNotes');
+    const calError = attachModal.querySelector('#calAttachError');
+    const calAttachmentsList = attachModal.querySelector('#calAttachmentsList');
+    const calUploadBtn = attachModal.querySelector('#calUploadAttachBtn');
+    const calSaveNotesBtn = attachModal.querySelector('#calSaveNotesBtn');
+    let calActivePaymentId = null;
+
+    function calShowToast(msg, type) {
+      let container = document.querySelector('.toast-messages-container');
+      if (!container) {
+        container = document.createElement('div');
+        container.className = 'toast-messages-container';
+        container.style.cssText = 'position:fixed;top:30px;left:50%;transform:translateX(-50%);z-index:999999;';
+        document.body.appendChild(container);
+      }
+      const toast = document.createElement('div');
+      toast.className = `toast-message ${type}`;
+      toast.textContent = msg;
+      container.appendChild(toast);
+      setTimeout(() => toast.remove(), 4000);
+    }
+
+    function calMakeAttachRow(a) {
+      const div = document.createElement('div');
+      div.id = `cal-att-row-${a.id}`;
+      div.style.cssText = 'border-bottom:1px solid #f3f4f6;font-size:13px;';
+
+      const normal = document.createElement('div');
+      normal.style.cssText = 'display:flex;align-items:center;gap:8px;padding:6px 0;';
+      normal.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg><a href="${a.url}" target="_blank" rel="noopener" style="color:#111827;flex:1;word-break:break-all;">${a.name}</a><button type="button" class="cal-del-att-btn" style="background:none;border:none;cursor:pointer;padding:2px 4px;display:flex;align-items:center;color:#dc2626;font-size:12px;gap:4px;"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg></button>`;
+
+      const confirmRow = document.createElement('div');
+      confirmRow.style.cssText = 'display:none;align-items:center;gap:8px;padding:6px 10px;background:#fff5f5;border-radius:6px;';
+      confirmRow.innerHTML = `<span style="font-size:12px;color:#dc2626;flex:1;">Delete this attachment?</span><button type="button" class="cal-confirm-yes" style="padding:3px 12px;border:none;border-radius:5px;background:#dc2626;color:#fff;font-size:12px;cursor:pointer;">Delete</button><button type="button" class="cal-confirm-no" style="padding:3px 12px;border:1px solid #d1d5db;border-radius:5px;background:#fff;color:#374151;font-size:12px;cursor:pointer;">Cancel</button>`;
+
+      div.appendChild(normal);
+      div.appendChild(confirmRow);
+
+      normal.querySelector('.cal-del-att-btn').addEventListener('click', () => { normal.style.display = 'none'; confirmRow.style.display = 'flex'; });
+      confirmRow.querySelector('.cal-confirm-no').addEventListener('click', () => { confirmRow.style.display = 'none'; normal.style.display = 'flex'; });
+      confirmRow.querySelector('.cal-confirm-yes').addEventListener('click', () => {
+        fetch("{% url 'booking:delete-payment-attachment' %}", {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+          body: JSON.stringify({ attachment_id: a.id }),
+        }).then(r => r.json()).then(d => {
+          if (d.success) {
+            div.remove();
+            calUpdateIcon();
+            calShowToast('Attachment deleted.', 'success');
+            if (!calAttachmentsList.querySelector('[id^="cal-att-row-"]'))
+              calAttachmentsList.innerHTML = '<p style="font-size:13px;color:#6b7280;margin:0;">No attachments yet.</p>';
+          } else {
+            calShowToast(d.error || 'Delete failed.', 'error');
+            confirmRow.style.display = 'none'; normal.style.display = 'flex';
+          }
+        }).catch(() => { calShowToast('An error occurred.', 'error'); confirmRow.style.display = 'none'; normal.style.display = 'flex'; });
+      });
+      return div;
+    }
+
+    function calRenderAttachments(attachments) {
+      calAttachmentsList.innerHTML = '';
+      if (!attachments.length) { calAttachmentsList.innerHTML = '<p style="font-size:13px;color:#6b7280;margin:0;">No attachments yet.</p>'; return; }
+      attachments.forEach(a => calAttachmentsList.appendChild(calMakeAttachRow(a)));
+    }
+
+    function calUpdateIcon() {
+      const btn = sidebarContent.querySelector(`.payment-attach-btn[data-payment-id="${calActivePaymentId}"]`);
+      if (!btn) return;
+      const count = calAttachmentsList.querySelectorAll('[id^="cal-att-row-"]').length;
+      const svg = btn.querySelector('svg');
+      let badge = btn.querySelector('span');
+      if (count > 0) {
+        svg.querySelector('path').setAttribute('stroke', '#2563eb');
+        if (!badge) { badge = document.createElement('span'); badge.style.cssText = 'position:absolute;top:-6px;right:-8px;background:#2563eb;color:#fff;border-radius:999px;font-size:9px;min-width:14px;height:14px;display:flex;align-items:center;justify-content:center;padding:0 2px;line-height:1;'; btn.appendChild(badge); }
+        badge.textContent = count;
+      } else { svg.querySelector('path').setAttribute('stroke', '#9ca3af'); if (badge) badge.remove(); }
+    }
+
+    const closeAttachModal = () => { attachModal.style.display = 'none'; };
+    calCloseBtn.onclick = closeAttachModal;
+    calCancelBtn.onclick = closeAttachModal;
+    attachModal.addEventListener('click', e => { if (e.target === attachModal) closeAttachModal(); });
+
+    calFileInput.addEventListener('change', function () {
+      if (this.files[0]) {
+        calFileLabel.textContent = this.files[0].name;
+        calError.textContent = this.files[0].size > 2 * 1024 * 1024 ? 'File must be 2 MB or smaller.' : '';
+      }
+    });
+
+    sidebarContent.querySelectorAll('.payment-attach-btn').forEach(btn => {
+      btn.addEventListener('click', function () {
+        calActivePaymentId = this.dataset.paymentId;
+        calNotes.value = this.dataset.notes || '';
+        calError.textContent = '';
+        calFileInput.value = '';
+        calFileLabel.textContent = 'Choose file';
+        const raw = this.dataset.attachments || '[]';
+        try { calRenderAttachments(JSON.parse(raw)); } catch { calRenderAttachments([]); }
+        attachModal.style.display = 'flex';
+      });
+    });
+
+    calUploadBtn.addEventListener('click', function () {
+      if (!calFileInput.files[0]) { calError.textContent = 'Please choose a file first.'; return; }
+      if (calFileInput.files[0].size > 2 * 1024 * 1024) { calError.textContent = 'File must be 2 MB or smaller.'; return; }
+      calError.textContent = '';
+      const fd = new FormData();
+      fd.append('payment_id', calActivePaymentId);
+      fd.append('attachment', calFileInput.files[0]);
+      fd.append('csrfmiddlewaretoken', CSRF);
+      calUploadBtn.disabled = true; calUploadBtn.textContent = 'Uploading…';
+      fetch("{% url 'booking:add-payment-attachment' %}", { method: 'POST', body: fd })
+        .then(r => r.json()).then(data => {
+          calUploadBtn.disabled = false; calUploadBtn.textContent = 'Upload';
+          if (data.success) {
+            calFileInput.value = ''; calFileLabel.textContent = 'Choose file';
+            const noMsg = calAttachmentsList.querySelector('p');
+            if (noMsg) noMsg.remove();
+            calAttachmentsList.appendChild(calMakeAttachRow(data.attachment));
+            calUpdateIcon();
+            calShowToast('Attachment uploaded.', 'success');
+          } else {
+            calError.textContent = data.error || 'Upload failed.';
+            calShowToast(data.error || 'Upload failed.', 'error');
+          }
+        }).catch(() => { calUploadBtn.disabled = false; calUploadBtn.textContent = 'Upload'; calError.textContent = 'An error occurred.'; calShowToast('An error occurred.', 'error'); });
+    });
+
+    calSaveNotesBtn.addEventListener('click', function () {
+      calSaveNotesBtn.disabled = true; calSaveNotesBtn.textContent = 'Saving…';
+      fetch("{% url 'booking:update-payment-notes' %}", {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+        body: JSON.stringify({ payment_id: calActivePaymentId, notes: calNotes.value }),
+      }).then(r => r.json()).then(data => {
+        calSaveNotesBtn.disabled = false; calSaveNotesBtn.textContent = 'Save Notes';
+        if (data.success) {
+          const btn = sidebarContent.querySelector(`.payment-attach-btn[data-payment-id="${calActivePaymentId}"]`);
+          if (btn) btn.dataset.notes = data.notes;
+          calShowToast('Notes saved.', 'success compact');
+        } else { calShowToast(data.error || 'Failed to save notes.', 'error'); }
+      }).catch(() => { calSaveNotesBtn.disabled = false; calSaveNotesBtn.textContent = 'Save Notes'; calShowToast('An error occurred.', 'error'); });
+    });
   }
 
   function refreshView() {
