@@ -12,7 +12,7 @@ from collections import defaultdict
 from booking.models import Booking, BookingChannel, Payment, Enquiry
 from property.models import Property, PropertyChannel, PropertyBlockDate
 from tasks.models import Task
-from django.db.models import Sum
+from django.db.models import Sum, Count
 from django.utils import timezone
 from django.db.models.functions import ExtractYear, ExtractMonth
 from django.utils.safestring import mark_safe
@@ -25,6 +25,7 @@ from django.core.mail import send_mail, EmailMessage
 from django.conf import settings
 from django.views.decorators.http import require_POST
 from .utils import calculateTotalPayment
+from accounts.utils import get_visible_user_ids
 from django.contrib.staticfiles.storage import staticfiles_storage
 
 class HostDashboardAPIView(LoginRequiredMixin, TemplateView):
@@ -35,18 +36,18 @@ class HostDashboardAPIView(LoginRequiredMixin, TemplateView):
         selected_type = self.request.GET.get('type', '') 
         # print('selected_type==>',selected_type)
         context['selected_type'] = selected_type
-        context['active_listings_count'] = Property.objects.filter(created_by=self.request.user, status='Active').count()
+        context['active_listings_count'] = Property.objects.filter(created_by__in=get_visible_user_ids(self.request.user), status='Active').count()
 
         total_revenue_agg = Payment.objects.filter(
-            booking__property__created_by=self.request.user,
+            booking__property__created_by__in=get_visible_user_ids(self.request.user),
             is_paid=True
         ).exclude(
             type__in=['Refundable deposit', 'Refundable to guest']
         ).aggregate(total=Sum('amount'))
         context['total_revenue'] = total_revenue_agg['total'] or 0
 
-        context['pending_tasks_count'] = Task.objects.filter(created_by=self.request.user, completed=False).count()
-        context['new_enquiry_list'] = Enquiry.objects.filter(property__created_by=self.request.user, is_archive=False, is_booked=False)[:6]
+        context['pending_tasks_count'] = Task.objects.filter(created_by__in=get_visible_user_ids(self.request.user), completed=False).count()
+        context['new_enquiry_list'] = Enquiry.objects.filter(property__created_by__in=get_visible_user_ids(self.request.user), is_archive=False, is_booked=False)[:6]
 
         today = self.request.user.get_local_date()
 
@@ -56,20 +57,20 @@ class HostDashboardAPIView(LoginRequiredMixin, TemplateView):
             target_date = today
 
         active_bookings = Booking.objects.filter(
-            property__created_by=self.request.user, 
+            property__created_by__in=get_visible_user_ids(self.request.user), 
             property__status='Active'
         ).exclude(status='cancelled')
 
         total_checkin = active_bookings.filter(check_in_date=target_date).count()
         total_checkout = active_bookings.filter(check_out_date=target_date).count()
         total_tasks = Task.objects.filter(
-            created_by=self.request.user,
+            created_by__in=get_visible_user_ids(self.request.user),
             date=target_date,
             completed=False
         ).count()
         
         total_payment = Payment.objects.filter(
-            booking__property__created_by=self.request.user,
+            booking__property__created_by__in=get_visible_user_ids(self.request.user),
             expected_payment_date__date=target_date,
             is_paid=False
         ).exclude(
@@ -84,7 +85,7 @@ class HostDashboardAPIView(LoginRequiredMixin, TemplateView):
 
         # Determine which properties are manually blocked on this date
         blocked_property_ids = set(PropertyBlockDate.objects.filter(
-            property__created_by=self.request.user,
+            property__created_by__in=get_visible_user_ids(self.request.user),
             property__status='Active',
             is_active=True,
             start_date__lte=target_date,
@@ -93,7 +94,7 @@ class HostDashboardAPIView(LoginRequiredMixin, TemplateView):
 
         total_inhouse = len(inhouse_property_ids)
         total_occupied = len(inhouse_property_ids | blocked_property_ids)
-        total_active_count = Property.objects.filter(created_by=self.request.user, status='Active').count()
+        total_active_count = Property.objects.filter(created_by__in=get_visible_user_ids(self.request.user), status='Active').count()
         total_vacant = total_active_count - total_occupied
 
 
@@ -104,8 +105,31 @@ class HostDashboardAPIView(LoginRequiredMixin, TemplateView):
         context['total_inhouse'] = total_inhouse
         context['total_vacant'] = total_vacant
 
-        # --- Earning monthly for a year ---
+        seven_days_ago = today - datetime.timedelta(days=7)
+        context['recent_bookings'] = Booking.objects.filter(
+            property__created_by=self.request.user,
+            created_at__date__gte=seven_days_ago,
+            created_at__date__lte=today
+        ).exclude(status='cancelled').order_by('-created_at')
+
         current_year = timezone.now().year
+        gross_qs = Booking.objects.filter(
+            property__created_by=self.request.user,
+            created_at__year=current_year
+        ).exclude(status='cancelled')
+        context['gross_bookings_amount'] = gross_qs.aggregate(total=Sum('price'))['total'] or 0
+        channel_data = gross_qs.values('channel__name').annotate(
+            count=Count('id'),
+            total=Sum('price')
+        ).order_by('-count')
+        context['channel_labels'] = [c['channel__name'] or 'Direct' for c in channel_data]
+        context['channel_counts'] = [c['count'] for c in channel_data]
+        context['channel_amounts'] = [float(c['total'] or 0) for c in channel_data]
+        context['channel_labels_json'] = mark_safe(json.dumps([c['channel__name'] or 'Direct' for c in channel_data]))
+        context['channel_counts_json'] = mark_safe(json.dumps([c['count'] for c in channel_data]))
+        context['channel_amounts_json'] = mark_safe(json.dumps([float(c['total'] or 0) for c in channel_data]))
+
+        # --- Earning monthly for a year ---
 
         # 1) Determine selected year (query param ?year=YYYY, fallback to current year)
         selected_year_str = self.request.GET.get("year")
@@ -123,7 +147,7 @@ class HostDashboardAPIView(LoginRequiredMixin, TemplateView):
         qs = (
             Payment.objects
             .filter(
-                booking__property__created_by=self.request.user,
+                booking__property__created_by__in=get_visible_user_ids(self.request.user),
                 is_paid=True,
             )
             .exclude(type__in=['Refundable deposit', 'Refundable to guest'])
@@ -201,15 +225,13 @@ class HostDashboardAPIView(LoginRequiredMixin, TemplateView):
         # print("monthly_average==>",monthly_average)
         
 
-        # 6) Years for dropdown (optional, unchanged from before)
-        total_years = (
+        # 6) Years for dropdown — use values_list + set for SQLite compatibility
+        total_years = sorted(set(
             Booking.objects
-            .filter(property__created_by=self.request.user)
+            .filter(property__created_by__in=get_visible_user_ids(self.request.user))
             .exclude(status='cancelled')
-            .order_by('check_in_date__year')
             .values_list('check_in_date__year', flat=True)
-            .distinct('check_in_date__year')
-        )
+        ))
 
         context['current_year'] = current_year
         context['selected_year'] = selected_year
@@ -244,7 +266,7 @@ class HostDashboardAPIView(LoginRequiredMixin, TemplateView):
             .filter(
                 Q(check_in_date__year=upcoming_year, check_in_date__month=upcoming_month) |
                 Q(check_out_date__year=upcoming_year, check_out_date__month=upcoming_month),
-                property__created_by=self.request.user
+                property__created_by__in=get_visible_user_ids(self.request.user)
             )
             .exclude(status='cancelled')
             .select_related('property', 'channel')
@@ -254,8 +276,8 @@ class HostDashboardAPIView(LoginRequiredMixin, TemplateView):
         tasks = (
             Task.objects
             .filter(
-                created_by=self.request.user,
-                property__created_by=self.request.user,
+                created_by__in=get_visible_user_ids(self.request.user),
+                property__created_by__in=get_visible_user_ids(self.request.user),
                 date__gte=today,
                 date__year=upcoming_year,
                 date__month=upcoming_month,
@@ -450,7 +472,7 @@ class CalenderAPIView(LoginRequiredMixin,ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        properties = Property.objects.filter(created_by=self.request.user, status='Active' )
+        properties = Property.objects.filter(created_by__in=get_visible_user_ids(self.request.user), status='Active' )
 
         rooms_list = []
         for prop in properties:
@@ -483,7 +505,7 @@ class CalenderAPIView(LoginRequiredMixin,ListView):
             return JsonResponse({'error': 'Invalid date format. Use YYYY-MM-DD.'}, status=400)
 
         bookings_qs = Booking.objects.filter(
-            property__created_by=request.user,
+            property__created_by__in=get_visible_user_ids(request.user),
             check_in_date__lte=end_date,
             check_out_date__gte=start_date
         ).exclude(status='cancelled').select_related('property', 'channel').prefetch_related('images', 'payments')
@@ -539,7 +561,7 @@ class CalenderAPIView(LoginRequiredMixin,ListView):
 
         # Fetch blocked dates
         blocked_dates_qs = PropertyBlockDate.objects.filter(
-            property__created_by=request.user,
+            property__created_by__in=get_visible_user_ids(request.user),
             start_date__lte=end_date,
             end_date__gte=start_date
         ).select_related('property')
@@ -557,7 +579,7 @@ class CalenderAPIView(LoginRequiredMixin,ListView):
 
         # Fetch tasks for the date range organized by date and property
         tasks_qs = Task.objects.filter(
-            property__created_by=request.user,
+            property__created_by__in=get_visible_user_ids(request.user),
             date__lte=end_date,
             date__gte=start_date,
             completed=False
@@ -610,7 +632,7 @@ class CalendarListView(LoginRequiredMixin, ListView):
         # base queryset in case you still use object_list in template
         return (
             Booking.objects
-            .filter(property__created_by=self.request.user)
+            .filter(property__created_by__in=get_visible_user_ids(self.request.user))
             .exclude(status='cancelled')
             .select_related('property', 'channel')
             .prefetch_related('images', 'payments')
@@ -627,7 +649,7 @@ class CalendarListView(LoginRequiredMixin, ListView):
             bookings = (
                 Booking.objects
                 .filter(
-                    Q(property__created_by=request.user),
+                    Q(property__created_by__in=get_visible_user_ids(request.user)),
                     Q(check_in_date__year=year, check_in_date__month=month) |
                     Q(check_out_date__year=year, check_out_date__month=month)
                 )
@@ -644,8 +666,8 @@ class CalendarListView(LoginRequiredMixin, ListView):
             tasks = (
                 Task.objects
                 .filter(
-                    created_by=request.user,
-                    property__created_by=request.user,
+                    created_by__in=get_visible_user_ids(request.user),
+                    property__created_by__in=get_visible_user_ids(request.user),
                     date__year=year,
                     date__month=month,
                 )
@@ -805,7 +827,7 @@ class CalendarListView(LoginRequiredMixin, ListView):
 
 @login_required
 def channel_integration(request, property_id):
-    property_obj = get_object_or_404(Property, pk=property_id, created_by=request.user)
+    property_obj = get_object_or_404(Property, pk=property_id, created_by__in=get_visible_user_ids(request.user))
 
     if request.method == 'POST':
         # --- Handle updates for existing channels ---
@@ -887,7 +909,7 @@ def toggle_channel_status(request, property_id, channel_id):
     if request.method == 'POST':
         try:
             # Ensure the channel belongs to the user and property
-            channel = get_object_or_404(PropertyChannel, pk=channel_id, property_id=property_id, property__created_by=request.user)
+            channel = get_object_or_404(PropertyChannel, pk=channel_id, property_id=property_id, property__created_by__in=get_visible_user_ids(request.user))
             
             # Flip the boolean status
             channel.is_connected = not channel.is_connected
@@ -952,7 +974,7 @@ class ManualSyncAPIView(LoginRequiredMixin, View):
         
         # Filter for connected channels on properties owned by the current user
         channels = PropertyChannel.objects.filter(
-            property__created_by=request.user, 
+            property__created_by__in=get_visible_user_ids(request.user), 
             is_connected=True
         )
         count = channels.count()
@@ -969,7 +991,7 @@ def delete_channel(request, property_id, channel_id):
     if request.method == 'POST':
         try:
             # Ensure the channel belongs to the user and property
-            channel = get_object_or_404(PropertyChannel, pk=channel_id, property_id=property_id, property__created_by=request.user)
+            channel = get_object_or_404(PropertyChannel, pk=channel_id, property_id=property_id, property__created_by__in=get_visible_user_ids(request.user))
             channel_name = channel.channel_type.name
             channel.delete()
             

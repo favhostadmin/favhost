@@ -2126,31 +2126,27 @@
         }
     }
 
-    function setupHoverModal(triggerId, modalId) {
+    function setupClickModal(triggerId, modalId) {
         const trigger = document.getElementById(triggerId);
         const modal = document.getElementById(modalId);
-        let modalTimeout;
 
         if (trigger && modal) {
-            trigger.addEventListener('mouseenter', function() {
-                clearTimeout(modalTimeout);
+            trigger.addEventListener('click', function(e) {
+                e.preventDefault();
                 openModal(modalId);
             });
 
-            function hideModal() {
-                modalTimeout = setTimeout(() => {
+            modal.addEventListener('click', function(e) {
+                // If user clicks directly on the modal background (not the content), close it
+                if (e.target === modal) {
                     closeModal(modalId);
-                }, 200);
-            }
-
-            trigger.addEventListener('mouseleave', hideModal);
-            modal.addEventListener('mouseenter', () => clearTimeout(modalTimeout));
-            modal.addEventListener('mouseleave', hideModal);
+                }
+            });
         }
     }
 
-    setupHoverModal('openCheckInDocsModal', 'checkInDocsModal');
-    setupHoverModal('openCheckOutDocsModal', 'checkOutDocsModal');
+    setupClickModal('openCheckInDocsModal', 'checkInDocsModal');
+    setupClickModal('openCheckOutDocsModal', 'checkOutDocsModal');
 
     // --- Other Fees Popover Logic ---
     const otherFeesLinks = [

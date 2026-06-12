@@ -23,6 +23,9 @@ from .views import *
 urlpatterns = [
     path('admin/', admin.site.urls),
 
+    # BILLING URLS
+    path('', include(('billing.urls', 'billing'), namespace='billing')),
+
     # WEBSITE URLS
     path('', WebsiteIndexView.as_view(), name='index'),
     path('blogs/', WebsiteBlogView.as_view(), name='blog'),

@@ -20,6 +20,7 @@ from django.db import transaction
 from django.db.models import Q
 from django.core.files import File
 from django.contrib.auth.mixins import LoginRequiredMixin
+from accounts.utils import get_visible_user_ids, get_effective_user
 
 
 
@@ -67,8 +68,8 @@ class PropertyCreateView(LoginRequiredMixin, CreateView):
         return context
     
     def form_valid(self, form):
-        # Assign the current user to the created_by field
-        form.instance.created_by = self.request.user
+        # Assign the effective user (host if co-host) to the created_by field
+        form.instance.created_by = get_effective_user(self.request.user)
 
         # Use transaction to ensure all operations succeed or none do
         with transaction.atomic():
@@ -289,6 +290,9 @@ class PropertyDeleteView(LoginRequiredMixin,DeleteView):
     model = Property
     success_url = reverse_lazy('property:property-list')
 
+    def get_queryset(self):
+        return Property.objects.filter(created_by__in=get_visible_user_ids(self.request.user))
+
     def post(self, request, *args, **kwargs):
         self.object = self.get_object()
         today = timezone.now().date()
@@ -315,7 +319,7 @@ class PropertyListView(LoginRequiredMixin, ListView):
     
     def get_queryset(self):
         # queryset = Property.objects.prefetch_related('images', 'amenities').all()
-        queryset = Property.objects.filter(created_by=self.request.user).prefetch_related('images').all()
+        queryset = Property.objects.filter(created_by__in=get_visible_user_ids(self.request.user)).prefetch_related('images').all()
         
         # Search functionality
         search_query = self.request.GET.get('search', '').strip()
@@ -389,7 +393,7 @@ class PropertyListView(LoginRequiredMixin, ListView):
         context['check_in'] = check_in
         context['check_out'] = check_out
         context['guests'] = self.request.GET.get('guests', '')
-        context['total_listing'] = Property.objects.filter(created_by=self.request.user).count()
+        context['total_listing'] = Property.objects.filter(created_by__in=get_visible_user_ids(self.request.user)).count()
         context['is_profile_complete'] = self.request.user.is_profile_complete()
         return context
 
@@ -438,7 +442,7 @@ class PropertyToggleStatusView(View):
     success_url = reverse_lazy('property:property-list')
 
     def post(self, request, pk, *args, **kwargs):
-        property_obj = get_object_or_404(Property, pk=pk)
+        property_obj = get_object_or_404(Property, pk=pk, created_by__in=get_visible_user_ids(request.user))
         referer_url = request.META.get('HTTP_REFERER', self.success_url)
         new_status = "Inactive" if property_obj.status == "Active" else "Active"
 
@@ -522,7 +526,7 @@ class AvailablePropertiesAjaxView(LoginRequiredMixin, View):
         guests_str = request.GET.get('guests')
         booking_id_to_exclude = request.GET.get('booking_id')
 
-        all_properties = Property.objects.filter(created_by=request.user, status='Active')
+        all_properties = Property.objects.filter(created_by__in=get_visible_user_ids(request.user), status='Active')
         properties_data = []
 
         # If dates and guests are provided, check availability
@@ -699,7 +703,7 @@ def ajax_unblock_dates(request):
             block = get_object_or_404(PropertyBlockDate, id=pk)
             
             # Ensure the user has permission to delete this block
-            if block.property.created_by != request.user:
+            if block.property.created_by_id not in get_visible_user_ids(request.user):
                 return JsonResponse({'success': False, 'error': 'Permission denied'})
                 
             block.delete()
@@ -738,7 +742,7 @@ class ListingPageView(ListView):
             queryset = Property.objects.filter(created_by__short_code=short_code, status='Active')
         elif self.request.user.is_authenticated:
             # Authenticated user viewing their own listings
-            queryset = Property.objects.filter(created_by=self.request.user, status='Active')
+            queryset = Property.objects.filter(created_by__in=get_visible_user_ids(self.request.user), status='Active')
         else:
             return Property.objects.none()
 
@@ -811,7 +815,7 @@ class ListingDetailView(DetailView):
         # Graceful fallback for /property/listing_details/ (no identifier provided).
         queryset = queryset or self.get_queryset()
         if self.request.user.is_authenticated:
-            own_property = queryset.filter(created_by=self.request.user).first()
+            own_property = queryset.filter(created_by__in=get_visible_user_ids(self.request.user)).first()
             if own_property:
                 return own_property
 
@@ -843,7 +847,7 @@ class RequestBokPageView(DetailView):
         # Graceful fallback for /property/listing/ (no identifier provided).
         queryset = queryset or self.get_queryset()
         if self.request.user.is_authenticated:
-            own_property = queryset.filter(created_by=self.request.user).first()
+            own_property = queryset.filter(created_by__in=get_visible_user_ids(self.request.user)).first()
             if own_property:
                 return own_property
 
