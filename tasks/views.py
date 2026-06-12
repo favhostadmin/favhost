@@ -14,6 +14,7 @@ import datetime
 from django.db.models import Q
 import uuid
 from types import SimpleNamespace
+from accounts.utils import get_visible_user_ids, get_effective_user
 
 
 class TaskListView(LoginRequiredMixin, ListView):
@@ -39,7 +40,7 @@ class TaskListView(LoginRequiredMixin, ListView):
             raise
 
     def get_queryset(self):
-        base_queryset = super().get_queryset().filter(created_by=self.request.user).select_related('property')
+        base_queryset = super().get_queryset().filter(created_by__in=get_visible_user_ids(self.request.user)).select_related('property')
         status_filter = self.request.GET.get('status', 'pending')
    
 
@@ -81,7 +82,7 @@ class TaskListView(LoginRequiredMixin, ListView):
                 task.is_overdue = False
                 task.days_until_due = 0
 
-        base_queryset = self.model.objects.filter(created_by=self.request.user)
+        base_queryset = self.model.objects.filter(created_by__in=get_visible_user_ids(self.request.user))
         context['status_filter'] = status_filter
         context['all_tasks_count'] = base_queryset.count()
         context['pending_tasks_count'] = base_queryset.filter(completed=False).count()
@@ -96,7 +97,7 @@ class TaskCreateView(LoginRequiredMixin, View):
 
     def get(self, request, *args, **kwargs):
         form = self.form_class(user=request.user)
-        properties = Property.objects.filter(created_by=request.user, status='Active')
+        properties = Property.objects.filter(created_by__in=get_visible_user_ids(request.user), status='Active')
         context = {
             'form': form,
             'properties': properties,
@@ -108,7 +109,8 @@ class TaskCreateView(LoginRequiredMixin, View):
         form = self.form_class(request.POST, user=request.user)
         if form.is_valid():
             base_task = form.save(commit=False)
-            base_task.created_by = request.user
+            effective_user = get_effective_user(request.user)
+            base_task.created_by = effective_user
 
             repeat_option = base_task.repeat
             start_date = base_task.date
@@ -141,7 +143,7 @@ class TaskCreateView(LoginRequiredMixin, View):
                         assigned_to=base_task.assigned_to,
                         phone=base_task.phone,
                         country_code=base_task.country_code,
-                        created_by=request.user,
+                        created_by=effective_user,
                         recurrence_id=recurrence_id,
                     )
                     tasks_to_create.append(new_task)
@@ -154,7 +156,7 @@ class TaskCreateView(LoginRequiredMixin, View):
             return redirect(reverse('tasks:task-list'))
         else:
             messages.error(request, 'Please correct the errors below.')
-            properties = Property.objects.filter(created_by=request.user, status='Active')
+            properties = Property.objects.filter(created_by__in=get_visible_user_ids(request.user), status='Active')
             return render(request, self.template_name, {'form': form, 'properties': properties, 'is_edit': False})
 
 class TaskEditView(LoginRequiredMixin, View):
@@ -162,9 +164,9 @@ class TaskEditView(LoginRequiredMixin, View):
     form_class = TaskForm
 
     def get(self, request, pk, *args, **kwargs):
-        task = get_object_or_404(Task, pk=pk, created_by=request.user)
+        task = get_object_or_404(Task, pk=pk, created_by__in=get_visible_user_ids(request.user))
         form = self.form_class(instance=task, user=request.user)
-        properties = Property.objects.filter(created_by=request.user, status='Active')
+        properties = Property.objects.filter(created_by__in=get_visible_user_ids(request.user), status='Active')
         context = {
             'form': form,
             'properties': properties,
@@ -174,7 +176,7 @@ class TaskEditView(LoginRequiredMixin, View):
         return render(request, self.template_name, context)
 
     def post(self, request, pk, *args, **kwargs):
-        task = get_object_or_404(Task, pk=pk, created_by=request.user)
+        task = get_object_or_404(Task, pk=pk, created_by__in=get_visible_user_ids(request.user))
         
         # Create a mutable copy of the POST data
         post_data = request.POST.copy()
@@ -206,14 +208,14 @@ class TaskEditView(LoginRequiredMixin, View):
             return redirect(reverse('tasks:task-list'))
         else:
             messages.error(request, 'Please correct the errors below.')
-            properties = Property.objects.filter(created_by=request.user, status='Active')
+            properties = Property.objects.filter(created_by__in=get_visible_user_ids(request.user), status='Active')
             return render(request, self.template_name, {'form': form, 'properties': properties, 'is_edit': True, 'task': task})
 
 
 class UpdateTaskStatusView(LoginRequiredMixin, View):
     def post(self, request, pk, *args, **kwargs):
         try:
-            task = Task.objects.get(pk=pk, created_by=request.user)
+            task = Task.objects.get(pk=pk, created_by__in=get_visible_user_ids(request.user))
             data = json.loads(request.body)
             is_completed = data.get('completed', False)
             
@@ -221,7 +223,7 @@ class UpdateTaskStatusView(LoginRequiredMixin, View):
             task.save()
 
             # Recalculate counts for the current user to return to the frontend
-            base_queryset = Task.objects.filter(created_by=request.user)
+            base_queryset = Task.objects.filter(created_by__in=get_visible_user_ids(request.user))
             pending_tasks_count = base_queryset.filter(completed=False).count()
             done_tasks_count = base_queryset.filter(completed=True).count()
 
@@ -240,18 +242,18 @@ class UpdateTaskStatusView(LoginRequiredMixin, View):
 class TaskDeleteView(LoginRequiredMixin, View):
     def post(self, request, pk, *args, **kwargs):
         try:
-            task = Task.objects.get(pk=pk, created_by=request.user)
+            task = Task.objects.get(pk=pk, created_by__in=get_visible_user_ids(request.user))
 
             data = json.loads(request.body)
             delete_mode = data.get('delete_mode', 'single')
             if delete_mode == 'all' and task.recurrence_id:
-                count, _ = Task.objects.filter(recurrence_id=task.recurrence_id, created_by=request.user).delete()
+                count, _ = Task.objects.filter(recurrence_id=task.recurrence_id, created_by__in=get_visible_user_ids(request.user)).delete()
             else:
                 task.delete()
                 count = 1
 
             # Recalculate counts
-            base_queryset = Task.objects.filter(created_by=request.user)
+            base_queryset = Task.objects.filter(created_by__in=get_visible_user_ids(request.user))
             all_tasks_count = base_queryset.count()
             pending_tasks_count = base_queryset.filter(completed=False).count()
             done_tasks_count = base_queryset.filter(completed=True).count()

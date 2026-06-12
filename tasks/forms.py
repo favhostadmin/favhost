@@ -1,6 +1,7 @@
 from django import forms
 from .models import Task
 from property.models import Property
+from accounts.utils import get_visible_user_ids
 
 class TaskForm(forms.ModelForm):
     property = forms.ModelChoiceField(queryset=Property.objects.none(), empty_label="Select a listing", required=True, widget=forms.Select(attrs={'class': 'form-control property-select'}))
@@ -53,7 +54,7 @@ class TaskForm(forms.ModelForm):
 
 
         if user: # Filter properties by the logged-in user
-            self.fields['property'].queryset = Property.objects.filter(created_by=user, status='Active')
+            self.fields['property'].queryset = Property.objects.filter(created_by__in=get_visible_user_ids(user), status='Active')
 
         # Make fields not required by the model as optional in the form
         self.fields['repeat_till'].required = False

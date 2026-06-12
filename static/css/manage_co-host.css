@@ -1,0 +1,515 @@
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --page-bg: #f4f5f7;
+      --card-bg: #ffffff;
+      --border: #d6d6d6;
+      --text: #222222;
+      --muted: #777777;
+      --header-line: #9ec7d2;
+      --btn-border: #c9ccd1;
+    }
+
+    body {
+      font-family: "Inter", -apple-system, BlinkMacSystemFont, "SF Pro", sans-serif;
+      background: var(--page-bg);
+      color: var(--text);
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .page {
+      width: 100%;
+      margin: 0 auto;
+      background: #fff;
+      min-height: 100vh;
+      overflow: hidden;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+    }
+
+    .profile-banner {
+      background: #454545;
+      color: #fff;
+      margin: 0 6px;
+      border-radius: 5px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 18px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .profile-banner .left {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      font-size: 18px;
+      font-weight: 700;
+    }
+
+    .profile-banner .left .icon-circle {
+      width: 27px;
+      height: 27px;
+      border-radius: 50%;
+      border: 1.5px solid #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .profile-banner .right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 14px;
+    }
+
+    .manage-wrap {
+      width: 100%;
+      padding: 16px 28px 24px;
+    }
+
+    .toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+
+    .toolbar h1 {
+      font-size: 24px;
+      line-height: 1.1;
+      font-weight: 700;
+    }
+
+    .add-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid var(--btn-border);
+      background: #fff;
+      border-radius: 6px;
+      color: #2c8be0 !important;
+      font-size: 15px;
+      font-weight: 500;
+      padding: 7px 12px;
+      cursor: pointer;
+    }
+
+    .add-btn svg {
+      width: 14px;
+      height: 14px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 1.8;
+    }
+
+    .table-wrap {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      min-height: 680px;
+      padding: 16px 18px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+    }
+
+    table { width: 100%; border-collapse: collapse; }
+
+    thead th {
+      font-size: 14px;
+      color: var(--muted);
+      font-weight: 500;
+      text-align: center;
+      padding: 8px 10px 6px;
+      border-bottom: 1px solid var(--header-line);
+    }
+
+    tbody td {
+      font-size: 13px;
+      font-weight: 600;
+      text-align: center;
+      color: #151515;
+      padding: 9px 10px;
+      border-bottom: 1px solid #ededed;
+      vertical-align: middle;
+    }
+
+    .user-cell {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .table-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 1px solid #cdcdcd;
+    }
+
+    .actions { width: 58px; white-space: nowrap; }
+
+    .action-btn {
+      border: none;
+      background: transparent;
+      color: #9a9a9a;
+      padding: 2px;
+      cursor: pointer;
+      vertical-align: middle;
+    }
+
+    .action-btn svg {
+      width: 14px;
+      height: 14px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 1.8;
+    }
+
+    .action-btn:hover { color: #4f4f4f; }
+
+    /* ====================================================
+       ADD CO-HOST MODAL — Premium Redesign
+    ==================================================== */
+
+    @keyframes cohostOverlayIn {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
+
+    @keyframes cohostSlideUp {
+      from { opacity: 0; transform: translateY(28px) scale(0.97); }
+      to   { opacity: 1; transform: translateY(0)   scale(1); }
+    }
+
+    .cohost-modal-overlay {
+      position: fixed !important;
+      inset: 0 !important;
+      width: 100% !important;
+      height: 100% !important;
+      background: rgba(10, 14, 30, 0.62);
+      backdrop-filter: blur(6px) !important;
+      -webkit-backdrop-filter: blur(6px) !important;
+      display: none !important;
+      align-items: center !important;
+      justify-content: center !important;
+      z-index: 9999 !important;
+      padding: 16px;
+    }
+
+    .cohost-modal-overlay.show {
+      display: flex !important;
+      animation: cohostOverlayIn 0.22s ease;
+    }
+
+    /* ---- Modal Box ---- */
+    .cohost-modal-overlay .cohost-modal-box {
+      width: 100%;
+      max-width: 540px;
+      background: #ffffff;
+      border-radius: 20px;
+      box-shadow:
+        0 4px 6px rgba(0,0,0,0.04),
+        0 20px 60px rgba(0,0,0,0.22),
+        0 0 0 1px rgba(255,255,255,0.08);
+      overflow: hidden;
+      margin: auto;
+      animation: cohostSlideUp 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    /* ---- Gradient Accent Header ---- */
+    .cohost-modal-overlay .cohost-modal-header {
+      background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 55%, #1d4ed8 100%);
+      padding: 22px 24px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: relative;
+    }
+
+    /* decorative glow blob */
+    .cohost-modal-overlay .cohost-modal-header::before {
+      content: '';
+      position: absolute;
+      top: -20px;
+      right: -20px;
+      width: 140px;
+      height: 140px;
+      border-radius: 50%;
+      background: rgba(99,160,255,0.18);
+      filter: blur(30px);
+      pointer-events: none;
+    }
+
+    .cohost-modal-overlay .cohost-modal-title {
+      font-size: 19px;
+      font-weight: 700;
+      color: #ffffff;
+      letter-spacing: -0.2px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .cohost-modal-overlay .cohost-modal-title .modal-icon-wrap {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: rgba(255,255,255,0.14);
+      border: 1px solid rgba(255,255,255,0.22);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    /* ---- Close Button ---- */
+    .cohost-modal-overlay .cohost-close-btn {
+      width: 34px;
+      height: 34px;
+      border: 1px solid rgba(255,255,255,0.22);
+      background: rgba(255,255,255,0.12);
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.18s, transform 0.18s;
+      padding: 0;
+      flex-shrink: 0;
+      color: #fff;
+    }
+
+    .cohost-modal-overlay .cohost-close-btn:hover {
+      background: rgba(255,255,255,0.24);
+      transform: rotate(90deg);
+    }
+
+    /* ---- Modal Body ---- */
+    .cohost-modal-overlay .cohost-modal-body {
+      padding: 26px 26px 26px;
+      background: #fff;
+    }
+
+    /* ---- Field ---- */
+    .cohost-modal-overlay .cohost-field {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+
+    .cohost-modal-overlay .cohost-field label {
+      font-size: 12px;
+      color: #6b7280;
+      font-weight: 600;
+      letter-spacing: 0.6px;
+      text-transform: uppercase;
+    }
+
+    /* Input wrapper with icon */
+    .cohost-modal-overlay .cohost-input-wrap {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .cohost-modal-overlay .cohost-input-icon {
+      position: absolute;
+      left: 13px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #9ca3af;
+      pointer-events: none;
+      display: flex;
+      align-items: center;
+      transition: color 0.15s;
+    }
+
+    .cohost-modal-overlay .cohost-field input {
+      width: 100%;
+      height: 46px;
+      border: 1.5px solid #e5e7eb;
+      border-radius: 11px;
+      padding: 0 14px 0 40px;
+      font-size: 14px;
+      font-family: inherit;
+      outline: none;
+      color: #111827;
+      background: #f9fafb;
+      transition: border-color 0.18s, box-shadow 0.18s, background 0.18s;
+    }
+
+    .cohost-modal-overlay .cohost-field input::placeholder {
+      color: #c4c9d4;
+    }
+
+    .cohost-modal-overlay .cohost-field input:focus {
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3.5px rgba(59, 130, 246, 0.13);
+      background: #fff;
+    }
+
+    .cohost-modal-overlay .cohost-input-wrap:focus-within .cohost-input-icon {
+      color: #3b82f6;
+    }
+
+    /* ---- Form Grid ---- */
+    .cohost-modal-overlay .cohost-form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+    }
+
+    /* ---- Divider ---- */
+    .cohost-modal-divider {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, #e5e7eb 20%, #e5e7eb 80%, transparent);
+      margin: 22px 0 0;
+    }
+
+    /* ---- Actions ---- */
+    .cohost-modal-overlay .cohost-modal-actions {
+      margin-top: 0;
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      padding-top: 18px;
+    }
+
+    .cohost-modal-overlay .cohost-btn {
+      border-radius: 11px;
+      border: none;
+      padding: 11px 26px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.18s;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      letter-spacing: 0.1px;
+    }
+
+    .cohost-modal-overlay .cohost-btn-secondary {
+      background: #f3f4f6;
+      color: #4b5563;
+      border: 1.5px solid #e5e7eb;
+    }
+
+    .cohost-modal-overlay .cohost-btn-secondary:hover {
+      background: #e9eaec;
+      color: #111827;
+    }
+
+    .cohost-modal-overlay .cohost-btn-primary {
+      background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 60%, #1e40af 100%);
+      color: #fff;
+      box-shadow: 0 4px 14px rgba(37, 99, 235, 0.3);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .cohost-modal-overlay .cohost-btn-primary::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: rgba(255,255,255,0);
+      transition: background 0.18s;
+    }
+
+    .cohost-modal-overlay .cohost-btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 22px rgba(37, 99, 235, 0.42);
+    }
+
+    .cohost-modal-overlay .cohost-btn-primary:hover::after {
+      background: rgba(255,255,255,0.07);
+    }
+
+    .cohost-modal-overlay .cohost-btn-primary:active {
+      transform: translateY(0);
+      box-shadow: 0 3px 10px rgba(37, 99, 235, 0.28);
+    }
+
+    .add-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      pointer-events: none;
+    }
+
+    .limit-banner {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: #fef3cd;
+      border: 1px solid #ffc107;
+      border-radius: 8px;
+      padding: 12px 16px;
+      margin-bottom: 16px;
+      font-size: 14px;
+      color: #664d03;
+    }
+
+    .limit-banner svg {
+      flex-shrink: 0;
+      color: #856404;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: #888;
+    }
+
+    .empty-state-icon {
+      display: block;
+      margin: 0 auto 16px;
+      width: 52px;
+      height: 52px;
+    }
+
+    .empty-state p {
+      font-size: 15px;
+      margin: 0 0 6px;
+    }
+
+    .empty-state .sub {
+      font-size: 13px;
+      color: #aaa;
+    }
+
+    @media (max-width: 860px) {
+      .profile-banner { margin: 0 6px; padding: 12px 14px; }
+    }
+
+    @media (max-width: 768px) {
+      .toolbar h1 { font-size: 20px; }
+      .table-wrap { padding: 12px; min-height: 420px; }
+      .form-grid { grid-template-columns: 1fr; }
+      thead th, tbody td { font-size: 11px; padding: 8px 6px; }
+      .table-avatar { width: 24px; height: 24px; }
+    }
+
+    @media (max-width: 520px) {
+      .profile-banner .right { font-size: 12px; gap: 10px; }
+      .toolbar { gap: 8px; align-items: flex-start; }
+
+      .table-wrap {
+        padding: 10px;
+        min-height: 260px;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      table {
+        min-width: 760px;
+      }
+
+      .manage-wrap {
+      width: 100%;
+      padding: 16px 10px 24px;
+    }
+    }
