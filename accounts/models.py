@@ -74,6 +74,12 @@ class MyUser(AbstractBaseUser):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    # === NEW FIELDS ADDED BELOW (custom additions beyond original HR code) ===
+    linkedin_url = models.URLField(max_length=1000, null=True, blank=True)
+    twitter_url = models.URLField(max_length=1000, null=True, blank=True)
+    language = models.CharField(max_length=100, default='English', null=True, blank=True)
+    is_subscription_free = models.BooleanField(default=False, help_text="If enabled, user gets free access without requiring subscription payment")
+
     objects = MyUserManager()
 
     USERNAME_FIELD = 'username'
@@ -158,3 +164,42 @@ class MyUser(AbstractBaseUser):
         if self.short_code:
             return reverse('public_profile', kwargs={'short_code': self.short_code})
         return None
+
+    @property
+    def profile_picture_url(self):
+        """Safely return profile picture URL, or None if file missing."""
+        try:
+            if self.profile_picture and self.profile_picture.name:
+                return self.profile_picture.url
+        except (ValueError, FileNotFoundError):
+            pass
+        return None
+
+
+class CoHost(models.Model):
+    host = models.ForeignKey(MyUser, on_delete=models.CASCADE, related_name='host_cohosts')
+    co_host = models.ForeignKey(MyUser, on_delete=models.CASCADE, related_name='co_host_relationships')
+    display_password = models.CharField(max_length=255, null=True, blank=True, help_text="Plain text password for UI display only")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('host', 'co_host')
+
+    def __str__(self):
+        return f"{self.co_host.get_full_name() or self.co_host.email} (co-host of {self.host.get_full_name() or self.host.email})"
+
+
+class UserDocument(models.Model):
+    DOCUMENT_TYPES = [
+        ('govt_id', 'Government ID'),
+        ('permission', 'Local Authority Permission'),
+    ]
+    user = models.ForeignKey(MyUser, on_delete=models.CASCADE, related_name='documents')
+    document = models.FileField(upload_to='user_documents/')
+    doc_type = models.CharField(max_length=50, choices=DOCUMENT_TYPES)
+    name = models.CharField(max_length=255, null=True, blank=True)
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.user.username} - {self.get_doc_type_display()} - {self.name or self.document.name}"
+

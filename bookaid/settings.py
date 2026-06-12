@@ -62,7 +62,8 @@ INSTALLED_APPS = [
     'property',
     'booking',
     'tasks',
-    'global'
+    'global',
+    'billing',
 
 
 ]
@@ -74,6 +75,7 @@ AUTHENTICATION_BACKENDS = ['accounts.backends.EmailOrUsernameBackend']
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -96,6 +98,7 @@ TEMPLATES = [
                 'django.contrib.messages.context_processors.messages',
                 'property.context_processors.property_context',
                 'bookaid.context_processors.enquiry_counts',
+                'billing.context_processors.subscription_status',
             ],
         },
     },
@@ -117,10 +120,9 @@ WSGI_APPLICATION = 'bookaid.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': os.getenv('DB_ENGINE', 'django.db.backends.postgresql_psycopg2'),
-        'NAME': os.getenv('DB_NAME', 'bookaid'),
-        'USER': os.getenv('DB_USER', 'postgres'),
-        'PASSWORD': os.getenv('DB_PASSWORD', 'postgres'),
-        # 'HOST': 'localhost',
+        'NAME': os.getenv('DB_NAME'),
+        'USER': os.getenv('DB_USER'),
+        'PASSWORD': os.getenv('DB_PASSWORD'),
         'HOST': os.getenv('DB_HOST', '127.0.0.1'),
         'PORT': os.getenv('DB_PORT', '5432'),
     }
@@ -197,6 +199,14 @@ SESSION_EXPIRE_AT_BROWSER_CLOSE = False
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_DIRS = [ BASE_DIR / 'static' ]
+STORAGES = {
+    'default': {
+        'BACKEND': 'django.core.files.storage.FileSystemStorage',
+    },
+    'staticfiles': {
+        'BACKEND': 'whitenoise.storage.CompressedStaticFilesStorage',
+    },
+}
 
 MEDIA_ROOT = BASE_DIR / 'media'
 MEDIA_URL = '/media/'
@@ -209,6 +219,13 @@ EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'True') == 'True'
 EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
 DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', EMAIL_HOST_USER)
+
+# --- Stripe Configuration ---
+STRIPE_PUBLISHABLE_KEY = os.getenv('STRIPE_PUBLISHABLE_KEY', '')
+STRIPE_SECRET_KEY = os.getenv('STRIPE_SECRET_KEY', '')
+STRIPE_PRICE_ID = os.getenv('STRIPE_PRICE_ID', '')
+STRIPE_WEBHOOK_SECRET = os.getenv('STRIPE_WEBHOOK_SECRET', '')
+DOMAIN_URL = os.getenv('DOMAIN_URL', 'http://localhost:8000')
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field

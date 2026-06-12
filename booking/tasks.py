@@ -64,7 +64,7 @@ def send_daily_booking_emails():
             email.mixed_subtype = 'related'
 
             # Attach Logo
-            logo_path = finders.find('img/email/favhost.png')
+            logo_path = finders.find('img/login/favhost_new_logo.png')
             if logo_path and os.path.exists(logo_path):
                 with open(logo_path, 'rb') as f:
                     img = MIMEImage(f.read())
@@ -170,7 +170,7 @@ def send_daily_booking_emails():
             email.mixed_subtype = 'related'
 
             # Attach Logo
-            logo_path = finders.find('img/email/favhost.png')
+            logo_path = finders.find('img/login/favhost_new_logo.png')
             if logo_path and os.path.exists(logo_path):
                 with open(logo_path, 'rb') as f:
                     img = MIMEImage(f.read())
