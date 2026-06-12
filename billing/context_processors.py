@@ -28,6 +28,9 @@ def subscription_status(request):
         is_premium = False
         sub_status = ''
 
+    if user.is_subscription_free:
+        is_premium = True
+
     # Show the paywall when the user has no active subscription AND their trial is over
     # or their subscription was explicitly cancelled
     # Skip entirely for users marked as subscription-free (admin toggle)
