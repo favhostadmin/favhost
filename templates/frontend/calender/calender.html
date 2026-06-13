@@ -2046,6 +2046,322 @@
     }
   }
 
+  /* --- Highlighting Property Sidebar Selection --- */
+  .property-row {
+    position: relative;
+    transition: background-color 0.2s, border-left-color 0.2s;
+    cursor: pointer;
+  }
+  .property-row:hover {
+    background-color: #f3f4f6;
+  }
+  .property-row.active-property-row {
+    background-color: #eff6ff !important;
+    border-left: 4px solid #3b82f6 !important;
+    font-weight: 600;
+  }
+  .property-event-badge {
+    background-color: #3b82f6;
+    color: white;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    min-width: 18px;
+    height: 18px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    margin-left: auto;
+    margin-right: 6px;
+  }
+
+  /* --- Month/Week Grid Calendar Styles --- */
+  .month-calendar-grid {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #ffffff;
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03);
+  }
+  .month-calendar-header-row {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    background-color: #1f2937;
+    color: #ffffff;
+    font-weight: 700;
+    font-size: 12px;
+    text-transform: uppercase;
+    text-align: center;
+    border-bottom: 1px solid #1f2937;
+    user-select: none;
+  }
+  .month-calendar-header-cell {
+    padding: 12px 6px;
+    border-right: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  .month-calendar-header-cell:last-child {
+    border-right: none;
+  }
+  .month-calendar-weeks-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .month-calendar-week {
+    flex: 1;
+    min-height: 0;
+    border-bottom: 1px solid #e5e7eb;
+    position: relative;
+    overflow: hidden;
+  }
+  .month-calendar-week:last-child {
+    border-bottom: none;
+  }
+  .month-calendar-week-bg {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    pointer-events: none;
+  }
+  .month-calendar-day-cell {
+    border-right: 1px solid #e5e7eb;
+    padding: 6px 8px 6px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    transition: background-color 0.15s;
+  }
+  .month-calendar-day-cell:last-child {
+    border-right: none;
+  }
+  .month-calendar-day-cell.other-month {
+    background-color: #f9fafb;
+  }
+  .month-calendar-day-cell.other-month .day-number {
+    color: #9ca3af;
+  }
+  .month-calendar-day-cell.today {
+    background-color: rgba(59, 130, 246, 0.03);
+  }
+  .month-calendar-day-cell.today .day-number {
+    background-color: #3b82f6;
+    color: #ffffff;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+  }
+  .day-number {
+    font-size: 14px;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 4px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    flex-shrink: 0;
+  }
+  .month-calendar-events-layer {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 34px;
+    bottom: 6px;
+    padding: 0 4px;
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    z-index: 10;
+    pointer-events: none;
+    align-content: start;
+    gap: 0;
+  }
+
+  /* --- Event Span Styling (Pills) --- */
+  .grid-event-span {
+    grid-column: span 1;
+    pointer-events: auto;
+    border-radius: 9999px;
+    padding: 0 8px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    font-size: 12px;
+    font-weight: 600;
+    color: #ffffff !important;
+    cursor: pointer;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    height: calc(100% - 4px);
+    align-self: center;
+    margin: 0;
+    transition: transform 0.15s, box-shadow 0.15s;
+    gap: 6px;
+    min-height: 20px;
+  }
+  .grid-event-span:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    filter: brightness(1.05);
+  }
+  .grid-event-span.carry-start {
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+  }
+  .grid-event-span.carry-end {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+  .grid-event-span .channel-icon {
+    width: 14px;
+    height: 14px;
+    object-fit: contain;
+    margin: 0 !important;
+    flex-shrink: 0;
+  }
+  .grid-event-span .guest-avatar {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    margin: 0 !important;
+    flex-shrink: 0;
+  }
+  .grid-event-span .event-title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-weight: 600;
+    color: #ffffff;
+  }
+  
+  /* Task badge styling in calendar cells */
+  .grid-cell-task-pill {
+    background-color: #10b981;
+    color: white;
+    border-radius: 4px;
+    padding: 1px 6px;
+    font-size: 10px;
+    font-weight: 700;
+    margin-top: 2px;
+    cursor: pointer;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
+    display: inline-block;
+    pointer-events: auto;
+  }
+  .grid-cell-task-pill.maintenance {
+    background-color: #f59e0b;
+  }
+  .grid-cell-task-pill.payment {
+    background-color: #3b82f6;
+  }
+  .grid-cell-task-pill.other {
+    background-color: #8b5cf6;
+  }
+
+  /* --- Day Schedule View Styles --- */
+  .day-view-container {
+    width: 100%;
+    max-width: 800px;
+    margin: 0 auto;
+    background: #ffffff;
+    border-radius: 12px;
+    border: 1px solid #e5e7eb;
+    padding: 24px;
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+  }
+  .day-view-header {
+    border-bottom: 2px solid #f3f4f6;
+    padding-bottom: 16px;
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .day-view-title {
+    font-size: 22px;
+    font-weight: 700;
+    color: #111827;
+  }
+  .day-section {
+    margin-bottom: 24px;
+  }
+  .day-section-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #4b5563;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .day-event-card {
+    display: flex;
+    align-items: center;
+    padding: 14px 18px;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    margin-bottom: 10px;
+    background: #ffffff;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    cursor: pointer;
+  }
+  .day-event-card:hover {
+    border-color: #d1d5db;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.03);
+  }
+  .day-event-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 1;
+  }
+  .day-event-right {
+    font-size: 13px;
+    font-weight: 600;
+    color: #4b5563;
+    background: #f3f4f6;
+    padding: 4px 10px;
+    border-radius: 9999px;
+  }
+  .day-event-title-text {
+    font-size: 15px;
+    font-weight: 600;
+    color: #111827;
+  }
+  .day-event-subtitle-text {
+    font-size: 13px;
+    color: #6b7280;
+    margin-top: 2px;
+  }
+  .day-empty-text {
+    font-size: 13px;
+    color: #9ca3af;
+    font-style: italic;
+    padding: 8px 0;
+  }
+
   body {
     overflow: hidden;
   }
@@ -2109,6 +2425,33 @@
           data-tooltip="Return to current month">
           <img src="{% static 'img/calender/today_icon.svg' %}">
         </button>
+
+        <div class="divider"></div>
+
+        <!-- Event Type Dropdown Filter -->
+        <div class="dropdown" style="margin-left: 10px;">
+          <button class="btn btn-outline-secondary dropdown-toggle btn-sm fw-semibold" type="button" id="calendarTypeFilterBtn" data-bs-toggle="dropdown" aria-expanded="false" style="border-radius: 6px; border: 1px solid #d1d5db; padding: 6px 12px; font-size: 14px; background: #fff; color: #374151;">
+            Show: All
+          </button>
+          <ul class="dropdown-menu" aria-labelledby="calendarTypeFilterBtn" id="calendarTypeFilter">
+            <li><a class="dropdown-item active" href="#" data-value="all">All</a></li>
+            <li><a class="dropdown-item" href="#" data-value="registration">Registrations</a></li>
+            <li><a class="dropdown-item" href="#" data-value="enquiry">Enquiries</a></li>
+            <li><a class="dropdown-item" href="#" data-value="task">Tasks</a></li>
+          </ul>
+        </div>
+
+        <!-- View Switcher (Month/Week/Day dropdown) -->
+        <div class="d-flex align-items-center ms-3" id="calendarViewSwitcher" style="gap: 6px;">
+          <div class="dropdown">
+            <button type="button" class="btn btn-light btn-sm px-3 fw-semibold dropdown-toggle" id="viewDropdownBtn" data-bs-toggle="dropdown" aria-expanded="false" style="border: 1px solid #d1d5db; border-radius: 6px; background: #fff; color: #374151; font-size: 14px; box-shadow: 0px 4px 4px 0px #94949440;">Month</button>
+            <ul class="dropdown-menu" aria-labelledby="viewDropdownBtn">
+              <li><a class="dropdown-item active" href="#" data-view="month">Month</a></li>
+              <li><a class="dropdown-item" href="#" data-view="week">Week</a></li>
+              <li><a class="dropdown-item" href="#" data-view="day">Day</a></li>
+            </ul>
+          </div>
+        </div>
 
         <div class="mobile-actions">
           <button class="mobile-actions-toggle" id="mobileActionsToggle" aria-label="Open actions">⋮</button>
@@ -2188,6 +2531,9 @@
         <div class="dates-body-scroll" id="datesContainer">
           <div class="dates-grid" id="datesGrid"></div>
         </div>
+      </div>
+      <!-- Grid Calendar Pane for Month/Week/Day Views -->
+      <div id="gridCalendarPane" style="display: none; flex: 1; height: 100%; min-height: 0; overflow-y: auto; padding: 16px; background-color: #fafafa; position: relative; box-sizing: border-box;">
       </div>
       <div class="calendar-empty-state" id="calendarEmptyState">No data to display</div>
     </div>
@@ -2362,6 +2708,7 @@
 <script>
   const properties = {{ rooms_data| safe }};
   let bookings = {{ bookings_data| safe }};
+  let enquiries = [];
   let tasks = [];
   let allDates = [];
   let isLoading = false;
@@ -2376,6 +2723,10 @@
 
   // Global currentDisplayDate for month display
   let currentDisplayDate = new Date(); // Starts at today
+  let selectedWeekStart = null; // Sunday of current week
+  let activePropertyId = (properties && properties.length > 0) ? String(properties[0].id) : null;
+  let currentViewMode = 'month'; // 'month', 'week', 'day'
+  let calendarFilterType = 'all'; // 'all', 'registration', 'enquiry', 'task'
   let reservationPanelWasOpenBeforeReceipt = false;
 
   function toISODateString(date) {
@@ -2512,6 +2863,7 @@
       const data = await response.json();
       bookings = data.bookings;
       tasks = data.tasks || [];
+      enquiries = data.enquiries || [];
 
       console.log('✅ API Response received');
       console.log('Fetched tasks:', tasks);
@@ -2536,7 +2888,22 @@
         b.endDateStr = addDaysToISO(endDateStr, 1);
       });
 
-      renderDatesGrid();
+      // Process dates for Enquiries
+      enquiries.forEach(eq => {
+        const startDateStr = toDateOnlyString(eq.start_date);
+        const endDateStr = toDateOnlyString(eq.end_date);
+        const [sy, sm, sd] = startDateStr.split('-').map(Number);
+        const [ey, em, ed] = endDateStr.split('-').map(Number);
+        eq.startDate = new Date(sy, sm - 1, sd);
+        eq.endDate = new Date(ey, em - 1, ed + 1);
+        eq.startDateStr = startDateStr;
+        eq.endDateStr = addDaysToISO(endDateStr, 1);
+      });
+
+      // Update the property sidebar count badges since counts depend on enquiries
+      renderProperties(filteredProperties);
+
+      renderActiveView();
     } catch (error) {
       console.error('Error fetching bookings:', error);
     } finally {
@@ -2602,8 +2969,13 @@
     const propertiesList = document.getElementById('propertiesList');
     propertiesList.innerHTML = propertiesToRender.map(property => {
       const detailHref = property.slug ? `/property/detail/${property.slug}/` : (property.detail_url || property.url || '#');
+      const isActive = String(property.id) === String(activePropertyId);
+      const activeClass = isActive ? 'active-property-row' : '';
+      const eventCount = getEventCountForProperty(property.id);
+      const countBadge = eventCount > 0 ? `<span class="property-event-badge">${eventCount}</span>` : '';
+
       return `
-        <div class="property-row"
+        <div class="property-row ${activeClass}"
              data-id="${property.id}"
              data-detail="${detailHref}"
              onmouseenter="showPropertyPreview(event, '${property.id}')"
@@ -2614,6 +2986,7 @@
           <div class="property-info">
             <div class="property-name">${property.title.substring(0, 16)}</div>
           </div>
+          ${countBadge}
           <div class="property-actions">
               <div class="dropdown dropend">
                   <button class="btn btn-sm" type="button" data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false">
@@ -2640,7 +3013,14 @@
 
       row.addEventListener('click', (event) => {
         if (event.target.closest('.property-actions')) return;
-        if (detailUrl && detailUrl !== '#') window.open(detailUrl, '_blank', 'noopener,noreferrer');
+        if (currentViewMode !== 'timeline') {
+          event.preventDefault();
+          activePropertyId = String(property.id);
+          renderProperties(propertiesToRender);
+          renderActiveView();
+        } else {
+          if (detailUrl && detailUrl !== '#') window.open(detailUrl, '_blank', 'noopener,noreferrer');
+        }
       });
     });
   }
@@ -4015,17 +4395,755 @@
     });
   }
 
+  /* --- Unified Calendar View Router --- */
+  function renderActiveView() {
+    const timelinePane = document.getElementById('datesPane');
+    const gridPane = document.getElementById('gridCalendarPane');
+    if (!timelinePane || !gridPane) return;
+
+    if (currentViewMode === 'timeline') {
+      timelinePane.style.display = 'block';
+      gridPane.style.display = 'none';
+      renderDatesHeader();
+      renderDatesGrid(filteredProperties);
+    } else {
+      timelinePane.style.display = 'none';
+      gridPane.style.display = 'block';
+      
+      if (currentViewMode === 'month') {
+        renderMonthGrid(gridPane);
+      } else if (currentViewMode === 'week') {
+        renderWeekGrid(gridPane);
+      } else if (currentViewMode === 'day') {
+        renderDaySchedule(gridPane);
+      }
+    }
+  }
+
+  /* --- Event Filters and Sidebar Badge Calculations --- */
+  function getFilteredEventsForCalendar() {
+    let pBookings = bookings.filter(b => String(b.propertyId) === String(activePropertyId));
+    let pEnquiries = enquiries.filter(eq => String(eq.propertyId) === String(activePropertyId));
+    let pTasks = tasks.filter(t => String(t.propertyId) === String(activePropertyId));
+
+    if (calendarFilterType === 'registration') {
+      pEnquiries = [];
+      pTasks = [];
+    } else if (calendarFilterType === 'enquiry') {
+      pBookings = [];
+      pTasks = [];
+    } else if (calendarFilterType === 'task') {
+      pBookings = [];
+      pEnquiries = [];
+    }
+
+    return {
+      bookings: pBookings,
+      enquiries: pEnquiries,
+      tasks: pTasks
+    };
+  }
+
+  function getEventCountForProperty(propertyId) {
+    const startOfMonth = new Date(currentDisplayDate.getFullYear(), currentDisplayDate.getMonth(), 1);
+    const endOfMonth = new Date(currentDisplayDate.getFullYear(), currentDisplayDate.getMonth() + 1, 0);
+
+    const bCount = bookings.filter(b => {
+      if (b.type === 'blocked') return false;
+      if (String(b.propertyId) !== String(propertyId)) return false;
+      return b.startDate <= endOfMonth && b.endDate >= startOfMonth;
+    }).length;
+
+    const eqCount = enquiries.filter(eq => {
+      if (String(eq.propertyId) !== String(propertyId)) return false;
+      return eq.startDate <= endOfMonth && eq.endDate >= startOfMonth;
+    }).length;
+
+    const tCount = tasks.filter(t => {
+      if (String(t.propertyId) !== String(propertyId)) return false;
+      const [ty, tm, td] = t.date.split('-').map(Number);
+      const tDate = new Date(ty, tm - 1, td);
+      return tDate >= startOfMonth && tDate <= endOfMonth;
+    }).length;
+
+    return bCount + eqCount + tCount;
+  }
+
+  /* --- Month Grid View Renderer --- */
+  function renderMonthGrid(pane) {
+    const year = currentDisplayDate.getFullYear();
+    const month = currentDisplayDate.getMonth();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const { bookings: pBookings, enquiries: pEnquiries, tasks: pTasks } = getFilteredEventsForCalendar();
+    const spansList = [
+      ...pBookings.map(b => ({ ...b, isEnquiry: false })),
+      ...pEnquiries.map(eq => ({ ...eq, isEnquiry: true }))
+    ];
+
+    const firstDay = new Date(year, month, 1);
+    const startDayOfWeek = firstDay.getDay();
+
+    const gridStart = new Date(firstDay);
+    gridStart.setDate(gridStart.getDate() - startDayOfWeek);
+
+    const gridWeeks = [];
+    let temp = new Date(gridStart);
+    for (let w = 0; w < 6; w++) {
+      const weekDates = [];
+      for (let d = 0; d < 7; d++) {
+        weekDates.push(new Date(temp));
+        temp.setDate(temp.getDate() + 1);
+      }
+      gridWeeks.push(weekDates);
+    }
+    if (gridWeeks.length === 6 && gridWeeks[5].every(d => d.getMonth() !== month)) {
+      gridWeeks.pop();
+    }
+
+    pane.style.display = 'flex';
+    pane.style.flexDirection = 'column';
+
+    let html = `
+      <div class="month-calendar-grid" style="flex: 1; min-height: 0;">
+        <div class="month-calendar-header-row">
+          <div class="month-calendar-header-cell">SUN</div>
+          <div class="month-calendar-header-cell">MON</div>
+          <div class="month-calendar-header-cell">TUE</div>
+          <div class="month-calendar-header-cell">WED</div>
+          <div class="month-calendar-header-cell">THU</div>
+          <div class="month-calendar-header-cell">FRI</div>
+          <div class="month-calendar-header-cell">SAT</div>
+        </div>
+        <div class="month-calendar-weeks-container">
+    `;
+
+    gridWeeks.forEach(weekDates => {
+      const weekStart = weekDates[0];
+      const weekEnd = weekDates[6];
+
+      let bgHtml = '';
+      weekDates.forEach(d => {
+        const isOtherMonth = d.getMonth() !== month;
+        const isToday = d.toDateString() === today.toDateString();
+        const dateStr = toISODateString(d);
+
+        bgHtml += `
+          <div class="month-calendar-day-cell ${isOtherMonth ? 'other-month' : ''} ${isToday ? 'today' : ''}" data-date="${dateStr}">
+            <span class="day-number">${d.getDate()}</span>
+          </div>
+        `;
+      });
+
+      let eventsHtml = '';
+      const weekSpans = [];
+      spansList.forEach(event => {
+        const evStart = new Date(event.startDateStr + 'T00:00:00');
+        const evEnd = new Date(event.endDateStr + 'T00:00:00');
+        evEnd.setDate(evEnd.getDate() - 1);
+
+        if (evStart <= weekEnd && evEnd >= weekStart) {
+          const carryStart = evStart < weekStart;
+          const carryEnd = evEnd > weekEnd;
+          const startCol = carryStart ? 0 : Math.round((evStart - weekStart) / (1000 * 60 * 60 * 24));
+          const endCol = carryEnd ? 6 : Math.round((evEnd - weekStart) / (1000 * 60 * 60 * 24));
+
+          weekSpans.push({
+            event,
+            startCol,
+            endCol,
+            carryStart,
+            carryEnd,
+            length: endCol - startCol + 1
+          });
+        }
+      });
+
+      // Fixed 3-band layout: row 1 = registration, row 2 = separator, row 3 = enquiry, row 4 = separator, row 5 = task
+      // All weeks use the same fixed grid so box heights stay equal
+      const FIXED_GRID = '1fr 3px 1fr 3px 1fr';
+      // row indices: booking=1, enquiry=3, task=5
+
+      const bookingSpans = weekSpans.filter(s => !s.event.isEnquiry);
+      const enquirySpans = weekSpans.filter(s => s.event.isEnquiry);
+
+      const spanOffsets = (span) => {
+        const n = span.endCol - span.startCol + 1;
+        const mlPct = span.carryStart ? 0 : (100 / (2 * n));
+        const mrPct = span.carryEnd  ? 0 : (100 / (2 * n));
+        return `margin-left:${mlPct.toFixed(2)}%;margin-right:${mrPct.toFixed(2)}%`;
+      };
+
+      bookingSpans.forEach(span => {
+        const ev = span.event;
+        const gridColStart = span.startCol + 1;
+        const gridColEnd = span.endCol + 2;
+        const onClick = ev.type === 'blocked'
+          ? `onclick="openUnblockModal(event, '${ev.id}')"`
+          : `onclick="openReservationPanel(event, '${ev.id}')"`;
+        const carryStartClass = span.carryStart ? 'carry-start' : '';
+        const carryEndClass = span.carryEnd ? 'carry-end' : '';
+        const labelName = ev.guestName || 'Blocked';
+        const labelText = span.carryStart ? `-- ${labelName}` : labelName;
+        const avatarHtml = ev.guestAvatar && ev.type !== 'blocked' ? `<img class="guest-avatar" src="${ev.guestAvatar}" />` : '';
+        const channelHtml = ev.channelIcon && ev.type !== 'blocked' ? `<img class="channel-icon" src="${ev.channelIcon}" />` : '';
+        const bgColor = ev.color || '#3b82f6';
+        const style = ev.type === 'blocked' ? 'background-color:#9ca3af;' : `background-color:${bgColor};`;
+        eventsHtml += `<div class="grid-event-span ${carryStartClass} ${carryEndClass}" style="grid-column:${gridColStart}/${gridColEnd};grid-row:1;${style};${spanOffsets(span)}" ${onClick} onmouseenter="showMonthEventTooltip(event,'${ev.id}',false)" onmouseleave="hideGlobalTooltip()">${channelHtml}${avatarHtml}<span class="event-title">${labelText}</span></div>`;
+      });
+
+      enquirySpans.forEach(span => {
+        const ev = span.event;
+        const gridColStart = span.startCol + 1;
+        const gridColEnd = span.endCol + 2;
+        const carryStartClass = span.carryStart ? 'carry-start' : '';
+        const carryEndClass = span.carryEnd ? 'carry-end' : '';
+        const labelText = span.carryStart ? `-- ${ev.guestName}` : `Enquiry: ${ev.guestName}`;
+        eventsHtml += `<div class="grid-event-span ${carryStartClass} ${carryEndClass}" style="grid-column:${gridColStart}/${gridColEnd};grid-row:3;border:2px dashed #d97706;background-color:rgba(245,158,11,0.95);${spanOffsets(span)}" onclick="openEnquiryPanel(event,'${ev.id}')" onmouseenter="showMonthEventTooltip(event,'${ev.id}',true)" onmouseleave="hideGlobalTooltip()"><span class="event-title">${labelText}</span></div>`;
+      });
+
+      weekDates.forEach((d, colIdx) => {
+        const dateStr = toISODateString(d);
+        const dayTasksForBand = pTasks.filter(t => t.date === dateStr);
+        if (dayTasksForBand.length === 0) return;
+        const taskLabel = dayTasksForBand.length === 1
+          ? `🧹 ${(dayTasksForBand[0].details || 'Task').substring(0, 8)}`
+          : `🧹 ${dayTasksForBand.length} tasks`;
+        const taskColors = { cleaning: '#10b981', maintenance: '#f59e0b', payment: '#3b82f6', other: '#8b5cf6' };
+        const taskColor = taskColors[dayTasksForBand[0].task_type] || taskColors.other;
+        eventsHtml += `<div class="grid-event-span" style="grid-column:${colIdx+1}/${colIdx+2};grid-row:5;background-color:${taskColor};border-radius:4px;font-size:10px;margin-left:25%;margin-right:25%;" onclick="openTaskDetailModal(event,'${dayTasksForBand[0].id}')" onmouseleave="hideGlobalTooltip()"><span class="event-title">${taskLabel}</span></div>`;
+      });
+
+      html += `
+        <div class="month-calendar-week">
+          <div class="month-calendar-week-bg">${bgHtml}</div>
+          <div class="month-calendar-events-layer" style="grid-template-rows: ${FIXED_GRID}; grid-auto-rows: unset;">
+            ${eventsHtml}
+          </div>
+        </div>
+      `;
+    });
+
+    html += `
+        </div>
+      </div>
+    `;
+
+    pane.innerHTML = html;
+  }
+
+  /* --- Week Table View Renderer --- */
+  function renderWeekGrid(pane) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const { bookings: pBookings, enquiries: pEnquiries, tasks: pTasks } = getFilteredEventsForCalendar();
+    const spansList = [
+      ...pBookings.map(b => ({ ...b, isEnquiry: false })),
+      ...pEnquiries.map(eq => ({ ...eq, isEnquiry: true }))
+    ];
+
+    const weekDates = [];
+    const temp = new Date(selectedWeekStart);
+    for (let d = 0; d < 7; d++) {
+      weekDates.push(new Date(temp));
+      temp.setDate(temp.getDate() + 1);
+    }
+
+    const weekStart = weekDates[0];
+    const weekEnd = weekDates[6];
+
+    let html = `
+      <div class="month-calendar-grid" style="min-height: auto;">
+        <div class="month-calendar-header-row">
+          <div class="month-calendar-header-cell">SUN</div>
+          <div class="month-calendar-header-cell">MON</div>
+          <div class="month-calendar-header-cell">TUE</div>
+          <div class="month-calendar-header-cell">WED</div>
+          <div class="month-calendar-header-cell">THU</div>
+          <div class="month-calendar-header-cell">FRI</div>
+          <div class="month-calendar-header-cell">SAT</div>
+        </div>
+        <div class="month-calendar-weeks-container">
+    `;
+
+    let bgHtml = '';
+    weekDates.forEach(d => {
+      const isToday = d.toDateString() === today.toDateString();
+      const dateStr = toISODateString(d);
+
+      const dayTasks = pTasks.filter(t => t.date === dateStr);
+      let taskBadgesHtml = '';
+      dayTasks.forEach(t => {
+        taskBadgesHtml += `
+          <div class="grid-cell-task-pill ${t.task_type}" 
+               onclick="openTaskDetailModal(event, '${t.id}')"
+               title="${t.details || 'Task'}">
+            🧹 ${t.details.substring(0, 10)}
+          </div>
+        `;
+      });
+
+      bgHtml += `
+        <div class="month-calendar-day-cell ${isToday ? 'today' : ''}" data-date="${dateStr}">
+          <span class="day-number">${d.getDate()}</span>
+          <div style="display: flex; flex-direction: column; gap: 2px; margin-top: 4px; overflow: hidden; max-height: 80px;">
+            ${taskBadgesHtml}
+          </div>
+        </div>
+      `;
+    });
+
+    let eventsHtml = '';
+    const weekSpans = [];
+    spansList.forEach(event => {
+      const evStart = new Date(event.startDateStr + 'T00:00:00');
+      const evEnd = new Date(event.endDateStr + 'T00:00:00');
+      evEnd.setDate(evEnd.getDate() - 1);
+
+      if (evStart <= weekEnd && evEnd >= weekStart) {
+        let startCol = Math.max(0, Math.ceil((evStart - weekStart) / (1000 * 60 * 60 * 24)));
+        let endCol = Math.min(6, Math.ceil((evEnd - weekStart) / (1000 * 60 * 60 * 24)));
+        
+        const carryStart = evStart < weekStart;
+        const carryEnd = evEnd > weekEnd;
+
+        weekSpans.push({
+          event,
+          startCol,
+          endCol,
+          carryStart,
+          carryEnd,
+          length: endCol - startCol + 1
+        });
+      }
+    });
+
+    weekSpans.sort((a, b) => a.startCol - b.startCol || b.length - a.length);
+
+    const rows = [];
+    weekSpans.forEach(span => {
+      let rowIndex = 0;
+      while (true) {
+        if (!rows[rowIndex]) {
+          rows[rowIndex] = Array(7).fill(false);
+        }
+        
+        let isSlotFree = true;
+        for (let c = span.startCol; c <= span.endCol; c++) {
+          if (rows[rowIndex][c]) {
+            isSlotFree = false;
+            break;
+          }
+        }
+
+        if (isSlotFree) {
+          for (let c = span.startCol; c <= span.endCol; c++) {
+            rows[rowIndex][c] = true;
+          }
+          span.rowIndex = rowIndex;
+          break;
+        }
+        rowIndex++;
+      }
+    });
+
+    weekSpans.forEach(span => {
+      const ev = span.event;
+      const isEnquiry = ev.isEnquiry;
+      const gridColStart = span.startCol + 1;
+      const gridColEnd = span.endCol + 2;
+      const gridRow = span.rowIndex + 1;
+
+      const onClick = isEnquiry 
+        ? `onclick="openEnquiryPanel(event, '${ev.id}')"`
+        : (ev.type === 'blocked' 
+            ? `onclick="openUnblockModal(event, '${ev.id}')"`
+            : `onclick="openReservationPanel(event, '${ev.id}')"`);
+
+      const tooltipTrigger = `onmouseenter="showMonthEventTooltip(event, '${ev.id}', ${isEnquiry})"`;
+      const carryStartClass = span.carryStart ? 'carry-start' : '';
+      const carryEndClass = span.carryEnd ? 'carry-end' : '';
+
+      const labelName = ev.guestName || 'Blocked';
+      const labelText = span.carryStart 
+        ? `-- ${labelName}` 
+        : (isEnquiry ? `Enquiry: ${labelName}` : labelName);
+
+      const avatarHtml = ev.guestAvatar && !isEnquiry && ev.type !== 'blocked'
+        ? `<img class="guest-avatar" src="${ev.guestAvatar}" />`
+        : '';
+
+      const channelHtml = ev.channelIcon && !isEnquiry && ev.type !== 'blocked'
+        ? `<img class="channel-icon" src="${ev.channelIcon}" />`
+        : '';
+
+      const bgColor = ev.color || '#3b82f6';
+      const borderStyle = isEnquiry ? 'border: 2px dashed #d97706; background-color: rgba(245, 158, 11, 0.95);' : `background-color: ${bgColor};`;
+
+      eventsHtml += `
+        <div class="grid-event-span ${carryStartClass} ${carryEndClass}"
+             style="grid-column: ${gridColStart} / ${gridColEnd}; grid-row: ${gridRow}; ${borderStyle}"
+             ${onClick}
+             ${tooltipTrigger}
+             onmouseleave="hideGlobalTooltip()">
+          ${channelHtml}
+          ${avatarHtml}
+          <span class="event-title">${labelText}</span>
+        </div>
+      `;
+    });
+
+    html += `
+      <div class="month-calendar-week" style="min-height: 200px;">
+        <div class="month-calendar-week-bg">${bgHtml}</div>
+        <div class="month-calendar-events-layer" style="grid-template-rows: repeat(${rows.length || 1}, 28px);">
+          ${eventsHtml}
+        </div>
+      </div>
+    `;
+
+    html += `
+        </div>
+      </div>
+    `;
+
+    pane.innerHTML = html;
+  }
+
+  /* --- Day Schedule View Renderer --- */
+  function renderDaySchedule(pane) {
+    const { bookings: pBookings, enquiries: pEnquiries, tasks: pTasks } = getFilteredEventsForCalendar();
+    const dateStr = selectedDateKey;
+
+    const dateObj = new Date(dateStr + 'T00:00:00');
+    const formattedDate = dateObj.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+
+    const checkIns = pBookings.filter(b => b.start_date === dateStr);
+    const checkOuts = pBookings.filter(b => b.end_date === dateStr);
+    const inHouse = pBookings.filter(b => dateStr > b.start_date && dateStr < b.end_date);
+    const dayTasks = pTasks.filter(t => t.date === dateStr);
+    const dayEnquiries = pEnquiries.filter(eq => eq.start_date === dateStr);
+
+    const getTaskBadgeBg = (type) => {
+      return { 'cleaning': '#10b981', 'maintenance': '#f59e0b', 'payment': '#3b82f6' }[type] || '#8b5cf6';
+    };
+
+    const renderCard = (title, subtitle, badgeText, avatar, onClick, iconHtml = '') => {
+      return `
+        <div class="day-event-card" onclick="${onClick}">
+          <div class="day-event-left">
+            ${avatar ? `<img src="${avatar}" style="width: 36px; height: 36px; border-radius: 50%; object-fit: cover;" />` : (iconHtml || '')}
+            <div>
+              <div class="day-event-title-text">${title}</div>
+              <div class="day-event-subtitle-text">${subtitle}</div>
+            </div>
+          </div>
+          ${badgeText ? `<div class="day-event-right">${badgeText}</div>` : ''}
+        </div>
+      `;
+    };
+
+    let checkInsHtml = '';
+    if (checkIns.length > 0) {
+      checkIns.forEach(b => {
+        checkInsHtml += renderCard(
+          `Check-in: ${b.guestName}`,
+          `Platform: ${b.channelName} | Booking ID: ${b.bookingId}`,
+          `Arrival`,
+          b.guestAvatar,
+          `openReservationPanel(event, '${b.id}')`
+        );
+      });
+    } else {
+      checkInsHtml = '<div class="day-empty-text">No check-ins today</div>';
+    }
+
+    let checkOutsHtml = '';
+    if (checkOuts.length > 0) {
+      checkOuts.forEach(b => {
+        checkOutsHtml += renderCard(
+          `Check-out: ${b.guestName}`,
+          `Platform: ${b.channelName} | Booking ID: ${b.bookingId}`,
+          `Departure`,
+          b.guestAvatar,
+          `openReservationPanel(event, '${b.id}')`
+        );
+      });
+    } else {
+      checkOutsHtml = '<div class="day-empty-text">No check-outs today</div>';
+    }
+
+    let inHouseHtml = '';
+    if (inHouse.length > 0) {
+      inHouse.forEach(b => {
+        inHouseHtml += renderCard(
+          `In-House: ${b.guestName}`,
+          `Platform: ${b.channelName} | Booking ID: ${b.bookingId}`,
+          `Staying`,
+          b.guestAvatar,
+          `openReservationPanel(event, '${b.id}')`
+        );
+      });
+    } else {
+      inHouseHtml = '<div class="day-empty-text">No in-house guests today</div>';
+    }
+
+    let tasksHtml = '';
+    if (dayTasks.length > 0) {
+      dayTasks.forEach(t => {
+        const iconHtml = `
+          <div style="background-color: ${getTaskBadgeBg(t.task_type)}; color: white; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px;">
+            🧹
+          </div>
+        `;
+        tasksHtml += renderCard(
+          t.details || 'Task',
+          `Assigned to: ${t.assigned_to || 'Not assigned'} | Status: ${t.completed ? 'Completed' : 'Pending'}`,
+          t.task_type.toUpperCase(),
+          null,
+          `openTaskDetailModal(event, '${t.id}')`,
+          iconHtml
+        );
+      });
+    } else {
+      tasksHtml = '<div class="day-empty-text">No tasks scheduled today</div>';
+    }
+
+    let enquiriesHtml = '';
+    if (dayEnquiries.length > 0) {
+      dayEnquiries.forEach(eq => {
+        enquiriesHtml += renderCard(
+          `Enquiry: ${eq.guestName}`,
+          `Email: ${eq.email} | Guests: ${eq.adults}`,
+          `Enquiry`,
+          eq.guestAvatar,
+          `openEnquiryPanel(event, '${eq.id}')`
+        );
+      });
+    } else {
+      enquiriesHtml = '<div class="day-empty-text">No active enquiries starting today</div>';
+    }
+
+    pane.innerHTML = `
+      <div class="day-view-container">
+        <div class="day-view-header">
+          <div class="day-view-title">${formattedDate}</div>
+        </div>
+        
+        <div class="day-section">
+          <div class="day-section-title">🌅 Check-Ins</div>
+          ${checkInsHtml}
+        </div>
+        
+        <div class="day-section">
+          <div class="day-section-title">🌇 Check-Outs</div>
+          ${checkOutsHtml}
+        </div>
+        
+        <div class="day-section">
+          <div class="day-section-title">🏡 In-House Guests</div>
+          ${inHouseHtml}
+        </div>
+        
+        <div class="day-section">
+          <div class="day-section-title">📋 Tasks</div>
+          ${tasksHtml}
+        </div>
+        
+        <div class="day-section">
+          <div class="day-section-title">💬 Enquiries</div>
+          ${enquiriesHtml}
+        </div>
+      </div>
+    `;
+  }
+
+  function openTaskDetailModal(event, taskId) {
+    if (event) event.stopPropagation();
+    const tId = taskId.replace('task-', '');
+    const t = tasks.find(x => x.id === taskId || x.id === tId || x.id === `task-${tId}`);
+    if (t) {
+      alert(`Task details:\n\nType: ${t.task_type}\nDetails: ${t.details}\nAssigned to: ${t.assigned_to || 'None'}\nPhone: ${t.phone || 'None'}\nStatus: ${t.completed ? 'Completed' : 'Pending'}`);
+    }
+  }
+
+  /* --- Enquiry Side Panel Handler --- */
+  function openEnquiryPanel(event, enquiryId) {
+    if (event) event.stopPropagation();
+    hideGlobalTooltip();
+    
+    const eq = enquiries.find(x => x.id === enquiryId);
+    if (!eq) return;
+    
+    const sidebar = document.getElementById('reservationSidebar');
+    const backdrop = document.getElementById('overlayBackdrop');
+    const contentDiv = document.getElementById('sidebarContent');
+    
+    const titleSpan = sidebar.querySelector('.sidebar-header-left span');
+    if (titleSpan) titleSpan.textContent = 'Enquiry details';
+    
+    document.body.classList.add('reservation-panel-open');
+    sidebar.classList.add('open');
+    backdrop.classList.add('open');
+    
+    const startObj = new Date(eq.start_date + 'T00:00:00');
+    const endObj = new Date(eq.end_date + 'T00:00:00');
+    const nights = Math.ceil((endObj - startObj) / (1000 * 60 * 60 * 24));
+    
+    const formattedStart = startObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    const formattedEnd = endObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    
+    contentDiv.innerHTML = `
+      <div style="padding: 24px;">
+        <div style="display: flex; gap: 20px; align-items: center; margin-bottom: 24px; background: #fff; padding: 16px; border-radius: 10px; border: 1px solid #e5e7eb;">
+          <img src="${eq.guestAvatar}" style="width: 64px; height: 64px; border-radius: 50%; object-fit: cover;" />
+          <div>
+            <h3 style="margin: 0; font-size: 20px; font-weight: 700; color: #111827;">${eq.guestName}</h3>
+            <p style="margin: 4px 0 0; font-size: 14px; color: #6b7280;">Enquiry Guest</p>
+          </div>
+        </div>
+        
+        <div class="row g-4">
+          <div class="col-md-6">
+            <div class="detail-group">
+              <div class="detail-label">Dates</div>
+              <div class="detail-value">${formattedStart} - ${formattedEnd} (${nights} nights)</div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="detail-group">
+              <div class="detail-label">Guests</div>
+              <div class="detail-value">${eq.adults} Adults ${eq.children ? `, ${eq.children} Children` : ''}</div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="detail-group">
+              <div class="detail-label">Email</div>
+              <div class="detail-value">${eq.email || '-'}</div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="detail-group">
+              <div class="detail-label">Phone</div>
+              <div class="detail-value">${eq.phone || '-'}</div>
+            </div>
+          </div>
+          <div class="col-12">
+            <div class="detail-group">
+              <div class="detail-label">Notes for Host</div>
+              <div class="detail-value" style="font-weight: 400; font-style: italic; background: #f9fafb; padding: 12px; border-radius: 6px; border: 1px solid #e5e7eb;">
+                ${eq.notes || 'No notes provided'}
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div style="margin-top: 32px; display: flex; gap: 12px;">
+          <a href="/booking/create/?enquiry_id=${eq.unique_id}" class="btn btn-primary" style="font-weight: 600; padding: 8px 16px; border-radius: 6px;">
+            Approve & Book
+          </a>
+          <button onclick="archiveEnquiry('${eq.unique_id}')" class="btn btn-outline-danger" style="font-weight: 600; padding: 8px 16px; border-radius: 6px;">
+            Archive Enquiry
+          </button>
+        </div>
+      </div>
+    `;
+  }
+
+  function archiveEnquiry(uniqueId) {
+    if (!confirm('Are you sure you want to archive this enquiry?')) return;
+    fetch(`/booking/enquiry/archive/${uniqueId}/`, {
+      method: 'POST',
+      headers: {
+        'X-CSRFToken': '{{ csrf_token }}',
+        'Content-Type': 'application/json'
+      }
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        closeReservationPanel();
+        refreshData();
+      } else {
+        alert('Failed to archive: ' + (data.error || 'Unknown error'));
+      }
+    });
+  }
+
+  /* --- Enquiry Tooltip Display --- */
+  function showMonthEventTooltip(event, id, isEnquiry) {
+    if (!isEnquiry) {
+      showGlobalTooltip(event, id);
+      return;
+    }
+    
+    const eq = enquiries.find(x => x.id == id);
+    if (!eq) return;
+    
+    const tooltip = document.getElementById('globalTooltip');
+    setTooltipVariant(tooltip, 'booking');
+    
+    const displayEndDate = new Date(eq.endDateStr + 'T00:00:00');
+    displayEndDate.setDate(displayEndDate.getDate() - 1);
+    const nights = Math.ceil((displayEndDate - eq.startDate) / (1000 * 60 * 60 * 24));
+    
+    tooltip.innerHTML = `
+      <div class="booking-tooltip-card">
+        <div class="booking-tooltip-avatar-wrap">
+          <img src="${eq.guestAvatar}" alt="Guest" class="booking-tooltip-avatar">
+        </div>
+        <div class="booking-tooltip-info">
+          <div class="booking-tooltip-name">Enquiry: ${eq.guestName}</div>
+          <div class="booking-tooltip-date">${fmtDate(eq.startDate)} - ${fmtDate(displayEndDate)}</div>
+          <div class="booking-tooltip-meta">
+            <span class="booking-tooltip-meta-item">
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                 <path d="M21 12.79A9 9 0 1 1 11.21 3C11.5 3 11.64 3.35 11.43 3.56A7 7 0 0 0 20.44 12.57C20.65 12.36 21 12.5 21 12.79Z" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+              </svg>
+              ${nights} nights
+            </span>
+          </div>
+          <div class="booking-tooltip-meta">
+            <span class="booking-tooltip-meta-item">
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M20 21V19C20 16.791 18.209 15 16 15H8C5.791 15 4 16.791 4 19V21" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+                <circle cx="12" cy="7" r="4" stroke-width="1.8"></circle>
+              </svg>
+              ${eq.adults || 1} guests
+            </span>
+          </div>
+          <div class="booking-tooltip-line">Email: <strong>${eq.email || '-'}</strong></div>
+          <div class="booking-tooltip-line">Phone: <strong>${eq.phone || '-'}</strong></div>
+          <div class="booking-tooltip-line">Notes: <i>${eq.notes || 'None'}</i></div>
+        </div>
+      </div>
+    `;
+    tooltip.style.width = '';
+    tooltip.style.maxWidth = '';
+    tooltip.style.display = 'block';
+    positionTooltip(event, tooltip);
+  }
+
   function refreshView() {
+    if (!selectedWeekStart) {
+      const today = new Date();
+      const dayOfWeek = today.getDay();
+      const sunday = new Date(today);
+      sunday.setDate(today.getDate() - dayOfWeek);
+      selectedWeekStart = sunday;
+    }
+    if (!selectedDateKey) {
+      selectedDateKey = toISODateString(new Date());
+    }
+
     updateMonthDisplay();
     generateDates();
-    if (selectedDateKey && !allDates.some(d => toISODateString(d) === selectedDateKey)) {
-      selectedDateKey = null;
-      hasManualDateSelection = false;
-    }
+    
     syncTimelineDimensions();
-    renderDatesHeader();
     renderProperties(filteredProperties);
-    renderDatesGrid(filteredProperties);
+    renderActiveView();
     fetchBookings();
   }
 
@@ -4046,19 +5164,57 @@
   }
 
   function goToPrevMonth() {
-    currentDisplayDate.setMonth(currentDisplayDate.getMonth() - 1, 1);
-    refreshView();
+    if (currentViewMode === 'month' || currentViewMode === 'timeline') {
+      currentDisplayDate.setMonth(currentDisplayDate.getMonth() - 1, 1);
+      refreshView();
+    } else if (currentViewMode === 'week') {
+      const d = new Date(selectedWeekStart);
+      d.setDate(d.getDate() - 7);
+      selectedWeekStart = d;
+      currentDisplayDate = new Date(d);
+      refreshView();
+    } else if (currentViewMode === 'day') {
+      const [y, m, dayNum] = selectedDateKey.split('-').map(Number);
+      const d = new Date(y, m - 1, dayNum - 1);
+      selectedDateKey = toISODateString(d);
+      currentDisplayDate = new Date(d);
+      refreshView();
+    }
   }
 
   function goToNextMonth() {
-    currentDisplayDate.setMonth(currentDisplayDate.getMonth() + 1, 1);
-    refreshView();
+    if (currentViewMode === 'month' || currentViewMode === 'timeline') {
+      currentDisplayDate.setMonth(currentDisplayDate.getMonth() + 1, 1);
+      refreshView();
+    } else if (currentViewMode === 'week') {
+      const d = new Date(selectedWeekStart);
+      d.setDate(d.getDate() + 7);
+      selectedWeekStart = d;
+      currentDisplayDate = new Date(d);
+      refreshView();
+    } else if (currentViewMode === 'day') {
+      const [y, m, dayNum] = selectedDateKey.split('-').map(Number);
+      const d = new Date(y, m - 1, dayNum + 1);
+      selectedDateKey = toISODateString(d);
+      currentDisplayDate = new Date(d);
+      refreshView();
+    }
   }
 
   function goToToday() {
     currentDisplayDate = new Date();
+    selectedDateKey = toISODateString(currentDisplayDate);
+
+    const today = new Date();
+    const dayOfWeek = today.getDay();
+    const sunday = new Date(today);
+    sunday.setDate(today.getDate() - dayOfWeek);
+    selectedWeekStart = sunday;
+
     refreshView();
-    scrollToToday();
+    if (currentViewMode === 'timeline') {
+      scrollToToday();
+    }
   }
 
   function scrollToToday() {
@@ -4155,16 +5311,56 @@
 
   function init() {
     currentDisplayDate = new Date();
+    
+    // Bind view switcher
+    const viewSwitcher = document.getElementById('calendarViewSwitcher');
+    const viewDropdownBtn = document.getElementById('viewDropdownBtn');
+    if (viewSwitcher) {
+      viewSwitcher.querySelectorAll('.dropdown-menu .dropdown-item').forEach(item => {
+        item.addEventListener('click', function (e) {
+          e.preventDefault();
+          viewSwitcher.querySelectorAll('.dropdown-menu .dropdown-item').forEach(a => a.classList.remove('active'));
+          this.classList.add('active');
+          viewDropdownBtn.firstChild.textContent = this.textContent.trim();
+          currentViewMode = this.dataset.view;
+          refreshView();
+        });
+      });
+    }
+
+    // Bind type filter dropdown
+    const typeFilter = document.getElementById('calendarTypeFilter');
+    if (typeFilter) {
+      typeFilter.addEventListener('click', function (event) {
+        const item = event.target.closest('a');
+        if (!item) return;
+        event.preventDefault();
+        
+        typeFilter.querySelectorAll('a').forEach(a => a.classList.remove('active'));
+        item.classList.add('active');
+        
+        const filterBtn = document.getElementById('calendarTypeFilterBtn');
+        if (filterBtn) {
+          filterBtn.textContent = 'Show: ' + item.textContent.trim();
+        }
+        
+        calendarFilterType = item.dataset.value;
+        renderActiveView();
+      });
+    }
+
     renderProperties();
     refreshView();
     bindPropertyDropdownFloating();
 
     // Scroll to today initially (instant)
     setTimeout(() => {
-      const container = document.getElementById('datesContainer');
-      const todayEl = container.querySelector('.today-column');
-      if (todayEl) {
-        todayEl.scrollIntoView({ inline: 'center', block: 'nearest' });
+      if (currentViewMode === 'timeline') {
+        const container = document.getElementById('datesContainer');
+        const todayEl = container.querySelector('.today-column');
+        if (todayEl) {
+          todayEl.scrollIntoView({ inline: 'center', block: 'nearest' });
+        }
       }
     }, 100);
 
