@@ -1,4 +1,5 @@
 import os
+import json
 import random
 import string
 from email.mime.image import MIMEImage
@@ -14,10 +15,91 @@ from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.core.mail import send_mail, EmailMultiAlternatives
 from django.template.loader import render_to_string
+from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST, require_http_methods
 from django.contrib.staticfiles import finders
 from .models import MyUser, UserDocument, CoHost
 from .utils import get_effective_user
+
+# Firebase Admin SDK (lazy-initialized)
+_firebase_app = None
+
+def _get_firebase_app():
+    """Initialize and return the Firebase Admin app (lazy, singleton)."""
+    global _firebase_app
+    if _firebase_app is not None:
+        return _firebase_app
+
+    private_key = settings.FIREBASE_ADMIN_PRIVATE_KEY
+    client_email = settings.FIREBASE_ADMIN_CLIENT_EMAIL
+    project_id = settings.FIREBASE_PROJECT_ID
+
+    if not all([private_key, client_email, project_id]):
+        return None
+
+    import firebase_admin
+    from firebase_admin import credentials
+    cred = credentials.Certificate({
+        "type": "service_account",
+        "project_id": project_id,
+        "private_key": private_key.replace('\\n', '\n'),
+        "client_email": client_email,
+        "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+        "token_uri": "https://oauth2.googleapis.com/token",
+        "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+    })
+    _firebase_app = firebase_admin.initialize_app(cred)
+    return _firebase_app
+
+
+@csrf_exempt
+@require_POST
+def firebase_auth_view(request):
+    """
+    Receive a Firebase ID token from the frontend, verify it,
+    then log in or create the user.
+    """
+    try:
+        app = _get_firebase_app()
+        if not app:
+            return JsonResponse({'error': 'Firebase not configured on server. Add credentials to .env'}, status=501)
+
+        data = json.loads(request.body)
+        id_token = data.get('idToken')
+        if not id_token:
+            return JsonResponse({'error': 'Missing idToken'}, status=400)
+
+        from firebase_admin import auth as firebase_auth
+        decoded = firebase_auth.verify_id_token(id_token)
+    except Exception as e:
+        return JsonResponse({'error': f'Token verification failed: {e}'}, status=403)
+
+    firebase_uid = decoded.get('uid', '')
+    email = decoded.get('email', '')
+    name = decoded.get('name', '') or decoded.get('display_name', '')
+
+    if not email:
+        return JsonResponse({'error': 'No email from Google account'}, status=400)
+
+    parts = name.split(' ', 1)
+    first_name = parts[0] if parts else ''
+    last_name = parts[1] if len(parts) > 1 else ''
+
+    user = MyUser.objects.filter(email=email).first()
+    if not user:
+        user = MyUser.objects.create_user(
+            username=email,
+            email=email,
+        )
+        user.first_name = first_name
+        user.last_name = last_name
+        user.is_active = True
+        user.save()
+
+    user.backend = 'accounts.backends.EmailOrUsernameBackend'
+    auth_login(request, user)
+
+    return JsonResponse({'success': True, 'redirect': str(reverse_lazy('dashboard'))})
 
 
 # ─────────────────────────────────────────────
@@ -31,6 +113,15 @@ class CustomLoginView(LoginView):
         context = super().get_context_data(**kwargs)
         # Default to login mode; ?mode=signup shows signup view
         context['show_signup'] = self.request.GET.get('mode') == 'signup'
+        # Pass Firebase config to template for Google sign-in
+        context['firebase_api_key'] = settings.FIREBASE_API_KEY
+        context['firebase_auth_domain'] = settings.FIREBASE_AUTH_DOMAIN
+        context['firebase_project_id'] = settings.FIREBASE_PROJECT_ID
+        context['firebase_storage_bucket'] = settings.FIREBASE_STORAGE_BUCKET
+        context['firebase_messaging_sender_id'] = settings.FIREBASE_MESSAGING_SENDER_ID
+        context['firebase_app_id'] = settings.FIREBASE_APP_ID
+        context['firebase_measurement_id'] = settings.FIREBASE_MEASUREMENT_ID
+        context['firebase_configured'] = bool(settings.FIREBASE_API_KEY)
         return context
 
     def form_valid(self, form):

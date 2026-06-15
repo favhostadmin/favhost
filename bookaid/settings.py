@@ -75,7 +75,6 @@ AUTHENTICATION_BACKENDS = ['accounts.backends.EmailOrUsernameBackend']
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -120,9 +119,10 @@ WSGI_APPLICATION = 'bookaid.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': os.getenv('DB_ENGINE', 'django.db.backends.postgresql_psycopg2'),
-        'NAME': os.getenv('DB_NAME'),
-        'USER': os.getenv('DB_USER'),
-        'PASSWORD': os.getenv('DB_PASSWORD'),
+        'NAME': os.getenv('DB_NAME', 'favhost'),
+        'USER': os.getenv('DB_USER', 'postgres'),
+        'PASSWORD': os.getenv('DB_PASSWORD', 'postgres'),
+        # 'HOST': 'localhost',
         'HOST': os.getenv('DB_HOST', '127.0.0.1'),
         'PORT': os.getenv('DB_PORT', '5432'),
     }
@@ -199,14 +199,6 @@ SESSION_EXPIRE_AT_BROWSER_CLOSE = False
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_DIRS = [ BASE_DIR / 'static' ]
-STORAGES = {
-    'default': {
-        'BACKEND': 'django.core.files.storage.FileSystemStorage',
-    },
-    'staticfiles': {
-        'BACKEND': 'whitenoise.storage.CompressedStaticFilesStorage',
-    },
-}
 
 MEDIA_ROOT = BASE_DIR / 'media'
 MEDIA_URL = '/media/'
@@ -226,6 +218,17 @@ STRIPE_SECRET_KEY = os.getenv('STRIPE_SECRET_KEY', '')
 STRIPE_PRICE_ID = os.getenv('STRIPE_PRICE_ID', '')
 STRIPE_WEBHOOK_SECRET = os.getenv('STRIPE_WEBHOOK_SECRET', '')
 DOMAIN_URL = os.getenv('DOMAIN_URL', 'http://localhost:8000')
+
+# --- Firebase Configuration ---
+FIREBASE_API_KEY = os.getenv('FIREBASE_API_KEY', '')
+FIREBASE_AUTH_DOMAIN = os.getenv('FIREBASE_AUTH_DOMAIN', '')
+FIREBASE_PROJECT_ID = os.getenv('FIREBASE_PROJECT_ID', '')
+FIREBASE_STORAGE_BUCKET = os.getenv('FIREBASE_STORAGE_BUCKET', '')
+FIREBASE_MESSAGING_SENDER_ID = os.getenv('FIREBASE_MESSAGING_SENDER_ID', '')
+FIREBASE_APP_ID = os.getenv('FIREBASE_APP_ID', '')
+FIREBASE_MEASUREMENT_ID = os.getenv('FIREBASE_MEASUREMENT_ID', '')
+FIREBASE_ADMIN_PRIVATE_KEY = os.getenv('FIREBASE_ADMIN_PRIVATE_KEY', '')
+FIREBASE_ADMIN_CLIENT_EMAIL = os.getenv('FIREBASE_ADMIN_CLIENT_EMAIL', '')
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field

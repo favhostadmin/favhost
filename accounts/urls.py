@@ -12,10 +12,12 @@ from .views import (
     delete_document_view,
     update_social_url,
     manage_cohost_view,
+    firebase_auth_view,
 )
 
 urlpatterns = [
     path('login/', CustomLoginView.as_view(), name='login'),
+    path('firebase-auth/', firebase_auth_view, name='firebase_auth'),
     path('logout/', LogoutView.as_view(), name='logout'),
     path('profile/', profile_view, name='profile'),
     path('profile/edit/', profile_edit_view, name='profile_edit'),
