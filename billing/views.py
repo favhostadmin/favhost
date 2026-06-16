@@ -63,11 +63,9 @@ def create_checkout_session(request):
     For first-time subscribers (or if no saved card exists): falls back
     to the standard Stripe Checkout hosted page.
     """
-    success_url = (
-        request.build_absolute_uri(reverse('billing:checkout_success'))
-        + '?session_id={CHECKOUT_SESSION_ID}'
-    )
-    cancel_url = request.build_absolute_uri(reverse('billing:checkout_cancel'))
+    domain = settings.DOMAIN_URL.rstrip('/')
+    success_url = f"{domain}{reverse('billing:checkout_success')}?session_id={{CHECKOUT_SESSION_ID}}"
+    cancel_url = f"{domain}{reverse('billing:checkout_cancel')}"
 
     try:
         # Resolve existing Stripe customer, if any
@@ -184,7 +182,7 @@ def customer_portal(request):
 
         portal_session = stripe.billing_portal.Session.create(
             customer=sc.stripe_customer_id,
-            return_url=request.build_absolute_uri(reverse('billing:pricing')),
+            return_url=f"{settings.DOMAIN_URL.rstrip('/')}{reverse('billing:pricing')}",
         )
         return redirect(portal_session.url, code=303)
 
