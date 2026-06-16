@@ -113,11 +113,20 @@ class HostDashboardAPIView(LoginRequiredMixin, TemplateView):
         ).exclude(status='cancelled').order_by('-created_at')
 
         current_year = timezone.now().year
+
+        # 1) Determine selected year (query param ?year=YYYY, fallback to current year)
+        selected_year_str = self.request.GET.get("year")
+        try:
+            selected_year = int(selected_year_str) if selected_year_str else current_year
+        except ValueError:
+            selected_year = current_year
+
         gross_qs = Booking.objects.filter(
-            property__created_by=self.request.user,
-            created_at__year=current_year
+            property__created_by__in=get_visible_user_ids(self.request.user),
+            check_in_date__year=selected_year
         ).exclude(status='cancelled')
         context['gross_bookings_amount'] = gross_qs.aggregate(total=Sum('price'))['total'] or 0
+        context['gross_bookings_count'] = gross_qs.aggregate(count=Count('id'))['count'] or 0
         channel_data = gross_qs.values('channel__name').annotate(
             count=Count('id'),
             total=Sum('price')
@@ -130,14 +139,6 @@ class HostDashboardAPIView(LoginRequiredMixin, TemplateView):
         context['channel_amounts_json'] = mark_safe(json.dumps([float(c['total'] or 0) for c in channel_data]))
 
         # --- Earning monthly for a year ---
-
-        # 1) Determine selected year (query param ?year=YYYY, fallback to current year)
-        selected_year_str = self.request.GET.get("year")
-
-        try:
-            selected_year = int(selected_year_str) if selected_year_str else current_year
-        except ValueError:
-            selected_year = current_year
         
         # print( 'current_year==>',current_year)
         # print( 'selected_year==>',selected_year)
