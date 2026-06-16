@@ -965,7 +965,7 @@
                               {% for label in channel_labels %}
                               <div class="laptop-legend-text-size" style="display: flex; align-items: center; gap: 6px; font-size: clamp(11px, 3vw, 13px);">
                                   <span style="width: 10px; height: 10px; flex-shrink: 0; background: {% cycle '#FF5A5F' '#003580' '#111827' '#009DDF' '#E91E63' '#9C27B0' '#FF9800' '#00BCD4' %}"></span>
-                                  <span style="color: #4b5563; font-weight: 500; word-break: break-word;">{{ label }}</span>
+                                  <span class="legend-label" style="color: #4b5563; font-weight: 500; word-break: break-word;">{{ label }}</span>
                               </div>
                               {% endfor %}
                           </div>
@@ -1283,12 +1283,10 @@
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
                 ctx.fillStyle = '#4b5563';
-                ctx.font = `500 ${isLaptop ? 15 : 13}px system-ui, -apple-system, sans-serif`;
-                ctx.fillText('Gross Bookings', centerX, centerY - (isLaptop ? 22 : 18));
-                ctx.font = `${isLaptop ? 14 : 12}px system-ui, -apple-system, sans-serif`;
-                ctx.fillText('{{ current_year }}', centerX, centerY + 2);
                 ctx.font = `500 ${isLaptop ? 16 : 14}px system-ui, -apple-system, sans-serif`;
-                ctx.fillText('${{ gross_bookings_amount|floatformat:2 }}*', centerX, centerY + (isLaptop ? 26 : 22));
+                ctx.fillText('Bookings', centerX, centerY - (isLaptop ? 12 : 10));
+                ctx.font = `500 ${isLaptop ? 18 : 16}px system-ui, -apple-system, sans-serif`;
+                ctx.fillText('{{ gross_bookings_count }}', centerX, centerY + (isLaptop ? 10 : 8));
                 ctx.restore();
             }
         };
@@ -1300,6 +1298,9 @@
                 const labels = {{ channel_labels_json }};
                 const counts = {{ channel_counts_json }};
                 const amounts = {{ channel_amounts_json }};
+                document.querySelectorAll('.legend-label').forEach((el, i) => {
+                    el.textContent = `${labels[i]} (${counts[i]})`;
+                });
                 new Chart(ctx, {
                     type: 'doughnut',
                     data: {

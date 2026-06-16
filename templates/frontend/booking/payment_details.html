@@ -1962,7 +1962,8 @@
         function updateIconFromList() {
             const btn = document.querySelector(`.payment-attach-btn[data-payment-id="${activePaymentId}"]`);
             if (!btn) return;
-            const count = attachmentsList.querySelectorAll('[id^="att-row-"]').length;
+            const rows = attachmentsList.querySelectorAll('[id^="att-row-"]');
+            const count = rows.length;
             const svg = btn.querySelector('svg');
             let badge = btn.querySelector('span');
             if (count > 0) {
@@ -1977,6 +1978,13 @@
                 svg.querySelector('path').setAttribute('stroke', '#9ca3af');
                 if (badge) badge.remove();
             }
+            // Sync data-attachments so reopening the modal shows current state
+            const attachments = Array.from(rows).map(row => {
+                const link = row.querySelector('a');
+                const delBtn = row.querySelector('.del-att-btn');
+                return { id: delBtn.dataset.attId, url: link.href, name: link.textContent };
+            });
+            btn.dataset.attachments = JSON.stringify(attachments);
         }
 
         const closeModal = () => { modal.style.display = 'none'; };
