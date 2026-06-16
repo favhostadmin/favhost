@@ -124,7 +124,7 @@ class HostDashboardAPIView(LoginRequiredMixin, TemplateView):
         gross_qs = Booking.objects.filter(
             property__created_by__in=get_visible_user_ids(self.request.user),
             check_in_date__year=selected_year
-        ).exclude(status='cancelled')
+        )
         context['gross_bookings_amount'] = gross_qs.aggregate(total=Sum('price'))['total'] or 0
         context['gross_bookings_count'] = gross_qs.aggregate(count=Count('id'))['count'] or 0
         channel_data = gross_qs.values('channel__name').annotate(
