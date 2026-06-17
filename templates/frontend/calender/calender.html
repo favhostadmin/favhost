@@ -6,6 +6,7 @@
 <link href="{% static 'css/host_dashboard.css' %}" rel="stylesheet">
 <link href="{% static 'css/task/listing.css' %}" rel="stylesheet">
 <link href="{% static 'css/booking/list.css' %}" rel="stylesheet">
+<link href="{% static 'css/calender/list.css' %}" rel="stylesheet">
 <style>
   .date-cell {
     position: relative;
@@ -164,7 +165,7 @@
     --boundary-end-adjust: 0px;
     left: calc((var(--cell-width) * var(--start)) + var(--edge-gap-left) + (var(--span-gap) / 2) - var(--boundary-start-adjust));
     width: calc((var(--cell-width) * var(--len)) - (var(--edge-gap-left) + var(--edge-gap-right) + var(--span-gap)) + var(--boundary-start-adjust) + var(--boundary-end-adjust));
-    border-radius: 8px;
+    border-radius: 10px;
     pointer-events: auto;
     display: flex;
     align-items: center;
@@ -186,13 +187,13 @@
   }
 
   .booking-span-block.rounded-left {
-    border-top-left-radius: 8px;
-    border-bottom-left-radius: 8px;
+    border-top-left-radius: 10px;
+    border-bottom-left-radius: 10px;
   }
 
   .booking-span-block.rounded-right {
-    border-top-right-radius: 8px;
-    border-bottom-right-radius: 8px;
+    border-top-right-radius: 10px;
+    border-bottom-right-radius: 10px;
   }
 
   .booking-segment:hover {
@@ -203,18 +204,18 @@
     width: auto;
     min-width: max-content;
     max-width: none;
-    border-radius: 8px;
+    border-radius: 10px;
   }
 
   /* Rounded ends */
   .booking-segment.rounded-left {
-    border-top-left-radius: 8px;
-    border-bottom-left-radius: 8px;
+    border-top-left-radius: 10px;
+    border-bottom-left-radius: 10px;
   }
 
   .booking-segment.rounded-right {
-    border-top-right-radius: 8px;
-    border-bottom-right-radius: 8px;
+    border-top-right-radius: 10px;
+    border-bottom-right-radius: 10px;
   }
 
   /* Position variants */
@@ -2060,21 +2061,9 @@
     border-left: 4px solid #3b82f6 !important;
     font-weight: 600;
   }
-  .property-event-badge {
-    background-color: #3b82f6;
-    color: white;
-    border-radius: 999px;
+
+  .property-name {
     font-size: 11px;
-    font-weight: 700;
-    padding: 2px 8px;
-    min-width: 18px;
-    height: 18px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    line-height: 1;
-    margin-left: auto;
-    margin-right: 6px;
   }
 
   /* --- Month/Week Grid Calendar Styles --- */
@@ -2255,7 +2244,7 @@
   .grid-cell-task-pill {
     background-color: #10b981;
     color: white;
-    border-radius: 4px;
+    border-radius: 6px;
     padding: 1px 6px;
     font-size: 10px;
     font-weight: 700;
@@ -2278,83 +2267,183 @@
     background-color: #8b5cf6;
   }
 
-  /* --- Day Schedule View Styles --- */
-  .day-view-container {
-    width: 100%;
-    max-width: 800px;
-    margin: 0 auto;
-    background: #ffffff;
-    border-radius: 12px;
-    border: 1px solid #e5e7eb;
-    padding: 24px;
-    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
-  }
-  .day-view-header {
-    border-bottom: 2px solid #f3f4f6;
-    padding-bottom: 16px;
-    margin-bottom: 20px;
+  /* --- Day Schedule View Styles (Google Calendar Style) --- */
+  .gcal-day-view {
     display: flex;
-    justify-content: space-between;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+    background: #ffffff;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    overflow: hidden;
+  }
+  .gcal-day-topbar {
+    display: flex;
     align-items: center;
+    border-bottom: 1px solid #e0e0e0;
+    background: #fff;
+    flex-shrink: 0;
   }
-  .day-view-title {
-    font-size: 22px;
+  .gcal-day-gutter-header {
+    width: 64px;
+    flex-shrink: 0;
+    border-right: 1px solid #e0e0e0;
+    height: 100%;
+  }
+  .gcal-day-col-header {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 0 8px;
+    min-width: 0;
+  }
+  .gcal-day-weekday {
+    font-size: 11px;
+    font-weight: 600;
+    color: #70757a;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 4px;
+  }
+  .gcal-day-num {
+    font-size: 32px;
+    font-weight: 400;
+    color: #3c4043;
+    line-height: 1;
+    width: 46px;
+    height: 46px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: background 0.15s;
+  }
+  .gcal-day-num.gcal-today {
+    background: #1a73e8;
+    color: #fff;
     font-weight: 700;
-    color: #111827;
   }
-  .day-section {
-    margin-bottom: 24px;
+  .gcal-day-scroll-area {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    position: relative;
+    scrollbar-width: thin;
+    scrollbar-color: #dadce0 transparent;
   }
-  .day-section-title {
-    font-size: 14px;
+  .gcal-day-scroll-area::-webkit-scrollbar { width: 6px; }
+  .gcal-day-scroll-area::-webkit-scrollbar-thumb { background: #dadce0; border-radius: 3px; }
+  .gcal-day-grid {
+    display: flex;
+    position: relative;
+    min-height: 1440px; /* 24 hours x 60px */
+  }
+  .gcal-time-gutter {
+    width: 64px;
+    flex-shrink: 0;
+    position: relative;
+    border-right: 1px solid #e0e0e0;
+  }
+  .gcal-time-label {
+    position: absolute;
+    right: 8px;
+    font-size: 10px;
+    font-weight: 500;
+    color: #70757a;
+    line-height: 1;
+    transform: translateY(-50%);
+    white-space: nowrap;
+    user-select: none;
+  }
+  .gcal-day-col {
+    flex: 1;
+    position: relative;
+    border-left: none;
+  }
+  .gcal-hour-line {
+    position: absolute;
+    left: 0;
+    right: 0;
+    border-top: 1px solid #f0f0f0;
+    pointer-events: none;
+  }
+  .gcal-hour-line.major {
+    border-top-color: #e0e0e0;
+  }
+  .gcal-event-block {
+    position: absolute;
+    left: 4px;
+    right: 4px;
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 4px 12px;
+    cursor: pointer;
+    overflow: hidden;
+    min-height: 22px;
+    transition: filter 0.15s, box-shadow 0.15s;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.18);
+  }
+  .gcal-event-block:hover {
+    filter: brightness(1.07);
+    box-shadow: 0 3px 8px rgba(0,0,0,0.22);
+    z-index: 10;
+  }
+  .gcal-event-title {
+    font-size: 12px;
     font-weight: 700;
-    color: #4b5563;
+    color: #fff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .gcal-event-sub {
+    font-size: 11px;
+    color: rgba(255,255,255,0.85);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-top: 1px;
+  }
+  .gcal-now-line {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: #ea4335;
+    z-index: 5;
+    pointer-events: none;
+  }
+  .gcal-now-dot {
+    position: absolute;
+    left: -5px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #ea4335;
+  }
+  .gcal-section-label {
+    position: absolute;
+    left: 4px;
+    right: 4px;
+    font-size: 10px;
+    font-weight: 700;
+    color: #70757a;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    margin-bottom: 12px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
+    user-select: none;
+    pointer-events: none;
   }
-  .day-event-card {
-    display: flex;
-    align-items: center;
-    padding: 14px 18px;
-    border: 1px solid #e5e7eb;
-    border-radius: 10px;
-    margin-bottom: 10px;
-    background: #ffffff;
-    transition: border-color 0.15s, box-shadow 0.15s;
-    cursor: pointer;
-  }
-  .day-event-card:hover {
-    border-color: #d1d5db;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.03);
-  }
-  .day-event-left {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    flex: 1;
-  }
-  .day-event-right {
-    font-size: 13px;
-    font-weight: 600;
-    color: #4b5563;
-    background: #f3f4f6;
-    padding: 4px 10px;
-    border-radius: 9999px;
-  }
-  .day-event-title-text {
-    font-size: 15px;
-    font-weight: 600;
-    color: #111827;
-  }
-  .day-event-subtitle-text {
-    font-size: 13px;
-    color: #6b7280;
-    margin-top: 2px;
-  }
+  /* Legacy classes kept for compatibility */
+  .day-view-container { display: none; }
   .day-empty-text {
     font-size: 13px;
     color: #9ca3af;
@@ -2362,8 +2451,67 @@
     padding: 8px 0;
   }
 
+  .list-view-pane {
+    scrollbar-width: thin;
+  }
+  .list-view-pane::-webkit-scrollbar {
+    width: 8px;
+  }
+  .list-view-pane::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .list-view-pane::-webkit-scrollbar-thumb {
+    background: #d1d5db;
+    border-radius: 4px;
+  }
+
+  @media (max-width: 992px) {
+    .list-view-pane {
+      padding: 16px 2% !important;
+    }
+  }
+
   body {
     overflow: hidden;
+  }
+
+  /* Color Legend for day columns */
+  .cal-color-legend {
+    position: absolute;
+    top: 10px;
+    right: 16px;
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: #ffffff;
+    padding: 8px 18px;
+    border-radius: 999px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+    font-size: 12px;
+    font-weight: 600;
+    color: #374151;
+    pointer-events: none;
+    white-space: nowrap;
+    border: 1px solid #e5e7eb;
+  }
+  .cal-color-legend .legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .cal-color-legend .legend-item .legend-swatch {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 4px;
+    flex-shrink: 0;
+  }
+
+  @media (max-width: 768px) {
+    .cal-color-legend {
+      display: none;
+    }
   }
 </style>
 {% endblock extra_head %}
@@ -2435,9 +2583,9 @@
           </button>
           <ul class="dropdown-menu" aria-labelledby="calendarTypeFilterBtn" id="calendarTypeFilter">
             <li><a class="dropdown-item active" href="#" data-value="all">All</a></li>
-            <li><a class="dropdown-item" href="#" data-value="registration">Registrations</a></li>
-            <li><a class="dropdown-item" href="#" data-value="enquiry">Enquiries</a></li>
+            <li><a class="dropdown-item" href="#" data-value="reservation">Reservations</a></li>
             <li><a class="dropdown-item" href="#" data-value="task">Tasks</a></li>
+            <li><a class="dropdown-item" href="#" data-value="payment">Payments</a></li>
           </ul>
         </div>
 
@@ -2449,6 +2597,8 @@
               <li><a class="dropdown-item active" href="#" data-view="month">Month</a></li>
               <li><a class="dropdown-item" href="#" data-view="week">Week</a></li>
               <li><a class="dropdown-item" href="#" data-view="day">Day</a></li>
+              <li><a class="dropdown-item" href="#" data-view="timeline">Timeline</a></li>
+              <li><a class="dropdown-item" href="#" data-view="list">List View</a></li>
             </ul>
           </div>
         </div>
@@ -2462,13 +2612,7 @@
             <button class="btn p-0 tooltip-light" id="mobileRefreshBtn" style="border:none" data-tooltip="Refresh">
               <img src="{% static 'img/calender/refresh_icon.svg' %}">
             </button>
-            <a class="btn p-0 tooltip-light" href="{% url 'calendar-list-view' %}" style="border:none"
-              data-tooltip="List View">
-              <img src="{% static 'img/calender/prime_list.svg' %}">
-            </a>
-            <button class="btn p-0 tooltip-light tooltip-right" style="border:none" data-tooltip="Timeline View">
-              <img src="{% static 'img/calender/circum_view-timeline.svg' %}">
-            </button>
+
           </div>
         </div>
       </div>
@@ -2487,15 +2631,7 @@
             <button class="btn p-0 tooltip-light" id="refreshBtn" style="border:none" data-tooltip="Refresh">
               <img src="{% static 'img/calender/refresh_icon.svg' %}">
             </button>
-            <button class="btn p-0 tooltip-light" style="border:none" data-tooltip="List View">
-              <a href="{% url 'calendar-list-view' %}">
-                <img src="{% static 'img/calender/prime_list.svg' %}">
-              </a>
 
-            </button>
-            <button class="btn p-0 tooltip-light tooltip-right" style="border:none" data-tooltip="Timeline View">
-              <img src="{% static 'img/calender/circum_view-timeline.svg' %}">
-            </button>
           </div>
         </div>
       </div>
@@ -2506,6 +2642,12 @@
   <div class="calendar-container mt-3">
     <div class="loading-indicator" id="loadingIndicator">Loading...</div>
     <div class="calendar-wrapper">
+      <div class="cal-color-legend" id="calColorLegend" style="display:none;">
+        <span class="legend-item"><span class="legend-swatch" style="background:#3b82f6"></span> Registration</span>
+        <span class="legend-item"><span class="legend-swatch" style="background:#e53935"></span> Task</span>
+        <span class="legend-item"><span class="legend-swatch" style="background:#000"></span> Payment</span>
+        <span class="legend-item"><span class="legend-swatch" style="background:#8e24aa"></span> Enquiry</span>
+      </div>
       <div class="properties-column">
         <div class="search-bar" style="position: relative;">
           <div style="position: absolute; left: 20px; top: 50%; transform: translateY(-50%); pointer-events: none;">
@@ -2534,6 +2676,12 @@
       </div>
       <!-- Grid Calendar Pane for Month/Week/Day Views -->
       <div id="gridCalendarPane" style="display: none; flex: 1; height: 100%; min-height: 0; overflow-y: auto; padding: 16px; background-color: #fafafa; position: relative; box-sizing: border-box;">
+      </div>
+      <!-- List View Pane -->
+      <div id="listViewPane" class="list-view-pane" style="display: none; flex: 1; height: 100%; min-height: 0; overflow-y: auto; background-color: #fafafa; position: relative; box-sizing: border-box; padding: 16px 10%;">
+        <div id="listViewContent">
+          <div style="padding:20px; text-align:center;">Loading...</div>
+        </div>
       </div>
       <div class="calendar-empty-state" id="calendarEmptyState">No data to display</div>
     </div>
@@ -2726,7 +2874,7 @@
   let selectedWeekStart = null; // Sunday of current week
   let activePropertyId = (properties && properties.length > 0) ? String(properties[0].id) : null;
   let currentViewMode = 'month'; // 'month', 'week', 'day'
-  let calendarFilterType = 'all'; // 'all', 'registration', 'enquiry', 'task'
+  let calendarFilterType = 'all'; // 'all', 'reservation', 'task', 'payment'
   let reservationPanelWasOpenBeforeReceipt = false;
 
   function toISODateString(date) {
@@ -2965,15 +3113,41 @@
     return spans;
   }
 
+  function getEnquirySpan(propertyId, dates) {
+    const spans = [];
+    const viewStartStr = toISODateString(dates[0]);
+    const viewEndExclusiveStr = addDaysToISO(toISODateString(dates[dates.length - 1]), 1);
+    enquiries.forEach(eq => {
+      if (eq.propertyId === propertyId) {
+        const startIndex = dates.findIndex(date => {
+          const dateStr = toISODateString(date);
+          return dateStr >= eq.startDateStr && dateStr < eq.endDateStr;
+        });
+        const endIndex = dates.findLastIndex(date => {
+          const dateStr = toISODateString(date);
+          return dateStr >= eq.startDateStr && dateStr < eq.endDateStr;
+        });
+        if (startIndex !== -1 && endIndex !== -1) {
+          spans.push({
+            ...eq,
+            startIndex,
+            endIndex,
+            length: endIndex - startIndex + 1,
+            startsBeforeView: eq.startDateStr < viewStartStr,
+            endsAfterView: eq.endDateStr > viewEndExclusiveStr
+          });
+        }
+      }
+    });
+    return spans;
+  }
+
   function renderProperties(propertiesToRender = properties) {
     const propertiesList = document.getElementById('propertiesList');
     propertiesList.innerHTML = propertiesToRender.map(property => {
       const detailHref = property.slug ? `/property/detail/${property.slug}/` : (property.detail_url || property.url || '#');
       const isActive = String(property.id) === String(activePropertyId);
       const activeClass = isActive ? 'active-property-row' : '';
-      const eventCount = getEventCountForProperty(property.id);
-      const countBadge = eventCount > 0 ? `<span class="property-event-badge">${eventCount}</span>` : '';
-
       return `
         <div class="property-row ${activeClass}"
              data-id="${property.id}"
@@ -2986,7 +3160,6 @@
           <div class="property-info">
             <div class="property-name">${property.title.substring(0, 16)}</div>
           </div>
-          ${countBadge}
           <div class="property-actions">
               <div class="dropdown dropend">
                   <button class="btn btn-sm" type="button" data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false">
@@ -3160,6 +3333,7 @@
         hasVisibleCalendarData = true;
       }
 
+
       const spanOverlays = spans.map(b => {
         const isBlocked = b.type === 'blocked';
         const onClick = isBlocked ? `onclick="openUnblockModal(event, '${b.id}')"` : `onclick="openReservationPanel(event, '${b.id || 101}')"`;
@@ -3208,6 +3382,28 @@
           </div>
         `;
       }).join('');
+
+
+
+      // Filter spans by active filter type
+      const filteredSpanOverlays = calendarFilterType === 'task'
+        ? ''
+        : calendarFilterType === 'payment'
+          ? spans.filter(b => b.paymentsInfo && Object.keys(b.paymentsInfo).length > 0).map(b => {
+              const isBlocked = b.type === 'blocked';
+              const onClick = isBlocked ? `onclick="openUnblockModal(event, '${b.id}')"` : `onclick="openReservationPanel(event, '${b.id || 101}')"`;
+              const bgColor = isBlocked ? '#9ca3af' : (b.color || '#3b82f6');
+              const nights = Math.max(1, daysBetweenISO(b.startDateStr, b.endDateStr) - 1);
+              const carryStartClass = b.startsBeforeView ? 'carry-start' : '';
+              const carryEndClass = b.endsAfterView ? 'carry-end' : '';
+              const guestName = b.guestName || '';
+              const shortName = guestName.length > labelCharLimit ? `${guestName.slice(0, labelCharLimit)}...` : guestName;
+              const labelText = nights > shortSpanMaxNights ? guestName : shortName;
+              const shouldShowLabel = nights > 1;
+              const content = `<div class="segment-content"><div class="avatar-group">${b.channelIcon ? `<img class="channel-icon" src="${b.channelIcon}" />` : ''}</div><div>${shouldShowLabel ? `<span class="segment-guest-name">${labelText}</span>` : ''}</div></div>`;
+              return `<div class="booking-span-block rounded-left rounded-right ${carryStartClass} ${carryEndClass}" ${onClick} onmouseenter="showGlobalTooltip(event, '${b.id}')" onmouseleave="hideGlobalTooltip()" style="--start:${b.startIndex}; --len:${Math.max(1,b.length)}; background-color:${bgColor}; cursor:pointer;">${content}</div>`;
+            }).join('')
+          : spanOverlays;
 
       const rowHtml = allDates.map((date, index) => {
         const isWeekend = date.getDay() === 0 || date.getDay() === 6;
@@ -3270,7 +3466,7 @@
       }).join('');
 
       return `<div class="date-row" style="position: relative;">
-        <div class="booking-row-layer">${spanOverlays}</div>
+        <div class="booking-row-layer">${filteredSpanOverlays}</div>
         ${rowHtml}
       </div>`;
     }).join('');
@@ -4395,46 +4591,228 @@
     });
   }
 
+  /* --- List View (inline) --- */
+  function renderListView() {
+    const container = document.getElementById('listViewContent');
+    if (!container) return;
+    container.innerHTML = '<div style="padding:20px; text-align:center;">Loading...</div>';
+
+    const month = currentDisplayDate.getMonth() + 1;
+    const year = currentDisplayDate.getFullYear();
+    const listViewUrl = "{% url 'calendar-list-view' %}";
+
+    fetch(listViewUrl + '?month=' + month + '&year=' + year, {
+      headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    })
+      .then(r => r.json())
+      .then(data => {
+        const events = data.events || [];
+        if (events.length === 0) {
+          container.innerHTML = '<div class="calendar-list-empty-state" style="font-size:24px;font-weight:600;color:#111827;text-align:center;padding:40px 20px;">No events for this month</div>';
+          return;
+        }
+
+        const grouped = {};
+        events.forEach(ev => {
+          const group = (ev.group || '').toLowerCase().replace(/[\s_-]+/g, '');
+          let normalizedGroup = group;
+          if (group === 'checkin') normalizedGroup = 'Checkin';
+          else if (group === 'checkout') normalizedGroup = 'Checkout';
+          else if (group === 'payment') normalizedGroup = 'Payment';
+          else if (group === 'task') normalizedGroup = 'Task';
+          else normalizedGroup = ev.group || 'Other';
+
+          ev._normalizedGroup = normalizedGroup;
+          if (!grouped[ev.date]) grouped[ev.date] = [];
+          grouped[ev.date].push(ev);
+        });
+
+        Object.keys(grouped).forEach(d => {
+          const groups = { Checkin: [], Checkout: [], Payment: [], Task: [] };
+          grouped[d].forEach(ev => {
+            const g = ev._normalizedGroup;
+            if (!groups[g]) groups[g] = [];
+            groups[g].push(ev);
+          });
+          grouped[d] = groups;
+        });
+
+        const dates = Object.keys(grouped).sort();
+        let html = '';
+        const todayStr = new Date().toISOString().split('T')[0];
+
+        dates.forEach(iso => {
+          const d = new Date(iso + 'T00:00:00');
+          const monthLabel = d.toLocaleDateString('en-US', { month: 'short' });
+          const day = d.getDate();
+          const yearNum = d.getFullYear();
+          const weekday = d.toLocaleDateString('en-US', { weekday: 'short' });
+          const label = monthLabel + ' ' + day + ', ' + yearNum + ', ' + weekday;
+          const todayBadge = iso === todayStr ? '<span class="today-pill">Today</span>' : '';
+
+          html += '<div class="date-section" id="date-' + iso + '">' +
+            '<div class="date"><span><img src="{% static 'img/calender/black_calender.svg' %}"></span><span>' + label + '</span></div>' +
+            todayBadge +
+            '</div>';
+
+          ['Checkout', 'Checkin', 'Payment', 'Task'].forEach(type => {
+            (grouped[iso][type] || []).forEach(ev => {
+              html += renderListCard(ev);
+            });
+          });
+        });
+
+        container.innerHTML = html;
+      })
+      .catch(() => {
+        container.innerHTML = '<div style="padding:20px;text-align:center;color:#666;">Failed to load list view</div>';
+      });
+  }
+
+  function renderListCard(ev) {
+    const group = ev._normalizedGroup || '';
+    let icon = "{% static 'img/calender/check_in_icon.svg' %}";
+    if (group === 'Checkout') icon = "{% static 'img/calender/check_out_icon.svg' %}";
+    else if (group === 'Payment') icon = "{% static 'img/task/type/payment.svg' %}";
+    else if (group === 'Task') {
+      const t = (ev.title || '').toLowerCase();
+      if (t.includes('maintenance')) icon = "{% static 'img/task/type/maintenance.svg' %}";
+      else if (t.includes('cleaning')) icon = "{% static 'img/task/type/cleaning.svg' %}";
+      else if (t.includes('payment')) icon = "{% static 'img/task/type/payment.svg' %}";
+      else icon = "{% static 'img/task/type/others.svg' %}";
+    }
+
+    const typeLabel = group === 'Checkin' ? 'Checkin' : group === 'Checkout' ? 'Checkout' : group === 'Payment' ? 'Payment' : ev.title || 'Others';
+    let subText = '';
+    if (group === 'Task') subText = ev.details || 'Mention the task details here ...';
+    else if (group === 'Payment') subText = '$' + Number(ev.amount || 0).toFixed(2) + (ev.paid ? '  Paid' : '');
+    else subText = ev.stay || '';
+
+    const avatar = (ev.avatar && String(ev.avatar).trim()) ? ev.avatar : "{% static 'img/common/default_user_icon_1.png' %}";
+    const propertyImage = ev.property_image || ev.property_image_url || "{% static 'img/not-found/no_property.jpg' %}";
+    const email = ev.guest_email || '-';
+    const phone = ev.guest_phone || ev.guest_id || '-';
+
+    return '<div class="booking-card-scroll">' +
+      '<div class="booking-card">' +
+        '<div class="event-col event-col-type">' +
+          '<img src="' + icon + '" class="event-type-icon" alt="' + typeLabel + '">' +
+          '<div class="event-type-content">' +
+            '<h3 class="event-title">' + typeLabel + '</h3>' +
+            (subText ? '<p class="event-subtitle">' + subText + '</p>' : '') +
+          '</div>' +
+        '</div>' +
+        '<div class="event-col event-col-guest">' +
+          '<img src="' + avatar + '" class="guest-avatar" alt="' + (ev.guest_name || 'Guest') + '" onerror="this.onerror=null;this.src=\'{% static "img/common/default_user_icon_1.png" %}\';">' +
+          '<div class="guest-meta">' +
+            '<div class="guest-name">' + (ev.guest_name || '-') + '</div>' +
+            '<div class="guest-line"><img src="{% static 'img/booking/listing/email_icon.svg' %}" alt=""> ' + email + '</div>' +
+            '<div class="guest-line"><img src="{% static 'img/booking/listing/phone_icon.svg' %}" alt=""> ' + phone + '</div>' +
+          '</div>' +
+        '</div>' +
+        '<div class="event-col event-col-property">' +
+          '<img src="' + propertyImage + '" class="property-image" alt="' + (ev.property || 'Property') + '">' +
+          '<div class="property-meta">' +
+            '<div class="property-name">' + (ev.property || '') + '</div>' +
+            '<div class="property-location">' + (ev.location || '') + '</div>' +
+          '</div>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  }
+
   /* --- Unified Calendar View Router --- */
   function renderActiveView() {
     const timelinePane = document.getElementById('datesPane');
     const gridPane = document.getElementById('gridCalendarPane');
+    const listPane = document.getElementById('listViewPane');
+    const propsColumn = document.querySelector('.properties-column');
+    const legend = document.getElementById('calColorLegend');
     if (!timelinePane || !gridPane) return;
 
     if (currentViewMode === 'timeline') {
+      if (legend) legend.style.display = 'none';
+      if (propsColumn) propsColumn.style.display = '';
       timelinePane.style.display = 'block';
       gridPane.style.display = 'none';
+      listPane.style.display = 'none';
       renderDatesHeader();
       renderDatesGrid(filteredProperties);
-    } else {
+    } else if (currentViewMode === 'list') {
+      if (legend) legend.style.display = 'none';
+      if (propsColumn) propsColumn.style.display = 'none';
       timelinePane.style.display = 'none';
-      gridPane.style.display = 'block';
-      
-      if (currentViewMode === 'month') {
-        renderMonthGrid(gridPane);
-      } else if (currentViewMode === 'week') {
-        renderWeekGrid(gridPane);
-      } else if (currentViewMode === 'day') {
+      gridPane.style.display = 'none';
+      listPane.style.display = 'block';
+      renderListView();
+    } else {
+      if (propsColumn) propsColumn.style.display = 'none';
+      timelinePane.style.display = 'none';
+      listPane.style.display = 'none';
+
+      if (currentViewMode === 'day') {
+        // Day view: full-height flex column, no padding (inner grid scrolls)
+        if (legend) legend.style.display = '';
+        gridPane.style.display = 'flex';
+        gridPane.style.flexDirection = 'column';
+        gridPane.style.padding = '0';
+        gridPane.style.overflowY = 'hidden';
+        gridPane.style.background = '#ffffff';
         renderDaySchedule(gridPane);
+      } else if (currentViewMode === 'week') {
+        // Week view: aggregated data from all listings
+        if (legend) legend.style.display = 'none';
+        if (propsColumn) propsColumn.style.display = '';
+        gridPane.style.display = 'block';
+        gridPane.style.flex = '1 1 0';
+        gridPane.style.minWidth = '0';
+        gridPane.style.alignSelf = 'stretch';
+        gridPane.style.padding = '16px';
+        gridPane.style.overflowY = 'auto';
+        gridPane.style.background = '#fafafa';
+        renderWeekGrid(gridPane);
+      } else {
+        // Month: restore padding and scroll
+        if (legend) legend.style.display = 'none';
+        gridPane.style.display = 'block';
+        gridPane.style.flexDirection = '';
+        gridPane.style.padding = '16px';
+        gridPane.style.overflowY = 'auto';
+        gridPane.style.background = '#fafafa';
+        if (currentViewMode === 'month') {
+          renderMonthGrid(gridPane);
+        }
+        if (propsColumn) propsColumn.style.display = '';
       }
     }
   }
 
   /* --- Event Filters and Sidebar Badge Calculations --- */
   function getFilteredEventsForCalendar() {
-    let pBookings = bookings.filter(b => String(b.propertyId) === String(activePropertyId));
-    let pEnquiries = enquiries.filter(eq => String(eq.propertyId) === String(activePropertyId));
-    let pTasks = tasks.filter(t => String(t.propertyId) === String(activePropertyId));
+    // If no property is selected, show all properties' data
+    let pBookings = activePropertyId
+      ? bookings.filter(b => String(b.propertyId) === String(activePropertyId))
+      : bookings.slice();
+    let pEnquiries = activePropertyId
+      ? enquiries.filter(eq => String(eq.propertyId) === String(activePropertyId))
+      : enquiries.slice();
+    let pTasks = activePropertyId
+      ? tasks.filter(t => String(t.propertyId) === String(activePropertyId))
+      : tasks.slice();
 
-    if (calendarFilterType === 'registration') {
+    if (calendarFilterType === 'reservation') {
+      // Show only confirmed reservations (no enquiries, no tasks)
       pEnquiries = [];
       pTasks = [];
-    } else if (calendarFilterType === 'enquiry') {
-      pBookings = [];
-      pTasks = [];
+      pBookings = pBookings.filter(b => b.type !== 'blocked');
     } else if (calendarFilterType === 'task') {
       pBookings = [];
       pEnquiries = [];
+    } else if (calendarFilterType === 'payment') {
+      // Show only bookings that have payment data on their dates
+      pEnquiries = [];
+      pTasks = [];
+      pBookings = pBookings.filter(b => b.paymentsInfo && Object.keys(b.paymentsInfo).length > 0);
     }
 
     return {
@@ -4560,13 +4938,11 @@
         }
       });
 
-      // Fixed 3-band layout: row 1 = registration, row 2 = separator, row 3 = enquiry, row 4 = separator, row 5 = task
-      // All weeks use the same fixed grid so box heights stay equal
-      const FIXED_GRID = '1fr 3px 1fr 3px 1fr';
-      // row indices: booking=1, enquiry=3, task=5
+      // Fixed 2-band layout: row 1 = reservation, row 2 = separator, row 3 = task
+      const FIXED_GRID = '1fr 3px 1fr';
 
-      const bookingSpans = weekSpans.filter(s => !s.event.isEnquiry);
-      const enquirySpans = weekSpans.filter(s => s.event.isEnquiry);
+      const bookingSpans = weekSpans.filter(span => !span.event.isEnquiry);
+      const enquirySpans = weekSpans.filter(span => span.event.isEnquiry);
 
       const spanOffsets = (span) => {
         const n = span.endCol - span.startCol + 1;
@@ -4593,16 +4969,6 @@
         eventsHtml += `<div class="grid-event-span ${carryStartClass} ${carryEndClass}" style="grid-column:${gridColStart}/${gridColEnd};grid-row:1;${style};${spanOffsets(span)}" ${onClick} onmouseenter="showMonthEventTooltip(event,'${ev.id}',false)" onmouseleave="hideGlobalTooltip()">${channelHtml}${avatarHtml}<span class="event-title">${labelText}</span></div>`;
       });
 
-      enquirySpans.forEach(span => {
-        const ev = span.event;
-        const gridColStart = span.startCol + 1;
-        const gridColEnd = span.endCol + 2;
-        const carryStartClass = span.carryStart ? 'carry-start' : '';
-        const carryEndClass = span.carryEnd ? 'carry-end' : '';
-        const labelText = span.carryStart ? `-- ${ev.guestName}` : `Enquiry: ${ev.guestName}`;
-        eventsHtml += `<div class="grid-event-span ${carryStartClass} ${carryEndClass}" style="grid-column:${gridColStart}/${gridColEnd};grid-row:3;border:2px dashed #d97706;background-color:rgba(245,158,11,0.95);${spanOffsets(span)}" onclick="openEnquiryPanel(event,'${ev.id}')" onmouseenter="showMonthEventTooltip(event,'${ev.id}',true)" onmouseleave="hideGlobalTooltip()"><span class="event-title">${labelText}</span></div>`;
-      });
-
       weekDates.forEach((d, colIdx) => {
         const dateStr = toISODateString(d);
         const dayTasksForBand = pTasks.filter(t => t.date === dateStr);
@@ -4612,7 +4978,7 @@
           : `🧹 ${dayTasksForBand.length} tasks`;
         const taskColors = { cleaning: '#10b981', maintenance: '#f59e0b', payment: '#3b82f6', other: '#8b5cf6' };
         const taskColor = taskColors[dayTasksForBand[0].task_type] || taskColors.other;
-        eventsHtml += `<div class="grid-event-span" style="grid-column:${colIdx+1}/${colIdx+2};grid-row:5;background-color:${taskColor};border-radius:4px;font-size:10px;margin-left:25%;margin-right:25%;" onclick="openTaskDetailModal(event,'${dayTasksForBand[0].id}')" onmouseleave="hideGlobalTooltip()"><span class="event-title">${taskLabel}</span></div>`;
+        eventsHtml += `<div class="grid-event-span" style="grid-column:${colIdx+1}/${colIdx+2};grid-row:5;background-color:${taskColor};border-radius:6px;font-size:10px;margin-left:25%;margin-right:25%;" onclick="openTaskDetailModal(event,'${dayTasksForBand[0].id}')" onmouseleave="hideGlobalTooltip()"><span class="event-title">${taskLabel}</span></div>`;
       });
 
       html += `
@@ -4633,12 +4999,20 @@
     pane.innerHTML = html;
   }
 
-  /* --- Week Table View Renderer --- */
+  /* --- Week Table View Renderer (segregated bands) --- */
   function renderWeekGrid(pane) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const { bookings: pBookings, enquiries: pEnquiries, tasks: pTasks } = getFilteredEventsForCalendar();
+    const applyFilter = (arr) => {
+      if (calendarFilterType === 'reservation') return arr.filter(b => b.type !== 'blocked' && (!b.paymentsInfo || Object.keys(b.paymentsInfo).length === 0));
+      if (calendarFilterType === 'task') return [];
+      if (calendarFilterType === 'payment') return arr.filter(b => b.paymentsInfo && Object.keys(b.paymentsInfo).length > 0);
+      return arr;
+    };
+    const pBookings = applyFilter(bookings.slice());
+    const pEnquiries = calendarFilterType === 'task' || calendarFilterType === 'payment' ? [] : enquiries.slice();
+    const pTasks = calendarFilterType === 'reservation' || calendarFilterType === 'payment' ? [] : tasks.slice();
     const spansList = [
       ...pBookings.map(b => ({ ...b, isEnquiry: false })),
       ...pEnquiries.map(eq => ({ ...eq, isEnquiry: true }))
@@ -4654,9 +5028,15 @@
     const weekStart = weekDates[0];
     const weekEnd = weekDates[6];
 
+    const LABEL_W = 90;
+
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const weekRangeLabel = `${monthNames[weekStart.getMonth()]} ${weekStart.getDate()} - ${monthNames[weekEnd.getMonth()]} ${weekEnd.getDate()}, ${weekEnd.getFullYear()}`;
+
     let html = `
-      <div class="month-calendar-grid" style="min-height: auto;">
-        <div class="month-calendar-header-row">
+      <div class="month-calendar-grid" style="height: auto; min-height: 100%; overflow: visible;">
+        <div class="month-calendar-header-row" style="grid-template-columns: ${LABEL_W}px repeat(7, 1fr);">
+          <div class="month-calendar-header-cell" style="border-right: none; color: #9ca3af; font-size: 10px; letter-spacing: 0.05em;">TYPE</div>
           <div class="month-calendar-header-cell">SUN</div>
           <div class="month-calendar-header-cell">MON</div>
           <div class="month-calendar-header-cell">TUE</div>
@@ -4665,140 +5045,261 @@
           <div class="month-calendar-header-cell">FRI</div>
           <div class="month-calendar-header-cell">SAT</div>
         </div>
-        <div class="month-calendar-weeks-container">
+        <div style="display: flex; align-items: center; padding: 6px 8px; border-bottom: 1px solid #e5e7eb; background: #ffffff;">
+          <button onclick="goToPrevMonth()" style="width: 36px; height: 36px; border: none; border-radius: 50%; background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0;" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='transparent'" aria-label="Previous week">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#374151" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+          </button>
+          <div style="flex: 1; text-align: center; font-size: 15px; font-weight: 700; color: #1f2937; letter-spacing: 0.01em;">
+            ${weekRangeLabel}
+          </div>
+          <button onclick="goToNextMonth()" style="width: 36px; height: 36px; border: none; border-radius: 50%; background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0;" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='transparent'" aria-label="Next week">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#374151" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+          </button>
+        </div>
+        <div class="month-calendar-weeks-container" style="overflow: visible;">
     `;
 
     let bgHtml = '';
     weekDates.forEach(d => {
       const isToday = d.toDateString() === today.toDateString();
       const dateStr = toISODateString(d);
-
-      const dayTasks = pTasks.filter(t => t.date === dateStr);
-      let taskBadgesHtml = '';
-      dayTasks.forEach(t => {
-        taskBadgesHtml += `
-          <div class="grid-cell-task-pill ${t.task_type}" 
-               onclick="openTaskDetailModal(event, '${t.id}')"
-               title="${t.details || 'Task'}">
-            🧹 ${t.details.substring(0, 10)}
-          </div>
-        `;
-      });
-
       bgHtml += `
-        <div class="month-calendar-day-cell ${isToday ? 'today' : ''}" data-date="${dateStr}">
+        <div class="month-calendar-day-cell ${isToday ? 'today' : ''}" data-date="${dateStr}" style="border-bottom: 1px solid #e5e7eb;">
           <span class="day-number">${d.getDate()}</span>
-          <div style="display: flex; flex-direction: column; gap: 2px; margin-top: 4px; overflow: hidden; max-height: 80px;">
-            ${taskBadgesHtml}
-          </div>
         </div>
       `;
     });
+    // Prepend gutter cell
+    bgHtml = `<div class="month-calendar-day-cell" style="border-right: 1px solid #e5e7eb; border-bottom: 1px solid #e5e7eb; min-width: ${LABEL_W}px;"></div>` + bgHtml;
 
-    let eventsHtml = '';
-    const weekSpans = [];
-    spansList.forEach(event => {
-      const evStart = new Date(event.startDateStr + 'T00:00:00');
-      const evEnd = new Date(event.endDateStr + 'T00:00:00');
-      evEnd.setDate(evEnd.getDate() - 1);
+    /* Helpers */
+    function getPropertyName(propertyId) {
+      const p = properties.find(p => String(p.id) === String(propertyId));
+      return p ? p.title : '';
+    }
 
-      if (evStart <= weekEnd && evEnd >= weekStart) {
-        let startCol = Math.max(0, Math.ceil((evStart - weekStart) / (1000 * 60 * 60 * 24)));
-        let endCol = Math.min(6, Math.ceil((evEnd - weekStart) / (1000 * 60 * 60 * 24)));
-        
-        const carryStart = evStart < weekStart;
-        const carryEnd = evEnd > weekEnd;
-
-        weekSpans.push({
-          event,
-          startCol,
-          endCol,
-          carryStart,
-          carryEnd,
-          length: endCol - startCol + 1
-        });
-      }
-    });
-
-    weekSpans.sort((a, b) => a.startCol - b.startCol || b.length - a.length);
-
-    const rows = [];
-    weekSpans.forEach(span => {
-      let rowIndex = 0;
-      while (true) {
-        if (!rows[rowIndex]) {
-          rows[rowIndex] = Array(7).fill(false);
+    function buildSpans(events) {
+      const spans = [];
+      events.forEach(event => {
+        const evStart = new Date(event.startDateStr + 'T00:00:00');
+        const evEnd = new Date(event.endDateStr + 'T00:00:00');
+        evEnd.setDate(evEnd.getDate() - 1);
+        if (evStart <= weekEnd && evEnd >= weekStart) {
+          spans.push({
+            event,
+            startCol: Math.max(0, Math.ceil((evStart - weekStart) / (1000 * 60 * 60 * 24))),
+            endCol: Math.min(6, Math.ceil((evEnd - weekStart) / (1000 * 60 * 60 * 24))),
+            carryStart: evStart < weekStart,
+            carryEnd: evEnd > weekEnd,
+            length: 0
+          });
+          spans[spans.length - 1].length = spans[spans.length - 1].endCol - spans[spans.length - 1].startCol + 1;
         }
-        
-        let isSlotFree = true;
-        for (let c = span.startCol; c <= span.endCol; c++) {
-          if (rows[rowIndex][c]) {
-            isSlotFree = false;
+      });
+      return spans;
+    }
+
+    function packSpans(spans) {
+      spans.sort((a, b) => a.startCol - b.startCol || b.length - a.length);
+      const rows = [];
+      spans.forEach(span => {
+        let rowIndex = 0;
+        while (true) {
+          if (!rows[rowIndex]) rows[rowIndex] = Array(7).fill(false);
+          let free = true;
+          for (let c = span.startCol; c <= span.endCol; c++) {
+            if (rows[rowIndex][c]) { free = false; break; }
+          }
+          if (free) {
+            for (let c = span.startCol; c <= span.endCol; c++) rows[rowIndex][c] = true;
+            span.rowIndex = rowIndex;
             break;
           }
+          rowIndex++;
         }
+      });
+      return rows;
+    }
 
-        if (isSlotFree) {
-          for (let c = span.startCol; c <= span.endCol; c++) {
-            rows[rowIndex][c] = true;
-          }
-          span.rowIndex = rowIndex;
-          break;
-        }
-        rowIndex++;
-      }
+    /* Determine which bands are visible based on filter */
+    const showRes = calendarFilterType !== 'task' && calendarFilterType !== 'payment';
+    const showPay = calendarFilterType !== 'task' && calendarFilterType !== 'reservation';
+    const showTask = calendarFilterType !== 'reservation' && calendarFilterType !== 'payment';
+
+    /* Categorise events into three bands */
+    const BAR_H = 36;
+    const GAP = 10;
+
+    // Band 1 – Reservations (bookings without payments + blocked + enquiries)
+    const reservationEvents = spansList.filter(s => {
+      if (s.type === 'blocked') return true;
+      if (s.isEnquiry) return true;
+      return !s.paymentsInfo || Object.keys(s.paymentsInfo).length === 0;
     });
+    const resSpans = buildSpans(reservationEvents);
+    const resRows = packSpans(resSpans);
+    const resCount = showRes ? Math.max(1, resRows.length) : 0;
 
-    weekSpans.forEach(span => {
+    // Band 2 – Payments (bookings that have payment data)
+    const paymentEvents = spansList.filter(s =>
+      !s.isEnquiry && s.type !== 'blocked' && s.paymentsInfo && Object.keys(s.paymentsInfo).length > 0
+    );
+    const paySpans = buildSpans(paymentEvents);
+    const payRows = packSpans(paySpans);
+    const payCount = showPay ? Math.max(1, payRows.length) : 0;
+
+    // Band 3 – Tasks (per-day bars)
+    const maxTasksPerDay = weekDates.reduce((max, d) => {
+      return Math.max(max, pTasks.filter(t => t.date === toISODateString(d)).length);
+    }, 0);
+    const taskCount = showTask ? Math.max(1, maxTasksPerDay) : 0;
+
+    // Build grid-template-rows: only include visible bands with gaps between them
+    const rowParts = [];
+    if (showRes) rowParts.push(`repeat(${resCount}, ${BAR_H}px)`);
+    if (showPay) {
+      if (showRes) rowParts.push(`${GAP}px`);
+      rowParts.push(`repeat(${payCount}, ${BAR_H}px)`);
+    }
+    if (showTask) {
+      if (showRes || showPay) rowParts.push(`${GAP}px`);
+      rowParts.push(`repeat(${taskCount}, ${BAR_H}px)`);
+    }
+    const gridTemplateRows = rowParts.join(' ');
+    const gridTemplateCols = `${LABEL_W}px repeat(7, 1fr)`;
+
+    // Compute label row ranges and total grid rows
+    let resLabelEnd, payLabelStart, payLabelEnd, taskLabelStart, taskLabelEnd;
+    let totalGridRows = 0;
+    let gridPxHeight = 0;
+    let cursor = 1;
+    if (showRes) {
+      const gapAfter = showPay || showTask ? 1 : 0;
+      resLabelEnd = cursor + resCount + gapAfter;
+      cursor = resLabelEnd;
+      totalGridRows += resCount + gapAfter;
+      gridPxHeight += resCount * BAR_H + gapAfter * GAP;
+    }
+    if (showPay) {
+      const gapBefore = showRes ? 1 : 0;
+      const gapAfter = showTask ? 1 : 0;
+      if (gapBefore) { /* gap row already accounted */ }
+      payLabelStart = cursor;
+      payLabelEnd = cursor + payCount;
+      cursor = payLabelEnd;
+      totalGridRows += payCount + gapAfter;
+      gridPxHeight += payCount * BAR_H + gapAfter * GAP;
+    }
+    // offset for task label start: if both res and pay hidden, cursor stays at 1
+    if (showTask) {
+      const gapBefore = showRes || showPay ? 1 : 0;
+      const beforeTotal = (showRes ? resCount + (showPay || showTask ? 1 : 0) : 0) + (showPay ? payCount + (showTask ? 1 : 0) : 0);
+      taskLabelStart = beforeTotal + 1;
+      taskLabelEnd = taskLabelStart + taskCount;
+      totalGridRows += taskCount;
+      gridPxHeight += taskCount * BAR_H;
+    }
+
+    const weekMinH = Math.max(200, gridPxHeight + 40);
+    const totalGridLines = totalGridRows + 1;
+
+    // Build band labels (only for visible bands)
+    let eventsHtml = '';
+    if (showRes) {
+      eventsHtml += `<div class="week-band-label" style="grid-column: 1; grid-row: 1 / ${resLabelEnd}; background: rgba(37,99,235,0.06); border-left: 3px solid #2563eb; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; color:#2563eb; letter-spacing:0.04em; text-transform:uppercase; pointer-events:none; border-radius:0 6px 6px 0; margin:2px 0;">Reservations</div>`;
+    }
+    if (showPay) {
+      eventsHtml += `<div class="week-band-label" style="grid-column: 1; grid-row: ${payLabelStart} / ${payLabelEnd}; background: rgba(30,41,59,0.05); border-left: 3px solid #1e293b; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; color:#1e293b; letter-spacing:0.04em; text-transform:uppercase; pointer-events:none; border-radius:0 6px 6px 0; margin:2px 0;">Payments</div>`;
+    }
+    if (showTask) {
+      eventsHtml += `<div class="week-band-label" style="grid-column: 1; grid-row: ${taskLabelStart} / ${taskLabelEnd}; background: rgba(220,38,38,0.05); border-left: 3px solid #dc2626; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; color:#dc2626; letter-spacing:0.04em; text-transform:uppercase; pointer-events:none; border-radius:0 6px 6px 0; margin:2px 0;">Tasks</div>`;
+    }
+    eventsHtml += `<div style="grid-column: 2; grid-row: 1 / ${totalGridLines}; width: 0; border-left: 1px solid #e5e7eb; pointer-events: none; align-self: stretch;"></div>`;
+
+    /* Render reservation spans */
+    resSpans.forEach(span => {
       const ev = span.event;
-      const isEnquiry = ev.isEnquiry;
-      const gridColStart = span.startCol + 1;
-      const gridColEnd = span.endCol + 2;
+      const propName = getPropertyName(ev.propertyId);
+      const gridColStart = span.startCol + 2;
+      const gridColEnd = span.endCol + 3;
       const gridRow = span.rowIndex + 1;
+      const isBlocked = ev.type === 'blocked';
 
-      const onClick = isEnquiry 
-        ? `onclick="openEnquiryPanel(event, '${ev.id}')"`
-        : (ev.type === 'blocked' 
-            ? `onclick="openUnblockModal(event, '${ev.id}')"`
-            : `onclick="openReservationPanel(event, '${ev.id}')"`);
-
-      const tooltipTrigger = `onmouseenter="showMonthEventTooltip(event, '${ev.id}', ${isEnquiry})"`;
       const carryStartClass = span.carryStart ? 'carry-start' : '';
       const carryEndClass = span.carryEnd ? 'carry-end' : '';
-
-      const labelName = ev.guestName || 'Blocked';
-      const labelText = span.carryStart 
-        ? `-- ${labelName}` 
-        : (isEnquiry ? `Enquiry: ${labelName}` : labelName);
-
-      const avatarHtml = ev.guestAvatar && !isEnquiry && ev.type !== 'blocked'
-        ? `<img class="guest-avatar" src="${ev.guestAvatar}" />`
-        : '';
-
-      const channelHtml = ev.channelIcon && !isEnquiry && ev.type !== 'blocked'
-        ? `<img class="channel-icon" src="${ev.channelIcon}" />`
-        : '';
-
-      const bgColor = ev.color || '#3b82f6';
-      const borderStyle = isEnquiry ? 'border: 2px dashed #d97706; background-color: rgba(245, 158, 11, 0.95);' : `background-color: ${bgColor};`;
+      const labelName = isBlocked ? 'Blocked' : (ev.guestName || '');
+      const labelText = span.carryStart ? `-- ${labelName}` : labelName;
+      const displayLabel = propName ? `${propName} - ${labelText}` : labelText;
+      const bgColor = isBlocked ? '#9ca3af' : (ev.color || '#3b82f6');
+      const onClick = isBlocked
+        ? `onclick="openUnblockModal(event, '${ev.id}')"`
+        : `onclick="openReservationPanel(event, '${ev.id}')"`;
 
       eventsHtml += `
         <div class="grid-event-span ${carryStartClass} ${carryEndClass}"
-             style="grid-column: ${gridColStart} / ${gridColEnd}; grid-row: ${gridRow}; ${borderStyle}"
+             style="grid-column: ${gridColStart} / ${gridColEnd}; grid-row: ${gridRow}; background-color: ${bgColor}; font-size: 11px;"
              ${onClick}
-             ${tooltipTrigger}
+             onmouseenter="showMonthEventTooltip(event, '${ev.id}', false)"
              onmouseleave="hideGlobalTooltip()">
-          ${channelHtml}
-          ${avatarHtml}
-          <span class="event-title">${labelText}</span>
+          <span class="event-title">${displayLabel}</span>
         </div>
       `;
     });
 
+    /* Render payment spans */
+    const payRowOffset = (showRes ? resCount + 1 : 0) + 1;
+    paySpans.forEach(span => {
+      const ev = span.event;
+      const propName = getPropertyName(ev.propertyId);
+      const gridColStart = span.startCol + 2;
+      const gridColEnd = span.endCol + 3;
+      const gridRow = payRowOffset + span.rowIndex;
+
+      const carryStartClass = span.carryStart ? 'carry-start' : '';
+      const carryEndClass = span.carryEnd ? 'carry-end' : '';
+      const labelName = ev.guestName || '';
+      const labelText = span.carryStart ? `-- ${labelName}` : labelName;
+      const displayLabel = `${propName ? propName + ' - ' : ''}Payment - ${labelText}`;
+
+      eventsHtml += `
+        <div class="grid-event-span ${carryStartClass} ${carryEndClass}"
+             style="grid-column: ${gridColStart} / ${gridColEnd}; grid-row: ${gridRow}; background-color: #1e293b; font-size: 11px;"
+             onclick="openReservationPanel(event, '${ev.id}')"
+             onmouseenter="showMonthEventTooltip(event, '${ev.id}', false)"
+             onmouseleave="hideGlobalTooltip()">
+          <span class="event-title">${displayLabel}</span>
+        </div>
+      `;
+    });
+
+    /* Render task bars */
+    const taskRowOffset = (showRes ? resCount + 1 : 0) + (showPay ? payCount + 1 : 0) + 1;
+    const taskColors = { cleaning: '#10b981', maintenance: '#f59e0b', payment: '#3b82f6', other: '#8b5cf6' };
+    weekDates.forEach((d, colIdx) => {
+      const dateStr = toISODateString(d);
+      const dayTasks = pTasks.filter(t => t.date === dateStr);
+      dayTasks.forEach((t, tIdx) => {
+        const propName = getPropertyName(t.propertyId);
+        const gridCol = colIdx + 2;
+        const gridRow = taskRowOffset + tIdx;
+        const taskColor = taskColors[t.task_type] || taskColors.other;
+        const label = `${propName ? propName + ' - ' : ''}${(t.details || 'Task').substring(0, 18)}`;
+
+        eventsHtml += `
+          <div class="grid-event-span"
+               style="grid-column: ${gridCol} / ${gridCol + 1}; grid-row: ${gridRow}; background-color: ${taskColor}; font-size: 10px; border-radius: 6px;"
+               onclick="openTaskDetailModal(event, '${t.id}')"
+               onmouseleave="hideGlobalTooltip()">
+            <span class="event-title">${label}</span>
+          </div>
+        `;
+      });
+    });
+
     html += `
-      <div class="month-calendar-week" style="min-height: 200px;">
-        <div class="month-calendar-week-bg">${bgHtml}</div>
-        <div class="month-calendar-events-layer" style="grid-template-rows: repeat(${rows.length || 1}, 28px);">
+      <div class="month-calendar-week" style="min-height: ${weekMinH}px; overflow: visible; flex: 1 1 0;">
+        <div class="month-calendar-week-bg" style="grid-template-columns: ${LABEL_W}px repeat(7, 1fr);">${bgHtml}</div>
+        <div class="month-calendar-events-layer" style="grid-template-columns: ${gridTemplateCols}; grid-template-rows: ${gridTemplateRows}; padding: 0;">
           ${eventsHtml}
         </div>
       </div>
@@ -4814,150 +5315,221 @@
 
   /* --- Day Schedule View Renderer --- */
   function renderDaySchedule(pane) {
-    const { bookings: pBookings, enquiries: pEnquiries, tasks: pTasks } = getFilteredEventsForCalendar();
+    // Day view shows ALL listings, not just the active one
+    const applyFilter = (arr) => {
+      if (calendarFilterType === 'reservation') return arr.filter(b => b.type !== 'blocked');
+      if (calendarFilterType === 'task') return [];
+      if (calendarFilterType === 'payment') return arr.filter(b => b.paymentsInfo && Object.keys(b.paymentsInfo).length > 0);
+      return arr;
+    };
+    const pBookings = applyFilter(bookings.slice());
+    const pEnquiries = calendarFilterType === 'task' || calendarFilterType === 'payment' ? [] : enquiries.slice();
+    const pTasks = calendarFilterType === 'reservation' || calendarFilterType === 'payment' ? [] : tasks.slice();
     const dateStr = selectedDateKey;
 
     const dateObj = new Date(dateStr + 'T00:00:00');
-    const formattedDate = dateObj.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+    const today = new Date();
+    const isToday = dateObj.toDateString() === today.toDateString();
 
-    const checkIns = pBookings.filter(b => b.start_date === dateStr);
-    const checkOuts = pBookings.filter(b => b.end_date === dateStr);
-    const inHouse = pBookings.filter(b => dateStr > b.start_date && dateStr < b.end_date);
-    const dayTasks = pTasks.filter(t => t.date === dateStr);
-    const dayEnquiries = pEnquiries.filter(eq => eq.start_date === dateStr);
+    const weekdays = ['SUN','MON','TUE','WED','THU','FRI','SAT'];
+    const weekdayStr = weekdays[dateObj.getDay()];
+    const dayNum = dateObj.getDate();
 
-    const getTaskBadgeBg = (type) => {
-      return { 'cleaning': '#10b981', 'maintenance': '#f59e0b', 'payment': '#3b82f6' }[type] || '#8b5cf6';
-    };
+    // --- Data (backend logic unchanged) ---
+    const checkIns    = pBookings.filter(b => b.start_date === dateStr);
+    const checkOuts   = pBookings.filter(b => b.end_date === dateStr);
+    const inHouse     = pBookings.filter(b => dateStr > b.start_date && dateStr < b.end_date);
+    const dayTasks    = pTasks.filter(t => t.date === dateStr);
+    const dayEnquiries= pEnquiries.filter(eq => eq.start_date === dateStr);
 
-    const renderCard = (title, subtitle, badgeText, avatar, onClick, iconHtml = '') => {
-      return `
-        <div class="day-event-card" onclick="${onClick}">
-          <div class="day-event-left">
-            ${avatar ? `<img src="${avatar}" style="width: 36px; height: 36px; border-radius: 50%; object-fit: cover;" />` : (iconHtml || '')}
-            <div>
-              <div class="day-event-title-text">${title}</div>
-              <div class="day-event-subtitle-text">${subtitle}</div>
-            </div>
-          </div>
-          ${badgeText ? `<div class="day-event-right">${badgeText}</div>` : ''}
+    const getTaskColor = (type) =>
+      ({ 'cleaning': '#e53935', 'maintenance': '#e53935', 'payment': '#e53935' }[type] || '#e53935');
+
+    // --- Build events list with time placement ---
+    // Each event: { startHour (float), endHour (float), title, sub, color, onClick, icon }
+    const HOUR_PX = 60; // 60px per hour, 1440px total
+    const events = [];
+
+    // Helper: parse "HH:MM" or fall back
+    function parseTime(str, fallback) {
+      if (!str) return fallback;
+      const m = String(str).match(/(\d{1,2}):(\d{2})/);
+      if (m) return parseInt(m[1], 10) + parseInt(m[2], 10) / 60;
+      return fallback;
+    }
+
+    // Bookings: check-ins show at 14:00 (2pm), check-outs at 11:00 (11am)
+    checkIns.forEach(b => {
+      const prop = properties.find(p => String(p.id) === String(b.propertyId));
+      const propName = prop ? prop.title : '';
+      events.push({
+        startHour: parseTime(b.check_in_time, 14),
+        endHour:   parseTime(b.check_in_time, 14) + 1,
+        title: `\u2713 Check-in: ${b.guestName}`,
+        sub:   `${propName}${propName && b.channelName ? ' · ' : ''}${b.channelName || ''}${b.bookingId ? ' · ' + b.bookingId : ''}`,
+        color: '#2979ff',
+        onClick: `openReservationPanel(event, '${b.id}')`,
+        icon: ''
+      });
+    });
+    checkOuts.forEach(b => {
+      const prop = properties.find(p => String(p.id) === String(b.propertyId));
+      const propName = prop ? prop.title : '';
+      events.push({
+        startHour: parseTime(b.check_out_time, 11),
+        endHour:   parseTime(b.check_out_time, 11) + 1,
+        title: `\u2713 Check-out: ${b.guestName}`,
+        sub:   `${propName}${propName && b.channelName ? ' · ' : ''}${b.channelName || ''}${b.bookingId ? ' · ' + b.bookingId : ''}`,
+        color: '#5c6bc0',
+        onClick: `openReservationPanel(event, '${b.id}')`,
+        icon: ''
+      });
+    });
+
+    dayTasks.forEach(t => {
+      const prop = properties.find(p => String(p.id) === String(t.propertyId));
+      const propName = prop ? prop.title : '';
+      const sh = parseTime(t.start_time, 9);
+      const eh = parseTime(t.end_time, sh + 1);
+      events.push({
+        startHour: sh,
+        endHour:   eh,
+        title: `\u2715 ${t.details || 'Task'}`,
+        sub:   `${propName ? propName + ' · ' : ''}${t.task_type ? t.task_type.charAt(0).toUpperCase()+t.task_type.slice(1) : ''} · ${t.assigned_to || 'Unassigned'}`,
+        color: getTaskColor(t.task_type),
+        onClick: `openTaskDetailModal(event, '${t.id}')`,
+        icon: ''
+      });
+    });
+    dayEnquiries.forEach(eq => {
+      const prop = properties.find(p => String(p.id) === String(eq.propertyId));
+      const propName = prop ? prop.title : '';
+      events.push({
+        startHour: 10,
+        endHour:   11,
+        title: `Enquiry: ${eq.guestName}`,
+        sub:   `${propName ? propName + ' · ' : ''}${eq.email}`,
+        color: '#8e24aa',
+        onClick: `openEnquiryPanel(event, '${eq.id}')`,
+        icon: ''
+      });
+    });
+
+    // --- Build time labels & hour lines ---
+    let timeLabelsHtml = '';
+    let hourLinesHtml  = '';
+    for (let h = 0; h <= 24; h++) {
+      const top = h * HOUR_PX;
+      if (h > 0 && h < 24) {
+        const label = h < 12 ? `${h} AM` : h === 12 ? '12 PM' : `${h-12} PM`;
+        timeLabelsHtml += `<div class="gcal-time-label" style="top:${top}px">${label}</div>`;
+      }
+      if (h < 24) {
+        hourLinesHtml += `<div class="gcal-hour-line major" style="top:${top}px"></div>`;
+        // 30-min line
+        hourLinesHtml += `<div class="gcal-hour-line" style="top:${top + 30}px"></div>`;
+      }
+    }
+
+    // --- Now-line ---
+    let nowLineHtml = '';
+    if (isToday) {
+      const now = new Date();
+      const nowTop = (now.getHours() + now.getMinutes() / 60) * HOUR_PX;
+      nowLineHtml = `<div class="gcal-now-line" style="top:${nowTop}px"><div class="gcal-now-dot"></div></div>`;
+    }
+
+    // --- Build event blocks ---
+    // Simple overlap handling: group by overlap then offset left
+    function computeColumns(evts) {
+      // Sort by start
+      const sorted = [...evts].sort((a, b) => a.startHour - b.startHour);
+      const cols = [];
+      sorted.forEach(ev => {
+        let placed = false;
+        for (let c = 0; c < cols.length; c++) {
+          const last = cols[c][cols[c].length - 1];
+          if (last.endHour <= ev.startHour) {
+            cols[c].push(ev);
+            ev._col = c;
+            placed = true;
+            break;
+          }
+        }
+        if (!placed) { ev._col = cols.length; cols.push([ev]); }
+      });
+      const numCols = cols.length || 1;
+      sorted.forEach(ev => { ev._numCols = numCols; });
+      return sorted;
+    }
+
+    const positionedEvents = computeColumns(events);
+
+    let eventBlocksHtml = '';
+    positionedEvents.forEach(ev => {
+      const topPx    = ev.startHour * HOUR_PX;
+      const heightPx = Math.max((ev.endHour - ev.startHour) * HOUR_PX - 2, 22);
+      const numCols  = ev._numCols || 1;
+      const col      = ev._col || 0;
+      const widthPct = (100 / numCols);
+      const leftPct  = col * widthPct;
+      const style = [
+        `top:${topPx}px`,
+        `height:${heightPx}px`,
+        `background:${ev.color}`,
+        `left:calc(${leftPct}% + 4px)`,
+        `width:calc(${widthPct}% - 8px)`
+      ].join(';');
+      eventBlocksHtml += `
+        <div class="gcal-event-block" style="${style}" onclick="${ev.onClick}">
+          <div class="gcal-event-title">${ev.title}</div>
+          ${ev.sub ? `<div class="gcal-event-sub">${ev.sub}</div>` : ''}
         </div>
       `;
-    };
+    });
 
-    let checkInsHtml = '';
-    if (checkIns.length > 0) {
-      checkIns.forEach(b => {
-        checkInsHtml += renderCard(
-          `Check-in: ${b.guestName}`,
-          `Platform: ${b.channelName} | Booking ID: ${b.bookingId}`,
-          `Arrival`,
-          b.guestAvatar,
-          `openReservationPanel(event, '${b.id}')`
-        );
-      });
-    } else {
-      checkInsHtml = '<div class="day-empty-text">No check-ins today</div>';
-    }
-
-    let checkOutsHtml = '';
-    if (checkOuts.length > 0) {
-      checkOuts.forEach(b => {
-        checkOutsHtml += renderCard(
-          `Check-out: ${b.guestName}`,
-          `Platform: ${b.channelName} | Booking ID: ${b.bookingId}`,
-          `Departure`,
-          b.guestAvatar,
-          `openReservationPanel(event, '${b.id}')`
-        );
-      });
-    } else {
-      checkOutsHtml = '<div class="day-empty-text">No check-outs today</div>';
-    }
-
-    let inHouseHtml = '';
-    if (inHouse.length > 0) {
-      inHouse.forEach(b => {
-        inHouseHtml += renderCard(
-          `In-House: ${b.guestName}`,
-          `Platform: ${b.channelName} | Booking ID: ${b.bookingId}`,
-          `Staying`,
-          b.guestAvatar,
-          `openReservationPanel(event, '${b.id}')`
-        );
-      });
-    } else {
-      inHouseHtml = '<div class="day-empty-text">No in-house guests today</div>';
-    }
-
-    let tasksHtml = '';
-    if (dayTasks.length > 0) {
-      dayTasks.forEach(t => {
-        const iconHtml = `
-          <div style="background-color: ${getTaskBadgeBg(t.task_type)}; color: white; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px;">
-            🧹
-          </div>
-        `;
-        tasksHtml += renderCard(
-          t.details || 'Task',
-          `Assigned to: ${t.assigned_to || 'Not assigned'} | Status: ${t.completed ? 'Completed' : 'Pending'}`,
-          t.task_type.toUpperCase(),
-          null,
-          `openTaskDetailModal(event, '${t.id}')`,
-          iconHtml
-        );
-      });
-    } else {
-      tasksHtml = '<div class="day-empty-text">No tasks scheduled today</div>';
-    }
-
-    let enquiriesHtml = '';
-    if (dayEnquiries.length > 0) {
-      dayEnquiries.forEach(eq => {
-        enquiriesHtml += renderCard(
-          `Enquiry: ${eq.guestName}`,
-          `Email: ${eq.email} | Guests: ${eq.adults}`,
-          `Enquiry`,
-          eq.guestAvatar,
-          `openEnquiryPanel(event, '${eq.id}')`
-        );
-      });
-    } else {
-      enquiriesHtml = '<div class="day-empty-text">No active enquiries starting today</div>';
-    }
-
+    // --- Render ---
     pane.innerHTML = `
-      <div class="day-view-container">
-        <div class="day-view-header">
-          <div class="day-view-title">${formattedDate}</div>
+      <div class="gcal-day-view">
+        <!-- Top bar: gutter + day column header -->
+        <div class="gcal-day-topbar">
+          <div class="gcal-day-gutter-header"></div>
+          <div class="gcal-day-col-header">
+            <div class="gcal-day-weekday">${weekdayStr}</div>
+            <div class="gcal-day-num${isToday ? ' gcal-today' : ''}">${dayNum}</div>
+          </div>
         </div>
-        
-        <div class="day-section">
-          <div class="day-section-title">🌅 Check-Ins</div>
-          ${checkInsHtml}
-        </div>
-        
-        <div class="day-section">
-          <div class="day-section-title">🌇 Check-Outs</div>
-          ${checkOutsHtml}
-        </div>
-        
-        <div class="day-section">
-          <div class="day-section-title">🏡 In-House Guests</div>
-          ${inHouseHtml}
-        </div>
-        
-        <div class="day-section">
-          <div class="day-section-title">📋 Tasks</div>
-          ${tasksHtml}
-        </div>
-        
-        <div class="day-section">
-          <div class="day-section-title">💬 Enquiries</div>
-          ${enquiriesHtml}
+        <!-- Scrollable grid -->
+        <div class="gcal-day-scroll-area" id="gcalDayScrollArea">
+          <div class="gcal-day-grid" style="min-height:${24 * HOUR_PX}px">
+            <!-- Time gutter -->
+            <div class="gcal-time-gutter" style="height:${24 * HOUR_PX}px">
+              ${timeLabelsHtml}
+            </div>
+            <!-- Day column -->
+            <div class="gcal-day-col" style="height:${24 * HOUR_PX}px; position:relative;">
+              ${hourLinesHtml}
+              ${nowLineHtml}
+              ${eventBlocksHtml}
+              ${events.length === 0 ? `<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:14px;color:#9ca3af;font-style:italic;pointer-events:none;">No events scheduled</div>` : ''}
+            </div>
+          </div>
         </div>
       </div>
     `;
+
+    // Scroll to 7 AM by default (or now-line if today)
+    requestAnimationFrame(() => {
+      const scrollArea = document.getElementById('gcalDayScrollArea');
+      if (!scrollArea) return;
+      if (isToday) {
+        const now = new Date();
+        const nowTop = (now.getHours() + now.getMinutes() / 60) * HOUR_PX;
+        scrollArea.scrollTop = Math.max(0, nowTop - scrollArea.clientHeight / 2);
+      } else {
+        scrollArea.scrollTop = 7 * HOUR_PX;
+      }
+    });
   }
 
   function openTaskDetailModal(event, taskId) {
@@ -5139,8 +5711,13 @@
     }
 
     updateMonthDisplay();
+
+    if (currentViewMode === 'list') {
+      renderActiveView();
+      return;
+    }
+
     generateDates();
-    
     syncTimelineDimensions();
     renderProperties(filteredProperties);
     renderActiveView();
@@ -5164,7 +5741,7 @@
   }
 
   function goToPrevMonth() {
-    if (currentViewMode === 'month' || currentViewMode === 'timeline') {
+    if (currentViewMode === 'month' || currentViewMode === 'timeline' || currentViewMode === 'list') {
       currentDisplayDate.setMonth(currentDisplayDate.getMonth() - 1, 1);
       refreshView();
     } else if (currentViewMode === 'week') {
@@ -5183,7 +5760,7 @@
   }
 
   function goToNextMonth() {
-    if (currentViewMode === 'month' || currentViewMode === 'timeline') {
+    if (currentViewMode === 'month' || currentViewMode === 'timeline' || currentViewMode === 'list') {
       currentDisplayDate.setMonth(currentDisplayDate.getMonth() + 1, 1);
       refreshView();
     } else if (currentViewMode === 'week') {
@@ -5214,7 +5791,18 @@
     refreshView();
     if (currentViewMode === 'timeline') {
       scrollToToday();
+    } else if (currentViewMode === 'list') {
+      scrollToListToday();
     }
+  }
+
+  function scrollToListToday() {
+    setTimeout(() => {
+      const container = document.getElementById('listViewPane');
+      const todayIso = toISODateString(new Date());
+      const section = container ? container.querySelector('#date-' + todayIso) : null;
+      if (section) section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 300);
   }
 
   function scrollToToday() {
@@ -5228,7 +5816,11 @@
   }
 
   function refreshData() {
-    fetchBookings();
+    if (currentViewMode === 'list') {
+      renderListView();
+    } else {
+      fetchBookings();
+    }
   }
 
   let activePropertyDropdown = null;

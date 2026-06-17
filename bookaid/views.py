@@ -107,14 +107,14 @@ class HostDashboardAPIView(LoginRequiredMixin, TemplateView):
 
         seven_days_ago = today - datetime.timedelta(days=7)
         context['recent_bookings'] = Booking.objects.filter(
-            property__created_by=self.request.user,
+            property__created_by__in=get_visible_user_ids(self.request.user),
             created_at__date__gte=seven_days_ago,
             created_at__date__lte=today
         ).exclude(status='cancelled').order_by('-created_at')
 
         current_year = timezone.now().year
         gross_qs = Booking.objects.filter(
-            property__created_by=self.request.user,
+            property__created_by__in=get_visible_user_ids(self.request.user),
             created_at__year=current_year
         ).exclude(status='cancelled')
         context['gross_bookings_amount'] = gross_qs.aggregate(total=Sum('price'))['total'] or 0
@@ -563,7 +563,8 @@ class CalenderAPIView(LoginRequiredMixin,ListView):
         blocked_dates_qs = PropertyBlockDate.objects.filter(
             property__created_by__in=get_visible_user_ids(request.user),
             start_date__lte=end_date,
-            end_date__gte=start_date
+            end_date__gte=start_date,
+            is_active=True
         ).select_related('property')
 
         for block in blocked_dates_qs:
@@ -623,9 +624,11 @@ class CalenderAPIView(LoginRequiredMixin,ListView):
                 'propertyId': str(eq.property.id),
                 'start_date': eq.check_in_date.isoformat(),
                 'end_date': eq.check_out_date.isoformat(),
+                'startDateStr': eq.check_in_date.isoformat(),
+                'endDateStr': eq.check_out_date.isoformat(),
                 'guestName': f"{eq.first_name or ''} {eq.last_name or ''}".strip() or "Enquiry Guest",
                 'guestAvatar': staticfiles_storage.url('img/common/default_user_icon_1.png'),
-                'color': '#f59e0b',  # Orange/yellow for enquiries
+                'color': '#f59e0b',
                 'type': 'enquiry',
                 'phone': eq.phone or '',
                 'email': eq.email or '',
