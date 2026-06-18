@@ -29,7 +29,7 @@ SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-+m!dtn=()j@rs%01t#c^c&(s3l
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DEBUG', 'True') == 'True'
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '*').split(',')
 CORS_ALLOW_ALL_ORIGINS = True
 SECURE_CROSS_ORIGIN_OPENER_POLICY = None
 CSRF_TRUSTED_ORIGINS = [
@@ -38,7 +38,24 @@ CSRF_TRUSTED_ORIGINS = [
     'https://*.ngrok.io',
     'http://favhost.com',
     'https://favhost.com',
+    'https://dev.favhost.com',
+    'http://localhost:8000',
+    'http://127.0.0.1:8000',
 ]
+
+# ── Production security hardening (only active when DEBUG=False) ──
+# Kept off in local dev so plain http://localhost keeps working.
+if not DEBUG:
+    # Trust the X-Forwarded-Proto header set by nginx / the load balancer
+    # so Django knows the original request was HTTPS.
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_HSTS_SECONDS = 31536000  # 1 year
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
 
 
 
