@@ -64,6 +64,7 @@ INSTALLED_APPS = [
     'tasks',
     'global',
     'billing',
+    'printpanel',
 
 
 ]
@@ -99,6 +100,7 @@ TEMPLATES = [
                 'property.context_processors.property_context',
                 'bookaid.context_processors.enquiry_counts',
                 'billing.context_processors.subscription_status',
+                'django.template.context_processors.static',
             ],
         },
     },

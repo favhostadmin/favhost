@@ -21,6 +21,8 @@ from accounts.utils import get_visible_user_ids
 from .enums import BOOKING_CHANNELS
 from .utils import generate_booking_payments
 from accounts.utils import get_visible_user_ids
+from tasks.models import Task
+from property.models import PropertyBlockDate
 
 from django.core.mail import send_mail
 from django.conf import settings

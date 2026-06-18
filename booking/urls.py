@@ -27,7 +27,5 @@ urlpatterns = [
     path('enquiry/detail/<uuid:unique_id>/', views.EnquiryDetailView.as_view(), name='enquiry-detail'),
     path('enquiry/archive/<uuid:unique_id>/', views.archive_enquiry_api, name='enquiry-archive'),
 
-
-
-
 ]
+

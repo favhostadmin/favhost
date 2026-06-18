@@ -43,6 +43,7 @@ urlpatterns = [
     path('booking/', include(('booking.urls', 'booking'), namespace='booking')),
     path('tasks/', include(('tasks.urls', 'tasks'), namespace='tasks')),
     path('global/', include(('global.urls', 'global'), namespace='global')),
+    path('print/', include(('printpanel.urls', 'printpanel'), namespace='printpanel')),
     path('calendar-grid-view/',CalenderAPIView.as_view(),name="calendar-grid-view"),
     path('calendar-list-view/',CalendarListView.as_view(),name="calendar-list-view"),
     path('manage/<uuid:property_id>/', channel_integration, name='channel_integration'),

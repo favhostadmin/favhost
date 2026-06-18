@@ -2525,7 +2525,7 @@
         <div class="nav-left">
           <div class="nav-title">
             <img src="{% static 'img/calender/calendar_dashboard_icon.svg' %}">
-            <span>Calendar - Timeline view</span>
+            <span id="viewTitle">Calendar - Month view</span>
           </div>
         </div>
       </div>
@@ -2576,16 +2576,16 @@
 
         <div class="divider"></div>
 
-        <!-- Event Type Dropdown Filter -->
+        <!-- Event Type Filter (Checkboxes) -->
         <div class="dropdown" style="margin-left: 10px;">
           <button class="btn btn-outline-secondary dropdown-toggle btn-sm fw-semibold" type="button" id="calendarTypeFilterBtn" data-bs-toggle="dropdown" aria-expanded="false" style="border-radius: 6px; border: 1px solid #d1d5db; padding: 6px 12px; font-size: 14px; background: #fff; color: #374151;">
             Show: All
           </button>
-          <ul class="dropdown-menu" aria-labelledby="calendarTypeFilterBtn" id="calendarTypeFilter">
-            <li><a class="dropdown-item active" href="#" data-value="all">All</a></li>
-            <li><a class="dropdown-item" href="#" data-value="reservation">Reservations</a></li>
-            <li><a class="dropdown-item" href="#" data-value="task">Tasks</a></li>
-            <li><a class="dropdown-item" href="#" data-value="payment">Payments</a></li>
+          <ul class="dropdown-menu pt-2 pb-2" aria-labelledby="calendarTypeFilterBtn" id="calendarTypeFilter" style="min-width: 170px;">
+            <li style="padding: 2px 16px;"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:500;user-select:none;"><input type="checkbox" id="filterAll" checked style="width:16px;height:16px;accent-color:#3b82f6;cursor:pointer;"> All</label></li>
+            <li style="padding: 2px 16px;"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:500;user-select:none;"><input type="checkbox" id="filterReservation" checked class="filter-type-cb" data-type="reservation" style="width:16px;height:16px;accent-color:#2563eb;cursor:pointer;"> Reservations</label></li>
+            <li style="padding: 2px 16px;"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:500;user-select:none;"><input type="checkbox" id="filterTask" checked class="filter-type-cb" data-type="task" style="width:16px;height:16px;accent-color:#059669;cursor:pointer;"> Tasks</label></li>
+            <li style="padding: 2px 16px;"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:500;user-select:none;"><input type="checkbox" id="filterPayment" checked class="filter-type-cb" data-type="payment" style="width:16px;height:16px;accent-color:#1e293b;cursor:pointer;"> Payments</label></li>
           </ul>
         </div>
 
@@ -2625,9 +2625,11 @@
         <div class="d-flex">
           <div></div>
           <div class="header-actions-group">
-            <button class="btn p-0 tooltip-light" style="border:none" data-tooltip="Print">
-              <img src="{% static 'img/calender/print_icon.svg' %}">
-            </button>
+            <div class="dropdown">
+              <button class="btn p-0 tooltip-light" id="printBtn" style="border:none" data-tooltip="Print">
+                <img src="{% static 'img/calender/print_icon.svg' %}">
+              </button>
+            </div>
             <button class="btn p-0 tooltip-light" id="refreshBtn" style="border:none" data-tooltip="Refresh">
               <img src="{% static 'img/calender/refresh_icon.svg' %}">
             </button>
@@ -2874,8 +2876,15 @@
   let selectedWeekStart = null; // Sunday of current week
   let activePropertyId = (properties && properties.length > 0) ? String(properties[0].id) : null;
   let currentViewMode = 'month'; // 'month', 'week', 'day'
-  let calendarFilterType = 'all'; // 'all', 'reservation', 'task', 'payment'
+  let typeFilters = { reservation: true, task: true, payment: true };
   let reservationPanelWasOpenBeforeReceipt = false;
+
+  function updateViewTitle() {
+    const el = document.getElementById('viewTitle');
+    if (!el) return;
+    const labels = { month: 'Month view', week: 'Week view', day: 'Day view', timeline: 'Timeline view', list: 'List view' };
+    el.textContent = 'Calendar - ' + (labels[currentViewMode] || 'Month view');
+  }
 
   function toISODateString(date) {
     return date.getFullYear() + '-' +
@@ -3385,11 +3394,17 @@
 
 
 
-      // Filter spans by active filter type
-      const filteredSpanOverlays = calendarFilterType === 'task'
+      // Filter spans by active filter types
+      const filteredSpanOverlays = (!typeFilters.reservation && !typeFilters.payment)
         ? ''
-        : calendarFilterType === 'payment'
-          ? spans.filter(b => b.paymentsInfo && Object.keys(b.paymentsInfo).length > 0).map(b => {
+        : (!typeFilters.reservation || !typeFilters.payment)
+          ? spans.filter(b => {
+              const hasPay = b.paymentsInfo && Object.keys(b.paymentsInfo).length > 0;
+              if (typeFilters.reservation && typeFilters.payment) return true;
+              if (typeFilters.reservation) return !hasPay || b.type === 'blocked';
+              if (typeFilters.payment) return hasPay && b.type !== 'blocked';
+              return true;
+            }).map(b => {
               const isBlocked = b.type === 'blocked';
               const onClick = isBlocked ? `onclick="openUnblockModal(event, '${b.id}')"` : `onclick="openReservationPanel(event, '${b.id || 101}')"`;
               const bgColor = isBlocked ? '#9ca3af' : (b.color || '#3b82f6');
@@ -4800,19 +4815,20 @@
       ? tasks.filter(t => String(t.propertyId) === String(activePropertyId))
       : tasks.slice();
 
-    if (calendarFilterType === 'reservation') {
-      // Show only confirmed reservations (no enquiries, no tasks)
+    if (!typeFilters.reservation) {
+      pBookings = pBookings.filter(b => b.paymentsInfo && Object.keys(b.paymentsInfo).length > 0);
       pEnquiries = [];
+      pTasks = typeFilters.task ? pTasks : [];
+    }
+    if (!typeFilters.payment) {
+      pBookings = pBookings.filter(b => !b.paymentsInfo || Object.keys(b.paymentsInfo).length === 0);
+    }
+    if (!typeFilters.task) {
       pTasks = [];
-      pBookings = pBookings.filter(b => b.type !== 'blocked');
-    } else if (calendarFilterType === 'task') {
+    }
+    if (!typeFilters.reservation && !typeFilters.payment) {
       pBookings = [];
       pEnquiries = [];
-    } else if (calendarFilterType === 'payment') {
-      // Show only bookings that have payment data on their dates
-      pEnquiries = [];
-      pTasks = [];
-      pBookings = pBookings.filter(b => b.paymentsInfo && Object.keys(b.paymentsInfo).length > 0);
     }
 
     return {
@@ -5005,14 +5021,14 @@
     today.setHours(0, 0, 0, 0);
 
     const applyFilter = (arr) => {
-      if (calendarFilterType === 'reservation') return arr.filter(b => b.type !== 'blocked' && (!b.paymentsInfo || Object.keys(b.paymentsInfo).length === 0));
-      if (calendarFilterType === 'task') return [];
-      if (calendarFilterType === 'payment') return arr.filter(b => b.paymentsInfo && Object.keys(b.paymentsInfo).length > 0);
+      if (!typeFilters.reservation && !typeFilters.payment) return [];
+      if (!typeFilters.reservation) return arr.filter(b => b.paymentsInfo && Object.keys(b.paymentsInfo).length > 0);
+      if (!typeFilters.payment) return arr.filter(b => !b.paymentsInfo || Object.keys(b.paymentsInfo).length === 0 || b.type === 'blocked');
       return arr;
     };
     const pBookings = applyFilter(bookings.slice());
-    const pEnquiries = calendarFilterType === 'task' || calendarFilterType === 'payment' ? [] : enquiries.slice();
-    const pTasks = calendarFilterType === 'reservation' || calendarFilterType === 'payment' ? [] : tasks.slice();
+    const pEnquiries = typeFilters.reservation ? enquiries.slice() : [];
+    const pTasks = typeFilters.task ? tasks.slice() : [];
     const spansList = [
       ...pBookings.map(b => ({ ...b, isEnquiry: false })),
       ...pEnquiries.map(eq => ({ ...eq, isEnquiry: true }))
@@ -5122,9 +5138,9 @@
     }
 
     /* Determine which bands are visible based on filter */
-    const showRes = calendarFilterType !== 'task' && calendarFilterType !== 'payment';
-    const showPay = calendarFilterType !== 'task' && calendarFilterType !== 'reservation';
-    const showTask = calendarFilterType !== 'reservation' && calendarFilterType !== 'payment';
+    const showRes = typeFilters.reservation;
+    const showPay = typeFilters.payment;
+    const showTask = typeFilters.task;
 
     /* Categorise events into three bands */
     const BAR_H = 36;
@@ -5317,14 +5333,14 @@
   function renderDaySchedule(pane) {
     // Day view shows ALL listings, not just the active one
     const applyFilter = (arr) => {
-      if (calendarFilterType === 'reservation') return arr.filter(b => b.type !== 'blocked');
-      if (calendarFilterType === 'task') return [];
-      if (calendarFilterType === 'payment') return arr.filter(b => b.paymentsInfo && Object.keys(b.paymentsInfo).length > 0);
+      if (!typeFilters.reservation && !typeFilters.payment) return [];
+      if (!typeFilters.reservation) return arr.filter(b => b.paymentsInfo && Object.keys(b.paymentsInfo).length > 0);
+      if (!typeFilters.payment) return arr.filter(b => !b.paymentsInfo || Object.keys(b.paymentsInfo).length === 0 || b.type === 'blocked');
       return arr;
     };
     const pBookings = applyFilter(bookings.slice());
-    const pEnquiries = calendarFilterType === 'task' || calendarFilterType === 'payment' ? [] : enquiries.slice();
-    const pTasks = calendarFilterType === 'reservation' || calendarFilterType === 'payment' ? [] : tasks.slice();
+    const pEnquiries = typeFilters.reservation ? enquiries.slice() : [];
+    const pTasks = typeFilters.task ? tasks.slice() : [];
     const dateStr = selectedDateKey;
 
     const dateObj = new Date(dateStr + 'T00:00:00');
@@ -5713,6 +5729,7 @@
     updateMonthDisplay();
 
     if (currentViewMode === 'list') {
+      updateViewTitle();
       renderActiveView();
       return;
     }
@@ -5720,6 +5737,7 @@
     generateDates();
     syncTimelineDimensions();
     renderProperties(filteredProperties);
+    updateViewTitle();
     renderActiveView();
     fetchBookings();
   }
@@ -5921,23 +5939,35 @@
     }
 
     // Bind type filter dropdown
+    // Bind type filter checkboxes
     const typeFilter = document.getElementById('calendarTypeFilter');
     if (typeFilter) {
-      typeFilter.addEventListener('click', function (event) {
-        const item = event.target.closest('a');
-        if (!item) return;
-        event.preventDefault();
-        
-        typeFilter.querySelectorAll('a').forEach(a => a.classList.remove('active'));
-        item.classList.add('active');
-        
+      function updateFilterState() {
+        const resCb = document.getElementById('filterReservation');
+        const taskCb = document.getElementById('filterTask');
+        const payCb = document.getElementById('filterPayment');
+        const allCb = document.getElementById('filterAll');
+        typeFilters.reservation = resCb.checked;
+        typeFilters.task = taskCb.checked;
+        typeFilters.payment = payCb.checked;
+        allCb.checked = resCb.checked && taskCb.checked && payCb.checked;
         const filterBtn = document.getElementById('calendarTypeFilterBtn');
         if (filterBtn) {
-          filterBtn.textContent = 'Show: ' + item.textContent.trim();
+          const labels = [];
+          if (resCb.checked) labels.push('Reservations');
+          if (taskCb.checked) labels.push('Tasks');
+          if (payCb.checked) labels.push('Payments');
+          filterBtn.textContent = labels.length === 3 ? 'Show: All' : 'Show: ' + (labels.join(', ') || 'None');
         }
-        
-        calendarFilterType = item.dataset.value;
         renderActiveView();
+      }
+      document.getElementById('filterAll').addEventListener('change', function () {
+        const checked = this.checked;
+        document.querySelectorAll('.filter-type-cb').forEach(cb => cb.checked = checked);
+        updateFilterState();
+      });
+      document.querySelectorAll('.filter-type-cb').forEach(cb => {
+        cb.addEventListener('change', updateFilterState);
       });
     }
 
@@ -5961,6 +5991,23 @@
     document.getElementById('nextBtn').addEventListener('click', goToNextMonth);
     document.getElementById('todayBtn').addEventListener('click', goToToday);
     document.getElementById('refreshBtn').addEventListener('click', refreshData);
+    document.getElementById('printBtn').addEventListener('click', function () {
+      const viewType = currentViewMode || 'month';
+      let startDate, endDate;
+      if (allDates.length > 0) {
+        startDate = toISODateString(allDates[0]);
+        endDate = toISODateString(allDates[allDates.length - 1]);
+      } else {
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = today.getMonth();
+        const firstDay = new Date(year, month, 1);
+        const lastDay = new Date(year, month + 1, 0);
+        startDate = toISODateString(firstDay);
+        endDate = toISODateString(lastDay);
+      }
+      window.location.href = `/print/?view=${viewType}&start_date=${startDate}&end_date=${endDate}`;
+    });
     document.getElementById('monthDisplay').addEventListener('click', toggleMonthYearPanel);
     document.getElementById('monthYearApplyBtn').addEventListener('click', applyMonthYearSelection);
     document.getElementById('monthYearPanel').addEventListener('click', function (event) {
@@ -6129,12 +6176,19 @@
 
   if (mobilePrintBtn) {
     mobilePrintBtn.addEventListener('click', () => {
-      const desktopPrintBtn = document.getElementById('printBtn');
-      if (desktopPrintBtn) {
-        desktopPrintBtn.click();
+      const viewType = currentViewMode || 'month';
+      let startDate, endDate;
+      if (allDates.length > 0) {
+        startDate = toISODateString(allDates[0]);
+        endDate = toISODateString(allDates[allDates.length - 1]);
       } else {
-        window.print();
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = today.getMonth();
+        startDate = toISODateString(new Date(year, month, 1));
+        endDate = toISODateString(new Date(year, month + 1, 0));
       }
+      window.location.href = `/print/?view=${viewType}&start_date=${startDate}&end_date=${endDate}`;
     });
   }
 
