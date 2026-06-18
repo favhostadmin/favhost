@@ -758,33 +758,39 @@
     /* Property Sidebar Styles */
     .property-sidebar {
         position: fixed;
-        top: 0;
-        right: -650px;
-        width: 650px;
-        height: 100vh;
+        top: 50%;
+        left: 50%;
+        width: min(980px, calc(100vw - 24px));
+        height: min(84vh, 760px);
         background: white;
         z-index: 2000;
-        box-shadow: -4px 0 15px rgba(0, 0, 0, 0.1);
-        transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 24px 60px rgba(0, 0, 0, 0.18);
+        border-radius: 18px;
+        transform: translate(-50%, -50%) scale(0.96);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.2s ease, transform 0.2s ease;
         display: flex;
         flex-direction: column;
+        overflow: hidden;
     }
 
     .property-sidebar.open {
-        right: 0;
+        opacity: 1;
+        pointer-events: auto;
+        transform: translate(-50%, -50%) scale(1);
     }
 
     .sidebar-header {
-        padding: 10px;
+        padding: 14px 16px;
         border-bottom: 1px solid #e5e7eb;
         display: flex;
         justify-content: space-between;
         align-items: center;
         gap: 12px;
-        position: sticky;
-        top: 0;
         background: #fff;
         z-index: 2;
+        flex-wrap: nowrap;
     }
 
     .sidebar-title {
@@ -807,16 +813,16 @@
     }
 
     .sidebar-search {
-        padding: 0px;
-        width: 280px;
+        width: 360px;
         max-width: 100%;
         flex-shrink: 0;
-        margin-right: 4px;
+        margin-left: auto;
     }
 
     .sidebar-search input {
         width: 100%;
-        padding: 10px 15px;
+        height: 42px;
+        padding: 10px 14px;
         border: 1px solid #d1d5db;
         border-radius: 8px;
         outline: none;
@@ -825,8 +831,8 @@
     .sidebar-content {
         flex: 1;
         overflow-y: auto;
-        padding: 10px;
-        min-height: calc(100vh - 190px);
+        padding: 12px;
+        background: #f9fafb;
     }
 
     .property-card-sidebar {
@@ -839,6 +845,12 @@
         margin-bottom: 10px;
         cursor: pointer;
         transition: all 0.2s;
+    }
+
+    .property-card-sidebar.selected {
+        border-color: #2563eb;
+        box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.12);
+        background: #eff6ff;
     }
 
     .property-card-sidebar .property-card-img {
@@ -871,15 +883,31 @@
         flex-shrink: 0;
     }
 
+    .property-card-sidebar .selected-status {
+        display: inline-flex;
+        align-items: center;
+        margin-left: 8px;
+        padding: 4px 8px;
+        border-radius: 999px;
+        background: #dbeafe;
+        color: #1d4ed8;
+        font-size: 0.74rem;
+        font-weight: 700;
+        line-height: 1;
+        white-space: nowrap;
+    }
+
     @media (max-width: 991.98px) {
         .property-sidebar {
-            width: 100vw;
-            max-width: 100vw;
-            right: -100vw;
+            width: calc(100vw - 16px);
+            height: calc(100dvh - 16px);
+            border-radius: 14px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
         }
 
         .sidebar-search {
-            width: clamp(190px, 50vw, 300px);
+            width: clamp(190px, 50vw, 320px);
+            min-width: 0;
         }
 
         .sidebar-content {
@@ -951,13 +979,203 @@
         pointer-events: none;
     }
 
-    .main_body_div{
-        padding: 0rem 12%; min-height: calc(100vh - 190px);
+    .booking-layout-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        gap: 20px;
+        align-items: start;
+        background-color: transparent;
     }
+
+    .booking-panel {
+        border: 1px solid #d7dbe2;
+        border-radius: 8px;
+        background: #fff;
+        box-shadow: 0 1px 4px rgba(15, 23, 42, 0.08);
+        overflow: hidden;
+    }
+
+    .booking-panel-header {
+        background: #dedede;
+        color: #1f2937;
+        font-weight: 700;
+        font-size: 16px;
+        padding: 10px 16px;
+        line-height: 1.2;
+    }
+
+    .booking-panel-body {
+        padding: 10px 12px 12px;
+    }
+
+    .booking-field-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px 14px;
+    }
+
+    .booking-field {
+        min-width: 0;
+    }
+
+    .booking-field.full-width {
+        grid-column: 1 / -1;
+    }
+
+    .booking-field-label {
+        display: block;
+        margin-bottom: 8px;
+        font-size: 12px;
+        font-weight: 700;
+        color: #1f2937;
+    }
+
+    .time-field-label {
+        margin-top: 4px;
+    }
+
+    .booking-input,
+    .booking-select,
+    .booking-textarea {
+        width: 100%;
+        border: 1px solid #d1d5db;
+        border-radius: 6px;
+        background: #fff;
+        font-size: 14px;
+        color: #111827;
+        outline: none;
+        box-shadow: none;
+    }
+
+    .booking-input,
+    .booking-select {
+        min-height: 48px;
+        padding: 12px 14px;
+        font-size: 14px;
+        box-sizing: border-box;
+    }
+
+    .booking-textarea {
+        min-height: 84px;
+        padding: 10px;
+        font-size: 13px;
+        resize: vertical;
+    }
+
+    .booking-input::placeholder,
+    .booking-textarea::placeholder {
+        color: #9ca3af;
+    }
+
+    .booking-upload-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px 14px;
+    }
+
+    .booking-upload-box {
+        border: 1px dashed #d1d5db;
+        border-radius: 10px;
+        min-height: 118px;
+        padding: 14px 10px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        background: #fbfbfb;
+        cursor: pointer;
+    }
+
+    .booking-upload-box img {
+        width: 34px;
+        height: 34px;
+        margin-bottom: 8px;
+    }
+
+    .booking-upload-title {
+        font-size: 13px;
+        font-weight: 600;
+        color: #4b5563;
+        line-height: 1.3;
+    }
+
+    .booking-upload-subtitle {
+        font-size: 11px;
+        color: #6b7280;
+        line-height: 1.35;
+        margin-top: 2px;
+    }
+
+    .booking-summary-card {
+        margin-top: 14px;
+    }
+
+    .booking-range-trigger,
+    .property-selection-trigger,
+    .time_dropdown,
+    .time_dropdown-toggle {
+        min-height: 48px;
+        box-sizing: border-box;
+    }
+
+    .booking-range-trigger,
+    .property-selection-trigger {
+        padding: 12px 14px;
+    }
+
+    .time_dropdown {
+        width: 100%;
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+        background: #fff;
+    }
+
+    .time_dropdown-toggle {
+        padding: 12px 14px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 14px;
+        color: #111827;
+        position: relative;
+    }
+
+    .time_dropdown-toggle::after {
+        right: 14px;
+    }
+
+    .main_row_div{
+        padding: 40px 12%;
+        max-height: calc(100vh - 177px);
+        overflow: auto;
+    }
+
     @media (max-width: 991px) {
         .main_body_div{
             padding: 0rem 3%;
             min-height: calc(100vh - 190px);
+        }
+        .main_row_div{
+            padding: 0rem 3%;
+        }
+        .booking-layout-grid {
+            grid-template-columns: 1fr;
+            max-height: calc(100vh - 150px);
+            overflow-y: auto;
+            padding-right: 6px;
+            -webkit-overflow-scrolling: touch;
+        }
+        .booking-panel-body {
+            padding: 12px;
+        }
+        .booking-field-grid,
+        .booking-upload-grid {
+            grid-template-columns: 1fr;
+        }
+        .booking-scroll-area {
+            overflow-y: auto;
+            overflow-x: hidden;
         }
     }
     </style>
@@ -984,301 +1202,285 @@
         </div>
     </div>
     
-    <div style="max-height: calc(100vh - 135px); overflow-y:auto" >
-        <div class="row m-0 mt-3 main_body_div">
-            <!-- Guest Details Section -->
-            <div class="col-lg-6 col-12" style="padding-right: 1rem;">
-                <div class="section-header">Guest Details</div>
-                <div class="form-section">
-                    <div class="row m-0 mt-2">
-                        <div class="col-lg-6 col-12 form-group ps-lg-0">
-                            <label class="form-label">First Name<span class="required">*</span></label>
-                            <input type="text" name="first_name" id="id_first_name" class="form-input" placeholder="Enter first name" value="{{ booking.first_name|default_if_none:'' }}" required>
-                        </div>
-                        <div class="col-lg-6 col-12 form-group pe-lg-0">
-                            <label class="form-label">Last Name<span class="required">*</span></label>
-                            <input type="text" name="last_name" id="id_last_name" class="form-input" placeholder="Enter last name" value="{{ booking.last_name|default_if_none:'' }}" required>
-                        </div>
-                    </div>
-                    
-                    <div class="row m-0">
-                        <div class="col-lg-6 col-12 form-group ps-lg-0">
-                            <label class="form-label">Email
-                                <!-- <span class="required">*</span> -->
-                            </label>
-                            <input type="email" name="email" id="id_email" class="form-input" placeholder="mail@example.com" value="{{ booking.email|default_if_none:'' }}">
-                        </div>
-                        <div class="col-lg-6 col-12 form-group pe-lg-0">
-                            <label class="form-label">Phone
-                                <!-- <span class="required">*</span> -->
-                            </label>
-                            <input type="tel" name="phone" id="phone" class="form-input" placeholder="Enter phone number" value="{{ booking.phone|default_if_none:'' }}">
-                            <input type="hidden" name="country_code" id="id_country_code">
-                        </div>
-                    </div>
-
-                    <div class="row m-0">
-                        <div class="col-lg-6 col-12 form-group ps-lg-0">
-                            <label class="form-label">Number of guests<span class="required">*</span></label>
-                            <input type="number" name="guest_count" id="id_guest_count" class="form-input" placeholder="Number of guests" min="1" value="{{ booking.guest_count|default_if_none:'' }}" required>
-                        </div>
-                        <div class="col-lg-6 col-12 form-group pe-lg-0">
-                            <label class="form-label">Booking Channel<span class="required">*</span></label>
-                            <select name="channel" id="id_channel" class="form-input" required {% if booking.external_uid %}disabled{% endif %}>
-                                <option value="">Select a channel</option>
-                                {% for channel in channels %}
-                                    <option value="{{ channel.id }}" data-icon="{% if channel.icon %}{{ channel.icon.url }}{% else %}{% static 'img/booking/other_browser.svg' %}{% endif %}" {% if booking.channel.id == channel.id %}selected{% endif %}>{{ channel.name }}</option>
-                                {% endfor %}
-                            </select>
-                            {% if booking.external_uid %}
-                                <input type="hidden" name="channel" value="{{ booking.channel.id }}">
-                            {% endif %}
-                        </div>
-                    </div>
-                    
-                    <div class="row m-0">
-                        <div class="col-lg-6 col-12 form-group ps-lg-0">
-                            <label class="form-label">Guest Photo</label>
-                            <div class="upload-area" id="upload-area">
-                                <div><img src="{% static 'img/property/upload.png' %}" alt="Upload Photo"></div>
-                                <div class="upload-text">Click to upload or drag and drop</div>
-                                <div class="upload-text">JPG, PNG up to 5MB (Profile Image)</div>
+    <div class="booking-scroll-area">
+        <div class="main_row_div">
+            <div class="booking-layout-grid">
+                <div class="booking-panel">
+                    <div class="booking-panel-header">Guest Details</div>
+                    <div class="booking-panel-body">
+                        <div class="booking-field-grid">
+                            <div class="booking-field">
+                                <label class="booking-field-label">First name<span class="required">*</span></label>
+                                <input type="text" name="first_name" id="id_first_name" class="booking-input" placeholder="Enter first name" value="{{ booking.first_name|default_if_none:'' }}" required>
                             </div>
+                            <div class="booking-field">
+                                <label class="booking-field-label">Last name<span class="required">*</span></label>
+                                <input type="text" name="last_name" id="id_last_name" class="booking-input" placeholder="Enter last name" value="{{ booking.last_name|default_if_none:'' }}" required>
+                            </div>
+                            <div class="booking-field">
+                                <label class="booking-field-label">Email</label>
+                                <input type="email" name="email" id="id_email" class="booking-input" placeholder="mail@example.com" value="{{ booking.email|default_if_none:'' }}">
+                            </div>
+                            <div class="booking-field">
+                                <label class="booking-field-label">Phone</label>
+                                <input type="tel" name="phone" id="phone" class="booking-input" placeholder="Enter phone number" value="{{ booking.phone|default_if_none:'' }}">
+                                <input type="hidden" name="country_code" id="id_country_code">
+                            </div>
+                            <div class="booking-field full-width">
+                                <label class="booking-field-label">Guest Photo</label>
+                                <div class="booking-upload-grid">
+                                    <div class="booking-upload-box upload-area" id="upload-area">
+                                        <div><img src="{% static 'img/property/upload.png' %}" alt="Upload Photo"></div>
+                                        <div class="booking-upload-title">Click to upload or drag and drop</div>
+                                        <div class="booking-upload-subtitle">Documents, images up to 15MB each</div>
+                                    </div>
+                                    <div class="booking-upload-box upload-area" id="attachmentUploadArea">
+                                        <div><img src="{% static 'img/property/upload.png' %}" alt="Upload Photo"></div>
+                                        <div class="booking-upload-title">Click to upload or drag and drop</div>
+                                        <div class="booking-upload-subtitle">Documents, images up to 15MB each</div>
+                                    </div>
+                                </div>
                                 <input type="file" name="guest_images" accept="image/*" style="display: none;" id="id_guest_images" multiple>
-                            <div class="error-message" id="error-message"></div>
-                            <div class="preview-container" id="image-preview-container">
-                                <div class="preview-grid" id="preview-grid"></div>
-                            </div>
-                            {% if existing_images %}
-                            <div class="existing-images mt-3">
-                                <div class="preview-grid">
-                                    {% for image in existing_images %}
-                                    <div class="preview-item" data-image-id="{{ image.id }}">
-                                        <a href="{{ image.image.url }}" target="_blank">
-                                            <img src="{{ image.image.url }}" alt="Existing Guest Photo">
-                                        </a>
-                                        <button type="button" class="remove-btn" onclick="deleteExistingFile('image', '{{ image.id }}', this)">×</button>
-                                    </div>
-                                    {% endfor %}
-                                </div>
-                            </div>
-                            {% endif %}
-                        </div>
-                        <div class="col-lg-6 col-12 form-group pe-lg-0">
-                            <label class="form-label">Attachments</label>
-                            <div class="upload-area" id="attachmentUploadArea">
-                                <div><img src="{% static 'img/property/upload.png' %}" alt="Upload Photo"></div>
-                                <div class="upload-text">Click to upload or drag and drop</div>
-                                <div class="upload-text">Any file up to 5MB</div>
-                            </div>
                                 <input type="file" name="guest_attachments" style="display: none;" id="id_guest_attachments" multiple>
-                            <div class="error-message" id="attachment-error-message"></div>
-                            <div class="attachment-preview-container" id="attachment-preview-container">
-                                <div class="preview-grid" id="attachmentPreview"></div>
-                            </div>
-                            {% if existing_attachments %}
-                            <div class="existing-attachments mt-3">
-                                <div class="preview-grid">
-                                    {% for doc in existing_attachments %}
-                                    {% with file_extension=doc.document.name|lower|slice:"-4:" %}
-                                    {% with long_file_extension=doc.document.name|lower|slice:"-5:" %}
-                                    <div class="{% if file_extension == ".jpg" or file_extension == ".png" or file_extension == ".gif" or long_file_extension == ".jpeg" %}preview-item{% else %}preview-doc-item{% endif %}" data-doc-id="{{ doc.id }}">
-                                        {% if file_extension == ".jpg" or file_extension == ".png" or file_extension == ".gif" or long_file_extension == ".jpeg" %}
-                                            <a href="{{ doc.document.url }}" target="_blank"><img src="{{ doc.document.url }}" alt="Existing Attachment"></a>
-                                        {% else %}
-                                            <a href="{{ doc.document.url }}" target="_blank" class="doc-link"><span>📄</span> {{ doc.name }}</a>
-                                        {% endif %}
-                                        <button type="button" class="remove-btn" onclick="deleteExistingFile('document', '{{ doc.id }}', this)">×</button>
+                                <div class="error-message" id="error-message"></div>
+                                <div class="attachment-error-message" id="attachment-error-message"></div>
+                                <div class="preview-container" id="image-preview-container">
+                                    <div class="preview-grid" id="preview-grid"></div>
+                                </div>
+                                <div class="attachment-preview-container" id="attachment-preview-container">
+                                    <div class="preview-grid" id="attachmentPreview"></div>
+                                </div>
+                                {% if existing_images %}
+                                <div class="mt-3">
+                                    <p class="form-label" style="font-size: 12px; color: #6b7280;">Existing Images:</p>
+                                    <div class="preview-grid">
+                                        {% for image in existing_images %}
+                                        <div class="preview-item" data-image-id="{{ image.id }}">
+                                            <a href="{{ image.image.url }}" target="_blank">
+                                                <img src="{{ image.image.url }}" alt="Existing Guest Photo">
+                                            </a>
+                                            <button type="button" class="remove-btn" onclick="deleteExistingFile('image', '{{ image.id }}', this)">×</button>
+                                        </div>
+                                        {% endfor %}
                                     </div>
-                                    {% endwith %}
-                                    {% endwith %}
+                                </div>
+                                {% endif %}
+                                {% if existing_attachments %}
+                                <div class="mt-3">
+                                    <p class="form-label" style="font-size: 12px; color: #6b7280;">Existing Attachments:</p>
+                                    <div class="preview-grid">
+                                        {% for doc in existing_attachments %}
+                                        {% with file_extension=doc.document.name|lower|slice:"-4:" %}
+                                        {% with long_file_extension=doc.document.name|lower|slice:"-5:" %}
+                                        <div class="{% if file_extension == '.jpg' or file_extension == '.png' or file_extension == '.gif' or long_file_extension == '.jpeg' %}preview-item{% else %}preview-doc-item{% endif %}" data-doc-id="{{ doc.id }}">
+                                            {% if file_extension == '.jpg' or file_extension == '.png' or file_extension == '.gif' or long_file_extension == '.jpeg' %}
+                                                <a href="{{ doc.document.url }}" target="_blank"><img src="{{ doc.document.url }}" alt="Existing Attachment"></a>
+                                            {% else %}
+                                                <a href="{{ doc.document.url }}" target="_blank" class="doc-link"><span>📄</span> {{ doc.name }}</a>
+                                            {% endif %}
+                                            <button type="button" class="remove-btn" onclick="deleteExistingFile('document', '{{ doc.id }}', this)">×</button>
+                                        </div>
+                                        {% endwith %}
+                                        {% endwith %}
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                                {% endif %}
+                            </div>
+                            <div class="booking-field full-width">
+                                <label class="booking-field-label">Street address</label>
+                                <input type="text" name="street_address" class="booking-input" placeholder="Street address" value="{{ booking.street_address|default_if_none:'' }}">
+                            </div>
+                            <div class="booking-field">
+                                <label class="booking-field-label">City</label>
+                                <input type="text" name="city" class="booking-input" placeholder="City" value="{{ booking.city|default_if_none:'' }}">
+                            </div>
+                            <div class="booking-field">
+                                <label class="booking-field-label">Zip</label>
+                                <input type="text" name="zip" class="booking-input" placeholder="Zip" value="{{ booking.zip|default_if_none:'' }}">
+                            </div>
+                            <div class="booking-field">
+                                <label class="booking-field-label">Country</label>
+                                <input type="text" name="country" class="booking-input" placeholder="Country" value="{{ booking.country|default_if_none:'' }}">
+                            </div>
+                            <div class="booking-field">
+                                <label class="booking-field-label">State</label>
+                                <input type="text" name="state" class="booking-input" placeholder="State" value="{{ booking.state|default_if_none:'' }}">
+                            </div>
+                            <div class="booking-field">
+                                <label class="booking-field-label">Nationality</label>
+                                <input type="text" name="nationality" class="booking-input" placeholder="Nationality" value="{{ booking.nationality|default_if_none:'' }}">
+                            </div>
+                            <div class="booking-field">
+                                <label class="booking-field-label">Vehicle information (make, model, plate#)</label>
+                                <input type="text" name="vehicle_information" class="booking-input" placeholder="Vehicle information" value="{{ booking.vehicle_information|default_if_none:'' }}">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="booking-panel">
+                    <div class="booking-panel-header">Reservation</div>
+                    <div class="booking-panel-body">
+                        <div class="booking-field-grid">
+                            <div class="booking-field">
+                                <label class="booking-field-label">Check-in date<span class="required">*</span></label>
+                                {% if booking.external_uid %}
+                                    <input type="date" class="booking-input" value="{{ booking.check_in_date|date:'Y-m-d' }}" disabled>
+                                    <input type="hidden" name="check_in_date" id="id_check_in_date" value="{{ booking.check_in_date|date:'Y-m-d' }}" required>
+                                {% else %}
+                                    <input type="date" name="check_in_date" id="id_check_in_date" class="booking-input" value="{{ booking.check_in_date|date:'Y-m-d' }}" required>
+                                {% endif %}
+                            </div>
+                            <div class="booking-field">
+                                <label class="booking-field-label">Check-out date<span class="required">*</span></label>
+                                {% if booking.external_uid %}
+                                    <input type="date" class="booking-input" value="{{ booking.check_out_date|date:'Y-m-d' }}" disabled>
+                                    <input type="hidden" name="check_out_date" id="id_check_out_date" value="{{ booking.check_out_date|date:'Y-m-d' }}" required>
+                                {% else %}
+                                    <input type="date" name="check_out_date" id="id_check_out_date" class="booking-input" value="{{ booking.check_out_date|date:'Y-m-d' }}" required>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="row m-0">
+                            <div class="col-lg-6 col-12 form-group ps-0">
+                                <label class="booking-field-label time-field-label mt-3">Check-in time<span class="required">*</span></label>
+                                <div class="time_dropdown" id="checkinDropdown">
+                                    <div class="time_dropdown-toggle"></div>
+                                    <div class="time_dropdown-menu">
+                                        <div class="scroll-arrow top" data-dir="up">▲</div>
+                                        <div class="options"></div>
+                                        <div class="scroll-arrow bottom" data-dir="down">▼</div>
+                                    </div>
+                                </div>
+                                <input type="hidden" name="check_in_time" id="checkin_time_input" value="{% if booking.check_in_time %}{{ booking.check_in_time|time:'H:i' }}{% else %}15:00{% endif %}">
+                            </div>
+                            <div class="col-lg-6 col-12 form-group last-name-col">
+                                <label class="booking-field-label time-field-label mt-3">Check-out time<span class="required">*</span></label>
+                                <div class="time_dropdown" id="checkoutDropdown">
+                                    <div class="time_dropdown-toggle"></div>
+                                    <div class="time_dropdown-menu">
+                                        <div class="scroll-arrow top" data-dir="up">▲</div>
+                                        <div class="options"></div>
+                                        <div class="scroll-arrow bottom" data-dir="down">▼</div>
+                                    </div>
+                                </div>
+                                <input type="hidden" name="check_out_time" id="checkout_time_input" value="{% if booking.check_out_time %}{{ booking.check_out_time|time:'H:i' }}{% else %}10:00{% endif %}">
+                            </div>
+                        </div>
+                        <div class="booking-field full-width">
+                            <label class="booking-field-label">Notes</label>
+                            <textarea name="notes" class="booking-textarea" placeholder="Enter any special requests or notes..." id="id_notes">{{ booking.notes|default_if_none:'' }}</textarea>
+                        </div>
+                        <div class="booking-field-grid" style="margin-top: 2px;">
+                            <div class="booking-field">
+                                <label class="booking-field-label">Number of guests<span class="required">*</span></label>
+                                <input type="number" name="guest_count" id="id_guest_count" class="booking-input" placeholder="Number of guests" min="1" value="{{ booking.guest_count|default_if_none:'' }}" required>
+                            </div>
+                            <div class="booking-field">
+                                <label class="booking-field-label">Booking source<span class="required">*</span></label>
+                                <select name="channel" id="id_channel" class="booking-select" required {% if booking.external_uid %}disabled{% endif %}>
+                                    <option value="">Select a channel</option>
+                                    {% for channel in channels %}
+                                        <option value="{{ channel.id }}" data-icon="{% if channel.icon %}{{ channel.icon.url }}{% else %}{% static 'img/booking/other_browser.svg' %}{% endif %}" {% if booking.channel.id == channel.id %}selected{% endif %}>{{ channel.name }}</option>
                                     {% endfor %}
+                                </select>
+                                {% if booking.external_uid %}
+                                    <input type="hidden" name="channel" value="{{ booking.channel.id }}">
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="booking-field full-width">
+                            <label class="booking-field-label">Purpose of Stay (Anniversary, Birthday, Business, Leisure)</label>
+                            <input type="text" name="purpose_of_stay" class="booking-input" placeholder="Purpose of stay" value="{{ booking.purpose_of_stay|default_if_none:'' }}">
+                        </div>
+                        <div class="booking-field full-width" style="margin-top: 6px;">
+                            <label class="booking-field-label">Select accomodation<span class="required">*</span></label>
+                            <div class="property-selection-trigger accommodation-trigger {% if booking.external_uid %}disabled{% endif %}" onclick="openPropertySidebar()" role="button" tabindex="0" aria-label="Select accomodation" {% if booking.external_uid %}data-locked="true"{% endif %}>
+                                <span id="selectedPropertyText" class="trigger-placeholder">{% if booking.property %}{{ booking.property.title }}{% else %}Select accomodation{% endif %}</span>
+                                <span class="trigger-caret">▾</span>
+                            </div>
+                            <select name="property" class="booking-select property-select" id="id_property" style="display:none;" required>
+                                {% if available_properties %}
+                                    {% for prop in available_properties %}
+                                        <option value="{{ prop.id }}" {% if booking.property.id == prop.id %}selected{% endif %} data-image="{{ prop.get_primary_image_url }}" data-location="{{ prop.location_display }}" data-price="{{ prop.price_per_night }}" data-guest="{{ prop.guest }}" data-cleaning-fee="{{ prop.cleaning_fee }}" data-refundable-deposit="{{ prop.refundable_deposit }}" data-application-fee="{{ prop.application_fees }}" data-available="{% if prop.is_available %}true{% else %}false{% endif %}">
+                                            {{ prop.title }}
+                                        </option>
+                                    {% endfor %}
+                                {% elif booking.property %}
+                                    <option value="{{ booking.property.id }}" selected data-image="{{ booking.property.get_primary_image_url }}" data-location="{{ booking.property.location_display }}" data-price="{{ booking.property.price_per_night }}" data-guest="{{ booking.property.guest }}" data-cleaning-fee="{{ booking.property.cleaning_fee }}" data-refundable-deposit="{{ booking.property.refundable_deposit }}" data-application-fee="{{ booking.property.application_fees }}" data-available="true">{{ booking.property.title }}</option>
+                                {% endif %}
+                            </select>
+                        </div>
+                        <div id="summary-section" class="row m-0 booking-summary-card" style="display: none;">
+                            <div class="form-group p-0">
+                                <label for="id_price_per_night" class="booking-field-label">Price*</label>
+                                <div class="price-input-container">
+                                    <input type="number" class="form-input w-100 booking-input" name="price_per_night" id="id_price_per_night" value="{{ booking.price_per_night|default:'0.00' }}" step="0.01" readonly>
+                                    <img src="{% static 'img/booking/edit_icon.svg' %}" class="edit-price-icon" id="editTotalPriceIcon" alt="Edit Total Price" title="Edit total price">
                                 </div>
                             </div>
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Check in / Check out Section -->
-            <div class="col-lg-6 col-12" style="padding-left: 1rem;">
-                <div class="section-header">Check in / Check out</div>
-                <div class="form-section mt-2">
-                    <button type="button" class="booking-range-trigger {% if booking.external_uid %}is-disabled{% endif %}" id="booking-range-trigger" aria-label="Select booking date range" {% if booking.external_uid %}disabled{% endif %}>
-                        <span class="booking-range-trigger-label">
-                            <span id="booking-range-start-label">Check-in</span>
-                            <span>-</span>
-                            <span id="booking-range-end-label">Check-out</span>
-                        </span>
-                        <span class="booking-range-trigger-icon" aria-hidden="true"></span>
-                    </button>
-                    <div class="row m-0 separate-date-fields-row">
-                        <div class="col-sm-6 form-group ps-lg-0">
-                            <label class="form-label">Check-in Date<span class="required">*</span></label>
-                            <div class="date-display-wrapper booking-date-range">
-                                <input type="text" class="date-display-input" id="id_check_in_date_display" placeholder="mm/dd/yyyy" autocomplete="off" readonly {% if booking.external_uid %}disabled{% endif %}>
-                            </div>
-                            <div class="booking-hidden-date-inputs">
-                                <input type="date" name="check_in_date" id="id_check_in_date" class="form-input separate-date-input" value="{{ booking.check_in_date|date:'Y-m-d' }}" required {% if booking.external_uid %}disabled{% endif %}>
-                            </div>
-                            {% if booking.external_uid %}
-                                <input type="hidden" name="check_in_date" value="{{ booking.check_in_date|date:'Y-m-d' }}">
-                            {% endif %}
-                        </div>
-                        <div class="col-sm-6 form-group pe-lg-0">
-                            <label class="form-label">Check-out Date<span class="required">*</span></label>
-                            <div class="date-display-wrapper booking-date-range">
-                                <input type="text" class="date-display-input" id="id_check_out_date_display" placeholder="mm/dd/yyyy" autocomplete="off" readonly {% if booking.external_uid %}disabled{% endif %}>
-                            </div>
-                            <div class="booking-hidden-date-inputs">
-                                <input type="date" name="check_out_date" class="form-input separate-date-input" id="id_check_out_date" value="{{ booking.check_out_date|date:'Y-m-d' }}" required {% if booking.external_uid %}disabled{% endif %}>
-                            </div>
-                            <div class="booking-hidden-range-input">
-                                <input type="text" id="id_booking_range_picker" tabindex="-1" aria-hidden="true">
-                            </div>
-                            {% if booking.external_uid %}
-                                <input type="hidden" name="check_out_date" value="{{ booking.check_out_date|date:'Y-m-d' }}">
-                            {% endif %}
-                        </div>
-                    </div>
-                    
-                    <div class="row m-0">
-                        <div class="col-lg-6 col-12 form-group ps-lg-0">
-                            <label class="form-label">Check-in Time<span class="required">*</span></label>
-                            <div class="time_dropdown" id="checkinDropdown">
-                                <div class="time_dropdown-toggle"></div>
-                                <div class="time_dropdown-menu">
-                                    <div class="scroll-arrow top" data-dir="up">▲</div>
-                                    <div class="options"></div>
-                                    <div class="scroll-arrow bottom" data-dir="down">▼</div>
+                            <div class="col-lg-6 col-12 p-0">
+                                <div class="summary-header">Payment Summary</div>
+                                <hr>
+                                <div class="summary-item">
+                                    <span class="summary-label">Daily rate</span>
+                                    <span class="summary-value" id="summary-daily-rate">$0.00</span>
+                                </div>
+                                <div class="summary-item">
+                                    <span class="summary-label" id="summary-price-calc" data-price="0.00">$0.00 x 0 nights</span>
+                                    <span class="summary-value" id="summary-subtotal">$0.00</span>
+                                </div>
+                                <div class="summary-item mt-1">
+                                    <span class="summary-label">Cleaning fee:</span>
+                                    <span class="summary-value" id="summary-cleaning-fee" data-fee="{{ booking.cleaning_fee|default:'0.00' }}">${{ booking.cleaning_fee|default:'0.00' }}</span>
+                                    <input type="hidden" name="cleaning_fee" id="id_cleaning_fee" value="{{ booking.cleaning_fee|default:'0.00' }}">
+                                </div>
+                                <div class="summary-item mt-1">
+                                    <span class="summary-label">Refundable deposit:</span>
+                                    <span class="summary-value" id="summary-refundable-deposit" data-deposit="{{ booking.deposit_fee|default:'0.00' }}">${{ booking.deposit_fee|default:'0.00' }}</span>
+                                    <input type="hidden" name="deposit_fee" id="id_deposit_fee" value="{{ booking.deposit_fee|default:'0.00' }}">
+                                </div>
+                                <div class="summary-item mt-1">
+                                    <span class="summary-label">Application fee:</span>
+                                    <span class="summary-value" id="summary-application-fee" data-fee="{{ booking.application_fee|default:'0.00' }}">${{ booking.application_fee|default:'0.00' }}</span>
+                                    <input type="hidden" name="application_fee" id="id_application_fee" value="{{ booking.application_fee|default:'0.00' }}">
+                                </div>
+                                <hr>
+                                <div class="summary-item price-input-container">
+                                    <span class="summary-label" style="font-weight: bold;">Total price:</span>
+                                    <input type="hidden" name="price" id="id_price" value="0.00">
+                                    <span class="summary-value" id="summary-total-display">$0.00</span>
                                 </div>
                             </div>
-                            <input type="hidden" name="check_in_time" id="checkin_time_input"
-                                value="{% if booking.check_in_time %}{{ booking.check_in_time|time:'H:i' }}{% else %}15:00{% endif %}">
-                        </div>
-                        <div class="col-lg-6 col-12 form-group pe-lg-0">
-                            <label class="form-label">Check-out Time<span class="required">*</span></label>
-                            <div class="time_dropdown" id="checkoutDropdown">
-                                <div class="time_dropdown-toggle"></div>
-                                <div class="time_dropdown-menu">
-                                    <div class="scroll-arrow top" data-dir="up">▲</div>
-                                    <div class="options"></div>
-                                    <div class="scroll-arrow bottom" data-dir="down">▼</div>
+                            <div class="col-lg-auto d-none d-lg-flex align-items-center p-0"><div class="payment-divider" style="height: 80%; margin-top: 20px;"></div></div>
+                            <div class="col-lg-5 col-12 p-0">
+                                <div style="margin-top: 42px;">
+                                    <span class="summary-label">Check In:</span>
+                                    <p class="summary-value m-0 mb-1" id="summary-checkin">-</p>
                                 </div>
-                            </div>
-                            <input type="hidden" name="check_out_time" id="checkout_time_input"
-                                value="{% if booking.check_out_time %}{{ booking.check_out_time|time:'H:i' }}{% else %}10:00{% endif %}">
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label">Notes (if any)</label>
-                    <textarea name="notes" cols="40" rows="4" class="form-input" placeholder="Enter any special requests or notes..." id="id_notes">{{ booking.notes|default_if_none:'' }}</textarea>
-                    </div>
-                    
-                    <div class="form-group mb-0">
-                        <label class="form-label">
-                            Select the listing
-                            <span class="required">*</span>
-                        </label>
-                        <div class="property-selection-trigger {% if booking.external_uid %}disabled{% endif %}" {% if not booking.external_uid %}onclick="openPropertySidebar()"{% else %}data-locked="true"{% endif %}>
-                            <span id="selectedPropertyText">{% if booking.property %}{{ booking.property.title }}{% else %}Select a listing{% endif %}</span>
-                            <span style="color: #6b7280;">▼</span>
-                        </div>
-                        <select name="property" class="form-control property-select" id="id_property" style="display: none;" required>
-                            {% if available_properties %}
-                                {% for prop in available_properties %}
-                                    <option value="{{ prop.id }}" 
-                                            {% if booking.property.id == prop.id %}selected{% endif %}
-                                            data-image="{{ prop.get_primary_image_url }}" data-location="{{ prop.location_display }}" data-price="{{ prop.price_per_night }}" data-guest="{{ prop.guest }}" data-cleaning-fee="{{ prop.cleaning_fee }}" data-refundable-deposit="{{ prop.refundable_deposit }}" data-application-fee="{{ prop.application_fees }}">
-                                        {{ prop.title }}
-                                    </option>
-                                {% endfor %}
-                            {% elif booking.property %}
-                                <option value="{{ booking.property.id }}" selected data-image="{{ booking.property.get_primary_image_url }}" data-location="{{ booking.property.location_display }}" data-price="{{ booking.property.price_per_night }}" data-guest="{{ booking.property.guest }}" data-cleaning-fee="{{ booking.property.cleaning_fee }}" data-refundable-deposit="{{ booking.property.refundable_deposit }}" data-application-fee="{{ booking.property.application_fees }}">{{ booking.property.title }}</option>
-                            {% endif %}
-                        </select>
-                    </div>
-                    
-                    <!-- Summary Section -->
-
-                    <div id="summary-section" class="row m-0">
-                        <div class="form-group p-0">
-                            <label for="id_price_per_night" class="form-label">Price*</label>
-                            <div class="price-input-container">
-                                <input type="number" class="form-input w-100" name="price_per_night" id="id_price_per_night" value="{{ booking.price_per_night|default:'0.00' }}" step="0.01" readonly>
-                                <img src="{% static 'img/booking/edit_icon.svg' %}" class="edit-price-icon" id="editTotalPriceIcon" alt="Edit Total Price" title="Edit total price">
-                            </div>
-                        </div>
-                        <div class="col-lg-6 col-12 p-0">
-                            <div class="summary-header">Payment Summary</div>
-                            <hr>
-                            <div class="summary-item">
-                                <span class="summary-label">Daily rate</span>
-                                <span class="summary-value" id="summary-daily-rate">$0.00</span>
-                            </div>
-                            <div class="summary-item">
-                                <span class="summary-label" id="summary-price-calc" data-price="0.00">$0.00 x 0 nights</span>
-                                <span class="summary-value" id="summary-subtotal">$0.00</span>
-                            </div>
-                            <div class="summary-item mt-1">
-                                <span class="summary-label">Cleaning fee:</span>
-                                <span class="summary-value" id="summary-cleaning-fee" data-fee="{{ booking.cleaning_fee|default:'0.00' }}">${{ booking.cleaning_fee|default:'0.00' }}</span>
-                                <input type="hidden" name="cleaning_fee" id="id_cleaning_fee" value="{{ booking.cleaning_fee|default:'0.00' }}">
-                            </div>
-                            <div class="summary-item mt-1">
-                                <span class="summary-label">Refundable deposit:</span>
-                                <span class="summary-value" id="summary-refundable-deposit" data-deposit="{{ booking.deposit_fee|default:'0.00' }}">${{ booking.deposit_fee|default:'0.00' }}</span>
-                                <input type="hidden" name="deposit_fee" id="id_deposit_fee" value="{{ booking.deposit_fee|default:'0.00' }}">
-                            </div>
-                            <div class="summary-item mt-1">
-                                <span class="summary-label">Application fee:</span>
-                                <span class="summary-value" id="summary-application-fee" data-fee="{{ booking.application_fee|default:'0.00' }}">${{ booking.application_fee|default:'0.00' }}</span>
-                                <input type="hidden" name="application_fee" id="id_application_fee" value="{{ booking.application_fee|default:'0.00' }}">
-                            </div>
-                            <hr>
-
-                            <div class="summary-item price-input-container">
-                                <span class="summary-label" style="font-weight: bold;">Total price:</span>
-                                <input type="hidden" name="price" id="id_price" value="0.00">
-                                <span class="summary-value" id="summary-total-display">$0.00</span>
-                            </div>
-                        </div>
-                        
-                        <div class="col-lg-auto d-none d-lg-flex align-items-center p-0"><div class="payment-divider" style="height: 80%; margin-top: 20px;"></div></div>
-                        
-                        <div class="col-lg-5 col-12 p-0">
-                            
-                            <div style="margin-top: 42px;">
-                                <span class="summary-label">Check In:</span>
-                                <p class="summary-value m-0 mb-1" id="summary-checkin">-</p>
-                            </div>
-                            <div>
-                                <span class="summary-label">Check Out:</span>
-                                <p class="summary-value m-0 mb-1" id="summary-checkout">-</p>
-                            </div>
-                            <div>
-                                <span class="summary-label">Nights:</span>
-                                <p class="summary-value m-0 mb-1" id="summary-nights">0</p>
-                            </div>
-                            <div>
-                                <span class="summary-label">Guests:</span>
-                                <p class="summary-value" id="summary-guests">0</p>
+                                <div>
+                                    <span class="summary-label">Check Out:</span>
+                                    <p class="summary-value m-0 mb-1" id="summary-checkout">-</p>
+                                </div>
+                                <div>
+                                    <span class="summary-label">Nights:</span>
+                                    <p class="summary-value m-0 mb-1" id="summary-nights">0</p>
+                                </div>
+                                <div>
+                                    <span class="summary-label">Guests:</span>
+                                    <p class="summary-value" id="summary-guests">0</p>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
-
-            
         </div>
-        {% include 'frontend/base/footer.html' %}
-        
     </div>
 </div>
 </form>
 
+{% include 'frontend/base/footer.html' %}
 <!-- Availability Error Modal -->
 <div class="modal fade" id="availabilityErrorModal" tabindex="-1" aria-labelledby="availabilityErrorModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
@@ -1305,11 +1507,11 @@
 <div class="property-sidebar" id="propertySidebar">
     <div class="sidebar-header">
         <div class="sidebar-title">Select Listing</div>
-        <div class="d-flex align-ites-center">
-            <div class="sidebar-search me-2">
+        <div class="d-flex align-items-center gap-2 ms-auto">
+            <div class="sidebar-search">
                 <input type="text" id="propertySearchInput" placeholder="Search listing..." onkeyup="filterProperties()">
             </div>
-            <button type="button" class="close-sidebar-btn" onclick="closePropertySidebar()" aria-label="Close sidebar">&times;</button>
+            <button type="button" class="close-sidebar-btn" onclick="closePropertySidebar()" aria-label="Close modal">&times;</button>
         </div>
     </div>
     
@@ -1327,117 +1529,38 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/js/intlTelInput.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 
     <script>
-        function formatDateForDisplay(isoDate) {
-            if (!isoDate) return '';
-            const [year, month, day] = isoDate.split('-');
-            if (!year || !month || !day) return '';
-            return `${month}/${day}/${year}`;
-        }
-
-        function updateDisplayedBookingDates() {
-            const checkInValue = document.getElementById('id_check_in_date')?.value || '';
-            const checkOutValue = document.getElementById('id_check_out_date')?.value || '';
-            const checkInDisplayEl = document.getElementById('id_check_in_date_display');
-            const checkOutDisplayEl = document.getElementById('id_check_out_date_display');
-            const rangeStartLabel = document.getElementById('booking-range-start-label');
-            const rangeEndLabel = document.getElementById('booking-range-end-label');
-
-            if (checkInDisplayEl) checkInDisplayEl.value = formatDateForDisplay(checkInValue);
-            if (checkOutDisplayEl) checkOutDisplayEl.value = formatDateForDisplay(checkOutValue);
-            if (rangeStartLabel) rangeStartLabel.textContent = checkInValue ? formatDateForDisplay(checkInValue) : 'Check-in';
-            if (rangeEndLabel) rangeEndLabel.textContent = checkOutValue ? formatDateForDisplay(checkOutValue) : 'Check-out';
-        }
-
-        function dispatchDateInputEvents(inputEl) {
-            if (!inputEl) return;
-            inputEl.dispatchEvent(new Event('input', { bubbles: true }));
-            inputEl.dispatchEvent(new Event('change', { bubbles: true }));
-        }
-
         document.addEventListener('DOMContentLoaded', function() {
-            const checkInHidden = document.getElementById('id_check_in_date');
-            const checkOutHidden = document.getElementById('id_check_out_date');
-            const checkInDisplay = document.getElementById('id_check_in_date_display');
-            const checkOutDisplay = document.getElementById('id_check_out_date_display');
-            const bookingRangePickerInput = document.getElementById('id_booking_range_picker');
-            const bookingRangeTrigger = document.getElementById('booking-range-trigger');
-            const isMobileOrTablet = window.matchMedia('(max-width: 991.98px)').matches;
+            const checkInEl = document.getElementById('id_check_in_date');
+            const checkOutEl = document.getElementById('id_check_out_date');
+            if (!checkInEl || !checkOutEl) return;
 
-            if (!checkInHidden || !checkOutHidden || !bookingRangePickerInput) return;
-            if (isMobileOrTablet) return;
+            function syncCheckoutMin() {
+                if (!checkInEl.value) {
+                    checkOutEl.removeAttribute('min');
+                    return;
+                }
 
-            function parseIsoDate(value) {
-                if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
-                const [y, m, d] = value.split('-').map(Number);
-                return new Date(y, m - 1, d);
+                const nextDay = new Date(checkInEl.value);
+                nextDay.setDate(nextDay.getDate() + 1);
+                checkOutEl.min = nextDay.toISOString().split('T')[0];
+
+                if (checkOutEl.value && checkOutEl.value <= checkInEl.value) {
+                    checkOutEl.value = '';
+                }
             }
 
-            const initialDates = [];
-            const checkInDateObj = parseIsoDate(checkInHidden.value);
-            const checkOutDateObj = parseIsoDate(checkOutHidden.value);
-            if (checkInDateObj) initialDates.push(checkInDateObj);
-            if (checkOutDateObj) initialDates.push(checkOutDateObj);
-
-            const todayObj = new Date();
-            todayObj.setHours(0, 0, 0, 0);
-            const minDateForPicker = (checkInDateObj && checkInDateObj < todayObj) ? checkInDateObj : todayObj;
-
-            const pickerDisabled = !!(bookingRangeTrigger && bookingRangeTrigger.disabled);
-
-            const rangePicker = flatpickr(bookingRangePickerInput, {
-                mode: 'range',
-                dateFormat: 'Y-m-d',
-                minDate: minDateForPicker,
-                showMonths: 2,
-                defaultDate: initialDates.length ? initialDates : null,
-                disableMobile: true,
-                positionElement: bookingRangeTrigger || checkInDisplay || checkOutDisplay,
-                position: 'below',
-                clickOpens: !pickerDisabled,
-                onReady: function() {
-                    updateDisplayedBookingDates();
-                },
-                onValueUpdate: function() {
-                    updateDisplayedBookingDates();
-                },
-                onClose: function() {
-                    updateDisplayedBookingDates();
-                },
-                onChange: function(selectedDates, dateStr, instance) {
-                    const [start, end] = selectedDates;
-                    const startStr = start ? instance.formatDate(start, 'Y-m-d') : '';
-                    const endStr = end ? instance.formatDate(end, 'Y-m-d') : '';
-
-                    checkInHidden.value = startStr;
-                    checkOutHidden.value = endStr;
-                    updateDisplayedBookingDates();
-                    dispatchDateInputEvents(checkInHidden);
-                    dispatchDateInputEvents(checkOutHidden);
-                }
-            });
-
-            checkInHidden.addEventListener('change', updateDisplayedBookingDates);
-            checkOutHidden.addEventListener('change', updateDisplayedBookingDates);
-
-            function openRangePicker() {
-                if (pickerDisabled) return;
-                rangePicker.open();
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const todayStr = today.toISOString().split('T')[0];
+            if (!checkInEl.value || checkInEl.value >= todayStr) {
+                checkInEl.min = todayStr;
             }
 
-            [bookingRangeTrigger, checkInDisplay, checkOutDisplay].forEach(function(el) {
-                if (el) {
-                    el.addEventListener('click', openRangePicker);
-                    el.addEventListener('focus', openRangePicker);
-                    el.addEventListener('keydown', function(e) {
-                        e.preventDefault();
-                    });
-                }
-            });
-
-            updateDisplayedBookingDates();
+            syncCheckoutMin();
+            checkInEl.addEventListener('change', syncCheckoutMin);
+            checkInEl.addEventListener('input', syncCheckoutMin);
         });
     </script>
 
@@ -1935,6 +2058,7 @@
         document.addEventListener('DOMContentLoaded', function() {
             const propertySelect = $('.property-select');
             const propertyPreview = document.getElementById('propertyPreview');
+            const summarySection = document.getElementById('summary-section');
 
             const channelSelect = $('#id_channel');
 
@@ -1965,6 +2089,7 @@
                 if (!selected.val()) {
                     trigger.innerHTML = `<span id="selectedPropertyText">Select a listing</span><span style="color: #6b7280;">▼</span>`;
                     if(propertyPreview) propertyPreview.innerHTML = '';
+                    if (summarySection) summarySection.style.display = 'none';
                     return;
                 }
                 const imageUrl = selected.data('image') || '{% static "img/property/placeholder-image.png" %}';
@@ -1979,8 +2104,11 @@
                     $(this).val('');
                     trigger.innerHTML = `<span id="selectedPropertyText">Select a listing</span><span style="color: #6b7280;">▼</span>`;
                     if (propertyPreview) propertyPreview.innerHTML = '';
+                    if (summarySection) summarySection.style.display = 'none';
                     return;
                 }
+
+                if (summarySection) summarySection.style.display = 'flex';
 
                 // Render selected item similar to sidebar list item
                 trigger.innerHTML = `
@@ -2053,7 +2181,9 @@
             // The 'change' event on propertySelect would overwrite it.
             // So, we manually set the initial data from the selected property and then call updateSummary.
             setTimeout(() => {
-                
+                if (summarySection && propertySelect.find('option:selected').val()) {
+                    summarySection.style.display = 'flex';
+                }
                 updateSummary(); // Initialize the calculation display with the booking's price_per_night
             }, 100);
 
@@ -2061,21 +2191,32 @@
 
         // Property Sidebar Functions
         function openPropertySidebar() {
+            const trigger = document.querySelector('.property-selection-trigger');
+            if (trigger && trigger.classList.contains('disabled')) return;
             renderPropertySidebar();
             document.getElementById('propertySidebar').classList.add('open');
             document.getElementById('propertyOverlayBackdrop').classList.add('open');
+            document.body.style.overflow = 'hidden';
             document.getElementById('propertySearchInput').focus();
+            setTimeout(function() {
+                const selectedCard = document.querySelector('.property-card-sidebar.selected');
+                if (selectedCard) {
+                    selectedCard.scrollIntoView({ block: 'center', behavior: 'smooth' });
+                }
+            }, 50);
         }
 
         function closePropertySidebar() {
             document.getElementById('propertySidebar').classList.remove('open');
             document.getElementById('propertyOverlayBackdrop').classList.remove('open');
+            document.body.style.overflow = '';
         }
 
         function renderPropertySidebar() {
             const select = document.getElementById('id_property');
             const container = document.getElementById('propertySidebarContent');
             container.innerHTML = '';
+            const currentSelectedValue = select.value;
 
             const options = Array.from(select.options)
                 .filter(option => option.value)
@@ -2095,9 +2236,10 @@
 
                 const data = option.dataset;
                 const isAvailable = data.available !== 'false';
+                const isSelected = String(option.value) === String(currentSelectedValue);
                 
                 const card = document.createElement('div');
-                card.className = `property-card-sidebar${isAvailable ? '' : ' unavailable'}`;
+                card.className = `property-card-sidebar${isAvailable ? '' : ' unavailable'}${isSelected ? ' selected' : ''}`;
                 if (isAvailable) {
                     card.onclick = () => selectProperty(option.value);
                 }
@@ -2113,8 +2255,11 @@
                                 <div class="property-card-title">${option.text}</div>
                                 <div class="property-card-location">${data.location || ''}</div>
                             </div>
-                            <div class="availability-status" style="background-color: ${isAvailable ? '#d4edda; color: #155724;' : '#f8d7da; color: #721c24;'}">
-                                ${isAvailable ? 'Available' : 'Not Available'}
+                            <div class="d-flex align-items-center justify-content-end flex-wrap">
+                                <div class="availability-status" style="background-color: ${isAvailable ? '#d4edda; color: #155724;' : '#f8d7da; color: #721c24;'}">
+                                    ${isAvailable ? 'Available' : 'Not Available'}
+                                </div>
+                                ${isSelected ? '<span class="selected-status">Selected</span>' : ''}
                             </div>
                         </div>
                         <div class="property-card-meta mt-1">
