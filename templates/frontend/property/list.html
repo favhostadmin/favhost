@@ -806,6 +806,11 @@
             font-size: 13px;
         }
 
+        .listing-night-label {
+            font-size: 13px;
+            font-weight: 400;
+        }
+
         .property-meta-row {
             gap: 12px;
             margin-top: 6px;
@@ -872,6 +877,7 @@
             -webkit-line-clamp: 2;
             -webkit-box-orient: vertical;
             overflow: hidden;
+            
         }
 
         .listing-location {
@@ -912,8 +918,8 @@
         }
 
         .options-btn {
-            width: 28px;
-            height: 28px;
+            width: 24px;
+            height: 24px;
             border-radius: 50%;
             border: 1px solid #d1d5db;
             background: #ffffff;
@@ -921,13 +927,16 @@
             align-items: center;
             justify-content: center;
             padding: 0;
+            line-height: 0;
+            flex: 0 0 auto;
         }
 
         .options-dots-icon {
-            width: 14px;
-            height: 14px;
+            width: 8px;
+            height: 8px;
             fill: #111827;
             display: block;
+            margin: auto;
         }
 
         /* Keep mobile action menu inside the card flow so it doesn't get clipped by scroll container */
@@ -951,7 +960,13 @@
 
         .price-period {
             font-size: 13px;
-            color: #111827;
+            color: #141414;
+        }
+
+        .listing-night-label {
+            font-size: 13px;
+            font-weight: 400;
+            color: #141414;
         }
 
         .property-meta-row {
@@ -1401,33 +1416,39 @@
                             </div>
                         </a>
                         <div class="listing-info">
-                            <div style="display: flex; justify-content: space-between;">
-                                <a href="{% url 'property:property-detail' slug=item.slug %}" data-open-property-preview="true" data-preview-title="{{ item.title|escape }}" rel="noopener noreferrer">
-                                <h3 class="listing-title">
-                                    {{ item.title }}
-                                </h3>
-                            </a>
-                            <div class="listing-bed-type">{{ item.get_bed_type_display }}</div>
+                            <div style="display: flex; justify-content: space-between; flex-wrap: wrap; gap: 6px;">
+                                <a style="display: flex; align-self: center;" href="{% url 'property:property-detail' slug=item.slug %}" data-open-property-preview="true" data-preview-title="{{ item.title|escape }}" rel="noopener noreferrer">
+                                    <h3 class="listing-title">
+                                        {{ item.title }}
+                                    </h3>
+                                </a>
+                                <button class="options-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="More options">
+                                    <svg class="options-dots-icon" viewBox="0 0 20 20" aria-hidden="true">
+                                        <circle cx="10" cy="4" r="1.5"></circle>
+                                        <circle cx="10" cy="10" r="1.5"></circle>
+                                        <circle cx="10" cy="16" r="1.5"></circle>
+                                    </svg>
+                                </button>
+                               
                             </div>
                             <a href="{% url 'property:property-detail' slug=item.slug %}" data-open-property-preview="true" data-preview-title="{{ item.title|escape }}" rel="noopener noreferrer">
                                 <p class="listing-location">{{ item.city }}, {{ item.state }}</p>
                             </a>
                             <div class="d-flex justify-content-between align-items-center">
-                                <div>
+                                <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 6px;">
+                                    <img src="{% static 'img/property/bed.svg' %}">
+                                    <div class="listing-bed-type ">{{ item.get_bed_type_display|cut:" Bed" }}</div>
+                                    <span class="listing-nights" data-listing-nights style="display: none;"></span>
                                     <a href="{% url 'property:property-detail' slug=item.slug %}" data-open-property-preview="true" data-preview-title="{{ item.title|escape }}" rel="noopener noreferrer">
-                                    <p class="listing-price">${{ item.price_per_night|floatformat:2 }} <span class="price-period">night</span></p>
+                                    <p class="listing-price ms-2" data-nightly-price="{{ item.price_per_night|floatformat:2 }}" data-cleaning-fee="{{ item.cleaning_fee|default:'0.00'|floatformat:2 }}" data-refundable-deposit="{{ item.refundable_deposit|default:'0.00'|floatformat:2 }}" data-application-fee="{{ item.application_fees|default:'0.00'|floatformat:2 }}">
+                                        ${{ item.price_per_night|floatformat:2 }} <span class="price-period">Night</span>
+                                    </p>
                                     </a>
                                 </div>
                                 <div class="listing-actions">
                                     
                                     <div class="btn-group dropup">
-                                        <button class="options-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="More options">
-                                            <svg class="options-dots-icon" viewBox="0 0 18 18" aria-hidden="true">
-                                                <circle cx="9" cy="4" r="1.5"></circle>
-                                                <circle cx="9" cy="9" r="1.5"></circle>
-                                                <circle cx="9" cy="14" r="1.5"></circle>
-                                            </svg>
-                                        </button>
+                                        
                                         <ul class="dropdown-menu">
                                             {% if item.status == 'Active' %}
                                                 <li>
@@ -2918,5 +2939,41 @@
     });
 </script>
 
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const params = new URLSearchParams(window.location.search);
+        const checkIn = params.get('check_in');
+        const checkOut = params.get('check_out');
+
+        function parseIsoDate(value) {
+            if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
+            const [y, m, d] = value.split('-').map(Number);
+            return new Date(y, m - 1, d);
+        }
+
+        const checkInDate = parseIsoDate(checkIn);
+        const checkOutDate = parseIsoDate(checkOut);
+        const nights = (checkInDate && checkOutDate && checkOutDate > checkInDate)
+            ? Math.ceil((checkOutDate - checkInDate) / (1000 * 60 * 60 * 24))
+            : 0;
+
+        if (!nights) return;
+
+        document.querySelectorAll('[data-listing-nights]').forEach(function(el) {
+            el.style.display = 'inline';
+            el.innerHTML = `${nights} <span class="listing-night-label">Night${nights !== 1 ? 's' : ''}</span>`;
+        });
+
+        document.querySelectorAll('.listing-price[data-nightly-price]').forEach(function(el) {
+            const nightly = parseFloat(el.dataset.nightlyPrice || '0') || 0;
+            const cleaningFee = parseFloat(el.dataset.cleaningFee || '0') || 0;
+            const refundableDeposit = parseFloat(el.dataset.refundableDeposit || '0') || 0;
+            const applicationFee = parseFloat(el.dataset.applicationFee || '0') || 0;
+            const total = (nightly * nights) + cleaningFee + refundableDeposit + applicationFee;
+            el.dataset.totalPrice = total.toFixed(2);
+            el.innerHTML = `<span class="price-period">Total</span> - $${total.toFixed(2)} `;
+        });
+    });
+</script>
 
 {% endblock extra_script %}

@@ -1152,6 +1152,10 @@
         color: #1f2937;
     }
 
+    .time-field-label {
+        margin-top: 4px;
+    }
+
     .booking-input,
     .booking-select,
     .booking-textarea {
@@ -1443,29 +1447,23 @@
                     </div>
                 </div>
 
-                <div class="booking-panel">
+                        <div class="booking-panel">
                     <div class="booking-panel-header">Reservation</div>
                     <div class="booking-panel-body">
-                        <div class="booking-field full-width">
-                            <button type="button" class="booking-range-trigger" id="booking-range-trigger" aria-label="Select booking date range">
-                                <span class="booking-range-trigger-label">
-                                    <span id="booking-range-start-label">Check-in</span>
-                                    <span>—</span>
-                                    <span id="booking-range-end-label">Check-out</span>
-                                </span>
-                                <span class="booking-range-trigger-icon" aria-hidden="true"></span>
-                            </button>
-                        </div>
-
-                        <div class="booking-hidden-range-input">
-                            <input type="date" name="check_in_date" id="id_check_in_date" class="form-input separate-date-input" value="{{ check_in_date|default_if_none:'' }}" required>
-                            <input type="date" name="check_out_date" id="id_check_out_date" class="form-input separate-date-input" value="{{ check_out_date|default_if_none:'' }}" required>
-                            <input type="text" id="id_booking_range_picker" tabindex="-1" aria-hidden="true">
+                        <div class="booking-field-grid">
+                            <div class="booking-field">
+                                <label class="booking-field-label">Check-in date<span class="required">*</span></label>
+                                <input type="date" name="check_in_date" id="id_check_in_date" class="booking-input" value="{{ check_in_date|default_if_none:'' }}" required>
+                            </div>
+                            <div class="booking-field">
+                                <label class="booking-field-label">Check-out date<span class="required">*</span></label>
+                                <input type="date" name="check_out_date" id="id_check_out_date" class="booking-input" value="{{ check_out_date|default_if_none:'' }}" required>
+                            </div>
                         </div>
 
                         <div class="row m-0">
                             <div class="col-lg-6 col-12 form-group ps-0">
-                                <label class="booking-field-label">Check-in time<span class="required">*</span></label>
+                                <label class="booking-field-label time-field-label mt-3">Check-in time<span class="required">*</span></label>
                                 <div class="time_dropdown" id="checkinDropdown">
                                     <div class="time_dropdown-toggle"></div>
                                     <div class="time_dropdown-menu">
@@ -1478,7 +1476,7 @@
                                     value="{% if form.check_in_time.value %}{{ form.check_in_time.value|stringformat:"s"|slice:":5" }}{% else %}15:00{% endif %}">
                             </div>
                             <div class="col-lg-6 col-12 form-group last-name-col">
-                                <label class="booking-field-label">Check-out time<span class="required">*</span></label>
+                                <label class="booking-field-label time-field-label mt-3">Check-out time<span class="required">*</span></label>
                                 <div class="time_dropdown" id="checkoutDropdown">
                                     <div class="time_dropdown-toggle"></div>
                                     <div class="time_dropdown-menu">
@@ -1645,101 +1643,38 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/js/intlTelInput.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 
     <script>
-        function formatDateForDisplay(isoDate) {
-            if (!isoDate) return '';
-            const [year, month, day] = isoDate.split('-');
-            if (!year || !month || !day) return '';
-            return `${month}/${day}/${year}`;
-        }
-
-        function updateDisplayedBookingDates() {
-            const checkInValue = document.getElementById('id_check_in_date')?.value || '';
-            const checkOutValue = document.getElementById('id_check_out_date')?.value || '';
-            const rangeStartLabel = document.getElementById('booking-range-start-label');
-            const rangeEndLabel = document.getElementById('booking-range-end-label');
-
-            if (rangeStartLabel) rangeStartLabel.textContent = checkInValue ? formatDateForDisplay(checkInValue) : 'Check-in';
-            if (rangeEndLabel) rangeEndLabel.textContent = checkOutValue ? formatDateForDisplay(checkOutValue) : 'Check-out';
-        }
-
-        function dispatchDateInputEvents(inputEl) {
-            if (!inputEl) return;
-            inputEl.dispatchEvent(new Event('input', { bubbles: true }));
-            inputEl.dispatchEvent(new Event('change', { bubbles: true }));
-        }
-
         document.addEventListener('DOMContentLoaded', function() {
-            const checkInHidden = document.getElementById('id_check_in_date');
-            const checkOutHidden = document.getElementById('id_check_out_date');
-            const bookingRangePickerInput = document.getElementById('id_booking_range_picker');
-            const bookingRangeTrigger = document.getElementById('booking-range-trigger');
-            const isMobileOrTablet = window.matchMedia('(max-width: 991.98px)').matches;
+            const checkInEl = document.getElementById('id_check_in_date');
+            const checkOutEl = document.getElementById('id_check_out_date');
+            if (!checkInEl || !checkOutEl) return;
 
-            if (!checkInHidden || !checkOutHidden || !bookingRangePickerInput) return;
-
-            const today = new Date().toISOString().split('T')[0];
-            // Only set min if the value is empty or currently in the future
-            if (!checkInHidden.value || checkInHidden.value >= today) {
-                checkInHidden.setAttribute('min', today);
-            }
-            if (isMobileOrTablet) return;
-
-            const initialDates = [];
-            if (checkInHidden.value) initialDates.push(checkInHidden.value);
-            if (checkOutHidden.value) initialDates.push(checkOutHidden.value);
-
-            const rangePicker = flatpickr(bookingRangePickerInput, {
-                mode: 'range',
-                dateFormat: 'Y-m-d',
-                minDate: 'today',
-                showMonths: 2,
-                defaultDate: initialDates.length ? initialDates : null,
-                disableMobile: true,
-                positionElement: bookingRangeTrigger || checkInDisplay || checkOutDisplay,
-                position: 'below',
-                onReady: function() {
-                    updateDisplayedBookingDates();
-                },
-                onValueUpdate: function() {
-                    updateDisplayedBookingDates();
-                },
-                onClose: function() {
-                    updateDisplayedBookingDates();
-                },
-                onChange: function(selectedDates, dateStr, instance) {
-                    const [start, end] = selectedDates;
-                    const startStr = start ? instance.formatDate(start, 'Y-m-d') : '';
-                    const endStr = end ? instance.formatDate(end, 'Y-m-d') : '';
-
-                    checkInHidden.value = startStr;
-                    checkOutHidden.value = endStr;
-                    updateDisplayedBookingDates();
-                    dispatchDateInputEvents(checkInHidden);
-                    dispatchDateInputEvents(checkOutHidden);
+            function syncCheckoutMin() {
+                if (!checkInEl.value) {
+                    checkOutEl.removeAttribute('min');
+                    return;
                 }
-            });
 
-            checkInHidden.addEventListener('change', updateDisplayedBookingDates);
-            checkOutHidden.addEventListener('change', updateDisplayedBookingDates);
+                const nextDay = new Date(checkInEl.value);
+                nextDay.setDate(nextDay.getDate() + 1);
+                checkOutEl.min = nextDay.toISOString().split('T')[0];
 
-            function openRangePicker() {
-                rangePicker.open();
+                if (checkOutEl.value && checkOutEl.value <= checkInEl.value) {
+                    checkOutEl.value = '';
+                }
             }
 
-            [bookingRangeTrigger].forEach(function(el) {
-                if (el) {
-                    el.addEventListener('click', openRangePicker);
-                    el.addEventListener('focus', openRangePicker);
-                    el.addEventListener('keydown', function(e) {
-                        e.preventDefault();
-                    });
-                }
-            });
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const todayStr = today.toISOString().split('T')[0];
+            if (!checkInEl.value || checkInEl.value >= todayStr) {
+                checkInEl.min = todayStr;
+            }
 
-            updateDisplayedBookingDates();
+            syncCheckoutMin();
+            checkInEl.addEventListener('change', syncCheckoutMin);
+            checkInEl.addEventListener('input', syncCheckoutMin);
         });
     </script>
 
