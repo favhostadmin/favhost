@@ -89,6 +89,34 @@ class BookingForm(forms.ModelForm):
                 'placeholder': 'Enter phone number',
                 'type': 'tel'
             }),
+            'street_address': forms.TextInput(attrs={
+                'class': 'form-input',
+                'placeholder': 'Street address'
+            }),
+            'city': forms.TextInput(attrs={
+                'class': 'form-input',
+                'placeholder': 'City'
+            }),
+            'zip': forms.TextInput(attrs={
+                'class': 'form-input',
+                'placeholder': 'Zip'
+            }),
+            'country': forms.TextInput(attrs={
+                'class': 'form-input',
+                'placeholder': 'Country'
+            }),
+            'state': forms.TextInput(attrs={
+                'class': 'form-input',
+                'placeholder': 'State'
+            }),
+            'nationality': forms.TextInput(attrs={
+                'class': 'form-input',
+                'placeholder': 'Nationality'
+            }),
+            'vehicle_information': forms.TextInput(attrs={
+                'class': 'form-input',
+                'placeholder': 'Vehicle information'
+            }),
             'guest_count': forms.TextInput(attrs={
                 'class': 'form-input', 
                 'placeholder': 'Number of guests',
@@ -110,6 +138,10 @@ class BookingForm(forms.ModelForm):
                 'class': 'form-input', 
                 'rows': 4, 
                 'placeholder': 'Enter any special requests or notes...'
+            }),
+            'purpose_of_stay': forms.TextInput(attrs={
+                'class': 'form-input',
+                'placeholder': 'Purpose of stay'
             }),
             'property': PropertySelectWidget(attrs={
                 'class': 'form-control property-select'

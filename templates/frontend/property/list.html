@@ -892,6 +892,25 @@
             right: 0;
         }
 
+        .listing-actions {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 6px;
+        }
+
+        .listing-bed-type {
+            font-size: 12px;
+            line-height: 1.2;
+            color: #6b7280;
+            font-weight: 600;
+            text-align: right;
+            white-space: nowrap;
+            max-width: 120px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
         .options-btn {
             width: 28px;
             height: 28px;
@@ -1382,11 +1401,14 @@
                             </div>
                         </a>
                         <div class="listing-info">
-                            <a href="{% url 'property:property-detail' slug=item.slug %}" data-open-property-preview="true" data-preview-title="{{ item.title|escape }}" rel="noopener noreferrer">
+                            <div style="display: flex; justify-content: space-between;">
+                                <a href="{% url 'property:property-detail' slug=item.slug %}" data-open-property-preview="true" data-preview-title="{{ item.title|escape }}" rel="noopener noreferrer">
                                 <h3 class="listing-title">
                                     {{ item.title }}
                                 </h3>
                             </a>
+                            <div class="listing-bed-type">{{ item.get_bed_type_display }}</div>
+                            </div>
                             <a href="{% url 'property:property-detail' slug=item.slug %}" data-open-property-preview="true" data-preview-title="{{ item.title|escape }}" rel="noopener noreferrer">
                                 <p class="listing-location">{{ item.city }}, {{ item.state }}</p>
                             </a>
@@ -1396,7 +1418,8 @@
                                     <p class="listing-price">${{ item.price_per_night|floatformat:2 }} <span class="price-period">night</span></p>
                                     </a>
                                 </div>
-                                <div>
+                                <div class="listing-actions">
+                                    
                                     <div class="btn-group dropup">
                                         <button class="options-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="More options">
                                             <svg class="options-dots-icon" viewBox="0 0 18 18" aria-hidden="true">
@@ -1707,11 +1730,28 @@
 
         const previewModal = new bootstrap.Modal(previewModalEl);
 
+        function buildPreviewUrl(url) {
+            try {
+                const previewUrl = new URL(url, window.location.origin);
+                const currentParams = new URLSearchParams(window.location.search);
+                ['check_in', 'check_out', 'guests'].forEach(function (key) {
+                    const value = currentParams.get(key);
+                    if (value) {
+                        previewUrl.searchParams.set(key, value);
+                    }
+                });
+                return previewUrl.toString();
+            } catch (error) {
+                return url;
+            }
+        }
+
         function setPreview(url, title) {
+            const previewUrl = buildPreviewUrl(url);
             previewTitle.textContent = title || 'Listing Details';
-            previewOpenLink.href = url;
+            previewOpenLink.href = previewUrl;
             previewLoading.style.display = 'grid';
-            previewFrame.src = url;
+            previewFrame.src = previewUrl;
         }
 
         previewFrame.addEventListener('load', function () {

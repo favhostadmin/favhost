@@ -2235,6 +2235,26 @@
             return formatLocalIso(base);
         }
 
+        function isValidIsoDate(value) {
+            return /^\d{4}-\d{2}-\d{2}$/.test(value || '');
+        }
+
+        const incomingParams = new URLSearchParams(window.location.search);
+        const incomingCheckIn = incomingParams.get('check_in') || '';
+        const incomingCheckOut = incomingParams.get('check_out') || '';
+        const incomingGuests = incomingParams.get('guests') || '';
+        const hasPrefilledReservation = isValidIsoDate(incomingCheckIn) && isValidIsoDate(incomingCheckOut) && incomingGuests;
+
+        if (isValidIsoDate(incomingCheckIn) && checkinEl) {
+            checkinEl.value = incomingCheckIn;
+        }
+        if (isValidIsoDate(incomingCheckOut) && checkoutEl) {
+            checkoutEl.value = incomingCheckOut;
+        }
+        if (incomingGuests && guestsInput && guestsInput.querySelector(`option[value="${incomingGuests}"]`)) {
+            guestsInput.value = incomingGuests;
+        }
+
         // Set minimum date to today for both date pickers
         const today = formatLocalIso(new Date());
         if (checkinEl) {
@@ -2294,6 +2314,8 @@
                 }
             });
         }
+
+        updateDesktopDateDisplay();
 
         function formatDateDisplay(dateString) {
             if (!dateString) return '';
@@ -2521,6 +2543,15 @@
 
         // When the "Check Availability" button is clicked, perform the check.
         if (availabilityBtn) availabilityBtn.addEventListener('click', performCheck);
+
+        if (hasPrefilledReservation) {
+            statusDiv.style.display = 'block';
+            statusDiv.textContent = 'Checking availability...';
+            statusDiv.className = 'availability-text';
+            if (availabilityBtn) availabilityBtn.style.display = 'none';
+            if (reservationBtn) reservationBtn.style.display = 'none';
+            window.setTimeout(performCheck, 0);
+        }
 
         function checkAvailability(checkin, checkout, guests) {
             const url = `/property/${propertyId}/check-availability/?check_in=${checkin}&check_out=${checkout}&guests=${guests}`;
