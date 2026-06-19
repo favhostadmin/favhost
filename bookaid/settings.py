@@ -228,6 +228,13 @@ EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'True') == 'True'
 EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
 DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', EMAIL_HOST_USER)
+# Address used for Reply-To and the List-Unsubscribe mailto on outgoing emails.
+SUPPORT_EMAIL = os.getenv('SUPPORT_EMAIL', 'support@favhost.com')
+
+# --- Tutorials / YouTube channel ---
+# Set this to your real YouTube channel (or on-site tutorials page) URL.
+# Used by the "Watch tutorials" button in the welcome email.
+TUTORIALS_URL = os.getenv('TUTORIALS_URL', 'https://www.youtube.com/@YOUR_CHANNEL')
 
 # --- Stripe Configuration ---
 STRIPE_PUBLISHABLE_KEY = os.getenv('STRIPE_PUBLISHABLE_KEY', '')

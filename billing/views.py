@@ -275,10 +275,15 @@ def _handle_checkout_completed(session):
     sc.subscription_status = 'active'
     sc.cancel_at_period_end = False
 
-    # Fetch current_period_end from Stripe subscription so it's available immediately
+    # Fetch full subscription so period end (and plan/card details for the
+    # confirmation email) are available immediately.
+    sub = None
     if subscription_id:
         try:
-            sub = stripe.Subscription.retrieve(subscription_id)
+            sub = stripe.Subscription.retrieve(
+                subscription_id,
+                expand=['default_payment_method', 'items.data.price'],
+            )
             period_end_ts = getattr(sub, 'current_period_end', None)
             if not period_end_ts and getattr(sub, 'items', None) and sub.items.data:
                 period_end_ts = getattr(sub.items.data[0], 'current_period_end', None)
@@ -289,8 +294,70 @@ def _handle_checkout_completed(session):
         except Exception as e:
             logger.warning(f"Could not fetch subscription period_end: {e}")
 
+    # One-time "subscription confirmed" email — only on the user's very first subscription.
+    if not sc.confirmation_email_sent:
+        _send_first_subscription_email(user, sc, sub)
+        sc.confirmation_email_sent = True
+
     sc.save()
     logger.info(f"User {user.username} subscription activated")
+
+
+def _send_first_subscription_email(user, sc, sub):
+    """Gathers plan + payment details and sends the one-time confirmation email."""
+    from .emails import send_subscription_confirmation_email
+
+    plan_name = 'Premium'
+    amount = 0.0
+    currency = 'USD'
+    interval = 'month'
+    start_date = sc.created_at
+    next_payment_date = sc.current_period_end
+    card_brand = None
+    card_last4 = None
+
+    try:
+        if sub is not None:
+            item = sub.items.data[0]
+            price = item.price
+            if getattr(price, 'unit_amount', None) is not None:
+                amount = price.unit_amount / 100
+            currency = getattr(price, 'currency', 'usd') or 'usd'
+            recurring = getattr(price, 'recurring', None)
+            if recurring is not None:
+                interval = getattr(recurring, 'interval', 'month') or 'month'
+
+            start_ts = getattr(sub, 'current_period_start', None) or getattr(item, 'current_period_start', None)
+            if start_ts:
+                start_date = datetime.datetime.fromtimestamp(start_ts, tz=datetime.timezone.utc)
+
+            # Payment method: prefer the subscription's, fall back to the customer's default card.
+            pm = getattr(sub, 'default_payment_method', None)
+            if (not pm or isinstance(pm, str)) and sc.stripe_customer_id:
+                customer = stripe.Customer.retrieve(
+                    sc.stripe_customer_id,
+                    expand=['invoice_settings.default_payment_method'],
+                )
+                pm = getattr(getattr(customer, 'invoice_settings', None), 'default_payment_method', None)
+            card = getattr(pm, 'card', None) if pm and not isinstance(pm, str) else None
+            if card is not None:
+                card_brand = getattr(card, 'brand', None)
+                card_last4 = getattr(card, 'last4', None)
+    except Exception as e:
+        logger.warning(f"Could not read subscription details for confirmation email: {e}")
+
+    send_subscription_confirmation_email(
+        email=user.email,
+        first_name=user.first_name or 'there',
+        plan_name=plan_name,
+        amount=amount,
+        currency=currency,
+        interval=interval,
+        start_date=start_date,
+        next_payment_date=next_payment_date,
+        card_brand=card_brand,
+        card_last4=card_last4,
+    )
 
 
 def _handle_invoice_paid(invoice):
