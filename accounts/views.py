@@ -188,8 +188,11 @@ def _send_otp_email(email, first_name, otp, subject, template_name, is_forgot=Fa
             with open(logo_path, 'rb') as f:
                 img = MIMEImage(f.read())
                 img.add_header('Content-ID', '<logo>')
+                # Mark as inline so clients render it in the header, not as an attachment.
+                img.add_header('Content-Disposition', 'inline', filename='favhost_logo.png')
+                img.add_header('X-Attachment-Id', 'logo')
                 email_msg.attach(img)
-                
+
         email_msg.send(fail_silently=True)
     except Exception:
         logger.exception("Failed to send OTP email to %s", email)

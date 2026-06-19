@@ -384,14 +384,41 @@ def _handle_payment_failed(invoice):
 
 
 def _handle_subscription_deleted(subscription):
-    """Subscription was cancelled. Mark as canceled."""
+    """Subscription was cancelled. Mark as canceled and notify the customer."""
     customer_id = getattr(subscription, 'customer', None)
     sc = StripeCustomer.objects.filter(stripe_customer_id=customer_id).first()
     if not sc:
         return
+
+    # Only email on the actual transition to canceled — guards against Stripe
+    # webhook retries delivering the same event more than once. A fresh
+    # cancellation after a resubscribe will send again (status won't be 'canceled').
+    was_already_canceled = sc.subscription_status == 'canceled'
+
     sc.subscription_status = 'canceled'
     sc.save()
     logger.info(f"Subscription canceled for customer {customer_id}")
+
+    if not was_already_canceled:
+        try:
+            period_end_ts = getattr(subscription, 'current_period_end', None)
+            access_until = None
+            if period_end_ts:
+                access_until = datetime.datetime.fromtimestamp(
+                    period_end_ts, tz=datetime.timezone.utc
+                )
+            # Only mention a future date if access genuinely extends past now.
+            if access_until and access_until <= datetime.datetime.now(datetime.timezone.utc):
+                access_until = None
+
+            from .emails import send_subscription_cancelled_email
+            send_subscription_cancelled_email(
+                email=sc.user.email,
+                first_name=sc.user.first_name or 'there',
+                access_until=access_until,
+            )
+        except Exception as e:
+            logger.warning(f"Could not send cancellation email for customer {customer_id}: {e}")
 
 
 def _handle_subscription_updated(subscription):
