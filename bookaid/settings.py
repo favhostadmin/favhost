@@ -33,6 +33,8 @@ ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '*').split(',')
 CORS_ALLOW_ALL_ORIGINS = True
 SECURE_CROSS_ORIGIN_OPENER_POLICY = None
 CSRF_TRUSTED_ORIGINS = [
+
+    'https://dev.favhost.com',
     # 'http://34.207.186.12:8000',
     'http://107.22.56.63:8000',
     'https://*.ngrok-free.app',
@@ -82,6 +84,7 @@ INSTALLED_APPS = [
     'tasks',
     'global',
     'billing',
+    'printpanel',
 
 
 ]
@@ -116,6 +119,7 @@ TEMPLATES = [
                 'property.context_processors.property_context',
                 'bookaid.context_processors.enquiry_counts',
                 'billing.context_processors.subscription_status',
+                'django.template.context_processors.static',
             ],
         },
     },
