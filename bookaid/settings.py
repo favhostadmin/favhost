@@ -29,17 +29,36 @@ SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-+m!dtn=()j@rs%01t#c^c&(s3l
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DEBUG', 'True') == 'True'
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '*').split(',')
 CORS_ALLOW_ALL_ORIGINS = True
 SECURE_CROSS_ORIGIN_OPENER_POLICY = None
 CSRF_TRUSTED_ORIGINS = [
+
     'https://dev.favhost.com',
+    # 'http://34.207.186.12:8000',
     'http://107.22.56.63:8000',
     'https://*.ngrok-free.app',
     'https://*.ngrok.io',
     'http://favhost.com',
     'https://favhost.com',
+    'https://dev.favhost.com',
+    'http://localhost:8000',
+    'http://127.0.0.1:8000',
 ]
+
+# ── Production security hardening (only active when DEBUG=False) ──
+# Kept off in local dev so plain http://localhost keeps working.
+if not DEBUG:
+    # Trust the X-Forwarded-Proto header set by nginx / the load balancer
+    # so Django knows the original request was HTTPS.
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_HSTS_SECONDS = 31536000  # 1 year
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
 
 
 
@@ -65,6 +84,7 @@ INSTALLED_APPS = [
     'tasks',
     'global',
     'billing',
+    'printpanel',
 
 
 ]
@@ -76,7 +96,6 @@ AUTHENTICATION_BACKENDS = ['accounts.backends.EmailOrUsernameBackend']
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -100,6 +119,7 @@ TEMPLATES = [
                 'property.context_processors.property_context',
                 'bookaid.context_processors.enquiry_counts',
                 'billing.context_processors.subscription_status',
+                'django.template.context_processors.static',
             ],
         },
     },
@@ -121,9 +141,10 @@ WSGI_APPLICATION = 'bookaid.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': os.getenv('DB_ENGINE', 'django.db.backends.postgresql_psycopg2'),
-        'NAME': os.getenv('DB_NAME'),
-        'USER': os.getenv('DB_USER'),
-        'PASSWORD': os.getenv('DB_PASSWORD'),
+        'NAME': os.getenv('DB_NAME', 'favhost'),
+        'USER': os.getenv('DB_USER', 'postgres'),
+        'PASSWORD': os.getenv('DB_PASSWORD', 'postgres'),
+        # 'HOST': 'localhost',
         'HOST': os.getenv('DB_HOST', '127.0.0.1'),
         'PORT': os.getenv('DB_PORT', '5432'),
     }
@@ -200,14 +221,6 @@ SESSION_EXPIRE_AT_BROWSER_CLOSE = False
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_DIRS = [ BASE_DIR / 'static' ]
-STORAGES = {
-    'default': {
-        'BACKEND': 'django.core.files.storage.FileSystemStorage',
-    },
-    'staticfiles': {
-        'BACKEND': 'whitenoise.storage.CompressedStaticFilesStorage',
-    },
-}
 
 MEDIA_ROOT = BASE_DIR / 'media'
 MEDIA_URL = '/media/'
@@ -220,6 +233,13 @@ EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'True') == 'True'
 EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
 DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', EMAIL_HOST_USER)
+# Address used for Reply-To and the List-Unsubscribe mailto on outgoing emails.
+SUPPORT_EMAIL = os.getenv('SUPPORT_EMAIL', 'support@favhost.com')
+
+# --- Tutorials / YouTube channel ---
+# Set this to your real YouTube channel (or on-site tutorials page) URL.
+# Used by the "Watch tutorials" button in the welcome email.
+TUTORIALS_URL = os.getenv('TUTORIALS_URL', 'https://www.youtube.com/@YOUR_CHANNEL')
 
 # --- Stripe Configuration ---
 STRIPE_PUBLISHABLE_KEY = os.getenv('STRIPE_PUBLISHABLE_KEY', '')
@@ -227,6 +247,17 @@ STRIPE_SECRET_KEY = os.getenv('STRIPE_SECRET_KEY', '')
 STRIPE_PRICE_ID = os.getenv('STRIPE_PRICE_ID', '')
 STRIPE_WEBHOOK_SECRET = os.getenv('STRIPE_WEBHOOK_SECRET', '')
 DOMAIN_URL = os.getenv('DOMAIN_URL', 'http://localhost:8000')
+
+# --- Firebase Configuration ---
+FIREBASE_API_KEY = os.getenv('FIREBASE_API_KEY', '')
+FIREBASE_AUTH_DOMAIN = os.getenv('FIREBASE_AUTH_DOMAIN', '')
+FIREBASE_PROJECT_ID = os.getenv('FIREBASE_PROJECT_ID', '')
+FIREBASE_STORAGE_BUCKET = os.getenv('FIREBASE_STORAGE_BUCKET', '')
+FIREBASE_MESSAGING_SENDER_ID = os.getenv('FIREBASE_MESSAGING_SENDER_ID', '')
+FIREBASE_APP_ID = os.getenv('FIREBASE_APP_ID', '')
+FIREBASE_MEASUREMENT_ID = os.getenv('FIREBASE_MEASUREMENT_ID', '')
+FIREBASE_ADMIN_PRIVATE_KEY = os.getenv('FIREBASE_ADMIN_PRIVATE_KEY', '')
+FIREBASE_ADMIN_CLIENT_EMAIL = os.getenv('FIREBASE_ADMIN_CLIENT_EMAIL', '')
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field

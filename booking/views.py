@@ -21,6 +21,8 @@ from accounts.utils import get_visible_user_ids
 from .enums import BOOKING_CHANNELS
 from .utils import generate_booking_payments
 from accounts.utils import get_visible_user_ids
+from tasks.models import Task
+from property.models import PropertyBlockDate
 
 from django.core.mail import send_mail
 from django.conf import settings
@@ -281,10 +283,18 @@ class BookingCreateView(LoginRequiredMixin, View):
                     last_name=request.POST.get('last_name'),
                     email=request.POST.get('email'),
                     phone=request.POST.get('phone'),
+                    street_address=request.POST.get('street_address'),
+                    city=request.POST.get('city'),
+                    zip=request.POST.get('zip'),
+                    country=request.POST.get('country'),
+                    state=request.POST.get('state'),
+                    nationality=request.POST.get('nationality'),
+                    vehicle_information=request.POST.get('vehicle_information'),
                     country_code=request.POST.get('country_code'),
                     guest_count=int(request.POST.get('guest_count') or 0),
                     channel_id=request.POST.get('channel'),
                     property_id=request.POST.get('property'),
+                    purpose_of_stay=request.POST.get('purpose_of_stay'),
                     check_in_date=datetime.strptime(request.POST.get('check_in_date'), '%Y-%m-%d').date() if request.POST.get('check_in_date') else None,
                     check_out_date=datetime.strptime(request.POST.get('check_out_date'), '%Y-%m-%d').date() if request.POST.get('check_out_date') else None,
                     check_in_time=request.POST.get('check_in_time'),
@@ -428,10 +438,18 @@ class BookingUpdateView(LoginRequiredMixin, View):
                 booking.last_name = request.POST.get('last_name')
                 booking.email = request.POST.get('email')
                 booking.phone = request.POST.get('phone')
+                booking.street_address = request.POST.get('street_address')
+                booking.city = request.POST.get('city')
+                booking.zip = request.POST.get('zip')
+                booking.country = request.POST.get('country')
+                booking.state = request.POST.get('state')
+                booking.nationality = request.POST.get('nationality')
+                booking.vehicle_information = request.POST.get('vehicle_information')
                 booking.country_code = request.POST.get('country_code')
                 booking.guest_count = int(request.POST.get('guest_count') or 0)
                 booking.channel_id = request.POST.get('channel')
                 booking.property_id = request.POST.get('property')
+                booking.purpose_of_stay = request.POST.get('purpose_of_stay')
                 booking.check_in_date = datetime.strptime(request.POST.get('check_in_date'), '%Y-%m-%d').date() if request.POST.get('check_in_date') else None
                 booking.check_out_date = datetime.strptime(request.POST.get('check_out_date'), '%Y-%m-%d').date() if request.POST.get('check_out_date') else None
                 booking.check_in_time = request.POST.get('check_in_time')
@@ -506,6 +524,7 @@ def payment_details(request, pk):
     subtotal = 0
     total_price = 0
     monthly_payment = 0
+    nights = 0
 
     now = request.user.get_local_date()
 
@@ -548,7 +567,7 @@ def payment_details(request, pk):
     elif booking.check_in_date and booking.check_in_date > now and booking.status == 'confirmed':
         booking_status = 'upcoming'
 
-    delta = booking.check_out_date - now
+    delta = (booking.check_out_date - now) if booking.check_out_date else None
 
 
     context = {
@@ -558,7 +577,7 @@ def payment_details(request, pk):
         'subtotal': subtotal,
         'total_price': total_price,
         'monthly_payment': monthly_payment,
-        'time_delta': True if delta.days == 0 else False,
+        'time_delta': True if (delta and delta.days == 0) else False,
     }
     context['booking_status'] = booking_status
 
@@ -592,7 +611,7 @@ def add_payment_attachment(request):
         if file.size > 2 * 1024 * 1024:
             return JsonResponse({'success': False, 'error': 'File size must not exceed 2 MB.'}, status=400)
 
-        payment = get_object_or_404(Payment, id=payment_id, booking__property__created_by=request.user)
+        payment = get_object_or_404(Payment, id=payment_id, booking__property__created_by__in=get_visible_user_ids(request.user))
         att = PaymentAttachment.objects.create(payment=payment, file=file, name=file.name)
         return JsonResponse({
             'success': True,
@@ -608,7 +627,7 @@ def delete_payment_attachment(request):
     try:
         data = json.loads(request.body)
         att_id = data.get('attachment_id')
-        att = get_object_or_404(PaymentAttachment, id=att_id, payment__booking__property__created_by=request.user)
+        att = get_object_or_404(PaymentAttachment, id=att_id, payment__booking__property__created_by__in=get_visible_user_ids(request.user))
         att.file.delete(save=False)
         att.delete()
         return JsonResponse({'success': True})
@@ -623,7 +642,7 @@ def update_payment_notes(request):
         data = json.loads(request.body)
         payment_id = data.get('payment_id')
         notes = data.get('notes', '').strip()
-        payment = get_object_or_404(Payment, id=payment_id, booking__property__created_by=request.user)
+        payment = get_object_or_404(Payment, id=payment_id, booking__property__created_by__in=get_visible_user_ids(request.user))
         payment.notes = notes
         payment.save()
         return JsonResponse({'success': True, 'notes': payment.notes or ''})

@@ -28,10 +28,10 @@ urlpatterns = [
 
     # WEBSITE URLS
     path('', WebsiteIndexView.as_view(), name='index'),
-    path('blogs/', WebsiteBlogView.as_view(), name='blog'),
-    path('blog/<slug:slug>/', WebsiteBlogDetailsView.as_view(), name='blog-details'),
+    path('resources/', WebsiteBlogView.as_view(), name='blog'),
+    path('resources/<slug:slug>/', WebsiteBlogDetailsView.as_view(), name='blog-details'),
     path('contact/', WebsiteContactView.as_view(), name='contact'),
-    path('terms/', WebsiteTermsView.as_view(), name='terms'),
+    path('terms-and-conditions/', WebsiteTermsView.as_view(), name='terms'),
     path('privacy-policy/', WebsitePrivacyView.as_view(), name='privacy'),
 
     # BOOKING PORTAL URLS
@@ -43,6 +43,7 @@ urlpatterns = [
     path('booking/', include(('booking.urls', 'booking'), namespace='booking')),
     path('tasks/', include(('tasks.urls', 'tasks'), namespace='tasks')),
     path('global/', include(('global.urls', 'global'), namespace='global')),
+    path('print/', include(('printpanel.urls', 'printpanel'), namespace='printpanel')),
     path('calendar-grid-view/',CalenderAPIView.as_view(),name="calendar-grid-view"),
     path('calendar-list-view/',CalendarListView.as_view(),name="calendar-list-view"),
     path('manage/<uuid:property_id>/', channel_integration, name='channel_integration'),

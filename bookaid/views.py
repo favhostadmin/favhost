@@ -107,17 +107,26 @@ class HostDashboardAPIView(LoginRequiredMixin, TemplateView):
 
         seven_days_ago = today - datetime.timedelta(days=7)
         context['recent_bookings'] = Booking.objects.filter(
-            property__created_by=self.request.user,
+            property__created_by__in=get_visible_user_ids(self.request.user),
             created_at__date__gte=seven_days_ago,
             created_at__date__lte=today
         ).exclude(status='cancelled').order_by('-created_at')
 
         current_year = timezone.now().year
+
+        # 1) Determine selected year (query param ?year=YYYY, fallback to current year)
+        selected_year_str = self.request.GET.get("year")
+        try:
+            selected_year = int(selected_year_str) if selected_year_str else current_year
+        except ValueError:
+            selected_year = current_year
+
         gross_qs = Booking.objects.filter(
-            property__created_by=self.request.user,
-            created_at__year=current_year
-        ).exclude(status='cancelled')
+            property__created_by__in=get_visible_user_ids(self.request.user),
+            check_in_date__year=selected_year
+        )
         context['gross_bookings_amount'] = gross_qs.aggregate(total=Sum('price'))['total'] or 0
+        context['gross_bookings_count'] = gross_qs.aggregate(count=Count('id'))['count'] or 0
         channel_data = gross_qs.values('channel__name').annotate(
             count=Count('id'),
             total=Sum('price')
@@ -130,14 +139,6 @@ class HostDashboardAPIView(LoginRequiredMixin, TemplateView):
         context['channel_amounts_json'] = mark_safe(json.dumps([float(c['total'] or 0) for c in channel_data]))
 
         # --- Earning monthly for a year ---
-
-        # 1) Determine selected year (query param ?year=YYYY, fallback to current year)
-        selected_year_str = self.request.GET.get("year")
-
-        try:
-            selected_year = int(selected_year_str) if selected_year_str else current_year
-        except ValueError:
-            selected_year = current_year
         
         # print( 'current_year==>',current_year)
         # print( 'selected_year==>',selected_year)
@@ -563,7 +564,8 @@ class CalenderAPIView(LoginRequiredMixin,ListView):
         blocked_dates_qs = PropertyBlockDate.objects.filter(
             property__created_by__in=get_visible_user_ids(request.user),
             start_date__lte=end_date,
-            end_date__gte=start_date
+            end_date__gte=start_date,
+            is_active=True
         ).select_related('property')
 
         for block in blocked_dates_qs:
@@ -608,9 +610,40 @@ class CalenderAPIView(LoginRequiredMixin,ListView):
                 }.get(task.task_type, '#6b7280')
             })
 
+        # Fetch enquiries for the date range
+        enquiries_qs = Enquiry.objects.filter(
+            property__created_by__in=get_visible_user_ids(request.user),
+            check_in_date__lte=end_date,
+            check_out_date__gte=start_date,
+            is_archive=False
+        ).select_related('property')
+
+        enquiries_list = []
+        for eq in enquiries_qs:
+            enquiries_list.append({
+                'id': f"enquiry-{eq.id}",
+                'propertyId': str(eq.property.id),
+                'start_date': eq.check_in_date.isoformat(),
+                'end_date': eq.check_out_date.isoformat(),
+                'startDateStr': eq.check_in_date.isoformat(),
+                'endDateStr': eq.check_out_date.isoformat(),
+                'guestName': f"{eq.first_name or ''} {eq.last_name or ''}".strip() or "Enquiry Guest",
+                'guestAvatar': staticfiles_storage.url('img/common/default_user_icon_1.png'),
+                'color': '#f59e0b',
+                'type': 'enquiry',
+                'phone': eq.phone or '',
+                'email': eq.email or '',
+                'adults': eq.adults,
+                'children': eq.children,
+                'pets': eq.pets,
+                'notes': eq.notes_for_host or '',
+                'unique_id': str(eq.unique_id),
+            })
+
         return JsonResponse({
             'bookings': bookings_list,
-            'tasks': tasks_list
+            'tasks': tasks_list,
+            'enquiries': enquiries_list
         })
 
 # views.py
