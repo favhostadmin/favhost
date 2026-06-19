@@ -3,8 +3,8 @@ from django.db import migrations, models
 
 def add_missing_booking_fields(apps, schema_editor):
     """
-    Heal databases where booking_booking exists but some guest profile columns
-    were never added.
+    Heal databases where booking_booking exists but some booking/profile
+    columns were never added.
 
     This is a no-op for databases that already have the fields.
     """
@@ -24,6 +24,7 @@ def add_missing_booking_fields(apps, schema_editor):
         ('state', models.CharField(max_length=100, null=True, blank=True)),
         ('nationality', models.CharField(max_length=100, null=True, blank=True)),
         ('vehicle_information', models.CharField(max_length=255, null=True, blank=True)),
+        ('purpose_of_stay', models.CharField(max_length=255, null=True, blank=True)),
     ]
 
     for field_name, field in fields:
