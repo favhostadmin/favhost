@@ -699,14 +699,25 @@
             dropdownAutoWidth: true,
             width: '100%',
             minimumResultsForSearch: 5,
-            closeOnSelect: true
+            closeOnSelect: false
         });
-        
+
+        if (!propertySelect.is(':disabled')) {
+            setTimeout(function () {
+                propertySelect.select2('open');
+            }, 0);
+        }
+
+        propertySelect.on('select2:close', function () {
+            if (!$(this).is(':disabled')) {
+                setTimeout(() => {
+                    $(this).select2('open');
+                }, 0);
+            }
+        });
 
         propertySelect.on('change', function() {
             const selected = $(this).find('option:selected');
-
-            $(this).select2('close');
 
             if (!selected.val()) {
                 propertyPreview.innerHTML = '';

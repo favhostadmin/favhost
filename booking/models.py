@@ -27,6 +27,13 @@ class Booking(models.Model):
     email = models.EmailField(null=True, blank=True)
     country_code = models.CharField(max_length=10, null=True, blank=True)
     phone = models.CharField(max_length=20,null=True, blank=True)
+    street_address = models.CharField(max_length=255, null=True, blank=True)
+    city = models.CharField(max_length=100, null=True, blank=True)
+    zip = models.CharField(max_length=20, null=True, blank=True)
+    country = models.CharField(max_length=100, null=True, blank=True)
+    state = models.CharField(max_length=100, null=True, blank=True)
+    nationality = models.CharField(max_length=100, null=True, blank=True)
+    vehicle_information = models.CharField(max_length=255, null=True, blank=True)
     guest_count = models.PositiveIntegerField()
     # booking_channel = models.CharField(max_length=100, choices=BOOKING_CHANNELS, default='personal_website')
     channel = models.ForeignKey(BookingChannel, on_delete=models.SET_NULL, null=True, blank=True)
@@ -35,6 +42,7 @@ class Booking(models.Model):
     check_in_date = models.DateField(null=True, blank=True)
     check_out_date = models.DateField(null=True, blank=True)
     notes = models.TextField(blank=True, null=True)
+    purpose_of_stay = models.CharField(max_length=255, null=True, blank=True)
 
     property = models.ForeignKey('property.Property', on_delete=models.CASCADE)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='confirmed')
@@ -112,9 +120,9 @@ class Payment(models.Model):
 
 class PaymentAttachment(models.Model):
     payment = models.ForeignKey(Payment, on_delete=models.CASCADE, related_name='attachments')
-    file = models.FileField(upload_to='payment_attachments/', null=True, blank=True)
-    name = models.CharField(max_length=255, null=True, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
+    file = models.FileField(upload_to='payment_attachments/')
+    name = models.CharField(max_length=255)
+    created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return f"{self.name} for Payment {self.payment.id}"

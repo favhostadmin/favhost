@@ -383,10 +383,12 @@
             margin-top: 16px;
         }
 
-        .calendar-list-empty-state {
-            font-size: 22px;
-        }
+    .calendar-list-empty-state {
+      font-size: 22px;
     }
+  }
+
+
 
 
 
@@ -481,9 +483,11 @@
             <div class="col-auto actions-col">
                 <div class="d-flex">
                     <div class="header-actions-group">
+                    <div class="dropdown">
                         <button class="btn p-0" id="printBtn" style="border:none">
                             <img src="{% static 'img/calender/print_icon.svg' %}">
                         </button>
+                    </div>
                         <button class="btn p-0" id="refreshBtn" title="Refresh" style="border:none">
                             <img src="{% static 'img/calender/refresh_icon.svg' %}">
                         </button>
@@ -851,12 +855,41 @@
 
     if (mobilePrintBtn) {
         mobilePrintBtn.addEventListener('click', () => {
-            const desktopPrintBtn = document.getElementById('printBtn');
-            if (desktopPrintBtn) {
-                desktopPrintBtn.click();
-            } else {
-                window.print();
+            const viewType = 'list';
+            const el = document.getElementById('currentYearMonth');
+            let startDate, endDate;
+            if (el) {
+                const ym = el.textContent.trim().split(' ');
+                const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+                const monthIdx = months.indexOf(ym[0]);
+                const year = parseInt(ym[1]);
+                if (monthIdx >= 0 && year) {
+                    const firstDay = new Date(year, monthIdx, 1);
+                    const lastDay = new Date(year, monthIdx + 1, 0);
+                    const toISO = (d) => {
+                        const y = d.getFullYear();
+                        const m = String(d.getMonth() + 1).padStart(2, '0');
+                        const day = String(d.getDate()).padStart(2, '0');
+                        return `${y}-${m}-${day}`;
+                    };
+                    startDate = toISO(firstDay);
+                    endDate = toISO(lastDay);
+                }
             }
+            if (!startDate) {
+                const today = new Date();
+                const y = today.getFullYear();
+                const m = today.getMonth();
+                const toISO = (d) => {
+                    const yr = d.getFullYear();
+                    const mo = String(d.getMonth() + 1).padStart(2, '0');
+                    const day = String(d.getDate()).padStart(2, '0');
+                    return `${yr}-${mo}-${day}`;
+                };
+                startDate = toISO(new Date(y, m, 1));
+                endDate = toISO(new Date(y, m + 1, 0));
+            }
+            window.location.href = `/print/?view=${viewType}&start_date=${startDate}&end_date=${endDate}`;
         });
     }
 
@@ -889,6 +922,34 @@
         if (monthYearApplyBtn) monthYearApplyBtn.addEventListener('click', applyMonthYearSelection);
         if (monthYearPanel) monthYearPanel.addEventListener('click', function (event) { event.stopPropagation(); });
         document.addEventListener('click', () => closeMonthYearPanel());
+        const printBtn = document.getElementById('printBtn');
+        if (printBtn) {
+            printBtn.addEventListener('click', () => {
+                const viewType = 'list';
+                const dispEl = document.getElementById('currentYearMonth');
+                let startDate, endDate;
+                if (dispEl) {
+                    const ym = dispEl.textContent.trim().split(' ');
+                    const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+                    const monthIdx = months.indexOf(ym[0]);
+                    const year = parseInt(ym[1]);
+                    if (monthIdx >= 0 && year) {
+                        const firstDay = new Date(year, monthIdx, 1);
+                        const lastDay = new Date(year, monthIdx + 1, 0);
+                        const toI = (d) => { const y=d.getFullYear();const m=String(d.getMonth()+1).padStart(2,'0');const day=String(d.getDate()).padStart(2,'0');return `${y}-${m}-${day}`; };
+                        startDate = toI(firstDay);
+                        endDate = toI(lastDay);
+                    }
+                }
+                if (!startDate) {
+                    const today = new Date();
+                    const toI = (d) => { const y=d.getFullYear();const m=String(d.getMonth()+1).padStart(2,'0');const day=String(d.getDate()).padStart(2,'0');return `${y}-${m}-${day}`; };
+                    startDate = toI(new Date(today.getFullYear(), today.getMonth(), 1));
+                    endDate = toI(new Date(today.getFullYear(), today.getMonth() + 1, 0));
+                }
+                window.location.href = `/print/?view=${viewType}&start_date=${startDate}&end_date=${endDate}`;
+            });
+        }
     });
 </script>
 {% endblock extra_script %}

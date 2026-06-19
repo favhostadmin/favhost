@@ -10,7 +10,7 @@ class BookingChannelAdmin(admin.ModelAdmin):
 
 @admin.register(Booking)
 class BookingAdmin(admin.ModelAdmin):
-    list_display = ('id', 'property', 'check_in_date', 'check_out_date', 'status','notes','last_synced_at','created_at')
+    list_display = ('id', 'first_name', 'property', 'check_in_date', 'check_out_date', 'status', 'purpose_of_stay', 'notes', 'last_synced_at', 'created_at')
     list_filter = ('status', 'property', 'channel', 'check_in_date', 'check_out_date')
     # search_fields = ('property__name')
 

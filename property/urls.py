@@ -25,13 +25,13 @@ urlpatterns = [
     path('listing/', ListingPageView.as_view(), name='listing-page'),
     path('listing/<str:short_code>/', ListingPageView.as_view(), name='listing-page-public'),
     # Updated public detail URL for a cleaner API structure
-    path('listing_details/<str:short_code>/<slug:slug>/', ListingDetailView.as_view(), name='listing-detail-slug'),
+    path('listing-details/<str:short_code>/<slug:slug>/', ListingDetailView.as_view(), name='listing-detail-slug'),
 
 
     ### New Section Added by subhankar ####
-    path('request_book/<uuid:pk>/', RequestBokPageView.as_view(), name='request-book-page-detail'),
-    path('request_book/<slug:slug>/', RequestBokPageView.as_view(), name='request-book-page-slug'),
-    path('request_book/', RequestBokPageView.as_view(), name='request-book-page'),
+    path('request-book/<uuid:pk>/', RequestBokPageView.as_view(), name='request-book-page-detail'),
+    path('request-book/<slug:slug>/', RequestBokPageView.as_view(), name='request-book-page-slug'),
+    path('request-book/', RequestBokPageView.as_view(), name='request-book-page'),
     
     
 

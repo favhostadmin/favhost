@@ -1,23 +1,115 @@
 import os
+import json
 import random
 import string
+import logging
 from email.mime.image import MIMEImage
 from datetime import timedelta
 from django.utils import timezone
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.views import LoginView
 from django.contrib.auth import login as auth_login
-from django.urls import reverse_lazy
+from django.urls import reverse_lazy, reverse
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.core.mail import send_mail, EmailMultiAlternatives
 from django.template.loader import render_to_string
+from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST, require_http_methods
 from django.contrib.staticfiles import finders
 from .models import MyUser, UserDocument, CoHost
 from .utils import get_effective_user
+
+logger = logging.getLogger(__name__)
+
+# Firebase Admin SDK (lazy-initialized)
+_firebase_app = None
+
+def _get_firebase_app():
+    """Initialize and return the Firebase Admin app (lazy, singleton)."""
+    global _firebase_app
+    if _firebase_app is not None:
+        return _firebase_app
+
+    private_key = settings.FIREBASE_ADMIN_PRIVATE_KEY
+    client_email = settings.FIREBASE_ADMIN_CLIENT_EMAIL
+    project_id = settings.FIREBASE_PROJECT_ID
+
+    if not all([private_key, client_email, project_id]):
+        return None
+
+    import firebase_admin
+    from firebase_admin import credentials
+    cred = credentials.Certificate({
+        "type": "service_account",
+        "project_id": project_id,
+        "private_key": private_key.replace('\\n', '\n'),
+        "client_email": client_email,
+        "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+        "token_uri": "https://oauth2.googleapis.com/token",
+        "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+    })
+    _firebase_app = firebase_admin.initialize_app(cred)
+    return _firebase_app
+
+
+@csrf_exempt
+@require_POST
+def firebase_auth_view(request):
+    """
+    Receive a Firebase ID token from the frontend, verify it,
+    then log in or create the user.
+    """
+    try:
+        app = _get_firebase_app()
+        if not app:
+            return JsonResponse({'error': 'Firebase not configured on server. Add credentials to .env'}, status=501)
+
+        data = json.loads(request.body)
+        id_token = data.get('idToken')
+        if not id_token:
+            return JsonResponse({'error': 'Missing idToken'}, status=400)
+
+        from firebase_admin import auth as firebase_auth
+        decoded = firebase_auth.verify_id_token(id_token)
+    except Exception as e:
+        return JsonResponse({'error': f'Token verification failed: {e}'}, status=403)
+
+    firebase_uid = decoded.get('uid', '')
+    email = decoded.get('email', '')
+    name = decoded.get('name', '') or decoded.get('display_name', '')
+
+    if not email:
+        return JsonResponse({'error': 'No email from Google account'}, status=400)
+
+    parts = name.split(' ', 1)
+    first_name = parts[0] if parts else ''
+    last_name = parts[1] if len(parts) > 1 else ''
+
+    user = MyUser.objects.filter(email=email).first()
+    if not user:
+        user = MyUser.objects.create_user(
+            username=email,
+            email=email,
+        )
+        user.first_name = first_name
+        user.last_name = last_name
+        user.is_active = True
+        user.save()
+
+        # First-time Google sign-up — send the welcome email
+        _send_welcome_email(
+            email=user.email,
+            first_name=user.first_name or 'there',
+            request=request,
+        )
+
+    user.backend = 'accounts.backends.EmailOrUsernameBackend'
+    auth_login(request, user)
+
+    return JsonResponse({'success': True, 'redirect': str(reverse_lazy('dashboard'))})
 
 
 # ─────────────────────────────────────────────
@@ -31,6 +123,15 @@ class CustomLoginView(LoginView):
         context = super().get_context_data(**kwargs)
         # Default to login mode; ?mode=signup shows signup view
         context['show_signup'] = self.request.GET.get('mode') == 'signup'
+        # Pass Firebase config to template for Google sign-in
+        context['firebase_api_key'] = settings.FIREBASE_API_KEY
+        context['firebase_auth_domain'] = settings.FIREBASE_AUTH_DOMAIN
+        context['firebase_project_id'] = settings.FIREBASE_PROJECT_ID
+        context['firebase_storage_bucket'] = settings.FIREBASE_STORAGE_BUCKET
+        context['firebase_messaging_sender_id'] = settings.FIREBASE_MESSAGING_SENDER_ID
+        context['firebase_app_id'] = settings.FIREBASE_APP_ID
+        context['firebase_measurement_id'] = settings.FIREBASE_MEASUREMENT_ID
+        context['firebase_configured'] = bool(settings.FIREBASE_API_KEY)
         return context
 
     def form_valid(self, form):
@@ -76,10 +177,11 @@ def _send_otp_email(email, first_name, otp, subject, template_name, is_forgot=Fa
             body=plain_body,
             from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@favhost.com'),
             to=[email],
+            reply_to=[getattr(settings, 'SUPPORT_EMAIL', 'support@favhost.com')],
         )
         email_msg.attach_alternative(html_body, 'text/html')
         email_msg.mixed_subtype = 'related'
-        
+
         # Attach logo inline
         logo_path = finders.find('img/login/favhost_new_logo.png')
         if logo_path and os.path.exists(logo_path):
@@ -90,7 +192,78 @@ def _send_otp_email(email, first_name, otp, subject, template_name, is_forgot=Fa
                 
         email_msg.send(fail_silently=True)
     except Exception:
-        pass
+        logger.exception("Failed to send OTP email to %s", email)
+
+
+def _send_welcome_email(email, first_name, request=None):
+    """Sends the HTML welcome email (with inline logo) to a newly signed-up user."""
+    try:
+        # Build absolute URLs so the buttons work from inside the email client.
+        if request is not None:
+            dashboard_url = request.build_absolute_uri(reverse('dashboard'))
+            pricing_url = request.build_absolute_uri(reverse('billing:pricing'))
+            terms_url = request.build_absolute_uri(reverse('terms'))
+            privacy_url = request.build_absolute_uri(reverse('privacy'))
+            contact_url = request.build_absolute_uri(reverse('contact'))
+        else:
+            dashboard_url = 'https://favhost.com/dashboard/'
+            pricing_url = 'https://favhost.com/upgrade/'
+            terms_url = 'https://favhost.com/terms/'
+            privacy_url = 'https://favhost.com/privacy-policy/'
+            contact_url = 'https://favhost.com/contact/'
+
+        tutorials_url = getattr(settings, 'TUTORIALS_URL', 'https://www.youtube.com/@YOUR_CHANNEL')
+
+        html_body = render_to_string('frontend/emails/welcome.html', {
+            'first_name': first_name,
+            'logo_url': 'cid:logo',
+            'dashboard_url': dashboard_url,
+            'pricing_url': pricing_url,
+            'terms_url': terms_url,
+            'privacy_url': privacy_url,
+            'contact_url': contact_url,
+            'tutorials_url': tutorials_url,
+        })
+
+        plain_body = (
+            f'Dear {first_name},\n\n'
+            'Welcome to Favhost! Your account is ready.\n\n'
+            'Your 90-day free trial has started — every feature is unlocked from day one '
+            'with no limits. After the trial ends, simply subscribe to keep your full access '
+            'and continue without interruption.\n\n'
+            f'Go to your dashboard: {dashboard_url}\n'
+            f'Watch our video tutorials: {tutorials_url}\n'
+            f'View our plans: {pricing_url}\n\n'
+            'Need help getting started? Reach us anytime at support@favhost.com\n\n'
+            'Best regards,\nTeam Favhost\nsupport@favhost.com'
+        )
+
+        support_email = getattr(settings, 'SUPPORT_EMAIL', 'support@favhost.com')
+        email_msg = EmailMultiAlternatives(
+            subject='Welcome to Favhost',
+            body=plain_body,
+            from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@favhost.com'),
+            to=[email],
+            reply_to=[support_email],
+            headers={'List-Unsubscribe': f'<mailto:{support_email}?subject=Unsubscribe>'},
+        )
+        email_msg.attach_alternative(html_body, 'text/html')
+        email_msg.mixed_subtype = 'related'
+
+        # Attach logo inline (same asset used by the OTP emails)
+        logo_path = finders.find('img/login/favhost_new_logo.png')
+        if logo_path and os.path.exists(logo_path):
+            with open(logo_path, 'rb') as f:
+                img = MIMEImage(f.read())
+                img.add_header('Content-ID', '<logo>')
+                # Mark as inline so clients render it in the header, not as an attachment.
+                img.add_header('Content-Disposition', 'inline', filename='favhost_logo.png')
+                img.add_header('X-Attachment-Id', 'logo')
+                email_msg.attach(img)
+
+        email_msg.send(fail_silently=True)
+    except Exception:
+        logger.exception("Failed to send welcome email to %s", email)
 
 
 @require_http_methods(["GET", "POST"])
@@ -194,6 +367,13 @@ def verify_otp_view(request):
             # Clear session data
             del request.session['signup_otp']
             del request.session['signup_data']
+
+            # Send the welcome email to the freshly created user
+            _send_welcome_email(
+                email=user.email,
+                first_name=user.first_name or 'there',
+                request=request,
+            )
 
             # Log user in
             user.backend = 'django.contrib.auth.backends.ModelBackend'

@@ -26,6 +26,9 @@ class StripeCustomer(models.Model):
     )
     current_period_end = models.DateTimeField(null=True, blank=True)
     cancel_at_period_end = models.BooleanField(default=False)
+    # Set True after the one-time "subscription confirmed" email is sent,
+    # so the user only ever receives it on their very first subscription.
+    confirmation_email_sent = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

@@ -138,6 +138,50 @@
         align-self: flex-start; /* Aligns the item to the start of the flex container */
         height: fit-content;
     }
+
+    .detail-summary-card {
+        display: none;
+        margin-top: 14px;
+        padding-top: 14px;
+        border-top: 1px solid #e5e7eb;
+    }
+
+    .detail-summary-header {
+        font-size: 16px;
+        font-weight: 700;
+        color: #111827;
+        margin-bottom: 12px;
+    }
+
+    .detail-summary-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 12px;
+        font-size: 14px;
+        line-height: 1.35;
+        margin-bottom: 8px;
+    }
+
+    .detail-summary-label {
+        color: #6b7280;
+    }
+
+    .detail-summary-value {
+        color: #111827;
+        font-weight: 700;
+        text-align: right;
+        white-space: nowrap;
+    }
+
+    .detail-summary-total {
+        margin-top: 10px;
+        padding-top: 12px;
+        border-top: 1px solid #e5e7eb;
+        font-size: 16px;
+        font-weight: 700;
+    }
+
     .amenities-bottom-divider {
         display: none;
     }
@@ -1115,7 +1159,7 @@
                 </ul>
         </div>
 
-        <div class="property-detail-scroll" style="max-height: calc(100vh - 165px); overflow: auto; overflow-x: hidden;">
+        <div class="property-detail-scroll" style="max-height: calc(100vh - 121px); overflow: auto; overflow-x: hidden;">
             <div class="property-detail-content">
                 <div class="row property-header">
                     <!-- Title and Status Row -->
@@ -1733,6 +1777,35 @@
                             <option value="{{ forloop.counter }}" {% if forloop.last %}selected{% endif %}>{{ forloop.counter }} guest{% if forloop.counter > 1 %}s{% endif %}</option>
                             {% endfor %}
                         </select>
+
+                        <div id="detail-summary-section" class="detail-summary-card">
+                            <div class="detail-summary-header">Payment Summary</div>
+                            <div class="detail-summary-item">
+                                <span class="detail-summary-label">Daily rate</span>
+                                <span class="detail-summary-value" id="detail-summary-daily-rate">${{ property.price_per_night|floatformat:2 }}</span>
+                            </div>
+                            <div class="detail-summary-item">
+                                <span class="detail-summary-label" id="detail-summary-price-calc">${{ property.price_per_night|floatformat:2 }} x 0 nights</span>
+                                <span class="detail-summary-value" id="detail-summary-subtotal">$0.00</span>
+                            </div>
+                            <div class="detail-summary-item">
+                                <span class="detail-summary-label">Cleaning fee:</span>
+                                <span class="detail-summary-value" id="detail-summary-cleaning-fee">${{ property.cleaning_fee|default:'0.00'|floatformat:2 }}</span>
+                            </div>
+                            <div class="detail-summary-item">
+                                <span class="detail-summary-label">Refundable deposit:</span>
+                                <span class="detail-summary-value" id="detail-summary-refundable-deposit">${{ property.refundable_deposit|default:'0.00'|floatformat:2 }}</span>
+                            </div>
+                            <div class="detail-summary-item">
+                                <span class="detail-summary-label">Application fee:</span>
+                                <span class="detail-summary-value" id="detail-summary-application-fee">${{ property.application_fees|default:'0.00'|floatformat:2 }}</span>
+                            </div>
+                            <div class="detail-summary-item detail-summary-total">
+                                <span class="detail-summary-label">Total price:</span>
+                                <span class="detail-summary-value" id="detail-summary-total">$0.00</span>
+                            </div>
+                        </div>
+
                         <button class="reserve-btn" id="create-reservation-btn" style="display: none;">Create Reservation</button>
                         <button class="reserve-btn" id="create-availability-btn" {% if property.status != 'Active' %}disabled{% endif %}>Check Availability</button>
                         <div id="availability-status" class="availability-text" style="display: none;"></div>
@@ -2214,6 +2287,18 @@
         const desktopCheckinDisplay = document.getElementById('detail-checkin-display');
         const desktopCheckoutDisplay = document.getElementById('detail-checkout-display');
         const desktopRangePicker = document.getElementById('detail-date-range-picker');
+        const detailSummarySection = document.getElementById('detail-summary-section');
+        const detailSummaryDailyRate = document.getElementById('detail-summary-daily-rate');
+        const detailSummaryPriceCalc = document.getElementById('detail-summary-price-calc');
+        const detailSummarySubtotal = document.getElementById('detail-summary-subtotal');
+        const detailSummaryCleaningFee = document.getElementById('detail-summary-cleaning-fee');
+        const detailSummaryRefundableDeposit = document.getElementById('detail-summary-refundable-deposit');
+        const detailSummaryApplicationFee = document.getElementById('detail-summary-application-fee');
+        const detailSummaryTotal = document.getElementById('detail-summary-total');
+        const propertyPricePerNight = parseFloat("{{ property.price_per_night|default:'0' }}") || 0;
+        const propertyCleaningFee = parseFloat("{{ property.cleaning_fee|default:'0' }}") || 0;
+        const propertyRefundableDeposit = parseFloat("{{ property.refundable_deposit|default:'0' }}") || 0;
+        const propertyApplicationFee = parseFloat("{{ property.application_fees|default:'0' }}") || 0;
 
         function formatLocalIso(dateObj) {
             const y = dateObj.getFullYear();
@@ -2233,6 +2318,26 @@
             if (!base) return '';
             base.setDate(base.getDate() + days);
             return formatLocalIso(base);
+        }
+
+        function isValidIsoDate(value) {
+            return /^\d{4}-\d{2}-\d{2}$/.test(value || '');
+        }
+
+        const incomingParams = new URLSearchParams(window.location.search);
+        const incomingCheckIn = incomingParams.get('check_in') || '';
+        const incomingCheckOut = incomingParams.get('check_out') || '';
+        const incomingGuests = incomingParams.get('guests') || '';
+        const hasPrefilledReservation = isValidIsoDate(incomingCheckIn) && isValidIsoDate(incomingCheckOut) && incomingGuests;
+
+        if (isValidIsoDate(incomingCheckIn) && checkinEl) {
+            checkinEl.value = incomingCheckIn;
+        }
+        if (isValidIsoDate(incomingCheckOut) && checkoutEl) {
+            checkoutEl.value = incomingCheckOut;
+        }
+        if (incomingGuests && guestsInput && guestsInput.querySelector(`option[value="${incomingGuests}"]`)) {
+            guestsInput.value = incomingGuests;
         }
 
         // Set minimum date to today for both date pickers
@@ -2295,6 +2400,8 @@
             });
         }
 
+        updateDesktopDateDisplay();
+
         function formatDateDisplay(dateString) {
             if (!dateString) return '';
             const [year, month, day] = dateString.split('-').map(Number);
@@ -2308,15 +2415,65 @@
             desktopCheckoutDisplay.textContent = checkoutEl.value ? formatDateDisplay(checkoutEl.value) : 'Check-out';
         }
 
+        function updateDetailSummary() {
+            if (!detailSummarySection || !checkinEl || !checkoutEl) return;
+
+            const checkinDateStr = checkinEl.value || '';
+            const checkoutDateStr = checkoutEl.value || '';
+            if (!checkinDateStr || !checkoutDateStr) {
+                detailSummarySection.style.display = 'none';
+                return;
+            }
+
+            const checkinDate = parseIsoDate(checkinDateStr);
+            const checkoutDate = parseIsoDate(checkoutDateStr);
+            if (!checkinDate || !checkoutDate || checkoutDate <= checkinDate) {
+                detailSummarySection.style.display = 'none';
+                return;
+            }
+
+            const nights = Math.ceil((checkoutDate - checkinDate) / (1000 * 60 * 60 * 24));
+            const subtotal = propertyPricePerNight * nights;
+            const total = subtotal + propertyCleaningFee + propertyRefundableDeposit + propertyApplicationFee;
+
+            detailSummarySection.style.display = 'block';
+            if (detailSummaryDailyRate) {
+                detailSummaryDailyRate.textContent = `$${propertyPricePerNight.toFixed(2)}`;
+            }
+            if (detailSummaryPriceCalc) {
+                detailSummaryPriceCalc.textContent = `$${propertyPricePerNight.toFixed(2)} x ${nights} night${nights !== 1 ? 's' : ''}`;
+            }
+            if (detailSummarySubtotal) {
+                detailSummarySubtotal.textContent = `$${subtotal.toFixed(2)}`;
+            }
+            if (detailSummaryCleaningFee) {
+                detailSummaryCleaningFee.textContent = `$${propertyCleaningFee.toFixed(2)}`;
+            }
+            if (detailSummaryRefundableDeposit) {
+                detailSummaryRefundableDeposit.textContent = `$${propertyRefundableDeposit.toFixed(2)}`;
+            }
+            if (detailSummaryApplicationFee) {
+                detailSummaryApplicationFee.textContent = `$${propertyApplicationFee.toFixed(2)}`;
+            }
+            if (detailSummaryTotal) {
+                detailSummaryTotal.textContent = `$${total.toFixed(2)}`;
+            }
+        }
+
         if (checkinEl) {
             checkinEl.addEventListener('input', updateDesktopDateDisplay);
             checkinEl.addEventListener('change', updateDesktopDateDisplay);
+            checkinEl.addEventListener('input', updateDetailSummary);
+            checkinEl.addEventListener('change', updateDetailSummary);
         }
         if (checkoutEl) {
             checkoutEl.addEventListener('input', updateDesktopDateDisplay);
             checkoutEl.addEventListener('change', updateDesktopDateDisplay);
+            checkoutEl.addEventListener('input', updateDetailSummary);
+            checkoutEl.addEventListener('change', updateDetailSummary);
         }
         updateDesktopDateDisplay();
+        updateDetailSummary();
 
         // Desktop date range picker
         if (desktopRangePicker && desktopDateTrigger && checkinEl && checkoutEl) {
@@ -2444,6 +2601,7 @@
                         checkinEl.dispatchEvent(new Event('change'));
                         checkoutEl.dispatchEvent(new Event('input'));
                         checkoutEl.dispatchEvent(new Event('change'));
+                        updateDetailSummary();
                         renderRangePicker();
                         if (startDate && endDate) closePicker();
                     });
@@ -2521,6 +2679,15 @@
 
         // When the "Check Availability" button is clicked, perform the check.
         if (availabilityBtn) availabilityBtn.addEventListener('click', performCheck);
+
+        if (hasPrefilledReservation) {
+            statusDiv.style.display = 'block';
+            statusDiv.textContent = 'Checking availability...';
+            statusDiv.className = 'availability-text';
+            if (availabilityBtn) availabilityBtn.style.display = 'none';
+            if (reservationBtn) reservationBtn.style.display = 'none';
+            window.setTimeout(performCheck, 0);
+        }
 
         function checkAvailability(checkin, checkout, guests) {
             const url = `/property/${propertyId}/check-availability/?check_in=${checkin}&check_out=${checkout}&guests=${guests}`;
