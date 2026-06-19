@@ -33,7 +33,8 @@ ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '*').split(',')
 CORS_ALLOW_ALL_ORIGINS = True
 SECURE_CROSS_ORIGIN_OPENER_POLICY = None
 CSRF_TRUSTED_ORIGINS = [
-    'http://34.207.186.12:8000',
+    # 'http://34.207.186.12:8000',
+    'http://107.22.56.63:8000',
     'https://*.ngrok-free.app',
     'https://*.ngrok.io',
     'http://favhost.com',

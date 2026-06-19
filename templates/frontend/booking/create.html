@@ -140,46 +140,6 @@
         flex-shrink: 0;
     }
 
-    .date-display-input {
-        width: 100%;
-        padding: 12px 44px 12px 16px;
-        border: 1px solid #cfd4dc;
-        border-radius: 10px;
-        font-size: 14px;
-        font-weight: 600;
-        color: #111827;
-        background: #fff;
-        cursor: pointer;
-        transition: border-color 0.2s, box-shadow 0.2s;
-    }
-
-    .date-display-input::placeholder {
-        color: #111827;
-        font-weight: 600;
-    }
-
-    .date-display-input:focus {
-        outline: none;
-        border-color: #cfd4dc;
-        box-shadow: none;
-    }
-
-    .date-display-wrapper {
-        position: relative;
-    }
-
-    .date-display-wrapper::after {
-        content: "";
-        position: absolute;
-        right: 14px;
-        top: 50%;
-        width: 16px;
-        height: 16px;
-        transform: translateY(-50%);
-        pointer-events: none;
-        background: no-repeat center/contain url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23121212" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>');
-    }
-
     .booking-hidden-date-inputs {
         position: absolute !important;
         height: 1px; width: 1px; overflow: hidden; clip: rect(1px, 1px, 1px, 1px);
@@ -380,11 +340,6 @@
     }
 
     @media (max-width: 991.98px) {
-        .booking-range-trigger,
-        .date-display-wrapper.booking-date-range {
-            display: none;
-        }
-
         .separate-date-fields-row {
             position: static !important;
             opacity: 1 !important;
@@ -584,9 +539,40 @@
         box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
     }
 
+    html, body {
+        height: 100%;
+        overflow: hidden !important;
+    }
+
+    .content {
+        height: 100%;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .main-content-body {
+        max-height: none !important;
+        height: calc(100vh - 60px);
+        overflow: hidden !important;
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+    }
+
+    #propertyForm,
+    .booking-page-container {
+        height: 100%;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+
     .main_row_div{
-        padding: 0rem 12%; 
-        min-height: calc(100vh - 190px);
+        padding: 40px 12%;
+        max-height: calc(100vh - 177px);
+        overflow: auto;
     }
 
     @media (max-width: 640px) {
@@ -719,8 +705,11 @@
         margin: 0 1rem;
     }
     .booking-scroll-area {
-        max-height: calc(100vh - 135px);
+        flex: 1 1 auto;
+        min-height: 0;
         overflow-y: auto;
+        /* overflow-x: hidden; */
+        /* scrollbar-gutter: stable; */
     }
     @media (max-width: 991.98px) {
 
@@ -787,11 +776,12 @@
     @supports (-webkit-touch-callout: none) {
         @media (max-width: 991.98px) {
             .main-content-body {
-                max-height: calc(100dvh - 90px) !important;
+                height: calc(100dvh - 66px) !important;
+                max-height: none !important;
                 padding-top: 0 !important;
             }
             .booking-scroll-area {
-                max-height: calc(100dvh - 135px) !important;
+                max-height: none !important;
             }
             .booking-page-container {
                 margin-top: 0 !important;
@@ -806,29 +796,38 @@
     /* Property Sidebar Styles */
     .property-sidebar {
         position: fixed;
-        top: 0;
-        right: -650px;
-        width: 650px;
-        height: 100vh;
+        top: 50%;
+        left: 50%;
+        width: min(980px, calc(100vw - 24px));
+        height: min(84vh, 760px);
         background: white;
         z-index: 2000;
-        box-shadow: -4px 0 15px rgba(0, 0, 0, 0.1);
-        transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 24px 60px rgba(0, 0, 0, 0.18);
+        border-radius: 18px;
+        transform: translate(-50%, -50%) scale(0.96);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.2s ease, transform 0.2s ease;
         display: flex;
         flex-direction: column;
+        overflow: hidden;
     }
 
     .property-sidebar.open {
-        right: 0;
+        opacity: 1;
+        pointer-events: auto;
+        transform: translate(-50%, -50%) scale(1);
     }
 
     .sidebar-header {
-        padding: 10px 12px;
+        padding: 14px 16px;
         border-bottom: 1px solid #e5e7eb;
         display: flex;
-        gap: 12px;
         justify-content: space-between;
         align-items: center;
+        gap: 14px;
+        background: #fff;
+        flex-wrap: nowrap;
     }
 
     .sidebar-title {
@@ -852,9 +851,9 @@
     }
 
     .sidebar-search {
-        flex: 0 1 320px;
-        width: 320px;
-        max-width: 320px;
+        flex: 0 1 360px;
+        width: 360px;
+        max-width: 100%;
         min-width: 220px;
         margin-left: auto;
     }
@@ -873,7 +872,7 @@
     .sidebar-content {
         flex: 1;
         overflow-y: auto;
-        padding: 10px;
+        padding: 12px;
         background: #f9fafb;
     }
 
@@ -887,6 +886,12 @@
         cursor: pointer;
         transition: all 0.2s;
         background: #fff;
+    }
+
+    .property-card-sidebar.selected {
+        border-color: #2563eb;
+        box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.12);
+        background: #eff6ff;
     }
 
     .property-card-sidebar:hover {
@@ -935,24 +940,37 @@
         white-space: nowrap;
     }
 
+    .property-card-sidebar .selected-status {
+        display: inline-flex;
+        align-items: center;
+        margin-left: 8px;
+        padding: 4px 8px;
+        border-radius: 999px;
+        background: #dbeafe;
+        color: #1d4ed8;
+        font-size: 0.74rem;
+        font-weight: 700;
+        line-height: 1;
+        white-space: nowrap;
+    }
+
     @media (max-width: 1199.98px) {
         .property-sidebar {
-            width: 520px;
-            right: -520px;
+            width: min(920px, calc(100vw - 20px));
         }
     }
 
     @media (max-width: 991.98px) {
         .property-sidebar {
-            width: 100vw;
-            right: -100vw;
-            height: 100dvh;
-            box-shadow: none;
-            border-left: 1px solid #e5e7eb;
+            width: calc(100vw - 16px);
+            height: calc(100dvh - 16px);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
+            border-left: 0;
+            border-radius: 14px;
         }
 
         .sidebar-header {
-            padding: 10px;
+            padding: 12px;
             gap: 10px;
         }
 
@@ -965,8 +983,8 @@
         }
 
         .sidebar-search {
-            flex: 0 1 300px;
-            width: 300px;
+            flex: 0 1 320px;
+            width: 320px;
             max-width: 60vw;
             min-width: 0;
         }
@@ -1041,6 +1059,21 @@
         align-items: center;
         background: #fff;
         min-height: 46px;
+        font-size: 14px;
+        color: #111827;
+        width: 100%;
+    }
+
+    .property-selection-trigger .trigger-placeholder {
+        color: #9ca3af;
+    }
+
+    .property-selection-trigger .trigger-caret {
+        color: #9ca3af;
+        font-size: 16px;
+        line-height: 1;
+        flex: 0 0 auto;
+        margin-left: 10px;
     }
     
     .overlay-backdrop {
@@ -1067,6 +1100,202 @@
         opacity: 0.6;
         pointer-events: none;
     }
+
+    .booking-layout-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        gap: 20px;
+        align-items: start;
+        background-color: transparent;
+    }
+
+    .booking-panel {
+        border: 1px solid #d7dbe2;
+        border-radius: 8px;
+        background: #fff;
+        box-shadow: 0 1px 4px rgba(15, 23, 42, 0.08);
+        overflow: hidden;
+    }
+
+    .booking-panel-header {
+        background: #dedede;
+        color: #1f2937;
+        font-weight: 700;
+        font-size: 16px;
+        padding: 10px 16px;
+        line-height: 1.2;
+    }
+
+    .booking-panel-body {
+        padding: 10px 12px 12px;
+    }
+
+    .booking-field-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px 14px;
+    }
+
+    .booking-field {
+        min-width: 0;
+    }
+
+    .booking-field.full-width {
+        grid-column: 1 / -1;
+    }
+
+    .booking-field-label {
+        display: block;
+        margin-bottom: 8px;
+        font-size: 12px;
+        font-weight: 700;
+        color: #1f2937;
+    }
+
+    .time-field-label {
+        margin-top: 4px;
+    }
+
+    .booking-input,
+    .booking-select,
+    .booking-textarea {
+        width: 100%;
+        border: 1px solid #d1d5db;
+        border-radius: 6px;
+        background: #fff;
+        font-size: 14px;
+        color: #111827;
+        outline: none;
+        box-shadow: none;
+    }
+
+    .booking-input,
+    .booking-select {
+        min-height: 48px;
+        padding: 12px 14px;
+        font-size: 14px;
+        box-sizing: border-box;
+    }
+
+    .booking-textarea {
+        min-height: 84px;
+        padding: 10px;
+        font-size: 13px;
+        resize: vertical;
+    }
+
+    .booking-input::placeholder,
+    .booking-textarea::placeholder {
+        color: #9ca3af;
+    }
+
+    .booking-upload-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px 14px;
+    }
+
+    .booking-upload-box {
+        border: 1px dashed #d1d5db;
+        border-radius: 10px;
+        min-height: 118px;
+        padding: 14px 10px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        background: #fbfbfb;
+        cursor: pointer;
+    }
+
+    .booking-upload-box img {
+        width: 34px;
+        height: 34px;
+        margin-bottom: 8px;
+    }
+
+    .booking-upload-title {
+        font-size: 13px;
+        font-weight: 600;
+        color: #4b5563;
+        line-height: 1.3;
+    }
+
+    .booking-upload-subtitle {
+        font-size: 11px;
+        color: #6b7280;
+        line-height: 1.35;
+        margin-top: 2px;
+    }
+
+    .booking-inline-note {
+        font-size: 12px;
+        color: #6b7280;
+        margin-top: 4px;
+    }
+
+    .booking-summary-card {
+        margin-top: 14px;
+    }
+
+    .booking-range-trigger,
+    .property-selection-trigger,
+    .time_dropdown,
+    .time_dropdown-toggle {
+        min-height: 48px;
+        box-sizing: border-box;
+    }
+
+    .booking-range-trigger,
+    .property-selection-trigger {
+        padding: 12px 14px;
+    }
+
+    .time_dropdown {
+        width: 100%;
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+        background: #fff;
+    }
+
+    .time_dropdown-toggle {
+        padding: 12px 14px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 14px;
+        color: #111827;
+        position: relative;
+    }
+
+    .time_dropdown-toggle::after {
+        right: 14px;
+    }
+
+    @media (max-width: 991.98px) {
+        .booking-layout-grid {
+            grid-template-columns: 1fr;
+            max-height: calc(100vh - 150px);
+            overflow-y: auto;
+            padding-right: 6px;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .booking-panel-body {
+            padding: 12px;
+        }
+
+        .booking-field-grid,
+        .booking-upload-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .booking-scroll-area {
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+    }
     </style>
     <style>
         #id_price_per_night[readonly] {
@@ -1078,7 +1307,7 @@
 
 {% block content %}
 <form method="post" enctype="multipart/form-data" id="propertyForm">
-<div class="booking-page-container p-1">
+<div class="booking-page-container p-0">
     {% csrf_token %}
     {% if enquiry_id %}
         <input type="hidden" name="enquiry_id" value="{{ enquiry_id }}">
@@ -1100,270 +1329,273 @@
     </div>
     
     <div class="booking-scroll-area">
-        <div class="row m-0 mt-3 main_row_div">
-            <!-- Guest Details Section -->
-            <div class="col-lg-6 col-12" style="padding-right: 1rem;">
-                <div class="section-header">Guest Details</div>
-                <div class="form-section">
-                    <div class="row m-0 mt-2">
-                        <div class="col-lg-6 col-12 form-group ps-0">
-                            <label class="form-label">First Name<span class="required">*</span></label>
-                            <input type="text" name="first_name" id="id_first_name" class="form-input" placeholder="Enter first name" value="{{ form_data.first_name|default:'' }}" required>
-                        </div>
-                        <div class="col-lg-6 col-12 form-group last-name-col">
-                            <label class="form-label">Last Name<span class="required">*</span></label>
-                            <input type="text" name="last_name" id="id_last_name" class="form-input" placeholder="Enter last name" value="{{ form_data.last_name|default:'' }}" required>
-                        </div>
-                    </div>
-                    
-                    <div class="row m-0">
-                        <div class="col-lg-6 col-12 form-group ps-0">
-                            <label class="form-label">Email
-                                <!-- <span class="required">*</span> -->
-                            </label>
-                            <input type="email" name="email" id="id_email" class="form-input" placeholder="mail@example.com" value="{{ form_data.email|default:'' }}" >
-                        </div>
-                        <div class="col-lg-6 col-12 form-group last-name-col">
-                            <label class="form-label">Phone
-                                <!-- <span class="required">*</span> -->
-                            </label>
-                            <input type="tel" name="phone" id="phone" class="form-input" placeholder="Enter phone number" value="{{ form_data.phone|default:'' }}" >
-                            <input type="hidden" name="country_code" id="id_country_code">
-                        </div>
-                    </div>
+        <div class="main_row_div">
+            <div class="booking-layout-grid">
+                <div class="booking-panel">
+                    <div class="booking-panel-header">Guest Details</div>
+                    <div class="booking-panel-body">
+                        <div class="booking-field-grid">
+                            <div class="booking-field">
+                                <label class="booking-field-label">First name<span class="required">*</span></label>
+                                <input type="text" name="first_name" id="id_first_name" class="booking-input" placeholder="Enter first name" value="{{ form_data.first_name|default:'' }}" required>
+                            </div>
+                            <div class="booking-field">
+                                <label class="booking-field-label">Last name<span class="required">*</span></label>
+                                <input type="text" name="last_name" id="id_last_name" class="booking-input" placeholder="Enter last name" value="{{ form_data.last_name|default:'' }}" required>
+                            </div>
 
-                    <div class="row m-0">
-                        <div class="col-lg-6 col-12 form-group ps-0">
-                            <label class="form-label">Number of guests<span class="required">*</span></label>
-                            <input type="number" name="guest_count" id="id_guest_count" class="form-input" placeholder="Number of guests" min="1" value="{{ guest_count|default_if_none:'' }}" required>
+                            <div class="booking-field">
+                                <label class="booking-field-label">Email</label>
+                                <input type="email" name="email" id="id_email" class="booking-input" placeholder="mail@example.com" value="{{ form_data.email|default:'' }}">
+                            </div>
+                            <div class="booking-field">
+                                <label class="booking-field-label">Phone</label>
+                                <input type="tel" name="phone" id="phone" class="booking-input" placeholder="Enter phone number" value="{{ form_data.phone|default:'' }}">
+                                <input type="hidden" name="country_code" id="id_country_code">
+                            </div>
+
+                            <div class="booking-field full-width">
+                                <label class="booking-field-label">Guest Photo</label>
+                                <div class="booking-upload-grid">
+                                    <div class="booking-upload-box upload-area" id="upload-area">
+                                        <div><img src="{% static 'img/property/upload.png' %}" alt="Upload Photo"></div>
+                                        <div class="booking-upload-title">Click to upload or drag and drop</div>
+                                        <div class="booking-upload-subtitle">Documents, images up to 15MB each</div>
+                                    </div>
+                                    <div class="booking-upload-box upload-area" id="attachmentUploadArea">
+                                        <div><img src="{% static 'img/property/upload.png' %}" alt="Upload Photo"></div>
+                                        <div class="booking-upload-title">Click to upload or drag and drop</div>
+                                        <div class="booking-upload-subtitle">Documents, images up to 15MB each</div>
+                                    </div>
+                                </div>
+                                <input type="file" name="guest_images" accept="image/*" style="display: none;" id="id_guest_images" multiple>
+                                <input type="file" name="guest_attachments" style="display: none;" id="id_guest_attachments" multiple>
+                                <div class="error-message" id="error-message"></div>
+                                <div class="attachment-error-message" id="attachment-error-message"></div>
+                                <div class="preview-container" id="image-preview-container">
+                                    <div class="preview-grid" id="preview-grid"></div>
+                                </div>
+                                <div class="attachment-preview-container" id="attachment-preview-container">
+                                    <div class="preview-grid" id="attachmentPreview"></div>
+                                </div>
+                                {% if enquiry_images %}
+                                <div class="mt-3">
+                                    <p class="form-label" style="font-size: 12px; color: #6b7280;">From Enquiry:</p>
+                                    <div class="preview-grid">
+                                        {% for img in enquiry_images %}
+                                        <div class="preview-item">
+                                            <img src="{{ img.image.url }}" alt="Enquiry Photo">
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                                {% endif %}
+                                {% if enquiry_documents %}
+                                <div class="mt-3">
+                                    <p class="form-label" style="font-size: 12px; color: #6b7280;">From Enquiry:</p>
+                                    <div class="preview-grid">
+                                        {% for doc in enquiry_documents %}
+                                        {% with file_extension=doc.document.name|lower|slice:"-4:" %}
+                                        {% with long_file_extension=doc.document.name|lower|slice:"-5:" %}
+                                        <div class="{% if file_extension == '.jpg' or file_extension == '.png' or file_extension == '.gif' or long_file_extension == '.jpeg' %}preview-item{% else %}preview-doc-item{% endif %}">
+                                            {% if file_extension == '.jpg' or file_extension == '.png' or file_extension == '.gif' or long_file_extension == '.jpeg' %}
+                                                <img src="{{ doc.document.url }}" alt="Enquiry Attachment">
+                                            {% else %}
+                                                <div class="doc-link"><span>📄</span> {{ doc.name }}</div>
+                                            {% endif %}
+                                        </div>
+                                        {% endwith %}
+                                        {% endwith %}
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                                {% endif %}
+                            </div>
+
+                            <div class="booking-field full-width">
+                                <label class="booking-field-label">Street address</label>
+                                <input type="text" name="street_address" class="booking-input" placeholder="Street address" value="{{ form_data.street_address|default:'' }}">
+                            </div>
+
+                            <div class="booking-field">
+                                <label class="booking-field-label">City</label>
+                                <input type="text" name="city" class="booking-input" placeholder="City" value="{{ form_data.city|default:'' }}">
+                            </div>
+                            <div class="booking-field">
+                                <label class="booking-field-label">Zip</label>
+                                <input type="text" name="zip" class="booking-input" placeholder="Zip" value="{{ form_data.zip|default:'' }}">
+                            </div>
+
+                            <div class="booking-field">
+                                <label class="booking-field-label">Country</label>
+                                <input type="text" name="country" class="booking-input" placeholder="Country" value="{{ form_data.country|default:'' }}">
+                            </div>
+                            <div class="booking-field">
+                                <label class="booking-field-label">State</label>
+                                <input type="text" name="state" class="booking-input" placeholder="State" value="{{ form_data.state|default:'' }}">
+                            </div>
+
+                            <div class="booking-field">
+                                <label class="booking-field-label">Nationality</label>
+                                <input type="text" name="nationality" class="booking-input" placeholder="Nationality" value="{{ form_data.nationality|default:'' }}">
+                            </div>
+                            <div class="booking-field">
+                                <label class="booking-field-label">Vehicle information (make, model, plate#)</label>
+                                <input type="text" name="vehicle_information" class="booking-input" placeholder="Vehicle information" value="{{ form_data.vehicle_information|default:'' }}">
+                            </div>
                         </div>
-                        <div class="col-lg-6 col-12 form-group last-name-col">
-                            <label class="form-label">Booking Channel<span class="required">*</span></label>
-                            <select name="channel" id="id_channel" class="form-input" required>
-                                <option value="">Select a channel</option>
-                                {% for channel in channels %}
-                                    <option value="{{ channel.id }}" data-icon="{% if channel.icon %}{{ channel.icon.url }}{% else %}{% static 'img/booking/other_browser.svg' %}{% endif %}" {% if channel.name == 'Personal Website' %}selected{% endif %}>{{ channel.name }}</option>
-                                {% endfor %}
+                    </div>
+                </div>
+
+                        <div class="booking-panel">
+                    <div class="booking-panel-header">Reservation</div>
+                    <div class="booking-panel-body">
+                        <div class="booking-field-grid">
+                            <div class="booking-field">
+                                <label class="booking-field-label">Check-in date<span class="required">*</span></label>
+                                <input type="date" name="check_in_date" id="id_check_in_date" class="booking-input" value="{{ check_in_date|default_if_none:'' }}" required>
+                            </div>
+                            <div class="booking-field">
+                                <label class="booking-field-label">Check-out date<span class="required">*</span></label>
+                                <input type="date" name="check_out_date" id="id_check_out_date" class="booking-input" value="{{ check_out_date|default_if_none:'' }}" required>
+                            </div>
+                        </div>
+
+                        <div class="row m-0">
+                            <div class="col-lg-6 col-12 form-group ps-0">
+                                <label class="booking-field-label time-field-label mt-3">Check-in time<span class="required">*</span></label>
+                                <div class="time_dropdown" id="checkinDropdown">
+                                    <div class="time_dropdown-toggle"></div>
+                                    <div class="time_dropdown-menu">
+                                        <div class="scroll-arrow top" data-dir="up">▲</div>
+                                        <div class="options"></div>
+                                        <div class="scroll-arrow bottom" data-dir="down">▼</div>
+                                    </div>
+                                </div>
+                                <input type="hidden" name="check_in_time" id="checkin_time_input"
+                                    value="{% if form.check_in_time.value %}{{ form.check_in_time.value|stringformat:"s"|slice:":5" }}{% else %}15:00{% endif %}">
+                            </div>
+                            <div class="col-lg-6 col-12 form-group last-name-col">
+                                <label class="booking-field-label time-field-label mt-3">Check-out time<span class="required">*</span></label>
+                                <div class="time_dropdown" id="checkoutDropdown">
+                                    <div class="time_dropdown-toggle"></div>
+                                    <div class="time_dropdown-menu">
+                                        <div class="scroll-arrow top" data-dir="up">▲</div>
+                                        <div class="options"></div>
+                                        <div class="scroll-arrow bottom" data-dir="down">▼</div>
+                                    </div>
+                                </div>
+                                <input type="hidden" name="check_out_time" id="checkout_time_input"
+                                    value="{% if form.check_out_time.value %}{{ form.check_out_time.value|stringformat:"s"|slice:":5" }}{% else %}10:00{% endif %}">
+                            </div>
+                        </div>
+
+                        <div class="booking-field full-width">
+                            <label class="booking-field-label">Notes</label>
+                            <textarea name="notes" class="booking-textarea" placeholder="Enter any special requests or notes..." id="id_notes">{{ form_data.notes|default:'' }}</textarea>
+                        </div>
+
+                        <div class="booking-field-grid" style="margin-top: 2px;">
+                            <div class="booking-field">
+                                <label class="booking-field-label">Number of guests<span class="required">*</span></label>
+                                <input type="number" name="guest_count" id="id_guest_count" class="booking-input" placeholder="Number of guests" min="1" value="{{ guest_count|default_if_none:'' }}" required>
+                            </div>
+                            <div class="booking-field">
+                                <label class="booking-field-label">Booking source<span class="required">*</span></label>
+                                <select name="channel" id="id_channel" class="booking-select" required>
+                                    <option value="">Select a channel</option>
+                                    {% for channel in channels %}
+                                        <option value="{{ channel.id }}" data-icon="{% if channel.icon %}{{ channel.icon.url }}{% else %}{% static 'img/booking/other_browser.svg' %}{% endif %}" {% if channel.name == 'Personal Website' %}selected{% endif %}>{{ channel.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="booking-field full-width">
+                            <label class="booking-field-label">Purpose of Stay (Anniversary, Birthday, Business, Leisure)</label>
+                            <input type="text" name="purpose_of_stay" class="booking-input" placeholder="Purpose of stay" value="{{ form_data.purpose_of_stay|default:'' }}">
+                        </div>
+
+                        <div class="booking-field full-width" style="margin-top: 6px;">
+                            <label class="booking-field-label">Select accomodation<span class="required">*</span></label>
+                            <div class="property-selection-trigger accommodation-trigger disabled" onclick="openPropertySidebar()" role="button" tabindex="0" aria-label="Select accomodation">
+                                <span id="selectedPropertyText" class="trigger-placeholder">Select accomodation</span>
+                                <span class="trigger-caret">▾</span>
+                            </div>
+                            <select name="property" class="booking-select property-select" id="id_property" style="display:none;" required>
+                                <option value="" selected>Select accomodation</option>
                             </select>
                         </div>
-                    </div>
-                    
-                    <div class="row m-0">
-                        <div class="col-lg-6 col-12 form-group ps-0">
-                            <label class="form-label">Guest Photo</label>
-                            <div class="upload-area" id="upload-area">
-                                <div><img src="{% static 'img/property/upload.png' %}" alt="Upload Photo"></div>
-                                <div class="upload-text">Click to upload or drag and drop</div>
-                                <div class="upload-text">JPG, PNG up to 5MB (Profile Image)</div>
-                            </div>
-                                <input type="file" name="guest_images" accept="image/*" style="display: none;" id="id_guest_images" multiple>
-                            <div class="error-message" id="error-message"></div>
-                            <div class="preview-container" id="image-preview-container">
-                                <div class="preview-grid" id="preview-grid"></div>
-                            </div>
-                            {% if enquiry_images %}
-                            <div class="mt-3">
-                                <p class="form-label" style="font-size: 12px; color: #6b7280;">From Enquiry:</p>
-                                <div class="preview-grid">
-                                    {% for img in enquiry_images %}
-                                    <div class="preview-item">
-                                        <img src="{{ img.image.url }}" alt="Enquiry Photo">
-                                    </div>
-                                    {% endfor %}
+
+                        <!-- Summary Section -->
+                        <div id="summary-section" class="row m-0 booking-summary-card" style="display: none;">
+                            <div class="form-group p-0">
+                                <label for="id_price_per_night" class="booking-field-label">Price*</label>
+                                <div class="price-input-container">
+                                    <input type="number" class="form-input w-100 booking-input" name="price_per_night" id="id_price_per_night" value="0.00" step="0.01" readonly>
+                                    <img src="{% static 'img/booking/edit_icon.svg' %}" class="edit-price-icon" id="editTotalPriceIcon" alt="Edit Total Price" title="Edit total price">
                                 </div>
                             </div>
-                            {% endif %}
-                        </div>
-                        <div class="col-lg-6 col-12 form-group last-name-col">
-                            <label class="form-label">Attachments</label>
-                            <div class="upload-area" id="attachmentUploadArea">
-                                <div><img src="{% static 'img/property/upload.png' %}" alt="Upload Photo"></div>
-                                <div class="upload-text">Click to upload or drag and drop</div>
-                                <div class="upload-text">Any file up to 5MB</div>
-                            </div>
-                                <input type="file" name="guest_attachments" style="display: none;" id="id_guest_attachments" multiple>
-                            <div class="error-message" id="attachment-error-message"></div>
-                            <div class="attachment-preview-container" id="attachment-preview-container">
-                                <div class="preview-grid" id="attachmentPreview"></div>
-                            </div>
-                            {% if enquiry_documents %}
-                            <div class="mt-3">
-                                <p class="form-label" style="font-size: 12px; color: #6b7280;">From Enquiry:</p>
-                                <div class="preview-grid">
-                                    {% for doc in enquiry_documents %}
-                                    {% with file_extension=doc.document.name|lower|slice:"-4:" %}
-                                    {% with long_file_extension=doc.document.name|lower|slice:"-5:" %}
-                                    <div class="{% if file_extension == '.jpg' or file_extension == '.png' or file_extension == '.gif' or long_file_extension == '.jpeg' %}preview-item{% else %}preview-doc-item{% endif %}">
-                                        {% if file_extension == '.jpg' or file_extension == '.png' or file_extension == '.gif' or long_file_extension == '.jpeg' %}
-                                            <img src="{{ doc.document.url }}" alt="Enquiry Attachment">
-                                        {% else %}
-                                            <div class="doc-link"><span>📄</span> {{ doc.name }}</div>
-                                        {% endif %}
-                                    </div>
-                                    {% endwith %}
-                                    {% endwith %}
-                                    {% endfor %}
+                            <div class="col-lg-6 col-12 p-0">
+                                <div class="summary-header">Payment Summary</div>
+                                <hr>
+                                <div class="summary-item">
+                                    <span class="summary-label">Daily rate</span>
+                                    <span class="summary-value" id="summary-daily-rate">$0.00</span>
+                                </div>
+                                <div class="summary-item">
+                                    <span class="summary-label" id="summary-price-calc" data-price="0.00">$0.00 x 0 nights</span>
+                                    <span class="summary-value" id="summary-subtotal">$0.00</span>
+                                </div>
+                                <div class="summary-item mt-1">
+                                    <span class="summary-label">Cleaning fee:</span>
+                                    <span class="summary-value" id="summary-cleaning-fee" data-fee="0.00">$0.00</span>
+                                    <input type="hidden" name="cleaning_fee" id="id_cleaning_fee" value="0.00">
+                                </div>
+                                <div class="summary-item mt-1">
+                                    <span class="summary-label">Refundable deposit:</span>
+                                    <span class="summary-value" id="summary-refundable-deposit" data-deposit="0.00">$0.00</span>
+                                    <input type="hidden" name="deposit_fee" id="id_deposit_fee" value="0.00">
+                                </div>
+                                <div class="summary-item mt-1">
+                                    <span class="summary-label">Application fee:</span>
+                                    <span class="summary-value" id="summary-application-fee" data-fee="0.00">$0.00</span>
+                                    <input type="hidden" name="application_fee" id="id_application_fee" value="0.00">
+                                </div>
+                                <hr>
+                                <div class="summary-item price-input-container">
+                                    <span class="summary-label" style="font-weight: bold;">Total price:</span>
+                                    <input type="hidden" name="price" id="id_price" value="0.00">
+                                    <span class="summary-value" id="summary-total-display">$0.00</span>
                                 </div>
                             </div>
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Check in / Check out Section -->
-            <div class="col-lg-6 col-12" style="padding-left: 1rem;">
-                <div class="section-header">Check in / Check out</div>
-                <div class="form-section mt-2">
-                    <button type="button" class="booking-range-trigger" id="booking-range-trigger" aria-label="Select booking date range">
-                        <span class="booking-range-trigger-label">
-                            <span id="booking-range-start-label">Check-in</span>
-                            <span>—</span>
-                            <span id="booking-range-end-label">Check-out</span>
-                        </span>
-                        <span class="booking-range-trigger-icon" aria-hidden="true"></span>
-                    </button>
-                    <div class="row m-0 mt-2 separate-date-fields-row">
-                        <div class="col-lg-6 col-12 form-group ps-0">
-                            <label class="form-label">Check-in Date<span class="required">*</span></label>
-                            <div class="date-display-wrapper booking-date-range">
-                                <input type="text" class="date-display-input" id="id_check_in_date_display" placeholder="mm/dd/yyyy" autocomplete="off" readonly>
-                            </div>
-                            <input type="date" name="check_in_date" id="id_check_in_date" class="form-input separate-date-input" value="{{ check_in_date|default_if_none:'' }}" required>
-                        </div>
-                        <div class="col-lg-6 col-12 form-group last-name-col">
-                            <label class="form-label">Check-out Date<span class="required">*</span></label>
-                            <div class="date-display-wrapper booking-date-range">
-                                <input type="text" class="date-display-input" id="id_check_out_date_display" placeholder="mm/dd/yyyy" autocomplete="off" readonly>
-                            </div>
-                            <input type="date" name="check_out_date" id="id_check_out_date" class="form-input separate-date-input" value="{{ check_out_date|default_if_none:'' }}" required>
-                        </div>
-                    </div>
-
-                    <div class="booking-hidden-range-input">
-                        <input type="text" id="id_booking_range_picker" tabindex="-1" aria-hidden="true">
-                    </div>
-                    
-                    <div class="row m-0">
-                        <div class="col-lg-6 col-12 form-group ps-0">
-                            <label class="form-label">Check-in Time<span class="required">*</span></label>
-                            <div class="time_dropdown" id="checkinDropdown">
-                                <div class="time_dropdown-toggle"></div>
-                                <div class="time_dropdown-menu">
-                                    <div class="scroll-arrow top" data-dir="up">▲</div>
-                                    <div class="options"></div>
-                                    <div class="scroll-arrow bottom" data-dir="down">▼</div>
+                            <div class="col-lg-auto d-none d-lg-flex align-items-center p-0"><div class="payment-divider" style="height: 80%; margin-top: 20px;"></div></div>
+                            <div class="col-lg-5 col-12 p-0">
+                                <div style="margin-top: 42px;">
+                                    <span class="summary-label">Check In:</span>
+                                    <p class="summary-value m-0 mb-1" id="summary-checkin">-</p>
                                 </div>
-                            </div>
-                            <input type="hidden" name="check_in_time" id="checkin_time_input"
-                                value="{% if form.check_in_time.value %}{{ form.check_in_time.value|stringformat:"s"|slice:":5" }}{% else %}15:00{% endif %}">
-                        </div>
-                        <div class="col-lg-6 col-12 form-group last-name-col">
-                            <label class="form-label">Check-out Time<span class="required">*</span></label>
-                            <div class="time_dropdown" id="checkoutDropdown">
-                                <div class="time_dropdown-toggle"></div>
-                                <div class="time_dropdown-menu">
-                                    <div class="scroll-arrow top" data-dir="up">▲</div>
-                                    <div class="options"></div>
-                                    <div class="scroll-arrow bottom" data-dir="down">▼</div>
+                                <div>
+                                    <span class="summary-label">Check Out:</span>
+                                    <p class="summary-value m-0 mb-1" id="summary-checkout">-</p>
                                 </div>
-                            </div>
-                            <input type="hidden" name="check_out_time" id="checkout_time_input"
-                                value="{% if form.check_out_time.value %}{{ form.check_out_time.value|stringformat:"s"|slice:":5" }}{% else %}10:00{% endif %}">
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label">Notes (if any)</label>
-                    <textarea name="notes" cols="40" rows="4" class="form-input" placeholder="Enter any special requests or notes..." id="id_notes">{{ form_data.notes|default:'' }}</textarea>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label class="form-label">Select the listing<span class="required">*</span></label>
-                        <div class="property-selection-trigger" onclick="openPropertySidebar()">
-                            <span id="selectedPropertyText">Select a listing</span>
-                            <span style="color: #6b7280;">▼</span>
-                        </div>
-                        <select name="property" class="form-control property-select" id="id_property" style="display: none;" required>
-                            <option value="" selected>Select a listing</option>
-                        </select>
-                    </div>
-
-                    
-
-                    <!-- Summary Section -->
-                    <div id="summary-section" class="row m-0" style="display: none;">
-                        <div class="form-group p-0">
-                            <label for="id_price_per_night" class="form-label">Price*</label>
-                            <div class="price-input-container">
-                                <input type="number" class="form-input w-100" name="price_per_night" id="id_price_per_night" value="0.00" step="0.01" readonly>
-                                <img src="{% static 'img/booking/edit_icon.svg' %}" class="edit-price-icon" id="editTotalPriceIcon" alt="Edit Total Price" title="Edit total price">
-                            </div>
-                        </div>
-                        <div class="col-lg-6 col-12 p-0">
-                            <div class="summary-header">Payment Summary</div>
-                            <hr>
-                            <div class="summary-item">
-                                <span class="summary-label">Daily rate</span>
-                                <span class="summary-value" id="summary-daily-rate">$0.00</span>
-                            </div>
-                            <div class="summary-item">
-                                <span class="summary-label" id="summary-price-calc" data-price="0.00">$0.00 x 0 nights</span>
-                                <span class="summary-value" id="summary-subtotal">$0.00</span>
-                            </div>
-                            <div class="summary-item mt-1">
-                                <span class="summary-label">Cleaning fee:</span>
-                                <span class="summary-value" id="summary-cleaning-fee" data-fee="0.00">$0.00</span>
-                                <input type="hidden" name="cleaning_fee" id="id_cleaning_fee" value="0.00">
-                            </div>
-                            <div class="summary-item mt-1">
-                                <span class="summary-label">Refundable deposit:</span>
-                                <span class="summary-value" id="summary-refundable-deposit" data-deposit="0.00">$0.00</span>
-                                <input type="hidden" name="deposit_fee" id="id_deposit_fee" value="0.00">
-                            </div>
-                            <div class="summary-item mt-1">
-                                <span class="summary-label">Application fee:</span>
-                                <span class="summary-value" id="summary-application-fee" data-fee="0.00">$0.00</span>
-                                <input type="hidden" name="application_fee" id="id_application_fee" value="0.00">
-                            </div>
-                            <hr>
-
-                            <div class="summary-item price-input-container">
-                                <span class="summary-label" style="font-weight: bold;">Total price:</span>
-                                <input type="hidden" name="price" id="id_price" value="0.00">
-                                <span class="summary-value" id="summary-total-display">$0.00</span>
-                            </div>
-                        </div>
-                        <div class="col-lg-auto d-none d-lg-flex align-items-center p-0"><div class="payment-divider" style="height: 80%; margin-top: 20px;"></div></div>
-                        <div class="col-lg-5 col-12 p-0">
-
-                            <div style="margin-top: 42px;">
-                                <span class="summary-label">Check In:</span>
-                                <p class="summary-value m-0 mb-1" id="summary-checkin">-</p>
-                            </div>
-                            <div>
-                                <span class="summary-label">Check Out:</span>
-                                <p class="summary-value m-0 mb-1" id="summary-checkout">-</p>
-                            </div>
-                            <div>
-                                <span class="summary-label">Nights:</span>
-                                <p class="summary-value m-0 mb-1" id="summary-nights">0</p>
-                            </div>
-                            <div>
-                                <span class="summary-label">Guests:</span>
-                                <p class="summary-value" id="summary-guests">0</p>
+                                <div>
+                                    <span class="summary-label">Nights:</span>
+                                    <p class="summary-value m-0 mb-1" id="summary-nights">0</p>
+                                </div>
+                                <div>
+                                    <span class="summary-label">Guests:</span>
+                                    <p class="summary-value" id="summary-guests">0</p>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
-
-            
         </div>
-        {% include 'frontend/base/footer.html' %}
 
-        
     </div>
+    {% include 'frontend/base/footer.html' %}
 </div>
 </form>
 
@@ -1391,10 +1623,12 @@
 <div class="property-sidebar" id="propertySidebar">
     <div class="sidebar-header">
         <div class="sidebar-title">Select Listing</div>
-        <div class="sidebar-search">
-            <input type="text" id="propertySearchInput" placeholder="Search listing..." onkeyup="filterProperties()">
+        <div class="d-flex align-items-center gap-2 ms-auto">
+            <div class="sidebar-search">
+                <input type="text" id="propertySearchInput" placeholder="Search listing..." onkeyup="filterProperties()">
+            </div>
+            <button type="button" class="close-sidebar-btn" onclick="closePropertySidebar()" aria-label="Close modal">&times;</button>
         </div>
-        <button type="button" class="close-sidebar-btn" onclick="closePropertySidebar()" aria-label="Close sidebar">&times;</button>
     </div>
     
     <div class="sidebar-content" id="propertySidebarContent">
@@ -1409,107 +1643,38 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/js/intlTelInput.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 
     <script>
-        function formatDateForDisplay(isoDate) {
-            if (!isoDate) return '';
-            const [year, month, day] = isoDate.split('-');
-            if (!year || !month || !day) return '';
-            return `${month}/${day}/${year}`;
-        }
-
-        function updateDisplayedBookingDates() {
-            const checkInValue = document.getElementById('id_check_in_date')?.value || '';
-            const checkOutValue = document.getElementById('id_check_out_date')?.value || '';
-            const checkInDisplayEl = document.getElementById('id_check_in_date_display');
-            const checkOutDisplayEl = document.getElementById('id_check_out_date_display');
-            const rangeStartLabel = document.getElementById('booking-range-start-label');
-            const rangeEndLabel = document.getElementById('booking-range-end-label');
-
-            if (checkInDisplayEl) checkInDisplayEl.value = formatDateForDisplay(checkInValue);
-            if (checkOutDisplayEl) checkOutDisplayEl.value = formatDateForDisplay(checkOutValue);
-            if (rangeStartLabel) rangeStartLabel.textContent = checkInValue ? formatDateForDisplay(checkInValue) : 'Check-in';
-            if (rangeEndLabel) rangeEndLabel.textContent = checkOutValue ? formatDateForDisplay(checkOutValue) : 'Check-out';
-        }
-
-        function dispatchDateInputEvents(inputEl) {
-            if (!inputEl) return;
-            inputEl.dispatchEvent(new Event('input', { bubbles: true }));
-            inputEl.dispatchEvent(new Event('change', { bubbles: true }));
-        }
-
         document.addEventListener('DOMContentLoaded', function() {
-            const checkInHidden = document.getElementById('id_check_in_date');
-            const checkOutHidden = document.getElementById('id_check_out_date');
-            const checkInDisplay = document.getElementById('id_check_in_date_display');
-            const checkOutDisplay = document.getElementById('id_check_out_date_display');
-            const bookingRangePickerInput = document.getElementById('id_booking_range_picker');
-            const bookingRangeTrigger = document.getElementById('booking-range-trigger');
-            const isMobileOrTablet = window.matchMedia('(max-width: 991.98px)').matches;
+            const checkInEl = document.getElementById('id_check_in_date');
+            const checkOutEl = document.getElementById('id_check_out_date');
+            if (!checkInEl || !checkOutEl) return;
 
-            if (!checkInHidden || !checkOutHidden || !bookingRangePickerInput) return;
-
-            const today = new Date().toISOString().split('T')[0];
-            // Only set min if the value is empty or currently in the future
-            if (!checkInHidden.value || checkInHidden.value >= today) {
-                checkInHidden.setAttribute('min', today);
-            }
-            if (isMobileOrTablet) return;
-
-            const initialDates = [];
-            if (checkInHidden.value) initialDates.push(checkInHidden.value);
-            if (checkOutHidden.value) initialDates.push(checkOutHidden.value);
-
-            const rangePicker = flatpickr(bookingRangePickerInput, {
-                mode: 'range',
-                dateFormat: 'Y-m-d',
-                minDate: 'today',
-                showMonths: 2,
-                defaultDate: initialDates.length ? initialDates : null,
-                disableMobile: true,
-                positionElement: bookingRangeTrigger || checkInDisplay || checkOutDisplay,
-                position: 'below',
-                onReady: function() {
-                    updateDisplayedBookingDates();
-                },
-                onValueUpdate: function() {
-                    updateDisplayedBookingDates();
-                },
-                onClose: function() {
-                    updateDisplayedBookingDates();
-                },
-                onChange: function(selectedDates, dateStr, instance) {
-                    const [start, end] = selectedDates;
-                    const startStr = start ? instance.formatDate(start, 'Y-m-d') : '';
-                    const endStr = end ? instance.formatDate(end, 'Y-m-d') : '';
-
-                    checkInHidden.value = startStr;
-                    checkOutHidden.value = endStr;
-                    updateDisplayedBookingDates();
-                    dispatchDateInputEvents(checkInHidden);
-                    dispatchDateInputEvents(checkOutHidden);
+            function syncCheckoutMin() {
+                if (!checkInEl.value) {
+                    checkOutEl.removeAttribute('min');
+                    return;
                 }
-            });
 
-            checkInHidden.addEventListener('change', updateDisplayedBookingDates);
-            checkOutHidden.addEventListener('change', updateDisplayedBookingDates);
+                const nextDay = new Date(checkInEl.value);
+                nextDay.setDate(nextDay.getDate() + 1);
+                checkOutEl.min = nextDay.toISOString().split('T')[0];
 
-            function openRangePicker() {
-                rangePicker.open();
+                if (checkOutEl.value && checkOutEl.value <= checkInEl.value) {
+                    checkOutEl.value = '';
+                }
             }
 
-            [bookingRangeTrigger, checkInDisplay, checkOutDisplay].forEach(function(el) {
-                if (el) {
-                    el.addEventListener('click', openRangePicker);
-                    el.addEventListener('focus', openRangePicker);
-                    el.addEventListener('keydown', function(e) {
-                        e.preventDefault();
-                    });
-                }
-            });
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const todayStr = today.toISOString().split('T')[0];
+            if (!checkInEl.value || checkInEl.value >= todayStr) {
+                checkInEl.min = todayStr;
+            }
 
-            updateDisplayedBookingDates();
+            syncCheckoutMin();
+            checkInEl.addEventListener('change', syncCheckoutMin);
+            checkInEl.addEventListener('input', syncCheckoutMin);
         });
     </script>
 
@@ -1668,7 +1833,6 @@
         const guestPhotoPreviewGrid = document.getElementById('preview-grid');
         const guestPhotoErrorMessage = document.getElementById('error-message');
 
-        // Attachment Upload
         const attachmentUploadArea = document.getElementById('attachmentUploadArea');
         const attachmentInput = document.querySelector('input[name="guest_attachments"]');
         const attachmentPreviewContainer = document.getElementById('attachment-preview-container');
@@ -1757,6 +1921,7 @@
         }
 
         setupUpload(guestPhotoUploadArea, guestPhotoInput, handleGuestPhotoFiles);
+        setupUpload(attachmentUploadArea, attachmentInput, handleAttachmentFiles);
 
         function handleGuestPhotoFiles(e) {
             handleFileSelection(e, selectedGuestPhotos, validateGuestPhoto, createGuestPhotoPreview, guestPhotoErrorMessage, true);
@@ -1790,8 +1955,6 @@
             guestPhotoPreviewContainer.style.display = 'block';
         }
 
-        setupUpload(attachmentUploadArea, attachmentInput, handleAttachmentFiles);
-
         function handleAttachmentFiles(e) {
             handleFileSelection(e, selectedAttachments, validateAttachment, createAttachmentPreview, attachmentErrorMessage);
             updateFileInput('id_guest_attachments', selectedAttachments);
@@ -1812,7 +1975,7 @@
             previewItem.dataset.fileName = file.name;
 
             if (file.type.startsWith('image/')) {
-                previewItem.className = 'preview-item'; // Use same class as guest photo for consistency
+                previewItem.className = 'preview-item';
                 previewItem.innerHTML = `
                     <a href="${fileURL}" target="_blank"><img src="${fileURL}" alt="Preview"></a>
                     <button type="button" class="remove-btn" onclick="removeFile('${file.name}', ${file.size}, 'attachment')">×</button>
@@ -1956,8 +2119,56 @@
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const propertyPreview = document.getElementById('propertyPreview');
+            const propertyTrigger = document.querySelector('.property-selection-trigger');
 
             const channelSelect = $('#id_channel');
+
+            function renderPropertyTrigger(selected) {
+                if (!propertyTrigger) {
+                    return;
+                }
+
+                if (!selected || !selected.val()) {
+                    propertyTrigger.innerHTML = '<span id="selectedPropertyText" class="trigger-placeholder">Select accomodation</span><span class="trigger-caret">▾</span>';
+                    return;
+                }
+
+                const imageUrl = selected.data('image') || '{% static "img/property/placeholder-image.png" %}';
+                const title = selected.text();
+                const location = selected.data('location') || '';
+                const price = parseFloat(selected.data('price')) || 0;
+                const guest = selected.data('guest') || '';
+                let isAvailable = selected.data('available');
+
+                if (typeof isAvailable === 'string') {
+                    isAvailable = isAvailable === 'true';
+                }
+                if (typeof isAvailable === 'undefined') {
+                    isAvailable = true;
+                }
+
+                propertyTrigger.innerHTML = `
+                    <div class="d-flex align-items-start w-100" style="gap: 12px;">
+                        <img src="${imageUrl}" class="property-card-img" alt="${title}" />
+                        <div class="property-card-info" style="flex-grow: 1; min-width: 0;">
+                            <div class="d-flex justify-content-between align-items-start" style="gap: 12px;">
+                                <div style="min-width: 0;">
+                                    <div class="property-card-title">${title}</div>
+                                    <div class="property-card-location">${location}</div>
+                                </div>
+                                <div class="availability-status" style="background-color: ${isAvailable ? '#d4edda; color: #155724;' : '#f8d7da; color: #721c24;'}">
+                                    ${isAvailable ? 'Available' : 'Not Available'}
+                                </div>
+                            </div>
+                            <div class="property-card-meta mt-1">
+                                <span class="property-card-price">$${price.toFixed(2)}/night</span>
+                                ${guest ? ` &bull; <span class="property-card-guests">${guest} Guests (max)</span>` : ''}
+                            </div>
+                        </div>
+                        <span class="trigger-caret" style="margin-left: auto; padding-left: 8px;">▾</span>
+                    </div>
+                `;
+            }
 
             function formatChannel(channel) {
                 if (!channel.id) {
@@ -1981,10 +2192,9 @@
             // Handle property selection change (triggered by sidebar)
             $('#id_property').on('change', function() {
                 const selected = $(this).find('option:selected');
-                const trigger = document.querySelector('.property-selection-trigger');
 
                 if (!selected.val()) {
-                    trigger.innerHTML = `<span id="selectedPropertyText">Select a listing</span><span style="color: #6b7280;">▼</span>`;
+                    renderPropertyTrigger(null);
                     if (propertyPreview) propertyPreview.innerHTML = '';
                     $('#summary-section').hide();
                     return;
@@ -1998,35 +2208,13 @@
                 if (typeof isAvailable === 'string') isAvailable = isAvailable === 'true';
                 if (!isAvailable) {
                     $(this).val('');
-                    trigger.innerHTML = `<span id="selectedPropertyText">Select a listing</span><span style="color: #6b7280;">▼</span>`;
+                    renderPropertyTrigger(null);
                     if (propertyPreview) propertyPreview.innerHTML = '';
                     $('#summary-section').hide();
                     return;
                 }
 
-                // Render selected item similar to sidebar list item
-                trigger.innerHTML = `
-                    <div class="d-flex align-items-start w-100">
-                        <img src="${imageUrl}" class="property-card-img" alt="${title}" />
-                        <div class="property-card-info" style="flex-grow: 1;">
-                            <div class="d-flex justify-content-between align-items-start">
-                                <div>
-                                    <div class="property-card-title">${title}</div>
-                                    <div class="property-card-location">${location}</div>
-                                </div>
-                                <div class="availability-status" style="background-color: ${isAvailable ? '#d4edda; color: #155724;' : '#f8d7da; color: #721c24;'}">
-                                    ${isAvailable ? 'Available' : 'Not Available'}
-                                </div>
-                            </div>
-                            <div class="property-card-meta mt-1">
-                                <span class="property-card-price">$${price ? parseFloat(price).toFixed(2) : '0.00'}/night</span>
-                                ${guest ? ` &bull; <span class="property-card-guests">${guest} Guests (max)</span>` : ''}
-                            </div>
-                        </div>
-                        <div style="align-self: center; margin-left: 10px; color: #6b7280;">▼</div>
-                    </div>
-                `;
-
+                renderPropertyTrigger(selected);
                 $('#summary-section').show();
 
                 // Update summary price
@@ -2055,25 +2243,38 @@
                 updateSummary();
             });
 
+            renderPropertyTrigger($('#id_property').find('option:selected'));
+
         });
 
         // Property Sidebar Functions
         function openPropertySidebar() {
+            const trigger = document.querySelector('.property-selection-trigger');
+            if (trigger && trigger.classList.contains('disabled')) return;
             renderPropertySidebar();
             document.getElementById('propertySidebar').classList.add('open');
             document.getElementById('propertyOverlayBackdrop').classList.add('open');
+            document.body.style.overflow = 'hidden';
             document.getElementById('propertySearchInput').focus();
+            setTimeout(function() {
+                const selectedCard = document.querySelector('.property-card-sidebar.selected');
+                if (selectedCard) {
+                    selectedCard.scrollIntoView({ block: 'center', behavior: 'smooth' });
+                }
+            }, 50);
         }
 
         function closePropertySidebar() {
             document.getElementById('propertySidebar').classList.remove('open');
             document.getElementById('propertyOverlayBackdrop').classList.remove('open');
+            document.body.style.overflow = '';
         }
 
         function renderPropertySidebar() {
             const select = document.getElementById('id_property');
             const container = document.getElementById('propertySidebarContent');
             container.innerHTML = '';
+            const currentSelectedValue = select.value;
 
             const options = Array.from(select.options)
                 .filter(option => option.value)
@@ -2093,9 +2294,10 @@
 
                 const data = option.dataset;
                 const isAvailable = data.available === 'true';
+                const isSelected = String(option.value) === String(currentSelectedValue);
                 
                 const card = document.createElement('div');
-                card.className = `property-card-sidebar${isAvailable ? '' : ' unavailable'}`;
+                card.className = `property-card-sidebar${isAvailable ? '' : ' unavailable'}${isSelected ? ' selected' : ''}`;
                 if (isAvailable) {
                     card.onclick = () => selectProperty(option.value);
                 }
@@ -2111,8 +2313,11 @@
                                 <div class="property-card-title">${option.text}</div>
                                 <div class="property-card-location">${data.location || ''}</div>
                             </div>
-                            <div class="availability-status" style="background-color: ${isAvailable ? '#d4edda; color: #155724;' : '#f8d7da; color: #721c24;'}">
-                                ${isAvailable ? 'Available' : 'Not Available'}
+                            <div class="d-flex align-items-center justify-content-end flex-wrap">
+                                <div class="availability-status" style="background-color: ${isAvailable ? '#d4edda; color: #155724;' : '#f8d7da; color: #721c24;'}">
+                                    ${isAvailable ? 'Available' : 'Not Available'}
+                                </div>
+                                ${isSelected ? '<span class="selected-status">Selected</span>' : ''}
                             </div>
                         </div>
                         <div class="property-card-meta mt-1">
@@ -2272,7 +2477,7 @@
             const currentSelectedId = propertySelect.val();
             propertySelect.empty(); // Clear existing options
             
-            propertySelect.append(new Option('Select a listing', ''));
+            propertySelect.append(new Option('Select accomodation', ''));
 
             if (data.properties && data.properties.length > 0) {
                 propertySelect.prop("disabled", false);
@@ -2331,9 +2536,6 @@
             }
             
             propertySelect.trigger('change'); 
-            
-            // Update trigger text if reset
-            if (!propertySelect.val()) $('#selectedPropertyText').text('Select a listing');
         })
         .catch(err => console.error("Error fetching available properties:", err));
     }
