@@ -522,6 +522,7 @@ def payment_details(request, pk):
     subtotal = 0
     total_price = 0
     monthly_payment = 0
+    nights = 0
 
     now = request.user.get_local_date()
 
@@ -564,7 +565,7 @@ def payment_details(request, pk):
     elif booking.check_in_date and booking.check_in_date > now and booking.status == 'confirmed':
         booking_status = 'upcoming'
 
-    delta = booking.check_out_date - now
+    delta = (booking.check_out_date - now) if booking.check_out_date else None
 
 
     context = {
@@ -574,7 +575,7 @@ def payment_details(request, pk):
         'subtotal': subtotal,
         'total_price': total_price,
         'monthly_payment': monthly_payment,
-        'time_delta': True if delta.days == 0 else False,
+        'time_delta': True if (delta and delta.days == 0) else False,
     }
     context['booking_status'] = booking_status
 
@@ -608,7 +609,7 @@ def add_payment_attachment(request):
         if file.size > 2 * 1024 * 1024:
             return JsonResponse({'success': False, 'error': 'File size must not exceed 2 MB.'}, status=400)
 
-        payment = get_object_or_404(Payment, id=payment_id, booking__property__created_by=request.user)
+        payment = get_object_or_404(Payment, id=payment_id, booking__property__created_by__in=get_visible_user_ids(request.user))
         att = PaymentAttachment.objects.create(payment=payment, file=file, name=file.name)
         return JsonResponse({
             'success': True,
@@ -624,7 +625,7 @@ def delete_payment_attachment(request):
     try:
         data = json.loads(request.body)
         att_id = data.get('attachment_id')
-        att = get_object_or_404(PaymentAttachment, id=att_id, payment__booking__property__created_by=request.user)
+        att = get_object_or_404(PaymentAttachment, id=att_id, payment__booking__property__created_by__in=get_visible_user_ids(request.user))
         att.file.delete(save=False)
         att.delete()
         return JsonResponse({'success': True})
@@ -639,7 +640,7 @@ def update_payment_notes(request):
         data = json.loads(request.body)
         payment_id = data.get('payment_id')
         notes = data.get('notes', '').strip()
-        payment = get_object_or_404(Payment, id=payment_id, booking__property__created_by=request.user)
+        payment = get_object_or_404(Payment, id=payment_id, booking__property__created_by__in=get_visible_user_ids(request.user))
         payment.notes = notes
         payment.save()
         return JsonResponse({'success': True, 'notes': payment.notes or ''})

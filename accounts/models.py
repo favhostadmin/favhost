@@ -79,6 +79,9 @@ class MyUser(AbstractBaseUser):
     twitter_url = models.URLField(max_length=1000, null=True, blank=True)
     language = models.CharField(max_length=100, default='English', null=True, blank=True)
     is_subscription_free = models.BooleanField(default=False, help_text="If enabled, user gets free access without requiring subscription payment")
+    # Set True after the one-time "trial ending in 7 days" email is sent,
+    # so a trial user only ever receives that reminder once.
+    trial_ending_email_sent = models.BooleanField(default=False)
 
     objects = MyUserManager()
 
