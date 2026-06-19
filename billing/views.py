@@ -67,6 +67,11 @@ def create_checkout_session(request):
     success_url = f"{domain}{reverse('billing:checkout_success')}?session_id={{CHECKOUT_SESSION_ID}}"
     cancel_url = f"{domain}{reverse('billing:checkout_cancel')}"
 
+    # When set (e.g. the "Resubscribe" button), always open the hosted Stripe
+    # Checkout page so the customer sees their saved card and an explicit
+    # Subscribe button — instead of the silent one-click saved-card path.
+    prefer_checkout = request.POST.get('prefer_checkout') == '1'
+
     try:
         # Resolve existing Stripe customer, if any
         sc = None
@@ -79,7 +84,7 @@ def create_checkout_session(request):
             pass
 
         # ── Returning customer: try to reuse saved payment method ──────────
-        if customer_id:
+        if customer_id and not prefer_checkout:
             try:
                 customer = stripe.Customer.retrieve(
                     customer_id,
