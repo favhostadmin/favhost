@@ -1,0 +1,662 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Calendar - {{ view_type|title }} View</title>
+  {% if format_type == 'html' %}
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  {% endif %}
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      font-size: 11px;
+      color: #1f2937;
+      background: #fff;
+      line-height: 1.5;
+      padding: 32px 36px;
+    }
+    /* ===== Brand Header ===== */
+    .brand-header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding-bottom: 16px;
+      margin-bottom: 16px;
+      border-bottom: 2px solid #1f2937;
+    }
+    .brand-header .brand-logo {
+      width: 36px;
+      height: 36px;
+      object-fit: contain;
+      flex-shrink: 0;
+    }
+    .brand-header .brand-text { flex: 1; }
+    .brand-header .brand-text .brand-name {
+      font-size: 18px;
+      font-weight: 800;
+      color: #111827;
+      letter-spacing: -0.4px;
+      line-height: 1.2;
+    }
+    .brand-header .brand-text .brand-tagline {
+      font-size: 10px;
+      color: #6b7280;
+      font-weight: 400;
+      letter-spacing: 0.2px;
+    }
+    .brand-header .brand-meta {
+      text-align: right;
+      font-size: 10px;
+      color: #6b7280;
+      line-height: 1.6;
+      flex-shrink: 0;
+    }
+    .brand-header .brand-meta .meta-user {
+      font-weight: 600;
+      color: #374151;
+      font-size: 11px;
+    }
+    .brand-header .brand-meta .meta-date-range {
+      font-size: 11px;
+      color: #111827;
+      font-weight: 500;
+    }
+
+    /* ===== Section Header ===== */
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+    .section-header h1 {
+      font-size: 16px;
+      font-weight: 700;
+      color: #111827;
+    }
+    .section-header .badge-view {
+      display: inline-block;
+      background: #f3f4f6;
+      color: #374151;
+      font-size: 9px;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 10px;
+      letter-spacing: 0.3px;
+      text-transform: uppercase;
+    }
+
+    /* ===== Summary Cards ===== */
+    .summary-row {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    .summary-card {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 10px 18px;
+      min-width: 110px;
+    }
+    .summary-card .label {
+      font-size: 9px;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-weight: 600;
+    }
+    .summary-card .value {
+      font-size: 20px;
+      font-weight: 700;
+      color: #0f172a;
+      margin-top: 2px;
+    }
+
+    /* ===== Month View ===== */
+    .month-grid {
+      border-collapse: collapse;
+      width: 100%;
+      page-break-inside: avoid;
+    }
+    .month-grid th {
+      background: #f1f5f9;
+      padding: 7px 5px;
+      font-size: 9px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #475569;
+      border: 1px solid #e2e8f0;
+      text-align: center;
+    }
+    .month-grid td {
+      border: 1px solid #e2e8f0;
+      padding: 5px;
+      vertical-align: top;
+      height: 56px;
+      width: 14.28%;
+      font-size: 9px;
+    }
+    .month-grid td .day-num {
+      font-weight: 600;
+      color: #334155;
+      margin-bottom: 3px;
+      font-size: 10px;
+    }
+    .month-grid td .event {
+      font-size: 7px;
+      padding: 2px 4px;
+      margin-bottom: 1px;
+      border-radius: 3px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-weight: 500;
+    }
+    .month-grid td .event.booking { background: #dbeafe; color: #1d4ed8; }
+    .month-grid td .event.task { background: #d1fae5; color: #047857; }
+    .month-grid td .event.payment { background: #e2e8f0; color: #334155; }
+    .month-grid td .event.enquiry { background: #fef3c7; color: #b45309; }
+    .month-grid td .event.blocked { background: #f3f4f6; color: #6b7280; font-style: italic; }
+    .month-grid td.other-month { background: #f8fafc; }
+    .month-grid td.other-month .day-num { color: #cbd5e1; }
+    .month-grid td.today { background: #eff6ff; box-shadow: inset 0 0 0 1px #93c5fd; }
+
+    .prop-month-table { width: 100%; border-collapse: collapse; margin-top: 6px; }
+    .prop-month-table th {
+      background: #f1f5f9;
+      padding: 6px 5px;
+      font-size: 8px;
+      font-weight: 600;
+      color: #475569;
+      border: 1px solid #e2e8f0;
+      text-align: center;
+    }
+    .prop-month-table td {
+      border: 1px solid #e2e8f0;
+      padding: 4px 5px;
+      font-size: 9px;
+      vertical-align: top;
+      height: 44px;
+    }
+    .prop-month-table td.prop-name {
+      font-weight: 600;
+      color: #0f172a;
+      font-size: 9px;
+      width: 130px;
+      max-width: 130px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      padding-left: 8px;
+    }
+
+    /* ===== Week View ===== */
+    .week-band { margin-bottom: 14px; }
+    .week-band-title {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: #fff;
+      padding: 5px 12px;
+      border-radius: 4px;
+      margin-bottom: 6px;
+    }
+    .week-band-title.reservations { background: #2563eb; }
+    .week-band-title.payments { background: #1e293b; }
+    .week-band-title.tasks { background: #059669; }
+    .week-table { width: 100%; border-collapse: collapse; }
+    .week-table th {
+      background: #f8fafc;
+      padding: 5px 6px;
+      font-size: 8px;
+      font-weight: 600;
+      color: #64748b;
+      border: 1px solid #e2e8f0;
+      text-align: center;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+    .week-table td {
+      border: 1px solid #e2e8f0;
+      padding: 5px 8px;
+      font-size: 9px;
+      vertical-align: middle;
+    }
+    .week-table td .guest { font-weight: 600; color: #0f172a; }
+    .week-table td .detail { color: #64748b; font-size: 9px; }
+    .week-table tr:nth-child(even) { background: #fafafa; }
+
+    /* ===== Day View ===== */
+    .day-section-label {
+      font-size: 10px;
+      font-weight: 700;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      margin: 14px 0 8px;
+      padding-bottom: 4px;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    .day-schedule-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 7px 12px;
+      border-left: 3px solid;
+      margin-bottom: 5px;
+      background: #f8fafc;
+      border-radius: 4px;
+    }
+    .day-schedule-item .time {
+      font-size: 10px;
+      font-weight: 600;
+      color: #334155;
+      min-width: 100px;
+    }
+    .day-schedule-item .info { flex: 1; }
+    .day-schedule-item .info .title { font-weight: 600; color: #0f172a; font-size: 10px; }
+    .day-schedule-item .info .sub { color: #64748b; font-size: 9px; }
+    .day-schedule-item.booking { border-color: #2563eb; }
+    .day-schedule-item.task { border-color: #059669; }
+    .day-schedule-item.payment { border-color: #1e293b; }
+    .day-schedule-item.enquiry { border-color: #f59e0b; }
+
+    /* ===== Timeline View ===== */
+    .timeline-table { width: 100%; border-collapse: collapse; }
+    .timeline-table th {
+      background: #f1f5f9;
+      padding: 5px;
+      font-size: 7px;
+      font-weight: 600;
+      color: #475569;
+      border: 1px solid #e2e8f0;
+      text-align: center;
+    }
+    .timeline-table td {
+      border: 1px solid #e2e8f0;
+      padding: 4px 6px;
+      font-size: 9px;
+      vertical-align: middle;
+    }
+    .timeline-table td.prop-name {
+      font-weight: 600;
+      color: #0f172a;
+      white-space: nowrap;
+      max-width: 140px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-size: 9px;
+      padding-left: 8px;
+    }
+    .timeline-table .tl-event {
+      display: inline-block;
+      font-size: 7px;
+      padding: 1px 5px;
+      border-radius: 3px;
+      margin: 1px;
+      white-space: nowrap;
+      font-weight: 500;
+    }
+    .timeline-table .tl-event.booking { background: #dbeafe; color: #1d4ed8; }
+    .timeline-table .tl-event.task { background: #d1fae5; color: #047857; }
+    .timeline-table .tl-event.payment { background: #e2e8f0; color: #334155; }
+    .timeline-table .tl-event.enquiry { background: #fef3c7; color: #b45309; }
+    .timeline-table .tl-event.blocked { background: #f3f4f6; color: #6b7280; }
+    .timeline-table tr:nth-child(even) { background: #fafafa; }
+
+    /* ===== List View ===== */
+    .list-date-group { margin-bottom: 14px; page-break-inside: avoid; }
+    .list-date-header {
+      font-size: 12px;
+      font-weight: 700;
+      color: #0f172a;
+      padding-bottom: 5px;
+      border-bottom: 1px solid #e2e8f0;
+      margin-bottom: 6px;
+    }
+    .list-event {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 5px 10px;
+      border-radius: 4px;
+      margin-bottom: 3px;
+      background: #f8fafc;
+    }
+    .list-event .badge {
+      font-size: 8px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 10px;
+      color: #fff;
+      min-width: 60px;
+      text-align: center;
+      flex-shrink: 0;
+    }
+    .list-event .badge.checkin { background: #2563eb; }
+    .list-event .badge.checkout { background: #7c3aed; }
+    .list-event .badge.payment { background: #1e293b; }
+    .list-event .badge.task { background: #059669; }
+    .list-event .badge.enquiry { background: #f59e0b; }
+    .list-event .ev-prop { font-weight: 600; color: #0f172a; font-size: 9px; min-width: 120px; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .list-event .ev-detail { color: #64748b; font-size: 9px; flex: 1; }
+    .list-event .ev-guest { color: #334155; font-size: 9px; min-width: 80px; }
+
+    /* ===== Footer ===== */
+    .print-footer {
+      margin-top: 28px;
+      padding-top: 12px;
+      border-top: 1px solid #e2e8f0;
+      text-align: center;
+      font-size: 8px;
+      color: #94a3b8;
+      line-height: 1.8;
+    }
+    .print-footer .footer-brand { font-weight: 600; color: #64748b; }
+
+    /* ===== Empty State ===== */
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: #94a3b8;
+      font-size: 12px;
+    }
+
+    @media print {
+      body { padding: 0.5in; }
+      .summary-card { border: 1px solid #e2e8f0; }
+      .month-grid th { background: #f1f5f9 !important; }
+      .week-table th { background: #f8fafc !important; }
+      .timeline-table th { background: #f1f5f9 !important; }
+      .list-event .badge { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .week-band-title { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ===== Brand Header ===== -->
+<div class="brand-header">
+  <img src="{{ brand_logo_src }}" alt="FavHost" class="brand-logo" onerror="this.style.display='none'">
+  <div class="brand-text">
+    <div class="brand-name">FavHost</div>
+    <div class="brand-tagline">Property Management &middot; Simplified</div>
+  </div>
+  <div class="brand-meta">
+    <span class="meta-user">{{ user.get_full_name|default:user.username }}</span>
+    <span class="meta-date-range">{{ start_date|date:"M d, Y" }} — {{ end_date|date:"M d, Y" }}</span>
+    <span style="margin-top:3px;display:block;color:#94a3b8;">Generated {{ now|date:"M d, Y h:i A" }}</span>
+  </div>
+</div>
+
+<!-- ===== Section Header ===== -->
+<div class="section-header">
+  <h1>Calendar — {{ view_type|title }} View</h1>
+  <span class="badge-view">{{ properties|length }} Properties &middot; {{ total_bookings }} Bookings &middot; {{ total_tasks }} Tasks</span>
+</div>
+
+<!-- ===== Summary Row ===== -->
+<div class="summary-row">
+  <div class="summary-card">
+    <div class="label">Properties</div>
+    <div class="value">{{ properties|length }}</div>
+  </div>
+  <div class="summary-card">
+    <div class="label">Bookings</div>
+    <div class="value">{{ total_bookings }}</div>
+  </div>
+  <div class="summary-card">
+    <div class="label">Tasks</div>
+    <div class="value">{{ total_tasks }}</div>
+  </div>
+  <div class="summary-card">
+    <div class="label">Date Range</div>
+    <div class="value" style="font-size:13px;">{{ start_date|date:"M j" }} — {{ end_date|date:"M j, Y" }}</div>
+  </div>
+</div>
+
+{% if view_type == 'month' %}
+<!-- ===================== MONTH VIEW ===================== -->
+<table class="prop-month-table">
+  <thead>
+    <tr>
+      <th style="text-align:left;padding-left:8px;width:130px;">Property</th>
+      {% for d in date_list %}
+      <th>{{ d|date:"j" }}<br><span style="font-weight:400;color:#94a3b8;">{{ d|date:"D" }}</span></th>
+      {% endfor %}
+    </tr>
+  </thead>
+  <tbody>
+    {% for prop in property_data %}
+    <tr>
+      <td class="prop-name">{{ prop.property.title }}</td>
+      {% for day in prop.days_data %}
+      <td>
+        {% if day.blocks %}
+        <div class="event blocked">Blocked</div>
+        {% endif %}
+        {% for b in day.bookings|slice:":2" %}
+        <div class="event booking">{{ b.first_name }}</div>
+        {% endfor %}
+        {% if day.bookings|length > 2 %}
+        <div style="font-size:6px;color:#94a3b8;">+{{ day.bookings|length|add:"-2" }} more</div>
+        {% endif %}
+        {% for t in day.tasks|slice:":1" %}
+        <div class="event task">{{ t.task_type|title }}</div>
+        {% endfor %}
+        {% if day.total_payment > 0 %}
+        <div class="event payment">${{ day.total_payment|floatformat:0 }}</div>
+        {% endif %}
+      </td>
+      {% endfor %}
+    </tr>
+    {% empty %}
+    <tr><td colspan="{{ date_list|length|add:1 }}" class="empty-state" style="padding:20px;text-align:center;">No properties found.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+{% elif view_type == 'week' %}
+<!-- ===================== WEEK VIEW ===================== -->
+<div class="week-band">
+  <div class="week-band-title reservations">Reservations</div>
+  {% if week_bands.reservations %}
+  <table class="week-table">
+    <thead>
+      <tr><th style="width:28%;">Property</th><th style="width:22%;">Guest</th><th style="width:20%;">Check In</th><th style="width:20%;">Check Out</th><th style="width:10%;">Nights</th></tr>
+    </thead>
+    <tbody>
+      {% for r in week_bands.reservations %}
+      <tr>
+        <td><span class="guest">{{ r.property }}</span></td>
+        <td><span class="detail">{{ r.guest }}</span></td>
+        <td><span class="detail">{{ r.check_in|date:"M d" }}</span></td>
+        <td><span class="detail">{{ r.check_out|date:"M d" }}</span></td>
+        <td style="text-align:center;"><span class="detail">{{ r.nights }}</span></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty-state" style="padding:12px 0;">No reservations in this period.</div>
+  {% endif %}
+</div>
+
+<div class="week-band">
+  <div class="week-band-title payments">Payments</div>
+  {% if week_bands.payments %}
+  <table class="week-table">
+    <thead>
+      <tr><th style="width:28%;">Property</th><th style="width:22%;">Guest</th><th style="width:25%;">Period</th><th style="width:25%;">Nights</th></tr>
+    </thead>
+    <tbody>
+      {% for p in week_bands.payments %}
+      <tr>
+        <td><span class="guest">{{ p.property }}</span></td>
+        <td><span class="detail">{{ p.guest }}</span></td>
+        <td><span class="detail">{{ p.check_in|date:"M d" }} — {{ p.check_out|date:"M d" }}</span></td>
+        <td style="text-align:center;"><span class="detail">{{ p.nights }}</span></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty-state" style="padding:12px 0;">No payment bookings in this period.</div>
+  {% endif %}
+</div>
+
+<div class="week-band">
+  <div class="week-band-title tasks">Tasks</div>
+  {% if week_bands.tasks %}
+  <table class="week-table">
+    <thead>
+      <tr><th style="width:28%;">Property</th><th style="width:37%;">Task</th><th style="width:20%;">Date</th><th style="width:15%;">Type</th></tr>
+    </thead>
+    <tbody>
+      {% for t in week_bands.tasks %}
+      <tr>
+        <td><span class="guest">{{ t.property }}</span></td>
+        <td><span class="detail">{{ t.details|truncatechars:45 }}</span></td>
+        <td><span class="detail">{{ t.date|date:"M d" }}</span></td>
+        <td><span class="detail">{{ t.details|truncatechars:15 }}</span></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty-state" style="padding:12px 0;">No tasks in this period.</div>
+  {% endif %}
+</div>
+
+{% elif view_type == 'day' %}
+<!-- ===================== DAY VIEW ===================== -->
+<div style="margin-bottom:12px;">
+  <h2 style="font-size:14px;font-weight:700;color:#0f172a;">{{ start_date|date:"l, F j, Y" }}</h2>
+</div>
+
+<div class="day-section-label">Bookings</div>
+{% for prop in property_data %}
+  {% for day in prop.days_data %}
+    {% if day.date == start_date %}
+      {% for b in day.bookings %}
+      <div class="day-schedule-item booking">
+        <div class="time">{{ prop.property.title|truncatechars:20 }}</div>
+        <div class="info">
+          <div class="title">{{ b.first_name }} {{ b.last_name }}</div>
+          <div class="sub">{{ b.check_in|date:"M d" }} — {{ b.check_out|date:"M d" }} · {{ b.channel.name|default:"Direct" }}</div>
+        </div>
+      </div>
+      {% empty %}
+      <div style="color:#94a3b8;font-size:10px;padding:4px 0 10px 0;">No bookings on this day.</div>
+      {% endfor %}
+    {% endif %}
+  {% endfor %}
+{% endfor %}
+
+<div class="day-section-label">Tasks</div>
+{% for prop in property_data %}
+  {% for day in prop.days_data %}
+    {% if day.date == start_date %}
+      {% for t in day.tasks %}
+      <div class="day-schedule-item task">
+        <div class="time">{{ prop.property.title|truncatechars:20 }}</div>
+        <div class="info">
+          <div class="title">{{ t.task_type|title }}</div>
+          <div class="sub">{{ t.details|truncatechars:60 }}</div>
+        </div>
+      </div>
+      {% empty %}
+      <div style="color:#94a3b8;font-size:10px;padding:4px 0 10px 0;">No tasks on this day.</div>
+      {% endfor %}
+    {% endif %}
+  {% endfor %}
+{% endfor %}
+
+<div class="day-section-label">Payments</div>
+{% for prop in property_data %}
+  {% for day in prop.days_data %}
+    {% if day.date == start_date %}
+      {% if day.total_payment > 0 %}
+      <div class="day-schedule-item payment">
+        <div class="time">{{ prop.property.title|truncatechars:20 }}</div>
+        <div class="info">
+          <div class="title">Payment Due</div>
+          <div class="sub">${{ day.total_payment|floatformat:2 }}</div>
+        </div>
+      </div>
+      {% else %}
+      <div style="color:#94a3b8;font-size:10px;padding:4px 0 10px 0;">No payments on this day.</div>
+      {% endif %}
+    {% endif %}
+  {% endfor %}
+{% endfor %}
+
+{% elif view_type == 'timeline' %}
+<!-- ===================== TIMELINE VIEW ===================== -->
+<table class="timeline-table">
+  <thead>
+    <tr>
+      <th style="width:130px;text-align:left;padding-left:8px;">Property</th>
+      {% for d in date_list %}
+      <th>{{ d|date:"j" }}<br><span style="font-weight:400;color:#94a3b8;">{{ d|date:"D" }}</span></th>
+      {% endfor %}
+    </tr>
+  </thead>
+  <tbody>
+    {% for prop in property_data %}
+    <tr>
+      <td class="prop-name">{{ prop.property.title }}</td>
+      {% for day in prop.days_data %}
+      <td>
+        {% if day.blocks %}
+        <div class="tl-event blocked" style="display:block;text-align:center;">B</div>
+        {% endif %}
+        {% for b in day.bookings %}
+        <div class="tl-event booking" style="display:block;text-align:center;">{{ b.first_name|first }}.</div>
+        {% endfor %}
+        {% for t in day.tasks %}
+        <div class="tl-event task" style="display:block;text-align:center;">{{ t.task_type|first|upper }}</div>
+        {% endfor %}
+      </td>
+      {% endfor %}
+    </tr>
+    {% empty %}
+    <tr><td colspan="{{ date_list|length|add:1 }}" class="empty-state">No properties found.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+{% elif view_type == 'list' %}
+<!-- ===================== LIST VIEW ===================== -->
+{% regroup all_events by date as events_by_date %}
+{% for group in events_by_date %}
+<div class="list-date-group">
+  <div class="list-date-header">{{ group.grouper|date:"l, F j, Y" }}</div>
+  {% for event in group.list %}
+  <div class="list-event">
+    <div class="badge {{ event.type|lower|cut:' ' }}">{{ event.type }}</div>
+    <span class="ev-prop">{{ event.property }}</span>
+    <span class="ev-guest">{{ event.guest }}</span>
+    <span class="ev-detail">{{ event.details }}</span>
+  </div>
+  {% endfor %}
+</div>
+{% empty %}
+<div class="empty-state">No events found in this period.</div>
+{% endfor %}
+
+{% endif %}
+
+<div class="print-footer">
+  <span class="footer-brand">FavHost</span> &middot; Calendar {{ view_type|title }} View
+  <br>Generated {{ now|date:"M d, Y \a\t h:i A" }} &middot; {{ start_date|date:"M d, Y" }} — {{ end_date|date:"M d, Y" }}
+</div>
+
+</body>
+</html>

@@ -1,0 +1,367 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Print Panel — FavHost</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      height: 100%;
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: #f1f5f9;
+      color: #1f2937;
+    }
+    /* ===== Layout ===== */
+    .app-shell {
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+    }
+    .sidebar {
+      width: 320px;
+      min-width: 320px;
+      background: #fff;
+      border-right: 1px solid #e2e8f0;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+    }
+    .preview-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .preview-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 20px;
+      background: #fff;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    .preview-toolbar .title { font-weight: 700; font-size: 14px; color: #0f172a; }
+    .preview-toolbar .actions { display: flex; gap: 8px; }
+    .preview-frame {
+      flex: 1;
+      overflow: auto;
+      padding: 24px;
+      background: #e2e8f0;
+    }
+    .preview-frame iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+    }
+
+    /* ===== Sidebar Header ===== */
+    .sidebar-header {
+      padding: 16px 16px 12px;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    .sidebar-header .logo-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .sidebar-header .logo-row img { width: 28px; height: 28px; object-fit: contain; }
+    .sidebar-header .logo-row span { font-size: 16px; font-weight: 700; color: #0f172a; }
+    .sidebar-header .sub { font-size: 11px; color: #64748b; margin-top: 2px; }
+
+    /* ===== Sidebar Sections ===== */
+    .sidebar-section {
+      padding: 14px 16px;
+      border-bottom: 1px solid #f1f5f9;
+    }
+    .sidebar-section:last-child { border-bottom: none; }
+    .sidebar-section .section-title {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #94a3b8;
+      margin-bottom: 10px;
+    }
+    .form-group { margin-bottom: 10px; }
+    .form-group:last-child { margin-bottom: 0; }
+    .form-group label {
+      display: block;
+      font-size: 12px;
+      font-weight: 500;
+      color: #334155;
+      margin-bottom: 4px;
+    }
+    .form-group select, .form-group input[type="date"] {
+      width: 100%;
+      padding: 7px 10px;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      font-size: 12px;
+      font-family: 'Inter', sans-serif;
+      background: #fff;
+      color: #1f2937;
+      outline: none;
+    }
+    .form-group select:focus, .form-group input[type="date"]:focus {
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 2px rgba(59,130,246,0.15);
+    }
+    .form-group .date-range {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .form-group .date-range input { flex: 1; }
+    .form-group .date-range span { color: #94a3b8; font-size: 11px; }
+
+    /* ===== Checkbox Toggle ===== */
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 4px 0;
+    }
+    .toggle-row .toggle-label { font-size: 12px; color: #334155; }
+    .toggle {
+      position: relative;
+      width: 36px;
+      height: 20px;
+      flex-shrink: 0;
+    }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .toggle .slider {
+      position: absolute;
+      inset: 0;
+      background: #cbd5e1;
+      border-radius: 20px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .toggle .slider::before {
+      content: '';
+      position: absolute;
+      width: 16px;
+      height: 16px;
+      left: 2px;
+      bottom: 2px;
+      background: #fff;
+      border-radius: 50%;
+      transition: transform 0.2s;
+    }
+    .toggle input:checked + .slider { background: #3b82f6; }
+    .toggle input:checked + .slider::before { transform: translateX(16px); }
+
+    /* ===== Action Buttons ===== */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 18px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      font-family: 'Inter', sans-serif;
+      border: none;
+      transition: background 0.15s, transform 0.1s;
+    }
+    .btn:active { transform: scale(0.97); }
+    .btn-primary { background: #2563eb; color: #fff; }
+    .btn-primary:hover { background: #1d4ed8; }
+    .btn-success { background: #059669; color: #fff; }
+    .btn-success:hover { background: #047857; }
+    .btn-outline {
+      background: #fff;
+      color: #334155;
+      border: 1px solid #cbd5e1;
+    }
+    .btn-outline:hover { background: #f1f5f9; }
+    .btn-sm { padding: 6px 14px; font-size: 12px; }
+    .sidebar-actions {
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .sidebar-actions .btn { justify-content: center; width: 100%; }
+
+    /* ===== Loading ===== */
+    .preview-frame.loading iframe { opacity: 0.5; }
+    .preview-frame .loading-overlay {
+      display: none;
+      position: absolute;
+      inset: 0;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255,255,255,0.7);
+      z-index: 5;
+    }
+    .preview-frame.loading .loading-overlay { display: flex; }
+    .spinner {
+      width: 32px;
+      height: 32px;
+      border: 3px solid #e2e8f0;
+      border-top-color: #3b82f6;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+<div class="app-shell">
+  <!-- ===== Sidebar ===== -->
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <div class="logo-row">
+        <img src="{% static 'img/header/favhost.png' %}" alt="FavHost" onerror="this.style.display='none'">
+        <span>Print Panel</span>
+      </div>
+      <div class="sub">Customize your calendar PDF</div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="section-title">View Settings</div>
+      <div class="form-group">
+        <label for="viewType">Calendar View</label>
+        <select id="viewType">
+          <option value="month" {% if view_type == 'month' %}selected{% endif %}>Month View</option>
+          <option value="week" {% if view_type == 'week' %}selected{% endif %}>Week View</option>
+          <option value="day" {% if view_type == 'day' %}selected{% endif %}>Day View</option>
+          <option value="timeline" {% if view_type == 'timeline' %}selected{% endif %}>Timeline View</option>
+          <option value="list" {% if view_type == 'list' %}selected{% endif %}>List View</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Date Range</label>
+        <div class="date-range">
+          <input type="date" id="startDate" value="{{ start_date|date:'Y-m-d' }}">
+          <span>—</span>
+          <input type="date" id="endDate" value="{{ end_date|date:'Y-m-d' }}">
+        </div>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="section-title">Content</div>
+      <div class="toggle-row">
+        <span class="toggle-label">Show Header</span>
+        <label class="toggle"><input type="checkbox" id="showHeader" checked><span class="slider"></span></label>
+      </div>
+      <div class="toggle-row">
+        <span class="toggle-label">Show Summary Cards</span>
+        <label class="toggle"><input type="checkbox" id="showSummary" checked><span class="slider"></span></label>
+      </div>
+    </div>
+
+    <div class="sidebar-actions">
+      <button class="btn btn-primary" id="updatePreviewBtn">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+        Update Preview
+      </button>
+      <button class="btn btn-success" id="downloadPdfBtn">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Download PDF
+      </button>
+      <button class="btn btn-outline" id="viewPdfBtn">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        Open PDF in Browser
+      </button>
+      <button class="btn btn-outline" id="printBtn">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+        Print
+      </button>
+    </div>
+  </div>
+
+  <!-- ===== Preview Area ===== -->
+  <div class="preview-area">
+    <div class="preview-toolbar">
+      <div class="title">Preview — <span id="previewTitle">{{ view_type|title }} View</span></div>
+      <div class="actions">
+        <button class="btn btn-outline btn-sm" onclick="history.back()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          Close
+        </button>
+      </div>
+    </div>
+    <div class="preview-frame" id="previewFrame">
+      <div class="loading-overlay"><div class="spinner"></div></div>
+      <iframe id="previewIframe" src="{{ preview_url }}"></iframe>
+    </div>
+  </div>
+</div>
+
+<script>
+  const previewIframe = document.getElementById('previewIframe');
+  const previewFrame = document.getElementById('previewFrame');
+  const previewTitle = document.getElementById('previewTitle');
+  const viewType = document.getElementById('viewType');
+  const startDate = document.getElementById('startDate');
+  const endDate = document.getElementById('endDate');
+  const showHeader = document.getElementById('showHeader');
+  const showSummary = document.getElementById('showSummary');
+
+  function buildPreviewUrl() {
+    const params = new URLSearchParams({
+      view: viewType.value,
+      start_date: startDate.value,
+      end_date: endDate.value,
+      show_header: showHeader.checked ? '1' : '0',
+      show_summary: showSummary.checked ? '1' : '0',
+    });
+    return '{% url "printpanel:preview" %}?' + params.toString();
+  }
+
+  function buildPdfUrl(download) {
+    const params = new URLSearchParams({
+      view: viewType.value,
+      start_date: startDate.value,
+      end_date: endDate.value,
+      show_header: showHeader.checked ? '1' : '0',
+      show_summary: showSummary.checked ? '1' : '0',
+    });
+    if (download) params.set('download', '1');
+    return '{% url "printpanel:pdf" %}?' + params.toString();
+  }
+
+  function updatePreview() {
+    previewFrame.classList.add('loading');
+    const url = buildPreviewUrl();
+    previewIframe.src = url;
+    previewTitle.textContent = viewType.options[viewType.selectedIndex].text;
+  }
+
+  document.getElementById('updatePreviewBtn').addEventListener('click', updatePreview);
+
+  document.getElementById('downloadPdfBtn').addEventListener('click', () => {
+    window.open(buildPdfUrl(true), '_blank');
+  });
+
+  document.getElementById('viewPdfBtn').addEventListener('click', () => {
+    window.open(buildPdfUrl(false), '_blank');
+  });
+
+  document.getElementById('printBtn').addEventListener('click', () => {
+    if (previewIframe.contentWindow) {
+      previewIframe.contentWindow.focus();
+      previewIframe.contentWindow.print();
+    }
+  });
+
+  // Auto-refresh preview when iframe loads
+  previewIframe.addEventListener('load', () => {
+    previewFrame.classList.remove('loading');
+  });
+
+  // Initial load
+  updatePreview();
+</script>
+</body>
+</html>
