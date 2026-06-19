@@ -601,7 +601,8 @@ def profile_view(request):
     next_payment_date = None  # fetched live from Stripe subscription
     next_payment_amount = None  # fetched live from Stripe subscription
     billing_interval = 'Monthly'  # default; updated from Stripe if available
-    if is_premium and stripe_customer and stripe_customer.stripe_customer_id:
+    subscription_cancelled = False  # True when they subscribed before but have no active sub now
+    if stripe_customer and stripe_customer.stripe_customer_id:
         try:
             import stripe as stripe_lib
             import datetime
@@ -668,6 +669,13 @@ def profile_view(request):
                     pass
 
             if sub:
+                # Live Stripe confirms an active subscription — heal the DB status.
+                is_premium = True
+                if stripe_customer.subscription_status != 'active':
+                    stripe_customer.subscription_status = 'active'
+                    stripe_customer.save(update_fields=['subscription_status'])
+                    subscription_status = 'active'
+
                 # Billing interval
                 try:
                     raw_interval = sub.items.data[0].price.recurring.interval
@@ -706,6 +714,19 @@ def profile_view(request):
                             stripe_customer.save(update_fields=['current_period_end'])
                 except Exception:
                     pass
+
+            elif not user.is_subscription_free and (
+                stripe_customer.stripe_subscription_id
+                or subscription_status in ('active', 'canceled', 'past_due')
+            ):
+                # They had a subscription but Stripe shows none active → cancelled.
+                # Fall back to trial access for any remaining trial days.
+                subscription_cancelled = True
+                is_premium = False
+                if stripe_customer.subscription_status != 'canceled':
+                    stripe_customer.subscription_status = 'canceled'
+                    stripe_customer.save(update_fields=['subscription_status'])
+                subscription_status = 'canceled'
         except Exception:
             pass  # Silently fall back — Stripe unavailable
 
@@ -727,6 +748,7 @@ def profile_view(request):
         'next_payment_date': next_payment_date,
         'next_payment_amount': next_payment_amount,
         'billing_interval': billing_interval,
+        'subscription_cancelled': subscription_cancelled,
     }
     return render(request, 'frontend/auth/profile.html', context)
 
