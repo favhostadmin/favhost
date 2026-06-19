@@ -1,4 +1,8 @@
 document.addEventListener("DOMContentLoaded", (event) => {
+    // copyright year
+    const ulFooterCopyrightYear = document.getElementById('footer-copyright-year');
+    if (ulFooterCopyrightYear) ulFooterCopyrightYear.textContent = '© ' + new Date().getFullYear();
+
     // preloader
     const preloader = document.getElementById('preloader');
     preloader.style.display = 'none';

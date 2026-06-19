@@ -1778,12 +1778,21 @@
   @media (max-width: 768px) {
     .header-nav .row {
       flex-wrap: wrap;
+      row-gap: 0 !important;
+      margin: 0 !important;
+    }
+
+    .header-nav {
+      padding: 12px 10px !important;
     }
 
     .header-nav .calendar-header {
       gap: 12px;
-      padding: 8px 8px 6px;
+      padding: 0 !important;
+      margin: 0 !important;
       justify-content: center;
+      border-radius: 0 !important;
+      background: transparent !important;
     }
 
     .header-nav .month-display {
@@ -4528,7 +4537,8 @@
     function calUpdateIcon() {
       const btn = sidebarContent.querySelector(`.payment-attach-btn[data-payment-id="${calActivePaymentId}"]`);
       if (!btn) return;
-      const count = calAttachmentsList.querySelectorAll('[id^="cal-att-row-"]').length;
+      const rows = calAttachmentsList.querySelectorAll('[id^="cal-att-row-"]');
+      const count = rows.length;
       const svg = btn.querySelector('svg');
       let badge = btn.querySelector('span');
       if (count > 0) {
@@ -4536,6 +4546,13 @@
         if (!badge) { badge = document.createElement('span'); badge.style.cssText = 'position:absolute;top:-6px;right:-8px;background:#2563eb;color:#fff;border-radius:999px;font-size:9px;min-width:14px;height:14px;display:flex;align-items:center;justify-content:center;padding:0 2px;line-height:1;'; btn.appendChild(badge); }
         badge.textContent = count;
       } else { svg.querySelector('path').setAttribute('stroke', '#9ca3af'); if (badge) badge.remove(); }
+      // Sync data-attachments so reopening the modal shows current state
+      const attachments = Array.from(rows).map(row => {
+        const link = row.querySelector('a');
+        const id = row.id.replace('cal-att-row-', '');
+        return { id: id, url: link.href, name: link.textContent };
+      });
+      btn.dataset.attachments = JSON.stringify(attachments);
     }
 
     const closeAttachModal = () => { attachModal.style.display = 'none'; };

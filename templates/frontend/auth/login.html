@@ -10,6 +10,12 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'css/login.css' %}">
+    {% if firebase_configured %}
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js">
+    </script>
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js">
+    </script>
+    {% endif %}
 </head>
 
 <body>
@@ -185,7 +191,7 @@
                     {% csrf_token %}
                     <input type="hidden" name="next" value="{{ request.GET.next }}">
 
-                    <button type="button" class="google-btn" disabled>
+                    <button type="button" class="google-btn" id="googleSignInBtn"{% if not firebase_configured %} disabled{% endif %}>
                         <span class="google-g">G</span>
                         Continue with Google
                     </button>
@@ -473,6 +479,52 @@
                 }
             }).catch(() => { });
         });
+
+        // ── Firebase Google Sign-In ──────────────────────────────────
+        {% if firebase_configured %}
+        (function () {
+            var firebaseConfig = {
+                apiKey: "{{ firebase_api_key }}",
+                authDomain: "{{ firebase_auth_domain }}",
+                projectId: "{{ firebase_project_id }}",
+                storageBucket: "{{ firebase_storage_bucket }}",
+                messagingSenderId: "{{ firebase_messaging_sender_id }}",
+                appId: "{{ firebase_app_id }}",
+                measurementId: "{{ firebase_measurement_id }}"
+            };
+            firebase.initializeApp(firebaseConfig);
+
+            document.getElementById("googleSignInBtn").addEventListener("click", function () {
+                var provider = new firebase.auth.GoogleAuthProvider();
+                firebase.auth().signInWithPopup(provider)
+                    .then(function (result) { return result.user.getIdToken(); })
+                    .then(function (idToken) {
+                        var csrf = document.querySelector('[name=csrfmiddlewaretoken]').value;
+                        return fetch("{% url 'firebase_auth' %}", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json", "X-CSRFToken": csrf },
+                            body: JSON.stringify({ idToken: idToken })
+                        });
+                    })
+                    .then(function (res) {
+                        if (!res.ok) {
+                            return res.json().then(function (d) { throw new Error(d.error || "Server error"); });
+                        }
+                        return res.json();
+                    })
+                    .then(function (data) {
+                        if (data.success) { window.location.href = data.redirect; }
+                        else { alert("Google sign-in failed: " + (data.error || "Unknown error")); }
+                    })
+                    .catch(function (err) {
+                        if (err.code !== "auth/popup-closed-by-user") {
+                            console.error("Firebase auth error:", err);
+                            alert("Google sign-in failed: " + (err.message || "Please try again."));
+                        }
+                    });
+            });
+        })();
+        {% endif %}
     </script>
 </body>
 

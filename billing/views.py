@@ -27,14 +27,17 @@ def pricing_page(request):
     The upgrade/pricing page shown when user clicks 'Upgrade' on profile.
     Shows plan details and a Subscribe button that posts to Stripe Checkout.
     """
+    from accounts.utils import get_effective_user
+    user = get_effective_user(request.user)
+
     # Check if user already has an active subscription
     try:
-        stripe_customer = request.user.stripe_customer
-        is_subscribed = stripe_customer.is_active
+        stripe_customer = user.stripe_customer
+        is_subscribed = stripe_customer.is_active or user.is_subscription_free
         subscription_status = stripe_customer.subscription_status
         period_end = stripe_customer.current_period_end
     except StripeCustomer.DoesNotExist:
-        is_subscribed = False
+        is_subscribed = user.is_subscription_free
         subscription_status = ''
         period_end = None
 
@@ -363,6 +366,9 @@ def subscription_detail(request):
     - Full invoice / transaction history (date, amount, status, PDF link)
     Nothing is stored locally — all data is pulled from Stripe in real time.
     """
+    from accounts.utils import get_effective_user
+    user = get_effective_user(request.user)
+
     sc = None
     plan = None
     invoices = []
@@ -370,7 +376,7 @@ def subscription_detail(request):
     stripe_error = None
 
     try:
-        sc = request.user.stripe_customer
+        sc = user.stripe_customer
     except StripeCustomer.DoesNotExist:
         pass
 
@@ -462,6 +468,7 @@ def subscription_detail(request):
             stripe_error = str(e)
 
     context = {
+        'user': user,
         'sc': sc,
         'plan': plan,
         'invoices': invoices,
