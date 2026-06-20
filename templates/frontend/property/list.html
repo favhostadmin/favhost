@@ -567,6 +567,13 @@
         min-height: calc(100vh - 193px);
     }
 
+     .listing-price--total {
+            border: 1.5px solid #EB5310;
+            border-radius: 4px;
+            padding: 2px 8px;
+            color: #000 !important;
+        }
+
     @media (max-width: 991px) {
         .mobile-filter-section {
             background: #E7E7E9;
@@ -959,9 +966,10 @@
             color: #111827;
         }
 
+        
         .price-period {
             font-size: 13px;
-            color: #141414;
+            color: currentColor;
         }
 
         .listing-night-label {
@@ -1777,6 +1785,23 @@
         previewModalEl.addEventListener('hidden.bs.modal', function () {
             previewFrame.src = 'about:blank';
             previewLoading.style.display = 'grid';
+        });
+
+        window.addEventListener('message', function (event) {
+            if (!event.data || event.data.type !== 'preview-navigate') return;
+            const url = event.data.url;
+            if (!url) return;
+
+            const modal = bootstrap.Modal.getInstance(previewModalEl);
+            if (modal) {
+                previewModalEl.addEventListener('hidden.bs.modal', function handler() {
+                    previewModalEl.removeEventListener('hidden.bs.modal', handler);
+                    window.location.href = url;
+                }, { once: true });
+                modal.hide();
+            } else {
+                window.location.href = url;
+            }
         });
 
         document.addEventListener('click', function (event) {
@@ -2966,6 +2991,7 @@
             const applicationFee = parseFloat(el.dataset.applicationFee || '0') || 0;
             const total = (nightly * nights) + cleaningFee + refundableDeposit + applicationFee;
             el.dataset.totalPrice = total.toFixed(2);
+            el.classList.add('listing-price--total');
             el.innerHTML = `<span class="price-period">Total</span> - $${total.toFixed(2)} `;
         });
     });
