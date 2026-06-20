@@ -2733,7 +2733,12 @@
                     check_out: checkoutEl.value,
                     guests: guests
                 });
-                window.location.href = `${bookingUrl}?${queryParams.toString()}`;
+                const targetUrl = `${bookingUrl}?${queryParams.toString()}`;
+                if (window.self !== window.top) {
+                    window.parent.postMessage({ type: 'preview-navigate', url: targetUrl }, '*');
+                } else {
+                    window.location.href = targetUrl;
+                }
             } else {
                 showValidationModal('Could not retrieve reservation details. Please select dates and guests again.');
                 resetAvailabilityState();
