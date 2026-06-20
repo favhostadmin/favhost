@@ -259,6 +259,12 @@ FIREBASE_MEASUREMENT_ID = os.getenv('FIREBASE_MEASUREMENT_ID', '')
 FIREBASE_ADMIN_PRIVATE_KEY = os.getenv('FIREBASE_ADMIN_PRIVATE_KEY', '')
 FIREBASE_ADMIN_CLIENT_EMAIL = os.getenv('FIREBASE_ADMIN_CLIENT_EMAIL', '')
 
+# Google Identity Services (GIS) — used for "Continue with Google".
+# This is the OAuth 2.0 Web client ID from Google Cloud Console (the same one
+# Firebase auto-created for this project). GIS avoids the Firebase redirect flow
+# that breaks on iOS due to WebKit storage partitioning.
+GOOGLE_OAUTH_CLIENT_ID = os.getenv('GOOGLE_OAUTH_CLIENT_ID', '')
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 

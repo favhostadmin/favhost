@@ -112,6 +112,69 @@ def firebase_auth_view(request):
     return JsonResponse({'success': True, 'redirect': str(reverse_lazy('dashboard'))})
 
 
+@csrf_exempt
+@require_POST
+def google_auth_view(request):
+    """
+    Receive a Google Identity Services ID token (the `credential` returned by the
+    GIS button) and verify it directly with Google, then log in or create the user.
+
+    This replaces the Firebase popup/redirect flow for "Continue with Google",
+    which fails on iOS ("missing initial state") because WebKit partitions the
+    third-party sessionStorage Firebase needs across the firebaseapp.com redirect.
+    GIS returns the ID token straight to a JS callback — no cross-domain storage.
+    """
+    client_id = getattr(settings, 'GOOGLE_OAUTH_CLIENT_ID', '')
+    if not client_id:
+        return JsonResponse({'error': 'Google sign-in is not configured on the server.'}, status=501)
+
+    try:
+        data = json.loads(request.body)
+        credential = data.get('credential')
+        if not credential:
+            return JsonResponse({'error': 'Missing credential'}, status=400)
+
+        from google.oauth2 import id_token as google_id_token
+        from google.auth.transport import requests as google_requests
+        # Verifies signature, expiry, issuer and that the audience == our client_id.
+        info = google_id_token.verify_oauth2_token(
+            credential, google_requests.Request(), client_id
+        )
+    except Exception as e:
+        return JsonResponse({'error': f'Token verification failed: {e}'}, status=403)
+
+    email = (info.get('email') or '').strip()
+    if not email or not info.get('email_verified', False):
+        return JsonResponse({'error': 'No verified email from Google account'}, status=400)
+
+    first_name = info.get('given_name', '')
+    last_name = info.get('family_name', '')
+    if not first_name and info.get('name'):
+        parts = info['name'].split(' ', 1)
+        first_name = parts[0]
+        last_name = parts[1] if len(parts) > 1 else ''
+
+    user = MyUser.objects.filter(email__iexact=email).first()
+    if not user:
+        user = MyUser.objects.create_user(username=email, email=email)
+        user.first_name = first_name
+        user.last_name = last_name
+        user.is_active = True
+        user.save()
+
+        # First-time Google sign-up — send the welcome email
+        _send_welcome_email(
+            email=user.email,
+            first_name=user.first_name or 'there',
+            request=request,
+        )
+
+    user.backend = 'accounts.backends.EmailOrUsernameBackend'
+    auth_login(request, user)
+
+    return JsonResponse({'success': True, 'redirect': str(reverse_lazy('dashboard'))})
+
+
 # ─────────────────────────────────────────────
 # LOGIN
 # ─────────────────────────────────────────────
@@ -132,6 +195,9 @@ class CustomLoginView(LoginView):
         context['firebase_app_id'] = settings.FIREBASE_APP_ID
         context['firebase_measurement_id'] = settings.FIREBASE_MEASUREMENT_ID
         context['firebase_configured'] = bool(settings.FIREBASE_API_KEY)
+        # Google Identity Services (preferred for "Continue with Google")
+        context['google_client_id'] = settings.GOOGLE_OAUTH_CLIENT_ID
+        context['google_configured'] = bool(settings.GOOGLE_OAUTH_CLIENT_ID)
         return context
 
     def form_valid(self, form):
