@@ -797,6 +797,19 @@ class ListingPageView(ListView):
         context['check_out'] = self.request.GET.get('check_out', '')
         context['guests_count'] = self.request.GET.get('guests', '1')
 
+        num_nights = 0
+        check_in_str = self.request.GET.get('check_in', '')
+        check_out_str = self.request.GET.get('check_out', '')
+        if check_in_str and check_out_str:
+            try:
+                ci = datetime.strptime(check_in_str, '%Y-%m-%d').date()
+                co = datetime.strptime(check_out_str, '%Y-%m-%d').date()
+                if co > ci:
+                    num_nights = (co - ci).days
+            except (ValueError, TypeError):
+                pass
+        context['num_nights'] = num_nights
+
         return context
 
 

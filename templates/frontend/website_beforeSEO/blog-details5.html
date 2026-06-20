@@ -1,0 +1,816 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Favhost - Manage Short-term rentals</title>
+    <link rel="icon" type="image/favhost" href="{% static 'website/img/fev.png' %}">
+
+    <!-- libraries CSS -->
+    <link rel="stylesheet" href="{% static 'website/icon/flaticon_charitics.css' %}">
+    <link rel="stylesheet" href="{% static 'website/vendor/bootstrap/bootstrap.min.css' %}">
+    <link rel="stylesheet" href="{% static 'website/vendor/splide/splide.min.css' %}">
+    <link rel="stylesheet" href="{% static 'website/vendor/swiper/swiper-bundle.min.css' %}">
+    <link rel="stylesheet" href="{% static 'website/vendor/slim-select/slimselect.css' %}">
+    <link rel="stylesheet" href="{% static 'website/vendor/animate-wow/animate.min.css' %}">
+    <link rel="stylesheet" href="{% static 'website/vendor/flatpickr/flatpickr.min.css' %}">
+
+    <!-- custom CSS -->
+    <link rel="stylesheet" href="{% static 'website/css/style.css' %}">
+    <style>
+        .ul-header-bottom.to-be-sticky {
+            position: fixed !important;
+            top: 0;
+            width: 100%;
+            background: transparent !important;
+            box-shadow: none !important;
+            transition: background 0.3s ease, backdrop-filter 0.3s ease;
+        }
+
+        .ul-header-bottom.to-be-sticky.scrolled {
+            background: rgba(30, 37, 47, 0.9) !important;
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+        }
+
+        .ul-header-bottom.to-be-sticky.scrolled .ul-header-nav a,
+        .ul-header-bottom.to-be-sticky.scrolled .ul-header-nav a:not([href]):not([class]) {
+            color: #fff !important;
+        }
+
+        .ul-header-bottom.to-be-sticky.scrolled .ul-header-actions button {
+            color: #fff !important;
+        }
+
+        /* ── Mobile header: login icon button ── */
+        @media (max-width: 991px) {
+            .btn-mobile-login-icon {
+                background: none;
+                border: none;
+                padding: 4px 6px;
+                cursor: pointer;
+                font-size: 20px;
+                line-height: 1;
+                color: inherit;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+            }
+
+            .btn-mobile-login-icon i {
+                display: inline-flex;
+            }
+
+            .ul-header-bottom.to-be-sticky.scrolled .btn-mobile-login-icon {
+                color: #fff !important;
+            }
+        }
+
+        /* ── Mobile sidebar: dark glass matching header ── */
+        @media (max-width: 991px) {
+            .ul-sidebar {
+                background: rgba(17, 24, 39, 0.88) !important;
+                backdrop-filter: blur(12px) !important;
+                -webkit-backdrop-filter: blur(12px) !important;
+                border-left: 1px solid rgba(255, 255, 255, 0.12) !important;
+            }
+
+            .ul-sidebar-header {
+                border-bottom-color: rgba(255, 255, 255, 0.15) !important;
+            }
+
+            .ul-sidebar-closer,
+            .ul-sidebar-closer i,
+            .ul-sidebar-closer:focus {
+                color: #fff !important;
+            }
+
+            .ul-sidebar-closer:hover {
+                color: rgba(255, 255, 255, 0.7) !important;
+            }
+
+            .ul-sidebar-header-nav-wrapper a,
+            .ul-sidebar-header-nav-wrapper a:not([href]):not([class]),
+            .ul-sidebar .ul-header-nav a,
+            .ul-sidebar .ul-header-nav a:not([href]):not([class]) {
+                color: #fff !important;
+                display: block;
+                padding: 10px 0;
+                font-size: 16px;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.35);
+            }
+
+            .ul-sidebar-header-nav-wrapper a:hover,
+            .ul-sidebar .ul-header-nav a:hover {
+                color: rgba(255, 255, 255, 0.7) !important;
+            }
+
+            .ul-sidebar-header-nav-wrapper nav,
+            .ul-sidebar .ul-header-nav {
+                display: flex !important;
+                flex-direction: column !important;
+                gap: 0 !important;
+                padding: 0 !important;
+                border-top: 1px solid rgba(255, 255, 255, 0.35) !important;
+            }
+
+            .ul-sidebar-footer-title {
+                color: #fff !important;
+            }
+
+            .ul-sidebar-footer-social a {
+                color: #fff !important;
+                border-color: rgba(255, 255, 255, 0.4) !important;
+            }
+
+            .ul-sidebar-footer-social a:hover {
+                background-color: rgba(255, 255, 255, 0.2) !important;
+                border-color: rgba(255, 255, 255, 0.6) !important;
+            }
+
+            .ul-sidebar-footer-social i {
+                color: #fff !important;
+            }
+
+            .ul-sidebar,
+            .ul-sidebar span,
+            .ul-sidebar p,
+            .ul-sidebar i {
+                color: #fff !important;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="preloader" id="preloader">
+        <div class="loader"></div>
+    </div>
+
+    <!-- SIDEBAR SECTION START -->
+    <div class="ul-sidebar">
+        <!-- header -->
+        <div class="ul-sidebar-header">
+            <div class="ul-sidebar-header-logo">
+                <a href="{% url 'index' %}">
+                    <img src="{% static 'img/login/favhost_new_logo.png' %}" alt="logo" class="logo"
+                        style="height:48px;width:auto;">
+                </a>
+            </div>
+            <!-- sidebar closer -->
+            <button class="ul-sidebar-closer"><i class="flaticon-close"></i></button>
+        </div>
+
+        <div class="ul-sidebar-header-nav-wrapper d-block d-lg-none"></div>
+
+
+        <!-- sidebar footer -->
+        <div class="ul-sidebar-footer">
+            <span class="ul-sidebar-footer-title">Follow us</span>
+
+            <div class="ul-sidebar-footer-social">
+                <a href="https://www.facebook.com/profile.php?id=61590927320511" target="_blank"><i
+                        class="flaticon-facebook"></i></a>
+                <!-- <a href="#"><i class="flaticon-twitter"></i></a> -->
+                <a href="https://www.instagram.com/favhost/" target="_blank"><i class="flaticon-instagram"></i></a>
+                <a href="https://www.youtube.com/@favhost" target="_blank"><i class="flaticon-youtube"></i></a>
+            </div>
+        </div>
+    </div>
+    <!-- SIDEBAR SECTION END -->
+
+    <!-- SEARCH MODAL SECTION START -->
+    <div class="ul-search-form-wrapper flex-grow-1 flex-shrink-0">
+        <button class="ul-search-closer"><i class="flaticon-close"></i></button>
+
+        <form action="#" class="ul-search-form">
+            <div class="ul-search-form-right">
+                <input type="search" name="search" id="ul-search" placeholder="Search Here">
+                <button type="submit"><span class="icon"><i class="flaticon-search"></i></span></button>
+            </div>
+        </form>
+    </div>
+    <!-- SEARCH MODAL SECTION END -->
+
+    <!-- HEADER SECTION START -->
+    <header class="ul-header">
+        <div class="ul-header-bottom to-be-sticky">
+            <div class="ul-header-bottom-wrapper ul-header-container">
+                <a href="{% url 'index' %}" class="d-inline-block"><img
+                        src="{% static 'img/login/favhost_new_logo.png' %}" alt="logo" class="logo"
+                        style="height:48px;width:auto;"></a>
+
+                <!-- header nav -->
+                <div class="ul-header-nav-wrapper">
+                    <div class="to-go-to-sidebar-in-mobile">
+                        <nav class="ul-header-nav">
+
+                            <a href="{% url 'index' %}#feature">Features</a>
+                            <a href="{% url 'index' %}#watchdemo">Watch Demo</a>
+                            <a href="{% url 'index' %}#pricing">Pricing</a>
+
+                            <a href="{% url 'index' %}#about">About us</a>
+
+                            <a href="{% url 'index' %}#cstories">Customer stories</a>
+
+                            <a href="{% url 'index' %}#faq">FAQ</a>
+
+                            <a href="{% url 'index' %}#resources">Resources</a>
+
+                            <a href="{% url 'contact' %}">Contact us</a>
+                        </nav>
+                    </div>
+                </div>
+
+                <!-- actions -->
+                <div class="ul-header-actions">
+                    <!--                    <button class="ul-header-search-opener"><i class="flaticon-search"></i></button>-->
+                    <!-- desktop: login button -->
+                    <button onclick="window.location.href='{% url 'accounts:login' %}';"
+                        class="btn-login d-none d-lg-inline-flex">Log In</button>
+                    <!-- mobile: login icon + signup button -->
+                    <button onclick="window.location.href='{% url 'accounts:login' %}';"
+                        class="btn-mobile-login-icon d-lg-none" aria-label="Login"><svg
+                            xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+                            <polyline points="10 17 15 12 10 7" />
+                            <line x1="15" y1="12" x2="3" y2="12" />
+                        </svg></button>
+                    <button onclick="window.location.href='{% url 'contact' %}';" class="btn-login d-lg-none">Sign
+                        Up</button>
+                    <a href="{% url 'contact' %}" class="ul-btn d-sm-inline-flex d-none"><i
+                            class="flaticon-fast-forward-double-right-arrows-symbol"></i> Get started </a>
+                    <button class="ul-header-sidebar-opener d-lg-none d-inline-flex"><i
+                            class="flaticon-menu"></i></button>
+                </div>
+            </div>
+        </div>
+    </header>
+    <!-- HEADER SECTION END -->
+
+
+    <main>
+        <!-- BREADCRUMBS SECTION START -->
+        <section class="ul-breadcrumb8" style="padding-top:100px;padding-bottom:0;">
+            <div class="ul-container">
+                <h2 class="ul-breadcrumb8-title"></h2>
+                <!--
+                <ul class="ul-breadcrumb8-nav">
+                    <li><a href="{% url 'index' %}">Home</a></li>
+                    <li><span class="separator"><i class="flaticon-right"></i></span></li>
+                    <li>Blog Details</li>
+                </ul>
+-->
+            </div>
+        </section>
+        <!-- BREADCRUMBS SECTION END -->
+
+
+        <!-- BLOG SECTION START -->
+        <div class="ul-section-spacing">
+            <div class="ul-container">
+                <div class="row ul-bs-row gy-5 flex-column-reverse flex-md-row">
+                    <!-- sidebar -->
+                    <div class="col-lg-4 col-md-5">
+                        <div class="ul-inner-sidebar">
+                            <!-- single widget /search -->
+                            <!--
+                            <div class="ul-inner-sidebar-widget ul-inner-sidebar-search">
+                                <h3 class="ul-inner-sidebar-widget-title">Search</h3>
+                                <div class="ul-inner-sidebar-widget-content">
+                                    <form action="#" class="ul-blog-search-form">
+                                        <input type="search" name="blog-search" id="ul-blog-search" placeholder="Search Here">
+                                        <button type="submit"><span class="icon"><i class="flaticon-search"></i></span></button>
+                                    </form>
+                                </div>
+                            </div>
+-->
+
+                            <!-- single widget / Categories -->
+                            <!--
+                            <div class="ul-inner-sidebar-widget categories">
+                                <h3 class="ul-inner-sidebar-widget-title">Categories</h3>
+                                <div class="ul-inner-sidebar-widget-content">
+                                    <div class="ul-inner-sidebar-categories">
+                                        <a href="#">Charity <span>(08)</span></a>
+                                        <a href="#">Crowdfunding <span>(11)</span></a>
+                                        <a href="#">Industries <span>(18)</span></a>
+                                        <a href="#">Innovations <span>(11)</span></a>
+                                        <a href="#">Technology <span>(07)</span></a>
+                                    </div>
+                                </div>
+                            </div>
+-->
+
+                            <!-- single widget / Recent Posts -->
+                            <div class="ul-inner-sidebar-widget posts">
+                                <h3 class="ul-inner-sidebar-widget-title">Recent Posts</h3>
+                                <div class="ul-inner-sidebar-widget-content">
+                                    <div class="ul-inner-sidebar-posts">
+                                        <!-- single post -->
+                                        <div class="ul-inner-sidebar-post">
+                                            <div class="img">
+                                                <img src="{% static 'website/img/blog-2.jpg' %}" alt="Post Image">
+                                            </div>
+
+                                            <div class="txt">
+                                                <h4 class="title"><a
+                                                        href="{% url 'blog-details' 'the-risks-of-manual-management' %}">The
+                                                        Risks of Manual Management</a></h4>
+                                                <span class="date"> <span>April 5th, 2026</span></span>
+                                            </div>
+                                        </div>
+
+                                        <!-- single post -->
+                                        <div class="ul-inner-sidebar-post">
+                                            <div class="img">
+                                                <img src="{% static 'website/img/blog-1.jpg' %}" alt="Post Image">
+                                            </div>
+
+                                            <div class="txt">
+                                                <h4 class="title"><a
+                                                        href="{% url 'blog-details' 'the-secret-to-scaling-your-rental-business' %}">The
+                                                        Secret to Scaling Your Rental Business</a></h4>
+                                                <span class="date"> <span>April 7th, 2026</span></span>
+                                            </div>
+                                        </div>
+
+                                        <!-- single post -->
+                                        <div class="ul-inner-sidebar-post">
+                                            <div class="img">
+                                                <img src="{% static 'website/img/blog-3.jpg' %}" alt="Post Image">
+                                            </div>
+
+                                            <div class="txt">
+                                                <h4 class="title"><a
+                                                        href="{% url 'blog-details' 'how-to-run-homestay-business-tips-and-tricks' %}">How
+                                                        to run Homestay business tips and tricks</a></h4>
+                                                <span class="date"> <span>April 15th, 2026</span></span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- single widget / Tags -->
+                            <!-- <div class="ul-inner-sidebar-widget tags">
+                                <h3 class="ul-inner-sidebar-widget-title">Tag Cloud</h3>
+                                <div class="ul-inner-sidebar-widget-content">
+                                    <div class="ul-inner-sidebar-tags">
+                                        <a href="#">Crowdfunding</a>
+                                        <a href="#">Innovations</a>
+                                        <a href="#">Justice</a>
+                                        <a href="#">Lead</a>
+                                        <a href="#">Startup</a>
+                                        <a href="#">Technology</a>
+                                        <a href="#">Market</a>
+                                        <a href="#">Court</a>
+                                    </div>
+                                </div>
+                            </div> -->
+                        </div>
+                    </div>
+
+
+                    <!-- left/blog details -->
+                    <div class="col-lg-8 col-md-7">
+                        <div class="ul-blog-details ul-blog-inner mb-0">
+                            <div class="ul-blog-2 ul-blog-inner">
+                                <div class="ul-blog-img"><img src="{% static 'website/img/blog-5.jpg' %}"
+                                        alt="Blog Image"></div>
+                                <div class="ul-blog-txt">
+
+                                    <h2 class="ul-blog-title">How to Increase Your Visibility and Ranking on
+                                        Booking.com: The Ultimate Step-by-Step Guide.</h2>
+                                    <div class="ul-donation-details-summary-txt ul-blog-details-txt">
+                                        <p>If you manage a hotel, vacation rental, or bed and breakfast, you already
+                                            know that Booking.com is an absolute powerhouse for generating reservations.
+                                            But with millions of listings worldwide, simply putting your property online
+                                            isn't enough. You need to know how to master the Booking.com algorithm.</p>
+
+                                        <p>
+                                            As a property manager, your goal is to turn lookers into bookers. To do
+                                            that, you need high visibility. In this guide, we will break down the exact
+                                            step-by-step process to increase your visibility on Booking.com, improve
+                                            your ranking, and explain why using a channel manager is your secret weapon
+                                            for making it all happen seamlessly.
+
+                                        </p>
+                                        <hr>
+                                        <h3>Understanding the Booking.com Algorithm</h3>
+                                        <p>
+                                            Before jumping into the steps, it is vital to understand what Booking.com
+                                            cares about: <b>Conversion.</b>
+
+
+                                        </p>
+
+                                        <p>
+                                            The platform's algorithm is designed to display properties that are most
+                                            likely to be booked by a specific user. They track your conversion rate (how
+                                            many people book after clicking your listing), your cancellation rate, and
+                                            your review scores. The better your metrics, the higher your Booking.com
+                                            ranking.
+
+                                        </p>
+                                        <p>Here is the step-by-step process to optimize your listing and climb the
+                                            search results.</p>
+                                        <hr>
+
+                                        <h3>Step 1: Achieve a 100% Property Page Score</h3>
+
+                                        <p>Booking.com explicitly tells you your Property Page Score. If it isn't at
+                                            100%, you are leaving money on the table. Incomplete listings get pushed
+                                            down in the search results.</p>
+
+                                        <p><span style="font-weight: 800;">• Upload High-Quality Photos:</span> Upload
+                                            at least 24 high-resolution photos. Include exterior shots, all rooms,
+                                            bathrooms, and key amenities. Tag them correctly so the algorithm knows what
+                                            they depict.</p>
+
+                                        <p>
+
+                                        <p>
+                                            <span style="font-weight: 800;">• Update All Amenities:</span> Guests use
+                                            filters (like "Pet Friendly," "Free WiFi," or "Pool"). If you haven't
+                                            checked the box for an amenity you offer, you will disappear from those
+                                            filtered searches.
+                                        </p>
+
+                                        <p><span style="font-weight: 800;">• Nail the Description:</span> Ensure your
+                                            profile accurately reflects your property to set the right guest
+                                            expectations, which directly impacts your future reviews.</p>
+
+                                        <h3>Step 2: Maximize Your Availability</h3>
+
+                                        <p>The Booking.com algorithm prioritizes properties with open calendars. If you
+                                            only give Booking.com a fraction of your inventory, your visibility will
+                                            suffer.</p>
+
+                                        <p>
+                                            <span style="font-weight: 800;">• Load Long-Term Inventory:</span> Open your
+                                            calendar at least 12 to 18 months in advance. Many international travelers
+                                            book far ahead of time.
+
+                                        </p>
+
+                                        <p>
+                                            <span style="font-weight: 800;">• The Channel Manager Advantage:</span>
+                                            Manually updating availability across Booking.com, Airbnb, and Expedia is a
+                                            nightmare and leads to double bookings. A reliable channel manager
+                                            automatically syncs your calendar in real-time. By distributing all your
+                                            available rooms across all platforms without the risk of overbooking,
+                                            Booking.com sees you as highly available and boosts your ranking.
+                                        </p>
+
+                                        </p>
+                                        <h3>Step 3: Offer Competitive and Flexible Pricing</h3>
+                                        <p>
+                                            Pricing flexibility is a massive driver for Booking.com SEO. Offering
+                                            multiple rate plans targets different types of travelers.
+
+                                        </p>
+
+                                        <p><span style="font-weight: 800;">• Offer a Non-Refundable Rate:</span> Give a
+                                            slight discount (usually 10%) for a non-refundable rate. This secures
+                                            revenue and lowers your cancellation rate—a huge ranking factor.</p>
+
+
+                                        <p><span style="font-weight: 800;">• Create Mobile Rates:</span> More than half
+                                            of Booking.com reservations are made on mobile devices. Activating a "Mobile
+                                            Rate" gives you a special badge and boosts your visibility to mobile users.
+                                        </p>
+
+                                        <p><span style="font-weight: 800;">• Set Up Targeted Promotions:</span> Use
+                                            Geo-rates to target travelers from specific countries or offer Last-Minute
+                                            deals to fill empty gaps.
+
+
+
+                                        </p>
+
+
+
+                                        <h3>Step 4: Protect Your Ranking by Reducing Cancellations</h3>
+
+                                        <p>
+                                            High cancellation rates signal to Booking.com that your property is
+                                            unreliable, which will tank your visibility.
+                                        </p>
+
+                                        <p>
+                                            <span style="font-weight: 800;">• Sync Your Calendars Instantly:</span> The
+                                            number one cause of host-initiated cancellations is double booking. Using a
+                                            property management software (PMS) with a robust channel manager ensures
+                                            that the second a guest books on Airbnb, those dates are blocked on
+                                            Booking.com.
+
+                                        </p>
+                                        <p>
+
+                                            <span style="font-weight: 800;">• Set Clear Policies: </span>Make sure your
+                                            house rules and cancellation policies are crystal clear so guests don't book
+                                            by mistake and cancel later.
+
+                                        </p>
+
+                                        <h4>Step 5: Leverage Booking.com’s Exclusive Programs</h4>
+
+                                        <p>If you meet the performance criteria, joining Booking.com's exclusive
+                                            programs is the fastest way to leapfrog the competition.</p>
+
+                                        <p>
+                                            <span style="font-weight: 800;">• Genius Program:</span> The Genius program
+                                            is Booking.com’s loyalty program. By offering a 10% discount to frequent
+                                            travelers, you get a special Genius tag and a massive boost in search
+                                            visibility.
+
+
+                                        </p>
+
+                                        <p>
+
+                                            <span style="font-weight: 800;">• Preferred Partner Program:</span> If you
+                                            are in the top 30% of properties in your area, you can join the Preferred
+                                            Partner program. You pay a slightly higher commission, but in exchange, you
+                                            receive a "thumbs up" badge and significantly higher placement in search
+                                            results.
+
+                                        </p>
+
+                                        <p>
+                                            <span style="font-weight: 800;">• Visibility Booster:</span> Use this tool
+                                            to temporarily increase your commission on specific dates (like low-season
+                                            weeks) to buy a temporary spike in visibility.
+
+                                        </p>
+
+                                        <h3>Step 6: Skyrocket Your Guest Reviews</h3>
+                                        <p>Booking.com only allows verified guests to leave reviews, making them highly
+                                            trusted. Properties with a score of 8.5 or higher naturally rank better.</p>
+
+                                        <p>
+                                            <span style="font-weight: 800;">• Communicate Proactively:</span> Send
+                                            pre-arrival and post-departure messages.
+
+                                        </p>
+                                        <p>
+
+                                            <span style="font-weight: 800;">• Manage Expectations:</span> Never
+                                            over-promise and under-deliver.
+                                        </p>
+
+                                        <p>
+                                            <span style="font-weight: 800;">• Reply to All Reviews:</span> Respond
+                                            professionally to both positive and negative feedback. It shows future
+                                            guests that you care about their experience.
+
+                                        </p>
+                                        <hr>
+                                        <h3>Why You Need a Channel Manager to Win on Booking.com</h3>
+                                        <p>
+
+                                            Optimizing your Booking.com listing is a continuous process. You can have
+                                            the most beautiful listing in the world, but if your rates are stale, your
+                                            calendar is out of sync, and you are constantly canceling double bookings,
+                                            your ranking will plummet.
+                                        </p>
+                                        <p>
+                                            A channel manager automates the heavy lifting. By providing a two-way,
+                                            real-time sync between your property management software and Booking.com, it
+                                            allows you to:
+                                        </p>
+                                        <p>
+
+
+                                            • Push dynamic pricing automatically to capture the most revenue.
+                                        </p>
+
+                                        <p>• Keep your calendar 100% accurate across all OTAs (Online Travel Agencies).
+                                        </p>
+
+                                        <p>
+                                            • Consolidate all guest messaging into one inbox.
+                                        </p>
+                                        <p>
+                                            <b>Ready to boost your Booking.com ranking and put your reservations on
+                                                autopilot?</b> Connect your listings to our powerful channel manager
+                                            today and watch your visibility—and revenue—grow.
+
+                                        </p>
+
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- actions -->
+
+
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- BLOG SECTION END -->
+    </main>
+
+
+    <!-- FOOTER SECTION START -->
+    <footer class="ul-footer wow animate__fadeInUp">
+        <!-- COMMENTED OUT: footer top contact bar
+        <div class="ul-footer-top">
+            <div class="ul-footer-container">
+                <div class="ul-footer-top-contact-infos">
+                    single info
+                    <div class="ul-footer-top-contact-info">
+                        icon
+                        <div class="ul-footer-top-contact-info-icon">
+                            <div class="ul-footer-top-contact-info-icon-inner">
+                                <i class="flaticon-pin"></i>
+                            </div>
+                        </div>
+                        txt
+                        <div class="ul-footer-top-contact-info-txt">
+                            <span class="ul-footer-top-contact-info-label">Address</span>
+                            <h5 class="ul-footer-top-contact-info-address">4648 Rocky Road Philadelphia PA, 1920</h5>
+                        </div>
+                    </div>
+
+                    single info
+                    <div class="ul-footer-top-contact-info">
+                        icon
+                        <div class="ul-footer-top-contact-info-icon">
+                            <div class="ul-footer-top-contact-info-icon-inner">
+                                <i class="flaticon-email"></i>
+                            </div>
+                        </div>
+                        txt
+                        <div class="ul-footer-top-contact-info-txt">
+                            <span class="ul-footer-top-contact-info-label">Send Email</span>
+                            <h5 class="ul-footer-top-contact-info-address"><a
+                                    href="mailto:info@exmple.com">info@exmple.com</a></h5>
+                        </div>
+                    </div>
+
+                    single info
+                    <div class="ul-footer-top-contact-info">
+                        icon
+                        <div class="ul-footer-top-contact-info-icon">
+                            <div class="ul-footer-top-contact-info-icon-inner">
+                                <i class="flaticon-telephone-call-1"></i>
+                            </div>
+                        </div>
+                        txt
+                        <div class="ul-footer-top-contact-info-txt">
+                            <span class="ul-footer-top-contact-info-label">Call Us</span>
+                            <h5 class="ul-footer-top-contact-info-address"><a href="tel:88012365499">+88 0123 654 99</a>
+                            </h5>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        END COMMENTED OUT -->
+
+        <div class="ul-footer-middle">
+            <div class="ul-footer-container">
+                <div class="ul-footer-middle-wrapper wow animate__fadeInUp">
+                    <div class="ul-footer-about">
+                        <a href="{% url 'index' %}"><img src="{% static 'img/login/favhost_new_logo.png' %}" alt="logo"
+                                class="logo"></a>
+                        <p class="ul-footer-about-txt">Centralizes property management by synchronizing availability,
+                            reservations across multiple channels like Airbnb and Vrbo via real-time integrations.</p>
+                        <div class="ul-footer-socials">
+                            <a href="https://www.facebook.com/profile.php?id=61590927320511" target="_blank"><i
+                                    class="flaticon-facebook"></i></a>
+                            <!-- <a href="#"><i class="flaticon-twitter"></i></a> -->
+                            <a href="https://www.instagram.com/favhost/" target="_blank"><i
+                                    class="flaticon-instagram"></i></a>
+                            <a href="https://www.youtube.com/@favhost" target="_blank"><i
+                                    class="flaticon-youtube"></i></a>
+                        </div>
+                    </div>
+
+                    <div class="ul-footer-widget">
+                        <h3 class="ul-footer-widget-title">Quick Links</h3>
+
+                        <div class="ul-footer-widget-links">
+                            <a href="{% url 'index' %}#feature">Features</a>
+                            <a href="{% url 'index' %}#watchdemo">Watch Demo</a>
+                            <a href="{% url 'index' %}#pricing">Pricing</a>
+                            <a href="{% url 'index' %}#about">About us</a>
+                            <a href="{% url 'index' %}#cstories">Customer stories</a>
+                            <a href="{% url 'index' %}#faq">FAQ</a>
+                            <a href="{% url 'index' %}#resources">Resources</a>
+                            <a href="{% url 'contact' %}">Contact Us</a>
+                        </div>
+                    </div>
+
+                    <div class="ul-footer-widget ul-footer-recent-posts">
+                        <h3 class="ul-footer-widget-title">Resources</h3>
+
+                        <div class="ul-blog-sidebar-posts">
+                            <!-- single post -->
+                            <div class="ul-blog-sidebar-post ul-footer-post">
+                                <div class="img">
+                                    <img src="{% static 'website/img/blog-2.jpg' %}" alt="Post Image">
+                                </div>
+
+                                <div class="txt">
+                                    <span class="date">
+                                        <span class="icon"><i class="flaticon-calendar"></i></span>
+                                        <span>April 5, 2026</span>
+                                    </span>
+
+                                    <h4 class="title"><a
+                                            href="{% url 'blog-details' 'the-risks-of-manual-management' %}">The Risks
+                                            of Manual Management</a></h4>
+                                </div>
+                            </div>
+
+                            <!-- single post -->
+                            <div class="ul-blog-sidebar-post ul-footer-post">
+                                <div class="img">
+                                    <img src="{% static 'website/img/blog-1.jpg' %}" alt="Post Image">
+                                </div>
+
+                                <div class="txt">
+                                    <span class="date">
+                                        <span class="icon"><i class="flaticon-calendar"></i></span>
+                                        <span>April 7, 2026</span>
+                                    </span>
+
+                                    <h4 class="title"><a
+                                            href="{% url 'blog-details' 'the-secret-to-scaling-your-rental-business' %}">The
+                                            Secret to Scaling Your Rental Business</a></h4>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="ul-footer-widget ul-nwsltr-widget">
+                        <h3 class="ul-footer-widget-title">Contact Us</h3>
+                        <div class="ul-footer-widget-links ul-footer-contact-links">
+                            <a href="mailto:support@favhost.com"><i class="flaticon-mail"></i> support@favhost.com</a>
+                            <a href="tel:123-456-7890"><i class="flaticon-telephone-call"></i> 123-456-7890</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- footer bottom -->
+        <div class="ul-footer-bottom">
+            <div class="ul-footer-container">
+                <div class="ul-footer-bottom-wrapper">
+                    <p class="copyright-txt">&copy;
+                        <span id="footer-copyright-year"></span> Favhost.LLC.All rights reserved.
+                    </p>
+                    <div class="ul-footer-bottom-nav"><a href="{% url 'terms' %}">Terms & Conditions</a> <a
+                            href="{% url 'privacy' %}">Privacy Policy</a></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- vector -->
+        <div class="ul-footer-vectors">
+            <img src="{% static 'website/img/footer-vector-img.png' %}" alt="Footer Image" class="ul-footer-vector-1">
+        </div>
+    </footer>
+    <!-- FOOTER SECTION END -->
+
+    <!-- libraries JS -->
+    <script src="{% static 'website/vendor/bootstrap/bootstrap.bundle.min.js' %}"></script>
+    <script src="{% static 'website/vendor/splide/splide.min.js' %}"></script>
+    <script src="{% static 'website/vendor/splide/splide-extension-auto-scroll.min.js' %}"></script>
+    <script src="{% static 'website/vendor/swiper/swiper-bundle.min.js' %}"></script>
+    <script src="{% static 'website/vendor/slim-select/slimselect.min.js' %}"></script>
+    <script src="{% static 'website/vendor/animate-wow/wow.min.js' %}"></script>
+    <script src="{% static 'website/vendor/splittype/index.min.js' %}"></script>
+    <script src="{% static 'website/vendor/mixitup/mixitup.min.js' %}"></script>
+    <script src="{% static 'website/vendor/fslightbox/fslightbox.js' %}"></script>
+    <script src="{% static 'website/vendor/flatpickr/flatpickr.js' %}"></script>
+
+    <!-- custom JS -->
+    <script src="{% static 'website/js/main.js' %}"></script>
+    <script src="{% static 'website/js/tab.js' %}"></script>
+    <!-- <script src="{% static 'website/js/countdown.js' %}"></script> -->
+    <script src="{% static 'website/js/accordion.js' %}"></script>
+    <script src="{% static 'website/js/progressbar.js' %}"></script>
+    <script>
+        (function () {
+            var header = document.querySelector('.ul-header-bottom.to-be-sticky');
+            if (!header) return;
+            window.addEventListener('scroll', function () {
+                header.classList.toggle('scrolled', window.scrollY > 50);
+            }, { passive: true });
+        })();
+    </script>
+</body>
+
+</html>
