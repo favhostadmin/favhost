@@ -567,6 +567,13 @@
         min-height: calc(100vh - 193px);
     }
 
+     .listing-price--total {
+            border: 1.5px solid #EB5310;
+            border-radius: 4px;
+            padding: 2px 8px;
+            color: #000 !important;
+        }
+
     @media (max-width: 991px) {
         .mobile-filter-section {
             background: #E7E7E9;
@@ -790,7 +797,10 @@
         .listing-title {
             font-size: 15px;
             line-height: 1.3;
-            margin: 0 24px 6px 0;
+            margin: 0 0 6px 0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .listing-location {
@@ -872,12 +882,10 @@
         .listing-title {
             font-size: 16px;
             line-height: 1.3;
-            margin: 0 26px 4px 0;
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical;
+            margin: 0 0 4px 0;
+            white-space: nowrap;
             overflow: hidden;
-            
+            text-overflow: ellipsis;
         }
 
         .listing-location {
@@ -958,9 +966,10 @@
             color: #111827;
         }
 
+        
         .price-period {
             font-size: 13px;
-            color: #141414;
+            color: currentColor;
         }
 
         .listing-night-label {
@@ -1416,40 +1425,22 @@
                             </div>
                         </a>
                         <div class="listing-info">
-                            <div style="display: flex; justify-content: space-between; flex-wrap: wrap; gap: 6px;">
-                                <a style="display: flex; align-self: center;" href="{% url 'property:property-detail' slug=item.slug %}" data-open-property-preview="true" data-preview-title="{{ item.title|escape }}" rel="noopener noreferrer">
+                            <div style="display: flex; justify-content: space-between; align-items: center; gap: 6px;">
+                                <a style="display: flex; align-self: center; min-width: 0; flex: 1;" href="{% url 'property:property-detail' slug=item.slug %}" data-open-property-preview="true" data-preview-title="{{ item.title|escape }}" rel="noopener noreferrer">
                                     <h3 class="listing-title">
                                         {{ item.title }}
                                     </h3>
                                 </a>
-                                <button class="options-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="More options">
-                                    <svg class="options-dots-icon" viewBox="0 0 20 20" aria-hidden="true">
-                                        <circle cx="10" cy="4" r="1.5"></circle>
-                                        <circle cx="10" cy="10" r="1.5"></circle>
-                                        <circle cx="10" cy="16" r="1.5"></circle>
-                                    </svg>
-                                </button>
-                               
-                            </div>
-                            <a href="{% url 'property:property-detail' slug=item.slug %}" data-open-property-preview="true" data-preview-title="{{ item.title|escape }}" rel="noopener noreferrer">
-                                <p class="listing-location">{{ item.city }}, {{ item.state }}</p>
-                            </a>
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 6px;">
-                                    <img src="{% static 'img/property/bed.svg' %}" >
-                                    <div class="listing-bed-type ">{{ item.get_bed_type_display|cut:" Bed" }}</div>
-                                    <span class="listing-nights" data-listing-nights style="display: none;"></span>
-                                    <a href="{% url 'property:property-detail' slug=item.slug %}" data-open-property-preview="true" data-preview-title="{{ item.title|escape }}" rel="noopener noreferrer">
-                                    <p class="listing-price ms-2" data-nightly-price="{{ item.price_per_night|floatformat:2 }}" data-cleaning-fee="{{ item.cleaning_fee|default:'0.00'|floatformat:2 }}" data-refundable-deposit="{{ item.refundable_deposit|default:'0.00'|floatformat:2 }}" data-application-fee="{{ item.application_fees|default:'0.00'|floatformat:2 }}">
-                                        ${{ item.price_per_night|floatformat:2 }} <span class="price-period">Night</span>
-                                    </p>
-                                    </a>
-                                </div>
                                 <div class="listing-actions">
-                                    
                                     <div class="btn-group dropup">
-                                        
-                                        <ul class="dropdown-menu">
+                                        <button class="options-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="More options">
+                                            <svg class="options-dots-icon" viewBox="0 0 20 20" aria-hidden="true">
+                                                <circle cx="10" cy="4" r="1.5"></circle>
+                                                <circle cx="10" cy="10" r="1.5"></circle>
+                                                <circle cx="10" cy="16" r="1.5"></circle>
+                                            </svg>
+                                        </button>
+                                        <ul class="dropdown-menu dropdown-menu-end">
                                             {% if item.status == 'Active' %}
                                                 <li>
                                                 <a class="dropdown-item" href="{% url 'booking:booking-create' %}?property_id={{ item.id }}">
@@ -1472,7 +1463,6 @@
                                                         </svg>
                                                         Create Task
                                                     </a>
-
                                                 </li>
                                             {% endif %}
                                             <li>
@@ -1542,7 +1532,6 @@
                                                 </a>
                                             </li>
                                             {% endif %}
-
                                             <li>
                                                 <a class="dropdown-item" href="#" >
                                                     <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
@@ -1553,9 +1542,23 @@
                                                     Copy Guest Link
                                                 </a>
                                             </li>
-
                                         </ul>
                                     </div>
+                                </div>
+                            </div>
+                            <a href="{% url 'property:property-detail' slug=item.slug %}" data-open-property-preview="true" data-preview-title="{{ item.title|escape }}" rel="noopener noreferrer">
+                                <p class="listing-location">{{ item.city }}, {{ item.state }}</p>
+                            </a>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 6px;">
+                                    <img src="{% static 'img/property/bed.svg' %}" >
+                                    <div class="listing-bed-type ">{{ item.get_bed_type_display|cut:" Bed" }}</div>
+                                    <span class="listing-nights" data-listing-nights style="display: none;"></span>
+                                    <a href="{% url 'property:property-detail' slug=item.slug %}" data-open-property-preview="true" data-preview-title="{{ item.title|escape }}" rel="noopener noreferrer">
+                                    <p class="listing-price ms-2" data-nightly-price="{{ item.price_per_night|floatformat:2 }}" data-cleaning-fee="{{ item.cleaning_fee|default:'0.00'|floatformat:2 }}" data-refundable-deposit="{{ item.refundable_deposit|default:'0.00'|floatformat:2 }}" data-application-fee="{{ item.application_fees|default:'0.00'|floatformat:2 }}">
+                                        ${{ item.price_per_night|floatformat:2 }} <span class="price-period">Night</span>
+                                    </p>
+                                    </a>
                                 </div>
                             </div>
                             <!-- <div class="property-meta-row">
@@ -1782,6 +1785,23 @@
         previewModalEl.addEventListener('hidden.bs.modal', function () {
             previewFrame.src = 'about:blank';
             previewLoading.style.display = 'grid';
+        });
+
+        window.addEventListener('message', function (event) {
+            if (!event.data || event.data.type !== 'preview-navigate') return;
+            const url = event.data.url;
+            if (!url) return;
+
+            const modal = bootstrap.Modal.getInstance(previewModalEl);
+            if (modal) {
+                previewModalEl.addEventListener('hidden.bs.modal', function handler() {
+                    previewModalEl.removeEventListener('hidden.bs.modal', handler);
+                    window.location.href = url;
+                }, { once: true });
+                modal.hide();
+            } else {
+                window.location.href = url;
+            }
         });
 
         document.addEventListener('click', function (event) {
@@ -2971,6 +2991,7 @@
             const applicationFee = parseFloat(el.dataset.applicationFee || '0') || 0;
             const total = (nightly * nights) + cleaningFee + refundableDeposit + applicationFee;
             el.dataset.totalPrice = total.toFixed(2);
+            el.classList.add('listing-price--total');
             el.innerHTML = `<span class="price-period">Total</span> - $${total.toFixed(2)} `;
         });
     });
