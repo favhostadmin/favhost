@@ -62,7 +62,12 @@ class TaskListView(LoginRequiredMixin, ListView):
                 Q(assigned_to__icontains=search_query)
             )
 
-        return tasks.order_by('date', 'time')
+        tasks = tasks.extra(
+            select={'_days_from_today': "ABS(date - CURRENT_DATE)"}
+        ).order_by('_days_from_today', 'time')
+        return tasks
+
+
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

@@ -509,7 +509,7 @@ class CalenderAPIView(LoginRequiredMixin,ListView):
             property__created_by__in=get_visible_user_ids(request.user),
             check_in_date__lte=end_date,
             check_out_date__gte=start_date
-        ).exclude(status='cancelled').select_related('property', 'channel').prefetch_related('images', 'payments')
+        ).select_related('property', 'channel').prefetch_related('images', 'payments')
 
         bookings_list = []
         for b in bookings_qs:
@@ -581,10 +581,9 @@ class CalenderAPIView(LoginRequiredMixin,ListView):
 
         # Fetch tasks for the date range organized by date and property
         tasks_qs = Task.objects.filter(
-            property__created_by__in=get_visible_user_ids(request.user),
+            created_by__in=get_visible_user_ids(request.user),
             date__lte=end_date,
             date__gte=start_date,
-            completed=False
         ).select_related('property').order_by('date', 'time')
 
         tasks_list = []
