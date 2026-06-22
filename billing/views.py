@@ -11,6 +11,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
 from .models import StripeCustomer
+from .emails import format_price
 
 logger = logging.getLogger(__name__)
 
@@ -514,6 +515,7 @@ def subscription_detail(request):
                     'name': product_name,
                     'amount': price.unit_amount / 100,
                     'currency': price.currency.upper(),
+                    'amount_display': format_price(price.unit_amount / 100, price.currency),
                     'interval': raw_interval,
                     'interval_label': interval_label,
                     'status': subscription.status,
@@ -554,6 +556,7 @@ def subscription_detail(request):
                     'description': description,
                     'amount': (inv.amount_paid or 0) / 100,
                     'currency': inv.currency.upper(),
+                    'amount_display': format_price((inv.amount_paid or 0) / 100, inv.currency),
                     'status': inv.status,
                     'pdf_url': getattr(inv, 'invoice_pdf', None),
                     'hosted_url': getattr(inv, 'hosted_invoice_url', None),
