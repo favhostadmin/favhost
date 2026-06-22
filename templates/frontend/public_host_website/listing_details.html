@@ -12,6 +12,97 @@
 />
 
 <link href="{% static 'css/public_host_website/listing_details.css' %}" rel="stylesheet">
+<style>
+    /* Keep the booking card summary consistent even if static CSS is cached on server */
+    .booking-card {
+        background: #fff;
+        border: 1px solid #d9dde5;
+        border-radius: 14px;
+        box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
+        padding: 22px 20px 20px;
+    }
+    .booking-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 10px;
+        margin-bottom: 8px;
+    }
+    .booking-card-price {
+        margin-bottom: 0 !important;
+    }
+    .ld-payment-summary {
+        border-top: 1px solid #e5e7eb;
+        margin: 18px 0 16px;
+        padding-top: 16px;
+    }
+    .ld-cost-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 16px;
+        padding: 5px 0;
+        font-size: 14px;
+        line-height: 1.3;
+        color: #374151;
+    }
+    .ld-cost-row span {
+        min-width: 0;
+        color: #374151;
+    }
+    .ld-cost-row strong {
+        flex-shrink: 0;
+        text-align: right;
+        white-space: nowrap;
+        color: #27303f;
+    }
+    .ld-cost-total {
+        border-top: 1px solid #e5e7eb;
+        margin-top: 10px;
+        padding-top: 12px;
+        font-weight: 700;
+        font-size: 15px;
+        color: #111827;
+    }
+    .reserve-btn {
+        width: 100%;
+        border: 0;
+        border-radius: 10px;
+        padding: 14px 16px;
+        font-size: 16px;
+        font-weight: 700;
+        cursor: pointer;
+        margin-bottom: 12px;
+    }
+    #create-reservation-btn,
+    #create-reservation-btn-mobile,
+    #create-availability-btn,
+    #create-availability-btn-mobile {
+        background: #454545;
+        color: #fff;
+    }
+    .availability-text {
+        display: block;
+        width: 100%;
+        box-sizing: border-box;
+        text-align: center;
+        margin-top: 0;
+        font-weight: 700;
+        padding: 13px 16px;
+        border-radius: 10px;
+        line-height: 1.2;
+        font-size: 16px;
+        background: #fff;
+    }
+    .available {
+        color: #0E6108;
+        border: 1px solid #0E6108;
+    }
+    .not-available {
+        color: #dc3545;
+        border: 1px solid #dc3545;
+    }
+</style>
 
 {% endblock extra_head %}
 
@@ -467,6 +558,31 @@
                             <option value="{{ forloop.counter }}" {% if forloop.last %}selected{% endif %}>{{ forloop.counter }} guest{% if forloop.counter > 1 %}s{% endif %}</option>
                             {% endfor %}
                         </select>
+
+                        <!-- Payment Summary (shown when date range is selected) -->
+                        <div id="ld-payment-summary" class="ld-payment-summary" style="display:none;">
+                            <div class="ld-cost-row">
+                                <span id="ld-stay-label">${{ property.price_per_night|floatformat:2 }} x 0 nights</span>
+                                <strong id="ld-stay-total">$0.00</strong>
+                            </div>
+                            <div class="ld-cost-row">
+                                <span>Cleaning fee</span>
+                                <strong>${{ property.cleaning_fee|default:0|floatformat:2 }}</strong>
+                            </div>
+                            <div class="ld-cost-row">
+                                <span>Application fee</span>
+                                <strong>${{ property.application_fees|default:0|floatformat:2 }}</strong>
+                            </div>
+                            <div class="ld-cost-row">
+                                <span>Refundable deposit</span>
+                                <strong>${{ property.refundable_deposit|default:0|floatformat:2 }}</strong>
+                            </div>
+                            <div class="ld-cost-row ld-cost-total">
+                                <span>Total due before check-in</span>
+                                <strong id="ld-total-due">$0.00</strong>
+                            </div>
+                        </div>
+
                         <button class="reserve-btn" id="create-reservation-btn" style="display: none;">Request to book</button>
                         <button class="reserve-btn" id="create-availability-btn" {% if property.status != 'Active' %}disabled{% endif %}>
                             Check Availability
@@ -528,6 +644,31 @@
                     <option value="{{ forloop.counter }}" {% if forloop.last %}selected{% endif %}>{{ forloop.counter }} guest{% if forloop.counter > 1 %}s{% endif %}</option>
                     {% endfor %}
                 </select>
+
+                <!-- Payment Summary Mobile -->
+                <div id="ld-payment-summary-mobile" class="ld-payment-summary" style="display:none;">
+                    <div class="ld-cost-row">
+                        <span id="ld-stay-label-mobile">${{ property.price_per_night|floatformat:2 }} x 0 nights</span>
+                        <strong id="ld-stay-total-mobile">$0.00</strong>
+                    </div>
+                    <div class="ld-cost-row">
+                        <span>Cleaning fee</span>
+                        <strong>${{ property.cleaning_fee|default:0|floatformat:2 }}</strong>
+                    </div>
+                    <div class="ld-cost-row">
+                        <span>Application fee</span>
+                        <strong>${{ property.application_fees|default:0|floatformat:2 }}</strong>
+                    </div>
+                    <div class="ld-cost-row">
+                        <span>Refundable deposit</span>
+                        <strong>${{ property.refundable_deposit|default:0|floatformat:2 }}</strong>
+                    </div>
+                    <div class="ld-cost-row ld-cost-total">
+                        <span>Total due before check-in</span>
+                        <strong id="ld-total-due-mobile">$0.00</strong>
+                    </div>
+                </div>
+
                 <button class="reserve-btn" id="create-reservation-btn-mobile" style="display: none;">Request to book</button>
                 <button class="reserve-btn" id="create-availability-btn-mobile" {% if property.status != 'Active' %}disabled{% endif %}>Check Availability</button>
                 <div id="availability-status-mobile" class="availability-text" style="display: none;"></div>
@@ -1080,6 +1221,57 @@
                 guestsInputMobile.value = incomingGuests;
             }
         }
+
+        // --- Payment Summary Logic ---
+        const ldPricePerNight = parseFloat("{{ property.price_per_night|default:0 }}");
+        const ldCleaningFee   = parseFloat("{{ property.cleaning_fee|default:0 }}");
+        const ldAppFee        = parseFloat("{{ property.application_fees|default:0 }}");
+        const ldDepositFee    = parseFloat("{{ property.refundable_deposit|default:0 }}");
+
+        function updatePaymentSummary(checkinValue, checkoutValue, ids) {
+            const summary = document.getElementById(ids.summary);
+            if (!summary) return;
+            if (!checkinValue || !checkoutValue) { summary.style.display = 'none'; return; }
+            const d1 = new Date(checkinValue + 'T00:00:00');
+            const d2 = new Date(checkoutValue + 'T00:00:00');
+            const nights = Math.max(0, Math.round((d2 - d1) / (1000 * 60 * 60 * 24)));
+            if (nights <= 0) { summary.style.display = 'none'; return; }
+            const stayTotal = ldPricePerNight * nights;
+            const totalDue  = stayTotal + ldCleaningFee + ldAppFee + ldDepositFee;
+            const stayLabel = document.getElementById(ids.stayLabel);
+            const stayTotal_ = document.getElementById(ids.stayTotal);
+            const totalDueEl = document.getElementById(ids.totalDue);
+            if (stayLabel)  stayLabel.textContent  = `$${ldPricePerNight.toFixed(2)} x ${nights} night${nights !== 1 ? 's' : ''}`;
+            if (stayTotal_) stayTotal_.textContent  = `$${stayTotal.toFixed(2)}`;
+            if (totalDueEl) totalDueEl.textContent  = `$${totalDue.toFixed(2)}`;
+            summary.style.display = 'block';
+        }
+
+        function refreshDesktopSummary() {
+            updatePaymentSummary(
+                checkinEl ? checkinEl.value : '',
+                checkoutEl ? checkoutEl.value : '',
+                { summary: 'ld-payment-summary', stayLabel: 'ld-stay-label', stayTotal: 'ld-stay-total', totalDue: 'ld-total-due' }
+            );
+        }
+
+        function refreshMobileSummary() {
+            updatePaymentSummary(
+                checkinElMobile ? checkinElMobile.value : '',
+                checkoutElMobile ? checkoutElMobile.value : '',
+                { summary: 'ld-payment-summary-mobile', stayLabel: 'ld-stay-label-mobile', stayTotal: 'ld-stay-total-mobile', totalDue: 'ld-total-due-mobile' }
+            );
+        }
+
+        // Show summary immediately if dates came from URL
+        refreshDesktopSummary();
+        refreshMobileSummary();
+
+        // Re-compute when dates change
+        if (checkinEl)      checkinEl.addEventListener('change', refreshDesktopSummary);
+        if (checkoutEl)     checkoutEl.addEventListener('change', refreshDesktopSummary);
+        if (checkinElMobile)  checkinElMobile.addEventListener('change', refreshMobileSummary);
+        if (checkoutElMobile) checkoutElMobile.addEventListener('change', refreshMobileSummary);
 
         // Set minimum date to today for both date pickers
         const today = formatLocalIso(new Date());
