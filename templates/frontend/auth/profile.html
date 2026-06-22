@@ -375,6 +375,18 @@
               style="display:inline-block; text-decoration:none;">Fix Payment</a>
 
             {% else %}
+            {% if subscription_cancelled %}
+            <div class="meta" style="color:#b45309; font-weight:600;">
+              <img class="subscription-icon" src="{% static 'img/HostProfile/cycle-rounded.png' %}" alt="cycle">
+              Billing cycle: Cancelled
+            </div>
+            {% if last_payment_date %}
+            <div class="payment-meta" style="font-weight:600;">
+              <img class="subscription-icon" src="{% static 'img/HostProfile/formkit_date.png' %}" alt="date">
+              Last payment: {{ last_payment_date|date:"d-M-Y" }}{% if last_payment_amount %} - ${{ last_payment_amount|floatformat:2 }}{% endif %}
+            </div>
+            {% endif %}
+            {% endif %}
             <div class="meta">
               <img class="subscription-icon" src="{% static 'img/HostProfile/cycle-rounded.png' %}" alt="cycle">
               Started: {{ trial_start|date:"d-M-Y" }}
@@ -389,7 +401,7 @@
               {% endif %}
             </div>
             <a href="{% url 'billing:pricing' %}" class="btn-outline"
-              style="display:inline-block; text-decoration:none; margin-top:8px;">Upgrade</a>
+              style="display:inline-block; text-decoration:none; margin-top:8px;">{% if subscription_cancelled %}Resubscribe{% else %}Upgrade{% endif %}</a>
             {% endif %}
           </div>
         </div>
