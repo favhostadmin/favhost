@@ -223,6 +223,63 @@ def _generate_otp():
     return ''.join(random.choices(string.digits, k=4))
 
 
+# OTP security: codes expire and allow only a few verification attempts.
+OTP_EXPIRY_SECONDS = 15 * 60   # matches the "expires in 15 minutes" copy in emails/UI
+OTP_MAX_ATTEMPTS = 5           # wrong guesses allowed before a new code is required
+
+
+def _store_otp(request, key, otp):
+    """Save an OTP in the session with a fresh timestamp and a zeroed attempt counter."""
+    request.session[key] = otp
+    request.session[f'{key}_created'] = timezone.now().timestamp()
+    request.session[f'{key}_attempts'] = 0
+
+
+def _clear_otp(request, key):
+    """Remove an OTP and its expiry/attempt metadata from the session."""
+    for suffix in ('', '_created', '_attempts'):
+        request.session.pop(f'{key}{suffix}', None)
+
+
+def _check_otp(request, key, submitted):
+    """
+    Validate a submitted OTP against the session.
+
+    Returns (ok, error_message). A wrong-but-still-valid code increments the
+    attempt counter; an expired or exhausted code is cleared so the user must
+    request a new one. error_message is None when ok is True.
+    """
+    stored = request.session.get(key)
+    created = request.session.get(f'{key}_created')
+
+    if not stored or not created:
+        return False, 'Your code has expired. Please request a new one.'
+
+    # Expiry check
+    if (timezone.now().timestamp() - created) > OTP_EXPIRY_SECONDS:
+        _clear_otp(request, key)
+        return False, 'Your code has expired. Please request a new one.'
+
+    # Attempt-limit check (before comparing, in case a prior request hit the cap)
+    attempts = request.session.get(f'{key}_attempts', 0)
+    if attempts >= OTP_MAX_ATTEMPTS:
+        _clear_otp(request, key)
+        return False, 'Too many incorrect attempts. Please request a new code.'
+
+    # Value check
+    if submitted != stored:
+        attempts += 1
+        request.session[f'{key}_attempts'] = attempts
+        remaining = OTP_MAX_ATTEMPTS - attempts
+        if remaining <= 0:
+            _clear_otp(request, key)
+            return False, 'Too many incorrect attempts. Please request a new code.'
+        plural = '' if remaining == 1 else 's'
+        return False, f'Invalid code. {remaining} attempt{plural} remaining.'
+
+    return True, None
+
+
 def _send_otp_email(email, first_name, otp, subject, template_name, is_forgot=False, is_resend=False):
     """Sends HTML email with inline attached logo."""
     try:
@@ -374,7 +431,7 @@ def register_view(request):
 
         # Generate OTP and store in session
         otp = _generate_otp()
-        request.session['signup_otp'] = otp
+        _store_otp(request, 'signup_otp', otp)
         request.session['signup_data'] = {
             'first_name': first_name,
             'last_name': last_name,
@@ -407,15 +464,15 @@ def verify_otp_view(request):
         otp_code = request.POST.get('otp_code', '').strip()
         email = request.POST.get('email', '').strip()
 
-        stored_otp = request.session.get('signup_otp')
         signup_data = request.session.get('signup_data', {})
 
-        if not stored_otp or not signup_data:
+        if not request.session.get('signup_otp') or not signup_data:
             messages.error(request, 'Session expired. Please sign up again.')
             return redirect('login')
 
-        if otp_code != stored_otp:
-            messages.error(request, 'Invalid verification code. Please try again.')
+        ok, otp_error = _check_otp(request, 'signup_otp', otp_code)
+        if not ok:
+            messages.error(request, otp_error)
             return render(request, 'frontend/auth/login.html', {
                 'show_signup': True,
                 'show_otp_modal': True,
@@ -434,7 +491,7 @@ def verify_otp_view(request):
             user.save()
 
             # Clear session data
-            del request.session['signup_otp']
+            _clear_otp(request, 'signup_otp')
             del request.session['signup_data']
 
             # Send the welcome email to the freshly created user
@@ -467,7 +524,7 @@ def resend_otp_view(request):
         return JsonResponse({'success': False, 'error': 'Invalid session.'})
 
     otp = _generate_otp()
-    request.session['signup_otp'] = otp
+    _store_otp(request, 'signup_otp', otp)
 
     signup_data_session = request.session.get('signup_data', {})
     fn = signup_data_session.get('first_name', 'User')
@@ -507,7 +564,7 @@ def forgot_password_view(request):
 
         # Always show success message to avoid email enumeration
         otp = _generate_otp()
-        request.session['forgot_otp'] = otp
+        _store_otp(request, 'forgot_otp', otp)
         request.session['forgot_email'] = email
 
         try:
@@ -533,13 +590,13 @@ def forgot_password_view(request):
     elif step == 'otp':
         email = request.POST.get('email', '').strip()
         otp_code = request.POST.get('otp_code', '').strip()
-        stored_otp = request.session.get('forgot_otp')
 
-        if not stored_otp or otp_code != stored_otp:
+        ok, otp_error = _check_otp(request, 'forgot_otp', otp_code)
+        if not ok:
             return render(request, 'frontend/auth/forgot_password.html', {
                 'active_step': 'otp',
                 'otp_email': email,
-                'otp_error': 'Invalid code. Please try again.',
+                'otp_error': otp_error,
             })
 
         # Mark OTP as verified in session
@@ -586,7 +643,8 @@ def forgot_password_view(request):
             user.save()
 
             # Clear session
-            for key in ('forgot_otp', 'forgot_email', 'forgot_otp_verified'):
+            _clear_otp(request, 'forgot_otp')
+            for key in ('forgot_email', 'forgot_otp_verified'):
                 request.session.pop(key, None)
 
             messages.success(request, 'Password reset successfully! Please log in.')
@@ -609,7 +667,7 @@ def forgot_resend_otp_view(request):
         return JsonResponse({'success': False, 'error': 'Session mismatch.'})
 
     otp = _generate_otp()
-    request.session['forgot_otp'] = otp
+    _store_otp(request, 'forgot_otp', otp)
 
     user = MyUser.objects.filter(email=email).first()
     fn = user.first_name if user and user.first_name else email
