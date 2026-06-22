@@ -1096,43 +1096,6 @@
     box-shadow: 0 24px 80px rgba(0, 0, 0, 0.28);
   }
 
-  #propertyPreviewModal .modal-header {
-    padding: 14px 18px;
-    border-bottom: 1px solid #e5e7eb;
-    background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
-  }
-
-  #propertyPreviewModal .modal-title {
-    font-size: 18px;
-    font-weight: 700;
-    color: #111827;
-  }
-
-  #propertyPreviewModal .preview-modal-actions {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-
-  #propertyPreviewModal .preview-modal-open-link {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 8px 12px;
-    border: 1px solid #d1d5db;
-    border-radius: 10px;
-    color: #111827;
-    text-decoration: none;
-    font-size: 13px;
-    font-weight: 600;
-    background: #fff;
-    transition: background-color 0.15s ease, border-color 0.15s ease;
-  }
-
-  #propertyPreviewModal .preview-modal-open-link:hover {
-    background: #f9fafb;
-    border-color: #9ca3af;
-  }
 
   #propertyPreviewModal .modal-body {
     flex: 1 1 auto;
@@ -1613,20 +1576,6 @@
 <div class="modal fade" id="propertyPreviewModal" tabindex="-1" aria-labelledby="propertyPreviewModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered modal-xl">
     <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title text-truncate" id="propertyPreviewModalLabel">Listing Details</h5>
-        <div class="preview-modal-actions">
-          <a href="#" class="preview-modal-open-link" id="propertyPreviewOpenInNewTab" target="_blank" rel="noopener noreferrer">
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-              <path d="M6 2H4.5A2.5 2.5 0 0 0 2 4.5v7A2.5 2.5 0 0 0 4.5 14H11.5A2.5 2.5 0 0 0 14 11.5V10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-              <path d="M8 8L14 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-              <path d="M10.5 2H14V5.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            <span>Open in new tab</span>
-          </a>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
-      </div>
       <div class="modal-body">
         <div class="preview-body-wrap">
           <div class="preview-loading" id="propertyPreviewLoading">Loading listing details...</div>
@@ -1747,10 +1696,8 @@
         const previewModalEl = document.getElementById('propertyPreviewModal');
         const previewFrame = document.getElementById('propertyPreviewFrame');
         const previewLoading = document.getElementById('propertyPreviewLoading');
-        const previewTitle = document.getElementById('propertyPreviewModalLabel');
-        const previewOpenLink = document.getElementById('propertyPreviewOpenInNewTab');
 
-        if (!previewModalEl || !previewFrame || !previewTitle || !previewOpenLink || !window.bootstrap) return;
+        if (!previewModalEl || !previewFrame || !window.bootstrap) return;
 
         const previewModal = new bootstrap.Modal(previewModalEl);
 
@@ -1764,18 +1711,16 @@
                         previewUrl.searchParams.set(key, value);
                     }
                 });
+                previewUrl.searchParams.set('embed', '1');
                 return previewUrl.toString();
             } catch (error) {
                 return url;
             }
         }
 
-        function setPreview(url, title) {
-            const previewUrl = buildPreviewUrl(url);
-            previewTitle.textContent = title || 'Listing Details';
-            previewOpenLink.href = previewUrl;
+        function setPreview(url) {
             previewLoading.style.display = 'grid';
-            previewFrame.src = previewUrl;
+            previewFrame.src = buildPreviewUrl(url);
         }
 
         previewFrame.addEventListener('load', function () {
@@ -1817,8 +1762,7 @@
             const url = link.getAttribute('href');
             if (!url) return;
 
-            const title = link.getAttribute('data-preview-title') || 'Listing Details';
-            setPreview(url, title);
+            setPreview(url);
             previewModal.show();
         });
     });
