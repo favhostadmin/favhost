@@ -112,6 +112,69 @@ def firebase_auth_view(request):
     return JsonResponse({'success': True, 'redirect': str(reverse_lazy('dashboard'))})
 
 
+@csrf_exempt
+@require_POST
+def google_auth_view(request):
+    """
+    Receive a Google Identity Services ID token (the `credential` returned by the
+    GIS button) and verify it directly with Google, then log in or create the user.
+
+    This replaces the Firebase popup/redirect flow for "Continue with Google",
+    which fails on iOS ("missing initial state") because WebKit partitions the
+    third-party sessionStorage Firebase needs across the firebaseapp.com redirect.
+    GIS returns the ID token straight to a JS callback — no cross-domain storage.
+    """
+    client_id = getattr(settings, 'GOOGLE_OAUTH_CLIENT_ID', '')
+    if not client_id:
+        return JsonResponse({'error': 'Google sign-in is not configured on the server.'}, status=501)
+
+    try:
+        data = json.loads(request.body)
+        credential = data.get('credential')
+        if not credential:
+            return JsonResponse({'error': 'Missing credential'}, status=400)
+
+        from google.oauth2 import id_token as google_id_token
+        from google.auth.transport import requests as google_requests
+        # Verifies signature, expiry, issuer and that the audience == our client_id.
+        info = google_id_token.verify_oauth2_token(
+            credential, google_requests.Request(), client_id
+        )
+    except Exception as e:
+        return JsonResponse({'error': f'Token verification failed: {e}'}, status=403)
+
+    email = (info.get('email') or '').strip()
+    if not email or not info.get('email_verified', False):
+        return JsonResponse({'error': 'No verified email from Google account'}, status=400)
+
+    first_name = info.get('given_name', '')
+    last_name = info.get('family_name', '')
+    if not first_name and info.get('name'):
+        parts = info['name'].split(' ', 1)
+        first_name = parts[0]
+        last_name = parts[1] if len(parts) > 1 else ''
+
+    user = MyUser.objects.filter(email__iexact=email).first()
+    if not user:
+        user = MyUser.objects.create_user(username=email, email=email)
+        user.first_name = first_name
+        user.last_name = last_name
+        user.is_active = True
+        user.save()
+
+        # First-time Google sign-up — send the welcome email
+        _send_welcome_email(
+            email=user.email,
+            first_name=user.first_name or 'there',
+            request=request,
+        )
+
+    user.backend = 'accounts.backends.EmailOrUsernameBackend'
+    auth_login(request, user)
+
+    return JsonResponse({'success': True, 'redirect': str(reverse_lazy('dashboard'))})
+
+
 # ─────────────────────────────────────────────
 # LOGIN
 # ─────────────────────────────────────────────
@@ -132,6 +195,9 @@ class CustomLoginView(LoginView):
         context['firebase_app_id'] = settings.FIREBASE_APP_ID
         context['firebase_measurement_id'] = settings.FIREBASE_MEASUREMENT_ID
         context['firebase_configured'] = bool(settings.FIREBASE_API_KEY)
+        # Google Identity Services (preferred for "Continue with Google")
+        context['google_client_id'] = settings.GOOGLE_OAUTH_CLIENT_ID
+        context['google_configured'] = bool(settings.GOOGLE_OAUTH_CLIENT_ID)
         return context
 
     def form_valid(self, form):
@@ -155,6 +221,63 @@ class CustomLoginView(LoginView):
 # ─────────────────────────────────────────────
 def _generate_otp():
     return ''.join(random.choices(string.digits, k=4))
+
+
+# OTP security: codes expire and allow only a few verification attempts.
+OTP_EXPIRY_SECONDS = 15 * 60   # matches the "expires in 15 minutes" copy in emails/UI
+OTP_MAX_ATTEMPTS = 5           # wrong guesses allowed before a new code is required
+
+
+def _store_otp(request, key, otp):
+    """Save an OTP in the session with a fresh timestamp and a zeroed attempt counter."""
+    request.session[key] = otp
+    request.session[f'{key}_created'] = timezone.now().timestamp()
+    request.session[f'{key}_attempts'] = 0
+
+
+def _clear_otp(request, key):
+    """Remove an OTP and its expiry/attempt metadata from the session."""
+    for suffix in ('', '_created', '_attempts'):
+        request.session.pop(f'{key}{suffix}', None)
+
+
+def _check_otp(request, key, submitted):
+    """
+    Validate a submitted OTP against the session.
+
+    Returns (ok, error_message). A wrong-but-still-valid code increments the
+    attempt counter; an expired or exhausted code is cleared so the user must
+    request a new one. error_message is None when ok is True.
+    """
+    stored = request.session.get(key)
+    created = request.session.get(f'{key}_created')
+
+    if not stored or not created:
+        return False, 'Your code has expired. Please request a new one.'
+
+    # Expiry check
+    if (timezone.now().timestamp() - created) > OTP_EXPIRY_SECONDS:
+        _clear_otp(request, key)
+        return False, 'Your code has expired. Please request a new one.'
+
+    # Attempt-limit check (before comparing, in case a prior request hit the cap)
+    attempts = request.session.get(f'{key}_attempts', 0)
+    if attempts >= OTP_MAX_ATTEMPTS:
+        _clear_otp(request, key)
+        return False, 'Too many incorrect attempts. Please request a new code.'
+
+    # Value check
+    if submitted != stored:
+        attempts += 1
+        request.session[f'{key}_attempts'] = attempts
+        remaining = OTP_MAX_ATTEMPTS - attempts
+        if remaining <= 0:
+            _clear_otp(request, key)
+            return False, 'Too many incorrect attempts. Please request a new code.'
+        plural = '' if remaining == 1 else 's'
+        return False, f'Invalid code. {remaining} attempt{plural} remaining.'
+
+    return True, None
 
 
 def _send_otp_email(email, first_name, otp, subject, template_name, is_forgot=False, is_resend=False):
@@ -188,8 +311,11 @@ def _send_otp_email(email, first_name, otp, subject, template_name, is_forgot=Fa
             with open(logo_path, 'rb') as f:
                 img = MIMEImage(f.read())
                 img.add_header('Content-ID', '<logo>')
+                # Mark as inline so clients render it in the header, not as an attachment.
+                img.add_header('Content-Disposition', 'inline', filename='favhost_logo.png')
+                img.add_header('X-Attachment-Id', 'logo')
                 email_msg.attach(img)
-                
+
         email_msg.send(fail_silently=True)
     except Exception:
         logger.exception("Failed to send OTP email to %s", email)
@@ -305,7 +431,7 @@ def register_view(request):
 
         # Generate OTP and store in session
         otp = _generate_otp()
-        request.session['signup_otp'] = otp
+        _store_otp(request, 'signup_otp', otp)
         request.session['signup_data'] = {
             'first_name': first_name,
             'last_name': last_name,
@@ -338,15 +464,15 @@ def verify_otp_view(request):
         otp_code = request.POST.get('otp_code', '').strip()
         email = request.POST.get('email', '').strip()
 
-        stored_otp = request.session.get('signup_otp')
         signup_data = request.session.get('signup_data', {})
 
-        if not stored_otp or not signup_data:
+        if not request.session.get('signup_otp') or not signup_data:
             messages.error(request, 'Session expired. Please sign up again.')
             return redirect('login')
 
-        if otp_code != stored_otp:
-            messages.error(request, 'Invalid verification code. Please try again.')
+        ok, otp_error = _check_otp(request, 'signup_otp', otp_code)
+        if not ok:
+            messages.error(request, otp_error)
             return render(request, 'frontend/auth/login.html', {
                 'show_signup': True,
                 'show_otp_modal': True,
@@ -365,7 +491,7 @@ def verify_otp_view(request):
             user.save()
 
             # Clear session data
-            del request.session['signup_otp']
+            _clear_otp(request, 'signup_otp')
             del request.session['signup_data']
 
             # Send the welcome email to the freshly created user
@@ -398,7 +524,7 @@ def resend_otp_view(request):
         return JsonResponse({'success': False, 'error': 'Invalid session.'})
 
     otp = _generate_otp()
-    request.session['signup_otp'] = otp
+    _store_otp(request, 'signup_otp', otp)
 
     signup_data_session = request.session.get('signup_data', {})
     fn = signup_data_session.get('first_name', 'User')
@@ -438,7 +564,7 @@ def forgot_password_view(request):
 
         # Always show success message to avoid email enumeration
         otp = _generate_otp()
-        request.session['forgot_otp'] = otp
+        _store_otp(request, 'forgot_otp', otp)
         request.session['forgot_email'] = email
 
         try:
@@ -464,13 +590,13 @@ def forgot_password_view(request):
     elif step == 'otp':
         email = request.POST.get('email', '').strip()
         otp_code = request.POST.get('otp_code', '').strip()
-        stored_otp = request.session.get('forgot_otp')
 
-        if not stored_otp or otp_code != stored_otp:
+        ok, otp_error = _check_otp(request, 'forgot_otp', otp_code)
+        if not ok:
             return render(request, 'frontend/auth/forgot_password.html', {
                 'active_step': 'otp',
                 'otp_email': email,
-                'otp_error': 'Invalid code. Please try again.',
+                'otp_error': otp_error,
             })
 
         # Mark OTP as verified in session
@@ -517,7 +643,8 @@ def forgot_password_view(request):
             user.save()
 
             # Clear session
-            for key in ('forgot_otp', 'forgot_email', 'forgot_otp_verified'):
+            _clear_otp(request, 'forgot_otp')
+            for key in ('forgot_email', 'forgot_otp_verified'):
                 request.session.pop(key, None)
 
             messages.success(request, 'Password reset successfully! Please log in.')
@@ -540,7 +667,7 @@ def forgot_resend_otp_view(request):
         return JsonResponse({'success': False, 'error': 'Session mismatch.'})
 
     otp = _generate_otp()
-    request.session['forgot_otp'] = otp
+    _store_otp(request, 'forgot_otp', otp)
 
     user = MyUser.objects.filter(email=email).first()
     fn = user.first_name if user and user.first_name else email
@@ -598,7 +725,8 @@ def profile_view(request):
     next_payment_date = None  # fetched live from Stripe subscription
     next_payment_amount = None  # fetched live from Stripe subscription
     billing_interval = 'Monthly'  # default; updated from Stripe if available
-    if is_premium and stripe_customer and stripe_customer.stripe_customer_id:
+    subscription_cancelled = False  # True when they subscribed before but have no active sub now
+    if stripe_customer and stripe_customer.stripe_customer_id:
         try:
             import stripe as stripe_lib
             import datetime
@@ -665,6 +793,13 @@ def profile_view(request):
                     pass
 
             if sub:
+                # Live Stripe confirms an active subscription — heal the DB status.
+                is_premium = True
+                if stripe_customer.subscription_status != 'active':
+                    stripe_customer.subscription_status = 'active'
+                    stripe_customer.save(update_fields=['subscription_status'])
+                    subscription_status = 'active'
+
                 # Billing interval
                 try:
                     raw_interval = sub.items.data[0].price.recurring.interval
@@ -703,6 +838,19 @@ def profile_view(request):
                             stripe_customer.save(update_fields=['current_period_end'])
                 except Exception:
                     pass
+
+            elif not user.is_subscription_free and (
+                stripe_customer.stripe_subscription_id
+                or subscription_status in ('active', 'canceled', 'past_due')
+            ):
+                # They had a subscription but Stripe shows none active → cancelled.
+                # Fall back to trial access for any remaining trial days.
+                subscription_cancelled = True
+                is_premium = False
+                if stripe_customer.subscription_status != 'canceled':
+                    stripe_customer.subscription_status = 'canceled'
+                    stripe_customer.save(update_fields=['subscription_status'])
+                subscription_status = 'canceled'
         except Exception:
             pass  # Silently fall back — Stripe unavailable
 
@@ -724,6 +872,7 @@ def profile_view(request):
         'next_payment_date': next_payment_date,
         'next_payment_amount': next_payment_amount,
         'billing_interval': billing_interval,
+        'subscription_cancelled': subscription_cancelled,
     }
     return render(request, 'frontend/auth/profile.html', context)
 

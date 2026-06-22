@@ -10,6 +10,8 @@ if [[ -f "requirements.txt" ]]; then
   python -m pip install -r requirements.txt
 fi
 # python manage.py makemigrations --noinput
+# python manage.py collectstatic --noinput
+
 python manage.py migrate --noinput
 
 exec python manage.py runserver 0.0.0.0:8000
