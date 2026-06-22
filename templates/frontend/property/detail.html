@@ -2733,13 +2733,43 @@
                     check_out: checkoutEl.value,
                     guests: guests
                 });
-                window.location.href = `${bookingUrl}?${queryParams.toString()}`;
+                const targetUrl = `${bookingUrl}?${queryParams.toString()}`;
+                if (window.self !== window.top) {
+                    window.parent.postMessage({ type: 'preview-navigate', url: targetUrl }, '*');
+                } else {
+                    window.location.href = targetUrl;
+                }
             } else {
                 showValidationModal('Could not retrieve reservation details. Please select dates and guests again.');
                 resetAvailabilityState();
             }
         });
     });
+</script>
+
+<script>
+(function () {
+    if (window.self === window.top) return; // not inside preview iframe
+
+    document.addEventListener('click', function (e) {
+        const item = e.target.closest('.dropdown-item');
+        if (!item) return;
+
+        const href = item.getAttribute('href');
+        let targetUrl;
+
+        if (href && href !== '#' && !href.startsWith('javascript:')) {
+            targetUrl = href;
+        } else {
+            // onclick-only items (delete, toggle status, copy link) — go to the detail page
+            targetUrl = window.location.pathname + window.location.search;
+        }
+
+        e.preventDefault();
+        e.stopPropagation();
+        window.parent.postMessage({ type: 'preview-navigate', url: targetUrl }, '*');
+    }, true);
+})();
 </script>
 
 {% endblock extra_script %}

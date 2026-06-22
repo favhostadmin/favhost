@@ -9,17 +9,18 @@
     <style>
     /* Country code selector styles */
 
-    /* Hide arrows from number inputs in the payment section */
+    /* Hide arrows from all number inputs */
     /* For Chrome, Safari, Edge, Opera */
-    .price-input-container input[type=number]::-webkit-inner-spin-button,
-    .price-input-container input[type=number]::-webkit-outer-spin-button {
+    input[type=number]::-webkit-inner-spin-button,
+    input[type=number]::-webkit-outer-spin-button {
         -webkit-appearance: none;
         margin: 0;
     }
 
     /* For Firefox */
-    .price-input-container input[type=number] {
+    input[type=number] {
         -moz-appearance: textfield;
+        appearance: textfield;
     }
     
     .phone-wrapper {
@@ -1101,6 +1102,17 @@
         pointer-events: none;
     }
 
+    .accommodation-field-wrap.show-unavailable #accommodation-not-available {
+        display: block !important;
+    }
+
+    #accommodation-not-available {
+        color: #dc3545 !important;
+        font-size: 13px;
+        margin-top: 6px;
+        font-weight: 600;
+    }
+
     .booking-layout-grid {
         display: grid;
         grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
@@ -1516,15 +1528,16 @@
                             <input type="text" name="purpose_of_stay" class="booking-input" placeholder="Purpose of stay" value="{{ form_data.purpose_of_stay|default:'' }}">
                         </div>
 
-                        <div class="booking-field full-width" style="margin-top: 6px;">
+                        <div class="booking-field full-width accommodation-field-wrap" style="margin-top: 6px;">
                             <label class="booking-field-label">Select accomodation<span class="required">*</span></label>
-                            <div class="property-selection-trigger accommodation-trigger disabled" onclick="openPropertySidebar()" role="button" tabindex="0" aria-label="Select accomodation">
+                            <div class="property-selection-trigger accommodation-trigger disabled" onclick="openPropertySidebar()" role="button" tabindex="0" aria-label="Select accomodation" aria-disabled="true">
                                 <span id="selectedPropertyText" class="trigger-placeholder">Select accomodation</span>
                                 <span class="trigger-caret">▾</span>
                             </div>
                             <select name="property" class="booking-select property-select" id="id_property" style="display:none;" required>
                                 <option value="" selected>Select accomodation</option>
                             </select>
+                            <div id="accommodation-not-available" style="display:none;">Not Available</div>
                         </div>
 
                         <!-- Summary Section -->
@@ -2123,7 +2136,7 @@
 
             const channelSelect = $('#id_channel');
 
-            function renderPropertyTrigger(selected) {
+            window.renderPropertyTrigger = function renderPropertyTrigger(selected) {
                 if (!propertyTrigger) {
                     return;
                 }
@@ -2168,7 +2181,35 @@
                         <span class="trigger-caret" style="margin-left: auto; padding-left: 8px;">▾</span>
                     </div>
                 `;
-            }
+            };
+            const renderPropertyTrigger = window.renderPropertyTrigger;
+
+            window.setAccommodationFieldState = function({ disabled, showUnavailable }) {
+                const accommodationTrigger = document.querySelector('.accommodation-trigger');
+                const propertySelect = $('#id_property');
+                const accommodationWrap = document.querySelector('.accommodation-field-wrap');
+
+                if (accommodationTrigger) {
+                    accommodationTrigger.classList.toggle('disabled', disabled);
+                    accommodationTrigger.setAttribute('aria-disabled', disabled ? 'true' : 'false');
+                    accommodationTrigger.tabIndex = disabled ? -1 : 0;
+                }
+
+                if (accommodationWrap) {
+                    accommodationWrap.classList.toggle('show-unavailable', !!showUnavailable);
+                }
+
+                if (propertySelect && propertySelect.length) {
+                    propertySelect.prop('disabled', !!disabled);
+                }
+
+                if (showUnavailable) {
+                    $('#accommodation-not-available').show();
+                } else {
+                    $('#accommodation-not-available').hide();
+                }
+            };
+            const setAccommodationFieldState = window.setAccommodationFieldState;
 
             function formatChannel(channel) {
                 if (!channel.id) {
@@ -2197,6 +2238,11 @@
                     renderPropertyTrigger(null);
                     if (propertyPreview) propertyPreview.innerHTML = '';
                     $('#summary-section').hide();
+                    if (window.allPropertiesUnavailable) {
+                        setAccommodationFieldState({ disabled: true, showUnavailable: true });
+                    } else {
+                        setAccommodationFieldState({ disabled: false, showUnavailable: false });
+                    }
                     return;
                 }
                 const imageUrl = selected.data('image') || '{% static "img/property/placeholder-image.png" %}';
@@ -2211,8 +2257,10 @@
                     renderPropertyTrigger(null);
                     if (propertyPreview) propertyPreview.innerHTML = '';
                     $('#summary-section').hide();
+                    setAccommodationFieldState({ disabled: true, showUnavailable: true });
                     return;
                 }
+                setAccommodationFieldState({ disabled: false, showUnavailable: false });
 
                 renderPropertyTrigger(selected);
                 $('#summary-section').show();
@@ -2377,7 +2425,7 @@
                 const trigger = document.querySelector('.property-selection-trigger');
                 
                 if (trigger) {
-                    if (checkIn && checkOut && guests) {
+                    if (checkIn && checkOut && guests && !window.allPropertiesUnavailable) {
                         trigger.classList.remove('disabled');
                     } else {
                         trigger.classList.add('disabled');
@@ -2454,10 +2502,15 @@
             }
         });
     }
+    window.allPropertiesUnavailable = false;
+
     function callApi() {
         const checkin = checkInEl.value;
         const checkout = checkOutEl.value;
         const guests = guestEl.value;
+        // Reset unavailable state before fetching new results
+        window.allPropertiesUnavailable = false;
+        $('#accommodation-not-available').hide();
 
         const baseUrl = "{% url 'property:ajax-get-available-properties' %}";
         const url = `${baseUrl}?check_in=${encodeURIComponent(checkin)}&check_out=${encodeURIComponent(checkout)}&guests=${encodeURIComponent(guests)}`;
@@ -2497,7 +2550,7 @@
                     // The text for the option is property.title, and the value is property.id
                     const option = new Option(property.title, property.id);
                     const isAvailable = String(property.is_available) === 'true' || property.is_available === true;
-                    
+
                     // Set attributes directly so they are accessible via dataset in vanilla JS
                     option.setAttribute('data-image', property.image_url || '');
                     option.setAttribute('data-location', property.location || '');
@@ -2509,9 +2562,23 @@
                     option.setAttribute('data-available', String(isAvailable));
                     option.setAttribute('data-min-nights', property.minimum_nights || '');
                     option.disabled = !isAvailable;
-                    
+
                     propertySelect.append(option);
                 });
+
+                // If none of the properties are available, disable trigger and show Not Available
+                const anyAvailable = data.properties.some(function(p) {
+                    return String(p.is_available) === 'true' || p.is_available === true;
+                });
+                window.allPropertiesUnavailable = !anyAvailable;
+                if (!anyAvailable) {
+                    setAccommodationFieldState({ disabled: true, showUnavailable: true });
+                    propertySelect.val('');
+                    renderPropertyTrigger(null);
+                    $('#accommodation-not-available').show();
+                } else {
+                    setAccommodationFieldState({ disabled: false, showUnavailable: false });
+                }
 
                 // If a property_id was passed in the URL, select it
                 const currentSelectedOption = currentSelectedId ? propertySelect.find(`option[value="${currentSelectedId}"]`) : null;
@@ -2523,16 +2590,28 @@
                     String(currentSelectedOption.data('available')) === 'true'
                 ) {
                     propertySelect.val(currentSelectedId);
+                    $('#accommodation-not-available').hide();
                 } else if (
                     urlSelectedOption &&
                     urlSelectedOption.length &&
                     String(urlSelectedOption.data('available')) === 'true'
                 ) {
                     propertySelect.val(propertyIdFromUrl);
+                    $('#accommodation-not-available').hide();
+                } else if (
+                    (currentSelectedOption && currentSelectedOption.length && String(currentSelectedOption.data('available')) !== 'true') ||
+                    (urlSelectedOption && urlSelectedOption.length && String(urlSelectedOption.data('available')) !== 'true')
+                ) {
+                    propertySelect.val('');
+                    renderPropertyTrigger(null);
+                    setAccommodationFieldState({ disabled: false, showUnavailable: false });
                 }
             } else {
                 propertySelect.append(new Option('No available properties for these dates', ''));
-                propertySelect.prop("disabled", true);
+                window.allPropertiesUnavailable = true;
+                setAccommodationFieldState({ disabled: true, showUnavailable: true });
+                renderPropertyTrigger(null);
+                $('#accommodation-not-available').show();
             }
             
             propertySelect.trigger('change'); 
