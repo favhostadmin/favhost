@@ -56,8 +56,8 @@ class BookingListView(LoginRequiredMixin, ListView):
             bookings = bookings.order_by('-check_out_date')
         elif status_filter == 'current':
             bookings = base_qs.filter(check_in_date__lte=now, check_out_date__gte=now, status='confirmed')
-            # List sorted by Checkin Date, first checking date on the top
-            bookings = bookings.order_by('check_in_date')
+            # List sorted by Checkin Date, latest checking date on the top
+            bookings = bookings.order_by('-check_in_date')
         elif status_filter == 'upcoming':
             bookings = base_qs.filter(check_in_date__gt=now, status='confirmed')
             # List sorted by Checkin Date, Closest checking date on the top
