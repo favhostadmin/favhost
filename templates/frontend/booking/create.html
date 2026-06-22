@@ -363,6 +363,7 @@
 
     .select2-container--default .select2-selection--single {
         height: auto;
+        min-height: 48px;
         border-radius: 8px;
         display: flex;
         align-items: center;
@@ -373,6 +374,10 @@
         box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
         transition: all 0.2s;
         border:1px solid #d1d5db;
+    }
+
+    .booking-field .select2-container {
+        margin-bottom: 0;
     }
 
     .select2-container--default .select2-selection--single:hover {
@@ -1158,7 +1163,7 @@
 
     .booking-field-label {
         display: block;
-        margin-bottom: 8px;
+        margin-bottom: 6px;
         font-size: 12px;
         font-weight: 700;
         color: #1f2937;
@@ -1210,7 +1215,7 @@
     .booking-upload-box {
         border: 1px dashed #d1d5db;
         border-radius: 10px;
-        min-height: 118px;
+        min-height: 123px;
         padding: 14px 10px;
         display: flex;
         flex-direction: column;
@@ -1471,11 +1476,9 @@
                                 <label class="booking-field-label">Check-out date<span class="required">*</span></label>
                                 <input type="date" name="check_out_date" id="id_check_out_date" class="booking-input" value="{{ check_out_date|default_if_none:'' }}" required>
                             </div>
-                        </div>
 
-                        <div class="row m-0">
-                            <div class="col-lg-6 col-12 form-group ps-0">
-                                <label class="booking-field-label time-field-label mt-3">Check-in time<span class="required">*</span></label>
+                            <div class="booking-field">
+                                <label class="booking-field-label">Check-in time<span class="required">*</span></label>
                                 <div class="time_dropdown" id="checkinDropdown">
                                     <div class="time_dropdown-toggle"></div>
                                     <div class="time_dropdown-menu">
@@ -1487,8 +1490,8 @@
                                 <input type="hidden" name="check_in_time" id="checkin_time_input"
                                     value="{% if form.check_in_time.value %}{{ form.check_in_time.value|stringformat:"s"|slice:":5" }}{% else %}15:00{% endif %}">
                             </div>
-                            <div class="col-lg-6 col-12 form-group last-name-col">
-                                <label class="booking-field-label time-field-label mt-3">Check-out time<span class="required">*</span></label>
+                            <div class="booking-field">
+                                <label class="booking-field-label">Check-out time<span class="required">*</span></label>
                                 <div class="time_dropdown" id="checkoutDropdown">
                                     <div class="time_dropdown-toggle"></div>
                                     <div class="time_dropdown-menu">
@@ -1500,14 +1503,12 @@
                                 <input type="hidden" name="check_out_time" id="checkout_time_input"
                                     value="{% if form.check_out_time.value %}{{ form.check_out_time.value|stringformat:"s"|slice:":5" }}{% else %}10:00{% endif %}">
                             </div>
-                        </div>
 
-                        <div class="booking-field full-width">
-                            <label class="booking-field-label">Notes</label>
-                            <textarea name="notes" class="booking-textarea" placeholder="Enter any special requests or notes..." id="id_notes">{{ form_data.notes|default:'' }}</textarea>
-                        </div>
+                            <div class="booking-field full-width">
+                                <label class="booking-field-label">Notes</label>
+                                <textarea name="notes" rows="5" class="booking-textarea" placeholder="Enter any special requests or notes..." id="id_notes">{{ form_data.notes|default:'' }}</textarea>
+                            </div>
 
-                        <div class="booking-field-grid" style="margin-top: 2px;">
                             <div class="booking-field">
                                 <label class="booking-field-label">Number of guests<span class="required">*</span></label>
                                 <input type="number" name="guest_count" id="id_guest_count" class="booking-input" placeholder="Number of guests" min="1" value="{{ guest_count|default_if_none:'' }}" required>
@@ -1521,84 +1522,84 @@
                                     {% endfor %}
                                 </select>
                             </div>
-                        </div>
 
-                        <div class="booking-field full-width">
-                            <label class="booking-field-label">Purpose of Stay (Anniversary, Birthday, Business, Leisure)</label>
-                            <input type="text" name="purpose_of_stay" class="booking-input" placeholder="Purpose of stay" value="{{ form_data.purpose_of_stay|default:'' }}">
-                        </div>
+                            <div class="booking-field full-width">
+                                <label class="booking-field-label">Purpose of Stay (Anniversary, Birthday, Business, Leisure)</label>
+                                <input type="text" name="purpose_of_stay" class="booking-input" placeholder="Purpose of stay" value="{{ form_data.purpose_of_stay|default:'' }}">
+                            </div>
 
-                        <div class="booking-field full-width accommodation-field-wrap" style="margin-top: 6px;">
-                            <label class="booking-field-label">Select accomodation<span class="required">*</span></label>
-                            <div class="property-selection-trigger accommodation-trigger disabled" onclick="openPropertySidebar()" role="button" tabindex="0" aria-label="Select accomodation" aria-disabled="true">
-                                <span id="selectedPropertyText" class="trigger-placeholder">Select accomodation</span>
-                                <span class="trigger-caret">▾</span>
+                            <div class="booking-field full-width accommodation-field-wrap">
+                                <label class="booking-field-label">Select accomodation<span class="required">*</span></label>
+                                <div class="property-selection-trigger accommodation-trigger disabled" onclick="openPropertySidebar()" role="button" tabindex="0" aria-label="Select accomodation" aria-disabled="true">
+                                    <span id="selectedPropertyText" class="trigger-placeholder">Select accomodation</span>
+                                    <span class="trigger-caret">▾</span>
+                                </div>
+                                <select name="property" class="booking-select property-select" id="id_property" style="display:none;" required>
+                                    <option value="" selected>Select accomodation</option>
+                                </select>
+                                <div id="accommodation-not-available" style="display:none;">Not Available</div>
                             </div>
-                            <select name="property" class="booking-select property-select" id="id_property" style="display:none;" required>
-                                <option value="" selected>Select accomodation</option>
-                            </select>
-                            <div id="accommodation-not-available" style="display:none;">Not Available</div>
-                        </div>
 
-                        <!-- Summary Section -->
-                        <div id="summary-section" class="row m-0 booking-summary-card" style="display: none;">
-                            <div class="form-group p-0">
-                                <label for="id_price_per_night" class="booking-field-label">Price*</label>
-                                <div class="price-input-container">
-                                    <input type="number" class="form-input w-100 booking-input" name="price_per_night" id="id_price_per_night" value="0.00" step="0.01" readonly>
-                                    <img src="{% static 'img/booking/edit_icon.svg' %}" class="edit-price-icon" id="editTotalPriceIcon" alt="Edit Total Price" title="Edit total price">
+                            <!-- Summary Section -->
+                            <div id="summary-section" class="row m-0 booking-summary-card booking-field full-width" style="display: none;">
+                                <div class="form-group p-0">
+                                    <label for="id_price_per_night" class="booking-field-label">Price*</label>
+                                    <div class="price-input-container">
+                                        <input type="number" class="form-input w-100 booking-input" name="price_per_night" id="id_price_per_night" value="0.00" step="0.01" readonly>
+                                        <img src="{% static 'img/booking/edit_icon.svg' %}" class="edit-price-icon" id="editTotalPriceIcon" alt="Edit Total Price" title="Edit total price">
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="col-lg-6 col-12 p-0">
-                                <div class="summary-header">Payment Summary</div>
-                                <hr>
-                                <div class="summary-item">
-                                    <span class="summary-label">Daily rate</span>
-                                    <span class="summary-value" id="summary-daily-rate">$0.00</span>
+                                <div class="col-lg-6 col-12 p-0">
+                                    <div class="summary-header">Payment Summary</div>
+                                    <hr>
+                                    <div class="summary-item">
+                                        <span class="summary-label">Daily rate</span>
+                                        <span class="summary-value" id="summary-daily-rate">$0.00</span>
+                                    </div>
+                                    <div class="summary-item">
+                                        <span class="summary-label" id="summary-price-calc" data-price="0.00">$0.00 x 0 nights</span>
+                                        <span class="summary-value" id="summary-subtotal">$0.00</span>
+                                    </div>
+                                    <div class="summary-item mt-1">
+                                        <span class="summary-label">Cleaning fee:</span>
+                                        <span class="summary-value" id="summary-cleaning-fee" data-fee="0.00">$0.00</span>
+                                        <input type="hidden" name="cleaning_fee" id="id_cleaning_fee" value="0.00">
+                                    </div>
+                                    <div class="summary-item mt-1">
+                                        <span class="summary-label">Refundable deposit:</span>
+                                        <span class="summary-value" id="summary-refundable-deposit" data-deposit="0.00">$0.00</span>
+                                        <input type="hidden" name="deposit_fee" id="id_deposit_fee" value="0.00">
+                                    </div>
+                                    <div class="summary-item mt-1">
+                                        <span class="summary-label">Application fee:</span>
+                                        <span class="summary-value" id="summary-application-fee" data-fee="0.00">$0.00</span>
+                                        <input type="hidden" name="application_fee" id="id_application_fee" value="0.00">
+                                    </div>
+                                    <hr>
+                                    <div class="summary-item price-input-container">
+                                        <span class="summary-label" style="font-weight: bold;">Total price:</span>
+                                        <input type="hidden" name="price" id="id_price" value="0.00">
+                                        <span class="summary-value" id="summary-total-display">$0.00</span>
+                                    </div>
                                 </div>
-                                <div class="summary-item">
-                                    <span class="summary-label" id="summary-price-calc" data-price="0.00">$0.00 x 0 nights</span>
-                                    <span class="summary-value" id="summary-subtotal">$0.00</span>
-                                </div>
-                                <div class="summary-item mt-1">
-                                    <span class="summary-label">Cleaning fee:</span>
-                                    <span class="summary-value" id="summary-cleaning-fee" data-fee="0.00">$0.00</span>
-                                    <input type="hidden" name="cleaning_fee" id="id_cleaning_fee" value="0.00">
-                                </div>
-                                <div class="summary-item mt-1">
-                                    <span class="summary-label">Refundable deposit:</span>
-                                    <span class="summary-value" id="summary-refundable-deposit" data-deposit="0.00">$0.00</span>
-                                    <input type="hidden" name="deposit_fee" id="id_deposit_fee" value="0.00">
-                                </div>
-                                <div class="summary-item mt-1">
-                                    <span class="summary-label">Application fee:</span>
-                                    <span class="summary-value" id="summary-application-fee" data-fee="0.00">$0.00</span>
-                                    <input type="hidden" name="application_fee" id="id_application_fee" value="0.00">
-                                </div>
-                                <hr>
-                                <div class="summary-item price-input-container">
-                                    <span class="summary-label" style="font-weight: bold;">Total price:</span>
-                                    <input type="hidden" name="price" id="id_price" value="0.00">
-                                    <span class="summary-value" id="summary-total-display">$0.00</span>
-                                </div>
-                            </div>
-                            <div class="col-lg-auto d-none d-lg-flex align-items-center p-0"><div class="payment-divider" style="height: 80%; margin-top: 20px;"></div></div>
-                            <div class="col-lg-5 col-12 p-0">
-                                <div style="margin-top: 42px;">
-                                    <span class="summary-label">Check In:</span>
-                                    <p class="summary-value m-0 mb-1" id="summary-checkin">-</p>
-                                </div>
-                                <div>
-                                    <span class="summary-label">Check Out:</span>
-                                    <p class="summary-value m-0 mb-1" id="summary-checkout">-</p>
-                                </div>
-                                <div>
-                                    <span class="summary-label">Nights:</span>
-                                    <p class="summary-value m-0 mb-1" id="summary-nights">0</p>
-                                </div>
-                                <div>
-                                    <span class="summary-label">Guests:</span>
-                                    <p class="summary-value" id="summary-guests">0</p>
+                                <div class="col-lg-auto d-none d-lg-flex align-items-center p-0"><div class="payment-divider" style="height: 80%; margin-top: 20px;"></div></div>
+                                <div class="col-lg-5 col-12 p-0">
+                                    <div style="margin-top: 42px;">
+                                        <span class="summary-label">Check In:</span>
+                                        <p class="summary-value m-0 mb-1" id="summary-checkin">-</p>
+                                    </div>
+                                    <div>
+                                        <span class="summary-label">Check Out:</span>
+                                        <p class="summary-value m-0 mb-1" id="summary-checkout">-</p>
+                                    </div>
+                                    <div>
+                                        <span class="summary-label">Nights:</span>
+                                        <p class="summary-value m-0 mb-1" id="summary-nights">0</p>
+                                    </div>
+                                    <div>
+                                        <span class="summary-label">Guests:</span>
+                                        <p class="summary-value" id="summary-guests">0</p>
+                                    </div>
                                 </div>
                             </div>
                         </div>

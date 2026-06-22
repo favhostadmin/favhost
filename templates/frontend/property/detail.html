@@ -332,7 +332,7 @@
     }
 
     .property-detail-content{
-        padding: 0rem 17%;
+        padding: 0rem 10%;
     }
 
     /* Mobile/Tab property meta row (match reference design) */
@@ -1021,13 +1021,56 @@
             margin: 20px 0 !important;
         }
     }
+    .property-detail-scroll.embed-scroll {
+        max-height: calc(100vh - 60px) !important;
+        overflow-y: auto !important;
+    }
+    body.embed-body {
+        overflow: hidden;
+    }
+    body.embed-body .main-content-body {
+        max-height: 100vh !important;
+        overflow: hidden !important;
+    }
+    @media (max-width: 1024px) {
+        .action-buttons.embed-actions {
+            display: flex !important;
+        }
+    }
+    .embed-close-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        padding: 0;
+        background: transparent;
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+        color: #374151;
+        cursor: pointer;
+        flex-shrink: 0;
+        transition: background-color 0.15s ease, border-color 0.15s ease;
+    }
+    .embed-close-btn:hover {
+        background: #f3f4f6;
+        border-color: #9ca3af;
+    }
 </style>
 {% endblock extra_head %}
+
+{% block body_class %}{% if request.GET.embed %}embed-body{% endif %}{% endblock %}
+
+{% block header %}
+  {% if not request.GET.embed %}
+    {% include 'frontend/base/header.html' %}
+  {% endif %}
+{% endblock header %}
 
 {% block content %}
     <!-- Action Buttons -->
     <div class="container-fluid p-0">
-        <div class="action-buttons">
+        <div class="action-buttons{% if request.GET.embed %} embed-actions{% endif %}">
             <div class="left-section">
                 <img src="{% static 'img/property/hotel_room_white.png' %}">
 
@@ -1046,6 +1089,7 @@
                 <div class="btn-divider"></div>
                 <a href="javascript:void(0);" onclick="deleteProperty('{{ property.id }}')" class="btn-cancel" style="color: #FF0000;">Delete</a>
             </div> -->
+            <div style="display:flex;align-items:center;gap:8px;margin-left:auto;">
             <button class="new-action-btn-header dropdown-toggle" type="button" data-bs-toggle="dropdown"
                     id="actionDropdown"
                     aria-expanded="false" data-bs-auto-close="outside"
@@ -1157,9 +1201,17 @@
                     </li>
 
                 </ul>
+            {% if request.GET.embed %}
+            <button type="button" class="embed-close-btn" onclick="window.parent.bootstrap.Modal.getInstance(window.parent.document.getElementById('propertyPreviewModal')).hide()" aria-label="Close">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                    <path d="M.293.293a1 1 0 011.414 0L8 6.586 14.293.293a1 1 0 111.414 1.414L9.414 8l6.293 6.293a1 1 0 01-1.414 1.414L8 9.414l-6.293 6.293a1 1 0 01-1.414-1.414L6.586 8 .293 1.707a1 1 0 010-1.414z"/>
+                </svg>
+            </button>
+            {% endif %}
+            </div>
         </div>
 
-        <div class="property-detail-scroll" style="max-height: calc(100vh - 121px); overflow: auto; overflow-x: hidden;">
+        <div class="property-detail-scroll{% if request.GET.embed %} embed-scroll{% endif %}" style="max-height: calc(100vh - 121px); overflow: auto; overflow-x: hidden;">
             <div class="property-detail-content">
                 <div class="row property-header">
                     <!-- Title and Status Row -->
