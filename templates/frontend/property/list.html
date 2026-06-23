@@ -1307,7 +1307,7 @@
                 </div>
             </div>
 
-            <button type="button" class="btn-share tooltip-light tooltip-right" data-tooltip="Share Listing" aria-label="Share Listing" onclick="plCopyShareLink()" style="background: none; border: none; padding: 0;">
+            <button type="button" class="btn-share tooltip-light tooltip-right" data-tooltip="Share Listing" data-tooltip-original="Share Listing" aria-label="Share Listing" onclick="plCopyShareLink(this)" style="background: none; border: none; padding: 0;">
                 <img src="{% static 'img/common/white_share_icon.svg' %}" alt="Share">
             </button>
             
@@ -1348,7 +1348,7 @@
             </div>
 
             <div class="mobile-right-actions">
-                <button type="button" class="mobile-action-btn tooltip-light tooltip-right" data-tooltip="Share" aria-label="Share" onclick="plCopyShareLink()">
+                <button type="button" class="mobile-action-btn" aria-label="Share" onclick="plCopyShareLink()">
                     <img src="{% static 'img/property/share.svg' %}" alt="Share" width="20" height="20">
                 </button>
                 <!-- <button type="button" class="mobile-action-btn" id="mobileFilterToggle" aria-label="Open search filters" aria-expanded="false">
@@ -1748,14 +1748,30 @@
 
 {% block extra_script %}
 <script>
-    function plCopyShareLink() {
+    let plShareToastTimer = null;
+
+    function plCopyShareLink(btn) {
         const shareUrl = window.location.href;
         function onSuccess() {
+            // Only one toast at a time
             const container = document.getElementById('pl-toast-container');
+            const existing = container.querySelector('.pl-success-toast');
+            if (existing) return;
+
             const toast = document.createElement('div');
             toast.className = 'pl-success-toast';
             toast.textContent = 'Link copied';
             container.appendChild(toast);
+
+            // Desktop: update tooltip to "Copied!" while toast is visible
+            if (btn) {
+                btn.setAttribute('data-tooltip', 'Copied!');
+                if (plShareToastTimer) clearTimeout(plShareToastTimer);
+                plShareToastTimer = setTimeout(() => {
+                    btn.setAttribute('data-tooltip', btn.getAttribute('data-tooltip-original') || 'Share Listing');
+                }, 3000);
+            }
+
             setTimeout(() => {
                 toast.style.opacity = '0';
                 toast.style.transition = 'opacity 0.5s ease';
