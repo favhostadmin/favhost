@@ -9,10 +9,15 @@ class TaskForm(forms.ModelForm):
     class Meta:
         model = Task
         fields = [
-            'property', 'details', 'date', 'time', 'repeat', 'repeat_till',
-            'task_type', 'other_explanation', 'assigned_to', 'phone', 'country_code'
+            'property', 'title', 'details', 'date', 'time', 'repeat', 'repeat_till',
+            'task_type', 'other_explanation', 'assigned_to', 'phone', 'country_code',
+            'email',
         ]
         widgets = {
+            'title': forms.TextInput(attrs={
+                'id': 'taskTitle',
+                'placeholder': 'Enter task title',
+            }),
             'details': forms.Textarea(attrs={
                 'placeholder': 'Briefly describe the task in 100 characters',
                 'maxlength': '100',
@@ -31,6 +36,7 @@ class TaskForm(forms.ModelForm):
             'assigned_to': forms.TextInput(attrs={'id': 'assignedTo', 'placeholder': 'Enter name'}),
             'phone': forms.TextInput(attrs={'type': 'tel', 'id': 'phone', 'placeholder': 'Phone number'}),
             'country_code': forms.HiddenInput(attrs={'id': 'id_country_code'}),
+            'email': forms.EmailInput(attrs={'id': 'taskEmail', 'placeholder': 'Enter email'}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -57,8 +63,10 @@ class TaskForm(forms.ModelForm):
             self.fields['property'].queryset = Property.objects.filter(created_by__in=get_visible_user_ids(user), status='Active')
 
         # Make fields not required by the model as optional in the form
+        self.fields['title'].required = False
         self.fields['repeat_till'].required = False
         self.fields['other_explanation'].required = False
+        self.fields['email'].required = False
 
         # Set a more user-friendly empty label for select fields
         # For ChoiceFields (not ModelChoiceField) ensure a visible empty option labeled 'Select'
