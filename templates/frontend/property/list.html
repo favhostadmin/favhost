@@ -587,15 +587,16 @@
         .mobile-filter-section {
             background: #E7E7E9;
             border-bottom: 1px solid #e5e7eb;
-            padding: 10px 0 8px;
-            position: sticky;
-            top: 0;
+            position: fixed;
+            top: 58px;
+            left: 0;
+            width: 100%;
             z-index: 90;
             padding: 0px !important;
         }
         .mobile-filter-section .container-fluid {
             position: relative;
-            padding: 0px 0px !important;
+            padding: 0px 12px !important;
             margin: 10px 0px;
         }
 
@@ -762,6 +763,7 @@
         .main_content_div{
             padding: 0 10px !important;
             min-height: auto !important;
+            padding-top: 56px !important;
         }
 
     }
@@ -1168,10 +1170,53 @@
       padding: 8px;
     }
   }
+    #pl-toast-container {
+        position: fixed;
+        top: 80px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 11000;
+    }
+    .pl-success-toast {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        background: rgba(0, 0, 0, 0.9);
+        color: #4CAF50;
+        padding: 20px 58px;
+        border-radius: 10px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.35);
+        font-size: 14px;
+        font-weight: 600;
+        font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+        line-height: 1.4;
+        animation: pl-toast-fade-in 0.3s ease;
+        white-space: nowrap;
+    }
+    .pl-success-toast::before {
+        content: "✓";
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 22px;
+        height: 22px;
+        min-width: 22px;
+        border-radius: 50%;
+        background: #4CAF50;
+        color: #fff;
+        font-size: 12px;
+        font-weight: 700;
+        line-height: 1;
+    }
+    @keyframes pl-toast-fade-in {
+        from { opacity: 0; transform: translateY(-16px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
 </style>
 {% endblock extra_head %}
 
 {% block content %}
+<div id="pl-toast-container"></div>
 
 
 <!-- Desktop Header -->
@@ -1262,7 +1307,7 @@
                 </div>
             </div>
 
-            <button type="button" class="btn-share tooltip-light tooltip-right" data-tooltip="Share Listing" aria-label="Share Listing" data-bs-toggle="modal" data-bs-target="#shareItineraryModal" style="background: none; border: none; padding: 0;">
+            <button type="button" class="btn-share tooltip-light tooltip-right" data-tooltip="Share Listing" aria-label="Share Listing" onclick="plCopyShareLink()" style="background: none; border: none; padding: 0;">
                 <img src="{% static 'img/common/white_share_icon.svg' %}" alt="Share">
             </button>
             
@@ -1303,7 +1348,7 @@
             </div>
 
             <div class="mobile-right-actions">
-                <button type="button" class="mobile-action-btn tooltip-light tooltip-right" data-tooltip="Share" data-bs-toggle="modal" data-bs-target="#shareItineraryModal" aria-label="Share">
+                <button type="button" class="mobile-action-btn tooltip-light tooltip-right" data-tooltip="Share" aria-label="Share" onclick="plCopyShareLink()">
                     <img src="{% static 'img/property/share.svg' %}" alt="Share" width="20" height="20">
                 </button>
                 <!-- <button type="button" class="mobile-action-btn" id="mobileFilterToggle" aria-label="Open search filters" aria-expanded="false">
@@ -1702,6 +1747,43 @@
 {% endblock content  %}
 
 {% block extra_script %}
+<script>
+    function plCopyShareLink() {
+        const shareUrl = window.location.href;
+        function onSuccess() {
+            const container = document.getElementById('pl-toast-container');
+            const toast = document.createElement('div');
+            toast.className = 'pl-success-toast';
+            toast.textContent = 'Link copied';
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transition = 'opacity 0.5s ease';
+                setTimeout(() => toast.remove(), 500);
+            }, 2500);
+        }
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(shareUrl).then(onSuccess, function(err) {
+                console.error('Could not copy URL: ', err);
+            });
+        } else {
+            const textArea = document.createElement('textarea');
+            textArea.value = shareUrl;
+            textArea.style.position = 'fixed';
+            textArea.style.left = '-9999px';
+            textArea.style.top = '0';
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            try {
+                if (document.execCommand('copy')) onSuccess();
+            } catch (err) {
+                console.error('Fallback copy failed', err);
+            }
+            document.body.removeChild(textArea);
+        }
+    }
+</script>
 <script>
     document.addEventListener('DOMContentLoaded', function () {
         const previewModalEl = document.getElementById('propertyPreviewModal');
