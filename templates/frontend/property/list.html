@@ -1,5 +1,6 @@
 {% extends 'frontend/base/base.html' %}
 {% load static %}
+{% load currency_tags %}
 
 {% block extra_head %}
 <link href="{% static 'css/property/listing.css' %}" rel="stylesheet">
@@ -1529,8 +1530,8 @@
                                 <div class="listing-stay-wrap" style="display: flex; align-items: center; gap: 6px;">
                                     <span class="listing-nights" data-listing-nights style="display: none;"></span>
                                     <a href="{% url 'property:property-detail' slug=item.slug %}" data-open-property-preview="true" data-preview-title="{{ item.title|escape }}" rel="noopener noreferrer">
-                                        <p class="listing-price" data-nightly-price="{{ item.price_per_night|floatformat:2 }}" data-cleaning-fee="{{ item.cleaning_fee|default:'0.00'|floatformat:2 }}" data-refundable-deposit="{{ item.refundable_deposit|default:'0.00'|floatformat:2 }}" data-application-fee="{{ item.application_fees|default:'0.00'|floatformat:2 }}">
-                                            ${{ item.price_per_night|floatformat:2 }} <span class="price-period">Night</span>
+                                        <p class="listing-price" data-nightly-price="{% money_raw item.price_per_night %}" data-cleaning-fee="{% money_raw item.cleaning_fee %}" data-refundable-deposit="{% money_raw item.refundable_deposit %}" data-application-fee="{% money_raw item.application_fees %}">
+                                            {% money item.price_per_night %} <span class="price-period">Night</span>
                                         </p>
                                     </a>
                                 </div>
@@ -2951,7 +2952,7 @@
             const total = (nightly * nights) + cleaningFee + refundableDeposit + applicationFee;
             el.dataset.totalPrice = total.toFixed(2);
             el.classList.add('listing-price--total');
-            el.innerHTML = `$${total.toFixed(2)}`;
+            el.innerHTML = window.CURRENCY.symbol + total.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
         });
     });
 </script>

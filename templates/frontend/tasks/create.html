@@ -1,5 +1,6 @@
 {% extends 'frontend/base/base.html' %}
 {% load static %}
+{% load currency_tags %}
 
 {% block extra_head %}
     <link href="{% static 'css/property/create.css' %}" rel="stylesheet">
@@ -491,7 +492,7 @@
                                 <option value="{{ prop.id }}"
                                         data-image="{{ prop.get_primary_image_url }}"
                                         data-location="{{ prop.location_display }}"
-                                        data-price="{{ prop.price_per_night }}"
+                                        data-price="{% money_raw prop.price_per_night %}"
                                         data-guest="{{ prop.guest }}"
                                         {% if is_edit and task.property.id == prop.id %}selected{% endif %}
                                         {% if request.GET.property_id and request.GET.property_id == prop.id|stringformat:"s" %}selected{% endif %}>
@@ -685,7 +686,7 @@
                         <div class="listing-title">${title}</div>
                         <div class="listing-location">${location}</div>
                         <div class="listing-price">
-                            ${price ? `$${parseFloat(price).toLocaleString(undefined, {minimumFractionDigits: 2})} night` : ''}
+                            ${price ? `${window.CURRENCY.symbol}${parseFloat(price).toLocaleString(undefined, {minimumFractionDigits: 2})} night` : ''}
                             ${guest ? `, ${guest} Guests (max)` : ''}
                         </div>
                     </div>
@@ -738,7 +739,7 @@
                         <div class="listing-title">${title}</div>
                         <div class="listing-location">${location}</div>
                         <div class="listing-price">
-                            ${price ? `$${parseFloat(price).toLocaleString(undefined, {minimumFractionDigits: 2})} night` : ''}
+                            ${price ? `${window.CURRENCY.symbol}${parseFloat(price).toLocaleString(undefined, {minimumFractionDigits: 2})} night` : ''}
                             ${guest ? `, ${guest} Guests (max)` : ''}
                         </div>
                     </div>

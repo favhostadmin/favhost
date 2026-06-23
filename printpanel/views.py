@@ -9,6 +9,7 @@ from django.urls import reverse
 from xhtml2pdf import pisa
 from datetime import datetime, timedelta
 import calendar as cal_mod
+from accounts import currency
 
 from booking.models import Booking, Enquiry
 from property.models import Property, PropertyBlockDate
@@ -189,7 +190,7 @@ def _render_print_output(request, format_type='html'):
             if pay_date:
                 all_events.append({
                     'date': pay_date, 'type': 'Payment', 'property': prop_title,
-                    'guest': guest_name, 'details': f"${float(p.amount):.2f} {'Paid' if p.is_paid else 'Pending'}", 'channel': '',
+                    'guest': guest_name, 'details': f"{currency.money(p.amount, request.user.currency)} {'Paid' if p.is_paid else 'Pending'}", 'channel': '',
                 })
     for t in tasks_qs:
         prop_title = t.property.title if t.property else ''

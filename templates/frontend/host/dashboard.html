@@ -1,5 +1,6 @@
 {% extends 'frontend/base/base.html' %}
 {% load static %}
+{% load currency_tags %}
 
 {% block extra_head %}
     <link href="{% static 'css/host_dashboard.css' %}" rel="stylesheet">
@@ -614,7 +615,7 @@
                                 <img src="{% static 'img/dashboard/revenue.svg' %}">
                                 <span class="stat-number  stat-number-font ">Total revenue </span>
                             </div>
-                            <div class="stat-number" style="margin-left: 28px;">$ {{total_revenue}}</div>
+                            <div class="stat-number" style="margin-left: 28px;">{% money total_revenue %}</div>
                         </div>
                     </div>
 
@@ -763,7 +764,7 @@
                                                                 <span class="entry-label">
                                                                     {{ item.title }}
                                                                     {% if item.amount %}
-                                                                        ${{ item.amount }}
+                                                                        {% money item.amount %}
                                                                     {% endif %}
                                                                 </span>
                                                                 {% if item.group == "Payment" %}
@@ -841,13 +842,13 @@
                         <div class="chart-card flex-fill monthly-avg-card-mobile-revert laptop-padded-section" style="height: 400px; display: flex; flex-direction: column;">
                             <div class="chart-header d-flex justify-content-between align-items-start">
                                 <div class="chart-title">
-                                    <p> Monthly Average: $ {{monthly_average}}</p>
+                                    <p> Monthly Average: {% money monthly_average %}</p>
                                     
                                 </div>
 
                                 <div style="display: flex;  text-align: right;">
                                     <!-- <div class="chart-title">$ YTD Earnings</div>
-                                    <div class="chart-value" id="ytd-value">$0</div>
+                                    <div class="chart-value" id="ytd-value">{{ currency_symbol }}0</div>
                                     <div class="chart-subtitle">Year to date</div> -->
                                     <div class="d-flex me-3">
                                         <img src="{% static 'img/dashboard/monthly_profit.svg' %}">
@@ -1213,7 +1214,7 @@
 
         if (value > 0) {
             const label = document.createElement("span");
-            label.innerText = `$${value.toLocaleString()}`;
+            label.innerText = window.CURRENCY.symbol + window.toDisplayCurrency(value).toLocaleString();
             bar.appendChild(label);
         }
 
@@ -1224,7 +1225,7 @@
         const ytdValueElement = document.getElementById("ytd-value");
         if (ytdValueElement) {
             ytdValueElement.innerText =
-            "$" + monthlyEarnings.reduce((a, b) => a + b, 0).toLocaleString();
+            window.CURRENCY.symbol + window.toDisplayCurrency(monthlyEarnings.reduce((a, b) => a + b, 0)).toLocaleString();
         }
     </script>
 

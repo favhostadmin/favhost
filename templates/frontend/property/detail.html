@@ -1,5 +1,6 @@
 {% extends 'frontend/base/base.html' %}
 {% load static %}
+{% load currency_tags %}
 
 {% block extra_head %}
 <link href="{% static 'css/property/details.css' %}" rel="stylesheet">
@@ -1233,7 +1234,7 @@
                             <div class="text-end d-flex align-items-center">
                                 <div class="mobile-price-actions">
                                     <div class="mobile-price-row">
-                                        <p class="mb-0 fw-bold mobile-price-text">${{property.price_per_night|floatformat:2}} night</p>
+                                        <p class="mb-0 fw-bold mobile-price-text">{% money property.price_per_night %} night</p>
                                     </div>
 
                                     {% if property.cleaning_fee > 0 or property.refundable_deposit > 0 or property.application_fees > 0 %}
@@ -1790,7 +1791,7 @@
                     <!-- Booking Card -->
                     <div class="booking-card">
 <div class="booking-card-header">
-                            <h3 class="fw-bold text-center me-2 booking-card-price">${{property.price_per_night|floatformat:2}}<small class="text-muted fw-normal"> night</small></h3>
+                            <h3 class="fw-bold text-center me-2 booking-card-price">{% money property.price_per_night %}<small class="text-muted fw-normal"> night</small></h3>
                             {% if property.cleaning_fee > 0 or property.refundable_deposit > 0 or property.application_fees > 0 %}
                             <a href="#" id="openOtherFeesModal" class="booking-card-fee-link">*Other Fee</a>
                             {% endif %}
@@ -1834,27 +1835,27 @@
                             <div class="detail-summary-header">Payment Summary</div>
                             <div class="detail-summary-item">
                                 <span class="detail-summary-label">Daily rate</span>
-                                <span class="detail-summary-value" id="detail-summary-daily-rate">${{ property.price_per_night|floatformat:2 }}</span>
+                                <span class="detail-summary-value" id="detail-summary-daily-rate">{% money property.price_per_night %}</span>
                             </div>
                             <div class="detail-summary-item">
-                                <span class="detail-summary-label" id="detail-summary-price-calc">${{ property.price_per_night|floatformat:2 }} x 0 nights</span>
-                                <span class="detail-summary-value" id="detail-summary-subtotal">$0.00</span>
+                                <span class="detail-summary-label" id="detail-summary-price-calc">{% money property.price_per_night %} x 0 nights</span>
+                                <span class="detail-summary-value" id="detail-summary-subtotal">{{ currency_symbol }}0.00</span>
                             </div>
                             <div class="detail-summary-item">
                                 <span class="detail-summary-label">Cleaning fee:</span>
-                                <span class="detail-summary-value" id="detail-summary-cleaning-fee">${{ property.cleaning_fee|default:'0.00'|floatformat:2 }}</span>
+                                <span class="detail-summary-value" id="detail-summary-cleaning-fee">{% money property.cleaning_fee %}</span>
                             </div>
                             <div class="detail-summary-item">
                                 <span class="detail-summary-label">Refundable deposit:</span>
-                                <span class="detail-summary-value" id="detail-summary-refundable-deposit">${{ property.refundable_deposit|default:'0.00'|floatformat:2 }}</span>
+                                <span class="detail-summary-value" id="detail-summary-refundable-deposit">{% money property.refundable_deposit %}</span>
                             </div>
                             <div class="detail-summary-item">
                                 <span class="detail-summary-label">Application fee:</span>
-                                <span class="detail-summary-value" id="detail-summary-application-fee">${{ property.application_fees|default:'0.00'|floatformat:2 }}</span>
+                                <span class="detail-summary-value" id="detail-summary-application-fee">{% money property.application_fees %}</span>
                             </div>
                             <div class="detail-summary-item detail-summary-total">
                                 <span class="detail-summary-label">Total price:</span>
-                                <span class="detail-summary-value" id="detail-summary-total">$0.00</span>
+                                <span class="detail-summary-value" id="detail-summary-total">{{ currency_symbol }}0.00</span>
                             </div>
                         </div>
 
@@ -2050,19 +2051,19 @@
                     {% if property.cleaning_fee > 0 %}
                     <tr>
                         <td>Cleaning Fee</td>
-                        <td class="text-end fw-bold">${{ property.cleaning_fee|floatformat:2 }}</td>
+                        <td class="text-end fw-bold">{% money property.cleaning_fee %}</td>
                     </tr>
                     {% endif %}
                     {% if property.refundable_deposit > 0 %}
                     <tr>
                         <td>Refundable Deposit</td>
-                        <td class="text-end fw-bold">${{ property.refundable_deposit|floatformat:2 }}</td>
+                        <td class="text-end fw-bold">{% money property.refundable_deposit %}</td>
                     </tr>
                     {% endif %}
                     {% if property.application_fees > 0 %}
                     <tr>
                         <td>Application Fee</td>
-                        <td class="text-end fw-bold">${{ property.application_fees|floatformat:2 }}</td>
+                        <td class="text-end fw-bold">{% money property.application_fees %}</td>
                     </tr>
                     {% endif %}
                 </tbody>
@@ -2347,10 +2348,10 @@
         const detailSummaryRefundableDeposit = document.getElementById('detail-summary-refundable-deposit');
         const detailSummaryApplicationFee = document.getElementById('detail-summary-application-fee');
         const detailSummaryTotal = document.getElementById('detail-summary-total');
-        const propertyPricePerNight = parseFloat("{{ property.price_per_night|default:'0' }}") || 0;
-        const propertyCleaningFee = parseFloat("{{ property.cleaning_fee|default:'0' }}") || 0;
-        const propertyRefundableDeposit = parseFloat("{{ property.refundable_deposit|default:'0' }}") || 0;
-        const propertyApplicationFee = parseFloat("{{ property.application_fees|default:'0' }}") || 0;
+        const propertyPricePerNight = parseFloat("{% money_raw property.price_per_night %}") || 0;
+        const propertyCleaningFee = parseFloat("{% money_raw property.cleaning_fee %}") || 0;
+        const propertyRefundableDeposit = parseFloat("{% money_raw property.refundable_deposit %}") || 0;
+        const propertyApplicationFee = parseFloat("{% money_raw property.application_fees %}") || 0;
 
         function formatLocalIso(dateObj) {
             const y = dateObj.getFullYear();
@@ -2490,25 +2491,25 @@
 
             detailSummarySection.style.display = 'block';
             if (detailSummaryDailyRate) {
-                detailSummaryDailyRate.textContent = `$${propertyPricePerNight.toFixed(2)}`;
+                detailSummaryDailyRate.textContent = `{{ currency_symbol }}${propertyPricePerNight.toFixed(2)}`;
             }
             if (detailSummaryPriceCalc) {
-                detailSummaryPriceCalc.textContent = `$${propertyPricePerNight.toFixed(2)} x ${nights} night${nights !== 1 ? 's' : ''}`;
+                detailSummaryPriceCalc.textContent = `{{ currency_symbol }}${propertyPricePerNight.toFixed(2)} x ${nights} night${nights !== 1 ? 's' : ''}`;
             }
             if (detailSummarySubtotal) {
-                detailSummarySubtotal.textContent = `$${subtotal.toFixed(2)}`;
+                detailSummarySubtotal.textContent = `{{ currency_symbol }}${subtotal.toFixed(2)}`;
             }
             if (detailSummaryCleaningFee) {
-                detailSummaryCleaningFee.textContent = `$${propertyCleaningFee.toFixed(2)}`;
+                detailSummaryCleaningFee.textContent = `{{ currency_symbol }}${propertyCleaningFee.toFixed(2)}`;
             }
             if (detailSummaryRefundableDeposit) {
-                detailSummaryRefundableDeposit.textContent = `$${propertyRefundableDeposit.toFixed(2)}`;
+                detailSummaryRefundableDeposit.textContent = `{{ currency_symbol }}${propertyRefundableDeposit.toFixed(2)}`;
             }
             if (detailSummaryApplicationFee) {
-                detailSummaryApplicationFee.textContent = `$${propertyApplicationFee.toFixed(2)}`;
+                detailSummaryApplicationFee.textContent = `{{ currency_symbol }}${propertyApplicationFee.toFixed(2)}`;
             }
             if (detailSummaryTotal) {
-                detailSummaryTotal.textContent = `$${total.toFixed(2)}`;
+                detailSummaryTotal.textContent = `{{ currency_symbol }}${total.toFixed(2)}`;
             }
         }
 
