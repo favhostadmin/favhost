@@ -46,6 +46,8 @@ urlpatterns = [
     path('print/', include(('printpanel.urls', 'printpanel'), namespace='printpanel')),
     path('calendar-grid-view/',CalenderAPIView.as_view(),name="calendar-grid-view"),
     path('calendar-list-view/',CalendarListView.as_view(),name="calendar-list-view"),
+
+    path('calendar/',CalenderAPIView.as_view(),name="calendar"),
     path('manage/<uuid:property_id>/', channel_integration, name='channel_integration'),
     path('properties/<uuid:property_id>/channels/toggle-status/<int:channel_id>/', toggle_channel_status, name='toggle_channel_status'),
     path('properties/<uuid:property_id>/channels/delete/<int:channel_id>/', delete_channel, name='delete_channel'),
