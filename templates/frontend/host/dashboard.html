@@ -405,8 +405,18 @@
                 gap: 6px;
                 padding: 2px 10px;
             }
+            .bar span {
+                transform: translateX(-50%) !important;
+                top: -14px !important;
+                white-space: nowrap;
+            }
+            .legend-label {
+                white-space: nowrap !important;
+                word-break: normal !important;
+            }
             .upcoming-section {
                 padding: 12px;
+                margin-top: 8px;
             }
             .upcoming-date {
                 font-size: 12px;
@@ -550,8 +560,8 @@
             }
             .upcoming-section {
                 height: auto !important;
-                /* Extend down exactly past the Monthly Average row, leaving a 24px gap above the pie chart */
-                margin-bottom: calc(-440px - 1rem) !important;
+                /* Extend down to align bottom with Monthly Average chart (440px) + row padding (2rem) */
+                margin-bottom: calc(-440px - 2rem) !important;
                 z-index: 10;
             }
             .monthly-avg-card-mobile-revert {
@@ -599,6 +609,7 @@
             <div class="col-6 d-flex flex-column">
                 <div class="row stats-grid gx-3 ">
                     <div class="col-6">
+                        <a href="{% url 'property:property-list' %}" style="text-decoration:none;color:inherit;display:block;">
                         <div class="stat-card">
                             <div class="stat-label">
                                 <img src="{% static 'img/dashboard/active_listing.svg' %}">
@@ -606,9 +617,11 @@
                             </div>
                             <div class="stat-number" style="margin-left: 28px;">{{active_listings_count}}</div>
                         </div>
+                        </a>
                     </div>
 
                     <div class="col-6">
+                        <a href="{% url 'booking:booking-list' %}" style="text-decoration:none;color:inherit;display:block;">
                         <div class="stat-card">
                             <div class="stat-label">
                                 <img src="{% static 'img/dashboard/revenue.svg' %}">
@@ -616,9 +629,11 @@
                             </div>
                             <div class="stat-number" style="margin-left: 28px;">$ {{total_revenue}}</div>
                         </div>
+                        </a>
                     </div>
 
                     <div class="col-6">
+                        <a href="{% url 'tasks:task-list' %}" style="text-decoration:none;color:inherit;display:block;">
                         <div class="stat-card">
                             <div class="stat-label">
                                 <img src="{% static 'img/dashboard/pending_task.svg' %}">
@@ -626,19 +641,22 @@
                             </div>
                             <div class="stat-number" style="margin-left: 28px;">{{pending_tasks_count}}</div>
                         </div>
+                        </a>
                     </div>
 
                     <div class="col-6">
+                        <a href="{% url 'booking:enquiry-list' %}?status=new" style="text-decoration:none;color:inherit;display:block;">
                         <div class="stat-card">
                             <div class="stat-label">
                                 <img src="{% static 'img/dashboard/new_Inquiries.png' %}">
                                 <span class="stat-number stat-number-font">New Inquiries</span>
                             </div>
                             <div style="font-size: 12px; color: #000000; margin-top: 4px;">
-                                
+
                             </div>
                             <div class="stat-number" style="margin-left: 28px;">{{ new_enquiry_count|default:0 }}</div>
                         </div>
+                        </a>
                     </div>
                 </div>
 
@@ -823,7 +841,7 @@
 
         <div class="row g-3 p-3">
             <div class="col-lg-6 col-12">
-                <div class="row mt-3 gx-3">
+                <div class="row gx-3">
                     <div class="col-12 d-flex">
                         <style>
                             @media (max-width: 991px) {
@@ -881,7 +899,7 @@
             </div>
         </div>
 
-        <div class="row mt-4 gx-3 p-3">
+        <div class="row g-3 p-3">
             <div class="col-lg-6 d-flex flex-column mb-3 mb-lg-0">
                 <div class="inquiries-section flex-fill d-flex flex-column laptop-padded-section" style="height: 400px; background: #fff; border-radius: 18px; box-shadow: 0 6px 18px rgba(0,0,0,0.08); padding: 16px;">
                     <div class="section-header">
@@ -973,7 +991,6 @@
                 </div>
             </div>
         </div>
-        <br>
         {% include 'frontend/base/footer.html' %}
     </main>
 </div>
@@ -1214,11 +1231,52 @@
         if (value > 0) {
             const label = document.createElement("span");
             label.innerText = `$${value.toLocaleString()}`;
-            bar.appendChild(label);
+            bar.appendChild(label); // font size set dynamically by autoSizeBarLabels()
         }
 
         chart.appendChild(bar);
         });
+
+        // Dynamically size all bar labels equally so the longest fits without overlap
+        (function autoSizeBarLabels() {
+            const isMobile = window.innerWidth <= 576;
+            if (!isMobile) return;
+
+            const bars = chart.querySelectorAll(".bar");
+            if (!bars.length) return;
+
+            // Wait for layout so bar widths are available
+            requestAnimationFrame(() => {
+                const barWidth = bars[0].offsetWidth;
+                if (!barWidth) return;
+
+                // Find the longest label text width at a reference font size
+                const REF_SIZE = 11; // px — start here and scale down
+                let maxLabelWidth = 0;
+
+                bars.forEach(bar => {
+                    const span = bar.querySelector("span");
+                    if (!span) return;
+                    // Measure at reference size
+                    span.style.fontSize = REF_SIZE + "px";
+                    maxLabelWidth = Math.max(maxLabelWidth, span.offsetWidth);
+                });
+
+                if (maxLabelWidth === 0) return;
+
+                // Scale so longest label fits within bar width (with 2px padding each side)
+                const availableWidth = barWidth - 4;
+                const scale = availableWidth / maxLabelWidth;
+                const finalSize = Math.min(REF_SIZE, Math.floor(REF_SIZE * scale));
+                const clampedSize = Math.max(6, finalSize); // never below 6px
+
+                // Apply the same size to ALL labels
+                bars.forEach(bar => {
+                    const span = bar.querySelector("span");
+                    if (span) span.style.fontSize = clampedSize + "px";
+                });
+            });
+        })();
 
         // Update YTD earnings
         const ytdValueElement = document.getElementById("ytd-value");

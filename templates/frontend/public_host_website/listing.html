@@ -7,6 +7,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Find your perfect place to stay</title>
+  <link href="{% static 'website/img/fev.png' %}" rel="icon" type="image/png">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/intl-tel-input@25.12.1/build/css/intlTelInput.css">
   <link href="{% static 'css/public_host_website/listing.css' %}" rel="stylesheet">
@@ -184,10 +185,10 @@
       {% endif %}
 
       <header class="top-nav">
-        <div class="hero-brand">
+        <div class="hero-brand" onclick="window.open('{% url 'index' %}', '_blank')" style="cursor:pointer;">
           <small>Created with</small>
-          <img class="hero-logo-desktop" src="{% static 'img/login/favhost_new_logo.png' %}" alt="FavHost logo">
-          <img class="hero-logo-mobile" src="{% static 'img/login/favhost.png' %}" alt="FavHost logo">
+          <img class="hero-logo-desktop" src="{% static 'img/login/favhost_new_logo.png' %}" alt="Favhost vacation rental software logo">
+          <img class="hero-logo-mobile" src="{% static 'img/login/favhost_new_logo.png' %}" alt="Favhost vacation rental software logo">
         </div>
 
         <div class="mobile-header-actions">
@@ -297,11 +298,18 @@
               <h3 class="card-title">{{ property.title }}</h3>
               <p class="card-sub-title">{{ property.city }}, {{ property.state }}</p>
               {% if num_nights %}
-              <p class="card-sub-title card-stay-info">
-                <!-- <svg class="bed-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7v10M3 12h18M21 7v10"/><rect x="3" y="7" width="18" height="5" rx="1"/><path d="M7 7V5a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v2"/></svg> -->
-                <img src="{% static 'img/property/bed.svg' %}" style="width: 20px; height: auto;">
-                {{ property.bed_type }}&nbsp;&nbsp;{{ num_nights }} Night{{ num_nights|pluralize }}&nbsp;&nbsp;<span class="total-price-badge">Total - $<span class="js-total" data-price="{{ property.price_per_night }}" data-nights="{{ num_nights }}" data-cleaning="{{ property.cleaning_fee|default:0 }}" data-appfee="{{ property.application_fees|default:0 }}" data-deposit="{{ property.refundable_deposit|default:0 }}"></span></span>
-              </p>
+              <div class="card-stay-info">
+                <span class="stay-bed-type">
+                  <img src="{% static 'img/property/bed.svg' %}" style="width: 16px; height: auto;">
+                  {{ property.bed_type }}
+                </span>
+                <span class="stay-nights-badge">
+                  <!-- <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg> -->
+                   <img src="{% static 'img/property/min_nights.svg' %}" style="width:15px;height:auto;">
+                  {{ num_nights }} night{{ num_nights|pluralize }}
+                  <strong>$<span class="js-total" data-price="{{ property.price_per_night }}" data-nights="{{ num_nights }}" data-cleaning="{{ property.cleaning_fee|default:0 }}" data-appfee="{{ property.application_fees|default:0 }}" data-deposit="{{ property.refundable_deposit|default:0 }}"></span></strong>
+                </span>
+              </div>
               {% else %}
               <p class="card-sub-title">${{ property.price_per_night|floatformat:2 }} / night</p>
               {% endif %}
@@ -907,6 +915,8 @@
           const shareUrl = window.location.origin + "/property/listing/" + shortCode + "/";
           
           function updateButton() {
+            const container = document.getElementById("toast-container");
+            if (container.querySelector(".success-toast")) return;
             const originalLabel = sharePageLink.getAttribute("aria-label") || "Share";
             sharePageLink.setAttribute("aria-label", "Copied");
             sharePageLink.classList.add("is-copied");
@@ -917,7 +927,7 @@
             const toast = document.createElement("div");
             toast.className = "success-toast";
             toast.textContent = "Link copied";
-            document.getElementById("toast-container").appendChild(toast);
+            container.appendChild(toast);
             setTimeout(() => { toast.remove(); }, 2500);
           }
 
