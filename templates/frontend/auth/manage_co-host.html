@@ -251,11 +251,8 @@
     </div>
   </div>
 
-  <form id="deleteCohostForm" method="post" action="{% url 'manage_cohost' %}" style="display:none;">
-    {% csrf_token %}
-    <input type="hidden" name="action" value="delete">
-    <input type="hidden" name="cohost_id" id="deleteCohostId" value="">
-  </form>
+  <!-- Delete Confirmation Modal (shared site-wide component) -->
+  {% include 'frontend/common/confirmation_modal.html' with modal_id="deleteCohostModal" title="Confirm Delete" body_id="deleteCohostMessage" form_id="deleteCohostForm" confirm_text="Delete" confirm_btn_class="btn-danger" cancel_text="Cancel" %}
 
   {% include 'frontend/base/footer.html' %}
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0/dist/js/bootstrap.bundle.min.js"></script>
@@ -343,15 +340,38 @@
         });
       });
 
-      // Delete co-host
+      // Delete co-host — uses the shared site-wide confirmation modal
+      var deleteCohostForm = document.getElementById('deleteCohostForm');
+      var deleteCohostMessage = document.getElementById('deleteCohostMessage');
+      var deleteCohostModalEl = document.getElementById('deleteCohostModal');
+      var deleteCohostModal = deleteCohostModalEl ? new bootstrap.Modal(deleteCohostModalEl) : null;
+
+      function setHiddenField(formEl, name, value) {
+        var input = formEl.querySelector('input[name="' + name + '"]');
+        if (!input) {
+          input = document.createElement('input');
+          input.type = 'hidden';
+          input.name = name;
+          formEl.appendChild(input);
+        }
+        input.value = value;
+      }
+
       document.querySelectorAll('.delete-cohost').forEach(function (btn) {
         btn.addEventListener('click', function () {
           var id = btn.getAttribute('data-id');
           var email = btn.getAttribute('data-email');
-          if (confirm('Are you sure you want to remove ' + email + ' as a co-host?')) {
-            document.getElementById('deleteCohostId').value = id;
-            document.getElementById('deleteCohostForm').submit();
-          }
+          // Post to the cohost endpoint with the same action/cohost_id contract
+          deleteCohostForm.setAttribute('action', "{% url 'manage_cohost' %}");
+          setHiddenField(deleteCohostForm, 'action', 'delete');
+          setHiddenField(deleteCohostForm, 'cohost_id', id);
+          // Build the message with DOM nodes so the email can't inject markup
+          deleteCohostMessage.textContent = 'Are you sure you want to remove ';
+          var emailEl = document.createElement('strong');
+          emailEl.textContent = email;
+          deleteCohostMessage.appendChild(emailEl);
+          deleteCohostMessage.appendChild(document.createTextNode(' as a co-host?'));
+          if (deleteCohostModal) deleteCohostModal.show();
         });
       });
 
