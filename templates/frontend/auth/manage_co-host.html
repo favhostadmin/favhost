@@ -307,9 +307,7 @@
       }
 
       openBtn.addEventListener('click', function () {
-        {% if cohost_limit_reached %}
-        return;
-        {% endif %}
+        if (openBtn.disabled) return;
         resetForm();
         openModal();
       });
@@ -344,7 +342,17 @@
       var deleteCohostForm = document.getElementById('deleteCohostForm');
       var deleteCohostMessage = document.getElementById('deleteCohostMessage');
       var deleteCohostModalEl = document.getElementById('deleteCohostModal');
-      var deleteCohostModal = deleteCohostModalEl ? new bootstrap.Modal(deleteCohostModalEl) : null;
+      var deleteCohostModalInstance = null;
+
+      function getDeleteCohostModal() {
+        if (!deleteCohostModalEl || typeof bootstrap === 'undefined' || !bootstrap.Modal) {
+          return null;
+        }
+        if (!deleteCohostModalInstance) {
+          deleteCohostModalInstance = new bootstrap.Modal(deleteCohostModalEl);
+        }
+        return deleteCohostModalInstance;
+      }
 
       function setHiddenField(formEl, name, value) {
         var input = formEl.querySelector('input[name="' + name + '"]');
@@ -365,13 +373,20 @@
           deleteCohostForm.setAttribute('action', "{% url 'manage_cohost' %}");
           setHiddenField(deleteCohostForm, 'action', 'delete');
           setHiddenField(deleteCohostForm, 'cohost_id', id);
-          // Build the message with DOM nodes so the email can't inject markup
-          deleteCohostMessage.textContent = 'Are you sure you want to remove ';
-          var emailEl = document.createElement('strong');
-          emailEl.textContent = email;
-          deleteCohostMessage.appendChild(emailEl);
-          deleteCohostMessage.appendChild(document.createTextNode(' as a co-host?'));
-          if (deleteCohostModal) deleteCohostModal.show();
+
+          var modal = getDeleteCohostModal();
+          if (modal) {
+            // Build the message with DOM nodes so the email can't inject markup
+            deleteCohostMessage.textContent = 'Are you sure you want to remove ';
+            var emailEl = document.createElement('strong');
+            emailEl.textContent = email;
+            deleteCohostMessage.appendChild(emailEl);
+            deleteCohostMessage.appendChild(document.createTextNode(' as a co-host?'));
+            modal.show();
+          } else if (confirm('Are you sure you want to remove ' + email + ' as a co-host?')) {
+            // Fallback: delete still works even if Bootstrap JS failed to load
+            deleteCohostForm.submit();
+          }
         });
       });
 
