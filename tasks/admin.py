@@ -3,8 +3,9 @@ from .models import *
 # Register your models here.
 
 # admin.site.register(Task)
+admin.site.register(TaskImage)
 
 @admin.register(Task)
 class TaskAdmin(admin.ModelAdmin):
-    list_display = ('id', 'property','recurrence_id', 'date')
+    list_display = ('id', 'title', 'property','recurrence_id', 'date')
 

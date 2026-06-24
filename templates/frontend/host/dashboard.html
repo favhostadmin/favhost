@@ -3,577 +3,652 @@
 {% load currency_tags %}
 
 {% block extra_head %}
-    <link href="{% static 'css/host_dashboard.css' %}" rel="stylesheet">
-    <link href="{% static 'css/task/listing.css' %}" rel="stylesheet">
-    <link href="{% static 'css/booking/list.css' %}" rel="stylesheet">
-    <style>
+<link href="{% static 'css/host_dashboard.css' %}" rel="stylesheet">
+<link href="{% static 'css/task/listing.css' %}" rel="stylesheet">
+<link href="{% static 'css/booking/list.css' %}" rel="stylesheet">
+<style>
+    html,
+    body {
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+        /* kill browser scroll */
+    }
 
-        html, body {
-            height: 100%;
-            margin: 0;
-            overflow: hidden; /* kill browser scroll */
-        }
 
-        
-        /* Dashboard header (grey bar) */
-        .header-nav {
-            position: fixed;
-            top: 58px;
-            left: 0;
-            right: 0;
-            height: 52px;
-            z-index: 999;
-            background: #E7E7E9;
-            border-radius: 0;
-        }
-        .main {
-            position: fixed;
-            top: 112px;
-            left: 0;
-            right: 0;
-            bottom: 0;
+    /* Dashboard header (grey bar) */
+    .header-nav {
+        position: fixed;
+        top: 58px;
+        left: 0;
+        right: 0;
+        height: 52px;
+        z-index: 999;
+        background: #E7E7E9;
+        border-radius: 0;
+    }
 
-            overflow-y: auto;
-            overflow-x: hidden;
+    .main {
+        position: fixed;
+        top: 112px;
+        left: 0;
+        right: 0;
+        bottom: 0;
 
-            padding: 0px;
-            background: #f9fafb;
-        }
+        overflow-y: auto;
+        overflow-x: hidden;
 
-        .stats-grid {
-            margin: 0;
-        }
-        .stats-grid .col-6:nth-child(n+3) {
-            margin-top: 1rem;
-        }
-        .stat-card {
-            min-height: 150px;
-        }
+        padding: 0px;
+        background: #f9fafb;
+    }
 
-        .inquiry-image {
-            position: relative;
-        }
+    .stats-grid {
+        margin: 0;
+    }
 
-        .enquiry-mobile-status,
-        .property-not-availability {
-            position: absolute;
-            bottom: 6px;
-            left: 6px;
-            margin: 0;
-            padding: 3px 8px;
-            border-radius: 4px;
-            font-size: 12px;
-            font-weight: 700;
-            line-height: 1.2;
-            z-index: 2;
-        }
+    .stats-grid .col-6:nth-child(n+3) {
+        margin-top: 1rem;
+    }
 
-        .enquiry-mobile-status {
-            background: rgba(31, 138, 40, 0.85);
-            color: #fff;
-        }
+    .stat-card {
+        min-height: 150px;
+    }
 
-        .property-not-availability {
-            background: rgba(220, 53, 69, 0.85);
-            color: #fff;
-        }
+    .inquiry-image {
+        position: relative;
+    }
 
-        .inquiry-image-wrapper {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            flex-shrink: 0;
-        }
+    .enquiry-mobile-status,
+    .property-not-availability {
+        position: absolute;
+        bottom: 6px;
+        left: 6px;
+        margin: 0;
+        padding: 3px 8px;
+        border-radius: 4px;
+        font-size: 12px;
+        font-weight: 700;
+        line-height: 1.2;
+        z-index: 2;
+    }
 
-        .enquiry-status-label {
-            margin: 4px 0 0 0;
-            font-size: 12px;
-            font-weight: 700;
-            line-height: 1.2;
-            text-align: center;
-        }
+    .enquiry-mobile-status {
+        background: rgba(31, 138, 40, 0.85);
+        color: #fff;
+    }
 
-        .enquiry-status-available {
-            color: #1f8a28;
-        }
+    .property-not-availability {
+        background: rgba(220, 53, 69, 0.85);
+        color: #fff;
+    }
 
-        .enquiry-status-unavailable {
-            color: #dc3545;
-        }
+    .inquiry-image-wrapper {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        flex-shrink: 0;
+    }
 
-        .tab-header {
+    .enquiry-status-label {
+        margin: 4px 0 0 0;
+        font-size: 12px;
+        font-weight: 700;
+        line-height: 1.2;
+        text-align: center;
+    }
+
+    .enquiry-status-available {
+        color: #1f8a28;
+    }
+
+    .enquiry-status-unavailable {
+        color: #dc3545;
+    }
+
+    .tab-header {
         display: flex;
         gap: 1.5rem;
         /* border-bottom: 2px solid #e0e0e0; */
         /* margin-bottom: 1rem; */
-        }
-        .tab-header .tab {
+    }
+
+    .tab-header .tab {
         cursor: pointer;
         padding-bottom: 0.25rem;
         font-size: 1.1rem;
         color: #6c757d;
-        }
-        .tab-header .tab.active {
+    }
+
+    .tab-header .tab.active {
         color: #000;
         border-bottom: 2px solid #000;
         font-weight: 500;
-        }
+    }
 
-        .stat-card {
-            background: #fff;
-            border-radius: 14px;
-            padding: 20px;
-            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
-            height: 100%;
-        }
+    .stat-card {
+        background: #fff;
+        border-radius: 14px;
+        padding: 20px;
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+        height: 100%;
+    }
 
-        .stat-label {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            color: #111827;
-            font-size: 14px;
-            font-weight: 500;
-        }
+    .stat-label {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        color: #111827;
+        font-size: 14px;
+        font-weight: 500;
+    }
 
-        .stat-label img,
-        .upcoming-date .left img,
-        .chart-header img {
-            width: 20px;
-            height: 20px;
-            filter: brightness(0);
-        }
+    .stat-label img,
+    .upcoming-date .left img,
+    .chart-header img {
+        width: 20px;
+        height: 20px;
+        filter: brightness(0);
+    }
 
-        .stat-number {
-            margin-top: 12px;
-            font-size: 32px;
-            font-weight: 700;
-            color: #000;
-        }
+    .stat-number {
+        margin-top: 12px;
+        font-size: 32px;
+        font-weight: 700;
+        color: #000;
+    }
 
-       
-        .stat-card .h5 {
+
+    .stat-card .h5 {
         margin: 0;
         font-size: 1.5rem;
         font-weight: bold;
-        }
-        .stat-card .label {
+    }
+
+    .stat-card .label {
         font-size: 0.9rem;
         color: #6c757d;
-        }
-        .start-card-removed-css{
-            border: none; 
-            border-radius: 0; 
-            border-right: 1px solid #e5e7eb; 
-            min-height: auto; 
-            padding: 0px;
-        }
-        .tab-header a {
-            text-decoration: none;
-        }
-        .tab-header a:hover {
-            text-decoration: none;
-        }
-        .month-picker {
-            display: inline-flex;
-            align-items: center;
-            gap: 12px;
-            padding: 6px 16px;
-            border: 2px solid #000;
-            border-radius: 10px;      /* pill shape */
-            /* font-family: system-ui, sans-serif; */
-        }
-        .month-picker button {
-            border: none;
-            background: none;
-            font-size: 20px;
-            cursor: pointer;
-        }
-        #month-label {
-            font-weight: 600;
-        }
-        .year-select {
-            padding: 2px 14px;
-            font-size: 12px;
-            border-radius: 6px;      
-            border: 1px solid #000;
-            background-color: #fff;
-            appearance: none;         
-            -moz-appearance: none;
-            -webkit-appearance: none;
-            background-image: linear-gradient(45deg, transparent 50%, #000 50%),
-                                linear-gradient(135deg, #000 50%, transparent 50%);
-            background-position: calc(100% - 8px) 50%, calc(100% - 4px) 50%;
-            background-size: 4px 4px, 4px 4px;
-            background-repeat: no-repeat;
-        }
+    }
 
-        .chart {
-            position: relative;
-        }
+    .start-card-removed-css {
+        border: none;
+        border-radius: 0;
+        border-right: 1px solid #e5e7eb;
+        min-height: auto;
+        padding: 0px;
+    }
 
-        .chart-empty-state {
-            position: absolute;
-            inset: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #191e26;
-            font-size: 18px;
-            font-weight: 500;
-            pointer-events: none;
-            text-align: center;
-        }
+    .tab-header a {
+        text-decoration: none;
+    }
 
-        .inquiries-scroll::-webkit-scrollbar {
+    .tab-header a:hover {
+        text-decoration: none;
+    }
+
+    .month-picker {
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        padding: 6px 16px;
+        border: 2px solid #000;
+        border-radius: 10px;
+        /* pill shape */
+        /* font-family: system-ui, sans-serif; */
+    }
+
+    .month-picker button {
+        border: none;
+        background: none;
+        font-size: 20px;
+        cursor: pointer;
+    }
+
+    #month-label {
+        font-weight: 600;
+    }
+
+    .year-select {
+        padding: 2px 14px;
+        font-size: 12px;
+        border-radius: 6px;
+        border: 1px solid #000;
+        background-color: #fff;
+        appearance: none;
+        -moz-appearance: none;
+        -webkit-appearance: none;
+        background-image: linear-gradient(45deg, transparent 50%, #000 50%),
+            linear-gradient(135deg, #000 50%, transparent 50%);
+        background-position: calc(100% - 8px) 50%, calc(100% - 4px) 50%;
+        background-size: 4px 4px, 4px 4px;
+        background-repeat: no-repeat;
+    }
+
+    .chart {
+        position: relative;
+    }
+
+    .chart-empty-state {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #191e26;
+        font-size: 18px;
+        font-weight: 500;
+        pointer-events: none;
+        text-align: center;
+    }
+
+    .inquiries-scroll::-webkit-scrollbar {
+        display: none;
+    }
+
+    .inquiries-scroll {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+    }
+
+    @media (min-width: 992px) {
+        .upcoming-scroll-content::-webkit-scrollbar {
             display: none;
         }
-        .inquiries-scroll {
+
+        .upcoming-scroll-content {
             -ms-overflow-style: none;
             scrollbar-width: none;
         }
+    }
 
-        @media (min-width: 992px) {
-            .upcoming-scroll-content::-webkit-scrollbar {
-                display: none;
-            }
-            .upcoming-scroll-content {
-                -ms-overflow-style: none;
-                scrollbar-width: none;
-            }
+    .stat-number-font {
+        font-size: 18px !important;
+    }
+
+    .nav-title span {
+        white-space: nowrap;
+        font-weight: 500;
+        color: #000000;
+    }
+
+    .refresh-btn {
+        background-color: #ffffff;
+        color: #1D74B2 !important;
+        padding: 4px 11px;
+        font-weight: 500;
+        white-space: nowrap;
+    }
+
+
+    /* Responsive spacing — phone */
+    @media (max-width: 576px) {
+        .stat-number-font {
+            font-size: 12px !important;
         }
 
-        .stat-number-font{
-            font-size: 18px !important;
+        .stat-number {
+            font-size: 22px;
+            margin-left: 0 !important;
         }
 
-        .nav-title span {
+        .main {
+            padding: 10px !important;
+            background: none;
+        }
+
+        .stats-grid {
+            margin-top: 0 !important;
+        }
+
+        .main_div {
+            padding: 0;
+        }
+
+        /* stack left/right columns full width */
+        .main>.row.align-items-stretch>.col-6 {
+            flex: 0 0 100%;
+            max-width: 100%;
+        }
+
+        .upcoming-container-wrapper {
+            position: static !important;
+        }
+
+        .upcoming-scroll-content {
+            position: static !important;
+            height: auto !important;
+            max-height: 400px;
+        }
+
+        /* stat cards: 2 per row on phone */
+        .stats-grid .col-6 {
+            flex: 0 0 50%;
+            max-width: 50%;
+            padding: 0 6px;
+        }
+
+        .stat-card {
+            padding: 12px 10px;
+            min-height: 80px;
+        }
+
+        .stat-label {
+            font-size: 11px;
+            gap: 6px;
+        }
+
+        .stat-label img {
+            width: 16px;
+            height: 16px;
+        }
+
+        .stat-card .stat-number:last-child {
+            margin-top: 8px;
+        }
+
+        /* show both on mobile */
+        .inquiries_mobile_view {
+            display: flex !important;
+        }
+
+        .inquiries-section {
+            padding: 14px;
+        }
+
+        .section-title {
+            font-size: 16px !important;
+        }
+
+        .inquiry-item {
+            flex-direction: column;
+            align-items: flex-start !important;
+            gap: 8px;
+            padding: 10px 0;
+        }
+
+        .inquiry-image-wrapper {
+            width: 100%;
+        }
+
+        .inquiry-image {
+            width: 100%;
+            height: 140px;
+        }
+
+        .inquiry-details {
+            width: 100%;
+        }
+
+        .inquiry-dates {
+            font-size: 12px;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .inquiry-room {
+            font-size: 14px;
+        }
+
+        .inquiry-room .dropdown {
+            margin-left: auto;
+        }
+
+        .chart-card {
+            display: block !important;
+            padding: 12px;
+        }
+
+        .chart-title p {
+            font-size: 14px;
+            margin-bottom: 4px;
+        }
+
+        .chart {
+            height: 120px;
+        }
+
+        .chart-labels div {
+            font-size: 10px;
+        }
+
+        /* upcoming section */
+        .upcoming-section .row.text-center {
+            background: #fff;
+            border-radius: 18px;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+            padding: 10px 6px;
+            margin: 0;
+        }
+
+        .upcoming-section .row.text-center>div {
+            flex: 0 0 33.3333%;
+            max-width: 33.3333%;
+            padding: 8px 4px;
+        }
+
+        .stat-card .h5 {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 2px;
+        }
+
+        .stat-card .label {
+            font-size: 11px;
+            color: #6b7280;
             white-space: nowrap;
-            font-weight: 500;
-            color: #000000;
+        }
+
+        .start-card-removed-css {
+            border: none !important;
+        }
+
+        .upcoming-header {
+            font-size: 18px;
+            margin-bottom: 0;
+        }
+
+        .month-picker {
+            gap: 6px;
+            padding: 2px 10px;
+        }
+
+        .bar span {
+            transform: translateX(-50%) !important;
+            top: -14px !important;
+            white-space: nowrap;
+        }
+
+        .legend-label {
+            white-space: nowrap !important;
+            word-break: normal !important;
+        }
+
+        .upcoming-section {
+            padding: 12px;
+            margin-top: 8px;
+        }
+
+        .upcoming-date {
+            font-size: 12px;
+            padding: 4px 8px;
+        }
+    }
+
+    /* ===== Tablet + Mobile stats layout ===== */
+    @media (max-width: 991.98px) {
+
+        html,
+        body {
+            height: auto;
+            overflow: auto;
+        }
+
+        .header-nav {
+            position: static;
+            top: auto;
+            left: auto;
+            right: auto;
+            height: auto;
+            background: #E7E7E9;
+            padding: 16px 20px !important;
+            border-radius: 0;
+            box-shadow: none;
+        }
+
+        .header_title {
+            color: #000000 !important;
+        }
+
+        .header_logo {
+            content: url("{% static 'img/dashboard/dashboard_icon.png' %}");
+
+        }
+
+        .nav-title {
+            padding-bottom: 0px;
+        }
+
+        .header-actions {
+            width: 100%;
+            text-align: right;
         }
 
         .refresh-btn {
-            background-color: #ffffff;
-            color: #1D74B2 !important;
-            padding: 4px 11px;
-            font-weight: 500;
+            display: none;
+        }
+
+        .main {
+            position: static;
+            top: auto;
+            left: auto;
+            right: auto;
+            bottom: auto;
+            overflow: visible;
+            padding: 16px 16px 24px;
+        }
+
+        /* stack columns on tablet too */
+        .main>.row.align-items-start>.col-6 {
+            flex: 0 0 100%;
+            max-width: 100%;
+        }
+
+        .stats-grid .col-6 {
+            flex: 0 0 50%;
+            max-width: 50%;
+        }
+
+        /* Stats wrapper */
+        .upcoming-section .row.text-center {
+            background: #fff;
+            border-radius: 18px;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+            padding: 12px 8px;
+            margin: 0;
+        }
+
+        /* Force 3 columns per row */
+        .upcoming-section .row.text-center>div {
+            flex: 0 0 33.3333%;
+            max-width: 33.3333%;
+            padding: 10px 6px;
+        }
+
+        /* Remove card styling */
+        .stat-card {
+            background: transparent;
+            /* box-shadow: none; */
+            padding: 10px;
+            height: auto;
+        }
+
+        .stat-card .card-body {
+            padding: 6px 0;
+        }
+
+        /* Vertical dividers */
+        .upcoming-section .row.text-center>div:not(:nth-child(3n)) {
+            border-right: 1px solid #e5e7eb;
+        }
+
+        /* Horizontal divider between rows */
+        .upcoming-section .row.text-center>div:nth-child(-n+3) {
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        /* Numbers */
+        .stat-card .h5 {
+            font-size: 22px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        /* Labels */
+        .stat-card .label {
+            font-size: 12px;
+            color: #6b7280;
             white-space: nowrap;
         }
 
-       
-          /* Responsive spacing — phone */
-        @media (max-width: 576px) {
-            .stat-number-font {
-                font-size: 12px !important;
-            }
-            .stat-number {
-                font-size: 22px;
-                margin-left: 0 !important;
-            }
-            .main {
-                padding: 10px !important;
-                background: none;
-            }
-            .stats-grid {
-                margin-top: 0 !important;
-            }
-            .main_div {
-                padding: 0;
-            }
+        /* Remove old borders */
+        .start-card-removed-css {
+            border: none !important;
+        }
+    }
 
-            /* stack left/right columns full width */
-            .main > .row.align-items-stretch > .col-6 {
-                flex: 0 0 100%;
-                max-width: 100%;
-            }
-
-            .upcoming-container-wrapper {
-                position: static !important;
-            }
-            .upcoming-scroll-content {
-                position: static !important;
-                height: auto !important;
-                max-height: 400px;
-            }
-
-            /* stat cards: 2 per row on phone */
-            .stats-grid .col-6 {
-                flex: 0 0 50%;
-                max-width: 50%;
-                padding: 0 6px;
-            }
-            .stat-card {
-                padding: 12px 10px;
-                min-height: 80px;
-            }
-            .stat-label {
-                font-size: 11px;
-                gap: 6px;
-            }
-            .stat-label img {
-                width: 16px;
-                height: 16px;
-            }
-            .stat-card .stat-number:last-child {
-                margin-top: 8px;
-            }
-
-            /* show both on mobile */
-            .inquiries_mobile_view {
-                display: flex !important;
-            }
-            .inquiries-section {
-                padding: 14px;
-            }
-            .section-title {
-                font-size: 16px !important;
-            }
-            .inquiry-item {
-                flex-direction: column;
-                align-items: flex-start !important;
-                gap: 8px;
-                padding: 10px 0;
-            }
-            .inquiry-image-wrapper {
-                width: 100%;
-            }
-            .inquiry-image {
-                width: 100%;
-                height: 140px;
-            }
-            .inquiry-details {
-                width: 100%;
-            }
-            .inquiry-dates {
-                font-size: 12px;
-                flex-direction: column;
-                gap: 2px;
-            }
-            .inquiry-room {
-                font-size: 14px;
-            }
-            .inquiry-room .dropdown {
-                margin-left: auto;
-            }
-
-            .chart-card {
-                display: block !important;
-                padding: 12px;
-            }
-            .chart-title p {
-                font-size: 14px;
-                margin-bottom: 4px;
-            }
-            .chart {
-                height: 120px;
-            }
-            .chart-labels div {
-                font-size: 10px;
-            }
-
-            /* upcoming section */
-            .upcoming-section .row.text-center {
-                background: #fff;
-                border-radius: 18px;
-                box-shadow: 0 6px 18px rgba(0,0,0,0.08);
-                padding: 10px 6px;
-                margin: 0;
-            }
-            .upcoming-section .row.text-center > div {
-                flex: 0 0 33.3333%;
-                max-width: 33.3333%;
-                padding: 8px 4px;
-            }
-            .stat-card .h5 {
-                font-size: 20px;
-                font-weight: 700;
-                margin-bottom: 2px;
-            }
-            .stat-card .label {
-                font-size: 11px;
-                color: #6b7280;
-                white-space: nowrap;
-            }
-            .start-card-removed-css {
-                border: none !important;
-            }
-            .upcoming-header {
-                font-size: 18px;
-                margin-bottom: 0;
-            }
-            .month-picker {
-                gap: 6px;
-                padding: 2px 10px;
-            }
-            .upcoming-section {
-                padding: 12px;
-            }
-            .upcoming-date {
-                font-size: 12px;
-                padding: 4px 8px;
-            }
+    @media (min-width: 992px) {
+        .laptop-padded-section {
+            padding: 32px !important;
         }
 
-        /* ===== Tablet + Mobile stats layout ===== */
-        @media (max-width: 991.98px) {
-
-            html, body {
-                height: auto;
-                overflow: auto;
-            }
-
-            .header-nav {
-                position: static;
-                top: auto;
-                left: auto;
-                right: auto;
-                height: auto;
-                background: #E7E7E9;
-                padding: 16px 20px !important;
-                border-radius: 0;
-                box-shadow: none;
-            }
-            .header_title{
-                color: #000000 !important;
-            }
-            .header_logo{
-                content: url("{% static 'img/dashboard/dashboard_icon.png' %}");
-
-            }
-            .nav-title {
-                padding-bottom: 0px;
-            }
-
-            .header-actions {
-                width: 100%;
-                text-align: right;
-            }
-            .refresh-btn {
-                display: none;
-            }
-            .main {
-                position: static;
-                top: auto;
-                left: auto;
-                right: auto;
-                bottom: auto;
-                overflow: visible;
-                padding: 16px 16px 24px;
-            }
-            /* stack columns on tablet too */
-            .main > .row.align-items-start > .col-6 {
-                flex: 0 0 100%;
-                max-width: 100%;
-            }
-            .stats-grid .col-6 {
-                flex: 0 0 50%;
-                max-width: 50%;
-            }
-            /* Stats wrapper */
-            .upcoming-section .row.text-center {
-                background: #fff;
-                border-radius: 18px;
-                box-shadow: 0 6px 18px rgba(0,0,0,0.08);
-                padding: 12px 8px;
-                margin: 0;
-            }
-
-            /* Force 3 columns per row */
-            .upcoming-section .row.text-center > div {
-                flex: 0 0 33.3333%;
-                max-width: 33.3333%;
-                padding: 10px 6px;
-            }
-
-            /* Remove card styling */
-            .stat-card {
-                background: transparent;
-                /* box-shadow: none; */
-                padding: 10px;
-                height: auto;
-            }
-
-            .stat-card .card-body {
-                padding: 6px 0;
-            }
-
-            /* Vertical dividers */
-            .upcoming-section .row.text-center > div:not(:nth-child(3n)) {
-                border-right: 1px solid #e5e7eb;
-            }
-
-            /* Horizontal divider between rows */
-            .upcoming-section .row.text-center > div:nth-child(-n+3) {
-                border-bottom: 1px solid #e5e7eb;
-            }
-
-            /* Numbers */
-            .stat-card .h5 {
-                font-size: 22px;
-                font-weight: 700;
-                margin-bottom: 4px;
-            }
-
-            /* Labels */
-            .stat-card .label {
-                font-size: 12px;
-                color: #6b7280;
-                white-space: nowrap;
-            }
-
-            /* Remove old borders */
-            .start-card-removed-css {
-                border: none !important;
-            }
+        .laptop-legend-center {
+            flex: none !important;
+            margin: 0 !important;
         }
-        
-        @media (min-width: 992px) {
-            .laptop-padded-section {
-                padding: 32px !important;
-            }
-            .laptop-legend-center {
-                flex: none !important;
-                margin: 0 !important;
-            }
-            .channel-chart-container {
-                justify-content: center !important;
-                gap: 60px !important;
-            }
-            .laptop-chart-size {
-                width: 280px !important;
-            }
-            .laptop-legend-text-size {
-                font-size: 15px !important;
-            }
-            .row.align-items-stretch > .col-6:last-child {
-                display: grid;
-            }
-            .upcoming-section {
-                height: auto !important;
-                /* Extend down exactly past the Monthly Average row, leaving a 24px gap above the pie chart */
-                margin-bottom: calc(-440px - 1rem) !important;
-                z-index: 10;
-            }
-            .monthly-avg-card-mobile-revert {
-                height: 440px !important;
-            }
+
+        .channel-chart-container {
+            justify-content: center !important;
+            gap: 60px !important;
         }
-    </style>
+
+        .laptop-chart-size {
+            width: 280px !important;
+        }
+
+        .laptop-legend-text-size {
+            font-size: 15px !important;
+        }
+
+        .row.align-items-stretch>.col-6:last-child {
+            display: grid;
+        }
+
+        .upcoming-section {
+            height: auto !important;
+            /* Extend down to align bottom with Monthly Average chart (440px) + row padding (2rem) */
+            margin-bottom: calc(-440px - 2rem) !important;
+            z-index: 10;
+        }
+
+        .monthly-avg-card-mobile-revert {
+            height: 440px !important;
+        }
+    }
+</style>
 {% endblock extra_head %}
 
 
 {% block content %}
 <div class="container-fluid p-0">
-     <!-- Header Navigation -->
+    <!-- Header Navigation -->
     <div class="header-nav" style="padding: 8px 32px;">
         <div class="row align-items-center justify-content-between w-100 g-3">
-    
+
             <!-- Left: Dashboard title -->
             <div class="col-6 col-md-auto">
                 <div class="nav-left d-flex align-items-center">
                     <div class="nav-title d-flex align-items-center gap-2">
-                        <img src="{% static 'img/dashboard/dashboard_icon_white.svg' %}" style="filter: brightness(0);" class="header_logo" alt="Dashboard">
+                        <img src="{% static 'img/dashboard/dashboard_icon_white.svg' %}" style="filter: brightness(0);"
+                            class="header_logo" alt="Dashboard">
                         <span class="header_title">Dashboard</span>
                     </div>
                 </div>
@@ -600,112 +675,146 @@
             <div class="col-6 d-flex flex-column">
                 <div class="row stats-grid gx-3 ">
                     <div class="col-6">
-                        <div class="stat-card">
-                            <div class="stat-label">
-                                <img src="{% static 'img/dashboard/active_listing.svg' %}">
-                                <span class="stat-number  stat-number-font">Active Listings</span>
+                        <a href="{% url 'property:property-list' %}"
+                            style="text-decoration:none;color:inherit;display:block;">
+                            <div class="stat-card">
+                                <div class="stat-label">
+                                    <img src="{% static 'img/dashboard/active_listing.svg' %}">
+                                    <span class="stat-number  stat-number-font">Active Listings</span>
+                                </div>
+                                <div class="stat-number" style="margin-left: 28px;">{{active_listings_count}}</div>
                             </div>
-                            <div class="stat-number" style="margin-left: 28px;">{{active_listings_count}}</div>
-                        </div>
+                        </a>
                     </div>
 
                     <div class="col-6">
-                        <div class="stat-card">
-                            <div class="stat-label">
-                                <img src="{% static 'img/dashboard/revenue.svg' %}">
-                                <span class="stat-number  stat-number-font ">Total revenue </span>
+                        <a href="{% url 'booking:booking-list' %}"
+                            style="text-decoration:none;color:inherit;display:block;">
+                            <div class="stat-card">
+                                <div class="stat-label">
+                                    <img src="{% static 'img/dashboard/revenue.svg' %}">
+                                    <span class="stat-number  stat-number-font ">Total revenue </span>
+                                </div>
+                                <div class="stat-number" style="margin-left: 28px;">{% money total_revenue %}</div>
                             </div>
-                            <div class="stat-number" style="margin-left: 28px;">{% money total_revenue %}</div>
-                        </div>
+                        </a>
                     </div>
 
                     <div class="col-6">
-                        <div class="stat-card">
-                            <div class="stat-label">
-                                <img src="{% static 'img/dashboard/pending_task.svg' %}">
-                                <span class="stat-number  stat-number-font">Pending Tasks</span>
+                        <a href="{% url 'tasks:task-list' %}" style="text-decoration:none;color:inherit;display:block;">
+                            <div class="stat-card">
+                                <div class="stat-label">
+                                    <img src="{% static 'img/dashboard/pending_task.svg' %}">
+                                    <span class="stat-number  stat-number-font">Pending Tasks</span>
+                                </div>
+                                <div class="stat-number" style="margin-left: 28px;">{{pending_tasks_count}}</div>
                             </div>
-                            <div class="stat-number" style="margin-left: 28px;">{{pending_tasks_count}}</div>
-                        </div>
+                        </a>
                     </div>
 
                     <div class="col-6">
-                        <div class="stat-card">
-                            <div class="stat-label">
-                                <img src="{% static 'img/dashboard/new_Inquiries.png' %}">
-                                <span class="stat-number stat-number-font">New Inquiries</span>
+                        <a href="{% url 'booking:enquiry-list' %}?status=new"
+                            style="text-decoration:none;color:inherit;display:block;">
+                            <div class="stat-card">
+                                <div class="stat-label">
+                                    <img src="{% static 'img/dashboard/new_Inquiries.png' %}">
+                                    <span class="stat-number stat-number-font">New Inquiries</span>
+                                </div>
+                                <div style="font-size: 12px; color: #000000; margin-top: 4px;">
+
+                                </div>
+                                <div class="stat-number" style="margin-left: 28px;">{{ new_enquiry_count|default:0 }}
+                                </div>
                             </div>
-                            <div style="font-size: 12px; color: #000000; margin-top: 4px;">
-                                
-                            </div>
-                            <div class="stat-number" style="margin-left: 28px;">{{ new_enquiry_count|default:0 }}</div>
-                        </div>
+                        </a>
                     </div>
                 </div>
 
                 <div class="row mt-3 gx-3 inquiries_mobile_view">
                     <div class="col-12 d-flex flex-fill">
-                        <div class="inquiries-section flex-fill d-flex flex-column laptop-padded-section" style="height: 400px;">
+                        <div class="inquiries-section flex-fill d-flex flex-column laptop-padded-section"
+                            style="height: 400px;">
                             <div class="section-header">
                                 <h2 class="section-title" style="font-size: 20px;">New Inquiries</h2>
-                                <a href="{% url 'booking:enquiry-list' %}?status=new" class="view-all" style="color: #000000; text-decoration: underline;">
+                                <a href="{% url 'booking:enquiry-list' %}?status=new" class="view-all"
+                                    style="color: #000000; text-decoration: underline;">
                                     View all
                                 </a>
                             </div>
 
                             <div class="inquiries-scroll" style="flex: 1; overflow-y: auto;">
 
-                            {% for inquiry in new_enquiry_list %}
+                                {% for inquiry in new_enquiry_list %}
                                 <div class="inquiry-item align-items-center">
                                     <div class="inquiry-image-wrapper">
                                         <div class="inquiry-image">
-                                            <img src="{{inquiry.property.get_primary_image_url}}" style="width:100%; height: 100%; border-radius: 10px;"/>
+                                            <img src="{{inquiry.property.get_primary_image_url}}"
+                                                style="width:100%; height: 100%; border-radius: 10px;" />
                                         </div>
                                         {% if status_filter != 'reserved' %}
-                                            {% if inquiry.is_available %}
-                                            <p class="enquiry-status-label enquiry-status-available">Available</p>
-                                            {% else %}
-                                            <p class="enquiry-status-label enquiry-status-unavailable">Not Available</p>
-                                            {% endif %}
+                                        {% if inquiry.is_available %}
+                                        <p class="enquiry-status-label enquiry-status-available">Available</p>
+                                        {% else %}
+                                        <p class="enquiry-status-label enquiry-status-unavailable">Not Available</p>
+                                        {% endif %}
                                         {% endif %}
                                     </div>
                                     <div class="inquiry-details">
                                         <div class="inquiry-dates d-flex justify-content-between">
-                                            <span>{{ inquiry.check_in_date|date:"M d, Y" }} - {{ inquiry.check_out_date|date:"M d, Y" }} ({{ inquiry.total_nights }} nights)</span>
-                                            <span>Sent On <span style="font-weight:800; font-size: 16px; margin-right: 8px;">{{ inquiry.created_at|date:"M d, Y" }}</span></span>
+                                            <span>{{ inquiry.check_in_date|date:"M d, Y" }} - {{
+                                                inquiry.check_out_date|date:"M d, Y" }} ({{ inquiry.total_nights }}
+                                                nights)</span>
+                                            <span>Sent On <span
+                                                    style="font-weight:800; font-size: 16px; margin-right: 8px;">{{
+                                                    inquiry.created_at|date:"M d, Y" }}</span></span>
                                         </div>
                                         <div class="inquiry-room d-flex justify-content-between align-items-center">
                                             <span>{{ inquiry.property.title }}</span>
                                             <div class="dropdown ms-3">
-                                                <button class="options-btn" type="button" data-bs-toggle="dropdown" data-toggle="dropdown" aria-expanded="false" data-bs-boundary="window" data-boundary="window">
+                                                <button class="options-btn" type="button" data-bs-toggle="dropdown"
+                                                    data-toggle="dropdown" aria-expanded="false"
+                                                    data-bs-boundary="window" data-boundary="window">
                                                     <img src="{% static 'img/booking/horizontal_dots.svg' %}">
                                                 </button>
                                                 <ul class="dropdown-menu dropdown-menu-end dropdown-menu-right">
                                                     <li>
-                                                        <a class="dropdown-item" href="{% url 'booking:enquiry-detail' unique_id=inquiry.unique_id %}">
+                                                        <a class="dropdown-item"
+                                                            href="{% url 'booking:enquiry-detail' unique_id=inquiry.unique_id %}">
                                                             <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                                                                <path d="M2 8C3.3 5.7 5.3 4.5 8 4.5C10.7 4.5 12.7 5.7 14 8C12.7 10.3 10.7 11.5 8 11.5C5.3 11.5 3.3 10.3 2 8Z"
-                                                                    stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
-                                                                <circle cx="8" cy="8" r="1.75" stroke="currentColor" stroke-width="1.5" />
+                                                                <path
+                                                                    d="M2 8C3.3 5.7 5.3 4.5 8 4.5C10.7 4.5 12.7 5.7 14 8C12.7 10.3 10.7 11.5 8 11.5C5.3 11.5 3.3 10.3 2 8Z"
+                                                                    stroke="currentColor" stroke-width="1.5"
+                                                                    stroke-linecap="round" stroke-linejoin="round" />
+                                                                <circle cx="8" cy="8" r="1.75" stroke="currentColor"
+                                                                    stroke-width="1.5" />
                                                             </svg>
                                                             Details
                                                         </a>
                                                     </li>
                                                     {% if inquiry.is_available and not inquiry.is_booked %}
                                                     <li>
-                                                        <a class="dropdown-item" href="{% url 'booking:booking-create' %}?enquiry_id={{ inquiry.unique_id }}">
-                                                            <img class="create-menu-icon" src="{% static 'img/header/hotel-room.png' %}" alt="Reservation">
+                                                        <a class="dropdown-item"
+                                                            href="{% url 'booking:booking-create' %}?enquiry_id={{ inquiry.unique_id }}">
+                                                            <img class="create-menu-icon"
+                                                                src="{% static 'img/header/hotel-room.png' %}"
+                                                                alt="Reservation">
                                                             Create Reservation
                                                         </a>
                                                     </li>
                                                     {% endif %}
                                                     <li>
-                                                        <a class="dropdown-item enquiry-archive-btn" href="#" data-enquiry-id="{{ inquiry.unique_id }}">
-                                                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="stroke: currentColor;">
-                                                                <rect x="2" y="3" width="12" height="3" rx="1" stroke="currentColor" stroke-width="1.5" />
-                                                                <path d="M3.5 6V12.5C3.5 13.0523 3.94772 13.5 4.5 13.5H11.5C12.0523 13.5 12.5 13.0523 12.5 12.5V6"
-                                                                    stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
-                                                                <path d="M6 8.5H10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+                                                        <a class="dropdown-item enquiry-archive-btn" href="#"
+                                                            data-enquiry-id="{{ inquiry.unique_id }}">
+                                                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"
+                                                                style="stroke: currentColor;">
+                                                                <rect x="2" y="3" width="12" height="3" rx="1"
+                                                                    stroke="currentColor" stroke-width="1.5" />
+                                                                <path
+                                                                    d="M3.5 6V12.5C3.5 13.0523 3.94772 13.5 4.5 13.5H11.5C12.0523 13.5 12.5 13.0523 12.5 12.5V6"
+                                                                    stroke="currentColor" stroke-width="1.5"
+                                                                    stroke-linecap="round" stroke-linejoin="round" />
+                                                                <path d="M6 8.5H10" stroke="currentColor"
+                                                                    stroke-width="1.5" stroke-linecap="round" />
                                                             </svg>
                                                             Archive
                                                         </a>
@@ -714,17 +823,17 @@
                                             </div>
                                         </div>
                                         <div class="inquiry-guest">
-                                            {{ inquiry.guest_name }} 
-                                            | 
+                                            {{ inquiry.guest_name }}
+                                            |
                                             {{ inquiry.adults }} guest{{ inquiry.adults|pluralize }}
                                             , {{ inquiry.children }} Child {% if inquiry.children > 1 %}ren{% endif %}
                                             , {{ inquiry.pets }} pet{{ inquiry.pets|pluralize }}
                                         </div>
                                     </div>
                                 </div>
-                            {% empty %}
+                                {% empty %}
                                 <p>No new inquiries available.</p>
-                            {% endfor %}
+                                {% endfor %}
                             </div>
                         </div>
                     </div>
@@ -738,82 +847,86 @@
                         <h2 class="upcoming-header">Upcoming</h2>
                         <div class="month-picker">
                             <button id="prev-month" aria-label="Previous month">&#8249;</button>
-                            <span id="month-label" data-month="{{ upcoming_month }}" data-year="{{ upcoming_year }}"></span>
+                            <span id="month-label" data-month="{{ upcoming_month }}"
+                                data-year="{{ upcoming_year }}"></span>
                             <button id="next-month" aria-label="Next month">&#8250;</button>
                         </div>
                     </div>
 
                     <div class="position-relative flex-fill upcoming-container-wrapper">
-                        <div class="position-absolute w-100 h-100 upcoming-scroll-content" style="overflow-y: auto; overflow-x: hidden; top: 0; left: 0; padding-right: 8px;">
+                        <div class="position-absolute w-100 h-100 upcoming-scroll-content"
+                            style="overflow-y: auto; overflow-x: hidden; top: 0; left: 0; padding-right: 8px;">
                             {% if upcoming_groups %}
-                                    {% for group in upcoming_groups %}
-                                        <div class="upcoming-item">
-                                            <div class="upcoming-date">
-                                                <div class="left">
-                                                    <img src="{% static 'img/dashboard/upcoming_event_calender.png' %}"/>
-                                                    {{ group.date|date:"M d, Y, D" }}
-                                                </div>
-                                                <div class="due-badge {{ group.status_code }}">{{ group.status_label }}</div>
+                            {% for group in upcoming_groups %}
+                            <div class="upcoming-item">
+                                <div class="upcoming-date">
+                                    <div class="left">
+                                        <img src="{% static 'img/dashboard/upcoming_event_calender.png' %}" />
+                                        {{ group.date|date:"M d, Y, D" }}
+                                    </div>
+                                    <div class="due-badge {{ group.status_code }}">{{ group.status_label }}</div>
+                                </div>
+                                <div class="upcoming-entries">
+                                    {% for item in group.items %}
+                                    <div class="upcoming-entry">
+                                        <div class="entry-left">
+                                            <div class="entry-title">
+                                                <img src="{% static item.icon %}" class="entry-icon" alt="">
+                                                <span class="entry-label">
+                                                    {{ item.title }}
+                                                    {% if item.amount %}
+                                                    {% money item.amount %}
+                                                    {% endif %}
+                                                </span>
+                                                {% if item.group == "Payment" %}
+                                                <span
+                                                    class="payment-status {% if item.paid %}paid{% else %}unpaid{% endif %}">
+                                                    {% if item.paid %}Paid{% else %}Not paid{% endif %}
+                                                </span>
+                                                {% endif %}
                                             </div>
-                                            <div class="upcoming-entries">
-                                                {% for item in group.items %}
-                                                    <div class="upcoming-entry">
-                                                        <div class="entry-left">
-                                                            <div class="entry-title">
-                                                                <img src="{% static item.icon %}" class="entry-icon" alt="">
-                                                                <span class="entry-label">
-                                                                    {{ item.title }}
-                                                                    {% if item.amount %}
-                                                                        {% money item.amount %}
-                                                                    {% endif %}
-                                                                </span>
-                                                                {% if item.group == "Payment" %}
-                                                                    <span class="payment-status {% if item.paid %}paid{% else %}unpaid{% endif %}">
-                                                                        {% if item.paid %}Paid{% else %}Not paid{% endif %}
-                                                                    </span>
-                                                                {% endif %}
-                                                            </div>
-                                                            <div class="entry-subtitle">
-                                                                <img src="{{ item.property_image }}" class="entry-property-icon" alt="">
-                                                                <span>{{ item.property }}</span>
-                                                            </div>
-                                                        </div>
-                                                        <div class="entry-right">
-                                                            <div class="guest-avatar-wrap">
-                                                                <img src="{{ item.avatar }}" class="user-avatar" alt="Guest">
-                                                                <div class="guest-tooltip">
-                                                                    <div class="tooltip-name">{{ item.guest_name }}</div>
-                                                                    {% if item.guest_phone %}
-                                                                        <div class="tooltip-line">{{ item.guest_phone }}</div>
-                                                                    {% endif %}
-                                                                    {% if item.guest_email %}
-                                                                        <div class="tooltip-line">{{ item.guest_email }}</div>
-                                                                    {% endif %}
-                                                                    {% if item.stay %}
-                                                                        <div class="tooltip-line">{{ item.stay }}</div>
-                                                                    {% endif %}
-                                                                    {% if item.channel_name %}
-                                                                        <div class="tooltip-line">{{ item.channel_name }}</div>
-                                                                    {% endif %}
-                                                                </div>
-                                                            </div>
-                                                            <div class="user-name" data-full="{{ item.guest_name }}">{{ item.guest_name|truncatewords:2 }}</div>
-                                                        </div>
-                                                    </div>
-                                                {% endfor %}
+                                            <div class="entry-subtitle">
+                                                <img src="{{ item.property_image }}" class="entry-property-icon" alt="">
+                                                <span>{{ item.property }}</span>
                                             </div>
                                         </div>
-                                    {% endfor %}
-                                {% else %}
-                                    <div class="upcoming-item">
-                                        <div class="upcoming-date">
-                                            <div class="left">
-                                                <img src="{% static 'img/dashboard/upcoming_event_calender.png' %}"/>
-                                                No upcoming events
+                                        <div class="entry-right">
+                                            <div class="guest-avatar-wrap">
+                                                <img src="{{ item.avatar }}" class="user-avatar" alt="Guest">
+                                                <div class="guest-tooltip">
+                                                    <div class="tooltip-name">{{ item.guest_name }}</div>
+                                                    {% if item.guest_phone %}
+                                                    <div class="tooltip-line">{{ item.guest_phone }}</div>
+                                                    {% endif %}
+                                                    {% if item.guest_email %}
+                                                    <div class="tooltip-line">{{ item.guest_email }}</div>
+                                                    {% endif %}
+                                                    {% if item.stay %}
+                                                    <div class="tooltip-line">{{ item.stay }}</div>
+                                                    {% endif %}
+                                                    {% if item.channel_name %}
+                                                    <div class="tooltip-line">{{ item.channel_name }}</div>
+                                                    {% endif %}
+                                                </div>
                                             </div>
-                                            <div class="due-badge upcoming">This month</div>
+                                            <div class="user-name" data-full="{{ item.guest_name }}">{{
+                                                item.guest_name|truncatewords:2 }}</div>
                                         </div>
                                     </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            {% endfor %}
+                            {% else %}
+                            <div class="upcoming-item">
+                                <div class="upcoming-date">
+                                    <div class="left">
+                                        <img src="{% static 'img/dashboard/upcoming_event_calender.png' %}" />
+                                        No upcoming events
+                                    </div>
+                                    <div class="due-badge upcoming">This month</div>
+                                </div>
+                            </div>
                             {% endif %}
                         </div>
                     </div>
@@ -824,7 +937,7 @@
 
         <div class="row g-3 p-3">
             <div class="col-lg-6 col-12">
-                <div class="row mt-3 gx-3">
+                <div class="row gx-3">
                     <div class="col-12 d-flex">
                         <style>
                             @media (max-width: 991px) {
@@ -832,6 +945,7 @@
                                     height: auto !important;
                                     display: block !important;
                                 }
+
                                 .monthly-avg-chart-mobile-revert {
                                     flex: none !important;
                                     height: 180px !important;
@@ -839,11 +953,12 @@
                                 }
                             }
                         </style>
-                        <div class="chart-card flex-fill monthly-avg-card-mobile-revert laptop-padded-section" style="height: 400px; display: flex; flex-direction: column;">
+                        <div class="chart-card flex-fill monthly-avg-card-mobile-revert laptop-padded-section"
+                            style="height: 400px; display: flex; flex-direction: column;">
                             <div class="chart-header d-flex justify-content-between align-items-start">
                                 <div class="chart-title">
                                     <p> Monthly Average: {% money monthly_average %}</p>
-                                    
+
                                 </div>
 
                                 <div style="display: flex;  text-align: right;">
@@ -858,9 +973,9 @@
 
                                     <select id="year-select" class="year-select">
                                         {% for y in total_years %}
-                                            <option value="{{ y }}" {% if y == selected_year %}selected{% endif %}>
+                                        <option value="{{ y }}" {% if y==selected_year %}selected{% endif %}>
                                             {{ y }}
-                                            </option>
+                                        </option>
                                         {% endfor %}
                                     </select>
 
@@ -868,13 +983,23 @@
                             </div>
 
                             <!-- Chart -->
-                            <div class="chart monthly-avg-chart-mobile-revert" id="earnings-chart" style="flex: 1; height: 100%; min-height: 180px;"></div>
+                            <div class="chart monthly-avg-chart-mobile-revert" id="earnings-chart"
+                                style="flex: 1; height: 100%; min-height: 180px;"></div>
 
                             <!-- Month Labels -->
                             <div class="chart-labels d-flex justify-content-between">
-                            <div>Jan</div><div>Feb</div><div>Mar</div><div>Apr</div>
-                            <div>May</div><div>Jun</div><div>Jul</div><div>Aug</div>
-                            <div>Sep</div><div>Oct</div><div>Nov</div><div>Dec</div>
+                                <div>Jan</div>
+                                <div>Feb</div>
+                                <div>Mar</div>
+                                <div>Apr</div>
+                                <div>May</div>
+                                <div>Jun</div>
+                                <div>Jul</div>
+                                <div>Aug</div>
+                                <div>Sep</div>
+                                <div>Oct</div>
+                                <div>Nov</div>
+                                <div>Dec</div>
                             </div>
                         </div>
                     </div>
@@ -882,30 +1007,42 @@
             </div>
         </div>
 
-        <div class="row mt-4 gx-3 p-3">
+        <div class="row g-3 p-3">
             <div class="col-lg-6 d-flex flex-column mb-3 mb-lg-0">
-                <div class="inquiries-section flex-fill d-flex flex-column laptop-padded-section" style="height: 400px; background: #fff; border-radius: 18px; box-shadow: 0 6px 18px rgba(0,0,0,0.08); padding: 16px;">
+                <div class="inquiries-section flex-fill d-flex flex-column laptop-padded-section"
+                    style="height: 400px; background: #fff; border-radius: 18px; box-shadow: 0 6px 18px rgba(0,0,0,0.08); padding: 16px;">
                     <div class="section-header">
-                        <h2 class="section-title" style="font-size: 20px;">Recent Bookings <span style="font-weight:400; font-size:16px; color:#6b7280;">({{ recent_bookings|length }})</span></h2>
+                        <h2 class="section-title" style="font-size: 20px;">Recent Bookings <span
+                                style="font-weight:400; font-size:16px; color:#6b7280;">({{ recent_bookings|length
+                                }})</span></h2>
                     </div>
                     <div class="inquiries-scroll" style="flex: 1; overflow-y: auto;">
                         {% for booking in recent_bookings %}
                         <div class="inquiry-item align-items-center mb-3">
                             <div class="inquiry-image">
-                                <img src="{{ booking.property.get_primary_image_url }}" onerror="this.src='https://placehold.co/100x100?text=Room'" style="width:100%; height: 100%; border-radius: 10px; object-fit: cover;"/>
+                                <img src="{{ booking.property.get_primary_image_url }}"
+                                    onerror="this.src='https://placehold.co/100x100?text=Room'"
+                                    style="width:100%; height: 100%; border-radius: 10px; object-fit: cover;" />
                             </div>
                             <!-- Mobile Layout -->
                             <div class="inquiry-details d-lg-none" style="flex: 1;">
                                 <div class="inquiry-dates d-flex justify-content-between">
-                                    <span>{{ booking.check_in_date|date:"M j, Y" }} - {{ booking.check_out_date|date:"M j, Y" }} ({{ booking.total_nights }} night{{ booking.total_nights|pluralize }})</span>
-                                    <span>Booked On <span style="font-weight:800; font-size: 16px; margin-right: 8px;">{{ booking.created_at|date:"M j, Y" }}</span></span>
+                                    <span>{{ booking.check_in_date|date:"M j, Y" }} - {{ booking.check_out_date|date:"M
+                                        j, Y" }} ({{ booking.total_nights }} night{{ booking.total_nights|pluralize
+                                        }})</span>
+                                    <span>Booked On <span
+                                            style="font-weight:800; font-size: 16px; margin-right: 8px;">{{
+                                            booking.created_at|date:"M j, Y" }}</span></span>
                                 </div>
                                 <div class="inquiry-room d-flex justify-content-between align-items-center">
                                     <span>{{ booking.property.title }}</span>
                                     <div class="dropdown ms-3">
                                         <a href="{% url 'booking:booking-edit' pk=booking.id %}" style="color: #000;">
-                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+                                                stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                                stroke-linejoin="round">
+                                                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6">
+                                                </path>
                                                 <polyline points="15 3 21 3 21 9"></polyline>
                                                 <line x1="10" y1="14" x2="21" y2="3"></line>
                                             </svg>
@@ -914,7 +1051,8 @@
                                 </div>
                                 <div class="inquiry-guest d-flex align-items-center mt-1">
                                     {% if booking.channel and booking.channel.icon %}
-                                    <img src="{{ booking.channel.icon.url }}" onerror="this.style.display='none'" style="width: 20px; height: 20px; margin-right: 8px; border-radius: 50%;">
+                                    <img src="{{ booking.channel.icon.url }}" onerror="this.style.display='none'"
+                                        style="width: 20px; height: 20px; margin-right: 8px; border-radius: 50%;">
                                     {% endif %}
                                     <span>{{ booking.channel.name|default:"Direct"|title }}</span>
                                 </div>
@@ -923,9 +1061,14 @@
                             <!-- Desktop Layout -->
                             <div class="inquiry-details d-none d-lg-block" style="flex: 1; padding-left: 12px;">
                                 <div class="d-flex justify-content-between align-items-start mb-1">
-                                    <span style="font-weight: 700; font-size: 15px;">{{ booking.check_in_date|date:"M j, Y" }} - {{ booking.check_out_date|date:"M j, Y" }} ({{ booking.total_nights }} night{{ booking.total_nights|pluralize }})</span>
-                                    <a href="{% url 'booking:booking-edit' pk=booking.id %}" style="color: #000; flex-shrink: 0; margin-left: 10px;">
-                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <span style="font-weight: 700; font-size: 15px;">{{ booking.check_in_date|date:"M j,
+                                        Y" }} - {{ booking.check_out_date|date:"M j, Y" }} ({{ booking.total_nights }}
+                                        night{{ booking.total_nights|pluralize }})</span>
+                                    <a href="{% url 'booking:booking-edit' pk=booking.id %}"
+                                        style="color: #000; flex-shrink: 0; margin-left: 10px;">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+                                            stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                            stroke-linejoin="round">
                                             <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
                                             <polyline points="15 3 21 3 21 9"></polyline>
                                             <line x1="10" y1="14" x2="21" y2="3"></line>
@@ -938,113 +1081,125 @@
                                 <div class="d-flex justify-content-between align-items-center mt-2">
                                     <div class="d-flex align-items-center">
                                         {% if booking.channel and booking.channel.icon %}
-                                        <img src="{{ booking.channel.icon.url }}" onerror="this.style.display='none'" style="width: 20px; height: 20px; margin-right: 6px; border-radius: 50%;">
+                                        <img src="{{ booking.channel.icon.url }}" onerror="this.style.display='none'"
+                                            style="width: 20px; height: 20px; margin-right: 6px; border-radius: 50%;">
                                         {% endif %}
-                                        <span style="font-weight: 600; font-size: 15px;">{{ booking.channel.name|default:"Direct"|title }}</span>
+                                        <span style="font-weight: 600; font-size: 15px;">{{
+                                            booking.channel.name|default:"Direct"|title }}</span>
                                     </div>
-                                    <span style="font-size: 14px;">Booked on <span style="font-weight:700;">{{ booking.created_at|date:"M j, Y" }}</span></span>
+                                    <span style="font-size: 14px;">Booked on <span style="font-weight:700;">{{
+                                            booking.created_at|date:"M j, Y" }}</span></span>
                                 </div>
                             </div>
                         </div>
                         {% empty %}
-                        <p class="text-muted text-center py-4" style="font-size: 14px;">No recent bookings in the last 7 days</p>
+                        <p class="text-muted text-center py-4" style="font-size: 14px;">No recent bookings in the last 7
+                            days</p>
                         {% endfor %}
                     </div>
                 </div>
             </div>
-            
+
             <div class="col-lg-6 d-flex flex-column">
-                <div class="chart-card flex-fill monthly-avg-card-mobile-revert" style="height: 400px; background: #fff; border-radius: 18px; box-shadow: 0 6px 18px rgba(0,0,0,0.08); padding: 16px; display: flex; flex-direction: column;">
+                <div class="chart-card flex-fill monthly-avg-card-mobile-revert"
+                    style="height: 400px; background: #fff; border-radius: 18px; box-shadow: 0 6px 18px rgba(0,0,0,0.08); padding: 16px; display: flex; flex-direction: column;">
                     <!-- <div class="chart-header">
                         <h2 class="section-title" style="font-size: 20px;">Bookings by Channel</h2>
                     </div> -->
-                    <div class="channel-chart-container" style="display: flex; align-items: center; justify-content: center; align-content: center; gap: clamp(56px, 12vw, 80px); flex-wrap: nowrap; flex: 1; padding: 0 5px; width: 100%;">
-                          <div class="laptop-chart-size" style="position: relative; flex: 0 0 auto; width: clamp(100px, 40vw, 220px); aspect-ratio: 1/1;">
-                              <canvas id="channelPieChart"></canvas>
-                          </div>
-                          <div class="laptop-legend-center" style="flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: clamp(4px, 1vw, 8px);">
-                              {% for label in channel_labels %}
-                              <div class="laptop-legend-text-size" style="display: flex; align-items: center; gap: 6px; font-size: clamp(11px, 3vw, 13px);">
-                                  <span style="width: 10px; height: 10px; flex-shrink: 0; background: {% cycle '#FF5A5F' '#003580' '#111827' '#009DDF' '#E91E63' '#9C27B0' '#FF9800' '#00BCD4' %}"></span>
-                                  <span class="legend-label" style="color: #4b5563; font-weight: 500; word-break: break-word;">{{ label }}</span>
-                              </div>
-                              {% endfor %}
-                          </div>
-                      </div>
+                    <div class="channel-chart-container"
+                        style="display: flex; align-items: center; justify-content: center; align-content: center; gap: clamp(56px, 12vw, 80px); flex-wrap: nowrap; flex: 1; padding: 0 5px; width: 100%;">
+                        <div class="laptop-chart-size"
+                            style="position: relative; flex: 0 0 auto; width: clamp(100px, 40vw, 220px); aspect-ratio: 1/1;">
+                            <canvas id="channelPieChart"></canvas>
+                        </div>
+                        <div class="laptop-legend-center"
+                            style="flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: clamp(4px, 1vw, 8px);">
+                            {% for label in channel_labels %}
+                            <div class="laptop-legend-text-size"
+                                style="display: flex; align-items: center; gap: 6px; font-size: clamp(11px, 3vw, 13px);">
+                                <span
+                                    style="width: 10px; height: 10px; flex-shrink: 0; background: {% cycle '#FF5A5F' '#003580' '#111827' '#009DDF' '#E91E63' '#9C27B0' '#FF9800' '#00BCD4' %}"></span>
+                                <span class="legend-label"
+                                    style="color: #4b5563; font-weight: 500; word-break: break-word;">{{ label }}</span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
-        <br>
         {% include 'frontend/base/footer.html' %}
     </main>
 </div>
 
-{% include 'frontend/common/confirmation_modal.html' with modal_id="archiveEnquiryModal" title="Confirm Archive" message="Are you sure you want to archive this enquiry?" form_id="archiveEnquiryForm" confirm_text="Archive" confirm_btn_class="btn-danger" %}
+{% include 'frontend/common/confirmation_modal.html' with modal_id="archiveEnquiryModal" title="Confirm Archive"
+message="Are you sure you want to archive this enquiry?" form_id="archiveEnquiryForm" confirm_text="Archive"
+confirm_btn_class="btn-danger" %}
 
-{% endblock content  %}
+{% endblock content %}
 
 
 {% block extra_script %}
-    <script src="https://unpkg.com/lucide@latest"></script>
-    
-    <script>
-        // Archive Enquiry Functionality
-        function getCookie(name) {
-            let cookieValue = null;
-            if (document.cookie && document.cookie !== '') {
-                const cookies = document.cookie.split(';');
-                for (let i = 0; i < cookies.length; i++) {
-                    const cookie = cookies[i].trim();
-                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                        break;
-                    }
+<script src="https://unpkg.com/lucide@latest"></script>
+
+<script>
+    // Archive Enquiry Functionality
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
                 }
             }
-            return cookieValue;
         }
+        return cookieValue;
+    }
 
-        const csrfToken = getCookie('csrftoken');
-        const archiveModalElement = document.getElementById('archiveEnquiryModal');
-        const archiveForm = document.getElementById('archiveEnquiryForm');
-        const archiveSubmitBtn = archiveForm ? archiveForm.querySelector('button[type="submit"]') : null;
-        const archiveModal = archiveModalElement ? new bootstrap.Modal(archiveModalElement) : null;
-        let pendingArchiveEnquiryId = null;
+    const csrfToken = getCookie('csrftoken');
+    const archiveModalElement = document.getElementById('archiveEnquiryModal');
+    const archiveForm = document.getElementById('archiveEnquiryForm');
+    const archiveSubmitBtn = archiveForm ? archiveForm.querySelector('button[type="submit"]') : null;
+    const archiveModal = archiveModalElement ? new bootstrap.Modal(archiveModalElement) : null;
+    let pendingArchiveEnquiryId = null;
 
-        function bindArchiveButtons(root) {
-            const scope = root || document;
-            scope.querySelectorAll('.enquiry-archive-btn').forEach(button => {
-                if (button.dataset.boundArchiveClick === '1') return;
-                button.dataset.boundArchiveClick = '1';
-                button.addEventListener('click', function (e) {
-                    e.preventDefault();
-                    const enquiryId = this.dataset.enquiryId;
-                    if (!enquiryId || !archiveModal) return;
-                    pendingArchiveEnquiryId = enquiryId;
-                    archiveModal.show();
-                });
-            });
-        }
-
-        bindArchiveButtons(document);
-
-        if (archiveForm) {
-            archiveForm.addEventListener('submit', function (e) {
+    function bindArchiveButtons(root) {
+        const scope = root || document;
+        scope.querySelectorAll('.enquiry-archive-btn').forEach(button => {
+            if (button.dataset.boundArchiveClick === '1') return;
+            button.dataset.boundArchiveClick = '1';
+            button.addEventListener('click', function (e) {
                 e.preventDefault();
-                if (!pendingArchiveEnquiryId) return;
+                const enquiryId = this.dataset.enquiryId;
+                if (!enquiryId || !archiveModal) return;
+                pendingArchiveEnquiryId = enquiryId;
+                archiveModal.show();
+            });
+        });
+    }
 
-                if (archiveSubmitBtn) {
-                    archiveSubmitBtn.disabled = true;
-                    archiveSubmitBtn.textContent = 'Archiving...';
+    bindArchiveButtons(document);
+
+    if (archiveForm) {
+        archiveForm.addEventListener('submit', function (e) {
+            e.preventDefault();
+            if (!pendingArchiveEnquiryId) return;
+
+            if (archiveSubmitBtn) {
+                archiveSubmitBtn.disabled = true;
+                archiveSubmitBtn.textContent = 'Archiving...';
+            }
+
+            fetch(`/booking/enquiry/archive/${pendingArchiveEnquiryId}/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrfToken,
+                    'Content-Type': 'application/json'
                 }
-
-                fetch(`/booking/enquiry/archive/${pendingArchiveEnquiryId}/`, {
-                    method: 'POST',
-                    headers: {
-                        'X-CSRFToken': csrfToken,
-                        'Content-Type': 'application/json'
-                    }
-                })
+            })
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
@@ -1063,45 +1218,45 @@
                         archiveSubmitBtn.textContent = 'Archive';
                     }
                 });
-            });
-        }
+        });
+    }
 
-        if (archiveModalElement) {
-            archiveModalElement.addEventListener('hidden.bs.modal', function () {
-                pendingArchiveEnquiryId = null;
-            });
-        }
-    </script>
+    if (archiveModalElement) {
+        archiveModalElement.addEventListener('hidden.bs.modal', function () {
+            pendingArchiveEnquiryId = null;
+        });
+    }
+</script>
 
-    <script>
-        // New button functionality
-        const newBtn = document.querySelector('.new-btn');
-        if (newBtn) {
-            newBtn.addEventListener('click', function() {
-                // In a real app, this would open a dropdown menu
-                alert('New menu would open here');
-            });
-        }
+<script>
+    // New button functionality
+    const newBtn = document.querySelector('.new-btn');
+    if (newBtn) {
+        newBtn.addEventListener('click', function () {
+            // In a real app, this would open a dropdown menu
+            alert('New menu would open here');
+        });
+    }
 
-        // Refresh / Manual Sync functionality
-        const refreshBtn = document.querySelector('.refresh-btn');
-        if (refreshBtn) {
-            refreshBtn.addEventListener('click', function(e) {
-                e.preventDefault();
-                const btn = this;
-                
-                // Visual feedback: Disable button and show loading state
-                btn.innerText = 'Syncing...';
-                btn.style.opacity = '0.7';
-                btn.style.pointerEvents = 'none';
+    // Refresh / Manual Sync functionality
+    const refreshBtn = document.querySelector('.refresh-btn');
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', function (e) {
+            e.preventDefault();
+            const btn = this;
 
-                fetch('{% url "manual-sync" %}', {
-                    method: 'POST',
-                    headers: {
-                        'X-CSRFToken': '{{ csrf_token }}',
-                        'Content-Type': 'application/json'
-                    }
-                })
+            // Visual feedback: Disable button and show loading state
+            btn.innerText = 'Syncing...';
+            btn.style.opacity = '0.7';
+            btn.style.pointerEvents = 'none';
+
+            fetch('{% url "manual-sync" %}', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'Content-Type': 'application/json'
+                }
+            })
                 .then(response => response.json())
                 .then(data => {
                     // Reload the page to display updated booking and block information
@@ -1111,93 +1266,93 @@
                     console.error('Error triggering sync:', error);
                     window.location.reload();
                 });
-            });
-        }
-
-        // Notification click
-        document.querySelector('.notification').addEventListener('click', function() {
-            // In a real app, this would open notifications panel
-            alert('Notifications panel would open here');
         });
+    }
 
-        // Navigation items
-        document.querySelectorAll('.nav-item').forEach(item => {
-            item.addEventListener('click', function(e) {
-                e.preventDefault();
-                document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
-                this.classList.add('active');
-            });
-        });
+    // Notification click
+    document.querySelector('.notification').addEventListener('click', function () {
+        // In a real app, this would open notifications panel
+        alert('Notifications panel would open here');
+    });
 
-        // View all link
-        document.querySelector('.view-all').addEventListener('click', function(e) {
+    // Navigation items
+    document.querySelectorAll('.nav-item').forEach(item => {
+        item.addEventListener('click', function (e) {
             e.preventDefault();
-            alert('View all inquiries would open here');
+            document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
+            this.classList.add('active');
         });
+    });
 
-        // Chart animation on load
-        window.addEventListener('load', function() {
-            const bars = document.querySelectorAll('.bar:not(.future)');
-            bars.forEach((bar, index) => {
-                bar.style.transform = 'scaleY(0)';
-                bar.style.transformOrigin = 'bottom';
-                bar.style.transition = `transform 0.5s ease ${index * 0.1}s`;
-                
-                setTimeout(() => {
-                    bar.style.transform = 'scaleY(1)';
-                }, 100);
-            });
+    // View all link
+    document.querySelector('.view-all').addEventListener('click', function (e) {
+        e.preventDefault();
+        alert('View all inquiries would open here');
+    });
+
+    // Chart animation on load
+    window.addEventListener('load', function () {
+        const bars = document.querySelectorAll('.bar:not(.future)');
+        bars.forEach((bar, index) => {
+            bar.style.transform = 'scaleY(0)';
+            bar.style.transformOrigin = 'bottom';
+            bar.style.transition = `transform 0.5s ease ${index * 0.1}s`;
+
+            setTimeout(() => {
+                bar.style.transform = 'scaleY(1)';
+            }, 100);
         });
+    });
 
-        // Simulate real-time updates
-        setInterval(function() {
-            const newInquiries = document.querySelector('.stat-card:last-child .stat-number');
-            let current = parseInt(newInquiries.textContent);
-            
-            // Randomly update inquiries count
-            if (Math.random() > 0.95) {
-                newInquiries.textContent = String(current + 1).padStart(2, '0');
-                newInquiries.style.color = '#ef4444';
-                setTimeout(() => {
-                    newInquiries.style.color = '#1a1a1a';
-                }, 1000);
-            }
-        }, 5000);
-    </script>
+    // Simulate real-time updates
+    setInterval(function () {
+        const newInquiries = document.querySelector('.stat-card:last-child .stat-number');
+        let current = parseInt(newInquiries.textContent);
 
-    <script>
-        document.getElementById('year-select').addEventListener('change', function () {
-            const year = this.value;
-            const url = new URL(window.location.href);
-            url.searchParams.set('year', year);
-            window.location.href = url.toString();
-        });
-    </script>
-
-    <script>
-        // Example earnings data (per month)
-        // const monthlyEarnings = [0, 0, 0, 100, 0, 6748, 0, 0, 0, 0, 0, 0];
-        const monthlyEarnings = JSON.parse('{{ monthly_earnings_js|escapejs }}');
-
-        console.log(monthlyEarnings);
-        
-
-        // Current month index (0=Jan, 11=Dec)
-        const currentMonth = new Date().getMonth();
-
-        const maxValue = Math.max(...monthlyEarnings);
-        const chart = document.getElementById("earnings-chart");
-        chart.innerHTML = "";
-        const hasChartData = monthlyEarnings.some(value => Number(value) > 0);
-
-        if (!hasChartData) {
-            const emptyState = document.createElement("div");
-            emptyState.classList.add("chart-empty-state");
-            emptyState.innerText = "No data found to display";
-            chart.appendChild(emptyState);
+        // Randomly update inquiries count
+        if (Math.random() > 0.95) {
+            newInquiries.textContent = String(current + 1).padStart(2, '0');
+            newInquiries.style.color = '#ef4444';
+            setTimeout(() => {
+                newInquiries.style.color = '#1a1a1a';
+            }, 1000);
         }
+    }, 5000);
+</script>
 
-        monthlyEarnings.forEach((value, i) => {
+<script>
+    document.getElementById('year-select').addEventListener('change', function () {
+        const year = this.value;
+        const url = new URL(window.location.href);
+        url.searchParams.set('year', year);
+        window.location.href = url.toString();
+    });
+</script>
+
+<script>
+    // Example earnings data (per month)
+    // const monthlyEarnings = [0, 0, 0, 100, 0, 6748, 0, 0, 0, 0, 0, 0];
+    const monthlyEarnings = JSON.parse('{{ monthly_earnings_js|escapejs }}');
+
+    console.log(monthlyEarnings);
+
+
+    // Current month index (0=Jan, 11=Dec)
+    const currentMonth = new Date().getMonth();
+
+    const maxValue = Math.max(...monthlyEarnings);
+    const chart = document.getElementById("earnings-chart");
+    chart.innerHTML = "";
+    const hasChartData = monthlyEarnings.some(value => Number(value) > 0);
+
+    if (!hasChartData) {
+        const emptyState = document.createElement("div");
+        emptyState.classList.add("chart-empty-state");
+        emptyState.innerText = "No data found to display";
+        chart.appendChild(emptyState);
+    }
+
+    monthlyEarnings.forEach((value, i) => {
         const bar = document.createElement("div");
         bar.classList.add("bar");
 
@@ -1214,115 +1369,158 @@
 
         if (value > 0) {
             const label = document.createElement("span");
-            label.innerText = window.CURRENCY.symbol + window.toDisplayCurrency(value).toLocaleString();
+            label.innerText = `$${value.toLocaleString()}`;
             bar.appendChild(label);
         }
 
         chart.appendChild(bar);
+    });
+
+    // Dynamically size all bar labels equally so the longest fits without overlap
+    (function autoSizeBarLabels() {
+        const isMobile = window.innerWidth <= 576;
+        if (!isMobile) return;
+
+        const bars = chart.querySelectorAll(".bar");
+        if (!bars.length) return;
+
+        // Wait for layout so bar widths are available
+        requestAnimationFrame(() => {
+            const barWidth = bars[0].offsetWidth;
+            if (!barWidth) return;
+
+            // Find the longest label text width at a reference font size
+            const REF_SIZE = 11; // px — start here and scale down
+            let maxLabelWidth = 0;
+
+            bars.forEach(bar => {
+                const span = bar.querySelector("span");
+                if (!span) return;
+                // Measure at reference size
+                span.style.fontSize = REF_SIZE + "px";
+                maxLabelWidth = Math.max(maxLabelWidth, span.offsetWidth);
+            });
+
+            if (maxLabelWidth === 0) return;
+
+            // Scale so longest label fits within bar width (with 2px padding each side)
+            const availableWidth = barWidth - 4;
+            const scale = availableWidth / maxLabelWidth;
+            const finalSize = Math.min(REF_SIZE, Math.floor(REF_SIZE * scale));
+            const clampedSize = Math.max(6, finalSize); // never below 6px
+
+            // Apply the same size to ALL labels
+            bars.forEach(bar => {
+                const span = bar.querySelector("span");
+                if (span) span.style.fontSize = clampedSize + "px";
+            });
         });
+    })();
 
-        // Update YTD earnings
-        const ytdValueElement = document.getElementById("ytd-value");
-        if (ytdValueElement) {
-            ytdValueElement.innerText =
+    // Update YTD earnings
+    const ytdValueElement = document.getElementById("ytd-value");
+    if (ytdValueElement) {
+        ytdValueElement.innerText =
             window.CURRENCY.symbol + window.toDisplayCurrency(monthlyEarnings.reduce((a, b) => a + b, 0)).toLocaleString();
-        }
-    </script>
+    }
+</script>
 
-    <script>
-        const label = document.getElementById('month-label');
-        const prevBtn = document.getElementById('prev-month');
-        const nextBtn = document.getElementById('next-month');
+<script>
+    const label = document.getElementById('month-label');
+    const prevBtn = document.getElementById('prev-month');
+    const nextBtn = document.getElementById('next-month');
 
-        let current;
-        if (label && label.dataset && label.dataset.month && label.dataset.year) {
-            current = new Date(parseInt(label.dataset.year, 10), parseInt(label.dataset.month, 10) - 1, 1);
-        } else {
-            current = new Date(); // today
-        }
+    let current;
+    if (label && label.dataset && label.dataset.month && label.dataset.year) {
+        current = new Date(parseInt(label.dataset.year, 10), parseInt(label.dataset.month, 10) - 1, 1);
+    } else {
+        current = new Date(); // today
+    }
 
-        function formatMonthYear(date) {
+    function formatMonthYear(date) {
         const month = date.toLocaleString('en-US', { month: 'short' }); // Jun
         const year = date.getFullYear();
         return `${month} ${year}`;
-        }
+    }
 
-        function updateLabel() {
+    function updateLabel() {
         label.textContent = formatMonthYear(current);
-        }
+    }
 
-        function goToMonth(date) {
-            const url = new URL(window.location.href);
-            url.searchParams.set('upcoming_month', String(date.getMonth() + 1));
-            url.searchParams.set('upcoming_year', String(date.getFullYear()));
-            window.location.href = url.toString();
-        }
+    function goToMonth(date) {
+        const url = new URL(window.location.href);
+        url.searchParams.set('upcoming_month', String(date.getMonth() + 1));
+        url.searchParams.set('upcoming_year', String(date.getFullYear()));
+        window.location.href = url.toString();
+    }
 
-        prevBtn.addEventListener('click', () => {
+    prevBtn.addEventListener('click', () => {
         current.setMonth(current.getMonth() - 1);  // go to previous month
         goToMonth(current);
-        });
+    });
 
-        nextBtn.addEventListener('click', () => {
+    nextBtn.addEventListener('click', () => {
         current.setMonth(current.getMonth() + 1);  // go to next month
         goToMonth(current);
-        });
+    });
 
-        updateLabel(); // initial render
+    updateLabel(); // initial render
 
-    </script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script>
-        const centerTextPlugin = {
-            id: 'centerText',
-            afterDraw(chart) {
-                const { width, height, ctx } = chart;
-                const centerX = width / 2;
-                const centerY = height / 2;
-                const isLaptop = window.innerWidth >= 992;
-                ctx.save();
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.fillStyle = '#4b5563';
-                ctx.font = `500 ${isLaptop ? 16 : 14}px system-ui, -apple-system, sans-serif`;
-                ctx.fillText('Bookings', centerX, centerY - (isLaptop ? 12 : 10));
-                ctx.font = `500 ${isLaptop ? 18 : 16}px system-ui, -apple-system, sans-serif`;
-                ctx.fillText('{{ gross_bookings_count }}', centerX, centerY + (isLaptop ? 10 : 8));
-                ctx.restore();
-            }
+</script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    const centerTextPlugin = {
+        id: 'centerText',
+        afterDraw(chart) {
+            const { width, height, ctx } = chart;
+            const centerX = width / 2;
+            const centerY = height / 2;
+            const isLaptop = window.innerWidth >= 992;
+            ctx.save();
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillStyle = '#4b5563';
+            ctx.font = `500 ${isLaptop ? 16 : 14}px system-ui, -apple-system, sans-serif`;
+            ctx.fillText('Bookings', centerX, centerY - (isLaptop ? 12 : 10));
+            ctx.font = `500 ${isLaptop ? 18 : 16}px system-ui, -apple-system, sans-serif`;
+            ctx.fillText('{{ gross_bookings_count }}', centerX, centerY + (isLaptop ? 10 : 8));
+            ctx.restore();
+        }
+    };
+
+    document.addEventListener('DOMContentLoaded', function () {
+        const ctx = document.getElementById('channelPieChart');
+        if (ctx) {
+            const colors = ['#FF5A5F', '#003580', '#111827', '#009DDF', '#E91E63', '#9C27B0', '#FF9800', '#00BCD4'];
+            const labels = {{ channel_labels_json }
         };
-
-        document.addEventListener('DOMContentLoaded', function() {
-            const ctx = document.getElementById('channelPieChart');
-            if (ctx) {
-                const colors = ['#FF5A5F', '#003580', '#111827', '#009DDF', '#E91E63', '#9C27B0', '#FF9800', '#00BCD4'];
-                const labels = {{ channel_labels_json }};
-                const counts = {{ channel_counts_json }};
-                const amounts = {{ channel_amounts_json }};
-                document.querySelectorAll('.legend-label').forEach((el, i) => {
-                    el.textContent = `${labels[i]} (${counts[i]})`;
-                });
-                new Chart(ctx, {
-                    type: 'doughnut',
-                    data: {
-                        labels: labels,
-                        datasets: [{
-                            data: counts,
-                            backgroundColor: colors.slice(0, labels.length),
-                            borderWidth: 0
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: true,
-                        cutout: '65%',
-                        plugins: {
-                            legend: { display: false }
-                        }
-                    },
-                    plugins: [centerTextPlugin]
-                });
+        const counts = {{ channel_counts_json }
+    };
+    const amounts = {{ channel_amounts_json }};
+    document.querySelectorAll('.legend-label').forEach((el, i) => {
+        el.textContent = `${labels[i]} (${counts[i]})`;
+    });
+    new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: counts,
+                backgroundColor: colors.slice(0, labels.length),
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            cutout: '65%',
+            plugins: {
+                legend: { display: false }
+            }
+        },
+        plugins: [centerTextPlugin]
+    });
             }
         });
-    </script>
+</script>
 {% endblock extra_script %}
