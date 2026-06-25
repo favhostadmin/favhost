@@ -21,6 +21,27 @@ from django.db.models import Q
 from django.core.files import File
 from django.contrib.auth.mixins import LoginRequiredMixin
 from accounts.utils import get_visible_user_ids, get_effective_user
+from accounts import currency
+
+# Property money fields are stored in USD but entered/shown in the host's currency.
+PROPERTY_PRICE_FIELDS = ('price_per_night', 'cleaning_fee', 'application_fees', 'refundable_deposit')
+
+
+def _property_prices_to_usd(instance, code):
+    """Convert a property instance's entered (display-currency) prices to USD."""
+    for f in PROPERTY_PRICE_FIELDS:
+        val = getattr(instance, f, None)
+        if val is not None:
+            setattr(instance, f, currency.to_usd(val, code))
+
+
+def _property_prices_to_display(initial, obj, code):
+    """Fill `initial` with the object's stored USD prices converted to display currency."""
+    for f in PROPERTY_PRICE_FIELDS:
+        val = getattr(obj, f, None) if obj is not None else initial.get(f)
+        if val is not None:
+            initial[f] = currency.convert(val, code)
+    return initial
 
 
 
@@ -46,6 +67,8 @@ class PropertyCreateView(LoginRequiredMixin, CreateView):
                 original_property = get_object_or_404(Property, pk=clone_from_id)
                 initial = model_to_dict(original_property, exclude=['id', 'slug', 'amenities'])
                 initial['title'] = f"{original_property.title} (copy)"
+                # Cloned prices are USD; show them in the host's display currency.
+                _property_prices_to_display(initial, None, self.request.user.currency)
             except Property.DoesNotExist:
                 pass
         return initial
@@ -70,6 +93,9 @@ class PropertyCreateView(LoginRequiredMixin, CreateView):
     def form_valid(self, form):
         # Assign the effective user (host if co-host) to the created_by field
         form.instance.created_by = get_effective_user(self.request.user)
+
+        # Prices are entered in the host's display currency; store them as USD.
+        _property_prices_to_usd(form.instance, self.request.user.currency)
 
         # Use transaction to ensure all operations succeed or none do
         with transaction.atomic():
@@ -199,8 +225,12 @@ class PropertyEditView(LoginRequiredMixin, UpdateView):
     def get_success_url(self):
         # return reverse_lazy('property:property-list')
         return reverse_lazy('property:property-detail', kwargs={'slug': self.object.slug})
-    
-    
+
+    def get_initial(self):
+        # Show stored USD prices in the host's display currency for editing.
+        initial = super().get_initial()
+        return _property_prices_to_display(initial, self.object, self.request.user.currency)
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['amenities'] = Amenities.objects.all()
@@ -229,10 +259,11 @@ class PropertyEditView(LoginRequiredMixin, UpdateView):
             for key, file in self.request.FILES.items():
                 print(f"{key}: {file.name} ({file.content_type}, {file.size} bytes)")
 
+            # Prices are entered in the host's display currency; store them as USD.
+            _property_prices_to_usd(form.instance, self.request.user.currency)
 
-            
             response = super().form_valid(form)
-            
+
             # Handle amenities
             amenity_ids = self.request.POST.getlist('amenities')
             self.object.amenities.set(amenity_ids if amenity_ids else [])
@@ -802,6 +833,12 @@ class ListingPageView(ListView):
         else:
             raise Http404("Host or properties not found.")
 
+        # Public pages: guests can pick a currency; default to the host's currency.
+        context.update(currency.display_context(currency.resolve_display_currency(
+            self.request.COOKIES.get('guest_currency'),
+            getattr(context['host'], 'currency', None),
+        )))
+
         context['check_in'] = self.request.GET.get('check_in', '')
         context['check_out'] = self.request.GET.get('check_out', '')
         context['guests_count'] = self.request.GET.get('guests', '1')
@@ -853,6 +890,11 @@ class ListingDetailView(DetailView):
         context['images'] = self.object.images.all()
         context['amenities'] = self.object.amenities.all().order_by('name')
         context['short_code']= self.kwargs.get('short_code')  if self.kwargs.get('short_code') else None
+        # Public pages: guests can pick a currency; default to the host's currency.
+        context.update(currency.display_context(currency.resolve_display_currency(
+            self.request.COOKIES.get('guest_currency'),
+            getattr(context['host'], 'currency', None),
+        )))
         return context
 
 
@@ -882,4 +924,9 @@ class RequestBokPageView(DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['host'] = self.object.created_by
+        # Public pages: guests can pick a currency; default to the host's currency.
+        context.update(currency.display_context(currency.resolve_display_currency(
+            self.request.COOKIES.get('guest_currency'),
+            getattr(context['host'], 'currency', None),
+        )))
         return context

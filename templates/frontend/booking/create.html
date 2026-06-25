@@ -1554,32 +1554,32 @@
                                     <hr>
                                     <div class="summary-item">
                                         <span class="summary-label">Daily rate</span>
-                                        <span class="summary-value" id="summary-daily-rate">$0.00</span>
+                                        <span class="summary-value" id="summary-daily-rate">{{ currency_symbol }}0.00</span>
                                     </div>
                                     <div class="summary-item">
-                                        <span class="summary-label" id="summary-price-calc" data-price="0.00">$0.00 x 0 nights</span>
-                                        <span class="summary-value" id="summary-subtotal">$0.00</span>
+                                        <span class="summary-label" id="summary-price-calc" data-price="0.00">{{ currency_symbol }}0.00 x 0 nights</span>
+                                        <span class="summary-value" id="summary-subtotal">{{ currency_symbol }}0.00</span>
                                     </div>
                                     <div class="summary-item mt-1">
                                         <span class="summary-label">Cleaning fee:</span>
-                                        <span class="summary-value" id="summary-cleaning-fee" data-fee="0.00">$0.00</span>
+                                        <span class="summary-value" id="summary-cleaning-fee" data-fee="0.00">{{ currency_symbol }}0.00</span>
                                         <input type="hidden" name="cleaning_fee" id="id_cleaning_fee" value="0.00">
                                     </div>
                                     <div class="summary-item mt-1">
                                         <span class="summary-label">Refundable deposit:</span>
-                                        <span class="summary-value" id="summary-refundable-deposit" data-deposit="0.00">$0.00</span>
+                                        <span class="summary-value" id="summary-refundable-deposit" data-deposit="0.00">{{ currency_symbol }}0.00</span>
                                         <input type="hidden" name="deposit_fee" id="id_deposit_fee" value="0.00">
                                     </div>
                                     <div class="summary-item mt-1">
                                         <span class="summary-label">Application fee:</span>
-                                        <span class="summary-value" id="summary-application-fee" data-fee="0.00">$0.00</span>
+                                        <span class="summary-value" id="summary-application-fee" data-fee="0.00">{{ currency_symbol }}0.00</span>
                                         <input type="hidden" name="application_fee" id="id_application_fee" value="0.00">
                                     </div>
                                     <hr>
                                     <div class="summary-item price-input-container">
                                         <span class="summary-label" style="font-weight: bold;">Total price:</span>
                                         <input type="hidden" name="price" id="id_price" value="0.00">
-                                        <span class="summary-value" id="summary-total-display">$0.00</span>
+                                        <span class="summary-value" id="summary-total-display">{{ currency_symbol }}0.00</span>
                                     </div>
                                 </div>
                                 <div class="col-lg-auto d-none d-lg-flex align-items-center p-0"><div class="payment-divider" style="height: 80%; margin-top: 20px;"></div></div>
@@ -1790,12 +1790,12 @@
                 const total = subtotal + cleaningFee + refundableDeposit + applicationFee;
 
                 // Update UI
-                document.getElementById('summary-daily-rate').textContent = `$${pricePerNight.toFixed(2)}`;
-                document.getElementById('summary-price-calc').textContent = `$${pricePerNight.toFixed(2)} x ${nights} night${nights !== 1 ? 's' : ''}`;
-                document.getElementById('summary-subtotal').textContent = `$${subtotal.toFixed(2)}`;
+                document.getElementById('summary-daily-rate').textContent = window.CURRENCY.symbol + pricePerNight.toFixed(2);
+                document.getElementById('summary-price-calc').textContent = `${window.CURRENCY.symbol}${pricePerNight.toFixed(2)} x ${nights} night${nights !== 1 ? 's' : ''}`;
+                document.getElementById('summary-subtotal').textContent = window.CURRENCY.symbol + subtotal.toFixed(2);
                 document.getElementById('summary-nights').textContent = nights;
                 document.getElementById('summary-guests').textContent = guests || 0;
-                document.getElementById('summary-total-display').textContent = `$${total.toFixed(2)}`;
+                document.getElementById('summary-total-display').textContent = window.CURRENCY.symbol + total.toFixed(2);
                 document.getElementById('id_price').value = total.toFixed(2);
             }
 
@@ -2175,7 +2175,7 @@
                                 </div>
                             </div>
                             <div class="property-card-meta mt-1">
-                                <span class="property-card-price">$${price.toFixed(2)}/night</span>
+                                <span class="property-card-price">${window.fmtMoney(price)}/night</span>
                                 ${guest ? ` &bull; <span class="property-card-guests">${guest} Guests (max)</span>` : ''}
                             </div>
                         </div>
@@ -2267,10 +2267,11 @@
                 $('#summary-section').show();
 
                 // Update summary price
-                const pricePerNight = parseFloat(price) || 0;
-                const cleaningFee = parseFloat(selected.data('cleaning-fee')) || 0;
-                const refundableDeposit = parseFloat(selected.data('refundable-deposit')) || 0;
-                const applicationFee = parseFloat(selected.data('application-fee')) || 0;
+                // Property fees are stored in USD; show them in the host's currency.
+                const pricePerNight = window.toDisplayCurrency(parseFloat(price) || 0);
+                const cleaningFee = window.toDisplayCurrency(parseFloat(selected.data('cleaning-fee')) || 0);
+                const refundableDeposit = window.toDisplayCurrency(parseFloat(selected.data('refundable-deposit')) || 0);
+                const applicationFee = window.toDisplayCurrency(parseFloat(selected.data('application-fee')) || 0);
 
                 const priceCalcEl = document.getElementById('summary-price-calc');
                 const cleaningFeeEl = document.getElementById('summary-cleaning-fee');
@@ -2285,9 +2286,9 @@
                 applicationFeeEl.dataset.fee = applicationFee;
                 refundableDepositEl.dataset.deposit = refundableDeposit;
 
-                cleaningFeeEl.textContent = `$${cleaningFee.toFixed(2)}`;
-                refundableDepositEl.textContent = `$${refundableDeposit.toFixed(2)}`;
-                applicationFeeEl.textContent = `$${applicationFee.toFixed(2)}`;
+                cleaningFeeEl.textContent = window.CURRENCY.symbol + cleaningFee.toFixed(2);
+                refundableDepositEl.textContent = window.CURRENCY.symbol + refundableDeposit.toFixed(2);
+                applicationFeeEl.textContent = window.CURRENCY.symbol + applicationFee.toFixed(2);
 
                 updateSummary();
             });

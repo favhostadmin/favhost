@@ -839,6 +839,30 @@ def profile_view(request):
                 except Exception:
                     pass
 
+                # ── Last payment fallback ─────────────────────────────────────
+                # If no paid invoice was found above, derive the last payment from
+                # the active subscription's current period start (when the current
+                # billing cycle — i.e. the most recent charge — began).
+                if not last_payment_date:
+                    try:
+                        period_start_ts = getattr(sub, 'current_period_start', None)
+                        if not period_start_ts:
+                            try:
+                                period_start_ts = sub.items.data[0].current_period_start
+                            except Exception:
+                                pass
+                        if not period_start_ts:
+                            period_start_ts = getattr(sub, 'billing_cycle_anchor', None)
+                        if period_start_ts:
+                            last_payment_date = datetime.datetime.fromtimestamp(
+                                period_start_ts, tz=datetime.timezone.utc
+                            )
+                            if last_payment_amount is None and next_payment_amount is not None:
+                                last_payment_amount = next_payment_amount
+                                last_payment_currency = last_payment_currency or 'USD'
+                    except Exception:
+                        pass
+
             elif not user.is_subscription_free and (
                 stripe_customer.stripe_subscription_id
                 or subscription_status in ('active', 'canceled', 'past_due')
