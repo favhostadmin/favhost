@@ -7,6 +7,7 @@ from django.db.models import Prefetch
 from django.db.models.functions import Concat
 from django.http import JsonResponse
 import datetime
+import calendar
 from collections import defaultdict
 
 from booking.models import Booking, BookingChannel, Payment, Enquiry
@@ -458,6 +459,246 @@ class HostDashboardAPIView(LoginRequiredMixin, TemplateView):
         context["upcoming_month"] = upcoming_month
         context["upcoming_year"] = upcoming_year
         context["upcoming_groups"] = upcoming_groups
+        return context
+
+
+class RevenueByListingView(LoginRequiredMixin, TemplateView):
+    """Per-listing revenue analytics for a selected year.
+
+    Mirrors the design at revenue-dashboard.html but is wired to live data.
+    All monetary figures are stored/aggregated in USD (the platform base) and
+    rendered in the viewer's display currency via the {% money %} tag.
+
+    Revenue is attributed on an *accrual / per-night* basis: each non-cancelled
+    booking's net price (price minus the refundable deposit for manual bookings,
+    matching the calendar logic) is spread evenly across its nights, and each
+    night is counted in the month it falls in. This keeps Days booked,
+    Occupancy %, Average Daily rate and Revenue internally consistent.
+    """
+    template_name = 'frontend/revenue/revenue_by_listing.html'
+
+    MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
+    # Donut / channel colour palette (cycled when there are many channels).
+    PALETTE = ['#ef4444', '#3b82f6', '#facc15', '#22c55e', '#f59e0b',
+               '#b91c1c', '#ec4899', '#8b5cf6', '#06b6d4', '#14b8a6',
+               '#a855f7', '#cbd5e1']
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        user_ids = get_visible_user_ids(self.request.user)
+        current_year = timezone.now().year
+
+        # ---- Listings for the sidebar (all of the viewer's properties) ----
+        properties = list(
+            Property.objects.filter(created_by__in=user_ids).order_by('title')
+        )
+        listings = [{
+            'id': str(p.id),
+            'title': p.title,
+            'image': p.get_primary_image_url(),
+        } for p in properties]
+
+        # ---- Resolve the selected listing ----
+        listing_id = self.request.GET.get('listing')
+        selected = None
+        if listing_id:
+            selected = next((p for p in properties if str(p.id) == str(listing_id)), None)
+        if selected is None and properties:
+            selected = properties[0]
+
+        # ---- Years available for the dropdown (from this listing's bookings) ----
+        if selected is not None:
+            years = sorted({
+                y for y in Booking.objects
+                .filter(property=selected)
+                .exclude(status='cancelled')
+                .values_list('check_in_date__year', flat=True)
+                if y
+            })
+        else:
+            years = []
+        if current_year not in years:
+            years = sorted(set(years) | {current_year})
+
+        try:
+            selected_year = int(self.request.GET.get('year') or current_year)
+        except (TypeError, ValueError):
+            selected_year = current_year
+        if selected_year not in years:
+            selected_year = current_year
+
+        context.update({
+            'listings': listings,
+            'selected_property': {'id': str(selected.id), 'title': selected.title} if selected else None,
+            'total_years': years,
+            'selected_year': selected_year,
+            'current_year': current_year,
+            'month_labels': self.MONTH_LABELS,
+        })
+
+        # ---- No listings yet: render an empty shell ----
+        if selected is None:
+            context.update({
+                'has_data': False,
+                'table_rows': [],
+                'bookings_channel_rows': [],
+                'revenue_channel_rows': [],
+                'bar_cols': [],
+                'donut_segments': [],
+                'donut_gradient': 'conic-gradient(#e5e7eb 0% 100%)',
+            })
+            return context
+
+        # ---- Monthly accumulators (index 0 = Jan .. 11 = Dec) ----
+        days_in_month = [calendar.monthrange(selected_year, m)[1] for m in range(1, 13)]
+        inquiries = [0] * 12
+        checkins = [0] * 12
+        checkouts = [0] * 12
+        cancellations = [0] * 12
+        tasks_arr = [0] * 12
+        days_booked = [0] * 12
+        revenue = [0.0] * 12
+        bookings_by_channel = defaultdict(lambda: [0] * 12)
+        revenue_by_channel = defaultdict(lambda: [0.0] * 12)
+
+        refundable = float(selected.refundable_deposit or 0)
+
+        bookings = Booking.objects.filter(property=selected).select_related('channel')
+        for b in bookings:
+            ci, co = b.check_in_date, b.check_out_date
+            channel_name = b.channel.name if b.channel else 'Direct'
+            cancelled = b.status == 'cancelled'
+
+            # Count-based rows keyed on check-in / check-out month.
+            if ci and ci.year == selected_year:
+                if cancelled:
+                    cancellations[ci.month - 1] += 1
+                else:
+                    checkins[ci.month - 1] += 1
+                    bookings_by_channel[channel_name][ci.month - 1] += 1
+            if co and co.year == selected_year and not cancelled:
+                checkouts[co.month - 1] += 1
+
+            # Revenue / nights attribution (non-cancelled stays only).
+            if cancelled or not ci or not co or co <= ci:
+                continue
+            net_price = float(b.price or 0)
+            if not b.external_uid and refundable:
+                net_price = max(net_price - refundable, 0.0)
+            total_nights = (co - ci).days
+            per_night = net_price / total_nights if total_nights else 0.0
+
+            night = ci
+            while night < co:
+                if night.year == selected_year:
+                    m = night.month - 1
+                    days_booked[m] += 1
+                    revenue[m] += per_night
+                    revenue_by_channel[channel_name][m] += per_night
+                night += datetime.timedelta(days=1)
+
+        # Inquiries by requested check-in month.
+        for ci in Enquiry.objects.filter(
+            property=selected, check_in_date__year=selected_year
+        ).values_list('check_in_date', flat=True):
+            if ci:
+                inquiries[ci.month - 1] += 1
+
+        # Tasks scheduled in the year.
+        for d in Task.objects.filter(
+            property=selected, date__year=selected_year
+        ).values_list('date', flat=True):
+            if d:
+                tasks_arr[d.month - 1] += 1
+
+        # ---- Derived rows: occupancy + average daily rate ----
+        occupancy = [
+            round(days_booked[m] / days_in_month[m] * 100, 2) if days_in_month[m] else 0
+            for m in range(12)
+        ]
+        adr = [
+            (revenue[m] / days_booked[m]) if days_booked[m] else 0.0
+            for m in range(12)
+        ]
+
+        total_days = sum(days_in_month)
+        total_booked = sum(days_booked)
+        total_revenue = sum(revenue)
+        overall_occ = round(total_booked / total_days * 100, 2) if total_days else 0
+        overall_adr = (total_revenue / total_booked) if total_booked else 0.0
+
+        def fmt_pct(values):
+            return ["%.2f" % v for v in values]
+
+        context['table_rows'] = [
+            {'label': 'Days in the month', 'values': days_in_month, 'overall': total_days, 'fmt': 'int'},
+            {'label': 'Of Inquiries', 'values': inquiries, 'overall': sum(inquiries), 'fmt': 'int'},
+            {'label': 'Checkins', 'values': checkins, 'overall': sum(checkins), 'fmt': 'int'},
+            {'label': 'Checkouts', 'values': checkouts, 'overall': sum(checkouts), 'fmt': 'int'},
+            {'label': 'Cancellations', 'values': cancellations, 'overall': sum(cancellations), 'fmt': 'int'},
+            {'label': 'Tasks', 'values': tasks_arr, 'overall': sum(tasks_arr), 'fmt': 'int'},
+            {'label': 'Days booked', 'values': days_booked, 'overall': total_booked, 'fmt': 'int'},
+            {'label': 'Occupancy %', 'values': fmt_pct(occupancy), 'overall': "%.2f" % overall_occ, 'fmt': 'pct'},
+            {'label': 'Average Daily rate', 'values': adr, 'overall': overall_adr, 'fmt': 'money'},
+            {'label': 'Revenue $', 'values': revenue, 'overall': total_revenue, 'fmt': 'money'},
+        ]
+
+        # ---- Channel breakdown tables ----
+        channel_names = sorted(set(bookings_by_channel) | set(revenue_by_channel))
+        context['bookings_channel_rows'] = [{
+            'label': name,
+            'values': bookings_by_channel.get(name, [0] * 12),
+            'overall': sum(bookings_by_channel.get(name, [0] * 12)),
+            'fmt': 'int',
+        } for name in channel_names]
+        context['revenue_channel_rows'] = [{
+            'label': name,
+            'values': revenue_by_channel.get(name, [0.0] * 12),
+            'overall': sum(revenue_by_channel.get(name, [0.0] * 12)),
+            'fmt': 'money',
+        } for name in channel_names]
+
+        # ---- Bar chart: revenue by month (heights relative to peak month) ----
+        max_rev = max(revenue) if revenue else 0
+        context['bar_cols'] = [{
+            'label': self.MONTH_LABELS[m],
+            'value': revenue[m],
+            'height': round(revenue[m] / max_rev * 100, 1) if max_rev > 0 else 0,
+            'highlight': max_rev > 0 and revenue[m] == max_rev,
+        } for m in range(12)]
+
+        # ---- Donut: revenue share by channel for the year ----
+        channel_year = sorted(
+            ((name, sum(revenue_by_channel.get(name, [0.0] * 12))) for name in channel_names),
+            key=lambda x: -x[1],
+        )
+        channel_year = [(n, a) for n, a in channel_year if a > 0]
+        total_channel_rev = sum(a for _, a in channel_year)
+        segments = []
+        cum = 0.0
+        for i, (name, amount) in enumerate(channel_year):
+            pct = (amount / total_channel_rev * 100) if total_channel_rev else 0
+            color = self.PALETTE[i % len(self.PALETTE)]
+            segments.append({
+                'name': name,
+                'amount': amount,
+                'pct': round(pct, 1),
+                'color': color,
+                'start': round(cum, 3),
+                'end': round(cum + pct, 3),
+            })
+            cum += pct
+        if segments:
+            stops = ", ".join(f"{s['color']} {s['start']}% {s['end']}%" for s in segments)
+            donut_gradient = f"conic-gradient({stops})"
+        else:
+            donut_gradient = "conic-gradient(#e5e7eb 0% 100%)"
+
+        context['donut_segments'] = segments
+        context['donut_gradient'] = donut_gradient
+        context['has_data'] = True
         return context
 
 
