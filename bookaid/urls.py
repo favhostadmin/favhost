@@ -42,6 +42,7 @@ urlpatterns = [
     path('property/', include(('property.urls', 'property'), namespace='property')),
     path('booking/', include(('booking.urls', 'booking'), namespace='booking')),
     path('tasks/', include(('tasks.urls', 'tasks'), namespace='tasks')),
+    path('frontdesk/', include(('frontdesk.urls', 'frontdesk'), namespace='frontdesk')),
     path('global/', include(('global.urls', 'global'), namespace='global')),
     path('print/', include(('printpanel.urls', 'printpanel'), namespace='printpanel')),
     path('calendar-grid-view/',CalenderAPIView.as_view(),name="calendar-grid-view"),
