@@ -1,0 +1,1035 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FavHost · Property Management</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Hanken+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   FavHost — refined hospitality operations console
+   Palette: warm paper · garnet brand · indigo (direct)
+   · coral (OTA/Airbnb) · semantic accents
+   ============================================================ */
+:root{
+  --paper:#F5F3EE;
+  --paper-2:#ECE9E1;
+  --surface:#FFFFFF;
+  --ink:#1B1B24;
+  --ink-soft:#494954;
+  --muted:#8A8893;
+  --line:#E8E4DB;
+  --line-2:#DAD5C9;
+
+  --brand:#B5314A;
+  --brand-deep:#8E2238;
+  --brand-tint:#FBEAEE;
+
+  --direct:#2F4DD0;          /* direct bookings */
+  --direct-2:#5E78E8;
+  --direct-soft:#EAEEFF;
+
+  --ota:#FF5E6C;             /* Airbnb / OTA */
+  --ota-2:#FF8A94;
+  --ota-soft:#FFEBED;
+
+  --ok:#13916B;
+  --ok-soft:#E2F5EE;
+  --amber:#C2851E;
+  --amber-soft:#FCF1DD;
+  --warn:#D8472E;
+
+  --block:#A6A3B0;
+
+  --r-sm:10px; --r-md:14px; --r-lg:18px; --r-xl:22px;
+  --sh-1:0 1px 0 rgba(20,20,30,.03), 0 10px 24px -20px rgba(30,30,45,.30);
+  --sh-2:0 18px 50px -28px rgba(25,25,40,.45);
+  --sh-pop:0 12px 32px -10px rgba(181,49,74,.45);
+  --max:1440px;
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}
+body{
+  font-family:"Hanken Grotesk",system-ui,sans-serif;
+  background:var(--paper);
+  color:var(--ink);
+  line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
+  min-height:100vh;
+}
+/* soft atmospheric background */
+body::before{
+  content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
+  background:
+    radial-gradient(900px 500px at 88% -8%, rgba(181,49,74,.07), transparent 60%),
+    radial-gradient(800px 520px at -6% 110%, rgba(47,77,208,.06), transparent 55%);
+}
+.display{font-family:"Bricolage Grotesque",sans-serif}
+button{font-family:inherit}
+a{color:inherit}
+::selection{background:var(--brand-tint);color:var(--brand-deep)}
+
+/* ---------- App bar ---------- */
+.appbar{
+  position:sticky;top:0;z-index:60;
+  background:rgba(255,255,255,.82);
+  backdrop-filter:saturate(150%) blur(14px);
+  -webkit-backdrop-filter:saturate(150%) blur(14px);
+  border-bottom:1px solid var(--line);
+}
+.appbar-inner{
+  max-width:var(--max);margin:0 auto;height:66px;
+  display:flex;align-items:center;gap:22px;padding:0 24px;
+}
+.logo{display:flex;align-items:center;gap:11px;text-decoration:none;flex-shrink:0}
+.logo .mark{
+  width:34px;height:34px;border-radius:11px;display:grid;place-items:center;
+  background:linear-gradient(140deg,var(--brand),var(--brand-deep));
+  box-shadow:0 8px 18px -8px rgba(181,49,74,.7);
+}
+.logo .mark svg{width:19px;height:19px;color:#fff}
+.logo .word{font-family:"Bricolage Grotesque";font-weight:800;font-size:23px;letter-spacing:-.025em}
+.logo .word b{color:var(--ink);font-weight:800}
+.logo .word span{color:var(--brand)}
+
+.nav{display:flex;align-items:center;gap:2px;margin-left:4px}
+.nav a{
+  display:flex;align-items:center;gap:8px;
+  padding:9px 13px;border-radius:11px;
+  color:var(--ink-soft);font-weight:600;font-size:14px;
+  text-decoration:none;cursor:pointer;transition:.18s ease;white-space:nowrap;
+}
+.nav a svg{width:17px;height:17px;opacity:.85}
+.nav a:hover{background:var(--paper-2);color:var(--ink)}
+.nav a.active{background:var(--brand-tint);color:var(--brand-deep)}
+.nav a.active svg{opacity:1}
+.pill-count{
+  background:var(--brand);color:#fff;font-size:11px;font-weight:700;
+  border-radius:999px;padding:1px 7px;line-height:1.4;letter-spacing:.01em;
+}
+
+.actions{margin-left:auto;display:flex;align-items:center;gap:12px}
+.btn-create{
+  display:inline-flex;align-items:center;gap:8px;
+  background:linear-gradient(140deg,var(--brand),var(--brand-deep));
+  color:#fff;border:none;padding:11px 17px;border-radius:12px;
+  font-weight:700;font-size:14px;cursor:pointer;box-shadow:var(--sh-pop);
+  transition:.18s ease;
+}
+.btn-create svg{width:16px;height:16px}
+.btn-create:hover{transform:translateY(-1px);filter:brightness(1.05)}
+.btn-create:active{transform:translateY(0)}
+.avatar-btn{
+  width:40px;height:40px;border-radius:50%;border:2px solid var(--line);
+  background:linear-gradient(140deg,#3a4db5,#6e7be8);color:#fff;cursor:pointer;
+  display:grid;place-items:center;font-weight:700;font-size:14px;position:relative;
+  flex-shrink:0;transition:.18s ease;
+}
+.avatar-btn:hover{transform:translateY(-1px);box-shadow:var(--sh-1)}
+.avatar-btn::after{content:"";position:absolute;top:-1px;right:-1px;width:11px;height:11px;border-radius:50%;background:var(--ok);border:2px solid #fff}
+
+.hamburger{
+  display:none;width:42px;height:42px;border-radius:11px;border:1px solid var(--line);
+  background:var(--surface);cursor:pointer;place-items:center;color:var(--ink);
+}
+.hamburger svg{width:20px;height:20px}
+
+/* mobile drawer */
+.drawer{
+  display:none;position:fixed;inset:66px 0 0 0;z-index:55;
+  background:rgba(245,243,238,.97);backdrop-filter:blur(8px);
+  padding:18px;flex-direction:column;gap:6px;overflow:auto;
+}
+.drawer.open{display:flex}
+.drawer a{
+  display:flex;align-items:center;gap:12px;padding:15px 16px;border-radius:13px;
+  background:var(--surface);border:1px solid var(--line);text-decoration:none;
+  color:var(--ink);font-weight:600;font-size:16px;
+}
+.drawer a.active{background:var(--brand-tint);color:var(--brand-deep);border-color:transparent}
+.drawer a svg{width:20px;height:20px;opacity:.8}
+
+/* ---------- Toolbar (section command bar) ---------- */
+.toolbar{max-width:var(--max);margin:20px auto 0;padding:0 24px}
+.toolbar-inner{
+  background:linear-gradient(135deg,#26262F,#191920);
+  color:#fff;border-radius:var(--r-lg);padding:13px 16px;
+  display:flex;align-items:center;gap:14px;box-shadow:var(--sh-2);
+  position:relative;overflow:hidden;
+}
+.toolbar-inner::before{
+  content:"";position:absolute;inset:0;opacity:.5;pointer-events:none;
+  background:radial-gradient(380px 120px at 12% -40%, rgba(181,49,74,.45), transparent 70%);
+}
+.toolbar h1{
+  font-family:"Bricolage Grotesque";font-size:17px;font-weight:700;
+  display:flex;align-items:center;gap:11px;position:relative;letter-spacing:-.01em;
+}
+.toolbar h1 .ti{width:34px;height:34px;border-radius:10px;background:rgba(255,255,255,.1);display:grid;place-items:center}
+.toolbar h1 .ti svg{width:18px;height:18px}
+
+.month-nav{
+  margin:0 auto;display:flex;align-items:center;gap:4px;
+  background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);
+  border-radius:12px;padding:4px;position:relative;
+}
+.month-nav button{
+  width:34px;height:34px;border-radius:9px;border:none;background:transparent;
+  color:rgba(255,255,255,.85);cursor:pointer;display:grid;place-items:center;transition:.15s;
+}
+.month-nav button:hover{background:rgba(255,255,255,.14);color:#fff}
+.month-nav button svg{width:17px;height:17px}
+.month-nav .lbl{padding:0 16px;font-weight:700;min-width:120px;text-align:center;letter-spacing:.01em}
+
+.tools-right{display:flex;align-items:center;gap:8px;position:relative}
+.seg{display:flex;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:11px;padding:3px}
+.seg button{
+  border:none;background:transparent;color:rgba(255,255,255,.72);
+  padding:8px 13px;border-radius:8px;font-weight:600;font-size:13px;cursor:pointer;
+  display:flex;align-items:center;gap:7px;transition:.16s;
+}
+.seg button svg{width:15px;height:15px}
+.seg button.on{background:#fff;color:var(--ink)}
+.icon-btn{
+  width:38px;height:38px;border-radius:10px;border:1px solid rgba(255,255,255,.12);
+  background:rgba(255,255,255,.06);color:rgba(255,255,255,.85);cursor:pointer;
+  display:grid;place-items:center;transition:.16s;
+}
+.icon-btn:hover{background:rgba(255,255,255,.16);color:#fff}
+.icon-btn svg{width:17px;height:17px}
+
+/* ---------- Layout ---------- */
+.wrap{max-width:var(--max);margin:0 auto;padding:22px 24px 70px}
+.view{display:none}
+.view.active{display:block}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-xl);box-shadow:var(--sh-1)}
+.card-head{display:flex;align-items:center;justify-content:space-between;padding:20px 22px 0}
+.card-head h2{font-family:"Bricolage Grotesque";font-size:18px;font-weight:700;letter-spacing:-.01em}
+.link{color:var(--brand);font-weight:600;font-size:13px;text-decoration:none;cursor:pointer}
+.link:hover{text-decoration:underline}
+
+/* ---------- Dashboard: stat cards ---------- */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.stat{padding:22px;display:flex;flex-direction:column;gap:16px;position:relative;overflow:hidden}
+.stat::after{content:"";position:absolute;right:-30px;top:-30px;width:120px;height:120px;border-radius:50%;background:currentColor;opacity:.05}
+.stat .ico{width:46px;height:46px;border-radius:13px;display:grid;place-items:center}
+.stat .ico svg{width:22px;height:22px}
+.stat .lbl{color:var(--muted);font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.06em}
+.stat .num{font-family:"Bricolage Grotesque";font-size:36px;font-weight:800;letter-spacing:-.02em;line-height:1}
+.stat .num small{font-size:20px;font-weight:700;color:var(--muted)}
+.stat.s1{color:var(--brand)} .stat.s1 .ico{background:var(--brand-tint);color:var(--brand)}
+.stat.s2{color:var(--direct)} .stat.s2 .ico{background:var(--direct-soft);color:var(--direct)}
+.stat.s3{color:var(--amber)} .stat.s3 .ico{background:var(--amber-soft);color:var(--amber)}
+.stat.s4{color:var(--ok)} .stat.s4 .ico{background:var(--ok-soft);color:var(--ok)}
+.stat .num{color:var(--ink)}
+
+.dash-grid{display:grid;grid-template-columns:1fr 1.12fr;gap:18px;margin-top:18px;align-items:start}
+.col{display:flex;flex-direction:column;gap:18px}
+
+/* inquiries */
+.inq{display:flex;gap:14px;padding:15px;border:1px solid var(--line);border-radius:var(--r-md);align-items:flex-start;transition:.18s;position:relative}
+.inq+.inq{margin-top:12px}
+.inq:hover{border-color:var(--line-2);box-shadow:var(--sh-1);transform:translateY(-1px)}
+.thumb{width:56px;height:56px;border-radius:13px;flex-shrink:0;display:grid;place-items:center;color:#fff;box-shadow:inset 0 0 0 1px rgba(255,255,255,.18)}
+.thumb svg{width:24px;height:24px;opacity:.95}
+.t1{background:linear-gradient(140deg,#3A4DB5,#6E7BE8)}
+.t2{background:linear-gradient(140deg,#B5314A,#E0657D)}
+.t3{background:linear-gradient(140deg,#13916B,#43C39B)}
+.t4{background:linear-gradient(140deg,#C2851E,#E7B25A)}
+.t5{background:linear-gradient(140deg,#4A4A55,#8A8896)}
+.t6{background:linear-gradient(140deg,#1C7C8C,#46B0C0)}
+.inq .body{flex:1;min-width:0}
+.inq .dates{font-size:12.5px;color:var(--muted);font-weight:600;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.inq .dates b{color:var(--ink-soft)}
+.inq .name{font-weight:700;font-size:15px;margin:3px 0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.inq .meta{font-size:13px;color:var(--ink-soft)}
+.tag{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:700;padding:3px 9px;border-radius:999px;margin-top:8px}
+.tag.ok{background:var(--ok-soft);color:var(--ok)}
+.tag.ok::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--ok)}
+.kebab{position:absolute;top:14px;right:12px;color:var(--muted);cursor:pointer;line-height:0;border:none;background:none;padding:4px;border-radius:6px}
+.kebab:hover{background:var(--paper-2);color:var(--ink)}
+.kebab svg{width:18px;height:18px}
+
+/* today tabs + mini stats */
+.tabs{display:flex;gap:4px;padding:0 22px;margin-top:4px}
+.tab{padding:10px 4px;font-weight:700;font-size:15px;color:var(--muted);cursor:pointer;border:none;background:none;position:relative;margin-right:18px}
+.tab.on{color:var(--ink)}
+.tab.on::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:2.5px;border-radius:3px;background:var(--brand)}
+.mini-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;padding:16px 22px 6px}
+.mini{padding:14px 10px;border-radius:var(--r-md);background:var(--paper);border:1px solid var(--line);text-align:center}
+.mini .n{font-family:"Bricolage Grotesque";font-size:26px;font-weight:800;line-height:1}
+.mini .t{font-size:11.5px;color:var(--muted);font-weight:600;margin-top:6px}
+.mini.hot{background:var(--brand-tint);border-color:transparent}
+.mini.hot .n{color:var(--brand)}
+.mini.cool{background:var(--direct-soft);border-color:transparent}
+.mini.cool .n{color:var(--direct)}
+
+/* upcoming */
+.up-head{display:flex;align-items:center;justify-content:space-between;padding:18px 22px 10px;border-top:1px solid var(--line);margin-top:14px}
+.up-head h3{font-family:"Bricolage Grotesque";font-size:16px;font-weight:700}
+.stepper{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:10px;padding:4px 6px;font-weight:700;font-size:13px}
+.stepper button{border:none;background:none;cursor:pointer;color:var(--muted);display:grid;place-items:center;padding:2px}
+.stepper button:hover{color:var(--ink)}
+.stepper svg{width:15px;height:15px}
+.up-list{padding:0 14px 8px;max-height:330px;overflow:auto}
+.up-day{display:flex;align-items:center;justify-content:space-between;padding:9px 8px;margin-top:8px;background:var(--paper);border-radius:9px;font-weight:600;font-size:13px;color:var(--ink-soft)}
+.up-day .d{display:flex;align-items:center;gap:8px}
+.up-day .d svg{width:15px;height:15px;color:var(--muted)}
+.due{font-weight:700;font-size:12px;color:var(--ok)}
+.up-item{display:flex;align-items:center;gap:12px;padding:12px 8px}
+.up-item .ic{width:36px;height:36px;border-radius:10px;display:grid;place-items:center;flex-shrink:0}
+.up-item .ic svg{width:17px;height:17px}
+.ic.pay{background:var(--amber-soft);color:var(--amber)}
+.ic.cin{background:var(--direct-soft);color:var(--direct)}
+.up-item .info{flex:1;min-width:0}
+.up-item .info .top{font-weight:700;font-size:14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.up-item .info .sub{font-size:12.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chip-warn{font-size:11px;font-weight:700;color:var(--warn);background:var(--ota-soft);padding:1px 8px;border-radius:999px}
+.who{display:flex;flex-direction:column;align-items:center;gap:4px;width:54px;flex-shrink:0}
+.who .av{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:700}
+.who small{font-size:10.5px;color:var(--muted);max-width:54px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* chart */
+.chart-wrap{padding:8px 22px 22px}
+.chart-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.chart-top .avg{font-size:13px;color:var(--muted);font-weight:600}
+.chart-top .avg b{color:var(--ink);font-family:"Bricolage Grotesque";font-size:17px}
+.chart-ctrl{display:flex;align-items:center;gap:10px}
+.trend{display:inline-flex;align-items:center;gap:5px;color:var(--ok);font-weight:700;font-size:13px;background:var(--ok-soft);padding:3px 9px;border-radius:999px}
+.trend svg{width:14px;height:14px}
+.yr{border:1px solid var(--line);border-radius:9px;padding:5px 10px;font-weight:600;font-size:13px;color:var(--ink-soft);background:var(--surface)}
+.chart{position:relative;height:230px;display:grid;grid-template-columns:repeat(12,1fr);gap:8px;align-items:end;padding-top:26px;margin-top:8px}
+.avg-line{position:absolute;left:0;right:0;border-top:2px dashed var(--brand);opacity:.5}
+.avg-line span{position:absolute;right:0;top:-18px;font-size:11px;font-weight:700;color:var(--brand)}
+.bar-col{display:flex;flex-direction:column;align-items:center;gap:7px;height:100%;justify-content:flex-end;position:relative}
+.bar{width:78%;max-width:34px;border-radius:7px 7px 3px 3px;height:0;
+  background:linear-gradient(180deg,var(--direct-2),var(--direct));
+  transition:height 1s cubic-bezier(.22,1,.36,1);position:relative}
+.bar.zero{background:var(--paper-2);min-height:4px}
+.chart.ready .bar{height:var(--h)}
+.bar .val{position:absolute;top:-19px;left:50%;transform:translateX(-50%);font-size:10.5px;font-weight:700;color:var(--ink-soft);white-space:nowrap;opacity:0;transition:opacity .4s .6s}
+.chart.ready .bar .val{opacity:1}
+.bar-col .mo{font-size:11px;color:var(--muted);font-weight:600}
+
+/* ---------- Calendar: list view ---------- */
+.day-group{margin-bottom:8px}
+.day-head{
+  display:flex;align-items:center;gap:11px;padding:11px 16px;margin:20px 0 12px;
+  background:linear-gradient(90deg,var(--paper-2),transparent);
+  border-left:3px solid var(--brand);border-radius:8px;
+  font-family:"Bricolage Grotesque";font-weight:700;font-size:14.5px;
+}
+.day-head svg{width:16px;height:16px;color:var(--brand)}
+.day-head .cnt{margin-left:auto;font-family:"Hanken Grotesk";font-size:12px;color:var(--muted);font-weight:600;background:var(--surface);padding:2px 10px;border-radius:999px;border:1px solid var(--line)}
+.event{
+  display:grid;grid-template-columns:1.15fr 1.25fr 1.1fr;gap:22px;align-items:center;
+  padding:16px 18px;background:var(--surface);border:1px solid var(--line);
+  border-radius:var(--r-md);margin-bottom:10px;transition:.18s;
+}
+.event:hover{border-color:var(--line-2);box-shadow:var(--sh-1);transform:translateY(-1px)}
+.evt-type{display:flex;align-items:center;gap:13px;min-width:0}
+.evt-ic{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;flex-shrink:0}
+.evt-ic svg{width:21px;height:21px}
+.ic-checkin{background:var(--direct-soft);color:var(--direct)}
+.ic-checkout{background:var(--amber-soft);color:var(--amber)}
+.ic-payment{background:var(--ok-soft);color:var(--ok)}
+.ic-maint{background:#ECEFF3;color:#5b5b67}
+.evt-type .meta{min-width:0}
+.evt-type .meta .kind{font-weight:700;font-size:15px}
+.evt-type .meta .when{font-size:12.5px;color:var(--muted);font-weight:500;line-height:1.4}
+.evt-type .meta .amt{font-family:"Bricolage Grotesque";font-weight:800;font-size:17px;color:var(--ok)}
+.evt-type .meta .desc{font-size:12.5px;color:var(--ink-soft);line-height:1.45;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.nights{display:inline-block;font-size:11px;font-weight:700;color:var(--ink-soft);background:var(--paper-2);padding:1px 7px;border-radius:6px;margin-left:4px}
+
+.guest{display:flex;align-items:center;gap:12px;min-width:0}
+.av{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:15px;flex-shrink:0;overflow:hidden}
+.av img{width:100%;height:100%;object-fit:cover}
+.guest .gi{min-width:0}
+.guest .gi .gn{font-weight:700;font-size:14.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.guest .gi .gc{font-size:12.5px;color:var(--muted);display:flex;align-items:center;gap:5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.guest .gi .gc svg{width:12px;height:12px;flex-shrink:0}
+.a1{background:var(--brand-tint);color:var(--brand)}
+.a2{background:var(--direct-soft);color:var(--direct)}
+.a3{background:var(--ok-soft);color:var(--ok)}
+.a4{background:var(--amber-soft);color:var(--amber)}
+.a5{background:#EFEAFB;color:#6B3FA0}
+.a6{background:#E5F3F6;color:#1C7C8C}
+.a7{background:var(--ota-soft);color:#D2502F}
+.a8{background:#ECEFF3;color:#52525e}
+
+.listing{display:flex;align-items:center;gap:12px;min-width:0}
+.lt{width:46px;height:42px;border-radius:10px;flex-shrink:0;display:grid;place-items:center;color:#fff}
+.lt svg{width:20px;height:20px;opacity:.95}
+.listing .li{min-width:0}
+.listing .li .ln{font-weight:600;font-size:13.5px;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.listing .li .lc{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:4px;margin-top:2px}
+.listing .li .lc svg{width:11px;height:11px}
+.airbnb-mark{width:18px;height:18px;color:var(--ota);flex-shrink:0}
+
+/* ---------- Calendar: timeline view ---------- */
+.tl-card{padding:0;overflow:hidden}
+.tl-scroll{overflow-x:auto;overflow-y:hidden}
+.tl{min-width:max-content}
+.tl-head{display:grid;grid-template-columns:188px 1fr;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:4;background:var(--surface)}
+.corner{position:sticky;left:0;z-index:5;background:var(--surface);border-right:1px solid var(--line);display:flex;align-items:center;padding:0 16px;height:54px}
+.corner .srch{display:flex;align-items:center;gap:8px;width:100%;background:var(--paper);border:1px solid var(--line);border-radius:9px;padding:7px 10px;color:var(--muted);font-size:12.5px}
+.corner .srch svg{width:14px;height:14px}
+.thead{display:grid;grid-template-columns:repeat(31,42px)}
+.day{display:flex;flex-direction:column;align-items:center;justify-content:center;border-left:1px solid var(--line);height:54px;gap:2px}
+.day .dow{font-size:9.5px;font-weight:700;color:var(--muted);letter-spacing:.04em}
+.day .dnum{font-size:13px;font-weight:700}
+.day.wknd{background:#FBFAF7}
+.day.sel{background:var(--ok-soft)}
+.day.sel .dnum{color:var(--ok)}
+.day.sel .dow{color:var(--ok)}
+
+.tl-row{display:grid;grid-template-columns:188px 1fr;border-bottom:1px solid var(--line);min-height:54px}
+.tl-row:hover .listing-cell{background:#FBFAF7}
+.listing-cell{
+  position:sticky;left:0;z-index:3;background:var(--surface);
+  border-right:1px solid var(--line);display:flex;align-items:center;gap:10px;
+  padding:0 14px;transition:.15s;
+}
+.listing-cell .lt{width:32px;height:32px;border-radius:8px}
+.listing-cell .lt svg{width:15px;height:15px}
+.listing-cell .lname{font-weight:600;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.track{
+  display:grid;grid-template-columns:repeat(31,42px);align-items:center;
+  background:repeating-linear-gradient(90deg,var(--line) 0 1px, transparent 1px 42px);
+  position:relative;
+}
+.bar{
+  grid-row:1;height:34px;border-radius:9px;display:flex;align-items:center;gap:6px;
+  padding:0 11px;font-size:12.5px;font-weight:700;color:#fff;white-space:nowrap;
+  overflow:hidden;position:relative;margin:0 1px;cursor:pointer;
+  box-shadow:0 6px 14px -8px rgba(0,0,0,.5);transition:.16s;z-index:1;
+}
+.bar:hover{transform:translateY(-1px);z-index:2;filter:brightness(1.06)}
+.bar.direct{background:linear-gradient(135deg,var(--direct),#27409e)}
+.bar.ota{background:linear-gradient(135deg,var(--ota),#e8455a)}
+.bar .keyel{margin-left:auto;width:20px;height:20px;border-radius:50%;background:rgba(0,0,0,.28);display:grid;place-items:center;flex-shrink:0}
+.bar .keyel svg{width:11px;height:11px}
+.bar .lead{width:16px;height:16px;flex-shrink:0;opacity:.9}
+.bar .badge-n{position:absolute;top:-5px;right:-3px;width:16px;height:16px;border-radius:50%;background:var(--ota);color:#fff;font-size:9px;display:grid;place-items:center;border:2px solid var(--surface)}
+.bar.block{
+  background:repeating-linear-gradient(45deg,#CFCCD6 0 6px,#C0BDC9 6px 12px);
+  color:#5b5b67;justify-content:center;padding:0 6px;box-shadow:none;
+}
+.bar.block svg{width:13px;height:13px}
+.bar.mini{justify-content:center;padding:0;height:30px}
+.bar.mini svg{width:15px;height:15px;opacity:.95}
+
+.legend{display:flex;align-items:center;gap:18px;padding:14px 18px;flex-wrap:wrap;border-top:1px solid var(--line);background:#FBFAF7}
+.legend .lg{display:flex;align-items:center;gap:7px;font-size:12.5px;font-weight:600;color:var(--ink-soft)}
+.legend .sw{width:22px;height:13px;border-radius:5px}
+.sw.direct{background:linear-gradient(135deg,var(--direct),#27409e)}
+.sw.ota{background:linear-gradient(135deg,var(--ota),#e8455a)}
+.sw.block{background:repeating-linear-gradient(45deg,#CFCCD6 0 4px,#C0BDC9 4px 8px)}
+
+/* placeholder view */
+.placeholder{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:80px 24px;gap:14px}
+.placeholder .pic{width:88px;height:88px;border-radius:24px;background:var(--brand-tint);color:var(--brand);display:grid;place-items:center}
+.placeholder .pic svg{width:40px;height:40px}
+.placeholder h2{font-family:"Bricolage Grotesque";font-size:26px}
+.placeholder p{color:var(--muted);max-width:420px}
+
+/* footer */
+.foot{max-width:var(--max);margin:0 auto;padding:22px 24px;display:flex;align-items:center;gap:18px;flex-wrap:wrap;border-top:1px solid var(--line);color:var(--muted);font-size:13px}
+.foot a{text-decoration:none;color:var(--ink-soft);font-weight:600}
+.foot a:hover{color:var(--brand)}
+.foot .flinks{display:flex;gap:18px}
+.foot .right{margin-left:auto;display:flex;align-items:center;gap:16px}
+.foot .right svg{width:17px;height:17px;color:var(--muted);cursor:pointer}
+.foot .right svg:hover{color:var(--ink)}
+
+/* entrance animation */
+.rise{opacity:0;transform:translateY(14px)}
+.view.active .rise{animation:rise .55s cubic-bezier(.22,1,.36,1) forwards}
+.view.active .rise:nth-child(1){animation-delay:.02s}
+.view.active .rise:nth-child(2){animation-delay:.08s}
+.view.active .rise:nth-child(3){animation-delay:.14s}
+.view.active .rise:nth-child(4){animation-delay:.2s}
+@keyframes rise{to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}.rise{opacity:1;transform:none}.chart .bar{height:var(--h)}}
+
+/* ---------- Responsive ---------- */
+@media (max-width:1180px){
+  .dash-grid{grid-template-columns:1fr}
+}
+@media (max-width:1024px){
+  .nav{display:none}
+  .btn-create span{display:none}
+  .btn-create{padding:11px 13px}
+  .hamburger{display:grid}
+  .toolbar-inner{flex-wrap:wrap}
+  .month-nav{order:3;width:100%;margin:8px 0 0;justify-content:center}
+  .tools-right{margin-left:auto}
+}
+@media (max-width:820px){
+  .stats{grid-template-columns:repeat(2,1fr)}
+  .mini-grid{grid-template-columns:repeat(3,1fr)}
+  .event{grid-template-columns:1fr;gap:14px;padding:15px}
+  .event .guest,.event .listing{padding-left:57px}
+  .evt-type{position:relative}
+}
+@media (max-width:560px){
+  .appbar-inner{padding:0 16px;gap:12px}
+  .wrap{padding:18px 14px 56px}
+  .toolbar{padding:0 14px}
+  .stats{grid-template-columns:1fr}
+  .mini-grid{grid-template-columns:repeat(2,1fr)}
+  .logo .word{font-size:20px}
+  .stat .num{font-size:32px}
+  .chart{height:200px}
+  .seg button span{display:none}
+  .seg button{padding:8px 11px}
+  .foot{flex-direction:column;align-items:flex-start;gap:12px}
+  .foot .right{margin-left:0}
+}
+</style>
+</head>
+<body>
+
+<!-- ===================== APP BAR ===================== -->
+<header class="appbar">
+  <div class="appbar-inner">
+    <a class="logo" href="#" onclick="go('dashboard');return false">
+      <span class="mark">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5 10v9h14v-9"/><path d="M10 19v-5h4v5"/></svg>
+      </span>
+      <span class="word"><b>Fav</b><span>Host</span></span>
+    </a>
+
+    <nav class="nav" id="nav">
+      <a data-view="dashboard" onclick="go('dashboard')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>Dashboard</a>
+      <a data-view="calendar" onclick="go('calendar')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16" rx="2.5"/><path d="M3 9h18M8 2.5v4M16 2.5v4"/></svg>Calendar</a>
+      <a data-view="reservations" onclick="go('reservations')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19c0-3 2.5-5 5.5-5s5.5 2 5.5 5"/><path d="M16 6.5a3 3 0 0 1 0 5.6M18 19c0-2.4-1-3.8-2.5-4.6"/></svg>Reservations</a>
+      <a data-view="listing" onclick="go('listing')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13"/><circle cx="3.5" cy="6" r="1.3"/><circle cx="3.5" cy="12" r="1.3"/><circle cx="3.5" cy="18" r="1.3"/></svg>Listing</a>
+      <a data-view="tasks" onclick="go('tasks')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3.5" width="16" height="17" rx="2.5"/><path d="m8.5 12 2.2 2.2L15 9.8"/></svg>Tasks</a>
+      <a data-view="inquiry" onclick="go('inquiry')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="m4 7 8 6 8-6"/></svg>Inquiry <span class="pill-count">2</span></a>
+      <a data-view="website" onclick="go('website')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.5 2.5 15 0 18M12 3c-2.5 2.5-2.5 15 0 18"/></svg>Website</a>
+    </nav>
+
+    <div class="actions">
+      <button class="btn-create"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg><span>Create</span></button>
+      <button class="avatar-btn">JM</button>
+      <button class="hamburger" id="burger" aria-label="Menu" onclick="toggleMenu()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<!-- mobile drawer -->
+<div class="drawer" id="drawer">
+  <a data-view="dashboard" onclick="go('dashboard')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>Dashboard</a>
+  <a data-view="calendar" onclick="go('calendar')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4.5" width="18" height="16" rx="2.5"/><path d="M3 9h18M8 2.5v4M16 2.5v4"/></svg>Calendar</a>
+  <a data-view="reservations" onclick="go('reservations')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19c0-3 2.5-5 5.5-5s5.5 2 5.5 5"/></svg>Reservations</a>
+  <a data-view="listing" onclick="go('listing')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 6h13M8 12h13M8 18h13"/></svg>Listing</a>
+  <a data-view="tasks" onclick="go('tasks')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="3.5" width="16" height="17" rx="2.5"/><path d="m8.5 12 2.2 2.2L15 9.8"/></svg>Tasks</a>
+  <a data-view="inquiry" onclick="go('inquiry')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="m4 7 8 6 8-6"/></svg>Inquiry <span class="pill-count" style="margin-left:auto">2</span></a>
+  <a data-view="website" onclick="go('website')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.5 2.5 15 0 18M12 3c-2.5 2.5-2.5 15 0 18"/></svg>Website</a>
+</div>
+
+<!-- ===================== TOOLBAR ===================== -->
+<div class="toolbar">
+  <div class="toolbar-inner">
+    <h1 id="toolTitle">
+      <span class="ti" id="toolIcon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></span>
+      <span id="toolText">Dashboard</span>
+    </h1>
+
+    <!-- month nav: shown on calendar -->
+    <div class="month-nav" id="monthNav" style="display:none">
+      <button aria-label="Previous"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M15 6l-6 6 6 6"/></svg></button>
+      <span class="lbl">May 2026</span>
+      <button aria-label="Next"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg></button>
+    </div>
+
+    <div class="tools-right" id="toolsRight">
+      <!-- calendar: list/timeline toggle -->
+      <div class="seg" id="calSeg" style="display:none">
+        <button class="on" data-cal="list" onclick="setCal('list')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01"/></svg><span>List</span></button>
+        <button data-cal="timeline" onclick="setCal('timeline')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h9M4 12h14M4 17h6"/></svg><span>Timeline</span></button>
+      </div>
+      <!-- dashboard: refresh -->
+      <button class="icon-btn" id="refreshBtn" title="Refresh" onclick="spin(this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.6-6.3M21 4v5h-5"/></svg></button>
+      <button class="icon-btn" id="printBtn" title="Print" style="display:none"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6"/><rect x="4" y="9" width="16" height="8" rx="2"/><path d="M7 17h10v4H7z"/></svg></button>
+    </div>
+  </div>
+</div>
+
+<main class="wrap">
+
+<!-- ===================== DASHBOARD ===================== -->
+<section class="view active" id="view-dashboard">
+  <div class="stats">
+    <div class="card stat s1 rise">
+      <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V8l7-5 7 5v13"/><path d="M9 21v-5h6v5"/><path d="M9 11h.01M15 11h.01"/></svg></div>
+      <div><div class="lbl">Active Listings</div><div class="num">19</div></div>
+    </div>
+    <div class="card stat s2 rise">
+      <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6" width="19" height="12" rx="2.5"/><circle cx="12" cy="12" r="2.6"/><path d="M6 9.5h.01M18 14.5h.01"/></svg></div>
+      <div><div class="lbl">Total Revenue</div><div class="num"><small>$</small>11,267.59</div></div>
+    </div>
+    <div class="card stat s3 rise">
+      <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3.5" width="16" height="17" rx="2.5"/><path d="M9 8h6M9 12h6M9 16h3"/></svg></div>
+      <div><div class="lbl">Pending Tasks</div><div class="num">0</div></div>
+    </div>
+    <div class="card stat s4 rise">
+      <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4L3 21l1.1-4.5A8.5 8.5 0 1 1 21 11.5z"/></svg></div>
+      <div><div class="lbl">New Inquiries</div><div class="num">2</div></div>
+    </div>
+  </div>
+
+  <div class="dash-grid">
+    <!-- left column -->
+    <div class="col">
+      <div class="card rise">
+        <div class="card-head"><h2>New Inquiries</h2><a class="link">View all →</a></div>
+        <div style="padding:16px 18px 18px">
+          <div class="inq">
+            <button class="kebab"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="12" cy="19" r="1.6"/></svg></button>
+            <div class="thumb t2"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5 10v9h14v-9"/></svg></div>
+            <div class="body">
+              <div class="dates"><span>Jun 05 – Jun 12, 2026 <span class="nights">7 nights</span></span><span>Sent <b>May 22, 2026</b></span></div>
+              <div class="name">Costa Rica holidayhome for rent (copy) (copy)</div>
+              <div class="meta">country code · 1 guest · 0 children · 0 pets</div>
+              <span class="tag ok">Available</span>
+            </div>
+          </div>
+          <div class="inq">
+            <button class="kebab"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="12" cy="19" r="1.6"/></svg></button>
+            <div class="thumb t4"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5 10v9h14v-9"/></svg></div>
+            <div class="body">
+              <div class="dates"><span>Nov 04 – Nov 11, 2026 <span class="nights">7 nights</span></span><span>Sent <b>Apr 28, 2026</b></span></div>
+              <div class="name">R01 · Chinese themed Home at Los Angeles</div>
+              <div class="meta">Henry Oman · 4 guests · 1 child · 1 pet</div>
+              <span class="tag ok">Available</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card rise">
+        <div class="chart-wrap">
+          <div class="chart-top">
+            <div class="avg">Monthly average <b>$1,471.71</b></div>
+            <div class="chart-ctrl">
+              <span class="trend"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M21 7v5h-5"/></svg>+0%</span>
+              <select class="yr"><option>2026</option><option>2025</option></select>
+            </div>
+          </div>
+          <div class="chart" id="chart">
+            <div class="avg-line" style="bottom:calc(49.9% * .87 + 0px)"><span>avg</span></div>
+            <div class="bar-col"><div class="bar" style="--h:79%"><span class="val">$2,319</span></div><span class="mo">Jan</span></div>
+            <div class="bar-col"><div class="bar" style="--h:69%"><span class="val">$2,027</span></div><span class="mo">Feb</span></div>
+            <div class="bar-col"><div class="bar" style="--h:6%"><span class="val">$111</span></div><span class="mo">Mar</span></div>
+            <div class="bar-col"><div class="bar" style="--h:100%"><span class="val">$2,950</span></div><span class="mo">Apr</span></div>
+            <div class="bar-col"><div class="bar zero"></div><span class="mo">May</span></div>
+            <div class="bar-col"><div class="bar zero"></div><span class="mo">Jun</span></div>
+            <div class="bar-col"><div class="bar zero"></div><span class="mo">Jul</span></div>
+            <div class="bar-col"><div class="bar zero"></div><span class="mo">Aug</span></div>
+            <div class="bar-col"><div class="bar" style="--h:53%"><span class="val">$1,560</span></div><span class="mo">Sep</span></div>
+            <div class="bar-col"><div class="bar zero"></div><span class="mo">Oct</span></div>
+            <div class="bar-col"><div class="bar zero"></div><span class="mo">Nov</span></div>
+            <div class="bar-col"><div class="bar zero"></div><span class="mo">Dec</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- right column -->
+    <div class="col">
+      <div class="card rise">
+        <div class="tabs">
+          <button class="tab on" data-day="today" onclick="setDay('today')">Today</button>
+          <button class="tab" data-day="tomorrow" onclick="setDay('tomorrow')">Tomorrow</button>
+        </div>
+        <div class="mini-grid" id="miniGrid">
+          <div class="mini"><div class="n">0</div><div class="t">Check-ins</div></div>
+          <div class="mini"><div class="n">0</div><div class="t">Check-outs</div></div>
+          <div class="mini cool"><div class="n">1</div><div class="t">In-house</div></div>
+          <div class="mini hot"><div class="n">17</div><div class="t">Vacant</div></div>
+          <div class="mini"><div class="n">0</div><div class="t">Payment</div></div>
+          <div class="mini"><div class="n">0</div><div class="t">Tasks</div></div>
+        </div>
+
+        <div class="up-head">
+          <h3>Upcoming</h3>
+          <div class="stepper">
+            <button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M15 6l-6 6 6 6"/></svg></button>
+            Jun 2026
+            <button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg></button>
+          </div>
+        </div>
+        <div class="up-list">
+          <div class="up-day"><span class="d"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4.5" width="18" height="16" rx="2.5"/><path d="M3 9h18M8 2.5v4M16 2.5v4"/></svg>Jun 11, 2026 · Thu</span><span class="due">Due in 10 days</span></div>
+          <div class="up-item">
+            <div class="ic pay"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2.5" y="6" width="19" height="12" rx="2.5"/><circle cx="12" cy="12" r="2.6"/></svg></div>
+            <div class="info"><div class="top">Payment $160.00 <span class="chip-warn">Not paid</span></div><div class="sub">R02 · Costa Rica holidayhome for rent (copy)</div></div>
+            <div class="who"><div class="av a5">TB</div><small>test book</small></div>
+          </div>
+          <div class="up-day"><span class="d"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4.5" width="18" height="16" rx="2.5"/><path d="M3 9h18M8 2.5v4M16 2.5v4"/></svg>Jun 12, 2026 · Fri</span><span class="due">Due in 11 days</span></div>
+          <div class="up-item">
+            <div class="ic cin"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="M10 17l5-5-5-5M15 12H3"/></svg></div>
+            <div class="info"><div class="top">Check In</div><div class="sub">R02 · Costa Rica holidayhome for rent (copy)</div></div>
+            <div class="who"><div class="av a5">TB</div><small>test book</small></div>
+          </div>
+          <div class="up-day"><span class="d"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4.5" width="18" height="16" rx="2.5"/><path d="M3 9h18M8 2.5v4M16 2.5v4"/></svg>Jun 13, 2026 · Sat</span><span class="due">Due in 12 days</span></div>
+          <div class="up-item">
+            <div class="ic pay"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2.5" y="6" width="19" height="12" rx="2.5"/><circle cx="12" cy="12" r="2.6"/></svg></div>
+            <div class="info"><div class="top">Payment $380.00 <span class="chip-warn">Not paid</span></div><div class="sub">Room 4 · Guest Suite</div></div>
+            <div class="who"><div class="av a3">RD</div><small>Riya Das</small></div>
+          </div>
+          <div class="up-day"><span class="d"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4.5" width="18" height="16" rx="2.5"/><path d="M3 9h18M8 2.5v4M16 2.5v4"/></svg>Jun 14, 2026 · Sun</span><span class="due">Due in 13 days</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== CALENDAR ===================== -->
+<section class="view" id="view-calendar">
+
+  <!-- LIST -->
+  <div id="cal-list">
+    <div class="day-group rise">
+      <div class="day-head"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4.5" width="18" height="16" rx="2.5"/><path d="M3 9h18M8 2.5v4M16 2.5v4"/></svg>May 1, 2026 · Friday<span class="cnt">3 events</span></div>
+
+      <div class="event">
+        <div class="evt-type"><div class="evt-ic ic-checkin"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="M10 17l5-5-5-5M15 12H3"/></svg></div>
+          <div class="meta"><div class="kind">Check-in</div><div class="when">May 01 → Oct 31, 2026 <span class="nights">183 nights</span></div></div></div>
+        <div class="guest"><div class="av a1">SD</div><div class="gi"><div class="gn">Samuel C Deschamps</div><div class="gc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m4 7 8 6 8-6"/></svg>sam3791@hotmail.com</div><div class="gc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 4h4l2 5-3 2a12 12 0 0 0 5 5l2-3 5 2v4a2 2 0 0 1-2 2A17 17 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg>+1 406 544 2686</div></div></div>
+        <div class="listing"><div class="lt t1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 12V8l8-4 8 4v4"/><path d="M5 11v9h14v-9"/></svg></div><div class="li"><div class="ln">Cozy &amp; Sanitized · Clean · TV · Free Parking (R13)</div><div class="lc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-5.5-7-11a7 7 0 0 1 14 0c0 5.5-7 11-7 11z"/><circle cx="12" cy="10" r="2.4"/></svg>Reynoldsburg</div></div></div>
+      </div>
+
+      <div class="event">
+        <div class="evt-type"><div class="evt-ic ic-checkin"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="M10 17l5-5-5-5M15 12H3"/></svg></div>
+          <div class="meta"><div class="kind">Check-in</div><div class="when">May 01 → Jul 01, 2026 <span class="nights">61 nights</span></div></div></div>
+        <div class="guest"><div class="av a2">AS</div><div class="gi"><div class="gn">Aaron Schauer</div><div class="gc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m4 7 8 6 8-6"/></svg>schauer30@outlook.com</div><div class="gc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 4h4l2 5-3 2a12 12 0 0 0 5 5l2-3 5 2v4a2 2 0 0 1-2 2A17 17 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg>+1 216 533 4249</div></div></div>
+        <div class="listing"><div class="lt t3"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 12V8l8-4 8 4v4"/><path d="M5 11v9h14v-9"/></svg></div><div class="li"><div class="ln">Comfy Bed · TV · Wi-Fi · Fridge · Kitchen (R7)</div><div class="lc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-5.5-7-11a7 7 0 0 1 14 0c0 5.5-7 11-7 11z"/><circle cx="12" cy="10" r="2.4"/></svg>Columbus</div></div></div>
+      </div>
+
+      <div class="event">
+        <div class="evt-type"><div class="evt-ic ic-payment"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2.5" y="6" width="19" height="12" rx="2.5"/><circle cx="12" cy="12" r="2.6"/><path d="M6 9.5h.01M18 14.5h.01"/></svg></div>
+          <div class="meta"><div class="kind">Payment received</div><div class="amt">$780.00</div></div></div>
+        <div class="guest"><div class="av a7">MM</div><div class="gi"><div class="gn">Marco Marentes</div><div class="gc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m4 7 8 6 8-6"/></svg>asdfghjkl@gmail.com</div><div class="gc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 4h4l2 5-3 2a12 12 0 0 0 5 5l2-3 5 2v4a2 2 0 0 1-2 2A17 17 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg>+1 528 712 691830</div></div></div>
+        <div class="listing"><div class="lt t6"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 12V8l8-4 8 4v4"/><path d="M5 11v9h14v-9"/></svg></div><div class="li"><div class="ln">Cozy Bed · Wi-Fi · Work space · Kitchen (R6)</div><div class="lc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-5.5-7-11a7 7 0 0 1 14 0c0 5.5-7 11-7 11z"/><circle cx="12" cy="10" r="2.4"/></svg>Columbus</div></div></div>
+      </div>
+    </div>
+
+    <div class="day-group rise">
+      <div class="day-head"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4.5" width="18" height="16" rx="2.5"/><path d="M3 9h18M8 2.5v4M16 2.5v4"/></svg>May 5, 2026 · Tuesday<span class="cnt">2 events</span></div>
+
+      <div class="event">
+        <div class="evt-type"><div class="evt-ic ic-checkout"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></svg></div>
+          <div class="meta"><div class="kind">Check-out</div><div class="when">Apr 01 → May 05, 2026 <span class="nights">34 nights</span></div></div></div>
+        <div class="guest"><div class="av a8">PT</div><div class="gi"><div class="gn">Paolo Tino</div><div class="gc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m4 7 8 6 8-6"/></svg>3paotino@gmail.com</div><div class="gc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 4h4l2 5-3 2a12 12 0 0 0 5 5l2-3 5 2v4a2 2 0 0 1-2 2A17 17 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg>+1 937 522 1159</div></div></div>
+        <div class="listing"><div class="lt t1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 12V8l8-4 8 4v4"/><path d="M5 11v9h14v-9"/></svg></div><div class="li"><div class="ln">Cozy &amp; Sanitized · Clean · TV · Free Parking (R2)</div><div class="lc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-5.5-7-11a7 7 0 0 1 14 0c0 5.5-7 11-7 11z"/><circle cx="12" cy="10" r="2.4"/></svg>Reynoldsburg</div></div></div>
+      </div>
+
+      <div class="event">
+        <div class="evt-type"><div class="evt-ic ic-payment"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2.5" y="6" width="19" height="12" rx="2.5"/><circle cx="12" cy="12" r="2.6"/><path d="M6 9.5h.01M18 14.5h.01"/></svg></div>
+          <div class="meta"><div class="kind">Payment received</div><div class="amt">$864.90</div></div></div>
+        <div class="guest"><div class="av a3">JS</div><div class="gi"><div class="gn">Jose S</div><div class="gc">No email on file</div><div class="gc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 4h4l2 5-3 2a12 12 0 0 0 5 5l2-3 5 2v4a2 2 0 0 1-2 2A17 17 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg>+1 956 966 7695</div></div></div>
+        <div class="listing"><div class="lt t1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 12V8l8-4 8 4v4"/><path d="M5 11v9h14v-9"/></svg></div><div class="li"><div class="ln">Cozy &amp; Sanitized · Clean · TV · Free Parking (R2)</div><div class="lc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-5.5-7-11a7 7 0 0 1 14 0c0 5.5-7 11-7 11z"/><circle cx="12" cy="10" r="2.4"/></svg>Reynoldsburg</div></div></div>
+      </div>
+    </div>
+
+    <div class="day-group rise">
+      <div class="day-head"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4.5" width="18" height="16" rx="2.5"/><path d="M3 9h18M8 2.5v4M16 2.5v4"/></svg>May 6, 2026 · Wednesday<span class="cnt">4 events</span></div>
+
+      <div class="event">
+        <div class="evt-type"><div class="evt-ic ic-checkin"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="M10 17l5-5-5-5M15 12H3"/></svg></div>
+          <div class="meta"><div class="kind">Check-in</div><div class="when">May 06 → Jun 06, 2026 <span class="nights">31 nights</span></div></div></div>
+        <div class="guest"><div class="av a3">JS</div><div class="gi"><div class="gn">Jose S</div><div class="gc">No email on file</div><div class="gc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 4h4l2 5-3 2a12 12 0 0 0 5 5l2-3 5 2v4a2 2 0 0 1-2 2A17 17 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg>+1 956 966 7695</div></div></div>
+        <div class="listing"><div class="lt t1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 12V8l8-4 8 4v4"/><path d="M5 11v9h14v-9"/></svg></div><div class="li"><div class="ln">Cozy &amp; Sanitized · Clean · TV · Free Parking (R2)</div><div class="lc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-5.5-7-11a7 7 0 0 1 14 0c0 5.5-7 11-7 11z"/><circle cx="12" cy="10" r="2.4"/></svg>Reynoldsburg</div></div></div>
+      </div>
+
+      <div class="event">
+        <div class="evt-type"><div class="evt-ic ic-checkin"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="M10 17l5-5-5-5M15 12H3"/></svg></div>
+          <div class="meta"><div class="kind">Check-in</div><div class="when">May 06 → Jun 06, 2026 <span class="nights">31 nights</span></div></div></div>
+        <div class="guest"><div class="av a7"><svg class="airbnb-mark" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2c1.2 0 2.1.7 2.8 2 .5.9 1.6 3 3.3 6.4 1.7 3.3 2.6 5.2 2.7 5.6.2.6.3 1.2.3 1.7 0 1.4-.5 2.5-1.5 3.3-.9.7-1.9 1-3 1-1.4 0-2.7-.6-3.8-1.7l-.8-.8-.8.8C10.4 21.4 9.1 22 7.7 22c-1.1 0-2.1-.3-3-1-1-.8-1.5-1.9-1.5-3.3 0-.5.1-1.1.3-1.7.1-.4 1-2.3 2.7-5.6C7.9 7 9 4.9 9.5 4c.7-1.3 1.6-2 2.8-2zm0 2.1c-.4 0-.8.3-1.1.9-.4.7-1.4 2.7-3 5.9-1.6 3.2-2.5 5-2.6 5.4-.1.4-.2.7-.2 1 0 .7.2 1.2.7 1.6.4.3.9.5 1.5.5.9 0 1.7-.4 2.4-1.2l.1-.1-.5-.7c-.9-1.2-1.3-2.3-1.3-3.3 0-1 .4-1.9 1.1-2.5.6-.5 1.3-.8 2.1-.8s1.5.3 2.1.8c.7.6 1.1 1.5 1.1 2.5 0 1-.4 2.1-1.3 3.3l-.5.7.1.1c.7.8 1.5 1.2 2.4 1.2.6 0 1.1-.2 1.5-.5.5-.4.7-.9.7-1.6 0-.3-.1-.6-.2-1-.1-.4-1-2.2-2.6-5.4-1.6-3.2-2.6-5.2-3-5.9-.3-.6-.7-.9-1.1-.9zm0 9.1c-.4 0-.7.1-.9.4-.3.2-.4.6-.4 1 0 .5.3 1.2.9 2 .6-.8.9-1.5.9-2 0-.4-.1-.8-.4-1-.2-.3-.5-.4-.9-.4z"/></svg></div><div class="gi"><div class="gn">Airbnb Guest</div><div class="gc" style="color:var(--ota)">Reservation via Airbnb</div></div></div>
+        <div class="listing"><div class="lt t1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 12V8l8-4 8 4v4"/><path d="M5 11v9h14v-9"/></svg></div><div class="li"><div class="ln">Cozy &amp; Sanitized · Clean · TV · Free Parking (R2)</div><div class="lc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-5.5-7-11a7 7 0 0 1 14 0c0 5.5-7 11-7 11z"/><circle cx="12" cy="10" r="2.4"/></svg>Reynoldsburg</div></div></div>
+      </div>
+
+      <div class="event">
+        <div class="evt-type"><div class="evt-ic ic-maint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.1-.4-.4-2.1z"/></svg></div>
+          <div class="meta"><div class="kind">Maintenance</div><div class="desc">8422:3 — Lock changes, beams, insulation, garage power, side window, shower faucet at master bedroom.</div></div></div>
+        <div class="guest"><div class="av a4">H</div><div class="gi"><div class="gn">Haider</div><div class="gc">Maintenance crew</div><div class="gc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 4h4l2 5-3 2a12 12 0 0 0 5 5l2-3 5 2v4a2 2 0 0 1-2 2A17 17 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg>111111</div></div></div>
+        <div class="listing"><div class="lt t1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 12V8l8-4 8 4v4"/><path d="M5 11v9h14v-9"/></svg></div><div class="li"><div class="ln">Cozy &amp; Sanitized · Clean · TV · Free Parking (R13)</div><div class="lc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-5.5-7-11a7 7 0 0 1 14 0c0 5.5-7 11-7 11z"/><circle cx="12" cy="10" r="2.4"/></svg>Reynoldsburg</div></div></div>
+      </div>
+
+      <div class="event">
+        <div class="evt-type"><div class="evt-ic ic-maint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.1-.4-.4-2.1z"/></svg></div>
+          <div class="meta"><div class="kind">Maintenance</div><div class="desc">8422:3 — Lock changes, front door fix knob.</div></div></div>
+        <div class="guest"><div class="av a4">H</div><div class="gi"><div class="gn">Haider</div><div class="gc">Maintenance crew</div><div class="gc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 4h4l2 5-3 2a12 12 0 0 0 5 5l2-3 5 2v4a2 2 0 0 1-2 2A17 17 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg>213213</div></div></div>
+        <div class="listing"><div class="lt t5"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 12V8l8-4 8 4v4"/><path d="M5 11v9h14v-9"/></svg></div><div class="li"><div class="ln">Comfortable Bed · TV · Wi-Fi · Free Parking (R8)</div><div class="lc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-5.5-7-11a7 7 0 0 1 14 0c0 5.5-7 11-7 11z"/><circle cx="12" cy="10" r="2.4"/></svg>Columbus</div></div></div>
+      </div>
+    </div>
+
+    <div class="day-group rise">
+      <div class="day-head"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4.5" width="18" height="16" rx="2.5"/><path d="M3 9h18M8 2.5v4M16 2.5v4"/></svg>May 10, 2026 · Sunday<span class="cnt">1 event</span></div>
+      <div class="event">
+        <div class="evt-type"><div class="evt-ic ic-payment"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2.5" y="6" width="19" height="12" rx="2.5"/><circle cx="12" cy="12" r="2.6"/><path d="M6 9.5h.01M18 14.5h.01"/></svg></div>
+          <div class="meta"><div class="kind">Payment received</div><div class="amt">$30.00</div></div></div>
+        <div class="guest"><div class="av a6">ST</div><div class="gi"><div class="gn">Subho Test</div><div class="gc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m4 7 8 6 8-6"/></svg>subho1984@gmail.com</div><div class="gc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 4h4l2 5-3 2a12 12 0 0 0 5 5l2-3 5 2v4a2 2 0 0 1-2 2A17 17 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg>+1 214 123 131</div></div></div>
+        <div class="listing"><div class="lt t1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 12V8l8-4 8 4v4"/><path d="M5 11v9h14v-9"/></svg></div><div class="li"><div class="ln">Cozy &amp; Sanitized · Clean · TV · Free Parking (R1)</div><div class="lc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-5.5-7-11a7 7 0 0 1 14 0c0 5.5-7 11-7 11z"/><circle cx="12" cy="10" r="2.4"/></svg>Reynoldsburg</div></div></div>
+      </div>
+    </div>
+
+    <div class="day-group rise">
+      <div class="day-head"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4.5" width="18" height="16" rx="2.5"/><path d="M3 9h18M8 2.5v4M16 2.5v4"/></svg>May 11, 2026 · Monday<span class="cnt">2 events</span></div>
+      <div class="event">
+        <div class="evt-type"><div class="evt-ic ic-checkin"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="M10 17l5-5-5-5M15 12H3"/></svg></div>
+          <div class="meta"><div class="kind">Check-in</div><div class="when">May 11 → May 12, 2026 <span class="nights">1 night</span></div></div></div>
+        <div class="guest"><div class="av a6">ST</div><div class="gi"><div class="gn">Subho Test</div><div class="gc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m4 7 8 6 8-6"/></svg>subho1984@gmail.com</div><div class="gc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 4h4l2 5-3 2a12 12 0 0 0 5 5l2-3 5 2v4a2 2 0 0 1-2 2A17 17 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg>+1 214 123 131</div></div></div>
+        <div class="listing"><div class="lt t1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 12V8l8-4 8 4v4"/><path d="M5 11v9h14v-9"/></svg></div><div class="li"><div class="ln">Cozy &amp; Sanitized · Clean · TV · Free Parking (R1)</div><div class="lc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-5.5-7-11a7 7 0 0 1 14 0c0 5.5-7 11-7 11z"/><circle cx="12" cy="10" r="2.4"/></svg>Reynoldsburg</div></div></div>
+      </div>
+      <div class="event">
+        <div class="evt-type"><div class="evt-ic ic-payment"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2.5" y="6" width="19" height="12" rx="2.5"/><circle cx="12" cy="12" r="2.6"/><path d="M6 9.5h.01M18 14.5h.01"/></svg></div>
+          <div class="meta"><div class="kind">Payment received</div><div class="amt">$30.00</div></div></div>
+        <div class="guest"><div class="av a2">ST</div><div class="gi"><div class="gn">Subho Test2</div><div class="gc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m4 7 8 6 8-6"/></svg>subho1984@gmail.com</div><div class="gc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 4h4l2 5-3 2a12 12 0 0 0 5 5l2-3 5 2v4a2 2 0 0 1-2 2A17 17 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg>+1 112 233 44</div></div></div>
+        <div class="listing"><div class="lt t1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 12V8l8-4 8 4v4"/><path d="M5 11v9h14v-9"/></svg></div><div class="li"><div class="ln">Cozy &amp; Sanitized · Clean · TV · Free Parking (R1)</div><div class="lc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-5.5-7-11a7 7 0 0 1 14 0c0 5.5-7 11-7 11z"/><circle cx="12" cy="10" r="2.4"/></svg>Reynoldsburg</div></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TIMELINE -->
+  <div id="cal-timeline" style="display:none">
+    <div class="card tl-card rise">
+      <div class="tl-scroll">
+        <div class="tl">
+          <div class="tl-head">
+            <div class="corner"><div class="srch"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4-4"/></svg>Search listings</div></div>
+            <div class="thead" id="thead"></div>
+          </div>
+          <div id="tlBody"></div>
+        </div>
+      </div>
+      <div class="legend">
+        <div class="lg"><span class="sw direct"></span>Direct booking</div>
+        <div class="lg"><span class="sw ota"></span>Airbnb / OTA</div>
+        <div class="lg"><span class="sw block"></span>Blocked</div>
+        <div class="lg"><svg viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2" style="width:15px;height:15px"><circle cx="8" cy="15" r="4"/><path d="m11 12 6-6 3 3M16 7l2 2"/></svg>Key handover</div>
+      </div>
+    </div>
+  </div>
+
+</section>
+
+<!-- ===================== PLACEHOLDER VIEWS ===================== -->
+<section class="view" id="view-generic">
+  <div class="card rise placeholder">
+    <div class="pic" id="phIcon"></div>
+    <h2 id="phTitle">Section</h2>
+    <p id="phText">This area is part of the FavHost workspace. The Dashboard and Calendar views are fully built out in this prototype.</p>
+    <button class="btn-create" style="margin-top:6px" onclick="go('dashboard')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M19 12H5M11 6l-6 6 6 6"/></svg><span>Back to dashboard</span></button>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="foot">
+    <span>© 2026 FavHost LLC · All rights reserved.</span>
+    <div class="flinks"><a>Privacy</a><a>Terms</a><a>Sitemap</a></div>
+    <div class="right">
+      <span>🌐 English (US)</span>
+      <span>$ USD</span>
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M22 12a10 10 0 1 0-11.6 9.9v-7H7.9V12h2.5V9.8c0-2.5 1.5-3.9 3.8-3.9 1.1 0 2.2.2 2.2.2v2.5h-1.2c-1.2 0-1.6.8-1.6 1.6V12h2.7l-.4 2.9h-2.3v7A10 10 0 0 0 22 12z"/></svg>
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M22 5.8a8 8 0 0 1-2.4.7 4 4 0 0 0 1.8-2.2c-.8.5-1.7.8-2.6 1a4.1 4.1 0 0 0-7 3.7A11.6 11.6 0 0 1 3.4 4.6a4.1 4.1 0 0 0 1.3 5.5c-.7 0-1.3-.2-1.9-.5a4.1 4.1 0 0 0 3.3 4 4.1 4.1 0 0 1-1.9.1 4.1 4.1 0 0 0 3.8 2.9A8.3 8.3 0 0 1 2 18.3a11.6 11.6 0 0 0 6.3 1.8c7.5 0 11.7-6.3 11.7-11.7v-.5c.8-.6 1.5-1.3 2-2.1z"/></svg>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1.2" fill="currentColor" stroke="none"/></svg>
+    </div>
+  </div>
+</footer>
+
+<script>
+/* ---------- view routing ---------- */
+const titles = {
+  dashboard:["Dashboard", icoDash()],
+  calendar:["Calendar", icoCal()],
+  reservations:["Reservations", icoRes()],
+  listing:["Listing", icoList()],
+  tasks:["Tasks", icoTask()],
+  inquiry:["Inquiry", icoMail()],
+  website:["Website", icoGlobe()]
+};
+
+function go(view){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  // nav active state
+  document.querySelectorAll('.nav a, .drawer a').forEach(a=>{
+    a.classList.toggle('active', a.dataset.view===view);
+  });
+  // toolbar
+  const [txt,svg] = titles[view];
+  document.getElementById('toolText').textContent = txt;
+  document.getElementById('toolIcon').innerHTML = svg;
+
+  const isCal = view==='calendar';
+  document.getElementById('monthNav').style.display = isCal?'flex':'none';
+  document.getElementById('calSeg').style.display = isCal?'flex':'none';
+  document.getElementById('printBtn').style.display = isCal?'grid':'none';
+  document.getElementById('refreshBtn').style.display = isCal?'none':'grid';
+
+  let target;
+  if(view==='dashboard'){ target='view-dashboard'; }
+  else if(view==='calendar'){ target='view-calendar'; }
+  else {
+    target='view-generic';
+    document.getElementById('phTitle').textContent = txt;
+    document.getElementById('phIcon').innerHTML = svg;
+  }
+  const el = document.getElementById(target);
+  el.classList.add('active');
+  // retrigger entrance + chart
+  void el.offsetWidth;
+  if(view==='dashboard') runChart();
+  closeMenu();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+/* calendar list / timeline */
+function setCal(mode){
+  document.querySelectorAll('#calSeg button').forEach(b=>b.classList.toggle('on', b.dataset.cal===mode));
+  document.getElementById('cal-list').style.display = mode==='list'?'block':'none';
+  document.getElementById('cal-timeline').style.display = mode==='timeline'?'block':'none';
+  if(mode==='timeline'){ const c=document.getElementById('view-calendar'); void c.offsetWidth; }
+}
+
+/* today / tomorrow */
+const dayData = {
+  today:[['0','Check-ins',''],['0','Check-outs',''],['1','In-house','cool'],['17','Vacant','hot'],['0','Payment',''],['0','Tasks','']],
+  tomorrow:[['1','Check-ins','cool'],['0','Check-outs',''],['2','In-house','cool'],['16','Vacant','hot'],['1','Payment',''],['0','Tasks','']]
+};
+function setDay(d){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on', t.dataset.day===d));
+  document.getElementById('miniGrid').innerHTML = dayData[d].map(([n,t,c])=>
+    `<div class="mini ${c}"><div class="n">${n}</div><div class="t">${t}</div></div>`).join('');
+}
+
+/* chart entrance */
+function runChart(){
+  const c=document.getElementById('chart');
+  c.classList.remove('ready'); void c.offsetWidth;
+  requestAnimationFrame(()=>requestAnimationFrame(()=>c.classList.add('ready')));
+}
+
+/* mobile menu */
+function toggleMenu(){ document.getElementById('drawer').classList.toggle('open'); }
+function closeMenu(){ document.getElementById('drawer').classList.remove('open'); }
+
+/* refresh spin */
+function spin(btn){ const s=btn.querySelector('svg'); s.style.transition='transform .6s'; s.style.transform='rotate(360deg)'; setTimeout(()=>{s.style.transition='';s.style.transform='';},600); runChart(); }
+
+/* ---------- build timeline ---------- */
+const DOW=['SUN','MON','TUE','WED','THU','FRI','SAT'];
+function buildTimeline(){
+  // May 2026 starts Friday (index 5)
+  let head='';
+  for(let d=1; d<=31; d++){
+    const dow = DOW[(5 + (d-1))%7];
+    const wknd = (dow==='SAT'||dow==='SUN');
+    const sel = (d===31);
+    head += `<div class="day${wknd?' wknd':''}${sel?' sel':''}"><span class="dow">${dow}</span><span class="dnum">${d}</span></div>`;
+  }
+  document.getElementById('thead').innerHTML = head;
+
+  // listing rows. seg: [type, startDay, endDay, label, opts]
+  const key = '<span class="keyel"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2"><circle cx="8" cy="15" r="4"/><path d="m11 12 6-6 3 3M16 7l2 2"/></svg></span>';
+  const cin = '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21V8l9-5 9 5v13"/><path d="M9 21v-6h6v6"/></svg>';
+  const cout= '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></svg>';
+  const ban = '<svg viewBox="0 0 24 24" fill="none" stroke="#5b5b67" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="m6 6 12 12"/></svg>';
+
+  const rows = [
+    {n:'Bed · TV · Wi-Fi', t:'t5', segs:[
+      seg('block',25,26,'Block'), seg('ota',31,31,'Airbnb',{lead:1})
+    ]},
+    {n:'Clean Cozy Bed', t:'t1', segs:[
+      seg('block',10,11,'Block'), seg('direct',12,31,'Jose Araya')
+    ]},
+    {n:'Comfortable Bed', t:'t3', segs:[
+      seg('direct',1,31,'Addi Ahumada',{key:1,badge:1})
+    ]},
+    {n:'Comfy Bed · TV', t:'t6', segs:[
+      seg('block',1,1,''), seg('direct',2,31,'Aaron Schauer',{key:1})
+    ]},
+    {n:'Cozy & Sanitized', t:'t1', segs:[
+      seg('block',1,1,''), seg('mini',11,11,'',{ic:cout}), seg('mini',12,12,'',{ic:cin}),
+      seg('block',14,14,''), seg('ota',15,31,'Juan Patino',{lead:1})
+    ]},
+    {n:'Cozy & Sanitized', t:'t1', segs:[
+      seg('direct',1,31,'Samuel C Deschamps',{key:1,badge:1})
+    ]},
+    {n:'Cozy & Sanitized', t:'t1', segs:[
+      seg('direct',1,5,'Paolo Tino',{key:1}), seg('ota',6,31,'Airbnb Guest',{lead:1})
+    ]},
+    {n:'Cozy Bed · Wi-Fi', t:'t6', segs:[
+      seg('ota',1,27,'Marco Marentes',{lead:1}), seg('block',28,28,''), seg('direct',29,31,'Roemina Adoyo')
+    ]},
+    {n:'Guest Suite · Cozy', t:'t3', segs:[
+      seg('direct',1,31,'Srikanth Sura',{key:1})
+    ]},
+    {n:'Luxury bedroom', t:'t2', segs:[
+      seg('ota',1,31,'Alejandro Martinez',{lead:1,key:1})
+    ]},
+    {n:'Master Bedroom', t:'t4', segs:[
+      seg('direct',1,31,'Alexandre Costa Santiago',{key:1,badge:1})
+    ]},
+    {n:'Master Suite · P', t:'t5', segs:[
+      seg('direct',1,31,'Percy Mpanga',{key:1})
+    ]},
+    {n:'Sanitized Bedroom', t:'t1', segs:[
+      seg('direct',1,5,'Scott Daniel',{key:1})
+    ]},
+  ];
+
+  function seg(type,s,e,label,opts){ return {type,s,e,label,opts:opts||{}}; }
+
+  const airbnbMark = '<svg class="lead" viewBox="0 0 24 24" fill="#fff"><path d="M12 2c1.2 0 2.1.7 2.8 2 .5.9 1.6 3 3.3 6.4 1.7 3.3 2.6 5.2 2.7 5.6.2.6.3 1.2.3 1.7 0 1.4-.5 2.5-1.5 3.3-.9.7-1.9 1-3 1-1.4 0-2.7-.6-3.8-1.7l-.8-.8-.8.8C10.4 21.4 9.1 22 7.7 22c-1.1 0-2.1-.3-3-1-1-.8-1.5-1.9-1.5-3.3 0-.5.1-1.1.3-1.7.1-.4 1-2.3 2.7-5.6C7.9 7 9 4.9 9.5 4c.7-1.3 1.6-2 2.8-2zm0 2.1c-.4 0-.8.3-1.1.9-.4.7-1.4 2.7-3 5.9-1.6 3.2-2.5 5-2.6 5.4-.1.4-.2.7-.2 1 0 .7.2 1.2.7 1.6.4.3.9.5 1.5.5.9 0 1.7-.4 2.4-1.2l.1-.1-.5-.7c-.9-1.2-1.3-2.3-1.3-3.3 0-1 .4-1.9 1.1-2.5.6-.5 1.3-.8 2.1-.8s1.5.3 2.1.8c.7.6 1.1 1.5 1.1 2.5 0 1-.4 2.1-1.3 3.3l-.5.7.1.1c.7.8 1.5 1.2 2.4 1.2.6 0 1.1-.2 1.5-.5.5-.4.7-.9.7-1.6 0-.3-.1-.6-.2-1-.1-.4-1-2.2-2.6-5.4-1.6-3.2-2.6-5.2-3-5.9-.3-.6-.7-.9-1.1-.9z"/></svg>';
+
+  let body='';
+  rows.forEach(r=>{
+    let bars='';
+    r.segs.forEach(g=>{
+      const col = `grid-column:${g.s}/${g.e+1};`;
+      if(g.type==='block'){
+        bars += `<div class="bar block" style="${col}">${ban}${g.label?'<span style="margin-left:5px">'+g.label+'</span>':''}</div>`;
+      } else if(g.type==='mini'){
+        bars += `<div class="bar mini direct" style="${col}">${g.opts.ic||''}</div>`;
+      } else {
+        const lead = g.opts.lead?airbnbMark:'';
+        const k = g.opts.key?key:'';
+        const badge = g.opts.badge?'<span class="badge-n">1</span>':'';
+        bars += `<div class="bar ${g.type}" style="${col}">${lead}<span style="overflow:hidden;text-overflow:ellipsis">${g.label}</span>${k}${badge}</div>`;
+      }
+    });
+    body += `<div class="tl-row">
+      <div class="listing-cell"><div class="lt ${r.t}"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8"><path d="M4 12V8l8-4 8 4v4"/><path d="M5 11v9h14v-9"/></svg></div><span class="lname">${r.n}</span></div>
+      <div class="track">${bars}</div>
+    </div>`;
+  });
+  document.getElementById('tlBody').innerHTML = body;
+}
+
+/* nav icon helpers */
+function icoDash(){return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>';}
+function icoCal(){return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4.5" width="18" height="16" rx="2.5"/><path d="M3 9h18M8 2.5v4M16 2.5v4"/></svg>';}
+function icoRes(){return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19c0-3 2.5-5 5.5-5s5.5 2 5.5 5"/></svg>';}
+function icoList(){return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 6h13M8 12h13M8 18h13"/></svg>';}
+function icoTask(){return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="3.5" width="16" height="17" rx="2.5"/><path d="m8.5 12 2.2 2.2L15 9.8"/></svg>';}
+function icoMail(){return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="m4 7 8 6 8-6"/></svg>';}
+function icoGlobe(){return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.5 2.5 15 0 18M12 3c-2.5 2.5-2.5 15 0 18"/></svg>';}
+
+/* init */
+buildTimeline();
+runChart();
+</script>
+</body>
+</html>
