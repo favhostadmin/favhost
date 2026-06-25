@@ -5,7 +5,7 @@ from django.views.generic.list import ListView
 from django.db.models import Q
 from django.db.models import Prefetch
 from django.db.models.functions import Concat
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 import datetime
 import calendar
 from collections import defaultdict
@@ -484,6 +484,210 @@ class RevenueByListingView(LoginRequiredMixin, TemplateView):
     PALETTE = ['#ef4444', '#3b82f6', '#facc15', '#22c55e', '#f59e0b',
                '#b91c1c', '#ec4899', '#8b5cf6', '#06b6d4', '#14b8a6',
                '#a855f7', '#cbd5e1']
+
+    def get(self, request, *args, **kwargs):
+        """Serve a file export when ?export=xlsx|csv, otherwise the HTML page."""
+        export = request.GET.get('export')
+        if export == 'xlsx':
+            return self._export_xlsx(request)
+        if export == 'csv':
+            return self._export_csv(request)
+        return super().get(request, *args, **kwargs)
+
+    def _export_csv(self, request):
+        """Build a clean, Excel-ready CSV from the same computed report.
+
+        Money is converted to the viewer's display currency and written as
+        plain numbers (no symbol/grouping) so spreadsheets treat them as
+        numeric. A UTF-8 BOM is prepended so symbols render correctly in Excel.
+        """
+        import csv
+        import io
+        import re
+        from accounts import currency as cur
+
+        context = self.get_context_data()
+        code = (getattr(request.user, 'currency', None) or cur.BASE_CURRENCY).upper()
+        symbol = cur.symbol_for(code)
+        months = list(context.get('month_labels', self.MONTH_LABELS))
+        sel = context.get('selected_property')
+        year = context.get('selected_year')
+        listing_title = sel['title'] if sel else 'All listings'
+
+        try:
+            generated = timezone.localtime(timezone.now()).strftime('%Y-%m-%d %H:%M')
+        except Exception:
+            generated = timezone.now().strftime('%Y-%m-%d %H:%M')
+
+        buf = io.StringIO()
+        buf.write('﻿')  # UTF-8 BOM so Excel renders ₹/€/₨ etc. correctly
+        writer = csv.writer(buf)
+
+        # --- Metadata header ---
+        writer.writerow(['FavHost - Revenue by Listing'])
+        writer.writerow(['Listing', listing_title])
+        writer.writerow(['Year', year])
+        writer.writerow(['Currency', f'{code} ({symbol})'])
+        writer.writerow(['Generated', generated])
+        writer.writerow([])
+
+        def cell(value, fmt):
+            # Money -> numeric in display currency; pct/int pass through as-is.
+            return cur.money_raw(value, code) if fmt == 'money' else value
+
+        def section(title, first_header, rows, empty_message=None):
+            writer.writerow([title])
+            writer.writerow([first_header] + months + ['Overall'])
+            if rows:
+                for r in rows:
+                    label = r['label'].replace(' $', '')
+                    writer.writerow(
+                        [label]
+                        + [cell(v, r['fmt']) for v in r['values']]
+                        + [cell(r['overall'], r['fmt'])]
+                    )
+            elif empty_message:
+                writer.writerow([empty_message])
+            writer.writerow([])
+
+        if sel and context.get('has_data'):
+            section('Monthly Performance', 'Metric', context['table_rows'])
+            section('Number of bookings by Channel', 'Channel',
+                    context['bookings_channel_rows'], f'No bookings for {year}.')
+            section(f'Revenue by Channel ({code})', 'Channel',
+                    context['revenue_channel_rows'], f'No channel revenue for {year}.')
+        else:
+            writer.writerow(['No data available for this selection.'])
+
+        safe = re.sub(r'[^A-Za-z0-9._-]+', '_', listing_title).strip('_') or 'listing'
+        filename = f'revenue_{safe}_{year}.csv'
+
+        response = HttpResponse(buf.getvalue(), content_type='text/csv; charset=utf-8')
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        return response
+
+    def _export_xlsx(self, request):
+        """Build a styled, Excel-native .xlsx so column widths/number formats
+        are preserved — labels like 'Average Daily rate' show in full, and
+        money is written as real numbers in the viewer's display currency.
+        """
+        import io
+        import re
+        from openpyxl import Workbook
+        from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+        from openpyxl.utils import get_column_letter
+        from accounts import currency as cur
+
+        context = self.get_context_data()
+        code = (getattr(request.user, 'currency', None) or cur.BASE_CURRENCY).upper()
+        symbol = cur.symbol_for(code)
+        months = list(context.get('month_labels', self.MONTH_LABELS))
+        sel = context.get('selected_property')
+        year = context.get('selected_year')
+        listing_title = sel['title'] if sel else 'All listings'
+        try:
+            generated = timezone.localtime(timezone.now()).strftime('%Y-%m-%d %H:%M')
+        except Exception:
+            generated = timezone.now().strftime('%Y-%m-%d %H:%M')
+
+        ncols = 1 + 12 + 1  # Metric/Channel + 12 months + Overall
+
+        # --- Styles (mirror the on-screen table palette) ---
+        title_font = Font(bold=True, size=14, color='313131')
+        meta_label_font = Font(bold=True, color='6B7280')
+        section_font = Font(bold=True, color='1E3A8A')
+        section_fill = PatternFill('solid', fgColor='D6E4FF')
+        header_font = Font(bold=True, color='111827')
+        header_fill = PatternFill('solid', fgColor='F3F6FB')
+        overall_fill = PatternFill('solid', fgColor='EAF1FF')
+        metric_font = Font(bold=True, color='B91C1C')
+        empty_font = Font(italic=True, color='6B7280')
+        thin = Side(style='thin', color='E5E7EB')
+        border = Border(left=thin, right=thin, top=thin, bottom=thin)
+        MONEY_FMT = '#,##0.00'
+
+        wb = Workbook()
+        ws = wb.active
+        ws.title = 'Revenue'
+
+        r = 1
+        ws.cell(r, 1, 'FavHost - Revenue by Listing').font = title_font
+        r += 1
+        for label, val in [('Listing', listing_title), ('Year', year),
+                           ('Currency', f'{code} ({symbol})'), ('Generated', generated)]:
+            ws.cell(r, 1, label).font = meta_label_font
+            ws.cell(r, 2, val)
+            r += 1
+        r += 1  # spacer
+
+        def write_section(title, first_header, rows, empty_message=None):
+            nonlocal r
+            ws.merge_cells(start_row=r, start_column=1, end_row=r, end_column=ncols)
+            tc = ws.cell(r, 1, title)
+            tc.font = section_font
+            tc.fill = section_fill
+            tc.alignment = Alignment(horizontal='center')
+            r += 1
+            for i, h in enumerate([first_header] + months + ['Overall'], start=1):
+                hc = ws.cell(r, i, h)
+                hc.font = header_font
+                hc.fill = overall_fill if h == 'Overall' else header_fill
+                hc.border = border
+                hc.alignment = Alignment(horizontal='left' if i == 1 else 'center')
+            r += 1
+            if rows:
+                for row in rows:
+                    lc = ws.cell(r, 1, row['label'].replace(' $', ''))
+                    lc.font = metric_font
+                    lc.border = border
+                    for i, v in enumerate(list(row['values']) + [row['overall']], start=2):
+                        cell = ws.cell(r, i)
+                        if row['fmt'] == 'money':
+                            cell.value = float(cur.money_raw(v, code))
+                            cell.number_format = MONEY_FMT
+                        elif row['fmt'] == 'pct':
+                            cell.value = float(v)
+                            cell.number_format = '0.00'
+                        else:
+                            cell.value = v
+                        cell.border = border
+                        cell.alignment = Alignment(horizontal='right')
+                        if i == ncols:
+                            cell.fill = overall_fill
+                    r += 1
+            elif empty_message:
+                ws.merge_cells(start_row=r, start_column=1, end_row=r, end_column=ncols)
+                ws.cell(r, 1, empty_message).font = empty_font
+                r += 1
+            r += 1  # spacer after section
+
+        if sel and context.get('has_data'):
+            write_section('Monthly Performance', 'Metric', context['table_rows'])
+            write_section('Number of bookings by Channel', 'Channel',
+                          context['bookings_channel_rows'], f'No bookings for {year}.')
+            write_section(f'Revenue by Channel ({code})', 'Channel',
+                          context['revenue_channel_rows'], f'No channel revenue for {year}.')
+        else:
+            ws.cell(r, 1, 'No data available for this selection.').font = empty_font
+
+        # Column widths: wide first column so labels show in full; months even.
+        ws.column_dimensions['A'].width = 22
+        for i in range(2, ncols):
+            ws.column_dimensions[get_column_letter(i)].width = 11
+        ws.column_dimensions[get_column_letter(ncols)].width = 12  # Overall
+
+        buf = io.BytesIO()
+        wb.save(buf)
+        buf.seek(0)
+
+        safe = re.sub(r'[^A-Za-z0-9._-]+', '_', listing_title).strip('_') or 'listing'
+        filename = f'revenue_{safe}_{year}.xlsx'
+        response = HttpResponse(
+            buf.getvalue(),
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        )
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        return response
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
