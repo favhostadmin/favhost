@@ -132,15 +132,24 @@ class PropertyCreateView(LoginRequiredMixin, CreateView):
     def handle_file_uploads(self):
         """Handle property images and documents upload"""
         try:
-            # Handle property images
+            # Cover photo becomes the primary image; if absent, first other photo is primary
+            cover_photo = self.request.FILES.get('cover_photo')
+            if cover_photo:
+                PropertyImage.objects.create(
+                    property=self.object,
+                    image=cover_photo,
+                    is_primary=True
+                )
+
+            # Handle other property images
             images = self.request.FILES.getlist('property_images')
             print(f"Received {len(images)} images")  # Debug
-            
+
             for i, image in enumerate(images):
                 PropertyImage.objects.create(
                     property=self.object,
                     image=image,
-                    is_primary=(i == 0)  # First image is primary
+                    is_primary=(cover_photo is None and i == 0)  # First only if no cover photo
                 )
                 print(f"Created image: {image.name}")  # Debug
             
