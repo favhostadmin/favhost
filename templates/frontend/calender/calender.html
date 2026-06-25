@@ -33,7 +33,6 @@
 
   .date-cell.today-date-column {
     background: rgba(22, 163, 74, 0.245) !important;
-    ;
   }
 
   .date-column.today-date-column {
@@ -178,7 +177,7 @@
     width: 36px;
     height: 36px;
     border-radius: 50%;
-    background: #000000;
+    background: #3b82f6;
     border: 2px solid #ffffff;
     display: flex;
     align-items: center;
@@ -252,19 +251,20 @@
 
   .booking-span-block {
     position: absolute;
-    top: 14px;
-    bottom: 2px;
+    top: 50%;
+    height: 32px;
+    transform: translateY(-50%);
     --span-gap: calc(var(--cell-width) * 0.85);
     --boundary-start-adjust: 0px;
     --boundary-end-adjust: 0px;
     left: calc((var(--cell-width) * var(--start)) + var(--edge-gap-left) + (var(--span-gap) / 2) - var(--boundary-start-adjust));
     width: calc((var(--cell-width) * var(--len)) - (var(--edge-gap-left) + var(--edge-gap-right) + var(--span-gap)) + var(--boundary-start-adjust) + var(--boundary-end-adjust));
-    border-radius: 10px;
+    border-radius: 9999px;
     pointer-events: auto;
     display: flex;
     align-items: center;
     justify-content: left;
-    padding: 0 10px 0 28px;
+    padding: 0 10px 0 36px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
     overflow: visible;
     min-width: 0;
@@ -273,6 +273,8 @@
   }
   .booking-span-block.carry-start {
     padding-left: 10px;
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
   }
   .booking-span-block.carry-start .channel-logo-circle {
     display: none;
@@ -284,16 +286,8 @@
 
   .booking-span-block.carry-end {
     --boundary-end-adjust: calc(var(--edge-gap-right) + (var(--span-gap) / 2));
-  }
-
-  .booking-span-block.rounded-left {
-    border-top-left-radius: 10px;
-    border-bottom-left-radius: 10px;
-  }
-
-  .booking-span-block.rounded-right {
-    border-top-right-radius: 10px;
-    border-bottom-right-radius: 10px;
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
   }
 
   .booking-segment:hover {
@@ -412,11 +406,11 @@
 
   .booking-span-block .channel-logo-circle {
     position: absolute;
-    left: -18px;
+    left: -22px;
     top: 50%;
     transform: translateY(-50%);
-    width: 38px;
-    height: 38px;
+    width: 48px;
+    height: 48px;
     border-radius: 50%;
     background: transparent;
     display: flex;
@@ -428,11 +422,22 @@
     box-sizing: border-box;
     z-index: 2;
   }
+  .booking-span-block .channel-logo-circle::after {
+    content: '';
+    position: absolute;
+    inset: 3px;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.8);
+    pointer-events: none;
+    z-index: 1;
+  }
   .booking-span-block .channel-logo-circle img {
-    width: 22px;
-    height: 22px;
+    width: 26px;
+    height: 26px;
     object-fit: contain;
     display: block;
+    position: relative;
+    z-index: 2;
   }
 
   .booking-segment .blocked-icon {
@@ -1793,6 +1798,332 @@
     50% { box-shadow: 0 2px 16px rgba(59,130,246,0.5), 0 0 24px rgba(59,130,246,0.15); }
   }
 
+  .reservation-modal {
+    background: #ffffff;
+    border-radius: 16px;
+    width: 100%;
+    max-width: 960px;
+    max-height: 90vh;
+    box-shadow: 0 25px 80px rgba(0, 0, 0, 0.3);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    margin: 20px;
+    animation: taskModalIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .reservation-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid #e5e7eb;
+    flex-shrink: 0;
+    background: #fff;
+  }
+
+  .reservation-modal-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 16px;
+    font-weight: 700;
+    color: #111827;
+  }
+
+  .reservation-modal-close {
+    background: none;
+    border: none;
+    font-size: 24px;
+    color: #6b7280;
+    cursor: pointer;
+    padding: 0 4px;
+    line-height: 1;
+  }
+
+  .reservation-modal-close:hover {
+    color: #111827;
+  }
+
+  .reservation-modal-body {
+    overflow-y: auto;
+    padding: 0;
+    flex: 1;
+  }
+
+  /* --- Payment partial overrides for modal --- */
+  .reservation-modal-body .action-buttons {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding: 12px 24px;
+    margin: 0;
+    border-bottom: 1px solid #f0f0f0;
+    background: #fafafa;
+  }
+
+  .reservation-modal-body .action-buttons .left-section {
+    display: none;
+  }
+
+  .reservation-modal-body .action-buttons .btn-group {
+    margin-left: auto;
+  }
+
+  .reservation-modal-body .action-buttons .dropdown-toggle {
+    background: #fff;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    padding: 6px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #1D74B2;
+  }
+
+  .reservation-modal-body .action-buttons .book-info {
+    margin: 0;
+    font-size: 11px;
+    color: #6b7280;
+    text-align: right;
+    line-height: 1.4;
+  }
+
+  .reservation-modal-body .payment-partial-shell {
+    padding: 0;
+  }
+
+  .reservation-modal-body .reservation-row {
+    margin: 0 !important;
+  }
+
+  .reservation-modal-body .details-col {
+    padding: 0 !important;
+  }
+
+  .reservation-modal-body .booking-card {
+    border: none !important;
+    border-bottom: 1px solid #f0f0f0 !important;
+    border-radius: 0 !important;
+    padding: 20px 24px !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+    overflow: visible;
+  }
+
+  .reservation-modal-body .booking-card:first-child {
+    padding-top: 20px !important;
+  }
+
+  .reservation-modal-body .booking-card:last-child {
+    border-bottom: none !important;
+  }
+
+  .reservation-modal-body .card-content {
+    display: flex !important;
+    flex-direction: row !important;
+    gap: 0;
+    align-items: flex-start;
+    overflow: visible;
+  }
+
+  .reservation-modal-body .card-content > .left-section {
+    flex: 0 0 auto !important;
+    padding-left: 0 !important;
+    min-width: 260px;
+    max-width: 480px;
+    overflow: visible;
+  }
+
+  .reservation-modal-body .guest-top {
+    display: flex !important;
+    align-items: flex-start !important;
+    gap: 16px;
+  }
+
+  .reservation-modal-body .desktop-avatar {
+    flex: 0 0 auto !important;
+  }
+
+  .reservation-modal-body .desktop-avatar .profile-image {
+    width: 160px !important;
+    height: 160px !important;
+    max-height: none !important;
+    border-radius: 12px !important;
+    object-fit: contain !important;
+    display: block;
+  }
+
+  .reservation-modal-body .mobile-avatar {
+    display: none !important;
+  }
+
+  .reservation-modal-body .guest-meta {
+    flex: 1;
+    min-width: 0;
+    min-height: 0 !important;
+    justify-content: flex-start !important;
+  }
+
+  .reservation-modal-body .guest-name {
+    font-size: 18px !important;
+    font-weight: 700 !important;
+    color: #111827 !important;
+    margin-bottom: 10px !important;
+    line-height: 1.3;
+  }
+
+  .reservation-modal-body .contact-info {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 6px !important;
+    align-items: flex-start !important;
+  }
+
+  .reservation-modal-body .contact-item {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    font-size: 13px !important;
+    color: #6b7280 !important;
+    margin-bottom: 0 !important;
+  }
+
+  .reservation-modal-body .contact-item img {
+    width: 16px !important;
+    height: 16px !important;
+    object-fit: contain !important;
+    flex-shrink: 0;
+  }
+
+  .reservation-modal-body .card-content > .col-lg-auto {
+    display: flex !important;
+    flex: 0 0 auto !important;
+    padding: 0 12px !important;
+    width: auto !important;
+    align-items: stretch !important;
+    justify-content: center !important;
+  }
+
+  .reservation-modal-body .card-content > .col-lg-auto > .vr {
+    width: 2px !important;
+    min-height: 100% !important;
+    background-color: #d1d5db !important;
+    opacity: 1 !important;
+    border-radius: 1px;
+    align-self: stretch;
+  }
+
+  .reservation-modal-body .right-half-wrapper {
+    flex: 1 1 300px !important;
+    min-width: 280px !important;
+    width: auto !important;
+    padding-left: 0 !important;
+    gap: 20px !important;
+  }
+
+  .reservation-modal-body .property-section {
+    min-width: 160px !important;
+    max-width: 160px !important;
+  }
+
+  .reservation-modal-body .property-section img {
+    width: 100% !important;
+    height: 140px !important;
+    object-fit: cover !important;
+    border-radius: 10px !important;
+    display: block;
+  }
+
+  .reservation-modal-body .desktop-property-title {
+    font-size: 16px !important;
+    line-height: 1.3 !important;
+  }
+
+  .reservation-modal-body .mobile-only {
+    display: none !important;
+  }
+
+  .reservation-modal-body .payment-section {
+    margin: 0 !important;
+  }
+
+  .reservation-modal-body .payment-section .col-lg-6 {
+    padding-right: 12px !important;
+    padding-left: 0 !important;
+  }
+
+  .reservation-modal-body .payment-section .col-lg-4 {
+    padding-left: 24px !important;
+    padding-right: 12px !important;
+    margin-top: 0 !important;
+  }
+
+  .reservation-modal-body .payment-section .col-lg-auto {
+    display: none !important;
+  }
+
+  .reservation-modal-body .payment-section .mx-lg-auto {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+
+  .reservation-modal-body .payment-header h3 {
+    font-size: 14px !important;
+  }
+
+  .reservation-modal-body .toggle-btns {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+
+  .reservation-modal-body .toggle-btn {
+    background: none;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    padding: 2px 8px;
+    cursor: pointer;
+    font-size: 16px;
+    line-height: 1;
+    color: #6b7280;
+  }
+
+  .reservation-modal-body .payment-schedule {
+    width: 100%;
+  }
+
+  .reservation-modal-body .payment-schedule-container {
+    border: 1px solid #e5e7eb !important;
+    border-radius: 8px !important;
+  }
+
+  .reservation-modal-body .payment-schedule-row {
+    padding: 8px 12px !important;
+    font-size: 13px !important;
+  }
+
+  .reservation-modal-body .payment-summary {
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 16px;
+    background: #fafafa;
+  }
+
+  .reservation-modal-body .notes-section h3 {
+    font-size: 15px !important;
+    font-weight: 600 !important;
+    color: #111827 !important;
+    margin-bottom: 8px !important;
+  }
+
+  .reservation-modal-body .notes-text {
+    font-size: 13px !important;
+    line-height: 1.6 !important;
+    color: #374151 !important;
+    margin: 0 !important;
+  }
+
   @media (max-width: 991.98px) {
 
     #globalTooltip:not(.payment-tooltip-variant):not(.task-tooltip-variant),
@@ -1838,7 +2169,7 @@
 
   /* Scroll Fixes */
   .calendar-container {
-    height: calc(100vh - 197px);
+    height: calc(100vh - 180px);
     overflow: hidden;
     display: flex;
     flex-direction: column;
@@ -1933,8 +2264,8 @@
   .dates-body-scroll {
     flex: 1;
     min-height: 0;
+    overflow-y: auto;
     overflow-x: auto;
-    overflow-y: hidden;
     scrollbar-width: thin;
     position: relative;
   }
@@ -1961,7 +2292,7 @@
     min-height: 0;
     overflow-y: auto;
     overflow-x: visible;
-    scrollbar-width: thin;
+    scrollbar-width: none;
     padding-bottom: 8px;
   }
 
@@ -1999,6 +2330,10 @@
     z-index: 100000 !important;
   }
 
+  .week-grid-body {
+    overflow-y: auto;
+  }
+
   .dates-body-scroll::-webkit-scrollbar {
     width: 8px;
     height: 8px;
@@ -2026,6 +2361,7 @@
     position: relative;
     width: max(100%, var(--timeline-grid-width));
     min-width: 100%;
+    padding-bottom: 16px;
   }
 
   .dates-grid.has-user-selected-column::before {
@@ -2047,7 +2383,7 @@
     bottom: 0;
     left: calc(var(--today-column-index, -1) * var(--timeline-cell-width, 60px));
     width: var(--timeline-cell-width, 60px);
-    background: rgba(22, 163, 74, 0.2);
+    background: rgba(71, 105, 135, 0.3);
     pointer-events: none;
     z-index: 1;
   }
@@ -2085,7 +2421,7 @@
   .date-day {
     font-size: 11px;
     font-weight: 500;
-    color: #64748b;
+    color: #f5f5f5;
     text-transform: uppercase;
     letter-spacing: 0.5px;
     line-height: 1.2;
@@ -2094,6 +2430,11 @@
   .date-row {
     width: max(100%, var(--timeline-grid-width));
     min-width: 100%;
+    border-bottom: 2px solid #d1d5db;
+    min-height: 58px;
+  }
+  .date-row:last-child {
+    border-bottom: none;
   }
 
   .date-cell {
@@ -2101,12 +2442,15 @@
     flex: 0 0 var(--timeline-cell-width, 60px);
     border-right: 1px solid #e5e7eb;
     border-bottom: 1px solid #e5e7eb;
+    position: relative;
+    height: auto;
+    align-self: stretch;
   }
-  .date-row .date-cell:last-child {
+  .date-cell:last-child {
     border-right: none;
   }
-  .date-row {
-    border-bottom: 1px solid #d1d5db;
+  .date-cell.past-date {
+    background: #f9fafb;
   }
 
   /* Responsive Adjustments */
@@ -2228,7 +2572,7 @@
     }
 
     .calendar-container {
-      height: calc(100vh - 210px);
+      height: calc(100vh - 194px);
     }
 
     .calendar-header {
@@ -2261,8 +2605,9 @@
     }
 
     .booking-span-block {
-      top: 3px;
-      bottom: 3px;
+      top: 50%;
+      height: 24px;
+      transform: translateY(-50%);
       box-shadow: none;
       min-width: 0;
       overflow: hidden;
@@ -2310,7 +2655,7 @@
       overflow-y: auto;
       overflow-x: auto;
       -webkit-overflow-scrolling: touch;
-      scrollbar-width: none;
+    scrollbar-width: thin;
       -ms-overflow-style: none;
     }
 
@@ -2393,19 +2738,15 @@
     }
 
     .date-column {
-      min-width: 52px;
-      flex: 0 0 52px;
       padding: 6px 2px;
     }
 
     .date-row {
-      height: 56px;
+      min-height: 52px;
     }
 
     .date-cell {
-      min-width: 52px;
-      flex: 0 0 52px;
-      height: 52px;
+      min-height: 52px;
     }
 
     .date-row {
@@ -2457,6 +2798,8 @@
     cursor: pointer;
     display: flex;
     align-items: center;
+    min-height: 58px;
+    border-bottom: 2px solid #d1d5db;
   }
   .property-row:hover {
     background-color: #f3f4f6;
@@ -2598,7 +2941,7 @@
     grid-column: span 1;
     pointer-events: auto;
     border-radius: 9999px;
-    padding: 0 8px 0 22px;
+    padding: 0 8px 0 36px;
     display: flex;
     align-items: center;
     justify-content: flex-start;
@@ -2636,11 +2979,11 @@
   }
   .grid-event-span .channel-logo-circle {
     position: absolute;
-    left: -16px;
+    left: -20px;
     top: 50%;
     transform: translateY(-50%);
-    width: 38px;
-    height: 38px;
+    width: 48px;
+    height: 48px;
     border-radius: 50%;
     background: transparent;
     display: flex;
@@ -2652,11 +2995,22 @@
     box-sizing: border-box;
     z-index: 2;
   }
+  .grid-event-span .channel-logo-circle::after {
+    content: '';
+    position: absolute;
+    inset: 3px;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.8);
+    pointer-events: none;
+    z-index: 1;
+  }
   .grid-event-span .channel-logo-circle img {
     width: 22px;
     height: 22px;
     object-fit: contain;
     display: block;
+    position: relative;
+    z-index: 2;
   }
   .grid-event-span .task-icon-circle {
     width: 28px;
@@ -2940,24 +3294,172 @@
     padding: 8px 0;
   }
 
-  .list-view-pane {
-    scrollbar-width: thin;
+  /* ── List View Design ── */
+  #listViewPane {
+    --ink:#16151C;--text:#1F2430;--muted:#6B7280;--faint:#9AA1AC;
+    --paper:#f5f6f8;--surface:#fff;--line:#E7E9ED;
+    --brand:#F15A24;--brand-700:#D6491A;
+    --in:#059669;--in-text:#047857;--in-bg:#ECFDF5;--in-line:#A7F3D0;
+    --out:#D97706;--out-text:#B45309;--out-bg:#FFFBEB;--out-line:#FCD9A4;
+    --pay:#2563EB;--pay-text:#1D4ED8;--pay-bg:#EFF6FF;--pay-line:#BFDBFE;
+    --enquiry:#7C3AED;--enquiry-bg:#F5F3FF;--enquiry-line:#DDD6FE;
+    --blocked:#DC2626;--blocked-bg:#FEF2F2;--blocked-line:#FECACA;
+    --shadow-sm:0 1px 2px rgba(16,24,40,.05);
+    --shadow-md:0 4px 14px rgba(16,24,40,.07);
+    --radius:14px;
+    --sans:"Manrope",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --mono:"Spline Sans Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    font-family:var(--sans);color:var(--text);font-size:15px;line-height:1.45;
+    scrollbar-width:thin;
+    padding:0 !important;
   }
-  .list-view-pane::-webkit-scrollbar {
-    width: 8px;
-  }
-  .list-view-pane::-webkit-scrollbar-track {
-    background: transparent;
-  }
-  .list-view-pane::-webkit-scrollbar-thumb {
-    background: #d1d5db;
-    border-radius: 4px;
-  }
+  #listViewPane ::-webkit-scrollbar{width:8px;}
+  #listViewPane ::-webkit-scrollbar-track{background:transparent;}
+  #listViewPane ::-webkit-scrollbar-thumb{background:#d1d5db;border-radius:4px;}
+  #listViewPane .mono{font-family:var(--mono);font-variant-numeric:tabular-nums;letter-spacing:-.01em;}
+  .list-wrap{max-width:1160px;margin:0 auto;padding:24px;}
+  .list-loading{text-align:center;padding:60px 20px;color:var(--muted);font-size:15px;}
 
-  @media (max-width: 992px) {
-    .list-view-pane {
-      padding: 16px 2% !important;
-    }
+  /* Summary */
+  #listViewPane .summary{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px;}
+  #listViewPane .stat{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px;box-shadow:var(--shadow-sm);display:flex;align-items:center;gap:14px;position:relative;overflow:hidden;}
+  #listViewPane .stat::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--accent,var(--brand));}
+  #listViewPane .stat__ico{width:42px;height:42px;border-radius:11px;flex:0 0 auto;display:grid;place-items:center;background:var(--accent-bg,#F1F3F6);color:var(--accent,var(--brand));}
+  #listViewPane .stat__ico svg{width:21px;height:21px;}
+  #listViewPane .stat__meta{display:flex;flex-direction:column;gap:1px;min-width:0;}
+  #listViewPane .stat__num{font-weight:800;font-size:22px;letter-spacing:-.02em;line-height:1.1;}
+  #listViewPane .stat__label{font-size:12.5px;color:var(--muted);font-weight:600;}
+  #listViewPane .stat--in{--accent:var(--in);--accent-bg:var(--in-bg);}
+  #listViewPane .stat--out{--accent:var(--out);--accent-bg:var(--out-bg);}
+  #listViewPane .stat--pay{--accent:var(--pay);--accent-bg:var(--pay-bg);}
+  #listViewPane .stat--rev{--accent:var(--brand);--accent-bg:#FEF0E9;}
+
+  /* Filter bar */
+  #listViewPane .filterbar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:12px 14px;margin-bottom:22px;box-shadow:var(--shadow-sm);}
+  #listViewPane .search{display:flex;align-items:center;gap:9px;flex:1 1 240px;min-width:180px;background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:0 12px;height:40px;transition:border-color .15s,background .15s;}
+  #listViewPane .search:focus-within{border-color:var(--brand);background:#fff;}
+  #listViewPane .search svg{width:17px;height:17px;color:var(--faint);flex:0 0 auto;}
+  #listViewPane .search input{border:0;background:none;outline:none;width:100%;font-size:14px;color:var(--text);font-family:inherit;}
+  #listViewPane .search input::placeholder{color:var(--faint);}
+  #listViewPane .pills{display:flex;gap:8px;flex-wrap:wrap;}
+  #listViewPane .pill{display:flex;align-items:center;gap:8px;height:40px;padding:0 14px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--muted);font-weight:600;font-size:13.5px;transition:all .15s;}
+  #listViewPane .pill .dot{width:9px;height:9px;border-radius:50%;background:currentColor;opacity:.55;}
+  #listViewPane .pill .cnt{font-family:var(--mono);font-size:12px;font-weight:600;background:var(--paper);color:var(--muted);border-radius:7px;padding:2px 7px;min-width:24px;text-align:center;}
+  #listViewPane .pill:hover{border-color:#d3d6dc;color:var(--text);}
+  #listViewPane .pill[aria-pressed="true"]{color:#fff;border-color:transparent;}
+  #listViewPane .pill[aria-pressed="true"] .dot{opacity:1;background:#fff;}
+  #listViewPane .pill[aria-pressed="true"] .cnt{background:rgba(255,255,255,.22);color:#fff;}
+  #listViewPane .pill--all[aria-pressed="true"]{background:var(--text);}
+  #listViewPane .pill--in[aria-pressed="true"]{background:var(--in);}
+  #listViewPane .pill--out[aria-pressed="true"]{background:var(--out);}
+  #listViewPane .pill--pay[aria-pressed="true"]{background:var(--pay);}
+  #listViewPane .result-count{font-size:13px;color:var(--muted);font-weight:600;white-space:nowrap;}
+  #listViewPane .result-count b{color:var(--text);font-weight:800;}
+
+  /* Timeline */
+  #listViewPane .timeline{position:relative;}
+  #listViewPane .day{display:grid;grid-template-columns:80px 1fr;gap:16px;align-items:stretch;}
+  #listViewPane .day+.day,#listViewPane .day+.marker,#listViewPane .marker+.day{margin-top:14px;}
+  #listViewPane .rail{position:relative;width:80px;}
+  #listViewPane .day:not(.is-last) .rail::after,#listViewPane .marker .rail::after{content:"";position:absolute;left:calc(50%-1px);top:50px;bottom:-14px;width:2px;background:var(--line);}
+  #listViewPane .marker .rail::after{top:0;}
+  #listViewPane .node{position:relative;z-index:1;width:46px;height:46px;margin:0 auto;border-radius:50%;background:var(--surface);border:2px solid var(--line);box-shadow:var(--shadow-sm);display:grid;place-items:center;text-align:center;}
+  #listViewPane .node__day{font-weight:800;font-size:17px;line-height:1;letter-spacing:-.02em;}
+  #listViewPane .node__mon{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-top:1px;}
+  #listViewPane .day__main{min-width:0;}
+  #listViewPane .day__head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;padding:2px 2px 12px;}
+  #listViewPane .day__weekday{font-weight:800;font-size:14px;letter-spacing:-.01em;}
+  #listViewPane .day__date{color:var(--muted);font-size:12px;font-weight:600;}
+  #listViewPane .day__chip{font-size:11px;font-weight:700;color:var(--muted);background:var(--paper);border:1px solid var(--line);border-radius:20px;padding:2px 8px;}
+  #listViewPane .day__events{display:flex;flex-direction:column;gap:10px;}
+  #listViewPane .marker{display:grid;grid-template-columns:80px 1fr;gap:16px;align-items:center;}
+  #listViewPane .marker .rail{display:grid;place-items:center;}
+  #listViewPane .marker__dot{position:relative;z-index:1;width:14px;height:14px;border-radius:50%;background:var(--brand);box-shadow:0 0 0 4px #FEE7DD;}
+  #listViewPane .marker__label{display:flex;align-items:center;gap:10px;color:var(--brand-700);font-weight:800;font-size:12px;}
+  #listViewPane .marker__rule{height:1px;flex:1;background:linear-gradient(90deg,#F8C6B2,transparent);}
+  #listViewPane .empty-state{display:none;text-align:center;padding:60px 20px;color:var(--muted);background:var(--surface);border:1px dashed var(--line);border-radius:var(--radius);}
+  #listViewPane .empty-state b{display:block;color:var(--text);font-size:16px;margin-bottom:4px;}
+
+  /* Event card */
+  #listViewPane .event{position:relative;background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:var(--radius);box-shadow:var(--shadow-sm);transition:transform .14s,box-shadow .14s;cursor:default;}
+  #listViewPane .event:hover{transform:translateY(-1px);box-shadow:var(--shadow-md);}
+  #listViewPane .event--in{--accent:var(--in);}
+  #listViewPane .event--out{--accent:var(--out);}
+  #listViewPane .event--pay{--accent:var(--pay);}
+  #listViewPane .event--enquiry{--accent:var(--enquiry);}
+  #listViewPane .event--blocked{--accent:var(--blocked);}
+  #listViewPane .event__body{display:grid;grid-template-columns:220px 1fr 1.2fr 36px;gap:16px;align-items:center;padding:12px 16px;}
+  #listViewPane .zone{min-width:0;}
+  #listViewPane .zone--type{display:flex;gap:11px;align-items:flex-start;}
+  #listViewPane .ico{width:40px;height:40px;border-radius:10px;flex:0 0 auto;display:grid;place-items:center;}
+  #listViewPane .ico svg{width:20px;height:20px;}
+  #listViewPane .event--in .ico{background:var(--in-bg);color:var(--in);}
+  #listViewPane .event--out .ico{background:var(--out-bg);color:var(--out);}
+  #listViewPane .event--pay .ico{background:var(--pay-bg);color:var(--pay);}
+  #listViewPane .event--enquiry .ico{background:var(--enquiry-bg);color:var(--enquiry);}
+  #listViewPane .event--blocked .ico{background:var(--blocked-bg);color:var(--blocked);}
+  #listViewPane .typecontent{display:flex;flex-direction:column;gap:3px;min-width:0;}
+  #listViewPane .type__label{font-weight:800;font-size:14px;letter-spacing:-.01em;display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+  #listViewPane .badge{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;padding:2px 7px;border-radius:20px;border:1px solid;}
+  #listViewPane .badge--in{color:var(--in-text);background:var(--in-bg);border-color:var(--in-line);}
+  #listViewPane .badge--out{color:var(--out-text);background:var(--out-bg);border-color:var(--out-line);}
+  #listViewPane .badge--pay{color:var(--pay-text);background:var(--pay-bg);border-color:var(--pay-line);}
+  #listViewPane .badge--enquiry{color:var(--enquiry);background:var(--enquiry-bg);border-color:var(--enquiry-line);}
+  #listViewPane .badge--blocked{color:var(--blocked);background:var(--blocked-bg);border-color:var(--blocked-line);}
+  #listViewPane .amount{font-family:var(--mono);font-weight:600;font-size:17px;letter-spacing:-.02em;color:var(--text);}
+  #listViewPane .amount small{font-size:12px;color:var(--muted);font-weight:500;font-family:var(--sans);}
+  #listViewPane .range{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+  #listViewPane .range .mono{font-size:12px;font-weight:500;color:var(--text);}
+  #listViewPane .range svg{width:13px;height:13px;color:var(--faint);}
+  #listViewPane .nights{font-family:var(--mono);font-size:11px;font-weight:500;color:var(--muted);background:var(--paper);border:1px solid var(--line);border-radius:6px;padding:1px 7px;}
+
+  #listViewPane .zone--guest{display:flex;gap:10px;align-items:flex-start;}
+  #listViewPane .avatar{width:36px;height:36px;border-radius:50%;flex:0 0 auto;display:grid;place-items:center;font-weight:700;font-size:12px;color:#fff;letter-spacing:.01em;}
+  #listViewPane .avatar--guest{background:#EEF0F3;color:var(--faint);}
+  #listViewPane .guest__meta{display:flex;flex-direction:column;gap:2px;min-width:0;}
+  #listViewPane .guest__name{font-weight:700;font-size:13px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+  #listViewPane .source{font-size:10px;font-weight:700;border-radius:5px;padding:1px 6px;background:#FFE9EC;color:#E11D48;border:1px solid #FBC9D1;}
+  #listViewPane .contact{display:flex;align-items:center;gap:5px;color:var(--muted);font-size:12px;min-width:0;}
+  #listViewPane .contact svg{width:12px;height:12px;flex:0 0 auto;color:var(--faint);}
+  #listViewPane .contact span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  #listViewPane .contact--mono span{font-family:var(--mono);font-size:11px;}
+  #listViewPane .contact--none{color:var(--faint);font-style:italic;}
+
+  #listViewPane .zone--prop{display:flex;gap:10px;align-items:flex-start;}
+  #listViewPane .thumb{width:64px;height:48px;border-radius:9px;flex:0 0 auto;display:grid;place-items:center;position:relative;overflow:hidden;box-shadow:inset 0 0 0 1px rgba(16,24,40,.06);}
+  #listViewPane .thumb::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(255,255,255,.35),transparent 55%);}
+  #listViewPane .thumb svg{width:22px;height:22px;position:relative;z-index:1;}
+  #listViewPane .thumb--r2{background:linear-gradient(135deg,#FDE3CE,#F6C39C);color:#B25C28;}
+  #listViewPane .prop__meta{display:flex;flex-direction:column;gap:3px;min-width:0;}
+  #listViewPane .prop__name{font-weight:600;font-size:12px;line-height:1.3;color:var(--text);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+  #listViewPane .prop__loc{display:flex;align-items:center;gap:4px;color:var(--muted);font-size:11px;}
+  #listViewPane .prop__loc svg{width:12px;height:12px;color:var(--faint);flex:0 0 auto;}
+  #listViewPane .unit{align-self:flex-start;font-family:var(--mono);font-size:10px;font-weight:600;background:var(--paper);border:1px solid var(--line);border-radius:6px;padding:1px 6px;color:var(--muted);}
+
+  #listViewPane .open-btn{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;justify-self:end;color:var(--faint);border:1px solid var(--line);background:var(--surface);transition:background .15s,color .15s;cursor:pointer;}
+  #listViewPane .open-btn svg{width:17px;height:17px;}
+  #listViewPane .event:hover .open-btn{color:var(--brand);border-color:#F6C6B2;background:#FEF3EE;}
+
+  @media(max-width:1100px){
+    #listViewPane .event__body{grid-template-columns:1fr 1fr;gap:14px;padding:14px 16px;}
+    #listViewPane .zone--type{grid-column:1/-1;}
+    #listViewPane .open-btn{position:absolute;top:10px;right:10px;justify-self:auto;}
+  }
+  @media(max-width:768px){
+    #listViewPane .event__body{grid-template-columns:1fr;}
+    #listViewPane .zone--guest,#listViewPane .zone--prop{grid-column:1;}
+    #listViewPane .day{grid-template-columns:56px 1fr;gap:12px;}
+    #listViewPane .rail{width:56px;}
+    #listViewPane .node{width:42px;height:42px;}
+    #listViewPane .node__day{font-size:15px;}
+    #listViewPane .day:not(.is-last) .rail::after,#listViewPane .marker .rail::after{top:46px;}
+    #listViewPane .marker{grid-template-columns:56px 1fr;gap:12px;}
+    #listViewPane .summary{grid-template-columns:repeat(2,1fr);}
+    #listViewPane .pill .cnt{display:none;}
+    .list-wrap{padding:16px;}
+  }
+  @media(max-width:500px){
+    #listViewPane .summary{grid-template-columns:1fr;}
   }
 
   body {
@@ -2984,24 +3486,7 @@
     white-space: nowrap;
     border: 1px solid #e5e7eb;
   }
-  .cal-color-legend .legend-item {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-  }
-  .cal-color-legend .legend-item .legend-swatch {
-    display: inline-block;
-    width: 12px;
-    height: 12px;
-    border-radius: 4px;
-    flex-shrink: 0;
-  }
 
-  @media (max-width: 768px) {
-    .cal-color-legend {
-      display: none;
-    }
-  }
 </style>
 {% endblock extra_head %}
 
@@ -3133,12 +3618,6 @@
   <div class="calendar-container mt-3">
     <div class="loading-indicator" id="loadingIndicator">Loading...</div>
     <div class="calendar-wrapper">
-      <div class="cal-color-legend" id="calColorLegend" style="display:none;">
-        <span class="legend-item"><span class="legend-swatch" style="background:#3b82f6"></span> Registration</span>
-        <span class="legend-item"><span class="legend-swatch" style="background:#e53935"></span> Task</span>
-        <span class="legend-item"><span class="legend-swatch" style="background:#000"></span> Payment</span>
-        <span class="legend-item"><span class="legend-swatch" style="background:#8e24aa"></span> Enquiry</span>
-      </div>
       <div class="properties-column">
         <div class="search-bar" style="position: relative;">
           <div style="position: absolute; left: 20px; top: 50%; transform: translateY(-50%); pointer-events: none;">
@@ -3169,10 +3648,8 @@
       <div id="gridCalendarPane" style="display: none; flex: 1; height: 100%; min-height: 0; overflow-y: auto; padding: 16px; background-color: #fafafa; position: relative; box-sizing: border-box;">
       </div>
       <!-- List View Pane -->
-      <div id="listViewPane" class="list-view-pane" style="display: none; flex: 1; height: 100%; min-height: 0; overflow-y: auto; background-color: #fafafa; position: relative; box-sizing: border-box; padding: 16px 10%;">
-        <div id="listViewContent">
-          <div style="padding:20px; text-align:center;">Loading...</div>
-        </div>
+      <div id="listViewPane" class="list-view-pane" style="display: none; flex: 1; height: 100%; min-height: 0; overflow-y: auto; background-color: #f5f6f8; position: relative; box-sizing: border-box;">
+        <div id="listViewContent"><div class="list-loading">Loading events…</div></div>
       </div>
       <div class="calendar-empty-state" id="calendarEmptyState">No data to display</div>
     </div>
@@ -3383,6 +3860,84 @@
     </div>
   </div>
 
+  <!-- Payment Detail Modal -->
+  <div class="task-modal-overlay" id="paymentModalOverlay" onclick="closePaymentDetailModal(event)">
+    <div class="task-modal" id="paymentModal" onclick="event.stopPropagation()">
+      <div class="task-modal-top-bar" style="background:#000;"></div>
+      <div class="task-modal-header">
+        <div class="task-modal-badge" style="background:linear-gradient(135deg,#000,#333);">
+          <img src="{% static 'img/task/type/payment.svg' %}" alt="payment" style="width:20px;height:20px;filter:brightness(0) invert(1);" />
+          <span>Payment</span>
+        </div>
+        <div class="task-modal-status" id="paymentModalStatus" style="background:#000;color:#fff;"></div>
+      </div>
+      <div class="task-modal-body">
+        <div class="task-modal-details-wrap">
+          <div class="task-modal-details-accent" style="background:#000;"></div>
+          <div class="task-modal-details" id="paymentModalDetails"></div>
+        </div>
+        <div class="task-modal-info-grid">
+          <div class="task-modal-info-item">
+            <div class="task-modal-info-label-row">
+              <span class="task-modal-info-dot" style="background:#000;"></span>
+              <span class="task-modal-info-label">Amount</span>
+            </div>
+            <span class="task-modal-info-value" id="paymentModalAmount"></span>
+          </div>
+          <div class="task-modal-info-item">
+            <div class="task-modal-info-label-row">
+              <span class="task-modal-info-dot" style="background:#6b7280;"></span>
+              <span class="task-modal-info-label">Due Date</span>
+            </div>
+            <span class="task-modal-info-value" id="paymentModalDate"></span>
+          </div>
+          <div class="task-modal-info-item">
+            <div class="task-modal-info-label-row">
+              <span class="task-modal-info-dot" style="background:#22c55e;"></span>
+              <span class="task-modal-info-label">Guest</span>
+            </div>
+            <span class="task-modal-info-value" id="paymentModalGuest"></span>
+          </div>
+          <div class="task-modal-info-item">
+            <div class="task-modal-info-label-row">
+              <span class="task-modal-info-dot" style="background:#3b82f6;"></span>
+              <span class="task-modal-info-label">Booking ID</span>
+            </div>
+            <span class="task-modal-info-value" id="paymentModalBooking"></span>
+          </div>
+          <div class="task-modal-info-item full-width">
+            <div class="task-modal-info-label-row">
+              <span class="task-modal-info-dot" style="background:#8b5cf6;"></span>
+              <span class="task-modal-info-label">Stay</span>
+            </div>
+            <span class="task-modal-info-value" id="paymentModalStay"></span>
+          </div>
+        </div>
+      </div>
+      <div class="task-modal-footer">
+        <button class="task-modal-close-btn" id="paymentModalCloseBtn" onclick="closePaymentDetailModal()" style="background:linear-gradient(135deg,#000,#333);margin-left:auto;">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Reservation Detail Modal -->
+  <div class="task-modal-overlay" id="reservationModalOverlay" onclick="closeReservationPanel(event)">
+    <div class="reservation-modal" id="reservationModal" onclick="event.stopPropagation()">
+      <div class="reservation-modal-header">
+        <div class="reservation-modal-title">
+          <img src="{% static 'img/booking/reservation_icon.svg'%}" alt="" style="width:20px;height:20px;">
+          <span>Reservation details</span>
+        </div>
+        <button class="reservation-modal-close" onclick="closeReservationPanel()">&times;</button>
+      </div>
+      <div class="reservation-modal-body" id="reservationModalContent">
+        <div style="display:flex;justify-content:center;align-items:center;height:200px;">
+          <div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Error Modal -->
   <div class="modal fade" id="errorModal" tabindex="-1" aria-labelledby="errorModalLabel" aria-hidden="true"
     style="z-index: 5000;">
@@ -3514,7 +4069,8 @@
       monthDisplay.textContent = fmt(start) + ' - ' + fmt(end);
     } else if (currentViewMode === 'day' && selectedDateKey) {
       const d = new Date(selectedDateKey + 'T00:00:00');
-      monthDisplay.textContent = String(d.getDate());
+      const dayMonthYear = d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+      monthDisplay.textContent = dayMonthYear;
     } else {
       const options = { month: 'long', year: 'numeric' };
       monthDisplay.textContent = currentDisplayDate.toLocaleDateString('en-US', options);
@@ -3898,7 +4454,7 @@
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const isMobile = window.innerWidth <= 768;
-    const paymentIconUrl = "{% static 'img/calender/new_payment_icon.svg' %}";
+    const paymentIconUrl = "{% static 'img/task/type/payment.svg' %}";
     const blockedIconUrl = "{% static 'img/common/close_icon.png' %}";
     const monthTaskColors = { cleaning: '#10b981', maintenance: '#f59e0b', payment: '#3b82f6', other: '#8b5cf6' };
     const monthTaskIcons = {
@@ -3930,7 +4486,6 @@
       datesGrid.classList.remove('has-today-column');
       datesGrid.style.removeProperty('--today-column-index');
     }
-
     const daysBetweenISO = (startISO, endISO) => {
       const [sy, sm, sd] = startISO.split('-').map(Number);
       const [ey, em, ed] = endISO.split('-').map(Number);
@@ -3992,7 +4547,7 @@
         }
 
         return `
-          <div class="booking-span-block rounded-left rounded-right ${carryStartClass} ${carryEndClass}"
+          <div class="booking-span-block ${carryStartClass} ${carryEndClass}"
                ${onClick}
                onmouseenter="showGlobalTooltip(event, '${b.id}')"
                onmouseleave="hideGlobalTooltip()"
@@ -4005,7 +4560,7 @@
 
 
       // Filter spans by active filter types
-      const filteredSpanOverlays = (!typeFilters.reservation && !typeFilters.payment)
+      const filteredSpanOverlays = (!typeFilters.reservation && !typeFilters.payment) || (!typeFilters.reservation && typeFilters.payment)
         ? ''
         : (!typeFilters.reservation || !typeFilters.payment)
           ? spans.filter(b => {
@@ -4031,7 +4586,7 @@
                 ? `<div class="channel-logo-circle" style="border-color:${bgColor};background-color:${bgColor}"><img src="${channelLogoUrl}" alt="${b.channelName || ''}" /></div>`
                 : '';
               const content = `<div class="segment-content"><div class="avatar-group">${channelLogoTimeline}</div><div>${shouldShowLabel ? `<span class="segment-guest-name">${labelText}</span>` : ''}</div></div>`;
-              return `<div class="booking-span-block rounded-left rounded-right ${carryStartClass} ${carryEndClass}" ${onClick} onmouseenter="showGlobalTooltip(event, '${b.id}')" onmouseleave="hideGlobalTooltip()" style="--start:${b.startIndex}; --len:${Math.max(1,b.length)}; background-color:${bgColor}; cursor:pointer;">${content}</div>`;
+              return `<div class="booking-span-block ${carryStartClass} ${carryEndClass}" ${onClick} onmouseenter="showGlobalTooltip(event, '${b.id}')" onmouseleave="hideGlobalTooltip()" style="--start:${b.startIndex}; --len:${Math.max(1,b.length)}; background-color:${bgColor}; cursor:pointer;">${content}</div>`;
             }).join('')
           : spanOverlays;
 
@@ -4045,7 +4600,13 @@
         if (isPast) cellClasses += ' past-date';
 
         const dateStr = toISODateString(date);
-        const tasksForCell = getTasksForDateAndProperty(dateStr, property.id).filter(t => !t.completed && t.task_type !== 'payment');
+        const tasksForCell = getTasksForDateAndProperty(dateStr, property.id).filter(t => {
+          if (t.task_type === 'payment') {
+            return typeFilters.payment;
+          } else {
+            return typeFilters.task;
+          }
+        });
 
         if (tasksForCell.length > 0) {
           console.log(`📍 Cell ${dateStr} (property ${property.id}) has ${tasksForCell.length} task(s):`, tasksForCell.map(t => t.details));
@@ -4299,24 +4860,7 @@
   function handlePaymentIndicatorClick(event, bookingId, dateStr) {
     event.stopPropagation();
     event.preventDefault();
-
-    if (!isMobileOrTabletView()) return;
-
-    const tooltip = document.getElementById('globalTooltip');
-    if (!tooltip) return;
-
-    const isSamePaymentTooltipOpen =
-      tooltip.style.display === 'block' &&
-      tooltip.dataset.source === 'payment' &&
-      tooltip.dataset.bookingId === String(bookingId) &&
-      tooltip.dataset.dateStr === String(dateStr);
-
-    if (isSamePaymentTooltipOpen) {
-      hideGlobalTooltip();
-      return;
-    }
-
-    showPaymentTooltip(event, bookingId, dateStr);
+    openPaymentDetailModal(event, bookingId, dateStr);
   }
 
   function positionTooltip(event, tooltip) {
@@ -4551,39 +5095,35 @@
     showTaskTooltip(event, dateStr, propertyId);
   }
 
-  // --- Dynamic Reservation Side Panel & Logic ---
+  // --- Dynamic Reservation Detail Modal ---
   function openReservationPanel(event, bookingId) {
     if (event) event.stopPropagation();
     hideGlobalTooltip();
-    const sidebar = document.getElementById('reservationSidebar');
-    const backdrop = document.getElementById('overlayBackdrop');
-    const contentDiv = document.getElementById('sidebarContent');
-    document.body.classList.add('reservation-panel-open');
-    sidebar.classList.add('open');
-    backdrop.classList.add('open');
+    const overlay = document.getElementById('reservationModalOverlay');
+    const contentDiv = document.getElementById('reservationModalContent');
+    overlay.classList.add('open');
     contentDiv.innerHTML = `
         <div style="display:flex;justify-content:center;align-items:center;height:200px;">
             <div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div>
         </div>`;
 
-    // Fetch logic
     const fetchUrl = `/booking/payment-details/${bookingId}/?partial=true`;
     fetch(fetchUrl)
       .then(r => { if (!r.ok) throw new Error('Network error'); return r.text(); })
-      .then(html => { contentDiv.innerHTML = html; initSidebarInteractions(); })
+      .then(html => {
+        contentDiv.innerHTML = html;
+        contentDiv.querySelectorAll('.contact-info').forEach(el => el.removeAttribute('style'));
+        initSidebarInteractions(contentDiv);
+      })
       .catch(e => {
         contentDiv.innerHTML = `<div style="padding:20px;text-align:center;color:red;"><p>Failed to load.</p><p style="font-size:12px;">${e.message}</p></div>`;
       });
   }
 
-  function closeReservationPanel() {
+  function closeReservationPanel(event) {
+    if (event && event.target !== event.currentTarget) return;
     hideGlobalTooltip();
-    document.getElementById('reservationSidebar').classList.remove('open');
-    document.getElementById('overlayBackdrop').classList.remove('open');
-    document.body.classList.remove('reservation-panel-open');
-    const headerActions = document.getElementById('sidebarHeaderActions');
-    if (headerActions) headerActions.innerHTML = '';
-    reservationPanelWasOpenBeforeReceipt = false;
+    document.getElementById('reservationModalOverlay').classList.remove('open');
   }
 
   function hideReservationOverlayForReceipt() {
@@ -4764,10 +5304,11 @@
       });
   }
 
-  function initSidebarInteractions() {
-    const sidebarRoot = document.getElementById('reservationSidebar');
-    const sidebarContent = document.getElementById('sidebarContent');
+  function initSidebarInteractions(container) {
+    const sidebarRoot = container || document.getElementById('reservationSidebar');
+    const sidebarContent = container ? container : document.getElementById('sidebarContent');
     if (!sidebarRoot || !sidebarContent) return;
+    const isModal = !!container;
 
     function closeDropdown(element) {
       const dropdownMenu = element.closest('.dropdown-menu');
@@ -4783,12 +5324,17 @@
     }
 
     function syncSidebarHeaderActions() {
+      const actionButtons = sidebarContent.querySelector('.action-buttons');
+      if (!actionButtons) return;
+
+      if (isModal) {
+        actionButtons.querySelector('.left-section')?.remove();
+        return;
+      }
+
       const headerActions = document.getElementById('sidebarHeaderActions');
       if (!headerActions) return;
       headerActions.innerHTML = '';
-
-      const actionButtons = sidebarContent.querySelector('.action-buttons');
-      if (!actionButtons) return;
 
       // Populate booking info from the partial's action-buttons
       const createdInfo = document.getElementById('sidebarCreatedInfo');
@@ -5272,134 +5818,204 @@
     });
   }
 
-  /* --- List View (inline) --- */
+  /* --- List View --- */
   function renderListView() {
-    const container = document.getElementById('listViewContent');
-    if (!container) return;
-    container.innerHTML = '<div style="padding:20px; text-align:center;">Loading...</div>';
+    const c = document.getElementById('listViewContent');
+    if (!c) return;
+    c.innerHTML = '<div class="list-loading">Loading events\u2026</div>';
 
     const month = currentDisplayDate.getMonth() + 1;
     const year = currentDisplayDate.getFullYear();
-    const listViewUrl = "{% url 'calendar-list-view' %}";
+    const url = "{% url 'calendar-list-view' %}";
 
-    fetch(listViewUrl + '?month=' + month + '&year=' + year, {
-      headers: { 'X-Requested-With': 'XMLHttpRequest' }
-    })
-      .then(r => r.json())
-      .then(data => {
+    fetch(url+'?month='+month+'&year='+year,{headers:{'X-Requested-With':'XMLHttpRequest'}})
+      .then(r=>r.json()).then(data=>{
         const events = data.events || [];
-        if (events.length === 0) {
-          container.innerHTML = '<div class="calendar-list-empty-state" style="font-size:24px;font-weight:600;color:#111827;text-align:center;padding:40px 20px;">No events for this month</div>';
-          return;
+        if (!events.length) { c.innerHTML = '<div class="list-wrap"><div class="empty-state" style="display:block"><b>No events for this month</b></div></div>'; return; }
+
+        // helpers
+        const today = new Date(); const todayStr = today.toISOString().split('T')[0];
+        const fmt = (d,s)=>d.toLocaleDateString('en-US',{month:s||'short',day:'numeric',year:'numeric'});
+        const fmtShort = (d)=>d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'});
+        const money = n=>'$'+Number(n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+        const esc = s=>{let d=document.createElement('div');d.textContent=s||'';return d.innerHTML;};
+        const isToday = d=>d===todayStr;
+
+        // icons
+        const icons = {
+          in:'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>',
+          out:'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>',
+          pay:'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>',
+          enq:'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
+          blk:'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>',
+          prop:'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>',
+          mail:'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>',
+          phone:'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>',
+          chev:'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>'
+        };
+
+        // compute stats and counts
+        let stats = { checkin:0, checkout:0, payments:0, revenue:0 };
+        let typeCounts = { All:0, Checkin:0, Checkout:0, Payment:0, Task:0, Enquiry:0, Blocked:0 };
+        events.forEach(ev=>{
+          typeCounts.All++;
+          const g = ev.group||'';
+          if (g==='Checkin'){ typeCounts.Checkin++; stats.checkin++; }
+          else if (g==='Checkout'){ typeCounts.Checkout++; stats.checkout++; }
+          else if (g==='Payment'){ typeCounts.Payment++; stats.payments++; if(ev.paid) stats.revenue+=Number(ev.amount||0); }
+          else if (g==='Task') typeCounts.Task++;
+          else if (g==='Enquiry') typeCounts.Enquiry++;
+          else if (g==='Blocked') typeCounts.Blocked++;
+        });
+
+        // group events by date maintaining order
+        const dateGroups = {};
+        events.forEach(ev=>{
+          if(!dateGroups[ev.date]) dateGroups[ev.date]=[];
+          dateGroups[ev.date].push(ev);
+        });
+        const dates = Object.keys(dateGroups).sort();
+
+        // render
+        let html = '<div class="list-wrap">';
+
+        // summary strip
+        html += '<div class="summary">'+
+         
+        '</div>';
+
+        // filter bar
+        const pillOrder = ['All','Checkin','Checkout','Payment','Task','Enquiry','Blocked'];
+        const pillDots = { All:'#16151C', Checkin:'#059669', Checkout:'#D97706', Payment:'#2563EB', Task:'#6B7280', Enquiry:'#7C3AED', Blocked:'#DC2626' };
+        html += '<div class="filterbar" id="listFilterBar">'+
+          '<div class="search"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input type="text" id="listSearch" placeholder="Search guest, property\u2026"></div>'+
+          '<div class="pills" id="listPills">'+
+            pillOrder.map(t=>'<button class="pill pill--'+(t==='All'?'all':t.toLowerCase())+'" data-type="'+t+'" aria-pressed="'+(t==='All'?'true':'false')+'"><span class="dot" style="color:'+pillDots[t]+'"></span>'+t+'<span class="cnt">'+typeCounts[t]+'</span></button>').join('')+
+          '</div>'+
+          '<span class="result-count"><b id="resultCount">'+events.length+'</b> event'+((events.length!==1)?'s':'')+'</span>'+
+        '</div>';
+
+        // timeline
+        html += '<div class="timeline" id="listTimeline">';
+        dates.forEach((iso,i)=>{
+          const d = new Date(iso+'T00:00:00');
+          const isLast = i===dates.length-1;
+
+          // today marker
+          if(iso===todayStr) html += '<div class="marker" id="todayMarker"><div class="rail"><div class="marker__dot"></div><div class="marker__label"><span>Today</span><div class="marker__rule"></div></div></div></div>';
+
+          const weekday = d.toLocaleDateString('en-US',{weekday:'short'});
+          const monthL = d.toLocaleDateString('en-US',{month:'short'});
+          const dayNum = d.getDate();
+          const items = dateGroups[iso];
+
+          html += '<div class="day'+(isLast?' is-last':'')+'" data-date="'+iso+'">'+
+            '<div class="rail"><div class="node"><div class="node__day">'+dayNum+'</div><div class="node__mon">'+monthL+'</div></div></div>'+
+            '<div class="day__main">'+
+              '<div class="day__head"><span class="day__weekday">'+weekday+'</span><span class="day__date">'+fmt(d,'long')+'</span><span class="day__chip">'+items.length+' event'+(items.length!==1?'s':'')+'</span></div>'+
+              '<div class="day__events">';
+
+          items.forEach(ev=>{
+            const g = ev.group||'';
+            const eClass = g==='Checkin'?'in':g==='Checkout'?'out':g==='Payment'?'pay':g==='Enquiry'?'enquiry':g==='Blocked'?'blocked':'pay';
+            let sub = '';
+            if(g==='Checkin'||g==='Checkout') sub = esc(ev.stay);
+            else if(g==='Payment') sub = money(ev.amount)+(ev.paid?' <span class="badge badge--pay">Paid</span>':' <span class="badge badge--out">Due</span>');
+            else if(g==='Task') sub = esc(ev.details||'');
+            else if(g==='Enquiry') sub = (ev.guests?esc(ev.guests)+' \u00b7 ':'')+esc(ev.stay);
+            else if(g==='Blocked') sub = esc(ev.stay||'');
+
+            const guestName = g==='Blocked'?'\u2014':esc(ev.guest_name||'\u2014');
+            const guestEmail = g==='Blocked'?'':esc(ev.guest_email||'');
+            const guestPhone = g==='Blocked'?'':esc(ev.guest_phone||ev.guest_id||'');
+            const propName = esc(ev.property||'');
+            const propLoc = esc(ev.location||'');
+            const hasAvatar = ev.avatar&&ev.avatar.trim();
+            const hasPropImg = ev.property_image&&ev.property_image.trim();
+            let typeIco = icons.pay;
+            if(g==='Checkin') typeIco = icons.in;
+            else if(g==='Checkout') typeIco = icons.out;
+            else if(g==='Enquiry') typeIco = icons.enq;
+            else if(g==='Blocked') typeIco = icons.blk;
+
+            const badge = g==='Checkin'?'<span class="badge badge--in">Check-in</span>':
+              g==='Checkout'?'<span class="badge badge--out">Check-out</span>':
+              g==='Payment'?'<span class="badge badge--pay">Payment</span>':
+              g==='Enquiry'?'<span class="badge badge--enquiry">Enquiry</span>':
+              g==='Blocked'?'<span class="badge badge--blocked">Blocked</span>':
+              '';
+
+            html += '<div class="event event--'+eClass+'" data-type="'+g.toLowerCase()+'">'+
+              '<div class="event__body">'+
+                // type
+                '<div class="zone zone--type"><div class="ico">'+typeIco+'</div><div class="typecontent"><div class="type__label">'+esc(ev.title||g)+' '+badge+'</div>'+(sub?'<div class="range">'+sub+'</div>':'')+'</div></div>'+
+                // guest
+                '<div class="zone zone--guest">'+
+                  '<div class="avatar avatar--guest">'+(hasAvatar?'<img src="'+esc(ev.avatar)+'" style="width:100%;height:100%;border-radius:50%;object-fit:cover;" alt="">':guestName.charAt(0).toUpperCase())+'</div>'+
+                  '<div class="guest__meta"><div class="guest__name">'+guestName+'</div>'+
+                  (guestEmail?'<div class="contact">'+icons.mail+'<span>'+guestEmail+'</span></div>':'')+
+                  (guestPhone?'<div class="contact contact--mono">'+icons.phone+'<span>'+guestPhone+'</span></div>':'')+
+                  (!guestEmail&&!guestPhone?'<div class="contact contact--none">No contact</div>':'')+
+                  '</div>'+
+                '</div>'+
+                // property
+                '<div class="zone zone--prop">'+
+                  '<div class="thumb thumb--r2">'+(hasPropImg?'<img src="'+esc(ev.property_image)+'" style="width:100%;height:100%;object-fit:cover;" alt="">':icons.prop)+'</div>'+
+                  '<div class="prop__meta"><div class="prop__name">'+propName+'</div><div class="prop__loc">'+icons.prop+'<span>'+propLoc+'</span></div></div>'+
+                '</div>'+
+                // open
+                '<button class="open-btn" onclick="this.closest(\'.day\').querySelector(\'.day__head\').scrollIntoView({behavior:\'smooth\',block:\'center\'})">'+icons.chev+'</button>'+
+              '</div>'+
+            '</div>';
+          });
+
+          html += '</div></div></div>';
+        });
+        html += '</div></div>';
+
+        c.innerHTML = html;
+
+        // ----- interactivity -----
+        const pills = document.querySelectorAll('#listPills .pill');
+        const cards = document.querySelectorAll('#listTimeline .event');
+        const daySections = document.querySelectorAll('#listTimeline .day');
+        const search = document.getElementById('listSearch');
+        const resultCount = document.getElementById('resultCount');
+
+        function filterEvents(){
+          const q = (search.value||'').toLowerCase().trim();
+          const active = document.querySelector('#listPills .pill[aria-pressed="true"]');
+          const activeType = active ? active.dataset.type : 'All';
+          let visible = 0;
+          cards.forEach(card=>{
+            const t = card.dataset.type;
+            const matchesType = activeType==='All'||activeType.toLowerCase()===t;
+            const text = card.textContent.toLowerCase();
+            const matchesSearch = !q||text.includes(q);
+            card.style.display = (matchesType&&matchesSearch)?'':'none';
+            if(matchesType&&matchesSearch) visible++;
+          });
+          // hide empty days
+          daySections.forEach(day=>{
+            const vis = Array.from(day.querySelectorAll('.event')).filter(el=>el.style.display!=='none').length;
+            day.style.display = vis?'grid':'none';
+          });
+          resultCount.textContent = visible;
         }
 
-        const grouped = {};
-        events.forEach(ev => {
-          const group = (ev.group || '').toLowerCase().replace(/[\s_-]+/g, '');
-          let normalizedGroup = group;
-          if (group === 'checkin') normalizedGroup = 'Checkin';
-          else if (group === 'checkout') normalizedGroup = 'Checkout';
-          else if (group === 'payment') normalizedGroup = 'Payment';
-          else if (group === 'task') normalizedGroup = 'Task';
-          else normalizedGroup = ev.group || 'Other';
+        pills.forEach(p=>p.addEventListener('click',function(){
+          const wasPressed = this.getAttribute('aria-pressed')==='true';
+          pills.forEach(pp=>pp.setAttribute('aria-pressed','false'));
+          if(!wasPressed) this.setAttribute('aria-pressed','true');
+          else document.querySelector('#listPills .pill--all').setAttribute('aria-pressed','true');
+          filterEvents();
+        }));
 
-          ev._normalizedGroup = normalizedGroup;
-          if (!grouped[ev.date]) grouped[ev.date] = [];
-          grouped[ev.date].push(ev);
-        });
-
-        Object.keys(grouped).forEach(d => {
-          const groups = { Checkin: [], Checkout: [], Payment: [], Task: [] };
-          grouped[d].forEach(ev => {
-            const g = ev._normalizedGroup;
-            if (!groups[g]) groups[g] = [];
-            groups[g].push(ev);
-          });
-          grouped[d] = groups;
-        });
-
-        const dates = Object.keys(grouped).sort();
-        let html = '';
-        const todayStr = new Date().toISOString().split('T')[0];
-
-        dates.forEach(iso => {
-          const d = new Date(iso + 'T00:00:00');
-          const monthLabel = d.toLocaleDateString('en-US', { month: 'short' });
-          const day = d.getDate();
-          const yearNum = d.getFullYear();
-          const weekday = d.toLocaleDateString('en-US', { weekday: 'short' });
-          const label = monthLabel + ' ' + day + ', ' + yearNum + ', ' + weekday;
-          const todayBadge = iso === todayStr ? '<span class="today-pill">Today</span>' : '';
-
-          html += '<div class="date-section" id="date-' + iso + '">' +
-            '<div class="date"><span><img src="{% static 'img/calender/black_calender.svg' %}"></span><span>' + label + '</span></div>' +
-            todayBadge +
-            '</div>';
-
-          ['Checkout', 'Checkin', 'Payment', 'Task'].forEach(type => {
-            (grouped[iso][type] || []).forEach(ev => {
-              html += renderListCard(ev);
-            });
-          });
-        });
-
-        container.innerHTML = html;
+        search.addEventListener('input',filterEvents);
       })
-      .catch(() => {
-        container.innerHTML = '<div style="padding:20px;text-align:center;color:#666;">Failed to load list view</div>';
+      .catch(()=>{
+        c.innerHTML = '<div class="list-wrap"><div class="empty-state" style="display:block"><b>Failed to load events.</b></div></div>';
       });
-  }
-
-  function renderListCard(ev) {
-    const group = ev._normalizedGroup || '';
-    let icon = "{% static 'img/calender/check_in_icon.svg' %}";
-    if (group === 'Checkout') icon = "{% static 'img/calender/check_out_icon.svg' %}";
-    else if (group === 'Payment') icon = "{% static 'img/task/type/payment.svg' %}";
-    else if (group === 'Task') {
-      const t = (ev.title || '').toLowerCase();
-      if (t.includes('maintenance')) icon = "{% static 'img/task/type/maintenance.svg' %}";
-      else if (t.includes('cleaning')) icon = "{% static 'img/task/type/cleaning.svg' %}";
-      else if (t.includes('payment')) icon = "{% static 'img/task/type/payment.svg' %}";
-      else icon = "{% static 'img/task/type/others.svg' %}";
-    }
-
-    const typeLabel = group === 'Checkin' ? 'Checkin' : group === 'Checkout' ? 'Checkout' : group === 'Payment' ? 'Payment' : ev.title || 'Others';
-    let subText = '';
-    if (group === 'Task') subText = ev.details || 'Mention the task details here ...';
-    else if (group === 'Payment') subText = window.fmtMoney(ev.amount) + (ev.paid ? '  Paid' : '');
-    else subText = ev.stay || '';
-
-    const avatar = (ev.avatar && String(ev.avatar).trim()) ? ev.avatar : "{% static 'img/common/default_user_icon_1.png' %}";
-    const propertyImage = ev.property_image || ev.property_image_url || "{% static 'img/not-found/no_property.jpg' %}";
-    const email = ev.guest_email || '-';
-    const phone = ev.guest_phone || ev.guest_id || '-';
-
-    return '<div class="booking-card-scroll">' +
-      '<div class="booking-card">' +
-        '<div class="event-col event-col-type">' +
-          '<img src="' + icon + '" class="event-type-icon" alt="' + typeLabel + '">' +
-          '<div class="event-type-content">' +
-            '<h3 class="event-title">' + typeLabel + '</h3>' +
-            (subText ? '<p class="event-subtitle">' + subText + '</p>' : '') +
-          '</div>' +
-        '</div>' +
-        '<div class="event-col event-col-guest">' +
-          '<img src="' + avatar + '" class="guest-avatar" alt="' + (ev.guest_name || 'Guest') + '" onerror="this.onerror=null;this.src=\'{% static "img/common/default_user_icon_1.png" %}\';">' +
-          '<div class="guest-meta">' +
-            '<div class="guest-name">' + (ev.guest_name || '-') + '</div>' +
-            '<div class="guest-line"><img src="{% static 'img/booking/listing/email_icon.svg' %}" alt=""> ' + email + '</div>' +
-            '<div class="guest-line"><img src="{% static 'img/booking/listing/phone_icon.svg' %}" alt=""> ' + phone + '</div>' +
-          '</div>' +
-        '</div>' +
-        '<div class="event-col event-col-property">' +
-          '<img src="' + propertyImage + '" class="property-image" alt="' + (ev.property || 'Property') + '">' +
-          '<div class="property-meta">' +
-            '<div class="property-name">' + (ev.property || '') + '</div>' +
-            '<div class="property-location">' + (ev.location || '') + '</div>' +
-          '</div>' +
-        '</div>' +
-      '</div>' +
-    '</div>';
   }
 
   /* --- Unified Calendar View Router --- */
@@ -5481,14 +6097,22 @@
       ? tasks.filter(t => String(t.propertyId) === String(activePropertyId))
       : tasks.slice();
 
-    if (!typeFilters.reservation) {
+    // Keep bookings if payments are checked, even if reservation is unchecked
+    if (!typeFilters.reservation && !typeFilters.payment) {
       pBookings = [];
       pEnquiries = [];
-      pTasks = typeFilters.task ? pTasks : [];
+    } else if (!typeFilters.reservation) {
+      pEnquiries = [];
     }
-    if (!typeFilters.task) {
-      pTasks = [];
-    }
+
+    // Filter tasks: payment tasks depend on typeFilters.payment, others on typeFilters.task
+    pTasks = pTasks.filter(t => {
+      if (t.task_type === 'payment') {
+        return typeFilters.payment;
+      } else {
+        return typeFilters.task;
+      }
+    });
 
     return {
       bookings: pBookings,
@@ -5528,13 +6152,14 @@
     const month = currentDisplayDate.getMonth();
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const paymentIconUrl = "{% static 'img/calender/new_payment_icon.svg' %}";
+    const paymentIconUrl = "{% static 'img/task/type/payment.svg' %}";
 
     const { bookings: pBookings, enquiries: pEnquiries, tasks: pTasks } = getFilteredEventsForCalendar();
-    const spansList = [
-      ...pBookings.map(b => ({ ...b, isEnquiry: false })),
-      ...pEnquiries.map(eq => ({ ...eq, isEnquiry: true }))
-    ];
+    const spansList = [];
+    if (typeFilters.reservation) {
+      spansList.push(...pBookings.map(b => ({ ...b, isEnquiry: false })));
+      spansList.push(...pEnquiries.map(eq => ({ ...eq, isEnquiry: true })));
+    }
 
     const firstDay = new Date(year, month, 1);
     const startDayOfWeek = firstDay.getDay();
@@ -5649,7 +6274,7 @@
 
       weekDates.forEach((d, colIdx) => {
         const dateStr = toISODateString(d);
-        const dayTasksForBand = pTasks.filter(t => t.date === dateStr && !t.completed && t.task_type !== 'payment');
+        const dayTasksForBand = pTasks.filter(t => t.date === dateStr);
         const bookingStartsHere = weekSpans.some(s => !s.carryStart && s.startCol === colIdx);
 
         const bookingWithPayment = pBookings.find(b => b.paymentsInfo && b.paymentsInfo[dateStr]);
@@ -5662,7 +6287,7 @@
 
         // Normal payment indicator (when no collision with reservation start)
         if (!hasPaymentCollision && bookingWithPayment && typeFilters.payment && !(bookingStartsHere && dayTasksForBand.length > 0)) {
-          eventsHtml += `<div style="grid-column:${colIdx+1}/${colIdx+2};grid-row:1;align-self:center;justify-self:center;width:36px;height:36px;border-radius:50%;background:#000;border:2px solid #fff;display:flex;align-items:center;justify-content:center;z-index:120;cursor:pointer;pointer-events:auto;box-shadow:0 1px 3px rgba(0,0,0,0.25);" onclick="handlePaymentIndicatorClick(event,'${bookingWithPayment.id}','${dateStr}')" onmouseenter="showPaymentTooltip(event,'${bookingWithPayment.id}','${dateStr}')" onmouseleave="handleIndicatorHoverLeave()"><img src="${paymentIconUrl}" alt="payment" style="width:24px;height:24px;object-fit:contain;filter:brightness(0) invert(1);" /></div>`;
+          eventsHtml += `<div style="grid-column:${colIdx+1}/${colIdx+2};grid-row:1;align-self:center;justify-self:center;width:36px;height:36px;border-radius:50%;background:#3b82f6;border:2px solid #fff;display:flex;align-items:center;justify-content:center;z-index:120;cursor:pointer;pointer-events:auto;box-shadow:0 1px 3px rgba(0,0,0,0.25);" onclick="handlePaymentIndicatorClick(event,'${bookingWithPayment.id}','${dateStr}')" onmouseenter="showPaymentTooltip(event,'${bookingWithPayment.id}','${dateStr}')" onmouseleave="handleIndicatorHoverLeave()"><img src="${paymentIconUrl}" alt="payment" style="width:24px;height:24px;object-fit:contain;filter:brightness(0) invert(1);" /></div>`;
         }
 
         if (dayTasksForBand.length === 0) return;
@@ -5707,19 +6332,26 @@
   function renderWeekGrid(pane) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const paymentIconUrl = "{% static 'img/calender/new_payment_icon.svg' %}";
+    const paymentIconUrl = "{% static 'img/task/type/payment.svg' %}";
 
-    const applyFilter = (arr) => {
-      if (!typeFilters.reservation) return [];
-      return arr;
-    };
-    const pBookings = applyFilter(bookings.slice());
+    const pBookings = bookings.filter(b => {
+      if (typeFilters.reservation) return true;
+      if (typeFilters.payment) return b.paymentsInfo && Object.keys(b.paymentsInfo).length > 0;
+      return false;
+    });
     const pEnquiries = typeFilters.reservation ? enquiries.slice() : [];
-    const pTasks = typeFilters.task ? tasks.slice() : [];
-    const spansList = [
-      ...pBookings.map(b => ({ ...b, isEnquiry: false })),
-      ...pEnquiries.map(eq => ({ ...eq, isEnquiry: true }))
-    ];
+    const pTasks = tasks.filter(t => {
+      if (t.task_type === 'payment') {
+        return typeFilters.payment;
+      } else {
+        return typeFilters.task;
+      }
+    });
+    const spansList = [];
+    if (typeFilters.reservation) {
+      spansList.push(...pBookings.map(b => ({ ...b, isEnquiry: false })));
+      spansList.push(...pEnquiries.map(eq => ({ ...eq, isEnquiry: true })));
+    }
 
     const weekDates = [];
     const temp = new Date(selectedWeekStart);
@@ -5811,7 +6443,7 @@
 
             weekDates.forEach((d, colIdx) => {
               const dateStr = toISODateString(d);
-              const dayTasks = propertyTasks.filter(t => t.date === dateStr && !t.completed && t.task_type !== 'payment');
+              const dayTasks = propertyTasks.filter(t => t.date === dateStr);
               const bookingStartsHere = weekSpans.some(s => !s.carryStart && s.startCol === colIdx);
 
               const bookingWithPayment = propertyBookings.find(b => b.paymentsInfo && b.paymentsInfo[dateStr]);
@@ -5824,7 +6456,7 @@
 
               // Normal payment indicator (when no collision with reservation start)
               if (!hasPaymentCollision && bookingWithPayment && typeFilters.payment && !(bookingStartsHere && dayTasks.length > 0)) {
-                rowHtml += `<div style="grid-column:${colIdx+1}/${colIdx+2};grid-row:1;align-self:center;justify-self:center;width:36px;height:36px;border-radius:50%;background:#000;border:2px solid #fff;display:flex;align-items:center;justify-content:center;z-index:120;cursor:pointer;pointer-events:auto;box-shadow:0 1px 3px rgba(0,0,0,0.25);" onclick="handlePaymentIndicatorClick(event,'${bookingWithPayment.id}','${dateStr}')" onmouseenter="showPaymentTooltip(event,'${bookingWithPayment.id}','${dateStr}')" onmouseleave="handleIndicatorHoverLeave()"><img src="${paymentIconUrl}" alt="payment" style="width:24px;height:24px;object-fit:contain;filter:brightness(0) invert(1);" /></div>`;
+                rowHtml += `<div style="grid-column:${colIdx+1}/${colIdx+2};grid-row:1;align-self:center;justify-self:center;width:36px;height:36px;border-radius:50%;background:#3b82f6;border:2px solid #fff;display:flex;align-items:center;justify-content:center;z-index:120;cursor:pointer;pointer-events:auto;box-shadow:0 1px 3px rgba(0,0,0,0.25);" onclick="handlePaymentIndicatorClick(event,'${bookingWithPayment.id}','${dateStr}')" onmouseenter="showPaymentTooltip(event,'${bookingWithPayment.id}','${dateStr}')" onmouseleave="handleIndicatorHoverLeave()"><img src="${paymentIconUrl}" alt="payment" style="width:24px;height:24px;object-fit:contain;filter:brightness(0) invert(1);" /></div>`;
               }
 
               if (dayTasks.length === 0) return;
@@ -5840,11 +6472,25 @@
               rowHtml += `<div class="task-circle-bar" style="grid-column:${colIdx+1}/${colIdx+2};grid-row:1;background-color:${taskColor};${paymentRing}" onclick="openTaskDetailModal(event,'${t0.id}')">${t0.task_type === 'payment' ? `<div style="position:relative;display:flex;align-items:center;justify-content:center;width:100%;height:100%;"><img src="${taskIconUrl}" alt="" style="width:16px;height:16px;filter:brightness(0) invert(1);opacity:0.5;position:absolute;" /><span style="color:#fff;font-weight:900;font-size:14px;line-height:1;position:relative;z-index:1;">$</span></div>` : `<img src="${taskIconUrl}" alt="" />`}</div>`;
             });
 
+            const detailHref = property.slug ? `/property/detail/${property.slug}/` : (property.detail_url || property.url || '#');
             return `
               <div style="display:flex;border-bottom:1px solid #e5e7eb;">
-                <div style="width:${SIDEBAR_W}px;flex-shrink:0;display:flex;align-items:center;gap:8px;padding:8px 10px;border-right:1px solid #e5e7eb;background:#fafafa;min-width:0;">
+                <div style="width:${SIDEBAR_W}px;flex-shrink:0;display:flex;align-items:center;gap:0;padding:8px 10px;border-right:1px solid #e5e7eb;background:#fafafa;min-width:0;">
                   <img src="${propImg}" alt="" style="width:32px;height:32px;border-radius:50%;object-fit:cover;flex-shrink:0;" onerror="this.onerror=null;this.src='{% static "img/common/default_user_icon_1.png" %}';">
-                  <span style="font-size:12px;font-weight:600;color:#1f2937;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${propName}</span>
+                  <span style="flex:1;font-size:12px;font-weight:600;color:#1f2937;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-left:8px;">${propName}</span>
+                  <div class="property-actions">
+                    <div class="dropdown dropend">
+                      <button class="btn btn-sm" type="button" data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false" style="padding:2px 6px;font-size:18px;line-height:1;border:none;background:none;color:#6b7280;cursor:pointer;">⋮</button>
+                      <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="{% url 'booking:booking-create' %}?property_id=${property.id}">Create a new Booking</a></li>
+                        <li><a class="dropdown-item" href="javascript:void(0)" onclick="openBlockCalendarModal('${property.id}')">Block Calendar</a></li>
+                        <li><a class="dropdown-item" href="/manage/${property.id}/">Channel integration</a></li>
+                        <li><a class="dropdown-item" href="{% url 'tasks:task-create' %}?property_id=${property.id}">Create Task</a></li>
+                        <li><a class="dropdown-item" href="#">Report</a></li>
+                        <li><a class="dropdown-item" href="${detailHref}" target="_blank" rel="noopener noreferrer">Listing Details</a></li>
+                      </ul>
+                    </div>
+                  </div>
                 </div>
                 <div style="flex:1;min-height:58px;position:relative;">
                   <div style="display:grid;grid-template-columns:repeat(7,1fr);height:100%;">
@@ -5870,15 +6516,19 @@
   /* --- Day Schedule View Renderer --- */
   function renderDaySchedule(pane) {
     // Day view shows ALL listings, not just the active one
-    const applyFilter = (arr) => {
-      if (!typeFilters.reservation && !typeFilters.payment) return [];
-      if (!typeFilters.reservation) return arr.filter(b => b.paymentsInfo && Object.keys(b.paymentsInfo).length > 0);
-      if (!typeFilters.payment) return arr.filter(b => !b.paymentsInfo || Object.keys(b.paymentsInfo).length === 0 || b.type === 'blocked');
-      return arr;
-    };
-    const pBookings = applyFilter(bookings.slice());
+    const pBookings = bookings.filter(b => {
+      if (typeFilters.reservation) return true;
+      if (typeFilters.payment) return b.paymentsInfo && Object.keys(b.paymentsInfo).length > 0;
+      return false;
+    });
     const pEnquiries = typeFilters.reservation ? enquiries.slice() : [];
-    const pTasks = typeFilters.task ? tasks.slice() : [];
+    const pTasks = tasks.filter(t => {
+      if (t.task_type === 'payment') {
+        return typeFilters.payment;
+      } else {
+        return typeFilters.task;
+      }
+    });
     const dateStr = selectedDateKey;
 
     const dateObj = new Date(dateStr + 'T00:00:00');
@@ -5890,16 +6540,16 @@
     const dayNum = dateObj.getDate();
 
     // --- Data (backend logic unchanged) ---
-    const checkIns    = pBookings.filter(b => b.start_date === dateStr);
-    const checkOuts   = pBookings.filter(b => b.end_date === dateStr);
-    const inHouse     = pBookings.filter(b => dateStr > b.start_date && dateStr < b.end_date);
-    const dayTasks    = pTasks.filter(t => t.date === dateStr && !t.completed && t.task_type !== 'payment');
+    const checkIns    = typeFilters.reservation ? pBookings.filter(b => b.start_date === dateStr) : [];
+    const checkOuts   = typeFilters.reservation ? pBookings.filter(b => b.end_date === dateStr) : [];
+    const inHouse     = typeFilters.reservation ? pBookings.filter(b => dateStr > b.start_date && dateStr < b.end_date) : [];
+    const dayTasks    = pTasks.filter(t => t.date === dateStr);
     const dayEnquiries= pEnquiries.filter(eq => eq.start_date === dateStr);
 
     const getTaskColor = (type) =>
       ({ 'cleaning': '#e53935', 'maintenance': '#e53935', 'payment': '#e53935' }[type] || '#e53935');
 
-    const dayPaymentIconUrl = "{% static 'img/calender/new_payment_icon.svg' %}";
+    const dayPaymentIconUrl = "{% static 'img/task/type/payment.svg' %}";
 
     function bookingHasPayment(b) {
       return b.paymentsInfo && b.paymentsInfo[dateStr] && typeFilters.payment;
@@ -6046,7 +6696,6 @@
     const positionedEvents = computeColumns(events);
 
     let eventBlocksHtml = '';
-    let paymentIndicatorsHtml = '';
     positionedEvents.forEach(ev => {
       const topPx    = ev.startHour * HOUR_PX;
       const heightPx = Math.max((ev.endHour - ev.startHour) * HOUR_PX - 2, 22);
@@ -6067,16 +6716,33 @@
           ${ev.sub ? `<div class="gcal-event-sub">${ev.sub}</div>` : ''}
         </div>
       `;
-      if (ev.hasPayment) {
+    });
+
+    let paymentIndicatorsHtml = '';
+    if (typeFilters.payment) {
+      const bookingsWithPayment = bookings.filter(b => b.paymentsInfo && b.paymentsInfo[dateStr]);
+      bookingsWithPayment.forEach(b => {
+        let hour = 12;
+        if (b.start_date === dateStr) {
+          hour = parseTime(b.check_in_time, 14);
+        } else if (b.end_date === dateStr) {
+          hour = parseTime(b.check_out_time, 11);
+        }
+        const topPx = hour * HOUR_PX;
         const indicatorSize = 32;
-        const indicatorTop = topPx + Math.max(heightPx - indicatorSize, 0) / 2;
+        const indicatorTop = topPx + Math.max(HOUR_PX - indicatorSize, 0) / 2;
+
+        // Find if there is a matching visible event to align leftPct
+        const matchingEv = positionedEvents.find(e => e.bookingId === b.id);
+        const leftPct = matchingEv ? (matchingEv._col * (100 / matchingEv._numCols)) : 0;
+
         paymentIndicatorsHtml += `
-          <div style="position:absolute;top:${indicatorTop}px;left:calc(${leftPct}% + 4px);width:${indicatorSize}px;height:${indicatorSize}px;border-radius:50%;background:#000;border:2px solid #fff;display:flex;align-items:center;justify-content:center;z-index:20;cursor:pointer;pointer-events:auto;box-shadow:0 1px 3px rgba(0,0,0,0.25);" onclick="handlePaymentIndicatorClick(event,'${ev.bookingId}','${dateStr}')" onmouseenter="showPaymentTooltip(event,'${ev.bookingId}','${dateStr}')" onmouseleave="handleIndicatorHoverLeave()">
+          <div style="position:absolute;top:${indicatorTop}px;left:calc(${leftPct}% + 4px);width:${indicatorSize}px;height:${indicatorSize}px;border-radius:50%;background:#000;border:2px solid #fff;display:flex;align-items:center;justify-content:center;z-index:20;cursor:pointer;pointer-events:auto;box-shadow:0 1px 3px rgba(0,0,0,0.25);" onclick="handlePaymentIndicatorClick(event,'${b.id}','${dateStr}')" onmouseenter="showPaymentTooltip(event,'${b.id}','${dateStr}')" onmouseleave="handleIndicatorHoverLeave()">
             <img src="${dayPaymentIconUrl}" alt="" style="width:20px;height:20px;object-fit:contain;filter:brightness(0) invert(1);" />
           </div>
         `;
-      }
-    });
+      });
+    }
 
     // --- Render ---
     pane.innerHTML = `
@@ -6100,7 +6766,7 @@
         </div>
         <!-- Color legend -->
         <div style="display:flex;gap:16px;padding:8px 16px;background:#fff;border-top:1px solid #e5e7eb;flex-shrink:0;font-size:11px;font-weight:600;color:#6b7280;">
-          <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:2px;background:#3b82f6;"></span> Registration</span>
+          <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:2px;background:#3b82f6;"></span> Reservation</span>
           <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:2px;background:#e53935;"></span> Task</span>
           <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:2px;background:#000;"></span> Payment</span>
           <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:2px;background:#8e24aa;"></span> Enquiry</span>
@@ -6204,6 +6870,41 @@
   function closeTaskDetailModal(event) {
     if (event && event.target !== event.currentTarget) return;
     const overlay = document.getElementById('taskModalOverlay');
+    overlay.classList.remove('open');
+  }
+
+  function openPaymentDetailModal(event, bookingId, dateStr) {
+    if (event) event.stopPropagation();
+    hideGlobalTooltip();
+    const b = bookings.find(x => x.id == bookingId);
+    if (!b || !b.paymentsInfo || !b.paymentsInfo[dateStr]) return;
+
+    const info = b.paymentsInfo[dateStr];
+    const overlay = document.getElementById('paymentModalOverlay');
+    const modal = document.getElementById('paymentModal');
+
+    const displayEndDate = new Date(b.endDate);
+    displayEndDate.setDate(displayEndDate.getDate() - 1);
+    const nights = Math.ceil((displayEndDate - b.startDate) / (1000 * 60 * 60 * 24));
+    const [y, m, d] = dateStr.split('-');
+    const dateObj = new Date(y, m - 1, d);
+    const formattedDate = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    const statusText = info.is_paid ? 'Paid' : 'Unpaid';
+
+    document.getElementById('paymentModalStatus').textContent = statusText;
+    document.getElementById('paymentModalDetails').textContent = `${info.type || 'Payment'} of $${info.amount.toFixed(2)}`;
+    document.getElementById('paymentModalAmount').textContent = `$${info.amount.toFixed(2)}`;
+    document.getElementById('paymentModalDate').textContent = formattedDate;
+    document.getElementById('paymentModalGuest').textContent = b.guestName || '-';
+    document.getElementById('paymentModalBooking').textContent = b.bookingId || '-';
+    document.getElementById('paymentModalStay').textContent = `${fmtDate(b.startDate)} - ${fmtDate(displayEndDate)} (${nights} nights)`;
+
+    overlay.classList.add('open');
+  }
+
+  function closePaymentDetailModal(event) {
+    if (event && event.target !== event.currentTarget) return;
+    const overlay = document.getElementById('paymentModalOverlay');
     overlay.classList.remove('open');
   }
 
