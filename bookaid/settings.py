@@ -120,6 +120,7 @@ TEMPLATES = [
                 'property.context_processors.property_context',
                 'bookaid.context_processors.enquiry_counts',
                 'billing.context_processors.subscription_status',
+                'accounts.context_processors.currency_context',
                 'django.template.context_processors.static',
             ],
         },
@@ -208,6 +209,10 @@ CELERY_BEAT_SCHEDULE = {
     'send-booking-emails-daily-2am': {
         'task': 'booking.tasks.send_daily_booking_emails',
         'schedule': crontab(minute=1, hour=2),  # Runs daily at 2:01 AM
+    },
+    'refresh-exchange-rates-daily': {
+        'task': 'accounts.tasks.refresh_exchange_rates_task',
+        'schedule': crontab(minute=30, hour=0),  # Runs daily at 12:30 AM
     },
 }
 

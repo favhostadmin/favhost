@@ -1,0 +1,21 @@
+{# Guest currency switcher for public host pages. Sets a cookie + reloads. #}
+<div class="guest-currency-switcher" style="display:inline-flex;align-items:center;gap:6px;">
+  <span aria-hidden="true" style="font-size:13px;color:#555;">{{ currency_symbol }}</span>
+  <select id="guestCurrencySelect" aria-label="Display currency"
+          onchange="setGuestCurrency(this.value)"
+          style="padding:4px 8px;border:1px solid #ddd;border-radius:6px;font-size:13px;cursor:pointer;background:#fff;">
+    {% for c in currency_options %}
+      <option value="{{ c }}" {% if c == display_currency %}selected{% endif %}>{{ c }}</option>
+    {% endfor %}
+    {% if display_currency not in currency_options %}
+      <option value="{{ display_currency }}" selected>{{ display_currency }}</option>
+    {% endif %}
+  </select>
+</div>
+<script>
+  function setGuestCurrency(code) {
+    document.cookie = "guest_currency=" + encodeURIComponent(code) +
+                      "; path=/; max-age=" + (60 * 60 * 24 * 365);
+    location.reload();
+  }
+</script>
