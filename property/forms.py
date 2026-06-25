@@ -25,6 +25,7 @@ class PropertyForm(forms.ModelForm):
         widgets = {
             # Basic Details
             'title': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Enter listing title'}),
+            'nick_name': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Nick name'}),
             'description': forms.Textarea(attrs={'class': 'form-input form-textarea', 'placeholder': 'Describe your property...'}),
             
             # Address
@@ -59,12 +60,15 @@ class PropertyForm(forms.ModelForm):
             'rules': forms.Textarea(attrs={'class': 'form-input form-textarea', 'placeholder': 'Enter your cancellation policy and house rules...'}),
             'house_rules': forms.Textarea(attrs={'class': 'form-input form-textarea', 'placeholder': 'Enter your house rules...'}),
             'cancellation_policy': forms.Textarea(attrs={'class': 'form-input form-textarea', 'placeholder': 'Enter your cancellation policy...'}),
+            'rental_contract_terms': forms.Textarea(attrs={'class': 'form-input form-textarea', 'placeholder': 'Enter rental contract terms and conditions...'}),
 
             # Pricing
             'price_per_night': forms.NumberInput(attrs={'class': 'form-input', 'min': '0', 'step': '0.01'}),
             'application_fees': forms.NumberInput(attrs={'class': 'form-input', 'min': '0', 'step': '0.01'}),
+            'taxes': forms.NumberInput(attrs={'class': 'form-input', 'min': '0', 'step': '0.01'}),
             'cleaning_fee': forms.NumberInput(attrs={'class': 'form-input', 'min': '0', 'step': '0.01'}),
             'refundable_deposit': forms.NumberInput(attrs={'class': 'form-input', 'min': '0', 'step': '0.01'}),
+            'other_fees': forms.NumberInput(attrs={'class': 'form-input', 'min': '0', 'step': '0.01'}),
             
             # Amenities - this will be handled separately in the template
             'amenities': forms.CheckboxSelectMultiple(attrs={'class': 'amenities-checkbox'}),
@@ -126,8 +130,10 @@ class PropertyForm(forms.ModelForm):
         
         # Optional fields
         optional_fields = [
-            'room_password', 'network_name',  'wifi_password', 'youtube_link', 'email_guest', 
-            'rules', 'application_fees', 'cleaning_fee', 'refundable_deposit', 'amenities'
+            'nick_name',
+            'room_password', 'network_name', 'wifi_password', 'youtube_link', 'email_guest',
+            'rules', 'application_fees', 'taxes', 'cleaning_fee', 'refundable_deposit',
+            'other_fees', 'amenities', 'rental_contract_terms'
         ]
         
         for field_name in optional_fields:
