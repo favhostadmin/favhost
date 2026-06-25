@@ -23,6 +23,9 @@
   .main-content-body > div:last-child { flex: 1 0 auto; display: flex; flex-direction: column; }
   .rev-page *, .rev-page *::before, .rev-page *::after { box-sizing: border-box; }
   .rev-page img { max-width: 100%; }
+
+  /* Branded print header — hidden on screen, revealed in @media print. */
+  .rev-print-header { display: none; }
   .rev-page button { font-family: inherit; cursor: pointer; }
   .rev-page a { color: inherit; text-decoration: none; }
 
@@ -231,11 +234,105 @@
     .rev-page-title { font-size: 16px; }
     .rev-icon-btn { width: 34px; height: 34px; }
   }
+
+  /* ===========================================================
+     PRINT / Save-as-PDF — capture the FULL revenue report.
+     Removes the app's scroll clipping + chrome, fits the wide
+     table to the page, and lets long data flow onto extra pages.
+     =========================================================== */
+  @media print {
+    @page { size: A4 landscape; margin: 10mm; }
+
+    /* Force background colours (table/chart fills) to actually print. */
+    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+
+    /* Branded header: logo pinned left, generated date/time pinned right.
+       Dark band so the white FavHost logo is visible on the printed page. */
+    .rev-print-header {
+      display: flex !important;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      background: #313131;
+      padding: 8px 14px;
+      margin-bottom: 12px;
+      border-radius: 6px;
+    }
+    .rev-print-logo { height: 30px; width: auto; }
+    .rev-print-meta { font-size: 11px; color: #e5e7eb; white-space: nowrap; }
+
+    /* Hide everything that isn't the report itself. */
+    #loader-overlay,
+    .custom-header,
+    #mobileNavbarBackdrop,
+    #headerProfileCompleteModal,
+    .toast-messages-container,
+    .sw-overlay,
+    .footer,
+    .rev-page-actions,
+    .rev-search-box,
+    .rev-sidebar { display: none !important; }
+
+    /* Drop the viewport-height clipping so all content flows across sheets. */
+    html, body { height: auto !important; overflow: visible !important; background: #fff !important; }
+    .content, .container-fluid { display: block !important; }
+    .main-content-body {
+      max-height: none !important; min-height: 0 !important;
+      overflow: visible !important; display: block !important;
+    }
+    .main-content-body > div:last-child { display: block !important; }
+    .rev-page { flex: none !important; min-height: 0 !important; padding: 0 !important; background: #fff !important; }
+
+    /* One full-width column for the data (sidebar is hidden). */
+    .rev-layout { display: block !important; padding: 0 !important; max-width: none !important; margin: 0 !important; }
+    .rev-main { gap: 12px !important; }
+    .rev-page-header { padding: 0 0 8px !important; border: none !important; }
+    .rev-toolbar { border: 1px solid #e5e7eb !important; padding: 8px 12px !important; }
+
+    /* Keep charts/cards intact; never split a card across a page break. */
+    .rev-charts-row { grid-template-columns: 1fr 1fr !important; }
+    .rev-card, .rev-charts-row, .rev-table-card { break-inside: avoid; page-break-inside: avoid; }
+
+    /* Table: shrink to page width, repeat the month header on every page,
+       and never cut a row in half. */
+    .rev-table-card { break-inside: auto; }
+    .rev-table-scroll { overflow: visible !important; }
+    table.rev-data-table {
+      min-width: 0 !important; width: 100% !important;
+      font-size: 8.5px !important; table-layout: fixed;
+    }
+    table.rev-data-table th, table.rev-data-table td {
+      padding: 3px 2px !important; white-space: nowrap; overflow: hidden;
+    }
+    table.rev-data-table td.first-col, table.rev-data-table th:first-child {
+      width: 13% !important; white-space: normal; word-break: break-word;
+    }
+    /* Repeat ONLY the month-labels row on each page. The listing-name banner
+       and the section dividers are also <thead>, so keep them as normal rows
+       that print once instead of repeating on every page. */
+    table.rev-data-table thead.months { display: table-header-group; }
+    table.rev-data-table thead.section { display: table-row-group; }
+    table.rev-data-table tr { break-inside: avoid; page-break-inside: avoid; }
+
+    /* Always start the "Number of bookings by Channel" block on a fresh page
+       (the repeated month-labels header re-appears above it for context). */
+    table.rev-data-table thead.rev-break-page,
+    table.rev-data-table thead.rev-break-page tr {
+      break-before: page;
+      page-break-before: always;
+    }
+  }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="rev-page">
+
+  <!-- Branded header — only visible when printing / saving as PDF -->
+  <div class="rev-print-header" aria-hidden="true">
+    <img src="{% static 'img/login/favhost_new_logo.png' %}" alt="FavHost" class="rev-print-logo">
+    <span class="rev-print-meta" id="revPrintMeta"></span>
+  </div>
 
   <!-- ============ PAGE HEADER ============ -->
   <section class="rev-page-header">
@@ -374,7 +471,7 @@
               {% endfor %}
             </tbody>
 
-            <thead class="section">
+            <thead class="section rev-break-page">
               <tr><th colspan="14">Number of bookings by Channel</th></tr>
             </thead>
             <tbody>
@@ -432,6 +529,14 @@
     document.querySelectorAll('.rev-legend-swatch[data-color]').forEach(function (el) {
       el.style.background = el.getAttribute('data-color');
     });
+
+    // --- Stamp the print header with the generation date/time ---
+    function revStampPrintDate() {
+      var el = document.getElementById('revPrintMeta');
+      if (el) el.textContent = 'Generated: ' + new Date().toLocaleString();
+    }
+    revStampPrintDate();
+    window.addEventListener('beforeprint', revStampPrintDate);
 
     // --- Sidebar search (client-side filter) ---
     var search = document.getElementById('revListingSearch');

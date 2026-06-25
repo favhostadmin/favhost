@@ -509,13 +509,18 @@ class RevenueByListingView(LoginRequiredMixin, TemplateView):
             selected = properties[0]
 
         # ---- Years available for the dropdown (from this listing's bookings) ----
+        # Include both check-in and check-out years so a stay that spans a year
+        # boundary (e.g. checks in Dec, out in Jan) makes the later year
+        # selectable — otherwise the revenue that spills into it is unreachable.
         if selected is not None:
-            years = sorted({
-                y for y in Booking.objects
+            year_rows = (
+                Booking.objects
                 .filter(property=selected)
                 .exclude(status='cancelled')
-                .values_list('check_in_date__year', flat=True)
-                if y
+                .values_list('check_in_date__year', 'check_out_date__year')
+            )
+            years = sorted({
+                y for pair in year_rows for y in pair if y
             })
         else:
             years = []
