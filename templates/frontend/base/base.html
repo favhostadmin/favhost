@@ -105,6 +105,27 @@
     }
     }
   </style>
+  <script>
+    // Global display-currency config, driven by the viewer's profile currency
+    // (or the guest-selected currency on public host pages). Stored prices are
+    // USD; multiply a USD amount by CURRENCY.rate and prefix CURRENCY.symbol.
+    window.CURRENCY = {
+      code: "{{ display_currency|default:'USD' }}",
+      symbol: "{{ currency_symbol|default:'$'|escapejs }}",
+      rate: Number("{{ currency_rate|default:'1' }}") || 1
+    };
+    // Format a USD amount into the display currency (e.g. 100 -> "₹9,470.41").
+    window.fmtMoney = function (usd) {
+      var v = (Number(usd) || 0) * window.CURRENCY.rate;
+      return window.CURRENCY.symbol + v.toLocaleString(undefined, {
+        minimumFractionDigits: 2, maximumFractionDigits: 2
+      });
+    };
+    // Convert a USD amount to a plain display-currency number (no symbol).
+    window.toDisplayCurrency = function (usd) {
+      return (Number(usd) || 0) * window.CURRENCY.rate;
+    };
+  </script>
   {% block extra_head %} {% endblock %}
 </head>
 

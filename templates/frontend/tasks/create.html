@@ -1,532 +1,649 @@
 {% extends 'frontend/base/base.html' %}
 {% load static %}
+{% load currency_tags %}
 
 {% block extra_head %}
 <link href="{% static 'css/property/create.css' %}" rel="stylesheet">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/css/intlTelInput.css"/>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/css/intlTelInput.css" />
 
 <style>
-/* ── Page ── */
-.task-page {
-    display: flex;
-    flex-direction: column;
-    min-height: calc(100vh - 82px);
-    background: #f3f4f6;
-}
+    /* ── Page ── */
+    .task-page {
+        display: flex;
+        flex-direction: column;
+        min-height: calc(100vh - 82px);
+        background: #f3f4f6;
+    }
 
-.task-panels-wrap {
-    flex: 1;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 20px;
-    padding: 16px;
-    max-height: calc(100vh - 173px);
-    overflow: auto;
-}
-
-/* ── Panel card ── */
-.task-panel {
-    background: #fff;
-    border: 1px solid #d1d5db;
-    border-radius: 10px;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-}
-
-.panel-header {
-    background: #e5e7eb;
-    padding: 12px 18px;
-    font-size: 14px;
-    font-weight: 600;
-    color: #111827;
-    border-bottom: 1px solid #d1d5db;
-    flex-shrink: 0;
-}
-
-.panel-body {
-    padding: 16px 18px;
-    flex: 1;
-    overflow-y: auto;
-}
-
-/* ── Listings panel ── */
-.listings-top-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 12px;
-}
-
-.listings-label {
-    font-size: 14px;
-    font-weight: 600;
-    color: #111827;
-}
-
-.listings-search-box {
-    display: flex;
-    align-items: center;
-    border: 1px solid #d1d5db;
-    border-radius: 6px;
-    padding: 5px 8px;
-    background: #fff;
-    gap: 4px;
-}
-
-.listings-search-box input {
-    border: none;
-    outline: none;
-    font-size: 13px;
-    width: 130px;
-    color: #374151;
-    padding: 0;
-    background: transparent;
-}
-
-.search-clear-btn {
-    cursor: pointer;
-    color: #9ca3af;
-    font-size: 13px;
-    background: none;
-    border: none;
-    padding: 0 2px;
-    line-height: 1;
-    display: none;
-}
-
-.search-icon-btn {
-    color: #6b7280;
-    font-size: 14px;
-    line-height: 1;
-}
-
-/* Hidden select for form submission */
-#id_property { display: none; }
-
-/* ── Listing cards ── */
-.listing-cards-list {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    max-height: calc(100vh - 329px);
-    overflow-y: auto;
-    padding-right: 4px;
-}
-
-.listing-card {
-    display: flex;
-    align-items: center;
-    border: 1px solid #e5e7eb;
-    border-radius: 8px;
-    padding: 10px 12px;
-    cursor: pointer;
-    transition: border-color 0.15s;
-    background: #fff;
-    user-select: none;
-}
-
-.listing-card:hover { border-color: #93c5fd; }
-
-.listing-card-img {
-    width: 68px;
-    height: 56px;
-    object-fit: cover;
-    border-radius: 6px;
-    margin-right: 12px;
-    flex-shrink: 0;
-    border: 1px solid #e5e7eb;
-}
-
-.listing-card-info {
-    flex: 1;
-    min-width: 0;
-}
-
-.listing-card-title {
-    font-size: 14px;
-    font-weight: 600;
-    color: #111827;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    margin-bottom: 2px;
-}
-
-.listing-card-location {
-    font-size: 12px;
-    color: #6b7280;
-    margin-bottom: 2px;
-}
-
-.listing-card-price {
-    font-size: 13px;
-    color: #374151;
-}
-
-/* Square checkbox */
-.listing-check {
-    width: 20px;
-    height: 20px;
-    border: 2px solid #d1d5db;
-    border-radius: 4px;
-    flex-shrink: 0;
-    margin-left: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: #fff;
-    transition: all 0.15s;
-    font-size: 13px;
-    color: transparent;
-}
-
-.listing-card.selected .listing-check {
-    background: #3b82f6;
-    border-color: #3b82f6;
-    color: #fff;
-}
-
-.listing-card.hidden-card { display: none; }
-
-/* ── Right panel form ── */
-.form-2col {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px 20px;
-}
-
-.form-field { display: flex; flex-direction: column; }
-.form-field.full-width { grid-column: 1 / -1; }
-
-.form-field > label {
-    display: block;
-    font-size: 14px;
-    font-weight: 700;
-    color: #191919;
-    margin-bottom: 5px;
-    text-transform: uppercase;
-    letter-spacing: 0.03em;
-}
-
-.required-star { color: #e53e3e; }
-
-.form-field input[type="text"],
-.form-field input[type="email"],
-.form-field input[type="date"],
-.form-field input[type="tel"],
-.form-field select,
-.form-field textarea {
-    width: 100%;
-    border: 1px solid #d1d5db;
-    border-radius: 6px;
-    padding: 8px 10px;
-    font-size: 14px;
-    font-family: inherit;
-    color: #111827;
-    background: #fff;
-    outline: none;
-    transition: border-color 0.15s;
-    box-sizing: border-box;
-}
-
-.form-field input:focus,
-.form-field select:focus,
-.form-field textarea:focus {
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 2px rgba(59,130,246,0.1);
-}
-
-.form-field textarea {
-    resize: vertical;
-    min-height: 110px;
-}
-
-/* Input with trailing icon */
-.input-icon-wrap { position: relative; }
-.input-icon-wrap > input,
-.input-icon-wrap > select { padding-right: 34px; }
-.input-icon-wrap .field-icon {
-    position: absolute;
-    right: 10px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: #9ca3af;
-    pointer-events: none;
-    font-size: 15px;
-    line-height: 1;
-}
-
-/* Repeat till label row with "No end date" */
-.repeat-till-label-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 5px;
-}
-
-.repeat-till-label-row > label { margin-bottom: 0;  font-size: 14px;
-    color: #191919; font-weight: 700; }
-
-.no-end-date-wrap {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    font-size: 14px;
-    color: #191919;
-    cursor: pointer;
-    font-weight: 700;
-    text-transform: none;
-    letter-spacing: 0;
-}
-
-.no-end-date-wrap input[type="checkbox"] {
-    width: 14px;
-    height: 14px;
-    cursor: pointer;
-    margin: 0;
-    accent-color: #3b82f6;
-}
-
-/* Attachment field */
-.task-attach-field {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    border: 1px solid #d1d5db;
-    border-radius: 6px;
-    padding: 8px 10px;
-    background: #fff;
-    cursor: pointer;
-    min-height: 38px;
-    transition: border-color 0.15s;
-}
-.task-attach-field:hover,
-.task-attach-field.dragover { border-color: #3b82f6; }
-.task-attach-label {
-    flex: 1;
-    font-size: 14px;
-    color: #9ca3af;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-.task-attach-label.has-files { color: #111827; }
-.task-attach-icon {
-    background: none;
-    border: none;
-    padding: 0 0 0 8px;
-    cursor: pointer;
-    color: #6b7280;
-    display: flex;
-    align-items: center;
-    flex-shrink: 0;
-    line-height: 1;
-}
-.task-preview-scroll {
-    max-height: 200px;
-    overflow-y: auto;
-    margin-top: 8px;
-    border: 1px solid #e5e7eb;
-    border-radius: 6px;
-    padding: 8px;
-    background: #f9fafb;
-}
-
-/* Preview grid */
-.task-preview-grid {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    grid-column: 1 / -1;
-    justify-content: center;
-}
-.task-preview-item {
-    position: relative;
-    width: 80px;
-    height: 80px;
-    border-radius: 8px;
-    overflow: hidden;
-    border: 1px solid #e5e7eb;
-}
-.task-preview-item img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
-}
-.task-preview-item .task-remove-btn {
-    position: absolute;
-    top: 3px;
-    right: 3px;
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    background: #ef4444;
-    color: #fff;
-    border: none;
-    font-size: 13px;
-    line-height: 1;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0;
-}
-.task-preview-name {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: rgba(0,0,0,0.55);
-    color: #fff;
-    font-size: 9px;
-    padding: 2px 4px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-/* Time dropdown */
-.time_dropdown { position: relative; }
-.time_dropdown-toggle {
-    width: 100%;
-    border: 1px solid #d1d5db;
-    border-radius: 6px;
-    padding: 8px 34px 8px 10px;
-    font-size: 14px;
-    color: #111827;
-    background: #fff;
-    cursor: pointer;
-    min-height: 38px;
-    display: flex;
-    align-items: center;
-    position: relative;
-}
-.time_dropdown-toggle::after { display: none !important; }
-.time_dropdown-toggle-arrow {
-    position: absolute;
-    right: 10px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: #9ca3af;
-    font-size: 15px;
-    pointer-events: none;
-}
-.time_dropdown-menu {
-    display: none;
-    position: absolute;
-    top: calc(100% + 2px);
-    left: 0;
-    right: 0;
-    background: #fff;
-    border: 1px solid #d1d5db;
-    border-radius: 6px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-    z-index: 100;
-    overflow: hidden;
-}
-.time_dropdown.open .time_dropdown-menu { display: block; }
-.time_dropdown-menu .options {
-    max-height: 180px;
-    overflow-y: auto;
-    padding: 4px;
-}
-.time_dropdown-menu .option {
-    padding: 7px 10px;
-    font-size: 14px;
-    cursor: pointer;
-    border-radius: 4px;
-    color: #374151;
-}
-.time_dropdown-menu .option:hover { background: #f0f7ff; }
-.time_dropdown-menu .option.selected { background: #eff6ff; color: #3b82f6; font-weight: 500; }
-.scroll-arrow {
-    text-align: center;
-    padding: 4px;
-    cursor: pointer;
-    color: #9ca3af;
-    font-size: 11px;
-    user-select: none;
-}
-.scroll-arrow:hover { background: #f9fafb; }
-
-/* Custom select arrow */
-.custom-select-wrap { position: relative; }
-.custom-select-wrap select { appearance: none; -webkit-appearance: none; padding-right: 32px; }
-.custom-select-wrap::after {
-    content: '';
-    position: absolute;
-    right: 12px;
-    top: 50%;
-    transform: translateY(-50%);
-    border-left: 4px solid transparent;
-    border-right: 4px solid transparent;
-    border-top: 5px solid #6b7280;
-    pointer-events: none;
-}
-
-/* intl-tel-input */
-.iti { width: 100%; }
-.task_phone .iti__country-list--dropup { max-width: 324px; overflow-x: hidden; }
-
-/* Action bar */
-.action-buttons {
-    background: #E7E7E9;
-    padding: 10px 16px;
-    flex-shrink: 0;
-}
-.action-buttons span { color: #fff; font-size: 14px; font-weight: 500; }
-.action-buttons img { filter: brightness(0) invert(1); }
-.btn-group { display: flex; align-items: center; }
-.btn-create {
-    background: transparent;
-    border: none;
-    color: #fff;
-    font-size: 14px;
-    font-weight: 600;
-    padding: 6px 14px;
-    cursor: pointer;
-}
-.btn-cancel {
-    color: #fff;
-    font-size: 14px;
-    font-weight: 600;
-    padding: 6px 14px;
-    text-decoration: none;
-}
-.btn-divider {
-    width: 1px;
-    height: 20px;
-    background: rgba(255,255,255,0.4);
-}
-
-@media (max-width: 991.98px) {
     .task-panels-wrap {
-        grid-template-columns: 1fr;
-        max-height: none;
-        overflow: visible;
+        flex: 1;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+        padding: 16px;
+        max-height: calc(100vh - 173px);
+        overflow: auto;
     }
-    .listing-cards-list { max-height: 320px; overflow-y: auto; }
-    .action-buttons {
-        background: #E7E7E9 !important;
-    }
-    .action-buttons span { color: #000 !important; }
-    .action-buttons img { filter: brightness(0) !important; }
-    .btn-create, .btn-cancel { color: #1d74b2 !important; }
-    .btn-group {
-        border: 2px solid #7f8a95;
-        border-radius: 20px;
-        overflow: hidden;
-        background: #fff;
-    }
-}
 
-@media (max-width: 640px) {
-    .task-panels-wrap { padding: 8px; gap: 12px; }
-    .form-2col { grid-template-columns: 1fr; }
-    .form-field.full-width { grid-column: 1; }
-}
+    /* ── Panel card ── */
+    .task-panel {
+        background: #fff;
+        border: 1px solid #d1d5db;
+        border-radius: 10px;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .panel-header {
+        background: #e5e7eb;
+        padding: 12px 18px;
+        font-size: 14px;
+        font-weight: 600;
+        color: #111827;
+        border-bottom: 1px solid #d1d5db;
+        flex-shrink: 0;
+    }
+
+    .panel-body {
+        padding: 16px 18px;
+        flex: 1;
+        overflow-y: auto;
+    }
+
+    /* ── Listings panel ── */
+    .listings-top-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 12px;
+    }
+
+    .listings-label {
+        font-size: 14px;
+        font-weight: 600;
+        color: #111827;
+    }
+
+    .listings-search-box {
+        display: flex;
+        align-items: center;
+        border: 1px solid #d1d5db;
+        border-radius: 6px;
+        padding: 5px 8px;
+        background: #fff;
+        gap: 4px;
+    }
+
+    .listings-search-box input {
+        border: none;
+        outline: none;
+        font-size: 13px;
+        width: 130px;
+        color: #374151;
+        padding: 0;
+        background: transparent;
+    }
+
+    .search-clear-btn {
+        cursor: pointer;
+        color: #9ca3af;
+        font-size: 13px;
+        background: none;
+        border: none;
+        padding: 0 2px;
+        line-height: 1;
+        display: none;
+    }
+
+    .search-icon-btn {
+        color: #6b7280;
+        font-size: 14px;
+        line-height: 1;
+    }
+
+    /* Hidden select for form submission */
+    #id_property {
+        display: none;
+    }
+
+    /* ── Listing cards ── */
+    .listing-cards-list {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        max-height: calc(100vh - 329px);
+        overflow-y: auto;
+        padding-right: 4px;
+    }
+
+    .listing-card {
+        display: flex;
+        align-items: center;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        padding: 10px 12px;
+        cursor: pointer;
+        transition: border-color 0.15s;
+        background: #fff;
+        user-select: none;
+    }
+
+    .listing-card:hover {
+        border-color: #93c5fd;
+    }
+
+    .listing-card-img {
+        width: 68px;
+        height: 56px;
+        object-fit: cover;
+        border-radius: 6px;
+        margin-right: 12px;
+        flex-shrink: 0;
+        border: 1px solid #e5e7eb;
+    }
+
+    .listing-card-info {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .listing-card-title {
+        font-size: 14px;
+        font-weight: 600;
+        color: #111827;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        margin-bottom: 2px;
+    }
+
+    .listing-card-location {
+        font-size: 12px;
+        color: #6b7280;
+        margin-bottom: 2px;
+    }
+
+    .listing-card-price {
+        font-size: 13px;
+        color: #374151;
+    }
+
+    /* Square checkbox */
+    .listing-check {
+        width: 20px;
+        height: 20px;
+        border: 2px solid #d1d5db;
+        border-radius: 4px;
+        flex-shrink: 0;
+        margin-left: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #fff;
+        transition: all 0.15s;
+        font-size: 13px;
+        color: transparent;
+    }
+
+    .listing-card.selected .listing-check {
+        background: #3b82f6;
+        border-color: #3b82f6;
+        color: #fff;
+    }
+
+    .listing-card.hidden-card {
+        display: none;
+    }
+
+    /* ── Right panel form ── */
+    .form-2col {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px 20px;
+    }
+
+    .form-field {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .form-field.full-width {
+        grid-column: 1 / -1;
+    }
+
+    .form-field>label {
+        display: block;
+        font-size: 14px;
+        font-weight: 700;
+        color: #191919;
+        margin-bottom: 5px;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+    }
+
+    .required-star {
+        color: #e53e3e;
+    }
+
+    .form-field input[type="text"],
+    .form-field input[type="email"],
+    .form-field input[type="date"],
+    .form-field input[type="tel"],
+    .form-field select,
+    .form-field textarea {
+        width: 100%;
+        border: 1px solid #d1d5db;
+        border-radius: 6px;
+        padding: 8px 10px;
+        font-size: 14px;
+        font-family: inherit;
+        color: #111827;
+        background: #fff;
+        outline: none;
+        transition: border-color 0.15s;
+        box-sizing: border-box;
+    }
+
+    .form-field input:focus,
+    .form-field select:focus,
+    .form-field textarea:focus {
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+    }
+
+    .form-field textarea {
+        resize: vertical;
+        min-height: 110px;
+    }
+
+    /* Input with trailing icon */
+    .input-icon-wrap {
+        position: relative;
+    }
+
+    .input-icon-wrap>input,
+    .input-icon-wrap>select {
+        padding-right: 34px;
+    }
+
+    .input-icon-wrap .field-icon {
+        position: absolute;
+        right: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #9ca3af;
+        pointer-events: none;
+        font-size: 15px;
+        line-height: 1;
+    }
+
+    /* Repeat till label row with "No end date" */
+    .repeat-till-label-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 5px;
+    }
+
+    .repeat-till-label-row>label {
+        margin-bottom: 0;
+        font-size: 14px;
+        color: #191919;
+        font-weight: 700;
+    }
+
+    .no-end-date-wrap {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 14px;
+        color: #191919;
+        cursor: pointer;
+        font-weight: 700;
+        text-transform: none;
+        letter-spacing: 0;
+    }
+
+    .no-end-date-wrap input[type="checkbox"] {
+        width: 14px;
+        height: 14px;
+        cursor: pointer;
+        margin: 0;
+        accent-color: #3b82f6;
+    }
+
+    /* Attachment field */
+    .task-attach-field {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border: 1px solid #d1d5db;
+        border-radius: 6px;
+        padding: 8px 10px;
+        background: #fff;
+        cursor: pointer;
+        min-height: 38px;
+        transition: border-color 0.15s;
+    }
+
+    .task-attach-field:hover,
+    .task-attach-field.dragover {
+        border-color: #3b82f6;
+    }
+
+    .task-attach-label {
+        flex: 1;
+        font-size: 14px;
+        color: #9ca3af;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .task-attach-label.has-files {
+        color: #111827;
+    }
+
+    .task-attach-icon {
+        background: none;
+        border: none;
+        padding: 0 0 0 8px;
+        cursor: pointer;
+        color: #6b7280;
+        display: flex;
+        align-items: center;
+        flex-shrink: 0;
+        line-height: 1;
+    }
+
+    .task-preview-scroll {
+        max-height: 200px;
+        overflow-y: auto;
+        margin-top: 8px;
+        border: 1px solid #e5e7eb;
+        border-radius: 6px;
+        padding: 8px;
+        background: #f9fafb;
+    }
+
+    /* Preview grid */
+    .task-preview-grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        grid-column: 1 / -1;
+        justify-content: center;
+    }
+
+    .task-preview-item {
+        position: relative;
+        width: 80px;
+        height: 80px;
+        border-radius: 8px;
+        overflow: hidden;
+        border: 1px solid #e5e7eb;
+    }
+
+    .task-preview-item img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+    }
+
+    .task-preview-item .task-remove-btn {
+        position: absolute;
+        top: 3px;
+        right: 3px;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background: #ef4444;
+        color: #fff;
+        border: none;
+        font-size: 13px;
+        line-height: 1;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+    }
+
+    .task-preview-name {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: rgba(0, 0, 0, 0.55);
+        color: #fff;
+        font-size: 9px;
+        padding: 2px 4px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    /* Time dropdown */
+    .time_dropdown {
+        position: relative;
+    }
+
+    .time_dropdown-toggle {
+        width: 100%;
+        border: 1px solid #d1d5db;
+        border-radius: 6px;
+        padding: 8px 34px 8px 10px;
+        font-size: 14px;
+        color: #111827;
+        background: #fff;
+        cursor: pointer;
+        min-height: 38px;
+        display: flex;
+        align-items: center;
+        position: relative;
+    }
+
+    .time_dropdown-toggle::after {
+        display: none !important;
+    }
+
+    .time_dropdown-toggle-arrow {
+        position: absolute;
+        right: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #9ca3af;
+        font-size: 15px;
+        pointer-events: none;
+    }
+
+    .time_dropdown-menu {
+        display: none;
+        position: absolute;
+        top: calc(100% + 2px);
+        left: 0;
+        right: 0;
+        background: #fff;
+        border: 1px solid #d1d5db;
+        border-radius: 6px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        z-index: 100;
+        overflow: hidden;
+    }
+
+    .time_dropdown.open .time_dropdown-menu {
+        display: block;
+    }
+
+    .time_dropdown-menu .options {
+        max-height: 180px;
+        overflow-y: auto;
+        padding: 4px;
+    }
+
+    .time_dropdown-menu .option {
+        padding: 7px 10px;
+        font-size: 14px;
+        cursor: pointer;
+        border-radius: 4px;
+        color: #374151;
+    }
+
+    .time_dropdown-menu .option:hover {
+        background: #f0f7ff;
+    }
+
+    .time_dropdown-menu .option.selected {
+        background: #eff6ff;
+        color: #3b82f6;
+        font-weight: 500;
+    }
+
+    .scroll-arrow {
+        text-align: center;
+        padding: 4px;
+        cursor: pointer;
+        color: #9ca3af;
+        font-size: 11px;
+        user-select: none;
+    }
+
+    .scroll-arrow:hover {
+        background: #f9fafb;
+    }
+
+    /* Custom select arrow */
+    .custom-select-wrap {
+        position: relative;
+    }
+
+    .custom-select-wrap select {
+        appearance: none;
+        -webkit-appearance: none;
+        padding-right: 32px;
+    }
+
+    .custom-select-wrap::after {
+        content: '';
+        position: absolute;
+        right: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        border-left: 4px solid transparent;
+        border-right: 4px solid transparent;
+        border-top: 5px solid #6b7280;
+        pointer-events: none;
+    }
+
+    /* intl-tel-input */
+    .iti {
+        width: 100%;
+    }
+
+    .task_phone .iti__country-list--dropup {
+        max-width: 324px;
+        overflow-x: hidden;
+    }
+
+    /* Action bar */
+    .action-buttons {
+        background: #E7E7E9;
+        padding: 10px 16px;
+        flex-shrink: 0;
+    }
+
+    .action-buttons span {
+        color: #fff;
+        font-size: 14px;
+        font-weight: 500;
+    }
+
+    .action-buttons img {
+        filter: brightness(0) invert(1);
+    }
+
+    .btn-group {
+        display: flex;
+        align-items: center;
+    }
+
+    .btn-create {
+        background: transparent;
+        border: none;
+        color: #fff;
+        font-size: 14px;
+        font-weight: 600;
+        padding: 6px 14px;
+        cursor: pointer;
+    }
+
+    .btn-cancel {
+        color: #fff;
+        font-size: 14px;
+        font-weight: 600;
+        padding: 6px 14px;
+        text-decoration: none;
+    }
+
+    .btn-divider {
+        width: 1px;
+        height: 20px;
+        background: rgba(255, 255, 255, 0.4);
+    }
+
+    @media (max-width: 991.98px) {
+        .task-panels-wrap {
+            grid-template-columns: 1fr;
+            max-height: none;
+            overflow: visible;
+        }
+
+        .listing-cards-list {
+            max-height: 320px;
+            overflow-y: auto;
+        }
+
+        .action-buttons {
+            background: #E7E7E9 !important;
+        }
+
+        .action-buttons span {
+            color: #000 !important;
+        }
+
+        .action-buttons img {
+            filter: brightness(0) !important;
+        }
+
+        .btn-create,
+        .btn-cancel {
+            color: #1d74b2 !important;
+        }
+
+        .btn-group {
+            border: 2px solid #7f8a95;
+            border-radius: 20px;
+            overflow: hidden;
+            background: #fff;
+        }
+    }
+
+    @media (max-width: 640px) {
+        .task-panels-wrap {
+            padding: 8px;
+            gap: 12px;
+        }
+
+        .form-2col {
+            grid-template-columns: 1fr;
+        }
+
+        .form-field.full-width {
+            grid-column: 1;
+        }
+    }
 </style>
 {% endblock extra_head %}
 
@@ -550,204 +667,211 @@
                 </div>
             </div>
         </div>
-
-        <!-- Two panels -->
-        <div class="task-panels-wrap">
-
-            <!-- ── LEFT: Listings ── -->
-            <div class="task-panel">
-                <div class="panel-header">Listings</div>
-                <div id="listingError" style="display:none;color:#dc3545;font-size:13px;padding:6px 16px;background:#fff3f3;border-bottom:1px solid #fcc;">Please select a listing before saving.</div>
-                <div class="panel-body">
-                    <!-- Hidden select for form submission -->
-                    <select name="property" id="id_property"
-                        {% if is_edit and task.repeat != 'None' %}disabled{% endif %}
-                        {% if request.GET.property_id %}disabled{% endif %}>
-                        {% if not is_edit and not request.GET.property_id and not form.property.value %}
+        <div style="max-height: calc(100vh - 136px);min-height: calc(100vh - 136px); overflow-y:auto;">
+            <div class="row m-0 main_row_div">
+                <div class="col-lg-6 p-lg-3 p-2">
+                    <div class="form-section full-width">
+                        <label>Select the listing<span class="required">*</span></label>
+                        <select name="property" class="form-control property-select" id="id_property" required {% if
+                            is_edit and task.repeat !='None' %}disabled{% endif %} {% if request.GET.property_id
+                            %}disabled{% endif %}>
+                            {% if not is_edit and not request.GET.property_id %}
                             <option value="" selected disabled>Select a listing</option>
-                        {% endif %}
-                        {% for prop in properties %}
-                            <option value="{{ prop.id }}"
-                                    data-image="{{ prop.get_primary_image_url }}"
-                                    data-location="{{ prop.location_display }}"
-                                    data-price="{{ prop.price_per_night }}"
-                                    data-guest="{{ prop.guest }}"
-                                    {% if is_edit and task.property.id == prop.id %}selected
-                                    {% elif form.property.value == prop.id|stringformat:"s" %}selected
-                                    {% elif request.GET.property_id and request.GET.property_id == prop.id|stringformat:"s" %}selected{% endif %}>
+                            {% endif %}
+                            {% for prop in properties %}
+                            <option value="{{ prop.id }}" data-image="{{ prop.get_primary_image_url }}"
+                                data-location="{{ prop.location_display }}" data-price="{{ prop.price_per_night }}"
+                                data-guest="{{ prop.guest }}" {% if is_edit and task.property.id==prop.id %}selected{%
+                                endif %} {% if request.GET.property_id and
+                                request.GET.property_id==prop.id|stringformat:"s" %}selected{% endif %}>
                                 {{ prop.title }}
                             </option>
-                        {% endfor %}
-                    </select>
-                    {% if request.GET.property_id %}
-                        <input type="hidden" name="property" value="{{ request.GET.property_id }}">
-                    {% endif %}
-
-                    <!-- Listings top row -->
-                    <div class="listings-top-row">
-                        <span class="listings-label">Select Listings</span>
-                        <div class="listings-search-box">
-                            <input type="text" id="listingSearch" placeholder="Search" autocomplete="off">
-                            <button type="button" class="search-clear-btn" id="searchClearBtn">&#x2715;</button>
-                            <span class="search-icon-btn">&#128269;</span>
-                        </div>
-                    </div>
-
-                    <!-- Cards -->
-                    <div class="listing-cards-list {% if is_edit and task.repeat != 'None' %}pe-none opacity-50{% endif %} {% if request.GET.property_id %}pe-none opacity-50{% endif %}" id="listingCardsList"></div>
-                </div>
-            </div>
-
-            <!-- ── RIGHT: Task details ── -->
-            <div class="task-panel">
-                <div class="panel-header">Task details</div>
-                <div class="panel-body">
-                    {% if form.errors %}
-                    <div style="color:#dc3545;font-size:13px;padding:8px 12px;background:#fff3f3;border:1px solid #fcc;border-radius:6px;margin-bottom:12px;">
-                        Please fix the following errors:
-                        <ul style="margin:4px 0 0 16px;padding:0;">
-                        {% for field, errors in form.errors.items %}
-                            {% for error in errors %}
-                            <li><strong>{{ field|capfirst }}</strong>: {{ error }}</li>
                             {% endfor %}
-                        {% endfor %}
-                        </ul>
+                        </select>
+                        {% if request.GET.property_id %}
+                        <input type="hidden" name="property" value="{{ request.GET.property_id }}">
+                        {% endif %}
+
+                        <!-- Listings top row -->
+                        <div class="listings-top-row">
+                            <span class="listings-label">Select Listings</span>
+                            <div class="listings-search-box">
+                                <input type="text" id="listingSearch" placeholder="Search" autocomplete="off">
+                                <button type="button" class="search-clear-btn" id="searchClearBtn">&#x2715;</button>
+                                <span class="search-icon-btn">&#128269;</span>
+                            </div>
+                        </div>
+
+                        <!-- Cards -->
+                        <div class="listing-cards-list {% if is_edit and task.repeat != 'None' %}pe-none opacity-50{% endif %} {% if request.GET.property_id %}pe-none opacity-50{% endif %}"
+                            id="listingCardsList"></div>
                     </div>
-                    {% endif %}
-                    <div class="form-2col">
+                </div>
 
-                        <!-- Row 1: Task Title | Type -->
-                        <div class="form-field">
-                            <label>Task Title <span class="required-star">*</span></label>
-                            <input type="text" name="title" id="taskTitle" placeholder="Enter task title" value="{{ form.title.value|default_if_none:'' }}" required>
+                <!-- ── RIGHT: Task details ── -->
+                <div class="task-panel">
+                    <div class="panel-header">Task details</div>
+                    <div class="panel-body">
+                        {% if form.errors %}
+                        <div
+                            style="color:#dc3545;font-size:13px;padding:8px 12px;background:#fff3f3;border:1px solid #fcc;border-radius:6px;margin-bottom:12px;">
+                            Please fix the following errors:
+                            <ul style="margin:4px 0 0 16px;padding:0;">
+                                {% for field, errors in form.errors.items %}
+                                {% for error in errors %}
+                                <li><strong>{{ field|capfirst }}</strong>: {{ error }}</li>
+                                {% endfor %}
+                                {% endfor %}
+                            </ul>
                         </div>
+                        {% endif %}
+                        <div class="form-2col">
 
-                        <div class="form-field">
-                            <label>Type <span class="required-star">*</span></label>
-                            <div class="custom-select-wrap">
-                                {{ form.task_type }}
+                            <!-- Row 1: Task Title | Type -->
+                            <div class="form-field">
+                                <label>Task Title <span class="required-star">*</span></label>
+                                <input type="text" name="title" id="taskTitle" placeholder="Enter task title"
+                                    value="{{ form.title.value|default_if_none:'' }}" required>
                             </div>
-                        </div>
 
-                        <!-- Row 2: Task description (full-width) -->
-                        <div class="form-field full-width">
-                            <label>Task description</label>
-                            <textarea name="details" id="taskDetails" placeholder="Briefly describe the task" maxlength="100" rows="4">{{ form.details.value|default_if_none:'' }}</textarea>
-                            <span style="display:block;text-align:right;font-size:11px;color:#9ca3af;margin-top:3px;" id="charCount">0/100</span>
-                        </div>
-
-                        <!-- If other -->
-                        <div class="form-field full-width" id="otherExplanationField" style="display:none;">
-                            <label>If others, explain</label>
-                            <input type="text" name="other_explanation" id="otherExplanation" placeholder="Explain if type is 'Other'" value="{{ form.other_explanation.value|default_if_none:'' }}">
-                        </div>
-
-                        <!-- Date -->
-                        <div class="form-field">
-                            <label>Date <span class="required-star">*</span></label>
-                            <div class="input-icon-wrap">
-                                {{ form.date }}
-                                <span class="field-icon">&#128197;</span>
-                            </div>
-                        </div>
-
-                        <!-- Time -->
-                        <div class="form-field">
-                            <label>Time <span class="required-star">*</span></label>
-                            <div class="time_dropdown" id="taskTimeDropdown">
-                                <div class="time_dropdown-toggle">
-                                    <span class="time_dropdown-toggle-arrow">&#128336;</span>
-                                </div>
-                                <div class="time_dropdown-menu">
-                                    <div class="scroll-arrow top" data-dir="up">&#9650;</div>
-                                    <div class="options"></div>
-                                    <div class="scroll-arrow bottom" data-dir="down">&#9660;</div>
+                            <div class="form-field">
+                                <label>Type <span class="required-star">*</span></label>
+                                <div class="custom-select-wrap">
+                                    {{ form.task_type }}
                                 </div>
                             </div>
-                            {{ form.time }}
-                        </div>
 
-                        <!-- Repeat -->
-                        <div class="form-field">
-                            <label>Repeat <span class="required-star">*</span></label>
-                            <div class="custom-select-wrap">
-                                {{ form.repeat }}
+                            <!-- Row 2: Task description (full-width) -->
+                            <div class="form-field full-width">
+                                <label>Task description</label>
+                                <textarea name="details" id="taskDetails" placeholder="Briefly describe the task"
+                                    maxlength="100" rows="4">{{ form.details.value|default_if_none:'' }}</textarea>
+                                <span
+                                    style="display:block;text-align:right;font-size:11px;color:#9ca3af;margin-top:3px;"
+                                    id="charCount">0/100</span>
                             </div>
-                        </div>
 
-                        <!-- Repeat till -->
-                        <div class="form-field" id="repeatTillSection">
-                            <div class="repeat-till-label-row">
-                                <label>Repeat till <span class="required-star">*</span></label>
-                                <label class="no-end-date-wrap">
-                                    <input type="checkbox" id="noEndDateCheck"> No end date
-                                </label>
+                            <!-- If other -->
+                            <div class="form-field full-width" id="otherExplanationField" style="display:none;">
+                                <label>If others, explain</label>
+                                <input type="text" name="other_explanation" id="otherExplanation"
+                                    placeholder="Explain if type is 'Other'"
+                                    value="{{ form.other_explanation.value|default_if_none:'' }}">
                             </div>
-                            <div class="input-icon-wrap">
-                                {{ form.repeat_till }}
-                                <span class="field-icon">&#128197;</span>
+
+                            <!-- Date -->
+                            <div class="form-field">
+                                <label>Date <span class="required-star">*</span></label>
+                                <div class="input-icon-wrap">
+                                    {{ form.date }}
+                                    <span class="field-icon">&#128197;</span>
+                                </div>
                             </div>
-                        </div>
 
-                        <!-- Assigned to -->
-                        <div class="form-field">
-                            <label>Assigned to <span class="required-star">*</span></label>
-                            <input type="text" name="assigned_to" id="assignedTo" placeholder="Enter name" value="{{ form.assigned_to.value|default_if_none:'' }}" required>
-                        </div>
-
-                        <!-- Phone -->
-                        <div class="form-field task_phone">
-                            <label>Phone <span class="required-star">*</span></label>
-                            <input type="tel" name="phone" id="phone" placeholder="Enter phone number" value="{{ form.phone.value|default_if_none:'' }}" required>
-                            <input type="hidden" name="country_code" id="id_country_code">
-                        </div>
-
-                        <!-- Email -->
-                        <div class="form-field">
-                            <label>Email</label>
-                            <input type="email" name="email" id="taskEmail" placeholder="Enter email" value="{{ form.email.value|default_if_none:'' }}">
-                        </div>
-
-                        <!-- Attachments -->
-                        <div class="form-field ">
-                            <label>Attachments</label>
-                            <div class="task-attach-field" id="taskUploadArea">
-                                <span class="task-attach-label" id="attachLabel">Add attachments</span>
-                                <button type="button" class="task-attach-icon" id="attachIconBtn" title="Browse files">
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                                        <polyline points="17 8 12 3 7 8"/>
-                                        <line x1="12" y1="3" x2="12" y2="15"/>
-                                    </svg>
-                                </button>
-                            </div>
-                            <div class="task-preview-scroll" id="taskPreviewScroll" style="display:none;">
-                                <div class="task-preview-grid" id="taskPreviewGrid"></div>
-                            </div>
-                            {% if is_edit and existing_images %}
-                            <div class="task-preview-scroll" id="taskExistingGrid" style="margin-top:8px;">
-                                <div class="task-preview-grid">
-                                    {% for img in existing_images %}
-                                    <div class="task-preview-item" id="taskImg-{{ img.id }}">
-                                        <a href="{{ img.image.url }}" target="_blank">
-                                            <img src="{{ img.image.url }}" alt="attachment">
-                                        </a>
-                                        <button type="button" class="task-remove-btn" data-image-id="{{ img.id }}">&#xd7;</button>
+                            <!-- Time -->
+                            <div class="form-field">
+                                <label>Time <span class="required-star">*</span></label>
+                                <div class="time_dropdown" id="taskTimeDropdown">
+                                    <div class="time_dropdown-toggle">
+                                        <span class="time_dropdown-toggle-arrow">&#128336;</span>
                                     </div>
-                                    {% endfor %}
+                                    <div class="time_dropdown-menu">
+                                        <div class="scroll-arrow top" data-dir="up">&#9650;</div>
+                                        <div class="options"></div>
+                                        <div class="scroll-arrow bottom" data-dir="down">&#9660;</div>
+                                    </div>
+                                </div>
+                                {{ form.time }}
+                            </div>
+
+                            <!-- Repeat -->
+                            <div class="form-field">
+                                <label>Repeat <span class="required-star">*</span></label>
+                                <div class="custom-select-wrap">
+                                    {{ form.repeat }}
                                 </div>
                             </div>
-                            {% endif %}
-                        </div>
-                        <input type="file" id="taskImagesInput" name="task_images" accept="image/*" multiple style="display:none;">
 
-                    </div><!-- /form-2col -->
-                </div><!-- /panel-body -->
-            </div><!-- /right panel -->
+                            <!-- Repeat till -->
+                            <div class="form-field" id="repeatTillSection">
+                                <div class="repeat-till-label-row">
+                                    <label>Repeat till <span class="required-star">*</span></label>
+                                    <label class="no-end-date-wrap">
+                                        <input type="checkbox" id="noEndDateCheck"> No end date
+                                    </label>
+                                </div>
+                                <div class="input-icon-wrap">
+                                    {{ form.repeat_till }}
+                                    <span class="field-icon">&#128197;</span>
+                                </div>
+                            </div>
 
-        </div><!-- /task-panels-wrap -->
+                            <!-- Assigned to -->
+                            <div class="form-field">
+                                <label>Assigned to <span class="required-star">*</span></label>
+                                <input type="text" name="assigned_to" id="assignedTo" placeholder="Enter name"
+                                    value="{{ form.assigned_to.value|default_if_none:'' }}" required>
+                            </div>
 
-        {% include 'frontend/base/footer.html' %}
+                            <!-- Phone -->
+                            <div class="form-field task_phone">
+                                <label>Phone <span class="required-star">*</span></label>
+                                <input type="tel" name="phone" id="phone" placeholder="Enter phone number"
+                                    value="{{ form.phone.value|default_if_none:'' }}" required>
+                                <input type="hidden" name="country_code" id="id_country_code">
+                            </div>
+
+                            <!-- Email -->
+                            <div class="form-field">
+                                <label>Email</label>
+                                <input type="email" name="email" id="taskEmail" placeholder="Enter email"
+                                    value="{{ form.email.value|default_if_none:'' }}">
+                            </div>
+
+                            <!-- Attachments -->
+                            <div class="form-field ">
+                                <label>Attachments</label>
+                                <div class="task-attach-field" id="taskUploadArea">
+                                    <span class="task-attach-label" id="attachLabel">Add attachments</span>
+                                    <button type="button" class="task-attach-icon" id="attachIconBtn"
+                                        title="Browse files">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                                            stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                            <polyline points="17 8 12 3 7 8" />
+                                            <line x1="12" y1="3" x2="12" y2="15" />
+                                        </svg>
+                                    </button>
+                                </div>
+                                <div class="task-preview-scroll" id="taskPreviewScroll" style="display:none;">
+                                    <div class="task-preview-grid" id="taskPreviewGrid"></div>
+                                </div>
+                                {% if is_edit and existing_images %}
+                                <div class="task-preview-scroll" id="taskExistingGrid" style="margin-top:8px;">
+                                    <div class="task-preview-grid">
+                                        {% for img in existing_images %}
+                                        <div class="task-preview-item" id="taskImg-{{ img.id }}">
+                                            <a href="{{ img.image.url }}" target="_blank">
+                                                <img src="{{ img.image.url }}" alt="attachment">
+                                            </a>
+                                            <button type="button" class="task-remove-btn"
+                                                data-image-id="{{ img.id }}">&#xd7;</button>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                                {% endif %}
+                            </div>
+                            <input type="file" id="taskImagesInput" name="task_images" accept="image/*" multiple
+                                style="display:none;">
+
+                        </div><!-- /form-2col -->
+                    </div><!-- /panel-body -->
+                </div><!-- /right panel -->
+
+            </div><!-- /task-panels-wrap -->
+
+            {% include 'frontend/base/footer.html' %}
     </form>
 </div>
 {% endblock content %}
@@ -757,353 +881,296 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/js/intlTelInput.min.js"></script>
 <script>
-/* ── Prevent keyboard input on date fields ── */
-document.getElementById('taskDate').addEventListener('keydown', function(e) { e.preventDefault(); });
-document.getElementById('repeatTill').addEventListener('keydown', function(e) { e.preventDefault(); });
+    /* ── Prevent keyboard input on date fields ── */
+    document.getElementById('taskDate').addEventListener('keydown', function (e) { e.preventDefault(); });
+    document.getElementById('repeatTill').addEventListener('keydown', function (e) { e.preventDefault(); });
 </script>
 <script>
-document.addEventListener('DOMContentLoaded', function () {
+    document.addEventListener('DOMContentLoaded', function () {
 
-    /* ── Char count ── */
-    const taskDetailsTextarea = document.getElementById('taskDetails');
-    const charCount = document.getElementById('charCount');
-    taskDetailsTextarea.addEventListener('input', function () {
-        charCount.textContent = this.value.length + '/100';
-    });
-    charCount.textContent = (taskDetailsTextarea.value || '').length + '/100';
+        /* ── Char count ── */
+        const taskDetailsTextarea = document.getElementById('taskDetails');
+        const charCount = document.getElementById('charCount');
+        taskDetailsTextarea.addEventListener('input', function () {
+            charCount.textContent = this.value.length + '/100';
+        });
+        charCount.textContent = (taskDetailsTextarea.value || '').length + '/100';
 
-    /* ── Repeat / repeat-till toggle ── */
-    const repeatOptionSelect = document.getElementById('repeatOption');
-    const repeatTillInput    = document.getElementById('repeatTill');
-    const noEndDateCheck     = document.getElementById('noEndDateCheck');
+        /* ── Repeat / repeat-till toggle ── */
+        const repeatOptionSelect = document.getElementById('repeatOption');
+        const repeatTillInput = document.getElementById('repeatTill');
+        const noEndDateCheck = document.getElementById('noEndDateCheck');
 
-    function toggleRepeatTill() {
-        const hasRepeat = repeatOptionSelect.value && repeatOptionSelect.value !== 'None';
-        repeatTillInput.disabled = !hasRepeat || noEndDateCheck.checked;
-        repeatTillInput.required = hasRepeat && !noEndDateCheck.checked;
-    }
-
-    repeatOptionSelect.addEventListener('change', toggleRepeatTill);
-    noEndDateCheck.addEventListener('change', function () {
-        if (this.checked) {
-            repeatTillInput.value = '';
+        function toggleRepeatTill() {
+            const hasRepeat = repeatOptionSelect.value && repeatOptionSelect.value !== 'None';
+            repeatTillInput.disabled = !hasRepeat || noEndDateCheck.checked;
+            repeatTillInput.required = hasRepeat && !noEndDateCheck.checked;
         }
-        toggleRepeatTill();
-    });
-    toggleRepeatTill();
 
-    /* ── Task type → other explanation ── */
-    const taskTypeSelect         = document.getElementById('taskType');
-    const otherExplanationField  = document.getElementById('otherExplanationField');
-    const otherExplanationInput  = document.getElementById('otherExplanation');
-
-    function toggleOtherField() {
-        const isOther = taskTypeSelect.value === 'other';
-        otherExplanationField.style.display = isOther ? 'flex' : 'none';
-        if (!isOther) otherExplanationInput.value = '';
-    }
-
-    taskTypeSelect.addEventListener('change', toggleOtherField);
-    toggleOtherField();
-
-    /* ── Date min / repeat-till min ── */
-    {% if not is_edit %}
-        const today = new Date().toISOString().split('T')[0];
-        document.getElementById('taskDate').setAttribute('min', today);
-    {% endif %}
-
-    const taskDateInput = document.getElementById('taskDate');
-    function updateRepeatTillMin() {
-        if (taskDateInput.value) {
-            repeatTillInput.min = taskDateInput.value;
-            if (repeatTillInput.value && repeatTillInput.value < taskDateInput.value) {
+        repeatOptionSelect.addEventListener('change', toggleRepeatTill);
+        noEndDateCheck.addEventListener('change', function () {
+            if (this.checked) {
                 repeatTillInput.value = '';
             }
-        }
-    }
-    taskDateInput.addEventListener('change', updateRepeatTillMin);
-    updateRepeatTillMin();
+            toggleRepeatTill();
+        });
+        toggleRepeatTill();
 
-    /* ── Edit: disable time toggle for repeating tasks ── */
-    {% if is_edit %}
+        /* ── Task type → other explanation ── */
+        const taskTypeSelect = document.getElementById('taskType');
+        const otherExplanationField = document.getElementById('otherExplanationField');
+        const otherExplanationInput = document.getElementById('otherExplanation');
+
+        function toggleOtherField() {
+            const isOther = taskTypeSelect.value === 'other';
+            otherExplanationField.style.display = isOther ? 'flex' : 'none';
+            if (!isOther) otherExplanationInput.value = '';
+        }
+
+        taskTypeSelect.addEventListener('change', toggleOtherField);
+        toggleOtherField();
+
+        /* ── Date min / repeat-till min ── */
+        {% if not is_edit %}
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('taskDate').setAttribute('min', today);
+        {% endif %}
+
+        const taskDateInput = document.getElementById('taskDate');
+        function updateRepeatTillMin() {
+            if (taskDateInput.value) {
+                repeatTillInput.min = taskDateInput.value;
+                if (repeatTillInput.value && repeatTillInput.value < taskDateInput.value) {
+                    repeatTillInput.value = '';
+                }
+            }
+        }
+        taskDateInput.addEventListener('change', updateRepeatTillMin);
+        updateRepeatTillMin();
+
+        /* ── Edit: disable time toggle for repeating tasks ── */
+        {% if is_edit %}
         const timeToggle = document.querySelector('#taskTimeDropdown .time_dropdown-toggle');
         if (timeToggle && '{{ task.repeat }}' !== 'None') timeToggle.style.pointerEvents = 'none';
-    {% endif %}
+        {% endif %}
 
-    /* ── Listing cards ── */
-    const propertySelect  = document.getElementById('id_property');
-    const listingCardsList = document.getElementById('listingCardsList');
-    const listingSearch   = document.getElementById('listingSearch');
-    const searchClearBtn  = document.getElementById('searchClearBtn');
-    const placeholderImg  = '{% static "img/property/placeholder-image.png" %}';
+        // Set minimum date for taskDate to today, but only for new tasks
+        {% if not is_edit %}
+        const taskDateInput = document.getElementById('taskDate');
+        const today = new Date().toISOString().split('T')[0];
+        taskDateInput.setAttribute('min', today);
+        {% endif %}
 
-    function buildListingCards() {
-        listingCardsList.innerHTML = '';
-        const options = propertySelect.querySelectorAll('option[value]');
-        options.forEach(function (opt) {
-            if (!opt.value) return;
-            const imageUrl = opt.dataset.image || placeholderImg;
-            const isSelected = opt.selected;
+        const taskDateInputForRepeat = document.getElementById('taskDate');
+        const repeatTillInputForRepeat = document.getElementById('repeatTill');
 
-            const card = document.createElement('div');
-            card.className = 'listing-card' + (isSelected ? ' selected' : '');
-            card.dataset.value = opt.value;
-            card.dataset.title = opt.text.toLowerCase();
+        function updateRepeatTillMinDate() {
+            if (taskDateInputForRepeat.value) {
+                repeatTillInputForRepeat.min = taskDateInputForRepeat.value;
+                if (repeatTillInputForRepeat.value && repeatTillInputForRepeat.value < taskDateInputForRepeat.value) {
+                    repeatTillInputForRepeat.value = '';
+                }
+            }
+        }
+        taskDateInputForRepeat.addEventListener('change', updateRepeatTillMinDate);
+        updateRepeatTillMinDate(); // Initial check
 
-            card.innerHTML = `
-                <img src="${imageUrl}" class="listing-card-img" alt="">
-                <div class="listing-card-info">
-                    <div class="listing-card-title">${opt.text}</div>
-                    <div class="listing-card-location">${opt.dataset.location || ''}</div>
-                    <div class="listing-card-price">${opt.dataset.price ? '$' + parseFloat(opt.dataset.price).toLocaleString(undefined,{minimumFractionDigits:2}) + ' night' : ''}</div>
-                </div>
-                <div class="listing-check">&#10003;</div>`;
+        const propertySelect = $('#id_property');
+        const propertyPreview = document.getElementById('propertyPreview');
 
-            card.addEventListener('click', function () {
-                listingCardsList.querySelectorAll('.listing-card').forEach(c => c.classList.remove('selected'));
-                card.classList.add('selected');
-                propertySelect.value = opt.value;
-                const listingError = document.getElementById('listingError');
-                if (listingError) listingError.style.display = 'none';
-            });
+        function formatProperty(property) {
+            if (!property.id) return property.text;
+            const $el = $(property.element);
+            const imageUrl = $el.data('image') || '{% static "img/property/placeholder-image.png" %}';
+            const title = property.text;
+            const location = $el.data('location') || '';
+            const price = $el.data('price') || '';
+            const guest = $el.data('guest') || '';
+            return $(
+                `<div class="property-card-select2">
+                    <img src="${imageUrl}" class="property-card-img" />
+                    <div class="property-card-info">
+                        <div class="listing-title">${title}</div>
+                        <div class="listing-location">${location}</div>
+                        <div class="listing-price">
+                            ${price ? `$${parseFloat(price).toLocaleString(undefined, { minimumFractionDigits: 2 })} night` : ''}
+                            ${guest ? `, ${guest} Guests (max)` : ''}
+                        </div>
+                    </div>
+                </div>`
+            );
+        }
 
-            listingCardsList.appendChild(card);
+        propertySelect.select2({
+            templateResult: formatProperty,
+            templateSelection: formatProperty,
+            dropdownAutoWidth: true,
+            width: '100%',
+            minimumResultsForSearch: 5,
+            closeOnSelect: false
+        });
 
-            if (isSelected) {
-                setTimeout(() => card.scrollIntoView({ block: 'nearest' }), 0);
+        if (!propertySelect.is(':disabled')) {
+            setTimeout(function () {
+                propertySelect.select2('open');
+            }, 0);
+        }
+
+        propertySelect.on('select2:close', function () {
+            if (!$(this).is(':disabled')) {
+                setTimeout(() => {
+                    $(this).select2('open');
+                }, 0);
             }
         });
-    }
 
-    buildListingCards();
+        propertySelect.on('change', function () {
+            const selected = $(this).find('option:selected');
 
-    /* Search filter */
-    listingSearch.addEventListener('input', function () {
-        const q = this.value.toLowerCase().trim();
-        searchClearBtn.style.display = q ? 'inline' : 'none';
-        listingCardsList.querySelectorAll('.listing-card').forEach(function (card) {
-            card.classList.toggle('hidden-card', q && !card.dataset.title.includes(q));
-        });
-    });
-
-    searchClearBtn.addEventListener('click', function () {
-        listingSearch.value = '';
-        searchClearBtn.style.display = 'none';
-        listingCardsList.querySelectorAll('.listing-card').forEach(c => c.classList.remove('hidden-card'));
-    });
-
-    /* ── Image upload ── */
-    const taskUploadArea    = document.getElementById('taskUploadArea');
-    const taskImagesInput   = document.getElementById('taskImagesInput');
-    const taskPreviewGrid   = document.getElementById('taskPreviewGrid');
-    const attachLabel       = document.getElementById('attachLabel');
-    const taskPreviewScroll = document.getElementById('taskPreviewScroll');
-    let selectedFiles = [];
-
-    taskUploadArea.addEventListener('click', () => taskImagesInput.click());
-
-    taskUploadArea.addEventListener('dragover', function (e) {
-        e.preventDefault();
-        this.classList.add('dragover');
-    });
-    taskUploadArea.addEventListener('dragleave', function () {
-        this.classList.remove('dragover');
-    });
-    taskUploadArea.addEventListener('drop', function (e) {
-        e.preventDefault();
-        this.classList.remove('dragover');
-        handleFiles(e.dataTransfer.files);
-    });
-
-    taskImagesInput.addEventListener('change', function () {
-        handleFiles(this.files);
-        this.value = '';
-    });
-
-    function updateUploadArea() {
-        const count = taskPreviewGrid.children.length;
-        const hasFiles = count > 0;
-        if (hasFiles) {
-            attachLabel.textContent = count + ' file' + (count !== 1 ? 's' : '') + ' selected';
-            attachLabel.classList.add('has-files');
-        } else {
-            attachLabel.textContent = 'Add attachments';
-            attachLabel.classList.remove('has-files');
-        }
-        taskPreviewScroll.style.display = hasFiles ? 'block' : 'none';
-    }
-
-    function handleFiles(fileList) {
-        Array.from(fileList).forEach(function (file) {
-            if (!file.type.startsWith('image/')) return;
-            selectedFiles.push(file);
-            const reader = new FileReader();
-            reader.onload = function (e) {
-                const item = document.createElement('div');
-                item.className = 'task-preview-item';
-                item.dataset.filename = file.name;
-                item.dataset.filesize = file.size;
-                item.innerHTML = `<img src="${e.target.result}" alt=""><button type="button" class="task-remove-btn new-remove" title="Remove">&#xd7;</button><div class="task-preview-name">${file.name}</div>`;
-                taskPreviewGrid.appendChild(item);
-                rebuildFileInput();
-                updateUploadArea();
-            };
-            reader.readAsDataURL(file);
-        });
-    }
-
-    taskPreviewGrid.addEventListener('click', function (e) {
-        const btn = e.target.closest('.new-remove');
-        if (!btn) return;
-        e.stopPropagation();
-        const item = btn.closest('.task-preview-item');
-        selectedFiles = selectedFiles.filter(f => !(f.name === item.dataset.filename && f.size == item.dataset.filesize));
-        item.remove();
-        rebuildFileInput();
-        updateUploadArea();
-    });
-
-    function rebuildFileInput() {
-        const dt = new DataTransfer();
-        selectedFiles.forEach(f => dt.items.add(f));
-        taskImagesInput.files = dt.files;
-    }
-
-    /* ── Delete existing image (edit mode) ── */
-    const existingGrid = document.getElementById('taskExistingGrid');
-    if (existingGrid) {
-        existingGrid.addEventListener('click', function (e) {
-            const btn = e.target.closest('.task-remove-btn[data-image-id]');
-            if (!btn) return;
-            const imageId = btn.dataset.imageId;
-            fetch('{% url "tasks:task-delete-image" %}', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value },
-                body: JSON.stringify({ image_id: imageId }),
-            }).then(r => r.json()).then(function (data) {
-                if (data.success) {
-                    document.getElementById('taskImg-' + imageId).remove();
-                }
-            });
-        });
-    }
-
-    /* ── intl-tel-input ── */
-    const phoneInputField      = document.querySelector('#phone');
-    const countryCodeHidden    = document.querySelector('#id_country_code');
-    const phoneInput = window.intlTelInput(phoneInputField, {
-        initialCountry: 'auto',
-        geoIpLookup: function (callback) {
-            fetch('https://ipapi.co/json')
-                .then(r => r.json())
-                .then(d => callback(d.country_code))
-                .catch(() => callback('us'));
-        },
-        separateDialCode: true,
-        utilsScript: 'https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/js/utils.js',
-    });
-
-    phoneInputField.addEventListener('input', function () {
-        this.value = this.value.replace(/[^0-9]/g, '');
-    });
-
-    const theForm = phoneInputField.closest('form');
-    if (theForm) {
-        theForm.addEventListener('submit', function (e) {
-            /* Validate listing selection */
-            const listingError = document.getElementById('listingError');
-            if (!propertySelect.value) {
-                e.preventDefault();
-                if (listingError) listingError.style.display = 'block';
-                document.querySelector('.task-panel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+            if (!selected.val()) {
+                propertyPreview.innerHTML = '';
+                propertyPreview.style.display = 'none';
                 return;
             }
-            if (listingError) listingError.style.display = 'none';
 
-            /* Update phone field with international number */
-            try {
-                if (phoneInput.isValidNumber()) {
-                    phoneInputField.value = phoneInput.getNumber();
-                    countryCodeHidden.value = phoneInput.getSelectedCountryData().iso2;
+            const imageUrl = selected.data('image') || '{% static "img/property/placeholder-image.png" %}';
+            const title = selected.text();
+            const location = selected.data('location') || '';
+            const price = selected.data('price') || '';
+            const guest = selected.data('guest') || '';
+
+            propertyPreview.innerHTML = `
+                <div class="property-card-select2" style="margin-top: 15px; cursor: default;">
+                    <img src="${imageUrl}" class="property-card-img" />
+                    <div class="property-card-info">
+                        <div class="listing-title">${title}</div>
+                        <div class="listing-location">${location}</div>
+                        <div class="listing-price">
+                            ${price ? `$${parseFloat(price).toLocaleString(undefined, { minimumFractionDigits: 2 })} night` : ''}
+                            ${guest ? `, ${guest} Guests (max)` : ''}
+                        </div>
+                    </div>
+                </div>`;
+            propertyPreview.style.display = 'block';
+        });
+
+        // --- intl-tel-input initialization ---
+        const phoneInputField = document.querySelector("#phone");
+        const countryCodeHiddenInput = document.querySelector("#id_country_code");
+
+        const phoneInput = window.intlTelInput(phoneInputField, {
+            initialCountry: "auto",
+            geoIpLookup: function (callback) {
+                fetch("https://ipapi.co/json")
+                    .then(res => res.json())
+                    .then(data => callback(data.country_code))
+                    .catch(() => callback("us"));
+            },
+            separateDialCode: true,
+            utilsScript: "https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/js/utils.js",
+        });
+
+        phoneInputField.addEventListener('input', function () {
+            this.value = this.value.replace(/[^0-9]/g, '');
+        });
+
+        const theForm = phoneInputField.closest('form');
+        if (theForm) {
+            theForm.addEventListener('submit', function (e) {
+                /* Validate listing selection */
+                const listingError = document.getElementById('listingError');
+                if (!propertySelect.value) {
+                    e.preventDefault();
+                    if (listingError) listingError.style.display = 'block';
+                    document.querySelector('.task-panel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    return;
                 }
-            } catch (err) {}
-        });
-    }
+                if (listingError) listingError.style.display = 'none';
 
-    /* ── Time dropdown ── */
-    function generateTimes() {
-        const times = [];
-        for (let h = 0; h < 24; h++) {
-            for (let m = 0; m < 60; m += 30) {
-                const value   = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
-                const hour12  = ((h % 12) || 12);
-                const ampm    = h < 12 ? 'AM' : 'PM';
-                const display = `${String(hour12).padStart(2,'0')}:${String(m).padStart(2,'0')} ${ampm}`;
-                times.push({ value, display });
-            }
-        }
-        return times;
-    }
-
-    function setupDropdown(dropdownId, defaultTime, hiddenInputId) {
-        const dropdown  = document.getElementById(dropdownId);
-        if (!dropdown) return;
-        const toggle    = dropdown.querySelector('.time_dropdown-toggle');
-        const optionsDiv = dropdown.querySelector('.options');
-        const hiddenInput = document.getElementById(hiddenInputId);
-        const times = generateTimes();
-
-        function fmt24(t) {
-            if (!/^\d{2}:\d{2}$/.test(t)) return defaultTime;
-            const [h, mm] = t.split(':');
-            const h24 = parseInt(h, 10);
-            const hour12 = ((h24 % 12) || 12);
-            return `${String(hour12).padStart(2,'0')}:${mm} ${h24 >= 12 ? 'PM' : 'AM'}`;
-        }
-
-        let currentValue = hiddenInput.value || defaultTime;
-        /* Inject text node before the arrow span */
-        const textNode = document.createTextNode(fmt24(currentValue));
-        toggle.insertBefore(textNode, toggle.firstChild);
-
-        let selectedOptionDiv = null;
-        times.forEach(function (t) {
-            const div = document.createElement('div');
-            div.textContent = t.display;
-            div.classList.add('option');
-            div.dataset.value = t.value;
-            if (currentValue === t.value) {
-                div.classList.add('selected');
-                selectedOptionDiv = div;
-            }
-            div.addEventListener('click', function () {
-                toggle.childNodes[0].textContent = t.display;
-                hiddenInput.value = t.value;
-                optionsDiv.querySelectorAll('.option').forEach(o => o.classList.remove('selected'));
-                div.classList.add('selected');
-                selectedOptionDiv = div;
-                dropdown.classList.remove('open');
+                /* Update phone field with international number */
+                try {
+                    if (phoneInput.isValidNumber()) {
+                        phoneInputField.value = phoneInput.getNumber();
+                        countryCodeHidden.value = phoneInput.getSelectedCountryData().iso2;
+                    }
+                } catch (err) { }
             });
-            optionsDiv.appendChild(div);
-        });
-
-        if (selectedOptionDiv) {
-            setTimeout(() => { optionsDiv.scrollTop = selectedOptionDiv.offsetTop - optionsDiv.offsetTop; }, 0);
         }
 
-        toggle.addEventListener('click', function () {
-            dropdown.classList.toggle('open');
-            if (dropdown.classList.contains('open') && selectedOptionDiv) {
-                optionsDiv.scrollTop = selectedOptionDiv.offsetTop - optionsDiv.offsetTop;
+        /* ── Time dropdown ── */
+        function generateTimes() {
+            const times = [];
+            for (let h = 0; h < 24; h++) {
+                for (let m = 0; m < 60; m += 30) {
+                    const value = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+                    const hour12 = ((h % 12) || 12);
+                    const ampm = h < 12 ? 'AM' : 'PM';
+                    const display = `${String(hour12).padStart(2, '0')}:${String(m).padStart(2, '0')} ${ampm}`;
+                    times.push({ value, display });
+                }
             }
-        });
+            return times;
+        }
 
-        document.addEventListener('click', function (e) {
-            if (!dropdown.contains(e.target)) dropdown.classList.remove('open');
-        });
-    }
+        function setupDropdown(dropdownId, defaultTime, hiddenInputId) {
+            const dropdown = document.getElementById(dropdownId);
+            if (!dropdown) return;
+            const toggle = dropdown.querySelector('.time_dropdown-toggle');
+            const optionsDiv = dropdown.querySelector('.options');
+            const hiddenInput = document.getElementById(hiddenInputId);
+            const times = generateTimes();
 
-    setupDropdown('taskTimeDropdown', '09:00', 'task_time_input');
-});
+            function fmt24(t) {
+                if (!/^\d{2}:\d{2}$/.test(t)) return defaultTime;
+                const [h, mm] = t.split(':');
+                const h24 = parseInt(h, 10);
+                const hour12 = ((h24 % 12) || 12);
+                return `${String(hour12).padStart(2, '0')}:${mm} ${h24 >= 12 ? 'PM' : 'AM'}`;
+            }
+
+            let currentValue = hiddenInput.value || defaultTime;
+            /* Inject text node before the arrow span */
+            const textNode = document.createTextNode(fmt24(currentValue));
+            toggle.insertBefore(textNode, toggle.firstChild);
+
+            let selectedOptionDiv = null;
+            times.forEach(function (t) {
+                const div = document.createElement('div');
+                div.textContent = t.display;
+                div.classList.add('option');
+                div.dataset.value = t.value;
+                if (currentValue === t.value) {
+                    div.classList.add('selected');
+                    selectedOptionDiv = div;
+                }
+                div.addEventListener('click', function () {
+                    toggle.childNodes[0].textContent = t.display;
+                    hiddenInput.value = t.value;
+                    optionsDiv.querySelectorAll('.option').forEach(o => o.classList.remove('selected'));
+                    div.classList.add('selected');
+                    selectedOptionDiv = div;
+                    dropdown.classList.remove('open');
+                });
+                optionsDiv.appendChild(div);
+            });
+
+            if (selectedOptionDiv) {
+                setTimeout(() => { optionsDiv.scrollTop = selectedOptionDiv.offsetTop - optionsDiv.offsetTop; }, 0);
+            }
+
+            toggle.addEventListener('click', function () {
+                dropdown.classList.toggle('open');
+                if (dropdown.classList.contains('open') && selectedOptionDiv) {
+                    optionsDiv.scrollTop = selectedOptionDiv.offsetTop - optionsDiv.offsetTop;
+                }
+            });
+
+            document.addEventListener('click', function (e) {
+                if (!dropdown.contains(e.target)) dropdown.classList.remove('open');
+            });
+        }
+
+        setupDropdown('taskTimeDropdown', '09:00', 'task_time_input');
+    });
 </script>
 {% endblock extra_script %}

@@ -15,9 +15,9 @@ from django.db.models import Q, Value
 from django.db.models.functions import Concat
 from calendar import monthrange
 from datetime import datetime, timedelta
-from decimal import Decimal
 from django.contrib.auth.mixins import LoginRequiredMixin
 from accounts.utils import get_visible_user_ids
+from accounts import currency
 from .enums import BOOKING_CHANNELS
 from .utils import generate_booking_payments
 from accounts.utils import get_visible_user_ids
@@ -135,7 +135,7 @@ class BookingListView(LoginRequiredMixin, ListView):
                 'nights': booking.total_nights,
                 'guests': booking.guest_count,
                 'reservation_number': booking.booking_id,
-                'total_price': f"${booking.price:.2f}",
+                'total_price': currency.money(booking.price, self.request.user.currency),
                 'platform': booking.channel.name if booking.channel else 'Others',
                 'platform_icon': booking.channel.icon.url if booking.channel and booking.channel.icon else '',
                 'guest_avatar': guest_image.image.url if guest_image else '/static/img/common/default_user_icon.png',
@@ -311,11 +311,12 @@ class BookingCreateView(LoginRequiredMixin, View):
                     check_in_time=request.POST.get('check_in_time'),
                     check_out_time=request.POST.get('check_out_time'),
                     notes=request.POST.get('notes'),
-                    price=Decimal(request.POST.get('price', '0.00')),
-                    price_per_night=Decimal(request.POST.get('price_per_night', '0.00')),
-                    deposit_fee=Decimal(request.POST.get('deposit_fee', '0.00')),
-                    application_fee=Decimal(request.POST.get('application_fee', '0.00')),
-                    cleaning_fee=Decimal(request.POST.get('cleaning_fee', '0.00'))
+                    # Amounts are submitted in the host's display currency; store as USD.
+                    price=currency.to_usd(request.POST.get('price', '0.00'), request.user.currency),
+                    price_per_night=currency.to_usd(request.POST.get('price_per_night', '0.00'), request.user.currency),
+                    deposit_fee=currency.to_usd(request.POST.get('deposit_fee', '0.00'), request.user.currency),
+                    application_fee=currency.to_usd(request.POST.get('application_fee', '0.00'), request.user.currency),
+                    cleaning_fee=currency.to_usd(request.POST.get('cleaning_fee', '0.00'), request.user.currency)
 
                 )
 
@@ -478,8 +479,9 @@ class BookingUpdateView(LoginRequiredMixin, View):
                 booking.check_in_time = request.POST.get('check_in_time')
                 booking.check_out_time = request.POST.get('check_out_time')
                 booking.notes = request.POST.get('notes')
-                booking.price = Decimal(request.POST.get('price', '0.00'))
-                booking.price_per_night = Decimal(request.POST.get('price_per_night', '0.00'))
+                # Amounts are submitted in the host's display currency; store as USD.
+                booking.price = currency.to_usd(request.POST.get('price', '0.00'), request.user.currency)
+                booking.price_per_night = currency.to_usd(request.POST.get('price_per_night', '0.00'), request.user.currency)
                 booking.save()
 
                 # --- Handle Guest Images ---
