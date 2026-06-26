@@ -667,51 +667,56 @@
                 </div>
             </div>
         </div>
-        <div style="max-height: calc(100vh - 136px);min-height: calc(100vh - 136px); overflow-y:auto;">
-            <div class="row m-0 main_row_div">
-                <div class="col-lg-6 p-lg-3 p-2">
-                    <div class="form-section full-width">
-                        <label>Select the listing<span class="required">*</span></label>
-                        <select name="property" class="form-control property-select" id="id_property" required {% if
-                            is_edit and task.repeat !='None' %}disabled{% endif %} {% if request.GET.property_id
-                            %}disabled{% endif %}>
-                            {% if not is_edit and not request.GET.property_id %}
+        <!-- Two panels -->
+        <div class="task-panels-wrap">
+
+            <!-- ── LEFT: Listings ── -->
+            <div class="task-panel">
+                <div class="panel-header">Listings</div>
+                <div id="listingError" style="display:none;color:#dc3545;font-size:13px;padding:6px 16px;background:#fff3f3;border-bottom:1px solid #fcc;">Please select a listing before saving.</div>
+                <div class="panel-body">
+                    <select name="property" id="id_property"
+                        {% if is_edit and task.repeat != 'None' %}disabled{% endif %}
+                        {% if request.GET.property_id %}disabled{% endif %}>
+                        {% if not is_edit and not request.GET.property_id and not form.property.value %}
                             <option value="" selected disabled>Select a listing</option>
-                            {% endif %}
-                            {% for prop in properties %}
-                            <option value="{{ prop.id }}" data-image="{{ prop.get_primary_image_url }}"
-                                data-location="{{ prop.location_display }}" data-price="{{ prop.price_per_night }}"
-                                data-guest="{{ prop.guest }}" {% if is_edit and task.property.id==prop.id %}selected{%
-                                endif %} {% if request.GET.property_id and
-                                request.GET.property_id==prop.id|stringformat:"s" %}selected{% endif %}>
+                        {% endif %}
+                        {% for prop in properties %}
+                            <option value="{{ prop.id }}"
+                                    data-image="{{ prop.get_primary_image_url }}"
+                                    data-location="{{ prop.location_display }}"
+                                    data-price="{{ prop.price_per_night }}"
+                                    data-guest="{{ prop.guest }}"
+                                    {% if is_edit and task.property.id == prop.id %}selected
+                                    {% elif form.property.value == prop.id|stringformat:"s" %}selected
+                                    {% elif request.GET.property_id and request.GET.property_id == prop.id|stringformat:"s" %}selected{% endif %}>
                                 {{ prop.title }}
                             </option>
-                            {% endfor %}
-                        </select>
-                        {% if request.GET.property_id %}
+                        {% endfor %}
+                    </select>
+                    {% if request.GET.property_id %}
                         <input type="hidden" name="property" value="{{ request.GET.property_id }}">
-                        {% endif %}
+                    {% endif %}
 
-                        <!-- Listings top row -->
-                        <div class="listings-top-row">
-                            <span class="listings-label">Select Listings</span>
-                            <div class="listings-search-box">
-                                <input type="text" id="listingSearch" placeholder="Search" autocomplete="off">
-                                <button type="button" class="search-clear-btn" id="searchClearBtn">&#x2715;</button>
-                                <span class="search-icon-btn">&#128269;</span>
-                            </div>
+                    <!-- Listings top row -->
+                    <div class="listings-top-row">
+                        <span class="listings-label">Select Listings</span>
+                        <div class="listings-search-box">
+                            <input type="text" id="listingSearch" placeholder="Search" autocomplete="off">
+                            <button type="button" class="search-clear-btn" id="searchClearBtn">&#x2715;</button>
+                            <span class="search-icon-btn">&#128269;</span>
                         </div>
-
-                        <!-- Cards -->
-                        <div class="listing-cards-list {% if is_edit and task.repeat != 'None' %}pe-none opacity-50{% endif %} {% if request.GET.property_id %}pe-none opacity-50{% endif %}"
-                            id="listingCardsList"></div>
                     </div>
-                </div>
 
-                <!-- ── RIGHT: Task details ── -->
-                <div class="task-panel">
-                    <div class="panel-header">Task details</div>
-                    <div class="panel-body">
+                    <!-- Cards -->
+                    <div class="listing-cards-list {% if is_edit and task.repeat != 'None' %}pe-none opacity-50{% endif %} {% if request.GET.property_id %}pe-none opacity-50{% endif %}" id="listingCardsList"></div>
+                </div>
+            </div>
+
+            <!-- ── RIGHT: Task details ── -->
+            <div class="task-panel">
+                <div class="panel-header">Task details</div>
+                <div class="panel-body">
                         {% if form.errors %}
                         <div
                             style="color:#dc3545;font-size:13px;padding:8px 12px;background:#fff3f3;border:1px solid #fcc;border-radius:6px;margin-bottom:12px;">
@@ -865,312 +870,367 @@
                             <input type="file" id="taskImagesInput" name="task_images" accept="image/*" multiple
                                 style="display:none;">
 
-                        </div><!-- /form-2col -->
-                    </div><!-- /panel-body -->
-                </div><!-- /right panel -->
+                    </div><!-- /form-2col -->
+                </div><!-- /panel-body -->
+            </div><!-- /right panel -->
 
-            </div><!-- /task-panels-wrap -->
+        </div><!-- /task-panels-wrap -->
 
-            {% include 'frontend/base/footer.html' %}
+        {% include 'frontend/base/footer.html' %}
     </form>
 </div>
 {% endblock content %}
 
 
 {% block extra_script %}
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/js/intlTelInput.min.js"></script>
 <script>
-    /* ── Prevent keyboard input on date fields ── */
-    document.getElementById('taskDate').addEventListener('keydown', function (e) { e.preventDefault(); });
-    document.getElementById('repeatTill').addEventListener('keydown', function (e) { e.preventDefault(); });
+/* ── Prevent keyboard input on date fields ── */
+document.getElementById('taskDate').addEventListener('keydown', function(e) { e.preventDefault(); });
+document.getElementById('repeatTill').addEventListener('keydown', function(e) { e.preventDefault(); });
 </script>
 <script>
-    document.addEventListener('DOMContentLoaded', function () {
+document.addEventListener('DOMContentLoaded', function () {
 
-        /* ── Char count ── */
-        const taskDetailsTextarea = document.getElementById('taskDetails');
-        const charCount = document.getElementById('charCount');
-        taskDetailsTextarea.addEventListener('input', function () {
-            charCount.textContent = this.value.length + '/100';
-        });
-        charCount.textContent = (taskDetailsTextarea.value || '').length + '/100';
+    /* ── Char count ── */
+    const taskDetailsTextarea = document.getElementById('taskDetails');
+    const charCount = document.getElementById('charCount');
+    taskDetailsTextarea.addEventListener('input', function () {
+        charCount.textContent = this.value.length + '/100';
+    });
+    charCount.textContent = (taskDetailsTextarea.value || '').length + '/100';
 
-        /* ── Repeat / repeat-till toggle ── */
-        const repeatOptionSelect = document.getElementById('repeatOption');
-        const repeatTillInput = document.getElementById('repeatTill');
-        const noEndDateCheck = document.getElementById('noEndDateCheck');
+    /* ── Repeat / repeat-till toggle ── */
+    const repeatOptionSelect = document.getElementById('repeatOption');
+    const repeatTillInput    = document.getElementById('repeatTill');
+    const noEndDateCheck     = document.getElementById('noEndDateCheck');
 
-        function toggleRepeatTill() {
-            const hasRepeat = repeatOptionSelect.value && repeatOptionSelect.value !== 'None';
-            repeatTillInput.disabled = !hasRepeat || noEndDateCheck.checked;
-            repeatTillInput.required = hasRepeat && !noEndDateCheck.checked;
+    function toggleRepeatTill() {
+        const hasRepeat = repeatOptionSelect.value && repeatOptionSelect.value !== 'None';
+        repeatTillInput.disabled = !hasRepeat || noEndDateCheck.checked;
+        repeatTillInput.required = hasRepeat && !noEndDateCheck.checked;
+    }
+
+    repeatOptionSelect.addEventListener('change', toggleRepeatTill);
+    noEndDateCheck.addEventListener('change', function () {
+        if (this.checked) {
+            repeatTillInput.value = '';
         }
-
-        repeatOptionSelect.addEventListener('change', toggleRepeatTill);
-        noEndDateCheck.addEventListener('change', function () {
-            if (this.checked) {
-                repeatTillInput.value = '';
-            }
-            toggleRepeatTill();
-        });
         toggleRepeatTill();
+    });
+    toggleRepeatTill();
 
-        /* ── Task type → other explanation ── */
-        const taskTypeSelect = document.getElementById('taskType');
-        const otherExplanationField = document.getElementById('otherExplanationField');
-        const otherExplanationInput = document.getElementById('otherExplanation');
+    /* ── Task type → other explanation ── */
+    const taskTypeSelect         = document.getElementById('taskType');
+    const otherExplanationField  = document.getElementById('otherExplanationField');
+    const otherExplanationInput  = document.getElementById('otherExplanation');
 
-        function toggleOtherField() {
-            const isOther = taskTypeSelect.value === 'other';
-            otherExplanationField.style.display = isOther ? 'flex' : 'none';
-            if (!isOther) otherExplanationInput.value = '';
-        }
+    function toggleOtherField() {
+        const isOther = taskTypeSelect.value === 'other';
+        otherExplanationField.style.display = isOther ? 'flex' : 'none';
+        if (!isOther) otherExplanationInput.value = '';
+    }
 
-        taskTypeSelect.addEventListener('change', toggleOtherField);
-        toggleOtherField();
+    taskTypeSelect.addEventListener('change', toggleOtherField);
+    toggleOtherField();
 
-        /* ── Date min / repeat-till min ── */
-        {% if not is_edit %}
+    /* ── Date min / repeat-till min ── */
+    {% if not is_edit %}
         const today = new Date().toISOString().split('T')[0];
         document.getElementById('taskDate').setAttribute('min', today);
-        {% endif %}
+    {% endif %}
 
-        const taskDateInput = document.getElementById('taskDate');
-        function updateRepeatTillMin() {
-            if (taskDateInput.value) {
-                repeatTillInput.min = taskDateInput.value;
-                if (repeatTillInput.value && repeatTillInput.value < taskDateInput.value) {
-                    repeatTillInput.value = '';
-                }
+    const taskDateInput = document.getElementById('taskDate');
+    function updateRepeatTillMin() {
+        if (taskDateInput.value) {
+            repeatTillInput.min = taskDateInput.value;
+            if (repeatTillInput.value && repeatTillInput.value < taskDateInput.value) {
+                repeatTillInput.value = '';
             }
         }
-        taskDateInput.addEventListener('change', updateRepeatTillMin);
-        updateRepeatTillMin();
+    }
+    taskDateInput.addEventListener('change', updateRepeatTillMin);
+    updateRepeatTillMin();
 
-        /* ── Edit: disable time toggle for repeating tasks ── */
-        {% if is_edit %}
+    /* ── Edit: disable time toggle for repeating tasks ── */
+    {% if is_edit %}
         const timeToggle = document.querySelector('#taskTimeDropdown .time_dropdown-toggle');
         if (timeToggle && '{{ task.repeat }}' !== 'None') timeToggle.style.pointerEvents = 'none';
-        {% endif %}
+    {% endif %}
 
-        // Set minimum date for taskDate to today, but only for new tasks
-        {% if not is_edit %}
-        const taskDateInput = document.getElementById('taskDate');
-        const today = new Date().toISOString().split('T')[0];
-        taskDateInput.setAttribute('min', today);
-        {% endif %}
+    /* ── Listing cards ── */
+    const propertySelect   = document.getElementById('id_property');
+    const listingCardsList = document.getElementById('listingCardsList');
+    const listingSearch    = document.getElementById('listingSearch');
+    const searchClearBtn   = document.getElementById('searchClearBtn');
+    const placeholderImg   = '{% static "img/property/placeholder-image.png" %}';
 
-        const taskDateInputForRepeat = document.getElementById('taskDate');
-        const repeatTillInputForRepeat = document.getElementById('repeatTill');
+    function buildListingCards() {
+        listingCardsList.innerHTML = '';
+        const options = propertySelect.querySelectorAll('option[value]');
+        options.forEach(function (opt) {
+            if (!opt.value) return;
+            const imageUrl = opt.dataset.image || placeholderImg;
+            const isSelected = opt.selected;
 
-        function updateRepeatTillMinDate() {
-            if (taskDateInputForRepeat.value) {
-                repeatTillInputForRepeat.min = taskDateInputForRepeat.value;
-                if (repeatTillInputForRepeat.value && repeatTillInputForRepeat.value < taskDateInputForRepeat.value) {
-                    repeatTillInputForRepeat.value = '';
+            const card = document.createElement('div');
+            card.className = 'listing-card' + (isSelected ? ' selected' : '');
+            card.dataset.value = opt.value;
+            card.dataset.title = opt.text.toLowerCase();
+
+            card.innerHTML = `
+                <img src="${imageUrl}" class="listing-card-img" alt="">
+                <div class="listing-card-info">
+                    <div class="listing-card-title">${opt.text}</div>
+                    <div class="listing-card-location">${opt.dataset.location || ''}</div>
+                    <div class="listing-card-price">${opt.dataset.price ? '$' + parseFloat(opt.dataset.price).toLocaleString(undefined,{minimumFractionDigits:2}) + ' night' : ''}</div>
+                </div>
+                <div class="listing-check">&#10003;</div>`;
+
+            card.addEventListener('click', function () {
+                listingCardsList.querySelectorAll('.listing-card').forEach(c => c.classList.remove('selected'));
+                card.classList.add('selected');
+                propertySelect.value = opt.value;
+                const listingError = document.getElementById('listingError');
+                if (listingError) listingError.style.display = 'none';
+            });
+
+            listingCardsList.appendChild(card);
+
+            if (isSelected) {
+                setTimeout(() => card.scrollIntoView({ block: 'nearest' }), 0);
+            }
+        });
+    }
+
+    buildListingCards();
+
+    /* Search filter */
+    listingSearch.addEventListener('input', function () {
+        const q = this.value.toLowerCase().trim();
+        searchClearBtn.style.display = q ? 'inline' : 'none';
+        listingCardsList.querySelectorAll('.listing-card').forEach(function (card) {
+            card.classList.toggle('hidden-card', q && !card.dataset.title.includes(q));
+        });
+    });
+
+    searchClearBtn.addEventListener('click', function () {
+        listingSearch.value = '';
+        searchClearBtn.style.display = 'none';
+        listingCardsList.querySelectorAll('.listing-card').forEach(c => c.classList.remove('hidden-card'));
+    });
+
+    /* ── Image upload ── */
+    const taskUploadArea    = document.getElementById('taskUploadArea');
+    const taskImagesInput   = document.getElementById('taskImagesInput');
+    const taskPreviewGrid   = document.getElementById('taskPreviewGrid');
+    const attachLabel       = document.getElementById('attachLabel');
+    const taskPreviewScroll = document.getElementById('taskPreviewScroll');
+    let selectedFiles = [];
+
+    taskUploadArea.addEventListener('click', () => taskImagesInput.click());
+
+    taskUploadArea.addEventListener('dragover', function (e) {
+        e.preventDefault();
+        this.classList.add('dragover');
+    });
+    taskUploadArea.addEventListener('dragleave', function () {
+        this.classList.remove('dragover');
+    });
+    taskUploadArea.addEventListener('drop', function (e) {
+        e.preventDefault();
+        this.classList.remove('dragover');
+        handleFiles(e.dataTransfer.files);
+    });
+
+    taskImagesInput.addEventListener('change', function () {
+        handleFiles(this.files);
+        this.value = '';
+    });
+
+    function updateUploadArea() {
+        const count = taskPreviewGrid.children.length;
+        const hasFiles = count > 0;
+        if (hasFiles) {
+            attachLabel.textContent = count + ' file' + (count !== 1 ? 's' : '') + ' selected';
+            attachLabel.classList.add('has-files');
+        } else {
+            attachLabel.textContent = 'Add attachments';
+            attachLabel.classList.remove('has-files');
+        }
+        taskPreviewScroll.style.display = hasFiles ? 'block' : 'none';
+    }
+
+    function handleFiles(fileList) {
+        Array.from(fileList).forEach(function (file) {
+            if (!file.type.startsWith('image/')) return;
+            selectedFiles.push(file);
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                const item = document.createElement('div');
+                item.className = 'task-preview-item';
+                item.dataset.filename = file.name;
+                item.dataset.filesize = file.size;
+                item.innerHTML = `<img src="${e.target.result}" alt=""><button type="button" class="task-remove-btn new-remove" title="Remove">&#xd7;</button><div class="task-preview-name">${file.name}</div>`;
+                taskPreviewGrid.appendChild(item);
+                rebuildFileInput();
+                updateUploadArea();
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+
+    taskPreviewGrid.addEventListener('click', function (e) {
+        const btn = e.target.closest('.new-remove');
+        if (!btn) return;
+        e.stopPropagation();
+        const item = btn.closest('.task-preview-item');
+        selectedFiles = selectedFiles.filter(f => !(f.name === item.dataset.filename && f.size == item.dataset.filesize));
+        item.remove();
+        rebuildFileInput();
+        updateUploadArea();
+    });
+
+    function rebuildFileInput() {
+        const dt = new DataTransfer();
+        selectedFiles.forEach(f => dt.items.add(f));
+        taskImagesInput.files = dt.files;
+    }
+
+    /* ── Delete existing image (edit mode) ── */
+    const existingGrid = document.getElementById('taskExistingGrid');
+    if (existingGrid) {
+        existingGrid.addEventListener('click', function (e) {
+            const btn = e.target.closest('.task-remove-btn[data-image-id]');
+            if (!btn) return;
+            const imageId = btn.dataset.imageId;
+            fetch('{% url "tasks:task-delete-image" %}', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value },
+                body: JSON.stringify({ image_id: imageId }),
+            }).then(r => r.json()).then(function (data) {
+                if (data.success) {
+                    document.getElementById('taskImg-' + imageId).remove();
                 }
-            }
-        }
-        taskDateInputForRepeat.addEventListener('change', updateRepeatTillMinDate);
-        updateRepeatTillMinDate(); // Initial check
-
-        const propertySelect = $('#id_property');
-        const propertyPreview = document.getElementById('propertyPreview');
-
-        function formatProperty(property) {
-            if (!property.id) return property.text;
-            const $el = $(property.element);
-            const imageUrl = $el.data('image') || '{% static "img/property/placeholder-image.png" %}';
-            const title = property.text;
-            const location = $el.data('location') || '';
-            const price = $el.data('price') || '';
-            const guest = $el.data('guest') || '';
-            return $(
-                `<div class="property-card-select2">
-                    <img src="${imageUrl}" class="property-card-img" />
-                    <div class="property-card-info">
-                        <div class="listing-title">${title}</div>
-                        <div class="listing-location">${location}</div>
-                        <div class="listing-price">
-                            ${price ? `$${parseFloat(price).toLocaleString(undefined, { minimumFractionDigits: 2 })} night` : ''}
-                            ${guest ? `, ${guest} Guests (max)` : ''}
-                        </div>
-                    </div>
-                </div>`
-            );
-        }
-
-        propertySelect.select2({
-            templateResult: formatProperty,
-            templateSelection: formatProperty,
-            dropdownAutoWidth: true,
-            width: '100%',
-            minimumResultsForSearch: 5,
-            closeOnSelect: false
+            });
         });
+    }
 
-        if (!propertySelect.is(':disabled')) {
-            setTimeout(function () {
-                propertySelect.select2('open');
-            }, 0);
-        }
+    /* ── intl-tel-input ── */
+    const phoneInputField   = document.querySelector('#phone');
+    const countryCodeHidden = document.querySelector('#id_country_code');
+    const phoneInput = window.intlTelInput(phoneInputField, {
+        initialCountry: 'auto',
+        geoIpLookup: function (callback) {
+            fetch('https://ipapi.co/json')
+                .then(r => r.json())
+                .then(d => callback(d.country_code))
+                .catch(() => callback('us'));
+        },
+        separateDialCode: true,
+        utilsScript: 'https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/js/utils.js',
+    });
 
-        propertySelect.on('select2:close', function () {
-            if (!$(this).is(':disabled')) {
-                setTimeout(() => {
-                    $(this).select2('open');
-                }, 0);
-            }
-        });
+    phoneInputField.addEventListener('input', function () {
+        this.value = this.value.replace(/[^0-9]/g, '');
+    });
 
-        propertySelect.on('change', function () {
-            const selected = $(this).find('option:selected');
-
-            if (!selected.val()) {
-                propertyPreview.innerHTML = '';
-                propertyPreview.style.display = 'none';
+    const theForm = phoneInputField.closest('form');
+    if (theForm) {
+        theForm.addEventListener('submit', function (e) {
+            /* Validate listing selection */
+            const listingError = document.getElementById('listingError');
+            if (!propertySelect.value) {
+                e.preventDefault();
+                if (listingError) listingError.style.display = 'block';
+                document.querySelector('.task-panel').scrollIntoView({ behavior: 'smooth', block: 'start' });
                 return;
             }
+            if (listingError) listingError.style.display = 'none';
 
-            const imageUrl = selected.data('image') || '{% static "img/property/placeholder-image.png" %}';
-            const title = selected.text();
-            const location = selected.data('location') || '';
-            const price = selected.data('price') || '';
-            const guest = selected.data('guest') || '';
-
-            propertyPreview.innerHTML = `
-                <div class="property-card-select2" style="margin-top: 15px; cursor: default;">
-                    <img src="${imageUrl}" class="property-card-img" />
-                    <div class="property-card-info">
-                        <div class="listing-title">${title}</div>
-                        <div class="listing-location">${location}</div>
-                        <div class="listing-price">
-                            ${price ? `$${parseFloat(price).toLocaleString(undefined, { minimumFractionDigits: 2 })} night` : ''}
-                            ${guest ? `, ${guest} Guests (max)` : ''}
-                        </div>
-                    </div>
-                </div>`;
-            propertyPreview.style.display = 'block';
-        });
-
-        // --- intl-tel-input initialization ---
-        const phoneInputField = document.querySelector("#phone");
-        const countryCodeHiddenInput = document.querySelector("#id_country_code");
-
-        const phoneInput = window.intlTelInput(phoneInputField, {
-            initialCountry: "auto",
-            geoIpLookup: function (callback) {
-                fetch("https://ipapi.co/json")
-                    .then(res => res.json())
-                    .then(data => callback(data.country_code))
-                    .catch(() => callback("us"));
-            },
-            separateDialCode: true,
-            utilsScript: "https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/js/utils.js",
-        });
-
-        phoneInputField.addEventListener('input', function () {
-            this.value = this.value.replace(/[^0-9]/g, '');
-        });
-
-        const theForm = phoneInputField.closest('form');
-        if (theForm) {
-            theForm.addEventListener('submit', function (e) {
-                /* Validate listing selection */
-                const listingError = document.getElementById('listingError');
-                if (!propertySelect.value) {
-                    e.preventDefault();
-                    if (listingError) listingError.style.display = 'block';
-                    document.querySelector('.task-panel').scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    return;
+            /* Update phone field with international number */
+            try {
+                if (phoneInput.isValidNumber()) {
+                    phoneInputField.value = phoneInput.getNumber();
+                    countryCodeHidden.value = phoneInput.getSelectedCountryData().iso2;
                 }
-                if (listingError) listingError.style.display = 'none';
+            } catch (err) {}
+        });
+    }
 
-                /* Update phone field with international number */
-                try {
-                    if (phoneInput.isValidNumber()) {
-                        phoneInputField.value = phoneInput.getNumber();
-                        countryCodeHidden.value = phoneInput.getSelectedCountryData().iso2;
-                    }
-                } catch (err) { }
-            });
+    /* ── Time dropdown ── */
+    function generateTimes() {
+        const times = [];
+        for (let h = 0; h < 24; h++) {
+            for (let m = 0; m < 60; m += 30) {
+                const value   = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+                const hour12  = ((h % 12) || 12);
+                const ampm    = h < 12 ? 'AM' : 'PM';
+                const display = `${String(hour12).padStart(2,'0')}:${String(m).padStart(2,'0')} ${ampm}`;
+                times.push({ value, display });
+            }
+        }
+        return times;
+    }
+
+    function setupDropdown(dropdownId, defaultTime, hiddenInputId) {
+        const dropdown  = document.getElementById(dropdownId);
+        if (!dropdown) return;
+        const toggle     = dropdown.querySelector('.time_dropdown-toggle');
+        const optionsDiv = dropdown.querySelector('.options');
+        const hiddenInput = document.getElementById(hiddenInputId);
+        const times = generateTimes();
+
+        function fmt24(t) {
+            if (!/^\d{2}:\d{2}$/.test(t)) return defaultTime;
+            const [h, mm] = t.split(':');
+            const h24 = parseInt(h, 10);
+            const hour12 = ((h24 % 12) || 12);
+            return `${String(hour12).padStart(2,'0')}:${mm} ${h24 >= 12 ? 'PM' : 'AM'}`;
         }
 
-        /* ── Time dropdown ── */
-        function generateTimes() {
-            const times = [];
-            for (let h = 0; h < 24; h++) {
-                for (let m = 0; m < 60; m += 30) {
-                    const value = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-                    const hour12 = ((h % 12) || 12);
-                    const ampm = h < 12 ? 'AM' : 'PM';
-                    const display = `${String(hour12).padStart(2, '0')}:${String(m).padStart(2, '0')} ${ampm}`;
-                    times.push({ value, display });
-                }
+        let currentValue = hiddenInput.value || defaultTime;
+        const textNode = document.createTextNode(fmt24(currentValue));
+        toggle.insertBefore(textNode, toggle.firstChild);
+
+        let selectedOptionDiv = null;
+        times.forEach(function (t) {
+            const div = document.createElement('div');
+            div.textContent = t.display;
+            div.classList.add('option');
+            div.dataset.value = t.value;
+            if (currentValue === t.value) {
+                div.classList.add('selected');
+                selectedOptionDiv = div;
             }
-            return times;
+            div.addEventListener('click', function () {
+                toggle.childNodes[0].textContent = t.display;
+                hiddenInput.value = t.value;
+                optionsDiv.querySelectorAll('.option').forEach(o => o.classList.remove('selected'));
+                div.classList.add('selected');
+                selectedOptionDiv = div;
+                dropdown.classList.remove('open');
+            });
+            optionsDiv.appendChild(div);
+        });
+
+        if (selectedOptionDiv) {
+            setTimeout(() => { optionsDiv.scrollTop = selectedOptionDiv.offsetTop - optionsDiv.offsetTop; }, 0);
         }
 
-        function setupDropdown(dropdownId, defaultTime, hiddenInputId) {
-            const dropdown = document.getElementById(dropdownId);
-            if (!dropdown) return;
-            const toggle = dropdown.querySelector('.time_dropdown-toggle');
-            const optionsDiv = dropdown.querySelector('.options');
-            const hiddenInput = document.getElementById(hiddenInputId);
-            const times = generateTimes();
-
-            function fmt24(t) {
-                if (!/^\d{2}:\d{2}$/.test(t)) return defaultTime;
-                const [h, mm] = t.split(':');
-                const h24 = parseInt(h, 10);
-                const hour12 = ((h24 % 12) || 12);
-                return `${String(hour12).padStart(2, '0')}:${mm} ${h24 >= 12 ? 'PM' : 'AM'}`;
+        toggle.addEventListener('click', function () {
+            dropdown.classList.toggle('open');
+            if (dropdown.classList.contains('open') && selectedOptionDiv) {
+                optionsDiv.scrollTop = selectedOptionDiv.offsetTop - optionsDiv.offsetTop;
             }
+        });
 
-            let currentValue = hiddenInput.value || defaultTime;
-            /* Inject text node before the arrow span */
-            const textNode = document.createTextNode(fmt24(currentValue));
-            toggle.insertBefore(textNode, toggle.firstChild);
+        document.addEventListener('click', function (e) {
+            if (!dropdown.contains(e.target)) dropdown.classList.remove('open');
+        });
+    }
 
-            let selectedOptionDiv = null;
-            times.forEach(function (t) {
-                const div = document.createElement('div');
-                div.textContent = t.display;
-                div.classList.add('option');
-                div.dataset.value = t.value;
-                if (currentValue === t.value) {
-                    div.classList.add('selected');
-                    selectedOptionDiv = div;
-                }
-                div.addEventListener('click', function () {
-                    toggle.childNodes[0].textContent = t.display;
-                    hiddenInput.value = t.value;
-                    optionsDiv.querySelectorAll('.option').forEach(o => o.classList.remove('selected'));
-                    div.classList.add('selected');
-                    selectedOptionDiv = div;
-                    dropdown.classList.remove('open');
-                });
-                optionsDiv.appendChild(div);
-            });
-
-            if (selectedOptionDiv) {
-                setTimeout(() => { optionsDiv.scrollTop = selectedOptionDiv.offsetTop - optionsDiv.offsetTop; }, 0);
-            }
-
-            toggle.addEventListener('click', function () {
-                dropdown.classList.toggle('open');
-                if (dropdown.classList.contains('open') && selectedOptionDiv) {
-                    optionsDiv.scrollTop = selectedOptionDiv.offsetTop - optionsDiv.offsetTop;
-                }
-            });
-
-            document.addEventListener('click', function (e) {
-                if (!dropdown.contains(e.target)) dropdown.classList.remove('open');
-            });
-        }
-
-        setupDropdown('taskTimeDropdown', '09:00', 'task_time_input');
-    });
+    setupDropdown('taskTimeDropdown', '09:00', 'task_time_input');
+});
 </script>
 {% endblock extra_script %}
