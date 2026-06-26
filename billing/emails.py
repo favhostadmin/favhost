@@ -141,3 +141,83 @@ def send_subscription_confirmation_email(
         email_msg.send(fail_silently=True)
     except Exception as e:
         logger.warning(f"Could not send subscription confirmation email to {email}: {e}")
+
+
+def send_subscription_cancelled_email(*, email, first_name, access_until=None):
+    """
+    Sends the "subscription cancelled" email (HTML + plain text, inline logo).
+
+    access_until: optional datetime/string for when paid access ends. If given,
+    the email says access continues until then; otherwise it says access has ended.
+    """
+    try:
+        def _fmt_date(d):
+            if not d:
+                return ''
+            try:
+                return d.strftime('%B %d, %Y')
+            except AttributeError:
+                return str(d)
+
+        until_str = _fmt_date(access_until)
+        if until_str:
+            access_line = f"You'll keep access until {until_str}, then your subscription ends."
+            plain_access = f"You'll keep access until {until_str}, then your subscription ends."
+        else:
+            access_line = "Your access to the Favhost platform has now ended."
+            plain_access = "Your access to the Favhost platform has now ended."
+
+        pricing_url = _abs_url(reverse('billing:pricing'))
+        terms_url = _abs_url(reverse('terms'))
+        privacy_url = _abs_url(reverse('privacy'))
+        contact_url = _abs_url(reverse('contact'))
+
+        context = {
+            'first_name': first_name or 'there',
+            'logo_url': 'cid:logo',
+            'access_line': access_line,
+            'pricing_url': pricing_url,
+            'terms_url': terms_url,
+            'privacy_url': privacy_url,
+            'contact_url': contact_url,
+        }
+
+        html_body = render_to_string('frontend/emails/subscription_cancelled.html', context)
+
+        plain_body = (
+            f"Hi {context['first_name']},\n\n"
+            "We've cancelled your Favhost Premium subscription as requested. We're sorry to "
+            "see you go — your account and data are kept safe.\n\n"
+            f"{plain_access} To keep full access to the Favhost platform, you can resubscribe "
+            "anytime and everything stays exactly as you left it.\n\n"
+            f"Resubscribe: {pricing_url}\n\n"
+            "Cancelled by mistake, or have feedback? We'd love to hear from you at "
+            "support@favhost.com\n\n"
+            "Team Favhost"
+        )
+
+        support_email = getattr(settings, 'SUPPORT_EMAIL', 'support@favhost.com')
+        email_msg = EmailMultiAlternatives(
+            subject='Your Favhost subscription has been cancelled',
+            body=plain_body,
+            from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@favhost.com'),
+            to=[email],
+            reply_to=[support_email],
+            headers={'List-Unsubscribe': f'<mailto:{support_email}?subject=Unsubscribe>'},
+        )
+        email_msg.attach_alternative(html_body, 'text/html')
+        email_msg.mixed_subtype = 'related'
+
+        # Attach the logo inline (same asset used by the OTP / welcome emails)
+        logo_path = finders.find('img/login/favhost_new_logo.png')
+        if logo_path and os.path.exists(logo_path):
+            with open(logo_path, 'rb') as f:
+                img = MIMEImage(f.read())
+                img.add_header('Content-ID', '<logo>')
+                img.add_header('Content-Disposition', 'inline', filename='favhost_logo.png')
+                img.add_header('X-Attachment-Id', 'logo')
+                email_msg.attach(img)
+
+        email_msg.send(fail_silently=True)
+    except Exception as e:
+        logger.warning(f"Could not send subscription cancelled email to {email}: {e}")

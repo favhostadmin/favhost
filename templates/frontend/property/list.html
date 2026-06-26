@@ -1,5 +1,6 @@
 {% extends 'frontend/base/base.html' %}
 {% load static %}
+{% load currency_tags %}
 
 {% block extra_head %}
 <link href="{% static 'css/property/listing.css' %}" rel="stylesheet">
@@ -567,26 +568,36 @@
         min-height: calc(100vh - 193px);
     }
 
-     .listing-price--total {
-            border: 1.5px solid #EB5310;
-            border-radius: 4px;
-            padding: 2px 8px;
-            color: #000 !important;
-        }
+    .listing-stay-badge {
+        border: 1px solid #EB5310;
+        border-radius: 20px;
+        padding: 3px 10px;
+        background: #fff;
+        font-size: 13px;
+        color: #374151;
+        font-weight: 500;
+    }
+
+    .listing-price--total {
+        font-weight: 700;
+        color: #111827 !important;
+        margin: 0;
+    }
 
     @media (max-width: 991px) {
         .mobile-filter-section {
             background: #E7E7E9;
             border-bottom: 1px solid #e5e7eb;
-            padding: 10px 0 8px;
-            position: sticky;
-            top: 0;
+            position: fixed;
+            top: 58px;
+            left: 0;
+            width: 100%;
             z-index: 90;
             padding: 0px !important;
         }
         .mobile-filter-section .container-fluid {
             position: relative;
-            padding: 0px 0px !important;
+            padding: 0px 12px !important;
             margin: 10px 0px;
         }
 
@@ -753,6 +764,7 @@
         .main_content_div{
             padding: 0 10px !important;
             min-height: auto !important;
+            padding-top: 56px !important;
         }
 
     }
@@ -877,39 +889,75 @@
             position: relative;
             display: flex;
             flex-direction: column;
+            justify-content: space-between;
+            height: 102px;
         }
 
         .listing-title {
-            font-size: 16px;
+            font-size: 14px;
             line-height: 1.3;
-            margin: 0 0 4px 0;
-            white-space: nowrap;
+            margin: 0;
+            white-space: normal;
             overflow: hidden;
             text-overflow: ellipsis;
+            display: -webkit-box;
+            -webkit-line-clamp: 1;
+            -webkit-box-orient: vertical;
+            line-clamp: 1;
         }
 
         .listing-location {
             font-size: 12px;
-            margin: 0 0 4px 0;
+            margin: 0;
             color: #6b7280;
         }
 
         .listing-info > .d-flex {
-            align-items: center !important;
-            justify-content: flex-start !important;
+            align-items: stretch !important;
+            justify-content: space-between !important;
             margin-top: 0;
+            gap: 6px;
+            flex: 1;
         }
 
+        /* Left column: title, location, bed, price stacked */
+        .listing-info > .d-flex > a:first-child,
+        .listing-info > .d-flex > div:first-child {
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+            flex: 1;
+        }
+
+        /* Right column: 3-dots centered */
         .listing-info > .d-flex > div:last-child {
-            position: absolute;
-            top: 0;
-            right: 0;
+            position: static;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .listing-actions {
             display: flex;
             flex-direction: column;
-            align-items: flex-end;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        /* Bed + price: stack vertically, no gap needed — space-between on parent handles it */
+        .listing-info .d-flex.justify-content-between {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 0;
+        }
+
+        /* Bed icon + type on one line */
+        .listing-info .d-flex.justify-content-between > div:first-child {
+            display: flex !important;
+            flex-direction: row !important;
+            align-items: center !important;
             gap: 6px;
         }
 
@@ -918,16 +966,15 @@
             line-height: 1.2;
             color: #6b7280;
             font-weight: 600;
-            text-align: right;
+            text-align: left;
             white-space: nowrap;
-            max-width: 120px;
             overflow: hidden;
             text-overflow: ellipsis;
         }
 
         .options-btn {
-            width: 24px;
-            height: 24px;
+            width: 26px;
+            height: 26px;
             border-radius: 50%;
             border: 1px solid #d1d5db;
             background: #ffffff;
@@ -940,8 +987,8 @@
         }
 
         .options-dots-icon {
-            width: 8px;
-            height: 8px;
+            width: 9px;
+            height: 9px;
             fill: #111827;
             display: block;
             margin: auto;
@@ -962,7 +1009,7 @@
         .listing-price {
             font-size: 14px;
             font-weight: 700;
-            margin: 0;
+            margin: 0 !important;
             color: #111827;
         }
 
@@ -1096,43 +1143,6 @@
     box-shadow: 0 24px 80px rgba(0, 0, 0, 0.28);
   }
 
-  #propertyPreviewModal .modal-header {
-    padding: 14px 18px;
-    border-bottom: 1px solid #e5e7eb;
-    background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
-  }
-
-  #propertyPreviewModal .modal-title {
-    font-size: 18px;
-    font-weight: 700;
-    color: #111827;
-  }
-
-  #propertyPreviewModal .preview-modal-actions {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-
-  #propertyPreviewModal .preview-modal-open-link {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 8px 12px;
-    border: 1px solid #d1d5db;
-    border-radius: 10px;
-    color: #111827;
-    text-decoration: none;
-    font-size: 13px;
-    font-weight: 600;
-    background: #fff;
-    transition: background-color 0.15s ease, border-color 0.15s ease;
-  }
-
-  #propertyPreviewModal .preview-modal-open-link:hover {
-    background: #f9fafb;
-    border-color: #9ca3af;
-  }
 
   #propertyPreviewModal .modal-body {
     flex: 1 1 auto;
@@ -1196,10 +1206,53 @@
       padding: 8px;
     }
   }
+    #pl-toast-container {
+        position: fixed;
+        top: 80px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 11000;
+    }
+    .pl-success-toast {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        background: rgba(0, 0, 0, 0.9);
+        color: #4CAF50;
+        padding: 20px 58px;
+        border-radius: 10px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.35);
+        font-size: 14px;
+        font-weight: 600;
+        font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+        line-height: 1.4;
+        animation: pl-toast-fade-in 0.3s ease;
+        white-space: nowrap;
+    }
+    .pl-success-toast::before {
+        content: "✓";
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 22px;
+        height: 22px;
+        min-width: 22px;
+        border-radius: 50%;
+        background: #4CAF50;
+        color: #fff;
+        font-size: 12px;
+        font-weight: 700;
+        line-height: 1;
+    }
+    @keyframes pl-toast-fade-in {
+        from { opacity: 0; transform: translateY(-16px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
 </style>
 {% endblock extra_head %}
 
 {% block content %}
+<div id="pl-toast-container"></div>
 
 
 <!-- Desktop Header -->
@@ -1290,7 +1343,7 @@
                 </div>
             </div>
 
-            <button type="button" class="btn-share tooltip-light tooltip-right" data-tooltip="Share Listing" aria-label="Share Listing" data-bs-toggle="modal" data-bs-target="#shareItineraryModal" style="background: none; border: none; padding: 0;">
+            <button type="button" class="btn-share tooltip-light tooltip-right" data-tooltip="Share Listing" data-tooltip-original="Share Listing" aria-label="Share Listing" onclick="plCopyShareLink(this)" style="background: none; border: none; padding: 0;">
                 <img src="{% static 'img/common/white_share_icon.svg' %}" alt="Share">
             </button>
             
@@ -1331,7 +1384,7 @@
             </div>
 
             <div class="mobile-right-actions">
-                <button type="button" class="mobile-action-btn tooltip-light tooltip-right" data-tooltip="Share" data-bs-toggle="modal" data-bs-target="#shareItineraryModal" aria-label="Share">
+                <button type="button" class="mobile-action-btn" aria-label="Share" onclick="plCopyShareLink()">
                     <img src="{% static 'img/property/share.svg' %}" alt="Share" width="20" height="20">
                 </button>
                 <!-- <button type="button" class="mobile-action-btn" id="mobileFilterToggle" aria-label="Open search filters" aria-expanded="false">
@@ -1550,14 +1603,16 @@
                                 <p class="listing-location">{{ item.city }}, {{ item.state }}</p>
                             </a>
                             <div class="d-flex justify-content-between align-items-center">
-                                <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 6px;">
-                                    <img src="{% static 'img/property/bed.svg' %}" >
-                                    <div class="listing-bed-type ">{{ item.get_bed_type_display|cut:" Bed" }}</div>
+                                <div style="display: flex; align-items: center; gap: 6px;">
+                                    <img src="{% static 'img/property/bed.svg' %}">
+                                    <div class="listing-bed-type">{{ item.get_bed_type_display|cut:" Bed" }}</div>
+                                </div>
+                                <div class="listing-stay-wrap" style="display: flex; align-items: center; gap: 6px;">
                                     <span class="listing-nights" data-listing-nights style="display: none;"></span>
                                     <a href="{% url 'property:property-detail' slug=item.slug %}" data-open-property-preview="true" data-preview-title="{{ item.title|escape }}" rel="noopener noreferrer">
-                                    <p class="listing-price ms-2" data-nightly-price="{{ item.price_per_night|floatformat:2 }}" data-cleaning-fee="{{ item.cleaning_fee|default:'0.00'|floatformat:2 }}" data-refundable-deposit="{{ item.refundable_deposit|default:'0.00'|floatformat:2 }}" data-application-fee="{{ item.application_fees|default:'0.00'|floatformat:2 }}">
-                                        ${{ item.price_per_night|floatformat:2 }} <span class="price-period">Night</span>
-                                    </p>
+                                        <p class="listing-price" data-nightly-price="{% money_raw item.price_per_night %}" data-cleaning-fee="{% money_raw item.cleaning_fee %}" data-refundable-deposit="{% money_raw item.refundable_deposit %}" data-application-fee="{% money_raw item.application_fees %}">
+                                            {% money item.price_per_night %} <span class="price-period">Night</span>
+                                        </p>
                                     </a>
                                 </div>
                             </div>
@@ -1613,20 +1668,6 @@
 <div class="modal fade" id="propertyPreviewModal" tabindex="-1" aria-labelledby="propertyPreviewModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered modal-xl">
     <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title text-truncate" id="propertyPreviewModalLabel">Listing Details</h5>
-        <div class="preview-modal-actions">
-          <a href="#" class="preview-modal-open-link" id="propertyPreviewOpenInNewTab" target="_blank" rel="noopener noreferrer">
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-              <path d="M6 2H4.5A2.5 2.5 0 0 0 2 4.5v7A2.5 2.5 0 0 0 4.5 14H11.5A2.5 2.5 0 0 0 14 11.5V10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-              <path d="M8 8L14 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-              <path d="M10.5 2H14V5.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            <span>Open in new tab</span>
-          </a>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
-      </div>
       <div class="modal-body">
         <div class="preview-body-wrap">
           <div class="preview-loading" id="propertyPreviewLoading">Loading listing details...</div>
@@ -1743,14 +1784,65 @@
 
 {% block extra_script %}
 <script>
+    let plShareToastTimer = null;
+
+    function plCopyShareLink(btn) {
+        const shareUrl = window.location.href;
+        function onSuccess() {
+            // Only one toast at a time
+            const container = document.getElementById('pl-toast-container');
+            const existing = container.querySelector('.pl-success-toast');
+            if (existing) return;
+
+            const toast = document.createElement('div');
+            toast.className = 'pl-success-toast';
+            toast.textContent = 'Link copied';
+            container.appendChild(toast);
+
+            // Desktop: update tooltip to "Copied!" while toast is visible
+            if (btn) {
+                btn.setAttribute('data-tooltip', 'Copied!');
+                if (plShareToastTimer) clearTimeout(plShareToastTimer);
+                plShareToastTimer = setTimeout(() => {
+                    btn.setAttribute('data-tooltip', btn.getAttribute('data-tooltip-original') || 'Share Listing');
+                }, 3000);
+            }
+
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transition = 'opacity 0.5s ease';
+                setTimeout(() => toast.remove(), 500);
+            }, 2500);
+        }
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(shareUrl).then(onSuccess, function(err) {
+                console.error('Could not copy URL: ', err);
+            });
+        } else {
+            const textArea = document.createElement('textarea');
+            textArea.value = shareUrl;
+            textArea.style.position = 'fixed';
+            textArea.style.left = '-9999px';
+            textArea.style.top = '0';
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            try {
+                if (document.execCommand('copy')) onSuccess();
+            } catch (err) {
+                console.error('Fallback copy failed', err);
+            }
+            document.body.removeChild(textArea);
+        }
+    }
+</script>
+<script>
     document.addEventListener('DOMContentLoaded', function () {
         const previewModalEl = document.getElementById('propertyPreviewModal');
         const previewFrame = document.getElementById('propertyPreviewFrame');
         const previewLoading = document.getElementById('propertyPreviewLoading');
-        const previewTitle = document.getElementById('propertyPreviewModalLabel');
-        const previewOpenLink = document.getElementById('propertyPreviewOpenInNewTab');
 
-        if (!previewModalEl || !previewFrame || !previewTitle || !previewOpenLink || !window.bootstrap) return;
+        if (!previewModalEl || !previewFrame || !window.bootstrap) return;
 
         const previewModal = new bootstrap.Modal(previewModalEl);
 
@@ -1764,18 +1856,16 @@
                         previewUrl.searchParams.set(key, value);
                     }
                 });
+                previewUrl.searchParams.set('embed', '1');
                 return previewUrl.toString();
             } catch (error) {
                 return url;
             }
         }
 
-        function setPreview(url, title) {
-            const previewUrl = buildPreviewUrl(url);
-            previewTitle.textContent = title || 'Listing Details';
-            previewOpenLink.href = previewUrl;
+        function setPreview(url) {
             previewLoading.style.display = 'grid';
-            previewFrame.src = previewUrl;
+            previewFrame.src = buildPreviewUrl(url);
         }
 
         previewFrame.addEventListener('load', function () {
@@ -1817,8 +1907,7 @@
             const url = link.getAttribute('href');
             if (!url) return;
 
-            const title = link.getAttribute('data-preview-title') || 'Listing Details';
-            setPreview(url, title);
+            setPreview(url);
             previewModal.show();
         });
     });
@@ -2979,9 +3068,13 @@
 
         if (!nights) return;
 
+        const minNightsIconUrl = "{% static 'img/property/min_nights.svg' %}";
         document.querySelectorAll('[data-listing-nights]').forEach(function(el) {
-            el.style.display = 'inline';
-            el.innerHTML = `${nights} <span class="listing-night-label">Night${nights !== 1 ? 's' : ''}</span>`;
+            el.style.display = 'inline-flex';
+            el.style.alignItems = 'center';
+            el.style.gap = '4px';
+            el.innerHTML = `<img src="${minNightsIconUrl}" style="width:15px;height:auto;" alt="" aria-hidden="true">${nights} <span class="listing-night-label">night${nights !== 1 ? 's' : ''}</span>`;
+            el.closest('.listing-stay-wrap')?.classList.add('listing-stay-badge');
         });
 
         document.querySelectorAll('.listing-price[data-nightly-price]').forEach(function(el) {
@@ -2992,7 +3085,7 @@
             const total = (nightly * nights) + cleaningFee + refundableDeposit + applicationFee;
             el.dataset.totalPrice = total.toFixed(2);
             el.classList.add('listing-price--total');
-            el.innerHTML = `<span class="price-period">Total</span> - $${total.toFixed(2)} `;
+            el.innerHTML = window.CURRENCY.symbol + total.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
         });
     });
 </script>

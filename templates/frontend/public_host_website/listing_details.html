@@ -1,5 +1,6 @@
 {% extends 'frontend/base/base.html' %}
 {% load static %}
+{% load currency_tags %}
 
 {% block extra_head %}
 <link href="{% static 'css/property/details.css' %}" rel="stylesheet">
@@ -109,6 +110,9 @@
 {% block header %}{% endblock header %}
 
 {% block content %}
+    <div style="position:fixed;top:14px;right:14px;z-index:1050;">
+      {% include 'frontend/public_host_website/_currency_switcher.html' %}
+    </div>
     <!-- Action Buttons -->
     <div class="container-fluid  ">
         <div class="banner-head">
@@ -519,7 +523,7 @@
                     <!-- Booking Card (desktop only) -->
                     <div class="booking-card desktop-only">
                         <div class="booking-card-header">
-                            <h3 class="fw-bold text-center me-2 booking-card-price">${{property.price_per_night|floatformat:2}}<small class="text-muted fw-normal"> night</small></h3>
+                            <h3 class="fw-bold text-center me-2 booking-card-price">{% money property.price_per_night %}<small class="text-muted fw-normal"> night</small></h3>
                             {% if property.cleaning_fee > 0 or property.refundable_deposit > 0 or property.application_fees > 0 %}
                             <a href="#" id="openOtherFeesModal" class="booking-card-fee-link">*Other Fee</a>
                             {% endif %}
@@ -562,24 +566,24 @@
                         <!-- Payment Summary (shown when date range is selected) -->
                         <div id="ld-payment-summary" class="ld-payment-summary" style="display:none;">
                             <div class="ld-cost-row">
-                                <span id="ld-stay-label">${{ property.price_per_night|floatformat:2 }} x 0 nights</span>
-                                <strong id="ld-stay-total">$0.00</strong>
+                                <span id="ld-stay-label">{% money property.price_per_night %} x 0 nights</span>
+                                <strong id="ld-stay-total">{{ currency_symbol }}0.00</strong>
                             </div>
                             <div class="ld-cost-row">
                                 <span>Cleaning fee</span>
-                                <strong>${{ property.cleaning_fee|default:0|floatformat:2 }}</strong>
+                                <strong>{% money property.cleaning_fee %}</strong>
                             </div>
                             <div class="ld-cost-row">
                                 <span>Application fee</span>
-                                <strong>${{ property.application_fees|default:0|floatformat:2 }}</strong>
+                                <strong>{% money property.application_fees %}</strong>
                             </div>
                             <div class="ld-cost-row">
                                 <span>Refundable deposit</span>
-                                <strong>${{ property.refundable_deposit|default:0|floatformat:2 }}</strong>
+                                <strong>{% money property.refundable_deposit %}</strong>
                             </div>
                             <div class="ld-cost-row ld-cost-total">
                                 <span>Total due before check-in</span>
-                                <strong id="ld-total-due">$0.00</strong>
+                                <strong id="ld-total-due">{{ currency_symbol }}0.00</strong>
                             </div>
                         </div>
 
@@ -603,7 +607,7 @@
     <!-- Mobile Sticky CTA -->
     <div class="mobile-cta-bar d-lg-none d-md-none">
         <div class="mobile-cta-price">
-            <span class="amount">${{ property.price_per_night|floatformat:2 }} <small class="text-muted">night</small></span>
+            <span class="amount">{% money property.price_per_night %} <small class="text-muted">night</small></span>
             {% if property.cleaning_fee > 0 or property.refundable_deposit > 0 or property.application_fees > 0 %}
             <a href="#" id="openOtherFeesModalMobileBar" class="fee-link">Other fees</a>
             {% endif %}
@@ -618,7 +622,7 @@
             <button type="button" class="close-btn" id="closeMobileBookingModal" aria-label="Close">&times;</button>
             <div class="booking-card">
                 <div class="booking-card-header">
-                    <h3 id="mobileBookingModalTitle" class="fw-bold text-center me-2 booking-card-price">${{property.price_per_night|floatformat:2}}<small class="text-muted fw-normal"> night</small></h3>
+                    <h3 id="mobileBookingModalTitle" class="fw-bold text-center me-2 booking-card-price">{% money property.price_per_night %}<small class="text-muted fw-normal"> night</small></h3>
                     {% if property.cleaning_fee > 0 or property.refundable_deposit > 0 or property.application_fees > 0 %}
                     <a href="#" id="openOtherFeesModalMobileModal" class="booking-card-fee-link">*Other Fee</a>
                     {% endif %}
@@ -648,24 +652,24 @@
                 <!-- Payment Summary Mobile -->
                 <div id="ld-payment-summary-mobile" class="ld-payment-summary" style="display:none;">
                     <div class="ld-cost-row">
-                        <span id="ld-stay-label-mobile">${{ property.price_per_night|floatformat:2 }} x 0 nights</span>
-                        <strong id="ld-stay-total-mobile">$0.00</strong>
+                        <span id="ld-stay-label-mobile">{% money property.price_per_night %} x 0 nights</span>
+                        <strong id="ld-stay-total-mobile">{{ currency_symbol }}0.00</strong>
                     </div>
                     <div class="ld-cost-row">
                         <span>Cleaning fee</span>
-                        <strong>${{ property.cleaning_fee|default:0|floatformat:2 }}</strong>
+                        <strong>{% money property.cleaning_fee %}</strong>
                     </div>
                     <div class="ld-cost-row">
                         <span>Application fee</span>
-                        <strong>${{ property.application_fees|default:0|floatformat:2 }}</strong>
+                        <strong>{% money property.application_fees %}</strong>
                     </div>
                     <div class="ld-cost-row">
                         <span>Refundable deposit</span>
-                        <strong>${{ property.refundable_deposit|default:0|floatformat:2 }}</strong>
+                        <strong>{% money property.refundable_deposit %}</strong>
                     </div>
                     <div class="ld-cost-row ld-cost-total">
                         <span>Total due before check-in</span>
-                        <strong id="ld-total-due-mobile">$0.00</strong>
+                        <strong id="ld-total-due-mobile">{{ currency_symbol }}0.00</strong>
                     </div>
                 </div>
 
@@ -752,19 +756,19 @@
                     {% if property.cleaning_fee > 0 %}
                     <tr>
                         <td>Cleaning Fee</td>
-                        <td class="text-end fw-bold">${{ property.cleaning_fee|floatformat:2 }}</td>
+                        <td class="text-end fw-bold">{% money property.cleaning_fee %}</td>
                     </tr>
                     {% endif %}
                     {% if property.refundable_deposit > 0 %}
                     <tr>
                         <td>Refundable Deposit</td>
-                        <td class="text-end fw-bold">${{ property.refundable_deposit|floatformat:2 }}</td>
+                        <td class="text-end fw-bold">{% money property.refundable_deposit %}</td>
                     </tr>
                     {% endif %}
                     {% if property.application_fees > 0 %}
                     <tr>
                         <td>Application Fee</td>
-                        <td class="text-end fw-bold">${{ property.application_fees|floatformat:2 }}</td>
+                        <td class="text-end fw-bold">{% money property.application_fees %}</td>
                     </tr>
                     {% endif %}
                 </tbody>
@@ -1223,10 +1227,10 @@
         }
 
         // --- Payment Summary Logic ---
-        const ldPricePerNight = parseFloat("{{ property.price_per_night|default:0 }}");
-        const ldCleaningFee   = parseFloat("{{ property.cleaning_fee|default:0 }}");
-        const ldAppFee        = parseFloat("{{ property.application_fees|default:0 }}");
-        const ldDepositFee    = parseFloat("{{ property.refundable_deposit|default:0 }}");
+        const ldPricePerNight = parseFloat("{% money_raw property.price_per_night %}");
+        const ldCleaningFee   = parseFloat("{% money_raw property.cleaning_fee %}");
+        const ldAppFee        = parseFloat("{% money_raw property.application_fees %}");
+        const ldDepositFee    = parseFloat("{% money_raw property.refundable_deposit %}");
 
         function updatePaymentSummary(checkinValue, checkoutValue, ids) {
             const summary = document.getElementById(ids.summary);
@@ -1241,9 +1245,9 @@
             const stayLabel = document.getElementById(ids.stayLabel);
             const stayTotal_ = document.getElementById(ids.stayTotal);
             const totalDueEl = document.getElementById(ids.totalDue);
-            if (stayLabel)  stayLabel.textContent  = `$${ldPricePerNight.toFixed(2)} x ${nights} night${nights !== 1 ? 's' : ''}`;
-            if (stayTotal_) stayTotal_.textContent  = `$${stayTotal.toFixed(2)}`;
-            if (totalDueEl) totalDueEl.textContent  = `$${totalDue.toFixed(2)}`;
+            if (stayLabel)  stayLabel.textContent  = `{{ currency_symbol }}${ldPricePerNight.toFixed(2)} x ${nights} night${nights !== 1 ? 's' : ''}`;
+            if (stayTotal_) stayTotal_.textContent  = `{{ currency_symbol }}${stayTotal.toFixed(2)}`;
+            if (totalDueEl) totalDueEl.textContent  = `{{ currency_symbol }}${totalDue.toFixed(2)}`;
             summary.style.display = 'block';
         }
 

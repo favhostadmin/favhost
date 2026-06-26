@@ -1,0 +1,222 @@
+{% extends 'frontend/base/base.html' %}
+{% load static %}
+{% load i18n %}
+
+{% block extra_head %}
+  <link href="{% static 'css/task/listing_details.css' %}" rel="stylesheet">
+{% endblock extra_head %}
+
+{% block content %}
+  <!-- ============ TOP NAV ============ -->
+  <!-- <header class="topnav">
+    <a class="logo" href="#" aria-label="FavHost home">
+      <span class="logo-mark" aria-hidden="true"></span>
+      <span class="logo-text">Fav<span class="h">H</span>ost<span class="com">.com</span></span>
+    </a>
+
+    <nav class="nav-items" aria-label="Primary">
+      <a href="#" class="nav-link">Dashboard</a>
+      <a href="#" class="nav-link">Calendar</a>
+      <a href="#" class="nav-link">Reservations</a>
+      <a href="#" class="nav-link">Listings</a>
+      <a href="{% url 'tasks:task-list' %}" class="nav-link active">Tasks</a>
+      <a href="#" class="nav-link">Enquiries</a>
+    </nav>
+
+    <div class="topnav-right">
+      <button class="btn-create-top" type="button"><span>Create</span></button>
+      <span class="avatar" role="img" aria-label="Account"></span>
+    </div>
+  </header> -->
+
+  <!-- ============ SUB HEADER ============ -->
+  <div class="subheader">
+    <div class="crumb-wrap">
+      <a href="{% url 'tasks:task-list' %}" class="crumb-link">Tasks</a>
+      <span class="crumb-sep">/</span>
+      <span class="crumb-current">{{ task.title|default:task.get_task_type_display }}</span>
+    </div>
+    <div class="subheader-actions">
+      <button class="btn" type="button" onclick="history.back()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <path d="M19 12H5M12 19l-7-7 7-7"/>
+        </svg>
+        <span>Back</span>
+      </button>
+      <a class="btn primary" href="{% url 'tasks:task-edit' pk=task.id %}">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+          <path d="M18.5 2.5a2.121 2.121 0 113 3L12 15l-4 1 1-4 9.5-9.5z"/>
+        </svg>
+        <span>Edit</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- ============ MAIN ============ -->
+  <main class="layout">
+
+    <!-- Listing / Property card -->
+    <section class="card" aria-labelledby="listing-title">
+      <div class="card-header" id="listing-title">Listing</div>
+      <div class="card-body">
+        <article class="listing-hero">
+          <div class="hero-image" role="img" aria-label="Property photo of {{ task.property.title }}"
+            style="background-image: url('{{ task.property.get_primary_image_url }}');
+                   background-size: cover; background-position: center;"></div>
+          <div class="hero-body">
+            <span class="selected-pill">Selected</span>
+            <h3 class="listing-name">{{ task.property.title }}</h3>
+            <div class="listing-loc">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/>
+                <circle cx="12" cy="10" r="3"/>
+              </svg>
+              {{ task.property.city }}, {{ task.property.state }}
+            </div>
+            {% if task.property.price_per_night %}
+            <div class="listing-price">${{ task.property.price_per_night }} <small>/ night</small></div>
+            {% endif %}
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <!-- Task details (read-only view) -->
+    <section class="card" aria-labelledby="task-details-title">
+      <div class="card-header" id="task-details-title">Task details</div>
+      <div class="card-body">
+
+        <!-- Title row -->
+        <div class="task-head">
+          <h1 class="task-title">{{ task.title|default:task.get_task_type_display }}</h1>
+          <div class="badges">
+            <span class="badge-pill badge-type">{{ task.get_task_type_display }}</span>
+            {% if task.completed %}
+            <span class="badge-pill badge-status" style="background:#d1fae5;color:#065f46;">Done</span>
+            {% elif task.is_overdue %}
+            <span class="badge-pill badge-status" style="background:#fee2e2;color:#991b1b;">Overdue</span>
+            {% else %}
+            <span class="badge-pill badge-status">Scheduled</span>
+            {% endif %}
+            {% if task.repeat and task.repeat != 'None' %}
+            <span class="badge-pill badge-recurring">Recurring</span>
+            {% endif %}
+          </div>
+        </div>
+
+        {% if task.details %}
+        <p class="description">{{ task.details }}</p>
+        {% endif %}
+
+        <!-- Schedule -->
+        <div class="section-divider"></div>
+        <div class="section-label">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <rect x="3" y="4" width="18" height="18" rx="2"/>
+            <line x1="16" y1="2" x2="16" y2="6"/>
+            <line x1="8" y1="2" x2="8" y2="6"/>
+            <line x1="3" y1="10" x2="21" y2="10"/>
+          </svg>
+          Schedule
+        </div>
+        <div class="info-grid">
+          {% if task.date %}
+          <div class="info">
+            <span class="label">Date</span>
+            <span class="value">{{ task.date|date:"l, F j, Y" }}</span>
+          </div>
+          {% endif %}
+          {% if task.time %}
+          <div class="info">
+            <span class="label">Time</span>
+            <span class="value">{{ task.time|time:"g:i A" }}</span>
+          </div>
+          {% endif %}
+          {% if task.repeat and task.repeat != 'None' %}
+          <div class="info">
+            <span class="label">Repeat</span>
+            <span class="value">{{ task.repeat }}</span>
+          </div>
+          {% endif %}
+          {% if task.repeat_till %}
+          <div class="info">
+            <span class="label">Repeat till</span>
+            <span class="value">{{ task.repeat_till|date:"F j, Y" }}</span>
+          </div>
+          {% endif %}
+        </div>
+
+        <!-- Assignee -->
+        {% if task.assigned_to or task.phone or task.email %}
+        <div class="section-divider"></div>
+        <div class="section-label">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/>
+            <circle cx="12" cy="7" r="4"/>
+          </svg>
+          Assignee
+        </div>
+        <div class="info-grid">
+          {% if task.assigned_to %}
+          <div class="info">
+            <span class="label">Assigned to</span>
+            <span class="value">{{ task.assigned_to }}</span>
+          </div>
+          {% endif %}
+          {% if task.phone %}
+          <div class="info">
+            <span class="label">Phone</span>
+            <span class="value"><a href="tel:{{ task.country_code }}{{ task.phone }}">{% if task.country_code %}{{ task.country_code }} {% endif %}{{ task.phone }}</a></span>
+          </div>
+          {% endif %}
+          {% if task.email %}
+          <div class="info full">
+            <span class="label">Email</span>
+            <span class="value"><a href="mailto:{{ task.email }}">{{ task.email }}</a></span>
+          </div>
+          {% endif %}
+        </div>
+        {% endif %}
+
+        <!-- Attachments / Images -->
+        {% with images=task.images.all %}
+        {% if images %}
+        <div class="section-divider"></div>
+        <div class="section-label">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/>
+          </svg>
+          Attachments
+        </div>
+        <div class="attachments">
+          {% for img in images %}
+          <a class="attach-chip" href="{{ img.image.url }}" target="_blank">
+            <span class="file-icon">IMG</span>
+            <span class="file-meta">
+              {{ img.image.name|slice:"12:" }}
+            </span>
+          </a>
+          {% endfor %}
+        </div>
+        {% endif %}
+        {% endwith %}
+
+        <!-- Footnote -->
+        <div class="meta-footer">
+          {% if task.created_by %}
+          <span>Created by {{ task.created_by.get_full_name|default:task.created_by.email }}</span>
+          {% endif %}
+          {% if task.created_at %}
+          <span>Created on · {{ task.created_at|date:"F j, Y" }}</span>
+          {% endif %}
+        </div>
+
+      </div>
+    </section>
+  </main>
+
+{% endblock content %}
+
+{% block extra_script %}
+{% endblock extra_script %}

@@ -8,7 +8,7 @@ from property.models import Property
 import json
 from django.utils import timezone
 from .forms import TaskForm
-from .models import Task
+from .models import Task, TaskImage
 from dateutil.relativedelta import relativedelta
 import datetime
 from django.db.models import Q
@@ -62,7 +62,10 @@ class TaskListView(LoginRequiredMixin, ListView):
                 Q(assigned_to__icontains=search_query)
             )
 
-        return tasks.order_by('date', 'time')
+        tasks = tasks.order_by('date', 'time')
+        return tasks
+
+
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -106,7 +109,7 @@ class TaskCreateView(LoginRequiredMixin, View):
         return render(request, self.template_name, context)
 
     def post(self, request, *args, **kwargs):
-        form = self.form_class(request.POST, user=request.user)
+        form = self.form_class(request.POST, request.FILES, user=request.user)
         if form.is_valid():
             base_task = form.save(commit=False)
             effective_user = get_effective_user(request.user)
@@ -115,6 +118,8 @@ class TaskCreateView(LoginRequiredMixin, View):
             repeat_option = base_task.repeat
             start_date = base_task.date
             end_date = base_task.repeat_till
+
+            img_files = request.FILES.getlist('task_images')
 
             if repeat_option and repeat_option != 'None' and start_date and end_date:
                 tasks_to_create = []
@@ -133,6 +138,7 @@ class TaskCreateView(LoginRequiredMixin, View):
                 while current_date <= end_date:
                     new_task = Task(
                         property=base_task.property,
+                        title=base_task.title,
                         details=base_task.details,
                         date=current_date,
                         time=base_task.time,
@@ -143,14 +149,23 @@ class TaskCreateView(LoginRequiredMixin, View):
                         assigned_to=base_task.assigned_to,
                         phone=base_task.phone,
                         country_code=base_task.country_code,
+                        email=base_task.email,
                         created_by=effective_user,
                         recurrence_id=recurrence_id,
                     )
                     tasks_to_create.append(new_task)
                     current_date += delta
-                Task.objects.bulk_create(tasks_to_create)
+                created_tasks = Task.objects.bulk_create(tasks_to_create)
+                if img_files:
+                    # bulk_create may not set PKs on SQLite; query explicitly
+                    first_task = Task.objects.filter(recurrence_id=recurrence_id).order_by('date').first()
+                    if first_task:
+                        for img_file in img_files:
+                            TaskImage.objects.create(task=first_task, image=img_file)
             else:
                 base_task.save()
+                for img_file in img_files:
+                    TaskImage.objects.create(task=base_task, image=img_file)
 
             messages.success(request, 'Task created successfully!')
             return redirect(reverse('tasks:task-list'))
@@ -172,6 +187,7 @@ class TaskEditView(LoginRequiredMixin, View):
             'properties': properties,
             'is_edit': True,
             'task': task,
+            'existing_images': task.images.all(),
         }
         return render(request, self.template_name, context)
 
@@ -201,15 +217,21 @@ class TaskEditView(LoginRequiredMixin, View):
             if 'repeat_till' not in post_data and task.repeat_till:
                 post_data['repeat_till'] = task.repeat_till.strftime('%Y-%m-%d')
 
-        form = self.form_class(post_data, instance=task, user=request.user)
+        form = self.form_class(post_data, request.FILES, instance=task, user=request.user)
         if form.is_valid():
             form.save()
+            for img_file in request.FILES.getlist('task_images'):
+                TaskImage.objects.create(task=task, image=img_file)
             messages.success(request, 'Task updated successfully!')
             return redirect(reverse('tasks:task-list'))
         else:
             messages.error(request, 'Please correct the errors below.')
             properties = Property.objects.filter(created_by__in=get_visible_user_ids(request.user), status='Active')
-            return render(request, self.template_name, {'form': form, 'properties': properties, 'is_edit': True, 'task': task})
+            return render(request, self.template_name, {
+                'form': form, 'properties': properties,
+                'is_edit': True, 'task': task,
+                'existing_images': task.images.all(),
+            })
 
 
 class UpdateTaskStatusView(LoginRequiredMixin, View):
@@ -235,6 +257,35 @@ class UpdateTaskStatusView(LoginRequiredMixin, View):
             })
         except Task.DoesNotExist:
             return JsonResponse({'success': False, 'error': 'Task not found.'}, status=404)
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+
+class TaskDetailView(LoginRequiredMixin, View):
+    template_name = 'frontend/tasks/task-details-view.html'
+
+    def get(self, request, pk, *args, **kwargs):
+        task = get_object_or_404(Task, pk=pk, created_by__in=get_visible_user_ids(request.user))
+        today = datetime.date.today()
+        if task.date:
+            task.is_overdue = task.date < today
+            task.days_until_due = (task.date - today).days if not task.is_overdue else 0
+        else:
+            task.is_overdue = False
+            task.days_until_due = 0
+        return render(request, self.template_name, {'task': task})
+
+
+class TaskImageDeleteView(LoginRequiredMixin, View):
+    def post(self, request, *args, **kwargs):
+        try:
+            data = json.loads(request.body)
+            image_id = data.get('image_id')
+            image = TaskImage.objects.get(pk=image_id, task__created_by__in=get_visible_user_ids(request.user))
+            image.delete()
+            return JsonResponse({'success': True})
+        except TaskImage.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Image not found.'}, status=404)
         except Exception as e:
             return JsonResponse({'success': False, 'error': str(e)}, status=400)
 

@@ -85,6 +85,7 @@ INSTALLED_APPS = [
     'global',
     'billing',
     'printpanel',
+    'frontdesk',
 
 
 ]
@@ -119,6 +120,7 @@ TEMPLATES = [
                 'property.context_processors.property_context',
                 'bookaid.context_processors.enquiry_counts',
                 'billing.context_processors.subscription_status',
+                'accounts.context_processors.currency_context',
                 'django.template.context_processors.static',
             ],
         },
@@ -208,6 +210,10 @@ CELERY_BEAT_SCHEDULE = {
         'task': 'booking.tasks.send_daily_booking_emails',
         'schedule': crontab(minute=1, hour=2),  # Runs daily at 2:01 AM
     },
+    'refresh-exchange-rates-daily': {
+        'task': 'accounts.tasks.refresh_exchange_rates_task',
+        'schedule': crontab(minute=30, hour=0),  # Runs daily at 12:30 AM
+    },
 }
 
 SESSION_COOKIE_AGE = 3600  # 60 minutes
@@ -258,6 +264,12 @@ FIREBASE_APP_ID = os.getenv('FIREBASE_APP_ID', '')
 FIREBASE_MEASUREMENT_ID = os.getenv('FIREBASE_MEASUREMENT_ID', '')
 FIREBASE_ADMIN_PRIVATE_KEY = os.getenv('FIREBASE_ADMIN_PRIVATE_KEY', '')
 FIREBASE_ADMIN_CLIENT_EMAIL = os.getenv('FIREBASE_ADMIN_CLIENT_EMAIL', '')
+
+# Google Identity Services (GIS) — used for "Continue with Google".
+# This is the OAuth 2.0 Web client ID from Google Cloud Console (the same one
+# Firebase auto-created for this project). GIS avoids the Firebase redirect flow
+# that breaks on iOS due to WebKit storage partitioning.
+GOOGLE_OAUTH_CLIENT_ID = os.getenv('GOOGLE_OAUTH_CLIENT_ID', '')
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field

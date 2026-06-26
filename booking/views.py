@@ -4,7 +4,7 @@ import re
 from django.core.files import File
 from django.views.generic import ListView, View
 from .models import *
-from property.models import Property
+from property.models import Property, PropertyBlockDate
 from django.urls import reverse_lazy
 from django.db import transaction
 from django.contrib import messages
@@ -15,9 +15,9 @@ from django.db.models import Q, Value
 from django.db.models.functions import Concat
 from calendar import monthrange
 from datetime import datetime, timedelta
-from decimal import Decimal
 from django.contrib.auth.mixins import LoginRequiredMixin
 from accounts.utils import get_visible_user_ids
+from accounts import currency
 from .enums import BOOKING_CHANNELS
 from .utils import generate_booking_payments
 from accounts.utils import get_visible_user_ids
@@ -56,8 +56,8 @@ class BookingListView(LoginRequiredMixin, ListView):
             bookings = bookings.order_by('-check_out_date')
         elif status_filter == 'current':
             bookings = base_qs.filter(check_in_date__lte=now, check_out_date__gte=now, status='confirmed')
-            # List sorted by Checkin Date, first checking date on the top
-            bookings = bookings.order_by('check_in_date')
+            # List sorted by Checkin Date, latest checking date on the top
+            bookings = bookings.order_by('-check_in_date')
         elif status_filter == 'upcoming':
             bookings = base_qs.filter(check_in_date__gt=now, status='confirmed')
             # List sorted by Checkin Date, Closest checking date on the top
@@ -135,7 +135,7 @@ class BookingListView(LoginRequiredMixin, ListView):
                 'nights': booking.total_nights,
                 'guests': booking.guest_count,
                 'reservation_number': booking.booking_id,
-                'total_price': f"${booking.price:.2f}",
+                'total_price': currency.money(booking.price, self.request.user.currency),
                 'platform': booking.channel.name if booking.channel else 'Others',
                 'platform_icon': booking.channel.icon.url if booking.channel and booking.channel.icon else '',
                 'guest_avatar': guest_image.image.url if guest_image else '/static/img/common/default_user_icon.png',
@@ -264,20 +264,31 @@ class BookingCreateView(LoginRequiredMixin, View):
             check_in_date = datetime.strptime(check_in_str, '%Y-%m-%d').date()
             check_out_date = datetime.strptime(check_out_str, '%Y-%m-%d').date()
 
-            # Check for conflicting confirmed bookings
-            is_booked = Booking.objects.filter(
-                property_id=property_id,
-                status='confirmed',
-                check_in_date__lt=check_out_date,
-                check_out_date__gt=check_in_date
-            ).exists()
-
-            if is_booked:
-                messages.error(request, "The selected property is already booked for these dates. Please choose different dates or another property.")
-                return redirect(request.META.get('HTTP_REFERER', reverse_lazy('booking:booking-create')))
-            
-
             with transaction.atomic():
+                # Lock the property row to serialize booking creation for this property
+                Property.objects.select_for_update().get(pk=property_id)
+
+                # Check for conflicting confirmed bookings
+                is_booked = Booking.objects.filter(
+                    property_id=property_id,
+                    status='confirmed',
+                    check_in_date__lt=check_out_date,
+                    check_out_date__gt=check_in_date
+                ).exists()
+
+                if is_booked:
+                    raise Exception("The selected property is already booked for these dates. Please choose different dates or another property.")
+
+                # Check for blocked dates
+                is_blocked = PropertyBlockDate.objects.filter(
+                    property_id=property_id,
+                    is_active=True,
+                    start_date__lt=check_out_date,
+                    end_date__gt=check_in_date
+                ).exists()
+
+                if is_blocked:
+                    raise Exception("The selected property is blocked for these dates. Please choose different dates or another property.")
                 booking = Booking.objects.create(
                     first_name=request.POST.get('first_name'),
                     last_name=request.POST.get('last_name'),
@@ -300,11 +311,12 @@ class BookingCreateView(LoginRequiredMixin, View):
                     check_in_time=request.POST.get('check_in_time'),
                     check_out_time=request.POST.get('check_out_time'),
                     notes=request.POST.get('notes'),
-                    price=Decimal(request.POST.get('price', '0.00')),
-                    price_per_night=Decimal(request.POST.get('price_per_night', '0.00')),
-                    deposit_fee=Decimal(request.POST.get('deposit_fee', '0.00')),
-                    application_fee=Decimal(request.POST.get('application_fee', '0.00')),
-                    cleaning_fee=Decimal(request.POST.get('cleaning_fee', '0.00'))
+                    # Amounts are submitted in the host's display currency; store as USD.
+                    price=currency.to_usd(request.POST.get('price', '0.00'), request.user.currency),
+                    price_per_night=currency.to_usd(request.POST.get('price_per_night', '0.00'), request.user.currency),
+                    deposit_fee=currency.to_usd(request.POST.get('deposit_fee', '0.00'), request.user.currency),
+                    application_fee=currency.to_usd(request.POST.get('application_fee', '0.00'), request.user.currency),
+                    cleaning_fee=currency.to_usd(request.POST.get('cleaning_fee', '0.00'), request.user.currency)
 
                 )
 
@@ -417,20 +429,32 @@ class BookingUpdateView(LoginRequiredMixin, View):
         check_in_date = datetime.strptime(check_in_str, '%Y-%m-%d').date()
         check_out_date = datetime.strptime(check_out_str, '%Y-%m-%d').date()
 
-        # Check for conflicting confirmed bookings, excluding the current one
-        is_booked = Booking.objects.filter(
-            property_id=property_id,
-            status='confirmed',
-            check_in_date__lt=check_out_date,
-            check_out_date__gt=check_in_date
-        ).exclude(pk=booking.pk).exists()
-
-        if is_booked:
-            messages.error(request, "The selected property is already booked for these dates. Please choose different dates or another property.")
-            return redirect(request.META.get('HTTP_REFERER', reverse_lazy('booking:booking-edit', kwargs={'pk': booking.pk})))
-
         try:
             with transaction.atomic():
+                # Lock the property row to serialize booking updates for this property
+                Property.objects.select_for_update().get(pk=property_id)
+
+                # Check for conflicting confirmed bookings, excluding the current one
+                is_booked = Booking.objects.filter(
+                    property_id=property_id,
+                    status='confirmed',
+                    check_in_date__lt=check_out_date,
+                    check_out_date__gt=check_in_date
+                ).exclude(pk=booking.pk).exists()
+
+                if is_booked:
+                    raise Exception("The selected property is already booked for these dates. Please choose different dates or another property.")
+
+                # Check for blocked dates
+                is_blocked = PropertyBlockDate.objects.filter(
+                    property_id=property_id,
+                    is_active=True,
+                    start_date__lt=check_out_date,
+                    end_date__gt=check_in_date
+                ).exists()
+
+                if is_blocked:
+                    raise Exception("The selected property is blocked for these dates. Please choose different dates or another property.")
                 old_check_in_date = booking.check_in_date
                 old_check_out_date = booking.check_out_date
 
@@ -455,8 +479,9 @@ class BookingUpdateView(LoginRequiredMixin, View):
                 booking.check_in_time = request.POST.get('check_in_time')
                 booking.check_out_time = request.POST.get('check_out_time')
                 booking.notes = request.POST.get('notes')
-                booking.price = Decimal(request.POST.get('price', '0.00'))
-                booking.price_per_night = Decimal(request.POST.get('price_per_night', '0.00'))
+                # Amounts are submitted in the host's display currency; store as USD.
+                booking.price = currency.to_usd(request.POST.get('price', '0.00'), request.user.currency)
+                booking.price_per_night = currency.to_usd(request.POST.get('price_per_night', '0.00'), request.user.currency)
                 booking.save()
 
                 # --- Handle Guest Images ---

@@ -33,8 +33,9 @@ class Property(models.Model):
 
     # Basic Details
     title = models.CharField(max_length=200)
+    nick_name = models.CharField(max_length=200, blank=True, null=True, verbose_name='Nick Name')
     description = models.TextField()
-    
+
     # Address
     country = models.CharField(max_length=100)
     street_address = models.CharField(max_length=200)
@@ -68,12 +69,15 @@ class Property(models.Model):
     rules = models.TextField(blank=True, null=True, verbose_name='Cancellation, Other Policies and Rules')
     house_rules = models.TextField(blank=True, null=True, verbose_name='House Rules')
     cancellation_policy = models.TextField(blank=True, null=True, verbose_name='Cancellation Policy')
+    rental_contract_terms = models.TextField(blank=True, null=True, verbose_name='Rental Contract Terms and Conditions')
     
     # Pricing
     price_per_night = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='Price/Night')
-    application_fees = models.DecimalField(max_digits=10, decimal_places=2, blank=True)
-    cleaning_fee = models.DecimalField(max_digits=10, decimal_places=2, blank=True)
-    refundable_deposit = models.DecimalField(max_digits=10, decimal_places=2, blank=True)
+    application_fees = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True, default=0)
+    taxes = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True, default=0, verbose_name='Taxes')
+    cleaning_fee = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True, default=0)
+    refundable_deposit = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True, default=0)
+    other_fees = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True, default=0, verbose_name='Other Fees')
     
     # Relationships
     amenities = models.ManyToManyField(Amenities, blank=True, related_name='properties')

@@ -28,12 +28,11 @@
   }
 
   .date-column.today-date-column {
-    background: rgba(22, 163, 74, 0.245) !important;
+    background: #0f172a !important;
   }
 
   .date-cell.today-date-column {
     background: rgba(22, 163, 74, 0.245) !important;
-    ;
   }
 
   .date-column.today-date-column {
@@ -61,6 +60,68 @@
   .date-cell,
   .date-row {
     cursor: pointer;
+  }
+
+  .month-task-circle {
+    position: absolute;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    pointer-events: auto;
+    box-shadow: 0 0 0 2px #000, 0 2px 6px rgba(0, 0, 0, 0.2);
+    border: 2px solid rgba(255, 255, 255, 0.4);
+    overflow: hidden;
+    transition: transform 0.15s;
+    z-index: 15;
+  }
+  .month-task-circle:hover {
+    transform: scale(1.15);
+  }
+  .month-task-circle img {
+    width: 16px;
+    height: 16px;
+    object-fit: contain;
+    filter: brightness(0) invert(1);
+    display: block;
+  }
+  .month-task-circle.above-bar {
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+  }
+  .month-task-circle.above-bar:hover {
+    transform: translate(-50%, -50%) scale(1.15);
+  }
+  .month-task-circle.at-bar-start {
+    left: 5px;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+  .month-task-circle.at-bar-start:hover {
+    transform: translateY(-50%) scale(1.15);
+  }
+  .month-task-count {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    min-width: 16px;
+    height: 16px;
+    border-radius: 999px;
+    padding: 0 4px;
+    background: #ef4444;
+    color: #ffffff;
+    border: 2px solid #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 9px;
+    font-weight: 700;
+    line-height: 1;
+    z-index: 16;
   }
 
   .task-indicator {
@@ -113,10 +174,10 @@
     left: 50%;
     transform: translate(-50%, -50%);
     z-index: 120;
-    width: 30px;
-    height: 30px;
+    width: 36px;
+    height: 36px;
     border-radius: 50%;
-    background: #000000;
+    background: #3b82f6;
     border: 2px solid #ffffff;
     display: flex;
     align-items: center;
@@ -127,10 +188,42 @@
   }
 
   .payment-indicator img {
-    width: 20px;
-    height: 20px;
+    width: 24px;
+    height: 24px;
     object-fit: contain;
     filter: brightness(0) invert(1);
+  }
+
+  .cell-payment-dot {
+    position: absolute;
+    bottom: 4px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #000000;
+    z-index: 130;
+    cursor: pointer;
+    pointer-events: auto;
+  }
+
+  .cell-blinking-dot {
+    position: absolute;
+    bottom: 6px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #ef4444;
+    z-index: 15;
+    animation: cell-blink 1.2s ease-in-out infinite;
+    cursor: pointer;
+  }
+  @keyframes cell-blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.15; }
   }
 
   /* Booking Segments */
@@ -158,24 +251,33 @@
 
   .booking-span-block {
     position: absolute;
-    top: 3px;
-    bottom: 3px;
+    top: 50%;
+    height: 32px;
+    transform: translateY(-50%);
     --span-gap: calc(var(--cell-width) * 0.85);
     --boundary-start-adjust: 0px;
     --boundary-end-adjust: 0px;
     left: calc((var(--cell-width) * var(--start)) + var(--edge-gap-left) + (var(--span-gap) / 2) - var(--boundary-start-adjust));
     width: calc((var(--cell-width) * var(--len)) - (var(--edge-gap-left) + var(--edge-gap-right) + var(--span-gap)) + var(--boundary-start-adjust) + var(--boundary-end-adjust));
-    border-radius: 10px;
+    border-radius: 9999px;
     pointer-events: auto;
     display: flex;
     align-items: center;
     justify-content: left;
-    padding: 0 8px;
+    padding: 0 10px 0 36px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
-    overflow: hidden;
+    overflow: visible;
     min-width: 0;
     max-width: 100%;
     white-space: nowrap;
+  }
+  .booking-span-block.carry-start {
+    padding-left: 10px;
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+  }
+  .booking-span-block.carry-start .channel-logo-circle {
+    display: none;
   }
 
   .booking-span-block.carry-start {
@@ -184,16 +286,8 @@
 
   .booking-span-block.carry-end {
     --boundary-end-adjust: calc(var(--edge-gap-right) + (var(--span-gap) / 2));
-  }
-
-  .booking-span-block.rounded-left {
-    border-top-left-radius: 10px;
-    border-bottom-left-radius: 10px;
-  }
-
-  .booking-span-block.rounded-right {
-    border-top-right-radius: 10px;
-    border-bottom-right-radius: 10px;
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
   }
 
   .booking-segment:hover {
@@ -310,6 +404,42 @@
     vertical-align: middle;
   }
 
+  .booking-span-block .channel-logo-circle {
+    position: absolute;
+    left: -22px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    border: 5px solid transparent;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+    box-sizing: border-box;
+    z-index: 2;
+  }
+  .booking-span-block .channel-logo-circle::after {
+    content: '';
+    position: absolute;
+    inset: 3px;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.8);
+    pointer-events: none;
+    z-index: 1;
+  }
+  .booking-span-block .channel-logo-circle img {
+    width: 26px;
+    height: 26px;
+    object-fit: contain;
+    display: block;
+    position: relative;
+    z-index: 2;
+  }
+
   .booking-segment .blocked-icon {
     display: block;
     margin: 0 !important;
@@ -404,24 +534,21 @@
     position: fixed;
     top: 0;
     right: 0;
-    width: 80%;
+    width: 520px;
     height: 100vh;
-    background: #FAFAFA;
+    background: #f5f5f5;
     z-index: 6000;
-    box-shadow: -4px 0 15px rgba(0, 0, 0, 0.1);
+    box-shadow: -8px 0 30px rgba(0, 0, 0, 0.12);
     transform: translateX(100%);
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     display: flex;
     flex-direction: column;
+    border-left: 1px solid #e0e0e0;
   }
 
   @media (min-width: 768px) and (max-width: 1199.98px) {
     .reservation-sidebar {
       width: 100%;
-    }
-
-    .sidebar-content {
-      padding: 10px;
     }
   }
 
@@ -433,49 +560,46 @@
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 12px 15px;
+    padding: 16px 20px;
     border-bottom: 1px solid #e5e7eb;
     flex-wrap: nowrap;
-    background: #E7E7E9;
-  }
-
-  .sidebar-header,
-  .sidebar-header * {
-    color: #000 !important;
+    background: #ffffff;
   }
 
   .sidebar-header .sidebar-header-left {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
     flex-shrink: 0;
   }
 
   .sidebar-header .sidebar-header-left img {
-    width: 24px;
-    height: 24px;
+    width: 22px;
+    height: 22px;
     filter: brightness(0);
   }
 
   .sidebar-header .sidebar-header-left span {
-    font-size: 20px;
+    font-size: 17px;
     font-weight: 700;
     color: #111827;
     white-space: nowrap;
+    letter-spacing: -0.3px;
   }
 
   .sidebar-header .sidebar-header-info {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 16px;
     flex-wrap: wrap;
   }
 
   .sidebar-header .sidebar-header-info p {
     margin: 0;
-    font-size: 13px;
-    color: #6b7280;
+    font-size: 12px;
+    color: #9ca3af;
     white-space: nowrap;
+    font-weight: 500;
   }
 
   .sidebar-header-right {
@@ -503,23 +627,23 @@
     border-radius: 6px;
     padding: 6px 12px;
     border: 1px solid #d1d5db;
-    background: #eff3ff;
-    color: #1d4ed8;
-    font-weight: 600;
-    font-size: 14px;
+    background: #ffffff;
+    color: #374151;
+    font-weight: 500;
+    font-size: 13px;
     text-decoration: none;
-    transition: background 0.2s, border-color 0.2s;
+    transition: all 0.2s;
   }
 
   .sidebar-edit-btn svg {
-    width: 16px;
-    height: 16px;
+    width: 15px;
+    height: 15px;
     stroke: currentColor;
   }
 
   .sidebar-edit-btn:hover {
-    background: #dbeafe;
-    border-color: #93c5fd;
+    background: #f3f4f6;
+    border-color: #9ca3af;
   }
 
   @media (max-width: 767.98px) {
@@ -540,16 +664,18 @@
   .close-sidebar-btn {
     background: none;
     border: none;
-    font-size: 24px;
-    color: #6b7280;
+    font-size: 22px;
+    color: #9ca3af;
     cursor: pointer;
-    padding: 4px;
-    border-radius: 50%;
-    transition: background 0.2s;
+    padding: 4px 6px;
+    border-radius: 6px;
+    transition: all 0.2s;
+    line-height: 1;
   }
 
   .close-sidebar-btn:hover {
     background: #f3f4f6;
+    color: #374151;
   }
 
   .sidebar-content {
@@ -581,7 +707,7 @@
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.3);
+    background: rgba(0, 0, 0, 0.45);
     z-index: 5500;
     display: none;
     opacity: 0;
@@ -598,7 +724,10 @@
     border-radius: 10px;
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 6px;
+    padding: 5px 12px;
+    border: 1px solid #1f2937;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
   }
 
   .header-nav .nav-title {
@@ -817,8 +946,8 @@
   }
 
   .nav-button-header {
-    width: 40px;
-    height: 40px;
+    width: 32px;
+    height: 32px;
     border: none;
     border-radius: 50%;
     background: white;
@@ -830,22 +959,22 @@
   }
 
   .nav-button-header svg {
-    width: 24px;
-    height: 24px;
+    width: 18px;
+    height: 18px;
     color: #374151;
   }
 
   .nav-button-header img {
-    width: 24px;
-    height: 24px;
+    width: 18px;
+    height: 18px;
   }
 
   .month-display {
-    font-size: 20px;
+    font-size: 16px;
     font-weight: 600;
     color: #1f2937;
     text-align: center;
-    width: 150px;
+    min-width: 160px;
     white-space: nowrap;
 
   }
@@ -1431,6 +1560,570 @@
     font-weight: 600;
   }
 
+  /* Task Detail Modal */
+  .task-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.55);
+    z-index: 3000;
+    display: none;
+    justify-content: center;
+    align-items: center;
+    backdrop-filter: blur(4px);
+  }
+
+  .task-modal-overlay.open {
+    display: flex;
+  }
+
+  .task-modal {
+    background: #ffffff;
+    border-radius: 16px;
+    width: 100%;
+    max-width: 480px;
+    max-height: 90vh;
+    box-shadow: 0 25px 80px rgba(0, 0, 0, 0.3);
+    overflow: hidden;
+    margin: 20px;
+    animation: taskModalIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  @keyframes taskModalIn {
+    from {
+      opacity: 0;
+      transform: scale(0.92) translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1) translateY(0);
+    }
+  }
+
+  .task-modal-top-bar {
+    height: 5px;
+    width: 100%;
+    flex-shrink: 0;
+  }
+
+  .task-modal-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 20px 24px 0;
+  }
+
+  .task-modal-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 7px 16px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 700;
+    color: #fff;
+    text-transform: capitalize;
+    letter-spacing: 0.3px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  }
+
+  .task-modal-badge img {
+    width: 17px;
+    height: 17px;
+    object-fit: contain;
+    filter: brightness(0) invert(1);
+  }
+
+  .task-modal-status {
+    margin-left: auto;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 5px 14px;
+    border-radius: 12px;
+    background: #f3f4f6;
+    color: #6b7280;
+    letter-spacing: 0.3px;
+  }
+
+  .task-modal-status.completed {
+    background: #d1fae5;
+    color: #065f46;
+    box-shadow: inset 0 0 0 1px rgba(5, 150, 105, 0.15);
+  }
+
+  .task-modal-body {
+    padding: 16px 24px 20px;
+  }
+
+  .task-modal-details-wrap {
+    position: relative;
+    margin-bottom: 20px;
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .task-modal-details-accent {
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 4px;
+  }
+
+  .task-modal-details {
+    font-size: 15px;
+    line-height: 1.6;
+    color: #1f2937;
+    font-weight: 500;
+    padding: 16px 16px 16px 20px;
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    border-radius: 12px;
+    min-height: 48px;
+  }
+
+  .task-modal-info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1px;
+    background: #e5e7eb;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid #e5e7eb;
+  }
+
+  .task-modal-info-item {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    padding: 14px 16px;
+    background: #ffffff;
+    transition: background 0.15s;
+  }
+
+  .task-modal-info-item:hover {
+    background: #fafbfc;
+  }
+
+  .task-modal-info-item.full-width {
+    grid-column: 1 / -1;
+  }
+
+  .task-modal-info-label-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .task-modal-info-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .task-modal-info-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: #9ca3af;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+  }
+
+  .task-modal-info-value {
+    font-size: 15px;
+    font-weight: 600;
+    color: #111827;
+    padding-left: 14px;
+  }
+
+  .task-modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 0 24px 20px;
+  }
+
+  .task-modal-close-btn {
+    padding: 10px 28px;
+    border: none;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  }
+
+  .task-modal-close-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+  }
+
+  .task-modal-close-btn:active {
+    transform: translateY(0);
+  }
+
+  /* --- Payment task modal special effects --- */
+  .task-modal.payment-mode {
+    box-shadow: 0 25px 80px rgba(59, 130, 246, 0.25), 0 0 60px rgba(59, 130, 246, 0.08);
+    animation: paymentModalIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .task-modal.payment-mode .task-modal-badge {
+    animation: paymentBadgePulse 2s ease-in-out infinite;
+  }
+  .task-modal.payment-mode .task-modal-details {
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+    border-left: 3px solid #3b82f6;
+  }
+  .task-modal.payment-mode .task-modal-info-grid {
+    background: #bfdbfe;
+    border-color: #bfdbfe;
+  }
+
+  @keyframes paymentModalIn {
+    from {
+      opacity: 0;
+      transform: scale(0.88) translateY(30px) rotateX(6deg);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1) translateY(0) rotateX(0);
+    }
+  }
+  @keyframes paymentBadgePulse {
+    0%, 100% { box-shadow: 0 2px 8px rgba(59,130,246,0.2); }
+    50% { box-shadow: 0 2px 16px rgba(59,130,246,0.5), 0 0 24px rgba(59,130,246,0.15); }
+  }
+
+  .reservation-modal {
+    background: #ffffff;
+    border-radius: 16px;
+    width: 100%;
+    max-width: 960px;
+    max-height: 90vh;
+    box-shadow: 0 25px 80px rgba(0, 0, 0, 0.3);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    margin: 20px;
+    animation: taskModalIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .reservation-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid #e5e7eb;
+    flex-shrink: 0;
+    background: #fff;
+  }
+
+  .reservation-modal-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 16px;
+    font-weight: 700;
+    color: #111827;
+  }
+
+  .reservation-modal-close {
+    background: none;
+    border: none;
+    font-size: 24px;
+    color: #6b7280;
+    cursor: pointer;
+    padding: 0 4px;
+    line-height: 1;
+  }
+
+  .reservation-modal-close:hover {
+    color: #111827;
+  }
+
+  .reservation-modal-body {
+    overflow-y: auto;
+    padding: 0;
+    flex: 1;
+  }
+
+  /* --- Payment partial overrides for modal --- */
+  .reservation-modal-body .action-buttons {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding: 12px 24px;
+    margin: 0;
+    border-bottom: 1px solid #f0f0f0;
+    background: #fafafa;
+  }
+
+  .reservation-modal-body .action-buttons .left-section {
+    display: none;
+  }
+
+  .reservation-modal-body .action-buttons .btn-group {
+    margin-left: auto;
+  }
+
+  .reservation-modal-body .action-buttons .dropdown-toggle {
+    background: #fff;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    padding: 6px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #1D74B2;
+  }
+
+  .reservation-modal-body .action-buttons .book-info {
+    margin: 0;
+    font-size: 11px;
+    color: #6b7280;
+    text-align: right;
+    line-height: 1.4;
+  }
+
+  .reservation-modal-body .payment-partial-shell {
+    padding: 0;
+  }
+
+  .reservation-modal-body .reservation-row {
+    margin: 0 !important;
+  }
+
+  .reservation-modal-body .details-col {
+    padding: 0 !important;
+  }
+
+  .reservation-modal-body .booking-card {
+    border: none !important;
+    border-bottom: 1px solid #f0f0f0 !important;
+    border-radius: 0 !important;
+    padding: 20px 24px !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+    overflow: visible;
+  }
+
+  .reservation-modal-body .booking-card:first-child {
+    padding-top: 20px !important;
+  }
+
+  .reservation-modal-body .booking-card:last-child {
+    border-bottom: none !important;
+  }
+
+  .reservation-modal-body .card-content {
+    display: flex !important;
+    flex-direction: row !important;
+    gap: 0;
+    align-items: flex-start;
+    overflow: visible;
+  }
+
+  .reservation-modal-body .card-content > .left-section {
+    flex: 0 0 auto !important;
+    padding-left: 0 !important;
+    min-width: 260px;
+    max-width: 480px;
+    overflow: visible;
+  }
+
+  .reservation-modal-body .guest-top {
+    display: flex !important;
+    align-items: flex-start !important;
+    gap: 16px;
+  }
+
+  .reservation-modal-body .desktop-avatar {
+    flex: 0 0 auto !important;
+  }
+
+  .reservation-modal-body .desktop-avatar .profile-image {
+    width: 160px !important;
+    height: 160px !important;
+    max-height: none !important;
+    border-radius: 12px !important;
+    object-fit: contain !important;
+    display: block;
+  }
+
+  .reservation-modal-body .mobile-avatar {
+    display: none !important;
+  }
+
+  .reservation-modal-body .guest-meta {
+    flex: 1;
+    min-width: 0;
+    min-height: 0 !important;
+    justify-content: flex-start !important;
+  }
+
+  .reservation-modal-body .guest-name {
+    font-size: 18px !important;
+    font-weight: 700 !important;
+    color: #111827 !important;
+    margin-bottom: 10px !important;
+    line-height: 1.3;
+  }
+
+  .reservation-modal-body .contact-info {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 6px !important;
+    align-items: flex-start !important;
+  }
+
+  .reservation-modal-body .contact-item {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    font-size: 13px !important;
+    color: #6b7280 !important;
+    margin-bottom: 0 !important;
+  }
+
+  .reservation-modal-body .contact-item img {
+    width: 16px !important;
+    height: 16px !important;
+    object-fit: contain !important;
+    flex-shrink: 0;
+  }
+
+  .reservation-modal-body .card-content > .col-lg-auto {
+    display: flex !important;
+    flex: 0 0 auto !important;
+    padding: 0 12px !important;
+    width: auto !important;
+    align-items: stretch !important;
+    justify-content: center !important;
+  }
+
+  .reservation-modal-body .card-content > .col-lg-auto > .vr {
+    width: 2px !important;
+    min-height: 100% !important;
+    background-color: #d1d5db !important;
+    opacity: 1 !important;
+    border-radius: 1px;
+    align-self: stretch;
+  }
+
+  .reservation-modal-body .right-half-wrapper {
+    flex: 1 1 300px !important;
+    min-width: 280px !important;
+    width: auto !important;
+    padding-left: 0 !important;
+    gap: 20px !important;
+  }
+
+  .reservation-modal-body .property-section {
+    min-width: 160px !important;
+    max-width: 160px !important;
+  }
+
+  .reservation-modal-body .property-section img {
+    width: 100% !important;
+    height: 140px !important;
+    object-fit: cover !important;
+    border-radius: 10px !important;
+    display: block;
+  }
+
+  .reservation-modal-body .desktop-property-title {
+    font-size: 16px !important;
+    line-height: 1.3 !important;
+  }
+
+  .reservation-modal-body .mobile-only {
+    display: none !important;
+  }
+
+  .reservation-modal-body .payment-section {
+    margin: 0 !important;
+  }
+
+  .reservation-modal-body .payment-section .col-lg-6 {
+    padding-right: 12px !important;
+    padding-left: 0 !important;
+  }
+
+  .reservation-modal-body .payment-section .col-lg-4 {
+    padding-left: 24px !important;
+    padding-right: 12px !important;
+    margin-top: 0 !important;
+  }
+
+  .reservation-modal-body .payment-section .col-lg-auto {
+    display: none !important;
+  }
+
+  .reservation-modal-body .payment-section .mx-lg-auto {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+
+  .reservation-modal-body .payment-header h3 {
+    font-size: 14px !important;
+  }
+
+  .reservation-modal-body .toggle-btns {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+
+  .reservation-modal-body .toggle-btn {
+    background: none;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    padding: 2px 8px;
+    cursor: pointer;
+    font-size: 16px;
+    line-height: 1;
+    color: #6b7280;
+  }
+
+  .reservation-modal-body .payment-schedule {
+    width: 100%;
+  }
+
+  .reservation-modal-body .payment-schedule-container {
+    border: 1px solid #e5e7eb !important;
+    border-radius: 8px !important;
+  }
+
+  .reservation-modal-body .payment-schedule-row {
+    padding: 8px 12px !important;
+    font-size: 13px !important;
+  }
+
+  .reservation-modal-body .payment-summary {
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 16px;
+    background: #fafafa;
+  }
+
+  .reservation-modal-body .notes-section h3 {
+    font-size: 15px !important;
+    font-weight: 600 !important;
+    color: #111827 !important;
+    margin-bottom: 8px !important;
+  }
+
+  .reservation-modal-body .notes-text {
+    font-size: 13px !important;
+    line-height: 1.6 !important;
+    color: #374151 !important;
+    margin: 0 !important;
+  }
+
   @media (max-width: 991.98px) {
 
     #globalTooltip:not(.payment-tooltip-variant):not(.task-tooltip-variant),
@@ -1476,7 +2169,7 @@
 
   /* Scroll Fixes */
   .calendar-container {
-    height: calc(100vh - 197px);
+    height: calc(100vh - 180px);
     overflow: hidden;
     display: flex;
     flex-direction: column;
@@ -1561,7 +2254,7 @@
     overflow-y: hidden;
     scrollbar-width: none;
     -ms-overflow-style: none;
-    background: #f8f9fa;
+    background: #1e293b;
   }
 
   .dates-header-scroll::-webkit-scrollbar {
@@ -1571,8 +2264,8 @@
   .dates-body-scroll {
     flex: 1;
     min-height: 0;
+    overflow-y: auto;
     overflow-x: auto;
-    overflow-y: hidden;
     scrollbar-width: thin;
     position: relative;
   }
@@ -1599,7 +2292,7 @@
     min-height: 0;
     overflow-y: auto;
     overflow-x: visible;
-    scrollbar-width: thin;
+    scrollbar-width: none;
     padding-bottom: 8px;
   }
 
@@ -1637,6 +2330,10 @@
     z-index: 100000 !important;
   }
 
+  .week-grid-body {
+    overflow-y: auto;
+  }
+
   .dates-body-scroll::-webkit-scrollbar {
     width: 8px;
     height: 8px;
@@ -1654,8 +2351,8 @@
   .dates-header {
     position: relative;
     z-index: 999;
-    background: #f8f9fa;
-    border-bottom: 1px solid #e0e0e0;
+    background: #1e293b;
+    border-bottom: 1px solid #334155;
     width: max(100%, var(--timeline-grid-width));
     min-width: 100%;
   }
@@ -1664,6 +2361,7 @@
     position: relative;
     width: max(100%, var(--timeline-grid-width));
     min-width: 100%;
+    padding-bottom: 16px;
   }
 
   .dates-grid.has-user-selected-column::before {
@@ -1685,7 +2383,7 @@
     bottom: 0;
     left: calc(var(--today-column-index, -1) * var(--timeline-cell-width, 60px));
     width: var(--timeline-cell-width, 60px);
-    background: rgba(22, 163, 74, 0.2);
+    background: rgba(71, 105, 135, 0.3);
     pointer-events: none;
     z-index: 1;
   }
@@ -1703,16 +2401,56 @@
   .date-column {
     min-width: var(--timeline-cell-width, 60px);
     flex: 0 0 var(--timeline-cell-width, 60px);
+    padding: 10px 4px;
+    text-align: center;
+    border-right: 1px solid #334155;
+    background: #1e293b;
+  }
+  .date-column:last-child {
+    border-right: none;
+  }
+  .date-column.weekend {
+    background: #1a2535;
+  }
+  .date-number {
+    font-size: 16px;
+    font-weight: 700;
+    color: #f1f5f9;
+    line-height: 1.4;
+  }
+  .date-day {
+    font-size: 11px;
+    font-weight: 500;
+    color: #f5f5f5;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    line-height: 1.2;
   }
 
   .date-row {
     width: max(100%, var(--timeline-grid-width));
     min-width: 100%;
+    border-bottom: 2px solid #d1d5db;
+    min-height: 58px;
+  }
+  .date-row:last-child {
+    border-bottom: none;
   }
 
   .date-cell {
     min-width: var(--timeline-cell-width, 60px);
     flex: 0 0 var(--timeline-cell-width, 60px);
+    border-right: 1px solid #e5e7eb;
+    border-bottom: 1px solid #e5e7eb;
+    position: relative;
+    height: auto;
+    align-self: stretch;
+  }
+  .date-cell:last-child {
+    border-right: none;
+  }
+  .date-cell.past-date {
+    background: #f9fafb;
   }
 
   /* Responsive Adjustments */
@@ -1834,7 +2572,7 @@
     }
 
     .calendar-container {
-      height: calc(100vh - 210px);
+      height: calc(100vh - 194px);
     }
 
     .calendar-header {
@@ -1867,8 +2605,9 @@
     }
 
     .booking-span-block {
-      top: 3px;
-      bottom: 3px;
+      top: 50%;
+      height: 24px;
+      transform: translateY(-50%);
       box-shadow: none;
       min-width: 0;
       overflow: hidden;
@@ -1916,7 +2655,7 @@
       overflow-y: auto;
       overflow-x: auto;
       -webkit-overflow-scrolling: touch;
-      scrollbar-width: none;
+    scrollbar-width: thin;
       -ms-overflow-style: none;
     }
 
@@ -1999,19 +2738,15 @@
     }
 
     .date-column {
-      min-width: 52px;
-      flex: 0 0 52px;
       padding: 6px 2px;
     }
 
     .date-row {
-      height: 56px;
+      min-height: 52px;
     }
 
     .date-cell {
-      min-width: 52px;
-      flex: 0 0 52px;
-      height: 52px;
+      min-height: 52px;
     }
 
     .date-row {
@@ -2061,6 +2796,10 @@
     position: relative;
     transition: background-color 0.2s, border-left-color 0.2s;
     cursor: pointer;
+    display: flex;
+    align-items: center;
+    min-height: 58px;
+    border-bottom: 2px solid #d1d5db;
   }
   .property-row:hover {
     background-color: #f3f4f6;
@@ -2071,8 +2810,17 @@
     font-weight: 600;
   }
 
+  .property-info {
+    flex: 1;
+    min-width: 0;
+    padding: 0 8px;
+  }
+
   .property-name {
     font-size: 11px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   /* --- Month/Week Grid Calendar Styles --- */
@@ -2117,7 +2865,7 @@
     min-height: 0;
     border-bottom: 1px solid #e5e7eb;
     position: relative;
-    overflow: hidden;
+    overflow: visible;
   }
   .month-calendar-week:last-child {
     border-bottom: none;
@@ -2178,7 +2926,7 @@
     left: 0;
     right: 0;
     top: 34px;
-    bottom: 6px;
+    bottom: 4px;
     padding: 0 4px;
     display: grid;
     grid-template-columns: repeat(7, 1fr);
@@ -2193,24 +2941,24 @@
     grid-column: span 1;
     pointer-events: auto;
     border-radius: 9999px;
-    padding: 0 8px;
+    padding: 0 8px 0 36px;
     display: flex;
     align-items: center;
     justify-content: flex-start;
     font-size: 12px;
-    font-weight: 600;
+    font-weight: 700;
     color: #ffffff !important;
     cursor: pointer;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
-    overflow: hidden;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+    overflow: visible;
     white-space: nowrap;
-    text-overflow: ellipsis;
-    height: calc(100% - 4px);
+    height: calc(100% - 2px);
     align-self: center;
-    margin: 0;
+    margin: 1px 0;
     transition: transform 0.15s, box-shadow 0.15s;
-    gap: 6px;
-    min-height: 20px;
+    gap: 4px;
+    min-height: 30px;
+    position: relative;
   }
   .grid-event-span:hover {
     transform: translateY(-1px);
@@ -2220,17 +2968,101 @@
   .grid-event-span.carry-start {
     border-top-left-radius: 0;
     border-bottom-left-radius: 0;
+    padding-left: 8px;
+  }
+  .grid-event-span.carry-start .channel-logo-circle {
+    display: none;
   }
   .grid-event-span.carry-end {
     border-top-right-radius: 0;
     border-bottom-right-radius: 0;
   }
-  .grid-event-span .channel-icon {
-    width: 14px;
-    height: 14px;
-    object-fit: contain;
-    margin: 0 !important;
+  .grid-event-span .channel-logo-circle {
+    position: absolute;
+    left: -20px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     flex-shrink: 0;
+    border: 5px solid transparent;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+    box-sizing: border-box;
+    z-index: 2;
+  }
+  .grid-event-span .channel-logo-circle::after {
+    content: '';
+    position: absolute;
+    inset: 3px;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.8);
+    pointer-events: none;
+    z-index: 1;
+  }
+  .grid-event-span .channel-logo-circle img {
+    width: 22px;
+    height: 22px;
+    object-fit: contain;
+    display: block;
+    position: relative;
+    z-index: 2;
+  }
+  .grid-event-span .task-icon-circle {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.25);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    border: 1.5px solid rgba(255, 255, 255, 0.5);
+    overflow: hidden;
+    margin-left: -14px;
+    z-index: 2;
+  }
+  .grid-event-span .task-icon-circle img {
+    width: 18px;
+    height: 18px;
+    object-fit: contain;
+    filter: brightness(0) invert(1);
+    display: block;
+  }
+
+  /* Circular standalone task bar (month & week view) */
+  .task-circle-bar {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 0 0 2px #000, 0 2px 6px rgba(0, 0, 0, 0.15);
+    transition: transform 0.15s, box-shadow 0.15s;
+    pointer-events: auto;
+    justify-self: center;
+    align-self: center;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    overflow: hidden;
+    z-index: 15;
+  }
+  .task-circle-bar:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 0 0 2px #000, 0 4px 8px rgba(0, 0, 0, 0.15);
+    filter: brightness(1.05);
+  }
+  .task-circle-bar img {
+    width: 16px;
+    height: 16px;
+    object-fit: contain;
+    filter: brightness(0) invert(1);
+    display: block;
   }
   .grid-event-span .guest-avatar {
     width: 16px;
@@ -2247,6 +3079,8 @@
     white-space: nowrap;
     font-weight: 600;
     color: #ffffff;
+    flex: 1;
+    min-width: 0;
   }
   
   /* Task badge styling in calendar cells */
@@ -2460,24 +3294,172 @@
     padding: 8px 0;
   }
 
-  .list-view-pane {
-    scrollbar-width: thin;
+  /* ── List View Design ── */
+  #listViewPane {
+    --ink:#16151C;--text:#1F2430;--muted:#6B7280;--faint:#9AA1AC;
+    --paper:#f5f6f8;--surface:#fff;--line:#E7E9ED;
+    --brand:#F15A24;--brand-700:#D6491A;
+    --in:#059669;--in-text:#047857;--in-bg:#ECFDF5;--in-line:#A7F3D0;
+    --out:#D97706;--out-text:#B45309;--out-bg:#FFFBEB;--out-line:#FCD9A4;
+    --pay:#2563EB;--pay-text:#1D4ED8;--pay-bg:#EFF6FF;--pay-line:#BFDBFE;
+    --enquiry:#7C3AED;--enquiry-bg:#F5F3FF;--enquiry-line:#DDD6FE;
+    --blocked:#DC2626;--blocked-bg:#FEF2F2;--blocked-line:#FECACA;
+    --shadow-sm:0 1px 2px rgba(16,24,40,.05);
+    --shadow-md:0 4px 14px rgba(16,24,40,.07);
+    --radius:14px;
+    --sans:"Manrope",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --mono:"Spline Sans Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    font-family:var(--sans);color:var(--text);font-size:15px;line-height:1.45;
+    scrollbar-width:thin;
+    padding:0 !important;
   }
-  .list-view-pane::-webkit-scrollbar {
-    width: 8px;
-  }
-  .list-view-pane::-webkit-scrollbar-track {
-    background: transparent;
-  }
-  .list-view-pane::-webkit-scrollbar-thumb {
-    background: #d1d5db;
-    border-radius: 4px;
-  }
+  #listViewPane ::-webkit-scrollbar{width:8px;}
+  #listViewPane ::-webkit-scrollbar-track{background:transparent;}
+  #listViewPane ::-webkit-scrollbar-thumb{background:#d1d5db;border-radius:4px;}
+  #listViewPane .mono{font-family:var(--mono);font-variant-numeric:tabular-nums;letter-spacing:-.01em;}
+  .list-wrap{max-width:1160px;margin:0 auto;padding:24px;}
+  .list-loading{text-align:center;padding:60px 20px;color:var(--muted);font-size:15px;}
 
-  @media (max-width: 992px) {
-    .list-view-pane {
-      padding: 16px 2% !important;
-    }
+  /* Summary */
+  #listViewPane .summary{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px;}
+  #listViewPane .stat{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px;box-shadow:var(--shadow-sm);display:flex;align-items:center;gap:14px;position:relative;overflow:hidden;}
+  #listViewPane .stat::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--accent,var(--brand));}
+  #listViewPane .stat__ico{width:42px;height:42px;border-radius:11px;flex:0 0 auto;display:grid;place-items:center;background:var(--accent-bg,#F1F3F6);color:var(--accent,var(--brand));}
+  #listViewPane .stat__ico svg{width:21px;height:21px;}
+  #listViewPane .stat__meta{display:flex;flex-direction:column;gap:1px;min-width:0;}
+  #listViewPane .stat__num{font-weight:800;font-size:22px;letter-spacing:-.02em;line-height:1.1;}
+  #listViewPane .stat__label{font-size:12.5px;color:var(--muted);font-weight:600;}
+  #listViewPane .stat--in{--accent:var(--in);--accent-bg:var(--in-bg);}
+  #listViewPane .stat--out{--accent:var(--out);--accent-bg:var(--out-bg);}
+  #listViewPane .stat--pay{--accent:var(--pay);--accent-bg:var(--pay-bg);}
+  #listViewPane .stat--rev{--accent:var(--brand);--accent-bg:#FEF0E9;}
+
+  /* Filter bar */
+  #listViewPane .filterbar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:12px 14px;margin-bottom:22px;box-shadow:var(--shadow-sm);}
+  #listViewPane .search{display:flex;align-items:center;gap:9px;flex:1 1 240px;min-width:180px;background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:0 12px;height:40px;transition:border-color .15s,background .15s;}
+  #listViewPane .search:focus-within{border-color:var(--brand);background:#fff;}
+  #listViewPane .search svg{width:17px;height:17px;color:var(--faint);flex:0 0 auto;}
+  #listViewPane .search input{border:0;background:none;outline:none;width:100%;font-size:14px;color:var(--text);font-family:inherit;}
+  #listViewPane .search input::placeholder{color:var(--faint);}
+  #listViewPane .pills{display:flex;gap:8px;flex-wrap:wrap;}
+  #listViewPane .pill{display:flex;align-items:center;gap:8px;height:40px;padding:0 14px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--muted);font-weight:600;font-size:13.5px;transition:all .15s;}
+  #listViewPane .pill .dot{width:9px;height:9px;border-radius:50%;background:currentColor;opacity:.55;}
+  #listViewPane .pill .cnt{font-family:var(--mono);font-size:12px;font-weight:600;background:var(--paper);color:var(--muted);border-radius:7px;padding:2px 7px;min-width:24px;text-align:center;}
+  #listViewPane .pill:hover{border-color:#d3d6dc;color:var(--text);}
+  #listViewPane .pill[aria-pressed="true"]{color:#fff;border-color:transparent;}
+  #listViewPane .pill[aria-pressed="true"] .dot{opacity:1;background:#fff;}
+  #listViewPane .pill[aria-pressed="true"] .cnt{background:rgba(255,255,255,.22);color:#fff;}
+  #listViewPane .pill--all[aria-pressed="true"]{background:var(--text);}
+  #listViewPane .pill--in[aria-pressed="true"]{background:var(--in);}
+  #listViewPane .pill--out[aria-pressed="true"]{background:var(--out);}
+  #listViewPane .pill--pay[aria-pressed="true"]{background:var(--pay);}
+  #listViewPane .result-count{font-size:13px;color:var(--muted);font-weight:600;white-space:nowrap;}
+  #listViewPane .result-count b{color:var(--text);font-weight:800;}
+
+  /* Timeline */
+  #listViewPane .timeline{position:relative;}
+  #listViewPane .day{display:grid;grid-template-columns:80px 1fr;gap:16px;align-items:stretch;}
+  #listViewPane .day+.day,#listViewPane .day+.marker,#listViewPane .marker+.day{margin-top:14px;}
+  #listViewPane .rail{position:relative;width:80px;}
+  #listViewPane .day:not(.is-last) .rail::after,#listViewPane .marker .rail::after{content:"";position:absolute;left:calc(50%-1px);top:50px;bottom:-14px;width:2px;background:var(--line);}
+  #listViewPane .marker .rail::after{top:0;}
+  #listViewPane .node{position:relative;z-index:1;width:46px;height:46px;margin:0 auto;border-radius:50%;background:var(--surface);border:2px solid var(--line);box-shadow:var(--shadow-sm);display:grid;place-items:center;text-align:center;}
+  #listViewPane .node__day{font-weight:800;font-size:17px;line-height:1;letter-spacing:-.02em;}
+  #listViewPane .node__mon{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-top:1px;}
+  #listViewPane .day__main{min-width:0;}
+  #listViewPane .day__head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;padding:2px 2px 12px;}
+  #listViewPane .day__weekday{font-weight:800;font-size:14px;letter-spacing:-.01em;}
+  #listViewPane .day__date{color:var(--muted);font-size:12px;font-weight:600;}
+  #listViewPane .day__chip{font-size:11px;font-weight:700;color:var(--muted);background:var(--paper);border:1px solid var(--line);border-radius:20px;padding:2px 8px;}
+  #listViewPane .day__events{display:flex;flex-direction:column;gap:10px;}
+  #listViewPane .marker{display:grid;grid-template-columns:80px 1fr;gap:16px;align-items:center;}
+  #listViewPane .marker .rail{display:grid;place-items:center;}
+  #listViewPane .marker__dot{position:relative;z-index:1;width:14px;height:14px;border-radius:50%;background:var(--brand);box-shadow:0 0 0 4px #FEE7DD;}
+  #listViewPane .marker__label{display:flex;align-items:center;gap:10px;color:var(--brand-700);font-weight:800;font-size:12px;}
+  #listViewPane .marker__rule{height:1px;flex:1;background:linear-gradient(90deg,#F8C6B2,transparent);}
+  #listViewPane .empty-state{display:none;text-align:center;padding:60px 20px;color:var(--muted);background:var(--surface);border:1px dashed var(--line);border-radius:var(--radius);}
+  #listViewPane .empty-state b{display:block;color:var(--text);font-size:16px;margin-bottom:4px;}
+
+  /* Event card */
+  #listViewPane .event{position:relative;background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:var(--radius);box-shadow:var(--shadow-sm);transition:transform .14s,box-shadow .14s;cursor:default;}
+  #listViewPane .event:hover{transform:translateY(-1px);box-shadow:var(--shadow-md);}
+  #listViewPane .event--in{--accent:var(--in);}
+  #listViewPane .event--out{--accent:var(--out);}
+  #listViewPane .event--pay{--accent:var(--pay);}
+  #listViewPane .event--enquiry{--accent:var(--enquiry);}
+  #listViewPane .event--blocked{--accent:var(--blocked);}
+  #listViewPane .event__body{display:grid;grid-template-columns:220px 1fr 1.2fr 36px;gap:16px;align-items:center;padding:12px 16px;}
+  #listViewPane .zone{min-width:0;}
+  #listViewPane .zone--type{display:flex;gap:11px;align-items:flex-start;}
+  #listViewPane .ico{width:40px;height:40px;border-radius:10px;flex:0 0 auto;display:grid;place-items:center;}
+  #listViewPane .ico svg{width:20px;height:20px;}
+  #listViewPane .event--in .ico{background:var(--in-bg);color:var(--in);}
+  #listViewPane .event--out .ico{background:var(--out-bg);color:var(--out);}
+  #listViewPane .event--pay .ico{background:var(--pay-bg);color:var(--pay);}
+  #listViewPane .event--enquiry .ico{background:var(--enquiry-bg);color:var(--enquiry);}
+  #listViewPane .event--blocked .ico{background:var(--blocked-bg);color:var(--blocked);}
+  #listViewPane .typecontent{display:flex;flex-direction:column;gap:3px;min-width:0;}
+  #listViewPane .type__label{font-weight:800;font-size:14px;letter-spacing:-.01em;display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+  #listViewPane .badge{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;padding:2px 7px;border-radius:20px;border:1px solid;}
+  #listViewPane .badge--in{color:var(--in-text);background:var(--in-bg);border-color:var(--in-line);}
+  #listViewPane .badge--out{color:var(--out-text);background:var(--out-bg);border-color:var(--out-line);}
+  #listViewPane .badge--pay{color:var(--pay-text);background:var(--pay-bg);border-color:var(--pay-line);}
+  #listViewPane .badge--enquiry{color:var(--enquiry);background:var(--enquiry-bg);border-color:var(--enquiry-line);}
+  #listViewPane .badge--blocked{color:var(--blocked);background:var(--blocked-bg);border-color:var(--blocked-line);}
+  #listViewPane .amount{font-family:var(--mono);font-weight:600;font-size:17px;letter-spacing:-.02em;color:var(--text);}
+  #listViewPane .amount small{font-size:12px;color:var(--muted);font-weight:500;font-family:var(--sans);}
+  #listViewPane .range{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+  #listViewPane .range .mono{font-size:12px;font-weight:500;color:var(--text);}
+  #listViewPane .range svg{width:13px;height:13px;color:var(--faint);}
+  #listViewPane .nights{font-family:var(--mono);font-size:11px;font-weight:500;color:var(--muted);background:var(--paper);border:1px solid var(--line);border-radius:6px;padding:1px 7px;}
+
+  #listViewPane .zone--guest{display:flex;gap:10px;align-items:flex-start;}
+  #listViewPane .avatar{width:36px;height:36px;border-radius:50%;flex:0 0 auto;display:grid;place-items:center;font-weight:700;font-size:12px;color:#fff;letter-spacing:.01em;}
+  #listViewPane .avatar--guest{background:#EEF0F3;color:var(--faint);}
+  #listViewPane .guest__meta{display:flex;flex-direction:column;gap:2px;min-width:0;}
+  #listViewPane .guest__name{font-weight:700;font-size:13px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+  #listViewPane .source{font-size:10px;font-weight:700;border-radius:5px;padding:1px 6px;background:#FFE9EC;color:#E11D48;border:1px solid #FBC9D1;}
+  #listViewPane .contact{display:flex;align-items:center;gap:5px;color:var(--muted);font-size:12px;min-width:0;}
+  #listViewPane .contact svg{width:12px;height:12px;flex:0 0 auto;color:var(--faint);}
+  #listViewPane .contact span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  #listViewPane .contact--mono span{font-family:var(--mono);font-size:11px;}
+  #listViewPane .contact--none{color:var(--faint);font-style:italic;}
+
+  #listViewPane .zone--prop{display:flex;gap:10px;align-items:flex-start;}
+  #listViewPane .thumb{width:64px;height:48px;border-radius:9px;flex:0 0 auto;display:grid;place-items:center;position:relative;overflow:hidden;box-shadow:inset 0 0 0 1px rgba(16,24,40,.06);}
+  #listViewPane .thumb::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(255,255,255,.35),transparent 55%);}
+  #listViewPane .thumb svg{width:22px;height:22px;position:relative;z-index:1;}
+  #listViewPane .thumb--r2{background:linear-gradient(135deg,#FDE3CE,#F6C39C);color:#B25C28;}
+  #listViewPane .prop__meta{display:flex;flex-direction:column;gap:3px;min-width:0;}
+  #listViewPane .prop__name{font-weight:600;font-size:12px;line-height:1.3;color:var(--text);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+  #listViewPane .prop__loc{display:flex;align-items:center;gap:4px;color:var(--muted);font-size:11px;}
+  #listViewPane .prop__loc svg{width:12px;height:12px;color:var(--faint);flex:0 0 auto;}
+  #listViewPane .unit{align-self:flex-start;font-family:var(--mono);font-size:10px;font-weight:600;background:var(--paper);border:1px solid var(--line);border-radius:6px;padding:1px 6px;color:var(--muted);}
+
+  #listViewPane .open-btn{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;justify-self:end;color:var(--faint);border:1px solid var(--line);background:var(--surface);transition:background .15s,color .15s;cursor:pointer;}
+  #listViewPane .open-btn svg{width:17px;height:17px;}
+  #listViewPane .event:hover .open-btn{color:var(--brand);border-color:#F6C6B2;background:#FEF3EE;}
+
+  @media(max-width:1100px){
+    #listViewPane .event__body{grid-template-columns:1fr 1fr;gap:14px;padding:14px 16px;}
+    #listViewPane .zone--type{grid-column:1/-1;}
+    #listViewPane .open-btn{position:absolute;top:10px;right:10px;justify-self:auto;}
+  }
+  @media(max-width:768px){
+    #listViewPane .event__body{grid-template-columns:1fr;}
+    #listViewPane .zone--guest,#listViewPane .zone--prop{grid-column:1;}
+    #listViewPane .day{grid-template-columns:56px 1fr;gap:12px;}
+    #listViewPane .rail{width:56px;}
+    #listViewPane .node{width:42px;height:42px;}
+    #listViewPane .node__day{font-size:15px;}
+    #listViewPane .day:not(.is-last) .rail::after,#listViewPane .marker .rail::after{top:46px;}
+    #listViewPane .marker{grid-template-columns:56px 1fr;gap:12px;}
+    #listViewPane .summary{grid-template-columns:repeat(2,1fr);}
+    #listViewPane .pill .cnt{display:none;}
+    .list-wrap{padding:16px;}
+  }
+  @media(max-width:500px){
+    #listViewPane .summary{grid-template-columns:1fr;}
   }
 
   body {
@@ -2504,24 +3486,7 @@
     white-space: nowrap;
     border: 1px solid #e5e7eb;
   }
-  .cal-color-legend .legend-item {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-  }
-  .cal-color-legend .legend-item .legend-swatch {
-    display: inline-block;
-    width: 12px;
-    height: 12px;
-    border-radius: 4px;
-    flex-shrink: 0;
-  }
 
-  @media (max-width: 768px) {
-    .cal-color-legend {
-      display: none;
-    }
-  }
 </style>
 {% endblock extra_head %}
 
@@ -2586,22 +3551,22 @@
         <div class="divider"></div>
 
         <!-- Event Type Filter (Checkboxes) -->
-        <div class="dropdown" style="margin-left: 10px;">
-          <button class="btn btn-outline-secondary dropdown-toggle btn-sm fw-semibold" type="button" id="calendarTypeFilterBtn" data-bs-toggle="dropdown" aria-expanded="false" style="border-radius: 6px; border: 1px solid #d1d5db; padding: 6px 12px; font-size: 14px; background: #fff; color: #374151;">
+        <div class="dropdown" style="margin-left: 4px; flex: 0 0 auto; width: 130px;">
+          <button class="btn btn-outline-secondary dropdown-toggle btn-sm fw-semibold" type="button" id="calendarTypeFilterBtn" data-bs-toggle="dropdown" aria-expanded="false" style="border-radius: 6px; border: 1px solid #d1d5db; padding: 4px 10px; font-size: 13px; background: #fff; color: #374151; width: 100%; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: inline-block;">
             Show: All
           </button>
-          <ul class="dropdown-menu pt-2 pb-2" aria-labelledby="calendarTypeFilterBtn" id="calendarTypeFilter" style="min-width: 170px;">
-            <li style="padding: 2px 16px;"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:500;user-select:none;"><input type="checkbox" id="filterAll" checked style="width:16px;height:16px;accent-color:#3b82f6;cursor:pointer;"> All</label></li>
-            <li style="padding: 2px 16px;"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:500;user-select:none;"><input type="checkbox" id="filterReservation" checked class="filter-type-cb" data-type="reservation" style="width:16px;height:16px;accent-color:#2563eb;cursor:pointer;"> Reservations</label></li>
-            <li style="padding: 2px 16px;"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:500;user-select:none;"><input type="checkbox" id="filterTask" checked class="filter-type-cb" data-type="task" style="width:16px;height:16px;accent-color:#059669;cursor:pointer;"> Tasks</label></li>
-            <li style="padding: 2px 16px;"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:500;user-select:none;"><input type="checkbox" id="filterPayment" checked class="filter-type-cb" data-type="payment" style="width:16px;height:16px;accent-color:#1e293b;cursor:pointer;"> Payments</label></li>
+          <ul class="dropdown-menu pt-2 pb-2" aria-labelledby="calendarTypeFilterBtn" id="calendarTypeFilter" style="min-width: 170px;max-height:200px;overflow-y:auto;">
+            <li style="padding: 2px 16px;"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:500;user-select:none;"><input type="checkbox" id="filterAll" checked style="width:16px;height:16px;accent-color:#000000;cursor:pointer;"> All</label></li>
+            <li style="padding: 2px 16px;"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:500;user-select:none;"><input type="checkbox" id="filterReservation" checked class="filter-type-cb" data-type="reservation" style="width:16px;height:16px;accent-color:#000000;cursor:pointer;"> Reservations</label></li>
+            <li style="padding: 2px 16px;"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:500;user-select:none;"><input type="checkbox" id="filterTask" checked class="filter-type-cb" data-type="task" style="width:16px;height:16px;accent-color:#000000;cursor:pointer;"> Tasks</label></li>
+            <li style="padding: 2px 16px;"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:500;user-select:none;"><input type="checkbox" id="filterPayment" checked class="filter-type-cb" data-type="payment" style="width:16px;height:16px;accent-color:#000000;cursor:pointer;"> Payments</label></li>
           </ul>
         </div>
 
         <!-- View Switcher (Month/Week/Day dropdown) -->
-        <div class="d-flex align-items-center ms-3" id="calendarViewSwitcher" style="gap: 6px;">
+        <div class="d-flex align-items-center" id="calendarViewSwitcher" style="gap: 4px;">
           <div class="dropdown">
-            <button type="button" class="btn btn-light btn-sm px-3 fw-semibold dropdown-toggle" id="viewDropdownBtn" data-bs-toggle="dropdown" aria-expanded="false" style="border: 1px solid #d1d5db; border-radius: 6px; background: #fff; color: #374151; font-size: 14px; box-shadow: 0px 4px 4px 0px #94949440;">Month</button>
+            <button type="button" class="btn btn-light btn-sm px-2 fw-semibold dropdown-toggle" id="viewDropdownBtn" data-bs-toggle="dropdown" aria-expanded="false" style="border: 1px solid #d1d5db; border-radius: 6px; background: #fff; color: #374151; font-size: 13px; padding: 4px 10px;">Month</button>
             <ul class="dropdown-menu" aria-labelledby="viewDropdownBtn">
               <li><a class="dropdown-item active" href="#" data-view="month">Month</a></li>
               <li><a class="dropdown-item" href="#" data-view="week">Week</a></li>
@@ -2615,10 +3580,10 @@
         <div class="mobile-actions">
           <button class="mobile-actions-toggle" id="mobileActionsToggle" aria-label="Open actions">⋮</button>
           <div class="mobile-actions-menu" id="mobileActionsMenu">
-            <button class="btn p-0 tooltip-light" id="mobilePrintBtn" style="border:none" data-tooltip="Print">
+              <button class="btn p-0 tooltip-light" id="mobilePrintBtn" style="border:none">
               <img src="{% static 'img/calender/print_icon.svg' %}">
             </button>
-            <button class="btn p-0 tooltip-light" id="mobileRefreshBtn" style="border:none" data-tooltip="Refresh">
+            <button class="btn p-0 tooltip-light" id="mobileRefreshBtn" style="border:none">
               <img src="{% static 'img/calender/refresh_icon.svg' %}">
             </button>
 
@@ -2635,11 +3600,11 @@
           <div></div>
           <div class="header-actions-group">
             <div class="dropdown">
-              <button class="btn p-0 tooltip-light" id="printBtn" style="border:none" data-tooltip="Print">
+              <button class="btn p-0 tooltip-light" id="printBtn" style="border:1px solid #1f2937;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;">
                 <img src="{% static 'img/calender/print_icon.svg' %}">
               </button>
             </div>
-            <button class="btn p-0 tooltip-light" id="refreshBtn" style="border:none" data-tooltip="Refresh">
+            <button class="btn p-0 tooltip-light" id="refreshBtn" style="border:1px solid #1f2937;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;">
               <img src="{% static 'img/calender/refresh_icon.svg' %}">
             </button>
 
@@ -2653,12 +3618,6 @@
   <div class="calendar-container mt-3">
     <div class="loading-indicator" id="loadingIndicator">Loading...</div>
     <div class="calendar-wrapper">
-      <div class="cal-color-legend" id="calColorLegend" style="display:none;">
-        <span class="legend-item"><span class="legend-swatch" style="background:#3b82f6"></span> Registration</span>
-        <span class="legend-item"><span class="legend-swatch" style="background:#e53935"></span> Task</span>
-        <span class="legend-item"><span class="legend-swatch" style="background:#000"></span> Payment</span>
-        <span class="legend-item"><span class="legend-swatch" style="background:#8e24aa"></span> Enquiry</span>
-      </div>
       <div class="properties-column">
         <div class="search-bar" style="position: relative;">
           <div style="position: absolute; left: 20px; top: 50%; transform: translateY(-50%); pointer-events: none;">
@@ -2677,7 +3636,7 @@
         </div>
         <div id="propertiesList"></div>
       </div>
-      <div class="dates-scroll-container" id="datesPane">
+      <div class="dates-scroll-container" id="datesPane" style="border:1px solid #1f2937;border-radius:10px;">
         <div class="dates-header-scroll" id="datesHeaderScroll">
           <div class="dates-header" id="datesHeader"></div>
         </div>
@@ -2689,10 +3648,8 @@
       <div id="gridCalendarPane" style="display: none; flex: 1; height: 100%; min-height: 0; overflow-y: auto; padding: 16px; background-color: #fafafa; position: relative; box-sizing: border-box;">
       </div>
       <!-- List View Pane -->
-      <div id="listViewPane" class="list-view-pane" style="display: none; flex: 1; height: 100%; min-height: 0; overflow-y: auto; background-color: #fafafa; position: relative; box-sizing: border-box; padding: 16px 10%;">
-        <div id="listViewContent">
-          <div style="padding:20px; text-align:center;">Loading...</div>
-        </div>
+      <div id="listViewPane" class="list-view-pane" style="display: none; flex: 1; height: 100%; min-height: 0; overflow-y: auto; background-color: #f5f6f8; position: relative; box-sizing: border-box;">
+        <div id="listViewContent"><div class="list-loading">Loading events…</div></div>
       </div>
       <div class="calendar-empty-state" id="calendarEmptyState">No data to display</div>
     </div>
@@ -2842,6 +3799,145 @@
     <div id="taskDetailsList"></div>
   </div>
 
+  <!-- Task Detail Modal -->
+  <div class="task-modal-overlay" id="taskModalOverlay" onclick="closeTaskDetailModal(event)">
+    <div class="task-modal" id="taskModal" onclick="event.stopPropagation()">
+      <div class="task-modal-top-bar" id="taskModalTopBar"></div>
+      <div class="task-modal-header">
+        <div class="task-modal-badge" id="taskModalBadge">
+          <img src="" alt="" id="taskModalIcon" />
+          <span id="taskModalType"></span>
+        </div>
+        <div class="task-modal-status" id="taskModalStatus"></div>
+      </div>
+      <div class="task-modal-body">
+        <div class="task-modal-details-wrap">
+          <div class="task-modal-details-accent" id="taskModalDetailsAccent"></div>
+          <div class="task-modal-details" id="taskModalDetails"></div>
+        </div>
+        <div class="task-modal-info-grid">
+          <div class="task-modal-info-item">
+            <div class="task-modal-info-label-row">
+              <span class="task-modal-info-dot" style="background:#3b82f6;"></span>
+              <span class="task-modal-info-label">Property</span>
+            </div>
+            <span class="task-modal-info-value" id="taskModalProperty"></span>
+          </div>
+          <div class="task-modal-info-item">
+            <div class="task-modal-info-label-row">
+              <span class="task-modal-info-dot" style="background:#8b5cf6;"></span>
+              <span class="task-modal-info-label">Date</span>
+            </div>
+            <span class="task-modal-info-value" id="taskModalDate"></span>
+          </div>
+          <div class="task-modal-info-item">
+            <div class="task-modal-info-label-row">
+              <span class="task-modal-info-dot" style="background:#f59e0b;"></span>
+              <span class="task-modal-info-label">Assigned To</span>
+            </div>
+            <span class="task-modal-info-value" id="taskModalAssigned"></span>
+          </div>
+          <div class="task-modal-info-item">
+            <div class="task-modal-info-label-row">
+              <span class="task-modal-info-dot" style="background:#10b981;"></span>
+              <span class="task-modal-info-label">Phone</span>
+            </div>
+            <span class="task-modal-info-value" id="taskModalPhone"></span>
+          </div>
+          <div class="task-modal-info-item full-width" id="taskModalTimeRow" style="display:none;">
+            <div class="task-modal-info-label-row">
+              <span class="task-modal-info-dot" style="background:#ec4899;"></span>
+              <span class="task-modal-info-label">Time</span>
+            </div>
+            <span class="task-modal-info-value" id="taskModalTime"></span>
+          </div>
+        </div>
+      </div>
+      <div class="task-modal-footer">
+        <button class="task-modal-close-btn" id="taskModalToggleBtn" onclick="toggleTaskCompletion()" style="margin-right:auto"></button>
+        <button class="task-modal-close-btn" id="taskModalCloseBtn" onclick="closeTaskDetailModal()">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Payment Detail Modal -->
+  <div class="task-modal-overlay" id="paymentModalOverlay" onclick="closePaymentDetailModal(event)">
+    <div class="task-modal" id="paymentModal" onclick="event.stopPropagation()">
+      <div class="task-modal-top-bar" style="background:#000;"></div>
+      <div class="task-modal-header">
+        <div class="task-modal-badge" style="background:linear-gradient(135deg,#000,#333);">
+          <img src="{% static 'img/task/type/payment.svg' %}" alt="payment" style="width:20px;height:20px;filter:brightness(0) invert(1);" />
+          <span>Payment</span>
+        </div>
+        <div class="task-modal-status" id="paymentModalStatus" style="background:#000;color:#fff;"></div>
+      </div>
+      <div class="task-modal-body">
+        <div class="task-modal-details-wrap">
+          <div class="task-modal-details-accent" style="background:#000;"></div>
+          <div class="task-modal-details" id="paymentModalDetails"></div>
+        </div>
+        <div class="task-modal-info-grid">
+          <div class="task-modal-info-item">
+            <div class="task-modal-info-label-row">
+              <span class="task-modal-info-dot" style="background:#000;"></span>
+              <span class="task-modal-info-label">Amount</span>
+            </div>
+            <span class="task-modal-info-value" id="paymentModalAmount"></span>
+          </div>
+          <div class="task-modal-info-item">
+            <div class="task-modal-info-label-row">
+              <span class="task-modal-info-dot" style="background:#6b7280;"></span>
+              <span class="task-modal-info-label">Due Date</span>
+            </div>
+            <span class="task-modal-info-value" id="paymentModalDate"></span>
+          </div>
+          <div class="task-modal-info-item">
+            <div class="task-modal-info-label-row">
+              <span class="task-modal-info-dot" style="background:#22c55e;"></span>
+              <span class="task-modal-info-label">Guest</span>
+            </div>
+            <span class="task-modal-info-value" id="paymentModalGuest"></span>
+          </div>
+          <div class="task-modal-info-item">
+            <div class="task-modal-info-label-row">
+              <span class="task-modal-info-dot" style="background:#3b82f6;"></span>
+              <span class="task-modal-info-label">Booking ID</span>
+            </div>
+            <span class="task-modal-info-value" id="paymentModalBooking"></span>
+          </div>
+          <div class="task-modal-info-item full-width">
+            <div class="task-modal-info-label-row">
+              <span class="task-modal-info-dot" style="background:#8b5cf6;"></span>
+              <span class="task-modal-info-label">Stay</span>
+            </div>
+            <span class="task-modal-info-value" id="paymentModalStay"></span>
+          </div>
+        </div>
+      </div>
+      <div class="task-modal-footer">
+        <button class="task-modal-close-btn" id="paymentModalCloseBtn" onclick="closePaymentDetailModal()" style="background:linear-gradient(135deg,#000,#333);margin-left:auto;">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Reservation Detail Modal -->
+  <div class="task-modal-overlay" id="reservationModalOverlay" onclick="closeReservationPanel(event)">
+    <div class="reservation-modal" id="reservationModal" onclick="event.stopPropagation()">
+      <div class="reservation-modal-header">
+        <div class="reservation-modal-title">
+          <img src="{% static 'img/booking/reservation_icon.svg'%}" alt="" style="width:20px;height:20px;">
+          <span>Reservation details</span>
+        </div>
+        <button class="reservation-modal-close" onclick="closeReservationPanel()">&times;</button>
+      </div>
+      <div class="reservation-modal-body" id="reservationModalContent">
+        <div style="display:flex;justify-content:center;align-items:center;height:200px;">
+          <div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Error Modal -->
   <div class="modal fade" id="errorModal" tabindex="-1" aria-labelledby="errorModalLabel" aria-hidden="true"
     style="z-index: 5000;">
@@ -2879,6 +3975,43 @@
   let selectedDateKey = null;
   let hasManualDateSelection = false;
   const MONTH_PICKER_YEAR_RANGE = 15;
+
+  // Channel brand colors — authoritative override for reservation bars
+  const CHANNEL_COLORS = {
+    'airbnb': '#ff5a5f',
+    'booking.com': '#003580',
+    'vrbo': '#328eee',
+    'google vacation rentals': '#4285f4',
+    'furnished finder': '#034499',
+    'expedia': '#000099',
+    'tripadvisor': '#34e0a1',
+    'agoda': '#af38b0',
+    'personal website': '#6b5b95',
+    'others': '#999999',
+  };
+  function getChannelColor(channelName) {
+    if (!channelName) return null;
+    const key = channelName.trim().toLowerCase();
+    return CHANNEL_COLORS[key] || null;
+  }
+
+  // Channel logo map — static logo files as fallback when channelIcon API field is empty
+  const CHANNEL_LOGOS = {
+    'airbnb': "{% static 'img/channel-logos/airbnb.png' %}?v=2",
+    'booking.com': "{% static 'img/channel-logos/booking-com.png' %}?v=2",
+    'vrbo': "{% static 'img/channel-logos/vrbo.png' %}?v=2",
+    'furnished finder': "{% static 'img/channel-logos/furnish-finder.png' %}?v=2",
+    'expedia': "{% static 'img/channel-logos/Expedia.png' %}?v=2",
+    'tripadvisor': "{% static 'img/channel-logos/tripadvisor.png' %}?v=2",
+    'agoda': "{% static 'img/channel-logos/Agoda_Logo_1.png' %}?v=2",
+    'google vacation rentals': "{% static 'img/channel-logos/google_rental.png' %}?v=2",
+  };
+  function getChannelLogo(channelName, channelIconFromApi) {
+    if (channelIconFromApi && channelIconFromApi.trim()) return channelIconFromApi;
+    if (!channelName) return '';
+    const key = channelName.trim().toLowerCase();
+    return CHANNEL_LOGOS[key] || '';
+  }
 
   // Global currentDisplayDate for month display
   let currentDisplayDate = new Date(); // Starts at today
@@ -2928,8 +4061,20 @@
   // Update month display function
   function updateMonthDisplay() {
     const monthDisplay = document.getElementById('monthDisplay');
-    const options = { month: 'long', year: 'numeric' };
-    monthDisplay.textContent = currentDisplayDate.toLocaleDateString('en-US', options);
+    if (currentViewMode === 'week' && selectedWeekStart) {
+      const start = new Date(selectedWeekStart);
+      const end = new Date(start);
+      end.setDate(end.getDate() + 6);
+      const fmt = (d) => d.getDate() + ' ' + d.toLocaleDateString('en-US', { month: 'long' });
+      monthDisplay.textContent = fmt(start) + ' - ' + fmt(end);
+    } else if (currentViewMode === 'day' && selectedDateKey) {
+      const d = new Date(selectedDateKey + 'T00:00:00');
+      const dayMonthYear = d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+      monthDisplay.textContent = dayMonthYear;
+    } else {
+      const options = { month: 'long', year: 'numeric' };
+      monthDisplay.textContent = currentDisplayDate.toLocaleDateString('en-US', options);
+    }
   }
 
   function populateYearPicker() {
@@ -3176,7 +4321,7 @@
             <div class="property-avatar"><img src="${property.image}" alt="${property.title}" style="width:40px;height:40px;border-radius:50%; object-fit:cover;" /></div>
           </div>
           <div class="property-info">
-            <div class="property-name">${property.title.substring(0, 16)}</div>
+             <div class="property-name">${property.title}</div>
           </div>
           <div class="property-actions">
               <div class="dropdown dropend">
@@ -3219,7 +4364,7 @@
   function formatPropertyPrice(priceValue) {
     const priceNumber = Number(priceValue);
     if (Number.isNaN(priceNumber)) return null;
-    return `$${priceNumber.toFixed(2)} night`;
+    return `${window.fmtMoney(priceNumber)} night`;
   }
 
   function showPropertyPreview(event, propertyId) {
@@ -3309,8 +4454,15 @@
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const isMobile = window.innerWidth <= 768;
-    const paymentIconUrl = "{% static 'img/calender/new_payment_icon.svg' %}";
+    const paymentIconUrl = "{% static 'img/task/type/payment.svg' %}";
     const blockedIconUrl = "{% static 'img/common/close_icon.png' %}";
+    const monthTaskColors = { cleaning: '#10b981', maintenance: '#f59e0b', payment: '#3b82f6', other: '#8b5cf6' };
+    const monthTaskIcons = {
+      cleaning: "{% static 'img/task/type/cleaning.svg' %}",
+      maintenance: "{% static 'img/task/type/maintenance.svg' %}",
+      payment: "{% static 'img/task/type/payment.svg' %}",
+      other: "{% static 'img/task/type/others.svg' %}"
+    };
     const labelCharLimit = 5;
     const shortSpanMaxNights = 3;
     const todayDateKey = toISODateString(today);
@@ -3334,7 +4486,6 @@
       datesGrid.classList.remove('has-today-column');
       datesGrid.style.removeProperty('--today-column-index');
     }
-
     const daysBetweenISO = (startISO, endISO) => {
       const [sy, sm, sd] = startISO.split('-').map(Number);
       const [ey, em, ed] = endISO.split('-').map(Number);
@@ -3356,7 +4507,8 @@
         const isBlocked = b.type === 'blocked';
         const onClick = isBlocked ? `onclick="openUnblockModal(event, '${b.id}')"` : `onclick="openReservationPanel(event, '${b.id || 101}')"`;
         const cursor = 'pointer';
-        const bgColor = isBlocked ? '#9ca3af' : (b.color || '#3b82f6');
+        const channelColor = getChannelColor(b.channelName) || b.color || '#3b82f6';
+        const bgColor = isBlocked ? '#9ca3af' : channelColor;
         const spanStart = b.startIndex;
         const spanLength = Math.max(1, b.length);
         const carryStartClass = b.startsBeforeView ? 'carry-start' : '';
@@ -3369,11 +4521,15 @@
           : guestName;
         const labelText = showFullLabel ? guestName : shortName;
         const shouldShowLabel = nights > 1;
+        const channelLogoUrl = getChannelLogo(b.channelName, b.channelIcon);
+        const channelLogoTimeline = channelLogoUrl && !isBlocked
+          ? `<div class="channel-logo-circle" style="border-color:${bgColor};background-color:${bgColor}"><img src="${channelLogoUrl}" alt="${b.channelName || ''}" /></div>`
+          : '';
 
         let content = `
           <div class="segment-content">
              <div class="avatar-group">
-                 ${b.channelIcon ? `<img class="channel-icon" src="${b.channelIcon}" />` : ''}
+                 ${channelLogoTimeline}
              </div>
              <div>
               ${shouldShowLabel ? `<span class="segment-guest-name">${labelText}</span>` : ''}
@@ -3391,7 +4547,7 @@
         }
 
         return `
-          <div class="booking-span-block rounded-left rounded-right ${carryStartClass} ${carryEndClass}"
+          <div class="booking-span-block ${carryStartClass} ${carryEndClass}"
                ${onClick}
                onmouseenter="showGlobalTooltip(event, '${b.id}')"
                onmouseleave="hideGlobalTooltip()"
@@ -3404,7 +4560,7 @@
 
 
       // Filter spans by active filter types
-      const filteredSpanOverlays = (!typeFilters.reservation && !typeFilters.payment)
+      const filteredSpanOverlays = (!typeFilters.reservation && !typeFilters.payment) || (!typeFilters.reservation && typeFilters.payment)
         ? ''
         : (!typeFilters.reservation || !typeFilters.payment)
           ? spans.filter(b => {
@@ -3416,7 +4572,8 @@
             }).map(b => {
               const isBlocked = b.type === 'blocked';
               const onClick = isBlocked ? `onclick="openUnblockModal(event, '${b.id}')"` : `onclick="openReservationPanel(event, '${b.id || 101}')"`;
-              const bgColor = isBlocked ? '#9ca3af' : (b.color || '#3b82f6');
+              const channelColor = getChannelColor(b.channelName) || b.color || '#3b82f6';
+              const bgColor = isBlocked ? '#9ca3af' : channelColor;
               const nights = Math.max(1, daysBetweenISO(b.startDateStr, b.endDateStr) - 1);
               const carryStartClass = b.startsBeforeView ? 'carry-start' : '';
               const carryEndClass = b.endsAfterView ? 'carry-end' : '';
@@ -3424,8 +4581,12 @@
               const shortName = guestName.length > labelCharLimit ? `${guestName.slice(0, labelCharLimit)}...` : guestName;
               const labelText = nights > shortSpanMaxNights ? guestName : shortName;
               const shouldShowLabel = nights > 1;
-              const content = `<div class="segment-content"><div class="avatar-group">${b.channelIcon ? `<img class="channel-icon" src="${b.channelIcon}" />` : ''}</div><div>${shouldShowLabel ? `<span class="segment-guest-name">${labelText}</span>` : ''}</div></div>`;
-              return `<div class="booking-span-block rounded-left rounded-right ${carryStartClass} ${carryEndClass}" ${onClick} onmouseenter="showGlobalTooltip(event, '${b.id}')" onmouseleave="hideGlobalTooltip()" style="--start:${b.startIndex}; --len:${Math.max(1,b.length)}; background-color:${bgColor}; cursor:pointer;">${content}</div>`;
+              const channelLogoUrl = getChannelLogo(b.channelName, b.channelIcon);
+              const channelLogoTimeline = channelLogoUrl && !isBlocked
+                ? `<div class="channel-logo-circle" style="border-color:${bgColor};background-color:${bgColor}"><img src="${channelLogoUrl}" alt="${b.channelName || ''}" /></div>`
+                : '';
+              const content = `<div class="segment-content"><div class="avatar-group">${channelLogoTimeline}</div><div>${shouldShowLabel ? `<span class="segment-guest-name">${labelText}</span>` : ''}</div></div>`;
+              return `<div class="booking-span-block ${carryStartClass} ${carryEndClass}" ${onClick} onmouseenter="showGlobalTooltip(event, '${b.id}')" onmouseleave="hideGlobalTooltip()" style="--start:${b.startIndex}; --len:${Math.max(1,b.length)}; background-color:${bgColor}; cursor:pointer;">${content}</div>`;
             }).join('')
           : spanOverlays;
 
@@ -3439,18 +4600,54 @@
         if (isPast) cellClasses += ' past-date';
 
         const dateStr = toISODateString(date);
-        const tasksForCell = getTasksForDateAndProperty(dateStr, property.id);
+        const tasksForCell = getTasksForDateAndProperty(dateStr, property.id).filter(t => {
+          if (t.task_type === 'payment') {
+            return typeFilters.payment;
+          } else {
+            return typeFilters.task;
+          }
+        });
 
         if (tasksForCell.length > 0) {
           console.log(`📍 Cell ${dateStr} (property ${property.id}) has ${tasksForCell.length} task(s):`, tasksForCell.map(t => t.details));
         }
 
-        const bookingWithPayment = bookings.find(x => x.propertyId == property.id && x.paymentsInfo && x.paymentsInfo[dateStr]);
+        const bookingWithPayment = typeFilters.payment ? bookings.find(x => x.propertyId == property.id && x.paymentsInfo && x.paymentsInfo[dateStr]) : null;
         if (bookingWithPayment || tasksForCell.length > 0) {
           hasVisibleCalendarData = true;
         }
 
-        const paymentBadge = bookingWithPayment ? `
+        const isBookingStart = bookings.some(b =>
+          String(b.propertyId) === String(property.id) && b.startDateStr === dateStr
+        );
+
+        const collision = isBookingStart && (tasksForCell.length > 0 || bookingWithPayment);
+
+        let blinkingClick = '';
+        if (collision && tasksForCell.length > 0) {
+          const t0 = tasksForCell[0];
+          blinkingClick = "openTaskDetailModal(event, '" + t0.id + "')";
+        }
+        const blinkingDot = collision ? '<div class="cell-blinking-dot" style="cursor:pointer;" onclick="' + blinkingClick + '"></div>' : '';
+
+        const taskCircles = (!collision) ? tasksForCell.map((t, tIdx) => {
+          const tColor = monthTaskColors[t.task_type] || monthTaskColors.other;
+          const tIcon = monthTaskIcons[t.task_type] || monthTaskIcons.other;
+          const countBadge = tasksForCell.length > 1 && tIdx === 0
+            ? `<div class="month-task-count">${tasksForCell.length}</div>`
+            : '';
+          if (tIdx > 0 && tasksForCell.length > 1) return '';
+          return `<div class="month-task-circle above-bar"
+                      style="background-color:${tColor};"
+                      onclick="openTaskDetailModal(event, '${t.id}')"
+                      onmouseenter="showTaskTooltip(event, '${dateStr}', '${property.id}')"
+                      onmouseleave="handleIndicatorHoverLeave()">
+            <img src="${tIcon}" alt="" />
+            ${countBadge}
+          </div>`;
+        }).join('') : '';
+
+        const paymentBadge = (!collision && bookingWithPayment) ? `
           <div class="payment-indicator"
                onclick="handlePaymentIndicatorClick(event, '${bookingWithPayment.id}', '${dateStr}')"
                onmouseenter="showPaymentTooltip(event, '${bookingWithPayment.id}', '${dateStr}')"
@@ -3459,20 +4656,10 @@
           </div>
         ` : '';
 
-        const taskCountBadge = tasksForCell.length > 0 ? `
-          <div class="task-indicator"
-               onclick="handleTaskIndicatorClick(event, '${dateStr}', '${property.id}')"
-               onmouseenter="showTaskTooltip(event, '${dateStr}', '${property.id}')"
-               onmouseleave="handleIndicatorHoverLeave()">
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <rect x="4" y="5" width="16" height="15" rx="2.5" stroke-width="2"></rect>
-              <path d="M8 3.5V7" stroke-width="2" stroke-linecap="round"></path>
-              <path d="M16 3.5V7" stroke-width="2" stroke-linecap="round"></path>
-              <path d="M4 9.5H20" stroke-width="2" stroke-linecap="round"></path>
-              <path d="M9 14L11 16L15 12.5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
-            </svg>
-            <div class="task-indicator-count">${tasksForCell.length}</div>
-          </div>
+        const paymentCollisionDot = (isBookingStart && bookingWithPayment) ? `
+          <div class="cell-payment-dot"
+               onmouseenter="showPaymentTooltip(event, '${bookingWithPayment.id}', '${dateStr}')"
+               onmouseleave="handleIndicatorHoverLeave()"></div>
         ` : '';
 
         return `
@@ -3483,8 +4670,10 @@
             onclick="selectDate('${dateStr}', ${property.id})"
             style="position: relative;"
           >
-            ${taskCountBadge}
+            ${blinkingDot}
+            ${taskCircles}
             ${paymentBadge}
+            ${paymentCollisionDot}
           </div>
         `;
       }).join('');
@@ -3501,20 +4690,41 @@
   }
 
   function filterProperties() {
-    const input = document.getElementById('propertySearchInput');
+    const input = document.getElementById('weekPropertySearchInput') || document.getElementById('propertySearchInput');
+    if (!input) return;
     const clearBtn = document.getElementById('clearSearchBtn');
     const searchTerm = input.value.toLowerCase();
+    const cursorPos = input.selectionStart;
+    const isFocused = document.activeElement === input;
 
     if (searchTerm.length > 0) {
-      clearBtn.style.display = 'block';
+      if (clearBtn) clearBtn.style.display = 'block';
     } else {
-      clearBtn.style.display = 'none';
+      if (clearBtn) clearBtn.style.display = 'none';
     }
 
     // Update global filtered properties state
     filteredProperties = properties.filter(p => p.title.toLowerCase().includes(searchTerm));
-    renderProperties(filteredProperties);
-    renderDatesGrid(filteredProperties);
+    if (currentViewMode === 'week') {
+      const gridPane = document.getElementById('gridCalendarPane');
+      const body = gridPane.querySelector('.week-grid-body');
+      const scrollTop = body ? body.scrollTop : 0;
+      renderWeekGrid(gridPane);
+      // Restore search value, focus, and cursor position after re-render
+      const newInput = document.getElementById('weekPropertySearchInput');
+      if (newInput) {
+        newInput.value = searchTerm;
+        if (isFocused) {
+          newInput.focus();
+          newInput.setSelectionRange(cursorPos, cursorPos);
+        }
+      }
+      const newBody = gridPane.querySelector('.week-grid-body');
+      if (newBody) newBody.scrollTop = scrollTop;
+    } else {
+      renderProperties(filteredProperties);
+      renderDatesGrid(filteredProperties);
+    }
   }
 
   function clearSearch() {
@@ -3599,6 +4809,15 @@
       `;
   }
 
+  function isMobileOrTabletView() {
+    return window.matchMedia('(max-width: 991.98px)').matches;
+  }
+
+  function handleIndicatorHoverLeave() {
+    if (isMobileOrTabletView()) return;
+    hideGlobalTooltip();
+  }
+
   function showPaymentTooltip(event, bookingId, dateStr) {
     event.stopPropagation();
     const b = bookings.find(x => x.id == bookingId);
@@ -3622,7 +4841,7 @@
 
     tooltip.innerHTML = `
         <div class="payment-tooltip-card">
-          <div class="payment-tooltip-amount">$${info.amount.toFixed(2)}, due on ${formattedDate}</div>
+          <div class="payment-tooltip-amount">${window.fmtMoney(info.amount)}, due on ${formattedDate}</div>
           <div class="payment-tooltip-status">Status: ${statusText}</div>
           <div class="payment-tooltip-meta">Guest name: ${b.guestName}</div>
           <div class="payment-tooltip-dates">${fmtDate(b.startDate)} - ${fmtDate(displayEndDate)} (${nights} nights)</div>
@@ -3638,36 +4857,10 @@
     positionTooltip(event, tooltip);
   }
 
-  function isMobileOrTabletView() {
-    return window.matchMedia('(max-width: 991.98px)').matches;
-  }
-
-  function handleIndicatorHoverLeave() {
-    if (isMobileOrTabletView()) return;
-    hideGlobalTooltip();
-  }
-
   function handlePaymentIndicatorClick(event, bookingId, dateStr) {
     event.stopPropagation();
     event.preventDefault();
-
-    if (!isMobileOrTabletView()) return;
-
-    const tooltip = document.getElementById('globalTooltip');
-    if (!tooltip) return;
-
-    const isSamePaymentTooltipOpen =
-      tooltip.style.display === 'block' &&
-      tooltip.dataset.source === 'payment' &&
-      tooltip.dataset.bookingId === String(bookingId) &&
-      tooltip.dataset.dateStr === String(dateStr);
-
-    if (isSamePaymentTooltipOpen) {
-      hideGlobalTooltip();
-      return;
-    }
-
-    showPaymentTooltip(event, bookingId, dateStr);
+    openPaymentDetailModal(event, bookingId, dateStr);
   }
 
   function positionTooltip(event, tooltip) {
@@ -3902,39 +5095,35 @@
     showTaskTooltip(event, dateStr, propertyId);
   }
 
-  // --- Dynamic Reservation Side Panel & Logic ---
+  // --- Dynamic Reservation Detail Modal ---
   function openReservationPanel(event, bookingId) {
     if (event) event.stopPropagation();
     hideGlobalTooltip();
-    const sidebar = document.getElementById('reservationSidebar');
-    const backdrop = document.getElementById('overlayBackdrop');
-    const contentDiv = document.getElementById('sidebarContent');
-    document.body.classList.add('reservation-panel-open');
-    sidebar.classList.add('open');
-    backdrop.classList.add('open');
+    const overlay = document.getElementById('reservationModalOverlay');
+    const contentDiv = document.getElementById('reservationModalContent');
+    overlay.classList.add('open');
     contentDiv.innerHTML = `
         <div style="display:flex;justify-content:center;align-items:center;height:200px;">
             <div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div>
         </div>`;
 
-    // Fetch logic
     const fetchUrl = `/booking/payment-details/${bookingId}/?partial=true`;
     fetch(fetchUrl)
       .then(r => { if (!r.ok) throw new Error('Network error'); return r.text(); })
-      .then(html => { contentDiv.innerHTML = html; initSidebarInteractions(); })
+      .then(html => {
+        contentDiv.innerHTML = html;
+        contentDiv.querySelectorAll('.contact-info').forEach(el => el.removeAttribute('style'));
+        initSidebarInteractions(contentDiv);
+      })
       .catch(e => {
         contentDiv.innerHTML = `<div style="padding:20px;text-align:center;color:red;"><p>Failed to load.</p><p style="font-size:12px;">${e.message}</p></div>`;
       });
   }
 
-  function closeReservationPanel() {
+  function closeReservationPanel(event) {
+    if (event && event.target !== event.currentTarget) return;
     hideGlobalTooltip();
-    document.getElementById('reservationSidebar').classList.remove('open');
-    document.getElementById('overlayBackdrop').classList.remove('open');
-    document.body.classList.remove('reservation-panel-open');
-    const headerActions = document.getElementById('sidebarHeaderActions');
-    if (headerActions) headerActions.innerHTML = '';
-    reservationPanelWasOpenBeforeReceipt = false;
+    document.getElementById('reservationModalOverlay').classList.remove('open');
   }
 
   function hideReservationOverlayForReceipt() {
@@ -4115,10 +5304,11 @@
       });
   }
 
-  function initSidebarInteractions() {
-    const sidebarRoot = document.getElementById('reservationSidebar');
-    const sidebarContent = document.getElementById('sidebarContent');
+  function initSidebarInteractions(container) {
+    const sidebarRoot = container || document.getElementById('reservationSidebar');
+    const sidebarContent = container ? container : document.getElementById('sidebarContent');
     if (!sidebarRoot || !sidebarContent) return;
+    const isModal = !!container;
 
     function closeDropdown(element) {
       const dropdownMenu = element.closest('.dropdown-menu');
@@ -4134,12 +5324,17 @@
     }
 
     function syncSidebarHeaderActions() {
+      const actionButtons = sidebarContent.querySelector('.action-buttons');
+      if (!actionButtons) return;
+
+      if (isModal) {
+        actionButtons.querySelector('.left-section')?.remove();
+        return;
+      }
+
       const headerActions = document.getElementById('sidebarHeaderActions');
       if (!headerActions) return;
       headerActions.innerHTML = '';
-
-      const actionButtons = sidebarContent.querySelector('.action-buttons');
-      if (!actionButtons) return;
 
       // Populate booking info from the partial's action-buttons
       const createdInfo = document.getElementById('sidebarCreatedInfo');
@@ -4623,134 +5818,204 @@
     });
   }
 
-  /* --- List View (inline) --- */
+  /* --- List View --- */
   function renderListView() {
-    const container = document.getElementById('listViewContent');
-    if (!container) return;
-    container.innerHTML = '<div style="padding:20px; text-align:center;">Loading...</div>';
+    const c = document.getElementById('listViewContent');
+    if (!c) return;
+    c.innerHTML = '<div class="list-loading">Loading events\u2026</div>';
 
     const month = currentDisplayDate.getMonth() + 1;
     const year = currentDisplayDate.getFullYear();
-    const listViewUrl = "{% url 'calendar-list-view' %}";
+    const url = "{% url 'calendar-list-view' %}";
 
-    fetch(listViewUrl + '?month=' + month + '&year=' + year, {
-      headers: { 'X-Requested-With': 'XMLHttpRequest' }
-    })
-      .then(r => r.json())
-      .then(data => {
+    fetch(url+'?month='+month+'&year='+year,{headers:{'X-Requested-With':'XMLHttpRequest'}})
+      .then(r=>r.json()).then(data=>{
         const events = data.events || [];
-        if (events.length === 0) {
-          container.innerHTML = '<div class="calendar-list-empty-state" style="font-size:24px;font-weight:600;color:#111827;text-align:center;padding:40px 20px;">No events for this month</div>';
-          return;
+        if (!events.length) { c.innerHTML = '<div class="list-wrap"><div class="empty-state" style="display:block"><b>No events for this month</b></div></div>'; return; }
+
+        // helpers
+        const today = new Date(); const todayStr = today.toISOString().split('T')[0];
+        const fmt = (d,s)=>d.toLocaleDateString('en-US',{month:s||'short',day:'numeric',year:'numeric'});
+        const fmtShort = (d)=>d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'});
+        const money = n=>'$'+Number(n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+        const esc = s=>{let d=document.createElement('div');d.textContent=s||'';return d.innerHTML;};
+        const isToday = d=>d===todayStr;
+
+        // icons
+        const icons = {
+          in:'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>',
+          out:'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>',
+          pay:'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>',
+          enq:'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
+          blk:'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>',
+          prop:'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>',
+          mail:'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>',
+          phone:'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>',
+          chev:'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>'
+        };
+
+        // compute stats and counts
+        let stats = { checkin:0, checkout:0, payments:0, revenue:0 };
+        let typeCounts = { All:0, Checkin:0, Checkout:0, Payment:0, Task:0, Enquiry:0, Blocked:0 };
+        events.forEach(ev=>{
+          typeCounts.All++;
+          const g = ev.group||'';
+          if (g==='Checkin'){ typeCounts.Checkin++; stats.checkin++; }
+          else if (g==='Checkout'){ typeCounts.Checkout++; stats.checkout++; }
+          else if (g==='Payment'){ typeCounts.Payment++; stats.payments++; if(ev.paid) stats.revenue+=Number(ev.amount||0); }
+          else if (g==='Task') typeCounts.Task++;
+          else if (g==='Enquiry') typeCounts.Enquiry++;
+          else if (g==='Blocked') typeCounts.Blocked++;
+        });
+
+        // group events by date maintaining order
+        const dateGroups = {};
+        events.forEach(ev=>{
+          if(!dateGroups[ev.date]) dateGroups[ev.date]=[];
+          dateGroups[ev.date].push(ev);
+        });
+        const dates = Object.keys(dateGroups).sort();
+
+        // render
+        let html = '<div class="list-wrap">';
+
+        // summary strip
+        html += '<div class="summary">'+
+         
+        '</div>';
+
+        // filter bar
+        const pillOrder = ['All','Checkin','Checkout','Payment','Task','Enquiry','Blocked'];
+        const pillDots = { All:'#16151C', Checkin:'#059669', Checkout:'#D97706', Payment:'#2563EB', Task:'#6B7280', Enquiry:'#7C3AED', Blocked:'#DC2626' };
+        html += '<div class="filterbar" id="listFilterBar">'+
+          '<div class="search"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input type="text" id="listSearch" placeholder="Search guest, property\u2026"></div>'+
+          '<div class="pills" id="listPills">'+
+            pillOrder.map(t=>'<button class="pill pill--'+(t==='All'?'all':t.toLowerCase())+'" data-type="'+t+'" aria-pressed="'+(t==='All'?'true':'false')+'"><span class="dot" style="color:'+pillDots[t]+'"></span>'+t+'<span class="cnt">'+typeCounts[t]+'</span></button>').join('')+
+          '</div>'+
+          '<span class="result-count"><b id="resultCount">'+events.length+'</b> event'+((events.length!==1)?'s':'')+'</span>'+
+        '</div>';
+
+        // timeline
+        html += '<div class="timeline" id="listTimeline">';
+        dates.forEach((iso,i)=>{
+          const d = new Date(iso+'T00:00:00');
+          const isLast = i===dates.length-1;
+
+          // today marker
+          if(iso===todayStr) html += '<div class="marker" id="todayMarker"><div class="rail"><div class="marker__dot"></div><div class="marker__label"><span>Today</span><div class="marker__rule"></div></div></div></div>';
+
+          const weekday = d.toLocaleDateString('en-US',{weekday:'short'});
+          const monthL = d.toLocaleDateString('en-US',{month:'short'});
+          const dayNum = d.getDate();
+          const items = dateGroups[iso];
+
+          html += '<div class="day'+(isLast?' is-last':'')+'" data-date="'+iso+'">'+
+            '<div class="rail"><div class="node"><div class="node__day">'+dayNum+'</div><div class="node__mon">'+monthL+'</div></div></div>'+
+            '<div class="day__main">'+
+              '<div class="day__head"><span class="day__weekday">'+weekday+'</span><span class="day__date">'+fmt(d,'long')+'</span><span class="day__chip">'+items.length+' event'+(items.length!==1?'s':'')+'</span></div>'+
+              '<div class="day__events">';
+
+          items.forEach(ev=>{
+            const g = ev.group||'';
+            const eClass = g==='Checkin'?'in':g==='Checkout'?'out':g==='Payment'?'pay':g==='Enquiry'?'enquiry':g==='Blocked'?'blocked':'pay';
+            let sub = '';
+            if(g==='Checkin'||g==='Checkout') sub = esc(ev.stay);
+            else if(g==='Payment') sub = money(ev.amount)+(ev.paid?' <span class="badge badge--pay">Paid</span>':' <span class="badge badge--out">Due</span>');
+            else if(g==='Task') sub = esc(ev.details||'');
+            else if(g==='Enquiry') sub = (ev.guests?esc(ev.guests)+' \u00b7 ':'')+esc(ev.stay);
+            else if(g==='Blocked') sub = esc(ev.stay||'');
+
+            const guestName = g==='Blocked'?'\u2014':esc(ev.guest_name||'\u2014');
+            const guestEmail = g==='Blocked'?'':esc(ev.guest_email||'');
+            const guestPhone = g==='Blocked'?'':esc(ev.guest_phone||ev.guest_id||'');
+            const propName = esc(ev.property||'');
+            const propLoc = esc(ev.location||'');
+            const hasAvatar = ev.avatar&&ev.avatar.trim();
+            const hasPropImg = ev.property_image&&ev.property_image.trim();
+            let typeIco = icons.pay;
+            if(g==='Checkin') typeIco = icons.in;
+            else if(g==='Checkout') typeIco = icons.out;
+            else if(g==='Enquiry') typeIco = icons.enq;
+            else if(g==='Blocked') typeIco = icons.blk;
+
+            const badge = g==='Checkin'?'<span class="badge badge--in">Check-in</span>':
+              g==='Checkout'?'<span class="badge badge--out">Check-out</span>':
+              g==='Payment'?'<span class="badge badge--pay">Payment</span>':
+              g==='Enquiry'?'<span class="badge badge--enquiry">Enquiry</span>':
+              g==='Blocked'?'<span class="badge badge--blocked">Blocked</span>':
+              '';
+
+            html += '<div class="event event--'+eClass+'" data-type="'+g.toLowerCase()+'">'+
+              '<div class="event__body">'+
+                // type
+                '<div class="zone zone--type"><div class="ico">'+typeIco+'</div><div class="typecontent"><div class="type__label">'+esc(ev.title||g)+' '+badge+'</div>'+(sub?'<div class="range">'+sub+'</div>':'')+'</div></div>'+
+                // guest
+                '<div class="zone zone--guest">'+
+                  '<div class="avatar avatar--guest">'+(hasAvatar?'<img src="'+esc(ev.avatar)+'" style="width:100%;height:100%;border-radius:50%;object-fit:cover;" alt="">':guestName.charAt(0).toUpperCase())+'</div>'+
+                  '<div class="guest__meta"><div class="guest__name">'+guestName+'</div>'+
+                  (guestEmail?'<div class="contact">'+icons.mail+'<span>'+guestEmail+'</span></div>':'')+
+                  (guestPhone?'<div class="contact contact--mono">'+icons.phone+'<span>'+guestPhone+'</span></div>':'')+
+                  (!guestEmail&&!guestPhone?'<div class="contact contact--none">No contact</div>':'')+
+                  '</div>'+
+                '</div>'+
+                // property
+                '<div class="zone zone--prop">'+
+                  '<div class="thumb thumb--r2">'+(hasPropImg?'<img src="'+esc(ev.property_image)+'" style="width:100%;height:100%;object-fit:cover;" alt="">':icons.prop)+'</div>'+
+                  '<div class="prop__meta"><div class="prop__name">'+propName+'</div><div class="prop__loc">'+icons.prop+'<span>'+propLoc+'</span></div></div>'+
+                '</div>'+
+                // open
+                '<button class="open-btn" onclick="this.closest(\'.day\').querySelector(\'.day__head\').scrollIntoView({behavior:\'smooth\',block:\'center\'})">'+icons.chev+'</button>'+
+              '</div>'+
+            '</div>';
+          });
+
+          html += '</div></div></div>';
+        });
+        html += '</div></div>';
+
+        c.innerHTML = html;
+
+        // ----- interactivity -----
+        const pills = document.querySelectorAll('#listPills .pill');
+        const cards = document.querySelectorAll('#listTimeline .event');
+        const daySections = document.querySelectorAll('#listTimeline .day');
+        const search = document.getElementById('listSearch');
+        const resultCount = document.getElementById('resultCount');
+
+        function filterEvents(){
+          const q = (search.value||'').toLowerCase().trim();
+          const active = document.querySelector('#listPills .pill[aria-pressed="true"]');
+          const activeType = active ? active.dataset.type : 'All';
+          let visible = 0;
+          cards.forEach(card=>{
+            const t = card.dataset.type;
+            const matchesType = activeType==='All'||activeType.toLowerCase()===t;
+            const text = card.textContent.toLowerCase();
+            const matchesSearch = !q||text.includes(q);
+            card.style.display = (matchesType&&matchesSearch)?'':'none';
+            if(matchesType&&matchesSearch) visible++;
+          });
+          // hide empty days
+          daySections.forEach(day=>{
+            const vis = Array.from(day.querySelectorAll('.event')).filter(el=>el.style.display!=='none').length;
+            day.style.display = vis?'grid':'none';
+          });
+          resultCount.textContent = visible;
         }
 
-        const grouped = {};
-        events.forEach(ev => {
-          const group = (ev.group || '').toLowerCase().replace(/[\s_-]+/g, '');
-          let normalizedGroup = group;
-          if (group === 'checkin') normalizedGroup = 'Checkin';
-          else if (group === 'checkout') normalizedGroup = 'Checkout';
-          else if (group === 'payment') normalizedGroup = 'Payment';
-          else if (group === 'task') normalizedGroup = 'Task';
-          else normalizedGroup = ev.group || 'Other';
+        pills.forEach(p=>p.addEventListener('click',function(){
+          const wasPressed = this.getAttribute('aria-pressed')==='true';
+          pills.forEach(pp=>pp.setAttribute('aria-pressed','false'));
+          if(!wasPressed) this.setAttribute('aria-pressed','true');
+          else document.querySelector('#listPills .pill--all').setAttribute('aria-pressed','true');
+          filterEvents();
+        }));
 
-          ev._normalizedGroup = normalizedGroup;
-          if (!grouped[ev.date]) grouped[ev.date] = [];
-          grouped[ev.date].push(ev);
-        });
-
-        Object.keys(grouped).forEach(d => {
-          const groups = { Checkin: [], Checkout: [], Payment: [], Task: [] };
-          grouped[d].forEach(ev => {
-            const g = ev._normalizedGroup;
-            if (!groups[g]) groups[g] = [];
-            groups[g].push(ev);
-          });
-          grouped[d] = groups;
-        });
-
-        const dates = Object.keys(grouped).sort();
-        let html = '';
-        const todayStr = new Date().toISOString().split('T')[0];
-
-        dates.forEach(iso => {
-          const d = new Date(iso + 'T00:00:00');
-          const monthLabel = d.toLocaleDateString('en-US', { month: 'short' });
-          const day = d.getDate();
-          const yearNum = d.getFullYear();
-          const weekday = d.toLocaleDateString('en-US', { weekday: 'short' });
-          const label = monthLabel + ' ' + day + ', ' + yearNum + ', ' + weekday;
-          const todayBadge = iso === todayStr ? '<span class="today-pill">Today</span>' : '';
-
-          html += '<div class="date-section" id="date-' + iso + '">' +
-            '<div class="date"><span><img src="{% static 'img/calender/black_calender.svg' %}"></span><span>' + label + '</span></div>' +
-            todayBadge +
-            '</div>';
-
-          ['Checkout', 'Checkin', 'Payment', 'Task'].forEach(type => {
-            (grouped[iso][type] || []).forEach(ev => {
-              html += renderListCard(ev);
-            });
-          });
-        });
-
-        container.innerHTML = html;
+        search.addEventListener('input',filterEvents);
       })
-      .catch(() => {
-        container.innerHTML = '<div style="padding:20px;text-align:center;color:#666;">Failed to load list view</div>';
+      .catch(()=>{
+        c.innerHTML = '<div class="list-wrap"><div class="empty-state" style="display:block"><b>Failed to load events.</b></div></div>';
       });
-  }
-
-  function renderListCard(ev) {
-    const group = ev._normalizedGroup || '';
-    let icon = "{% static 'img/calender/check_in_icon.svg' %}";
-    if (group === 'Checkout') icon = "{% static 'img/calender/check_out_icon.svg' %}";
-    else if (group === 'Payment') icon = "{% static 'img/task/type/payment.svg' %}";
-    else if (group === 'Task') {
-      const t = (ev.title || '').toLowerCase();
-      if (t.includes('maintenance')) icon = "{% static 'img/task/type/maintenance.svg' %}";
-      else if (t.includes('cleaning')) icon = "{% static 'img/task/type/cleaning.svg' %}";
-      else if (t.includes('payment')) icon = "{% static 'img/task/type/payment.svg' %}";
-      else icon = "{% static 'img/task/type/others.svg' %}";
-    }
-
-    const typeLabel = group === 'Checkin' ? 'Checkin' : group === 'Checkout' ? 'Checkout' : group === 'Payment' ? 'Payment' : ev.title || 'Others';
-    let subText = '';
-    if (group === 'Task') subText = ev.details || 'Mention the task details here ...';
-    else if (group === 'Payment') subText = '$' + Number(ev.amount || 0).toFixed(2) + (ev.paid ? '  Paid' : '');
-    else subText = ev.stay || '';
-
-    const avatar = (ev.avatar && String(ev.avatar).trim()) ? ev.avatar : "{% static 'img/common/default_user_icon_1.png' %}";
-    const propertyImage = ev.property_image || ev.property_image_url || "{% static 'img/not-found/no_property.jpg' %}";
-    const email = ev.guest_email || '-';
-    const phone = ev.guest_phone || ev.guest_id || '-';
-
-    return '<div class="booking-card-scroll">' +
-      '<div class="booking-card">' +
-        '<div class="event-col event-col-type">' +
-          '<img src="' + icon + '" class="event-type-icon" alt="' + typeLabel + '">' +
-          '<div class="event-type-content">' +
-            '<h3 class="event-title">' + typeLabel + '</h3>' +
-            (subText ? '<p class="event-subtitle">' + subText + '</p>' : '') +
-          '</div>' +
-        '</div>' +
-        '<div class="event-col event-col-guest">' +
-          '<img src="' + avatar + '" class="guest-avatar" alt="' + (ev.guest_name || 'Guest') + '" onerror="this.onerror=null;this.src=\'{% static "img/common/default_user_icon_1.png" %}\';">' +
-          '<div class="guest-meta">' +
-            '<div class="guest-name">' + (ev.guest_name || '-') + '</div>' +
-            '<div class="guest-line"><img src="{% static 'img/booking/listing/email_icon.svg' %}" alt=""> ' + email + '</div>' +
-            '<div class="guest-line"><img src="{% static 'img/booking/listing/phone_icon.svg' %}" alt=""> ' + phone + '</div>' +
-          '</div>' +
-        '</div>' +
-        '<div class="event-col event-col-property">' +
-          '<img src="' + propertyImage + '" class="property-image" alt="' + (ev.property || 'Property') + '">' +
-          '<div class="property-meta">' +
-            '<div class="property-name">' + (ev.property || '') + '</div>' +
-            '<div class="property-location">' + (ev.location || '') + '</div>' +
-          '</div>' +
-        '</div>' +
-      '</div>' +
-    '</div>';
   }
 
   /* --- Unified Calendar View Router --- */
@@ -4792,9 +6057,9 @@
         gridPane.style.background = '#ffffff';
         renderDaySchedule(gridPane);
       } else if (currentViewMode === 'week') {
-        // Week view: aggregated data from all listings
+        // Week view: unified grid with its own property labels
         if (legend) legend.style.display = 'none';
-        if (propsColumn) propsColumn.style.display = '';
+        if (propsColumn) propsColumn.style.display = 'none';
         gridPane.style.display = 'block';
         gridPane.style.flex = '1 1 0';
         gridPane.style.minWidth = '0';
@@ -4832,21 +6097,22 @@
       ? tasks.filter(t => String(t.propertyId) === String(activePropertyId))
       : tasks.slice();
 
-    if (!typeFilters.reservation) {
-      pBookings = pBookings.filter(b => b.paymentsInfo && Object.keys(b.paymentsInfo).length > 0);
-      pEnquiries = [];
-      pTasks = typeFilters.task ? pTasks : [];
-    }
-    if (!typeFilters.payment) {
-      pBookings = pBookings.filter(b => !b.paymentsInfo || Object.keys(b.paymentsInfo).length === 0);
-    }
-    if (!typeFilters.task) {
-      pTasks = [];
-    }
+    // Keep bookings if payments are checked, even if reservation is unchecked
     if (!typeFilters.reservation && !typeFilters.payment) {
       pBookings = [];
       pEnquiries = [];
+    } else if (!typeFilters.reservation) {
+      pEnquiries = [];
     }
+
+    // Filter tasks: payment tasks depend on typeFilters.payment, others on typeFilters.task
+    pTasks = pTasks.filter(t => {
+      if (t.task_type === 'payment') {
+        return typeFilters.payment;
+      } else {
+        return typeFilters.task;
+      }
+    });
 
     return {
       bookings: pBookings,
@@ -4886,12 +6152,14 @@
     const month = currentDisplayDate.getMonth();
     const today = new Date();
     today.setHours(0, 0, 0, 0);
+    const paymentIconUrl = "{% static 'img/task/type/payment.svg' %}";
 
     const { bookings: pBookings, enquiries: pEnquiries, tasks: pTasks } = getFilteredEventsForCalendar();
-    const spansList = [
-      ...pBookings.map(b => ({ ...b, isEnquiry: false })),
-      ...pEnquiries.map(eq => ({ ...eq, isEnquiry: true }))
-    ];
+    const spansList = [];
+    if (typeFilters.reservation) {
+      spansList.push(...pBookings.map(b => ({ ...b, isEnquiry: false })));
+      spansList.push(...pEnquiries.map(eq => ({ ...eq, isEnquiry: true })));
+    }
 
     const firstDay = new Date(year, month, 1);
     const startDayOfWeek = firstDay.getDay();
@@ -4995,23 +6263,51 @@
         const carryEndClass = span.carryEnd ? 'carry-end' : '';
         const labelName = ev.guestName || 'Blocked';
         const labelText = span.carryStart ? `-- ${labelName}` : labelName;
-        const avatarHtml = ev.guestAvatar && ev.type !== 'blocked' ? `<img class="guest-avatar" src="${ev.guestAvatar}" />` : '';
-        const channelHtml = ev.channelIcon && ev.type !== 'blocked' ? `<img class="channel-icon" src="${ev.channelIcon}" />` : '';
-        const bgColor = ev.color || '#3b82f6';
-        const style = ev.type === 'blocked' ? 'background-color:#9ca3af;' : `background-color:${bgColor};`;
-        eventsHtml += `<div class="grid-event-span ${carryStartClass} ${carryEndClass}" style="grid-column:${gridColStart}/${gridColEnd};grid-row:1;${style};${spanOffsets(span)}" ${onClick} onmouseenter="showMonthEventTooltip(event,'${ev.id}',false)" onmouseleave="hideGlobalTooltip()">${channelHtml}${avatarHtml}<span class="event-title">${labelText}</span></div>`;
+        const channelLogoUrl = getChannelLogo(ev.channelName, ev.channelIcon);
+        const channelColor = getChannelColor(ev.channelName) || ev.color || '#3b82f6';
+        const channelLogoHtml = channelLogoUrl && ev.type !== 'blocked'
+          ? `<div class="channel-logo-circle" style="border-color:${channelColor};background-color:${channelColor}"><img src="${channelLogoUrl}" alt="${ev.channelName || ''}" /></div>`
+          : '';
+        const style = ev.type === 'blocked' ? 'background-color:#9ca3af;' : `background-color:${channelColor};`;
+        eventsHtml += `<div class="grid-event-span ${carryStartClass} ${carryEndClass}" style="grid-column:${gridColStart}/${gridColEnd};grid-row:1;${style};${spanOffsets(span)}" ${onClick} onmouseenter="showMonthEventTooltip(event,'${ev.id}',false)" onmouseleave="hideGlobalTooltip()">${channelLogoHtml}<span class="event-title">${labelText}</span></div>`;
       });
 
       weekDates.forEach((d, colIdx) => {
         const dateStr = toISODateString(d);
         const dayTasksForBand = pTasks.filter(t => t.date === dateStr);
+        const bookingStartsHere = weekSpans.some(s => !s.carryStart && s.startCol === colIdx);
+
+        const bookingWithPayment = pBookings.find(b => b.paymentsInfo && b.paymentsInfo[dateStr]);
+        const hasPaymentCollision = bookingStartsHere && bookingWithPayment && typeFilters.payment;
+
+        // Payment collision: small black dot at bottom when payment date coincides with reservation start
+        if (hasPaymentCollision) {
+          eventsHtml += `<div style="grid-column:${colIdx+1}/${colIdx+2};grid-row:1/-1;align-self:end;justify-self:center;width:8px;height:8px;border-radius:50%;background:#000;z-index:130;cursor:pointer;pointer-events:auto;margin-bottom:4px;" onmouseenter="showPaymentTooltip(event,'${bookingWithPayment.id}','${dateStr}')" onmouseleave="handleIndicatorHoverLeave()"></div>`;
+        }
+
+        // Normal payment indicator (when no collision with reservation start)
+        if (!hasPaymentCollision && bookingWithPayment && typeFilters.payment && !(bookingStartsHere && dayTasksForBand.length > 0)) {
+          eventsHtml += `<div style="grid-column:${colIdx+1}/${colIdx+2};grid-row:1;align-self:center;justify-self:center;width:36px;height:36px;border-radius:50%;background:#3b82f6;border:2px solid #fff;display:flex;align-items:center;justify-content:center;z-index:120;cursor:pointer;pointer-events:auto;box-shadow:0 1px 3px rgba(0,0,0,0.25);" onclick="handlePaymentIndicatorClick(event,'${bookingWithPayment.id}','${dateStr}')" onmouseenter="showPaymentTooltip(event,'${bookingWithPayment.id}','${dateStr}')" onmouseleave="handleIndicatorHoverLeave()"><img src="${paymentIconUrl}" alt="payment" style="width:24px;height:24px;object-fit:contain;filter:brightness(0) invert(1);" /></div>`;
+        }
+
         if (dayTasksForBand.length === 0) return;
-        const taskLabel = dayTasksForBand.length === 1
-          ? `🧹 ${(dayTasksForBand[0].details || 'Task').substring(0, 8)}`
-          : `🧹 ${dayTasksForBand.length} tasks`;
+        const t0 = dayTasksForBand[0];
+
+        if (bookingStartsHere) {
+          eventsHtml += `<div style="position:static;grid-column:${colIdx+1}/${colIdx+2};grid-row:1/-1;align-self:end;justify-self:center;width:8px;height:8px;border-radius:50%;background:#ef4444;z-index:15;cursor:pointer;pointer-events:auto;animation:cell-blink 1.2s ease-in-out infinite;" onclick="openTaskDetailModal(event,'${t0.id}')"></div>`;
+          return;
+        }
+        const taskIconsMap = {
+          cleaning: "{% static 'img/task/type/cleaning.svg' %}",
+          maintenance: "{% static 'img/task/type/maintenance.svg' %}",
+          payment: "{% static 'img/task/type/payment.svg' %}",
+          other: "{% static 'img/task/type/others.svg' %}"
+        };
+        const taskIconUrl = taskIconsMap[t0.task_type] || taskIconsMap.other;
         const taskColors = { cleaning: '#10b981', maintenance: '#f59e0b', payment: '#3b82f6', other: '#8b5cf6' };
-        const taskColor = taskColors[dayTasksForBand[0].task_type] || taskColors.other;
-        eventsHtml += `<div class="grid-event-span" style="grid-column:${colIdx+1}/${colIdx+2};grid-row:5;background-color:${taskColor};border-radius:6px;font-size:10px;margin-left:25%;margin-right:25%;" onclick="openTaskDetailModal(event,'${dayTasksForBand[0].id}')" onmouseleave="hideGlobalTooltip()"><span class="event-title">${taskLabel}</span></div>`;
+        const taskColor = taskColors[t0.task_type] || taskColors.other;
+        const paymentRing = t0.task_type === 'payment' ? 'box-shadow:0 0 0 2.5px #38bdf8,0 2px 6px rgba(0,0,0,0.15);width:30px;height:30px;' : '';
+        eventsHtml += `<div class="task-circle-bar" style="grid-column:${colIdx+1}/${colIdx+2};grid-row:1;background-color:${taskColor};${paymentRing}" onclick="openTaskDetailModal(event,'${t0.id}')">${t0.task_type === 'payment' ? `<div style="position:relative;display:flex;align-items:center;justify-content:center;width:100%;height:100%;"><img src="${taskIconUrl}" alt="" style="width:16px;height:16px;filter:brightness(0) invert(1);opacity:0.5;position:absolute;" /><span style="color:#fff;font-weight:900;font-size:14px;line-height:1;position:relative;z-index:1;">$</span></div>` : `<img src="${taskIconUrl}" alt="" />`}</div>`;
       });
 
       html += `
@@ -5032,24 +6328,30 @@
     pane.innerHTML = html;
   }
 
-  /* --- Week Table View Renderer (segregated bands) --- */
+  /* --- Week Grid View (unified: property label + 7-day data per row) --- */
   function renderWeekGrid(pane) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
+    const paymentIconUrl = "{% static 'img/task/type/payment.svg' %}";
 
-    const applyFilter = (arr) => {
-      if (!typeFilters.reservation && !typeFilters.payment) return [];
-      if (!typeFilters.reservation) return arr.filter(b => b.paymentsInfo && Object.keys(b.paymentsInfo).length > 0);
-      if (!typeFilters.payment) return arr.filter(b => !b.paymentsInfo || Object.keys(b.paymentsInfo).length === 0 || b.type === 'blocked');
-      return arr;
-    };
-    const pBookings = applyFilter(bookings.slice());
+    const pBookings = bookings.filter(b => {
+      if (typeFilters.reservation) return true;
+      if (typeFilters.payment) return b.paymentsInfo && Object.keys(b.paymentsInfo).length > 0;
+      return false;
+    });
     const pEnquiries = typeFilters.reservation ? enquiries.slice() : [];
-    const pTasks = typeFilters.task ? tasks.slice() : [];
-    const spansList = [
-      ...pBookings.map(b => ({ ...b, isEnquiry: false })),
-      ...pEnquiries.map(eq => ({ ...eq, isEnquiry: true }))
-    ];
+    const pTasks = tasks.filter(t => {
+      if (t.task_type === 'payment') {
+        return typeFilters.payment;
+      } else {
+        return typeFilters.task;
+      }
+    });
+    const spansList = [];
+    if (typeFilters.reservation) {
+      spansList.push(...pBookings.map(b => ({ ...b, isEnquiry: false })));
+      spansList.push(...pEnquiries.map(eq => ({ ...eq, isEnquiry: true })));
+    }
 
     const weekDates = [];
     const temp = new Date(selectedWeekStart);
@@ -5060,285 +6362,150 @@
 
     const weekStart = weekDates[0];
     const weekEnd = weekDates[6];
+    const FIXED_GRID = '1fr 3px 1fr';
+    const taskIconsMap = {
+      cleaning: "{% static 'img/task/type/cleaning.svg' %}",
+      maintenance: "{% static 'img/task/type/maintenance.svg' %}",
+      payment: "{% static 'img/task/type/payment.svg' %}",
+      other: "{% static 'img/task/type/others.svg' %}"
+    };
+    const taskColors = { cleaning: '#10b981', maintenance: '#f59e0b', payment: '#3b82f6', other: '#8b5cf6' };
+    const dayNames = ['SUN','MON','TUE','WED','THU','FRI','SAT'];
+    const propsToRender = filteredProperties.length > 0 ? filteredProperties : properties;
+    const SIDEBAR_W = 240;
 
-    const LABEL_W = 90;
-
-    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    const weekRangeLabel = `${monthNames[weekStart.getMonth()]} ${weekStart.getDate()} - ${monthNames[weekEnd.getMonth()]} ${weekEnd.getDate()}, ${weekEnd.getFullYear()}`;
+    const spanOffsets = (span) => {
+      const n = span.endCol - span.startCol + 1;
+      const mlPct = span.carryStart ? 0 : (100 / (2 * n));
+      const mrPct = span.carryEnd  ? 0 : (100 / (2 * n));
+      return `margin-left:${mlPct.toFixed(2)}%;margin-right:${mrPct.toFixed(2)}%`;
+    };
 
     let html = `
-      <div class="month-calendar-grid" style="height: auto; min-height: 100%; overflow: visible;">
-        <div class="month-calendar-header-row" style="grid-template-columns: ${LABEL_W}px repeat(7, 1fr);">
-          <div class="month-calendar-header-cell" style="border-right: none; color: #9ca3af; font-size: 10px; letter-spacing: 0.05em;">TYPE</div>
-          <div class="month-calendar-header-cell">SUN</div>
-          <div class="month-calendar-header-cell">MON</div>
-          <div class="month-calendar-header-cell">TUE</div>
-          <div class="month-calendar-header-cell">WED</div>
-          <div class="month-calendar-header-cell">THU</div>
-          <div class="month-calendar-header-cell">FRI</div>
-          <div class="month-calendar-header-cell">SAT</div>
-        </div>
-        <div style="display: flex; align-items: center; padding: 6px 8px; border-bottom: 1px solid #e5e7eb; background: #ffffff;">
-          <button onclick="goToPrevMonth()" style="width: 36px; height: 36px; border: none; border-radius: 50%; background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0;" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='transparent'" aria-label="Previous week">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#374151" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
-          </button>
-          <div style="flex: 1; text-align: center; font-size: 15px; font-weight: 700; color: #1f2937; letter-spacing: 0.01em;">
-            ${weekRangeLabel}
+      <div style="display:flex;flex-direction:column;flex:1;min-height:0;">
+        <div style="display:flex;border:1px solid #1f2937;border-radius:12px 12px 0 0;overflow:hidden;background:#1f2937;color:#fff;font-weight:700;font-size:11px;text-transform:uppercase;user-select:none;">
+          <div style="width:${SIDEBAR_W}px;flex-shrink:0;display:flex;align-items:center;padding:10px;background:#f9fafb;">
+            <div style="display:flex;align-items:center;gap:6px;width:100%;padding:8px 10px;border:1px solid #e5e7eb;border-radius:8px;background:#f9fafb;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:#9ca3af;flex-shrink:0;"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.35-4.35"></path></svg>
+              <input type="text" id="weekPropertySearchInput" placeholder="Search listings"
+                onkeyup="filterProperties()"
+                style="width:100%;border:none;font-size:13px;background:transparent;color:#1f2937;outline:none;box-sizing:border-box;" />
+            </div>
           </div>
-          <button onclick="goToNextMonth()" style="width: 36px; height: 36px; border: none; border-radius: 50%; background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0;" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='transparent'" aria-label="Next week">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#374151" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
-          </button>
-        </div>
-        <div class="month-calendar-weeks-container" style="overflow: visible;">
-    `;
-
-    let bgHtml = '';
-    weekDates.forEach(d => {
-      const isToday = d.toDateString() === today.toDateString();
-      const dateStr = toISODateString(d);
-      bgHtml += `
-        <div class="month-calendar-day-cell ${isToday ? 'today' : ''}" data-date="${dateStr}" style="border-bottom: 1px solid #e5e7eb;">
-          <span class="day-number">${d.getDate()}</span>
-        </div>
-      `;
-    });
-    // Prepend gutter cell
-    bgHtml = `<div class="month-calendar-day-cell" style="border-right: 1px solid #e5e7eb; border-bottom: 1px solid #e5e7eb; min-width: ${LABEL_W}px;"></div>` + bgHtml;
-
-    /* Helpers */
-    function getPropertyName(propertyId) {
-      const p = properties.find(p => String(p.id) === String(propertyId));
-      return p ? p.title : '';
-    }
-
-    function buildSpans(events) {
-      const spans = [];
-      events.forEach(event => {
-        const evStart = new Date(event.startDateStr + 'T00:00:00');
-        const evEnd = new Date(event.endDateStr + 'T00:00:00');
-        evEnd.setDate(evEnd.getDate() - 1);
-        if (evStart <= weekEnd && evEnd >= weekStart) {
-          spans.push({
-            event,
-            startCol: Math.max(0, Math.ceil((evStart - weekStart) / (1000 * 60 * 60 * 24))),
-            endCol: Math.min(6, Math.ceil((evEnd - weekStart) / (1000 * 60 * 60 * 24))),
-            carryStart: evStart < weekStart,
-            carryEnd: evEnd > weekEnd,
-            length: 0
-          });
-          spans[spans.length - 1].length = spans[spans.length - 1].endCol - spans[spans.length - 1].startCol + 1;
-        }
-      });
-      return spans;
-    }
-
-    function packSpans(spans) {
-      spans.sort((a, b) => a.startCol - b.startCol || b.length - a.length);
-      const rows = [];
-      spans.forEach(span => {
-        let rowIndex = 0;
-        while (true) {
-          if (!rows[rowIndex]) rows[rowIndex] = Array(7).fill(false);
-          let free = true;
-          for (let c = span.startCol; c <= span.endCol; c++) {
-            if (rows[rowIndex][c]) { free = false; break; }
-          }
-          if (free) {
-            for (let c = span.startCol; c <= span.endCol; c++) rows[rowIndex][c] = true;
-            span.rowIndex = rowIndex;
-            break;
-          }
-          rowIndex++;
-        }
-      });
-      return rows;
-    }
-
-    /* Determine which bands are visible based on filter */
-    const showRes = typeFilters.reservation;
-    const showPay = typeFilters.payment;
-    const showTask = typeFilters.task;
-
-    /* Categorise events into three bands */
-    const BAR_H = 36;
-    const GAP = 10;
-
-    // Band 1 – Reservations (bookings without payments + blocked + enquiries)
-    const reservationEvents = spansList.filter(s => {
-      if (s.type === 'blocked') return true;
-      if (s.isEnquiry) return true;
-      return !s.paymentsInfo || Object.keys(s.paymentsInfo).length === 0;
-    });
-    const resSpans = buildSpans(reservationEvents);
-    const resRows = packSpans(resSpans);
-    const resCount = showRes ? Math.max(1, resRows.length) : 0;
-
-    // Band 2 – Payments (bookings that have payment data)
-    const paymentEvents = spansList.filter(s =>
-      !s.isEnquiry && s.type !== 'blocked' && s.paymentsInfo && Object.keys(s.paymentsInfo).length > 0
-    );
-    const paySpans = buildSpans(paymentEvents);
-    const payRows = packSpans(paySpans);
-    const payCount = showPay ? Math.max(1, payRows.length) : 0;
-
-    // Band 3 – Tasks (per-day bars)
-    const maxTasksPerDay = weekDates.reduce((max, d) => {
-      return Math.max(max, pTasks.filter(t => t.date === toISODateString(d)).length);
-    }, 0);
-    const taskCount = showTask ? Math.max(1, maxTasksPerDay) : 0;
-
-    // Build grid-template-rows: only include visible bands with gaps between them
-    const rowParts = [];
-    if (showRes) rowParts.push(`repeat(${resCount}, ${BAR_H}px)`);
-    if (showPay) {
-      if (showRes) rowParts.push(`${GAP}px`);
-      rowParts.push(`repeat(${payCount}, ${BAR_H}px)`);
-    }
-    if (showTask) {
-      if (showRes || showPay) rowParts.push(`${GAP}px`);
-      rowParts.push(`repeat(${taskCount}, ${BAR_H}px)`);
-    }
-    const gridTemplateRows = rowParts.join(' ');
-    const gridTemplateCols = `${LABEL_W}px repeat(7, 1fr)`;
-
-    // Compute label row ranges and total grid rows
-    let resLabelEnd, payLabelStart, payLabelEnd, taskLabelStart, taskLabelEnd;
-    let totalGridRows = 0;
-    let gridPxHeight = 0;
-    let cursor = 1;
-    if (showRes) {
-      const gapAfter = showPay || showTask ? 1 : 0;
-      resLabelEnd = cursor + resCount + gapAfter;
-      cursor = resLabelEnd;
-      totalGridRows += resCount + gapAfter;
-      gridPxHeight += resCount * BAR_H + gapAfter * GAP;
-    }
-    if (showPay) {
-      const gapBefore = showRes ? 1 : 0;
-      const gapAfter = showTask ? 1 : 0;
-      if (gapBefore) { /* gap row already accounted */ }
-      payLabelStart = cursor;
-      payLabelEnd = cursor + payCount;
-      cursor = payLabelEnd;
-      totalGridRows += payCount + gapAfter;
-      gridPxHeight += payCount * BAR_H + gapAfter * GAP;
-    }
-    // offset for task label start: if both res and pay hidden, cursor stays at 1
-    if (showTask) {
-      const gapBefore = showRes || showPay ? 1 : 0;
-      const beforeTotal = (showRes ? resCount + (showPay || showTask ? 1 : 0) : 0) + (showPay ? payCount + (showTask ? 1 : 0) : 0);
-      taskLabelStart = beforeTotal + 1;
-      taskLabelEnd = taskLabelStart + taskCount;
-      totalGridRows += taskCount;
-      gridPxHeight += taskCount * BAR_H;
-    }
-
-    const weekMinH = Math.max(200, gridPxHeight + 40);
-    const totalGridLines = totalGridRows + 1;
-
-    // Build band labels (only for visible bands)
-    let eventsHtml = '';
-    if (showRes) {
-      eventsHtml += `<div class="week-band-label" style="grid-column: 1; grid-row: 1 / ${resLabelEnd}; background: rgba(37,99,235,0.06); border-left: 3px solid #2563eb; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; color:#2563eb; letter-spacing:0.04em; text-transform:uppercase; pointer-events:none; border-radius:0 6px 6px 0; margin:2px 0;">Reservations</div>`;
-    }
-    if (showPay) {
-      eventsHtml += `<div class="week-band-label" style="grid-column: 1; grid-row: ${payLabelStart} / ${payLabelEnd}; background: rgba(30,41,59,0.05); border-left: 3px solid #1e293b; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; color:#1e293b; letter-spacing:0.04em; text-transform:uppercase; pointer-events:none; border-radius:0 6px 6px 0; margin:2px 0;">Payments</div>`;
-    }
-    if (showTask) {
-      eventsHtml += `<div class="week-band-label" style="grid-column: 1; grid-row: ${taskLabelStart} / ${taskLabelEnd}; background: rgba(220,38,38,0.05); border-left: 3px solid #dc2626; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; color:#dc2626; letter-spacing:0.04em; text-transform:uppercase; pointer-events:none; border-radius:0 6px 6px 0; margin:2px 0;">Tasks</div>`;
-    }
-    eventsHtml += `<div style="grid-column: 2; grid-row: 1 / ${totalGridLines}; width: 0; border-left: 1px solid #e5e7eb; pointer-events: none; align-self: stretch;"></div>`;
-
-    /* Render reservation spans */
-    resSpans.forEach(span => {
-      const ev = span.event;
-      const propName = getPropertyName(ev.propertyId);
-      const gridColStart = span.startCol + 2;
-      const gridColEnd = span.endCol + 3;
-      const gridRow = span.rowIndex + 1;
-      const isBlocked = ev.type === 'blocked';
-
-      const carryStartClass = span.carryStart ? 'carry-start' : '';
-      const carryEndClass = span.carryEnd ? 'carry-end' : '';
-      const labelName = isBlocked ? 'Blocked' : (ev.guestName || '');
-      const labelText = span.carryStart ? `-- ${labelName}` : labelName;
-      const displayLabel = propName ? `${propName} - ${labelText}` : labelText;
-      const bgColor = isBlocked ? '#9ca3af' : (ev.color || '#3b82f6');
-      const onClick = isBlocked
-        ? `onclick="openUnblockModal(event, '${ev.id}')"`
-        : `onclick="openReservationPanel(event, '${ev.id}')"`;
-
-      eventsHtml += `
-        <div class="grid-event-span ${carryStartClass} ${carryEndClass}"
-             style="grid-column: ${gridColStart} / ${gridColEnd}; grid-row: ${gridRow}; background-color: ${bgColor}; font-size: 11px;"
-             ${onClick}
-             onmouseenter="showMonthEventTooltip(event, '${ev.id}', false)"
-             onmouseleave="hideGlobalTooltip()">
-          <span class="event-title">${displayLabel}</span>
-        </div>
-      `;
-    });
-
-    /* Render payment spans */
-    const payRowOffset = (showRes ? resCount + 1 : 0) + 1;
-    paySpans.forEach(span => {
-      const ev = span.event;
-      const propName = getPropertyName(ev.propertyId);
-      const gridColStart = span.startCol + 2;
-      const gridColEnd = span.endCol + 3;
-      const gridRow = payRowOffset + span.rowIndex;
-
-      const carryStartClass = span.carryStart ? 'carry-start' : '';
-      const carryEndClass = span.carryEnd ? 'carry-end' : '';
-      const labelName = ev.guestName || '';
-      const labelText = span.carryStart ? `-- ${labelName}` : labelName;
-      const displayLabel = `${propName ? propName + ' - ' : ''}Payment - ${labelText}`;
-
-      eventsHtml += `
-        <div class="grid-event-span ${carryStartClass} ${carryEndClass}"
-             style="grid-column: ${gridColStart} / ${gridColEnd}; grid-row: ${gridRow}; background-color: #1e293b; font-size: 11px;"
-             onclick="openReservationPanel(event, '${ev.id}')"
-             onmouseenter="showMonthEventTooltip(event, '${ev.id}', false)"
-             onmouseleave="hideGlobalTooltip()">
-          <span class="event-title">${displayLabel}</span>
-        </div>
-      `;
-    });
-
-    /* Render task bars */
-    const taskRowOffset = (showRes ? resCount + 1 : 0) + (showPay ? payCount + 1 : 0) + 1;
-    const taskColors = { cleaning: '#10b981', maintenance: '#f59e0b', payment: '#3b82f6', other: '#8b5cf6' };
-    weekDates.forEach((d, colIdx) => {
-      const dateStr = toISODateString(d);
-      const dayTasks = pTasks.filter(t => t.date === dateStr);
-      dayTasks.forEach((t, tIdx) => {
-        const propName = getPropertyName(t.propertyId);
-        const gridCol = colIdx + 2;
-        const gridRow = taskRowOffset + tIdx;
-        const taskColor = taskColors[t.task_type] || taskColors.other;
-        const label = `${propName ? propName + ' - ' : ''}${(t.details || 'Task').substring(0, 18)}`;
-
-        eventsHtml += `
-          <div class="grid-event-span"
-               style="grid-column: ${gridCol} / ${gridCol + 1}; grid-row: ${gridRow}; background-color: ${taskColor}; font-size: 10px; border-radius: 6px;"
-               onclick="openTaskDetailModal(event, '${t.id}')"
-               onmouseleave="hideGlobalTooltip()">
-            <span class="event-title">${label}</span>
+          <div style="flex:1;display:grid;grid-template-columns:repeat(7,1fr);text-align:center;">
+            ${weekDates.map((d,i) => `<div style="padding:12px 4px;border-left:1px solid rgba(255,255,255,0.1);">${dayNames[d.getDay()]} ${d.getDate()}</div>`).join('')}
           </div>
-        `;
-      });
-    });
-
-    html += `
-      <div class="month-calendar-week" style="min-height: ${weekMinH}px; overflow: visible; flex: 1 1 0;">
-        <div class="month-calendar-week-bg" style="grid-template-columns: ${LABEL_W}px repeat(7, 1fr);">${bgHtml}</div>
-        <div class="month-calendar-events-layer" style="grid-template-columns: ${gridTemplateCols}; grid-template-rows: ${gridTemplateRows}; padding: 0;">
-          ${eventsHtml}
         </div>
-      </div>
-    `;
+        <div class="week-grid-body" style="flex:1;overflow-y:auto;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 12px 12px;background:#fff;">
+          ${propsToRender.map(property => {
+            const propImg = property.image || "{% static 'img/common/default_user_icon_1.png' %}";
+            const propName = property.title || 'Property';
+            const propertySpans = spansList.filter(s => String(s.propertyId) === String(property.id));
+            const propertyTasks = pTasks.filter(t => String(t.propertyId) === String(property.id));
+            const propertyBookings = pBookings.filter(b => String(b.propertyId) === String(property.id));
 
-    html += `
+            const weekSpans = [];
+            propertySpans.forEach(event => {
+              const evStart = new Date(event.startDateStr + 'T00:00:00');
+              const evEnd = new Date(event.endDateStr + 'T00:00:00');
+              evEnd.setDate(evEnd.getDate() - 1);
+              if (evStart <= weekEnd && evEnd >= weekStart) {
+                const carryStart = evStart < weekStart;
+                const carryEnd = evEnd > weekEnd;
+                const startCol = carryStart ? 0 : Math.round((evStart - weekStart) / (1000 * 60 * 60 * 24));
+                const endCol = carryEnd ? 6 : Math.round((evEnd - weekStart) / (1000 * 60 * 60 * 24));
+                weekSpans.push({ event, startCol, endCol, carryStart, carryEnd, length: endCol - startCol + 1 });
+              }
+            });
+
+            const bookingSpans = weekSpans.filter(s => !s.event.isEnquiry);
+            let rowHtml = '';
+
+            bookingSpans.forEach(span => {
+              const ev = span.event;
+              const gridColStart = span.startCol + 1;
+              const gridColEnd = span.endCol + 2;
+              const onClick = ev.type === 'blocked'
+                ? `onclick="openUnblockModal(event, '${ev.id}')"`
+                : `onclick="openReservationPanel(event, '${ev.id}')"`;
+              const carryStartClass = span.carryStart ? 'carry-start' : '';
+              const carryEndClass = span.carryEnd ? 'carry-end' : '';
+              const labelName = ev.guestName || 'Blocked';
+              const labelText = span.carryStart ? `-- ${labelName}` : labelName;
+              const channelLogoUrl = getChannelLogo(ev.channelName, ev.channelIcon);
+              const channelColor = getChannelColor(ev.channelName) || ev.color || '#3b82f6';
+              const channelLogoHtml = channelLogoUrl && ev.type !== 'blocked'
+                ? `<div class="channel-logo-circle" style="border-color:${channelColor};background-color:${channelColor}"><img src="${channelLogoUrl}" alt="${ev.channelName || ''}" /></div>`
+                : '';
+              const style = ev.type === 'blocked' ? 'background-color:#9ca3af;' : `background-color:${channelColor};`;
+              rowHtml += `<div class="grid-event-span ${carryStartClass} ${carryEndClass}" style="grid-column:${gridColStart}/${gridColEnd};grid-row:1;${style};${spanOffsets(span)}" ${onClick} onmouseenter="showMonthEventTooltip(event,'${ev.id}',false)" onmouseleave="hideGlobalTooltip()">${channelLogoHtml}<span class="event-title">${labelText}</span></div>`;
+            });
+
+            weekDates.forEach((d, colIdx) => {
+              const dateStr = toISODateString(d);
+              const dayTasks = propertyTasks.filter(t => t.date === dateStr);
+              const bookingStartsHere = weekSpans.some(s => !s.carryStart && s.startCol === colIdx);
+
+              const bookingWithPayment = propertyBookings.find(b => b.paymentsInfo && b.paymentsInfo[dateStr]);
+              const hasPaymentCollision = bookingStartsHere && bookingWithPayment && typeFilters.payment;
+
+              // Payment collision: small black dot at bottom when payment date coincides with reservation start
+              if (hasPaymentCollision) {
+                rowHtml += `<div style="grid-column:${colIdx+1}/${colIdx+2};grid-row:1/-1;align-self:end;justify-self:center;width:8px;height:8px;border-radius:50%;background:#000;z-index:130;cursor:pointer;pointer-events:auto;margin-bottom:4px;" onmouseenter="showPaymentTooltip(event,'${bookingWithPayment.id}','${dateStr}')" onmouseleave="handleIndicatorHoverLeave()"></div>`;
+              }
+
+              // Normal payment indicator (when no collision with reservation start)
+              if (!hasPaymentCollision && bookingWithPayment && typeFilters.payment && !(bookingStartsHere && dayTasks.length > 0)) {
+                rowHtml += `<div style="grid-column:${colIdx+1}/${colIdx+2};grid-row:1;align-self:center;justify-self:center;width:36px;height:36px;border-radius:50%;background:#3b82f6;border:2px solid #fff;display:flex;align-items:center;justify-content:center;z-index:120;cursor:pointer;pointer-events:auto;box-shadow:0 1px 3px rgba(0,0,0,0.25);" onclick="handlePaymentIndicatorClick(event,'${bookingWithPayment.id}','${dateStr}')" onmouseenter="showPaymentTooltip(event,'${bookingWithPayment.id}','${dateStr}')" onmouseleave="handleIndicatorHoverLeave()"><img src="${paymentIconUrl}" alt="payment" style="width:24px;height:24px;object-fit:contain;filter:brightness(0) invert(1);" /></div>`;
+              }
+
+              if (dayTasks.length === 0) return;
+              const t0 = dayTasks[0];
+
+              if (bookingStartsHere) {
+                rowHtml += `<div style="position:static;grid-column:${colIdx+1}/${colIdx+2};grid-row:1/-1;align-self:end;justify-self:center;width:8px;height:8px;border-radius:50%;background:#ef4444;z-index:15;cursor:pointer;pointer-events:auto;animation:cell-blink 1.2s ease-in-out infinite;" onclick="openTaskDetailModal(event,'${t0.id}')"></div>`;
+                return;
+              }
+              const taskIconUrl = taskIconsMap[t0.task_type] || taskIconsMap.other;
+              const taskColor = taskColors[t0.task_type] || taskColors.other;
+        const paymentRing = t0.task_type === 'payment' ? 'box-shadow:0 0 0 2.5px #38bdf8,0 2px 6px rgba(0,0,0,0.15);width:30px;height:30px;' : '';
+              rowHtml += `<div class="task-circle-bar" style="grid-column:${colIdx+1}/${colIdx+2};grid-row:1;background-color:${taskColor};${paymentRing}" onclick="openTaskDetailModal(event,'${t0.id}')">${t0.task_type === 'payment' ? `<div style="position:relative;display:flex;align-items:center;justify-content:center;width:100%;height:100%;"><img src="${taskIconUrl}" alt="" style="width:16px;height:16px;filter:brightness(0) invert(1);opacity:0.5;position:absolute;" /><span style="color:#fff;font-weight:900;font-size:14px;line-height:1;position:relative;z-index:1;">$</span></div>` : `<img src="${taskIconUrl}" alt="" />`}</div>`;
+            });
+
+            const detailHref = property.slug ? `/property/detail/${property.slug}/` : (property.detail_url || property.url || '#');
+            return `
+              <div style="display:flex;border-bottom:1px solid #e5e7eb;">
+                <div style="width:${SIDEBAR_W}px;flex-shrink:0;display:flex;align-items:center;gap:0;padding:8px 10px;border-right:1px solid #e5e7eb;background:#fafafa;min-width:0;">
+                  <img src="${propImg}" alt="" style="width:32px;height:32px;border-radius:50%;object-fit:cover;flex-shrink:0;" onerror="this.onerror=null;this.src='{% static "img/common/default_user_icon_1.png" %}';">
+                  <span style="flex:1;font-size:12px;font-weight:600;color:#1f2937;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-left:8px;">${propName}</span>
+                  <div class="property-actions">
+                    <div class="dropdown dropend">
+                      <button class="btn btn-sm" type="button" data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false" style="padding:2px 6px;font-size:18px;line-height:1;border:none;background:none;color:#6b7280;cursor:pointer;">⋮</button>
+                      <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="{% url 'booking:booking-create' %}?property_id=${property.id}">Create a new Booking</a></li>
+                        <li><a class="dropdown-item" href="javascript:void(0)" onclick="openBlockCalendarModal('${property.id}')">Block Calendar</a></li>
+                        <li><a class="dropdown-item" href="/manage/${property.id}/">Channel integration</a></li>
+                        <li><a class="dropdown-item" href="{% url 'tasks:task-create' %}?property_id=${property.id}">Create Task</a></li>
+                        <li><a class="dropdown-item" href="#">Report</a></li>
+                        <li><a class="dropdown-item" href="${detailHref}" target="_blank" rel="noopener noreferrer">Listing Details</a></li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+                <div style="flex:1;min-height:58px;position:relative;">
+                  <div style="display:grid;grid-template-columns:repeat(7,1fr);height:100%;">
+                    ${weekDates.map((d, i) => {
+                      const isToday = d.toDateString() === today.toDateString();
+                      return `<div style="border-left:${i>0?'1px solid #e5e7eb':'none'};${isToday?'background:rgba(22,163,74,0.08)':''};"></div>`;
+                    }).join('')}
+                  </div>
+                  <div style="position:absolute;top:2px;left:0;right:0;bottom:2px;display:grid;grid-template-columns:repeat(7,1fr);grid-template-rows:${FIXED_GRID};pointer-events:none;">
+                    ${rowHtml}
+                  </div>
+                </div>
+              </div>
+            `;
+          }).join('')}
         </div>
       </div>
     `;
@@ -5349,15 +6516,19 @@
   /* --- Day Schedule View Renderer --- */
   function renderDaySchedule(pane) {
     // Day view shows ALL listings, not just the active one
-    const applyFilter = (arr) => {
-      if (!typeFilters.reservation && !typeFilters.payment) return [];
-      if (!typeFilters.reservation) return arr.filter(b => b.paymentsInfo && Object.keys(b.paymentsInfo).length > 0);
-      if (!typeFilters.payment) return arr.filter(b => !b.paymentsInfo || Object.keys(b.paymentsInfo).length === 0 || b.type === 'blocked');
-      return arr;
-    };
-    const pBookings = applyFilter(bookings.slice());
+    const pBookings = bookings.filter(b => {
+      if (typeFilters.reservation) return true;
+      if (typeFilters.payment) return b.paymentsInfo && Object.keys(b.paymentsInfo).length > 0;
+      return false;
+    });
     const pEnquiries = typeFilters.reservation ? enquiries.slice() : [];
-    const pTasks = typeFilters.task ? tasks.slice() : [];
+    const pTasks = tasks.filter(t => {
+      if (t.task_type === 'payment') {
+        return typeFilters.payment;
+      } else {
+        return typeFilters.task;
+      }
+    });
     const dateStr = selectedDateKey;
 
     const dateObj = new Date(dateStr + 'T00:00:00');
@@ -5369,14 +6540,32 @@
     const dayNum = dateObj.getDate();
 
     // --- Data (backend logic unchanged) ---
-    const checkIns    = pBookings.filter(b => b.start_date === dateStr);
-    const checkOuts   = pBookings.filter(b => b.end_date === dateStr);
-    const inHouse     = pBookings.filter(b => dateStr > b.start_date && dateStr < b.end_date);
+    const checkIns    = typeFilters.reservation ? pBookings.filter(b => b.start_date === dateStr) : [];
+    const checkOuts   = typeFilters.reservation ? pBookings.filter(b => b.end_date === dateStr) : [];
+    const inHouse     = typeFilters.reservation ? pBookings.filter(b => dateStr > b.start_date && dateStr < b.end_date) : [];
     const dayTasks    = pTasks.filter(t => t.date === dateStr);
     const dayEnquiries= pEnquiries.filter(eq => eq.start_date === dateStr);
 
     const getTaskColor = (type) =>
       ({ 'cleaning': '#e53935', 'maintenance': '#e53935', 'payment': '#e53935' }[type] || '#e53935');
+
+    const dayPaymentIconUrl = "{% static 'img/task/type/payment.svg' %}";
+
+    function bookingHasPayment(b) {
+      return b.paymentsInfo && b.paymentsInfo[dateStr] && typeFilters.payment;
+    }
+
+    function makeEvent(b, startHour, endHour, title, sub, color, onClick) {
+      return {
+        startHour, endHour,
+        title,
+        sub,
+        color,
+        onClick,
+        bookingId: b.id,
+        hasPayment: bookingHasPayment(b)
+      };
+    }
 
     // --- Build events list with time placement ---
     // Each event: { startHour (float), endHour (float), title, sub, color, onClick, icon }
@@ -5395,28 +6584,36 @@
     checkIns.forEach(b => {
       const prop = properties.find(p => String(p.id) === String(b.propertyId));
       const propName = prop ? prop.title : '';
-      events.push({
-        startHour: parseTime(b.check_in_time, 14),
-        endHour:   parseTime(b.check_in_time, 14) + 1,
-        title: `\u2713 Check-in: ${b.guestName}`,
-        sub:   `${propName}${propName && b.channelName ? ' · ' : ''}${b.channelName || ''}${b.bookingId ? ' · ' + b.bookingId : ''}`,
-        color: '#2979ff',
-        onClick: `openReservationPanel(event, '${b.id}')`,
-        icon: ''
-      });
+      events.push(makeEvent(b,
+        parseTime(b.check_in_time, 14),
+        parseTime(b.check_in_time, 14) + 1,
+        `\u2713 Check-in: ${b.guestName}`,
+        `${propName}${propName && b.channelName ? ' · ' : ''}${b.channelName || ''}${b.bookingId ? ' · ' + b.bookingId : ''}`,
+        '#2979ff',
+        `openReservationPanel(event, '${b.id}')`
+      ));
     });
     checkOuts.forEach(b => {
       const prop = properties.find(p => String(p.id) === String(b.propertyId));
       const propName = prop ? prop.title : '';
-      events.push({
-        startHour: parseTime(b.check_out_time, 11),
-        endHour:   parseTime(b.check_out_time, 11) + 1,
-        title: `\u2713 Check-out: ${b.guestName}`,
-        sub:   `${propName}${propName && b.channelName ? ' · ' : ''}${b.channelName || ''}${b.bookingId ? ' · ' + b.bookingId : ''}`,
-        color: '#5c6bc0',
-        onClick: `openReservationPanel(event, '${b.id}')`,
-        icon: ''
-      });
+      events.push(makeEvent(b,
+        parseTime(b.check_out_time, 11),
+        parseTime(b.check_out_time, 11) + 1,
+        `\u2713 Check-out: ${b.guestName}`,
+        `${propName}${propName && b.channelName ? ' · ' : ''}${b.channelName || ''}${b.bookingId ? ' · ' + b.bookingId : ''}`,
+        '#5c6bc0',
+        `openReservationPanel(event, '${b.id}')`
+      ));
+    });
+    inHouse.forEach(b => {
+      const prop = properties.find(p => String(p.id) === String(b.propertyId));
+      const propName = prop ? prop.title : '';
+      events.push(makeEvent(b, 12, 13,
+        `${b.guestName || 'Guest'}`,
+        `${propName}${propName ? ' · ' : ''}${b.nights || 1} nights${b.channelName ? ' · ' + b.channelName : ''}`,
+        '#3b82f6',
+        `openReservationPanel(event, '${b.id}')`
+      ));
     });
 
     dayTasks.forEach(t => {
@@ -5521,17 +6718,35 @@
       `;
     });
 
+    let paymentIndicatorsHtml = '';
+    if (typeFilters.payment) {
+      const bookingsWithPayment = bookings.filter(b => b.paymentsInfo && b.paymentsInfo[dateStr]);
+      bookingsWithPayment.forEach(b => {
+        let hour = 12;
+        if (b.start_date === dateStr) {
+          hour = parseTime(b.check_in_time, 14);
+        } else if (b.end_date === dateStr) {
+          hour = parseTime(b.check_out_time, 11);
+        }
+        const topPx = hour * HOUR_PX;
+        const indicatorSize = 32;
+        const indicatorTop = topPx + Math.max(HOUR_PX - indicatorSize, 0) / 2;
+
+        // Find if there is a matching visible event to align leftPct
+        const matchingEv = positionedEvents.find(e => e.bookingId === b.id);
+        const leftPct = matchingEv ? (matchingEv._col * (100 / matchingEv._numCols)) : 0;
+
+        paymentIndicatorsHtml += `
+          <div style="position:absolute;top:${indicatorTop}px;left:calc(${leftPct}% + 4px);width:${indicatorSize}px;height:${indicatorSize}px;border-radius:50%;background:#000;border:2px solid #fff;display:flex;align-items:center;justify-content:center;z-index:20;cursor:pointer;pointer-events:auto;box-shadow:0 1px 3px rgba(0,0,0,0.25);" onclick="handlePaymentIndicatorClick(event,'${b.id}','${dateStr}')" onmouseenter="showPaymentTooltip(event,'${b.id}','${dateStr}')" onmouseleave="handleIndicatorHoverLeave()">
+            <img src="${dayPaymentIconUrl}" alt="" style="width:20px;height:20px;object-fit:contain;filter:brightness(0) invert(1);" />
+          </div>
+        `;
+      });
+    }
+
     // --- Render ---
     pane.innerHTML = `
       <div class="gcal-day-view">
-        <!-- Top bar: gutter + day column header -->
-        <div class="gcal-day-topbar">
-          <div class="gcal-day-gutter-header"></div>
-          <div class="gcal-day-col-header">
-            <div class="gcal-day-weekday">${weekdayStr}</div>
-            <div class="gcal-day-num${isToday ? ' gcal-today' : ''}">${dayNum}</div>
-          </div>
-        </div>
         <!-- Scrollable grid -->
         <div class="gcal-day-scroll-area" id="gcalDayScrollArea">
           <div class="gcal-day-grid" style="min-height:${24 * HOUR_PX}px">
@@ -5544,9 +6759,17 @@
               ${hourLinesHtml}
               ${nowLineHtml}
               ${eventBlocksHtml}
+              ${paymentIndicatorsHtml}
               ${events.length === 0 ? `<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:14px;color:#9ca3af;font-style:italic;pointer-events:none;">No events scheduled</div>` : ''}
             </div>
           </div>
+        </div>
+        <!-- Color legend -->
+        <div style="display:flex;gap:16px;padding:8px 16px;background:#fff;border-top:1px solid #e5e7eb;flex-shrink:0;font-size:11px;font-weight:600;color:#6b7280;">
+          <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:2px;background:#3b82f6;"></span> Reservation</span>
+          <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:2px;background:#e53935;"></span> Task</span>
+          <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:2px;background:#000;"></span> Payment</span>
+          <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:2px;background:#8e24aa;"></span> Enquiry</span>
         </div>
       </div>
     `;
@@ -5565,14 +6788,160 @@
     });
   }
 
+  var _currentModalTaskId = null;
+
   function openTaskDetailModal(event, taskId) {
     if (event) event.stopPropagation();
+    hideGlobalTooltip();
     const tId = taskId.replace('task-', '');
     const t = tasks.find(x => x.id === taskId || x.id === tId || x.id === `task-${tId}`);
-    if (t) {
-      alert(`Task details:\n\nType: ${t.task_type}\nDetails: ${t.details}\nAssigned to: ${t.assigned_to || 'None'}\nPhone: ${t.phone || 'None'}\nStatus: ${t.completed ? 'Completed' : 'Pending'}`);
+    if (!t) return;
+    _currentModalTaskId = t.id.replace('task-', '');
+
+    const overlay = document.getElementById('taskModalOverlay');
+    const modal = document.getElementById('taskModal');
+    const topBar = document.getElementById('taskModalTopBar');
+    const badge = document.getElementById('taskModalBadge');
+    const icon = document.getElementById('taskModalIcon');
+    const typeLabel = document.getElementById('taskModalType');
+    const statusEl = document.getElementById('taskModalStatus');
+    const detailsEl = document.getElementById('taskModalDetails');
+    const detailsAccent = document.getElementById('taskModalDetailsAccent');
+    const propertyEl = document.getElementById('taskModalProperty');
+    const dateEl = document.getElementById('taskModalDate');
+    const assignedEl = document.getElementById('taskModalAssigned');
+    const phoneEl = document.getElementById('taskModalPhone');
+    const timeRow = document.getElementById('taskModalTimeRow');
+    const timeEl = document.getElementById('taskModalTime');
+    const closeBtn = document.getElementById('taskModalCloseBtn');
+    const toggleBtn = document.getElementById('taskModalToggleBtn');
+
+    const taskTypeColors = { 'cleaning': '#10b981', 'maintenance': '#f59e0b', 'payment': '#3b82f6', 'other': '#8b5cf6' };
+    const taskTypeDarkColors = { 'cleaning': '#047857', 'maintenance': '#d97706', 'payment': '#1d4ed8', 'other': '#6d28d9' };
+    const taskIcons = {
+      'cleaning': "{% static 'img/task/type/cleaning.svg' %}",
+      'maintenance': "{% static 'img/task/type/maintenance.svg' %}",
+      'payment': "{% static 'img/task/type/payment.svg' %}",
+      'other': "{% static 'img/task/type/others.svg' %}"
+    };
+
+    const type = t.task_type || 'other';
+    const color = taskTypeColors[type] || '#6b7280';
+    const darkColor = taskTypeDarkColors[type] || '#4b5563';
+    const iconUrl = taskIcons[type] || taskIcons['other'];
+    const prop = properties.find(p => String(p.id) === String(t.propertyId));
+    const propName = prop ? prop.title : '-';
+    const dateStr = t.date ? new Date(t.date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }) : '-';
+    const isCompleted = t.completed;
+
+    topBar.style.background = `linear-gradient(90deg, ${color}, ${darkColor})`;
+    modal.classList.toggle('payment-mode', type === 'payment');
+    badge.style.background = `linear-gradient(135deg, ${color}, ${darkColor})`;
+    icon.src = iconUrl;
+    icon.alt = type;
+    typeLabel.textContent = type;
+    statusEl.textContent = isCompleted ? 'Completed' : 'Pending';
+    statusEl.className = 'task-modal-status' + (isCompleted ? ' completed' : '');
+    detailsAccent.style.backgroundColor = color;
+    detailsEl.textContent = t.details || 'No details provided';
+    propertyEl.textContent = propName;
+    dateEl.textContent = dateStr;
+    assignedEl.textContent = t.assigned_to || 'Not assigned';
+    phoneEl.textContent = t.phone || '-';
+
+    closeBtn.style.background = `linear-gradient(135deg, ${color}, ${darkColor})`;
+
+    toggleBtn.textContent = isCompleted ? 'Mark Pending' : 'Mark Complete';
+    toggleBtn.style.background = `linear-gradient(135deg, ${color}, ${darkColor})`;
+
+    if (t.time || t.start_time) {
+      timeRow.style.display = 'flex';
+      const timeStr = t.time
+        ? new Date('2000-01-01T' + t.time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+        : (t.start_time ? t.start_time.substring(0, 5) + (t.end_time ? ' - ' + t.end_time.substring(0, 5) : '') : '');
+      timeEl.textContent = timeStr;
+    } else {
+      timeRow.style.display = 'none';
     }
+
+    overlay.classList.add('open');
   }
+
+  function closeTaskDetailModal(event) {
+    if (event && event.target !== event.currentTarget) return;
+    const overlay = document.getElementById('taskModalOverlay');
+    overlay.classList.remove('open');
+  }
+
+  function openPaymentDetailModal(event, bookingId, dateStr) {
+    if (event) event.stopPropagation();
+    hideGlobalTooltip();
+    const b = bookings.find(x => x.id == bookingId);
+    if (!b || !b.paymentsInfo || !b.paymentsInfo[dateStr]) return;
+
+    const info = b.paymentsInfo[dateStr];
+    const overlay = document.getElementById('paymentModalOverlay');
+    const modal = document.getElementById('paymentModal');
+
+    const displayEndDate = new Date(b.endDate);
+    displayEndDate.setDate(displayEndDate.getDate() - 1);
+    const nights = Math.ceil((displayEndDate - b.startDate) / (1000 * 60 * 60 * 24));
+    const [y, m, d] = dateStr.split('-');
+    const dateObj = new Date(y, m - 1, d);
+    const formattedDate = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    const statusText = info.is_paid ? 'Paid' : 'Unpaid';
+
+    document.getElementById('paymentModalStatus').textContent = statusText;
+    document.getElementById('paymentModalDetails').textContent = `${info.type || 'Payment'} of $${info.amount.toFixed(2)}`;
+    document.getElementById('paymentModalAmount').textContent = `$${info.amount.toFixed(2)}`;
+    document.getElementById('paymentModalDate').textContent = formattedDate;
+    document.getElementById('paymentModalGuest').textContent = b.guestName || '-';
+    document.getElementById('paymentModalBooking').textContent = b.bookingId || '-';
+    document.getElementById('paymentModalStay').textContent = `${fmtDate(b.startDate)} - ${fmtDate(displayEndDate)} (${nights} nights)`;
+
+    overlay.classList.add('open');
+  }
+
+  function closePaymentDetailModal(event) {
+    if (event && event.target !== event.currentTarget) return;
+    const overlay = document.getElementById('paymentModalOverlay');
+    overlay.classList.remove('open');
+  }
+
+  function toggleTaskCompletion() {
+    const taskId = _currentModalTaskId;
+    if (!taskId) return;
+    const t = tasks.find(x => x.id === taskId || x.id === 'task-' + taskId);
+    if (!t) return;
+    const newStatus = !t.completed;
+
+    fetch('/tasks/update-status/' + taskId + '/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': '{{ csrf_token }}'
+      },
+      body: JSON.stringify({ completed: newStatus })
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        t.completed = newStatus;
+        closeTaskDetailModal();
+        renderActiveView();
+      }
+    })
+    .catch(() => {});
+  }
+
+  document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+      const overlay = document.getElementById('taskModalOverlay');
+      if (overlay && overlay.classList.contains('open')) {
+        overlay.classList.remove('open');
+      }
+    }
+  });
 
   /* --- Enquiry Side Panel Handler --- */
   function openEnquiryPanel(event, enquiryId) {
@@ -5950,6 +7319,19 @@
           this.classList.add('active');
           viewDropdownBtn.firstChild.textContent = this.textContent.trim();
           currentViewMode = this.dataset.view;
+          // Reset date navigation to today/this week for the selected view
+          const today = new Date();
+          const dayOfWeek = today.getDay();
+          const sunday = new Date(today);
+          sunday.setDate(today.getDate() - dayOfWeek);
+          if (currentViewMode === 'week') {
+            selectedWeekStart = sunday;
+            currentDisplayDate = new Date(sunday);
+          } else {
+            currentDisplayDate = new Date(today.getFullYear(), today.getMonth(), 1);
+            selectedWeekStart = sunday;
+            selectedDateKey = toISODateString(today);
+          }
           refreshView();
         });
       });

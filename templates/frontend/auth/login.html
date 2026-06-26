@@ -10,7 +10,10 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'css/login.css' %}">
-    {% if firebase_configured %}
+    {% if google_configured %}
+    <!-- Google Identity Services — reliable "Continue with Google" (incl. iOS) -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    {% elif firebase_configured %}
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js">
     </script>
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js">
@@ -191,10 +194,18 @@
                     {% csrf_token %}
                     <input type="hidden" name="next" value="{{ request.GET.next }}">
 
-                    <button type="button" class="google-btn" id="googleSignInBtn"{% if not firebase_configured %} disabled{% endif %}>
-                        <span class="google-g">G</span>
-                        Continue with Google
-                    </button>
+                    <div id="googleBtnWrap" style="position:relative;">
+                        <button type="button" class="google-btn" id="googleSignInBtn"{% if not google_configured and not firebase_configured %} disabled{% endif %}>
+                            <span class="google-g">G</span>
+                            Continue with Google
+                        </button>
+                        {% if google_configured %}
+                        <!-- Real Google button, transparent, overlaid on the custom one -->
+                        <div id="gsiOverlay"
+                            style="position:absolute; top:0; left:0; width:100%; height:100%; opacity:0; overflow:hidden;">
+                        </div>
+                        {% endif %}
+                    </div>
 
                     <div class="divider">or Sign in with Email</div>
 
@@ -480,8 +491,66 @@
             }).catch(() => { });
         });
 
-        // ── Firebase Google Sign-In ──────────────────────────────────
-        {% if firebase_configured %}
+        // ── Google Identity Services Sign-In (iOS-safe) ──────────────
+        {% if google_configured %}
+        (function () {
+            function handleGoogleCredential(response) {
+                if (!response || !response.credential) {
+                    alert("Google sign-in failed: no credential returned.");
+                    return;
+                }
+                var csrf = document.querySelector('[name=csrfmiddlewaretoken]').value;
+                fetch("{% url 'google_auth' %}", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json", "X-CSRFToken": csrf },
+                    body: JSON.stringify({ credential: response.credential })
+                })
+                    .then(function (res) {
+                        if (!res.ok) {
+                            return res.json().then(function (d) { throw new Error(d.error || "Server error"); });
+                        }
+                        return res.json();
+                    })
+                    .then(function (data) {
+                        if (data.success) { window.location.href = data.redirect; }
+                        else { alert("Google sign-in failed: " + (data.error || "Unknown error")); }
+                    })
+                    .catch(function (err) {
+                        console.error("Google auth error:", err);
+                        alert("Google sign-in failed: " + (err.message || "Please try again."));
+                    });
+            }
+
+            function initGoogle() {
+                if (!window.google || !google.accounts || !google.accounts.id) {
+                    return setTimeout(initGoogle, 200); // GIS script still loading
+                }
+                google.accounts.id.initialize({
+                    client_id: "{{ google_client_id }}",
+                    callback: handleGoogleCredential,
+                    ux_mode: "popup"
+                });
+                var wrap = document.getElementById("googleBtnWrap");
+                var overlay = document.getElementById("gsiOverlay");
+                if (overlay && wrap) {
+                    var w = Math.min(Math.round(wrap.offsetWidth) || 320, 400);
+                    google.accounts.id.renderButton(overlay, {
+                        theme: "outline", size: "large", type: "standard",
+                        text: "continue_with", width: w
+                    });
+                }
+                // Fallback: clicking the visual button triggers Google One Tap.
+                var btn = document.getElementById("googleSignInBtn");
+                if (btn) {
+                    btn.addEventListener("click", function () {
+                        try { google.accounts.id.prompt(); } catch (e) { }
+                    });
+                }
+            }
+            window.addEventListener("load", initGoogle);
+        })();
+        {% elif firebase_configured %}
+        // ── Fallback: Firebase Google Sign-In (used until GIS is configured) ──
         (function () {
             var firebaseConfig = {
                 apiKey: "{{ firebase_api_key }}",

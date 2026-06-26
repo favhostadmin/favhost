@@ -1,5 +1,6 @@
 {% extends 'frontend/base/base.html' %}
 {% load static %}
+{% load currency_tags %}
 
 {% block extra_head %}
 <link href="{% static 'css/property/details.css' %}" rel="stylesheet">
@@ -138,6 +139,9 @@
 {% block header %}{% endblock header %}
 
 {% block content %}
+<div style="position:fixed;top:14px;right:14px;z-index:1050;">
+  {% include 'frontend/public_host_website/_currency_switcher.html' %}
+</div>
 <div class="rb-wrapper">
     <div class="rb-mobile-header" id="rbMobileHeader">
         <div class="banner-head">
@@ -281,7 +285,7 @@
                 <div>
                     <div class="rb-summary-title" style="font-size:19px;">{{ property.title }}</div>
                     <div class="rb-summary-meta" style="margin-bottom:6px;">{{ property.city }}, {{ property.state }}</div>
-                    <div class="rb-summary-meta" style="font-weight:600; color:#111;">${{ property.price_per_night|floatformat:0 }} night&nbsp; |&nbsp; {{ property.guest }} Guests (max)&nbsp; |&nbsp; {{ property.minimum_booking }} nights (min)</div>
+                    <div class="rb-summary-meta" style="font-weight:600; color:#111;">{% money property.price_per_night %} night&nbsp; |&nbsp; {{ property.guest }} Guests (max)&nbsp; |&nbsp; {{ property.minimum_booking }} nights (min)</div>
                 </div>
             </div>
 
@@ -307,24 +311,24 @@
                 </div>
                 <div class="rb-summary-costs">
                     <div class="rb-cost-row">
-                        <span id="cost-stay-label">${{ property.price_per_night|floatformat:2 }} x 0 nights</span>
-                        <strong id="cost-stay-total">$0.00</strong>
+                        <span id="cost-stay-label">{% money property.price_per_night %} x 0 nights</span>
+                        <strong id="cost-stay-total">{{ currency_symbol }}0.00</strong>
                     </div>
                     <div class="rb-cost-row">
                         <span>Cleaning fee</span>
-                        <strong>${{ property.cleaning_fee|default:0|floatformat:2 }}</strong>
+                        <strong>{% money property.cleaning_fee %}</strong>
                     </div>
                     <div class="rb-cost-row">
                         <span>Application fee</span>
-                        <strong>${{ property.application_fees|default:0|floatformat:2 }}</strong>
+                        <strong>{% money property.application_fees %}</strong>
                     </div>
                     <div class="rb-cost-row">
                         <span>Refundable deposit</span>
-                        <strong>${{ property.refundable_deposit|default:0|floatformat:2 }}</strong>
+                        <strong>{% money property.refundable_deposit %}</strong>
                     </div>
                     <div class="rb-cost-row" style="border-top:1px solid var(--border); padding-top:10px; margin-top:6px; font-weight:800;">
                         <span>Total due before check-in</span>
-                        <span id="cost-total-due">$0.00</span>
+                        <span id="cost-total-due">{{ currency_symbol }}0.00</span>
                     </div>
                     <div class="rb-footnote" style="margin-top:12px; display:flex; gap:6px; align-items:flex-start;">
                         <span style="font-size:14px;">ⓘ</span>
@@ -588,10 +592,10 @@
             if (adultInput) adultInput.value = guestsVal;
 
             // Financial calculations
-            const pNight = parseFloat("{{ property.price_per_night|default:0 }}");
-            const cFee = parseFloat("{{ property.cleaning_fee|default:0 }}");
-            const aFee = parseFloat("{{ property.application_fees|default:0 }}");
-            const dFee = parseFloat("{{ property.refundable_deposit|default:0 }}");
+            const pNight = parseFloat("{% money_raw property.price_per_night %}");
+            const cFee = parseFloat("{% money_raw property.cleaning_fee %}");
+            const aFee = parseFloat("{% money_raw property.application_fees %}");
+            const dFee = parseFloat("{% money_raw property.refundable_deposit %}");
 
             const stayTotal = pNight * nights;
             const totalDue = stayTotal + cFee + aFee + dFee;
@@ -600,9 +604,9 @@
             const stayTotalEl = document.getElementById('cost-stay-total');
             const totalDueEl = document.getElementById('cost-total-due');
 
-            if (stayLabel) stayLabel.textContent = `$${pNight.toFixed(2)} x ${nights} night${nights !== 1 ? 's' : ''}`;
-            if (stayTotalEl) stayTotalEl.textContent = `$${stayTotal.toFixed(2)}`;
-            if (totalDueEl) totalDueEl.textContent = `$${totalDue.toFixed(2)}`;
+            if (stayLabel) stayLabel.textContent = `{{ currency_symbol }}${pNight.toFixed(2)} x ${nights} night${nights !== 1 ? 's' : ''}`;
+            if (stayTotalEl) stayTotalEl.textContent = `{{ currency_symbol }}${stayTotal.toFixed(2)}`;
+            if (totalDueEl) totalDueEl.textContent = `{{ currency_symbol }}${totalDue.toFixed(2)}`;
         }
 
         const form = document.getElementById('rb-form');

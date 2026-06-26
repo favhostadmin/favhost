@@ -82,8 +82,9 @@
                     <div>
                         <div class="plan-name">{{ plan.name }}</div>
                         <div class="plan-amount">
-                            ${{ plan.amount|floatformat:2 }}<span class="plan-interval"> /{{ plan.interval_label }}</span>
+                            {{ plan.amount_display }}<span class="plan-interval"> /{{ plan.interval_label }}</span>
                         </div>
+                        <div style="font-size:11px;color:#888;margin-top:2px;">Billed in {{ plan.currency|default:'USD' }} — your card is charged this exact amount.</div>
                     </div>
                     {% if plan.status == 'active' and not plan.cancel_at_period_end %}
                     <span class="status-badge-active">Active</span>
@@ -123,10 +124,18 @@
                     {% endif %}
                 </div>
 
+                {% if plan.status == 'canceled' %}
+                <form method="post" action="{% url 'billing:create_checkout_session' %}" style="margin:0;">
+                    {% csrf_token %}
+                    <input type="hidden" name="prefer_checkout" value="1">
+                    <button type="submit" class="btn-billing-dark">Resubscribe</button>
+                </form>
+                {% else %}
                 <form method="post" action="{% url 'billing:customer_portal' %}" style="margin:0;">
                     {% csrf_token %}
                     <button type="submit" class="btn-billing-dark">Manage / Cancel Subscription</button>
                 </form>
+                {% endif %}
             </div>
         </div>
 
@@ -188,7 +197,7 @@
                         <td style="font-family:monospace; font-size:11px; color:#9ca3af;">{{ inv.number }}</td>
                         <td>{{ inv.description }}</td>
                         <td style="text-align:right; font-weight:600; color:#111827; white-space:nowrap;">
-                            ${{ inv.amount|floatformat:2 }} {{ inv.currency }}
+                            {{ inv.amount_display }}
                         </td>
                         <td style="text-align:center;">
                             {% if inv.status == 'paid' %}<span class="inv-paid">Paid</span>
