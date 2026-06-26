@@ -85,6 +85,7 @@ INSTALLED_APPS = [
     'global',
     'billing',
     'printpanel',
+    'frontdesk',
 
 
 ]

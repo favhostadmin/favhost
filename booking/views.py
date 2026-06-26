@@ -4,7 +4,7 @@ import re
 from django.core.files import File
 from django.views.generic import ListView, View
 from .models import *
-from property.models import Property
+from property.models import Property, PropertyBlockDate
 from django.urls import reverse_lazy
 from django.db import transaction
 from django.contrib import messages
@@ -264,20 +264,31 @@ class BookingCreateView(LoginRequiredMixin, View):
             check_in_date = datetime.strptime(check_in_str, '%Y-%m-%d').date()
             check_out_date = datetime.strptime(check_out_str, '%Y-%m-%d').date()
 
-            # Check for conflicting confirmed bookings
-            is_booked = Booking.objects.filter(
-                property_id=property_id,
-                status='confirmed',
-                check_in_date__lt=check_out_date,
-                check_out_date__gt=check_in_date
-            ).exists()
-
-            if is_booked:
-                messages.error(request, "The selected property is already booked for these dates. Please choose different dates or another property.")
-                return redirect(request.META.get('HTTP_REFERER', reverse_lazy('booking:booking-create')))
-            
-
             with transaction.atomic():
+                # Lock the property row to serialize booking creation for this property
+                Property.objects.select_for_update().get(pk=property_id)
+
+                # Check for conflicting confirmed bookings
+                is_booked = Booking.objects.filter(
+                    property_id=property_id,
+                    status='confirmed',
+                    check_in_date__lt=check_out_date,
+                    check_out_date__gt=check_in_date
+                ).exists()
+
+                if is_booked:
+                    raise Exception("The selected property is already booked for these dates. Please choose different dates or another property.")
+
+                # Check for blocked dates
+                is_blocked = PropertyBlockDate.objects.filter(
+                    property_id=property_id,
+                    is_active=True,
+                    start_date__lt=check_out_date,
+                    end_date__gt=check_in_date
+                ).exists()
+
+                if is_blocked:
+                    raise Exception("The selected property is blocked for these dates. Please choose different dates or another property.")
                 booking = Booking.objects.create(
                     first_name=request.POST.get('first_name'),
                     last_name=request.POST.get('last_name'),
@@ -418,20 +429,32 @@ class BookingUpdateView(LoginRequiredMixin, View):
         check_in_date = datetime.strptime(check_in_str, '%Y-%m-%d').date()
         check_out_date = datetime.strptime(check_out_str, '%Y-%m-%d').date()
 
-        # Check for conflicting confirmed bookings, excluding the current one
-        is_booked = Booking.objects.filter(
-            property_id=property_id,
-            status='confirmed',
-            check_in_date__lt=check_out_date,
-            check_out_date__gt=check_in_date
-        ).exclude(pk=booking.pk).exists()
-
-        if is_booked:
-            messages.error(request, "The selected property is already booked for these dates. Please choose different dates or another property.")
-            return redirect(request.META.get('HTTP_REFERER', reverse_lazy('booking:booking-edit', kwargs={'pk': booking.pk})))
-
         try:
             with transaction.atomic():
+                # Lock the property row to serialize booking updates for this property
+                Property.objects.select_for_update().get(pk=property_id)
+
+                # Check for conflicting confirmed bookings, excluding the current one
+                is_booked = Booking.objects.filter(
+                    property_id=property_id,
+                    status='confirmed',
+                    check_in_date__lt=check_out_date,
+                    check_out_date__gt=check_in_date
+                ).exclude(pk=booking.pk).exists()
+
+                if is_booked:
+                    raise Exception("The selected property is already booked for these dates. Please choose different dates or another property.")
+
+                # Check for blocked dates
+                is_blocked = PropertyBlockDate.objects.filter(
+                    property_id=property_id,
+                    is_active=True,
+                    start_date__lt=check_out_date,
+                    end_date__gt=check_in_date
+                ).exists()
+
+                if is_blocked:
+                    raise Exception("The selected property is blocked for these dates. Please choose different dates or another property.")
                 old_check_in_date = booking.check_in_date
                 old_check_out_date = booking.check_out_date
 
