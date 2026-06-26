@@ -1,4 +1,5 @@
 {% load static %}
+{% load currency_tags %}
 {% if not is_modal %}
 <!DOCTYPE html>
 <html lang="en">
@@ -577,34 +578,34 @@
 
             <div class="payment-table">
                 <div class="payment-row">
-                    <span>${{ booking.price_per_night|floatformat:2 }} x {{ nights }} nights</span>
-                    <span class="amount">${{ booking.price|floatformat:2 }}</span>
+                    <span>{% money booking.price_per_night %} x {{ nights }} nights</span>
+                    <span class="amount">{% money booking.price %}</span>
                 </div>
 
                 {% if booking.cleaning_fee > 0 %}
                 <div class="payment-row">
                     <span>Cleaning fee</span>
-                    <span class="amount">${{ booking.cleaning_fee|floatformat:2 }}</span>
+                    <span class="amount">{% money booking.cleaning_fee %}</span>
                 </div>
                 {% endif %}
 
                 {% if booking.deposit_fee > 0 %}
                 <div class="payment-row">
                     <span>Refundable deposit</span>
-                    <span class="amount">${{ booking.deposit_fee|floatformat:2 }}</span>
+                    <span class="amount">{% money booking.deposit_fee %}</span>
                 </div>
                 {% endif %}
 
                 {% if booking.application_fee > 0 %}
                 <div class="payment-row">
                     <span>Application fee</span>
-                    <span class="amount">${{ booking.application_fee|floatformat:2 }}</span>
+                    <span class="amount">{% money booking.application_fee %}</span>
                 </div>
                 {% endif %}
 
                 <div class="payment-row payment-total">
                     <span>Total</span>
-                    <span class="amount">${{ booking.price|add:booking.cleaning_fee|add:booking.deposit_fee|add:booking.application_fee|floatformat:2 }}</span>
+                    <span class="amount">{% with rcpt_total=booking.price|add:booking.cleaning_fee|add:booking.deposit_fee|add:booking.application_fee %}{% money rcpt_total %}{% endwith %}</span>
                 </div>
             </div>
 

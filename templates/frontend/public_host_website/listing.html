@@ -1,5 +1,6 @@
 
 {% load static %}
+{% load currency_tags %}
 
 <!DOCTYPE html>
 <html lang="en">
@@ -192,6 +193,7 @@
         </div>
 
         <div class="mobile-header-actions">
+          {% include 'frontend/public_host_website/_currency_switcher.html' %}
           {% if host.profile_picture_url %}
             <img class="hero-avatar host-avatar-trigger" src="{{ host.profile_picture_url }}" alt="Host avatar">
           {% else %}
@@ -307,11 +309,11 @@
                   <!-- <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg> -->
                    <img src="{% static 'img/property/min_nights.svg' %}" style="width:15px;height:auto;">
                   {{ num_nights }} night{{ num_nights|pluralize }}
-                  <strong>$<span class="js-total" data-price="{{ property.price_per_night }}" data-nights="{{ num_nights }}" data-cleaning="{{ property.cleaning_fee|default:0 }}" data-appfee="{{ property.application_fees|default:0 }}" data-deposit="{{ property.refundable_deposit|default:0 }}"></span></strong>
+                  <strong>{{ currency_symbol }}<span class="js-total" data-price="{% money_raw property.price_per_night %}" data-nights="{{ num_nights }}" data-cleaning="{% money_raw property.cleaning_fee %}" data-appfee="{% money_raw property.application_fees %}" data-deposit="{% money_raw property.refundable_deposit %}"></span></strong>
                 </span>
               </div>
               {% else %}
-              <p class="card-sub-title">${{ property.price_per_night|floatformat:2 }} / night</p>
+              <p class="card-sub-title">{% money property.price_per_night %} / night</p>
               {% endif %}
             </div>
           </a>
