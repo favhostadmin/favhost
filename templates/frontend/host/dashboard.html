@@ -1,6 +1,5 @@
 {% extends 'frontend/base/base.html' %}
 {% load static %}
-{% load currency_tags %}
 
 {% block extra_head %}
     <link href="{% static 'css/host_dashboard.css' %}" rel="stylesheet">
@@ -9,23 +8,21 @@
         @media (max-width: 991.98px) {
             .header_logo { content: url("{% static 'img/dashboard/dashboard_icon.png' %}"); }
         }
-    }
-</style>
+    </style>
 {% endblock extra_head %}
 
 
 {% block content %}
 <div class="container-fluid p-0">
-    <!-- Header Navigation -->
+     <!-- Header Navigation -->
     <div class="header-nav" style="padding: 8px 32px;">
         <div class="row align-items-center justify-content-between w-100 g-3">
-
+    
             <!-- Left: Dashboard title -->
             <div class="col-6 col-md-auto">
                 <div class="nav-left d-flex align-items-center">
                     <div class="nav-title d-flex align-items-center gap-2">
-                        <img src="{% static 'img/dashboard/dashboard_icon_white.svg' %}" style="filter: brightness(0);"
-                            class="header_logo" alt="Dashboard">
+                        <img src="{% static 'img/dashboard/dashboard_icon_white.svg' %}" style="filter: brightness(0);" class="header_logo" alt="Dashboard">
                         <span class="header_title">Dashboard</span>
                     </div>
                 </div>
@@ -94,8 +91,7 @@
 
                 <div class="row mt-3 gx-3 inquiries_mobile_view">
                     <div class="col-12 d-flex flex-fill">
-                        <div class="inquiries-section flex-fill d-flex flex-column laptop-padded-section"
-                            style="height: 400px;">
+                        <div class="inquiries-section flex-fill d-flex flex-column laptop-padded-section" style="height: 400px;">
                             <div class="section-header">
                                 <h2 class="section-title" style="font-size: 20px;">New Inquiries</h2>
                                 <a href="{% url 'booking:enquiry-list' %}?status=new" class="view-all">View all →</a>
@@ -130,8 +126,7 @@
                                                 </button>
                                                 <ul class="dropdown-menu dropdown-menu-end dropdown-menu-right">
                                                     <li>
-                                                        <a class="dropdown-item"
-                                                            href="{% url 'booking:enquiry-detail' unique_id=inquiry.unique_id %}">
+                                                        <a class="dropdown-item" href="{% url 'booking:enquiry-detail' unique_id=inquiry.unique_id %}">
                                                             <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
                                                                 <path d="M2 8C3.3 5.7 5.3 4.5 8 4.5C10.7 4.5 12.7 5.7 14 8C12.7 10.3 10.7 11.5 8 11.5C5.3 11.5 3.3 10.3 2 8Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
                                                                 <circle cx="8" cy="8" r="1.75" stroke="currentColor" stroke-width="1.5"/>
@@ -141,11 +136,8 @@
                                                     </li>
                                                     {% if inquiry.is_available and not inquiry.is_booked %}
                                                     <li>
-                                                        <a class="dropdown-item"
-                                                            href="{% url 'booking:booking-create' %}?enquiry_id={{ inquiry.unique_id }}">
-                                                            <img class="create-menu-icon"
-                                                                src="{% static 'img/header/hotel-room.png' %}"
-                                                                alt="Reservation">
+                                                        <a class="dropdown-item" href="{% url 'booking:booking-create' %}?enquiry_id={{ inquiry.unique_id }}">
+                                                            <img class="create-menu-icon" src="{% static 'img/header/hotel-room.png' %}" alt="Reservation">
                                                             Create Reservation
                                                         </a>
                                                     </li>
@@ -169,9 +161,9 @@
                                         </div>
                                     </div>
                                 </div>
-                                {% empty %}
+                            {% empty %}
                                 <p>No new inquiries available.</p>
-                                {% endfor %}
+                            {% endfor %}
                             </div>
                         </div>
                     </div>
@@ -191,8 +183,7 @@
                     </div>
 
                     <div class="position-relative flex-fill upcoming-container-wrapper">
-                        <div class="position-absolute w-100 h-100 upcoming-scroll-content"
-                            style="overflow-y: auto; overflow-x: hidden; top: 0; left: 0; padding-right: 8px;">
+                        <div class="position-absolute w-100 h-100 upcoming-scroll-content" style="overflow-y: auto; overflow-x: hidden; top: 0; left: 0; padding-right: 8px;">
                             {% if upcoming_groups %}
                                     {% for group in upcoming_groups %}
                                         <div class="upcoming-item">
@@ -262,42 +253,17 @@
                                                 {% endfor %}
                                             </div>
                                         </div>
-                                        <div class="entry-right">
-                                            <div class="guest-avatar-wrap">
-                                                <img src="{{ item.avatar }}" class="user-avatar" alt="Guest">
-                                                <div class="guest-tooltip">
-                                                    <div class="tooltip-name">{{ item.guest_name }}</div>
-                                                    {% if item.guest_phone %}
-                                                    <div class="tooltip-line">{{ item.guest_phone }}</div>
-                                                    {% endif %}
-                                                    {% if item.guest_email %}
-                                                    <div class="tooltip-line">{{ item.guest_email }}</div>
-                                                    {% endif %}
-                                                    {% if item.stay %}
-                                                    <div class="tooltip-line">{{ item.stay }}</div>
-                                                    {% endif %}
-                                                    {% if item.channel_name %}
-                                                    <div class="tooltip-line">{{ item.channel_name }}</div>
-                                                    {% endif %}
-                                                </div>
+                                    {% endfor %}
+                                {% else %}
+                                    <div class="upcoming-item">
+                                        <div class="upcoming-date">
+                                            <div class="left">
+                                                <img src="{% static 'img/dashboard/upcoming_event_calender.png' %}"/>
+                                                No upcoming events
                                             </div>
-                                            <div class="user-name" data-full="{{ item.guest_name }}">{{ item.guest_name|truncatewords:2 }}</div>
+                                            <div class="due-badge upcoming">This month</div>
                                         </div>
                                     </div>
-                                    {% endfor %}
-                                </div>
-                            </div>
-                            {% endfor %}
-                            {% else %}
-                            <div class="upcoming-item">
-                                <div class="upcoming-date">
-                                    <div class="left">
-                                        <img src="{% static 'img/dashboard/upcoming_event_calender.png' %}" />
-                                        No upcoming events
-                                    </div>
-                                    <div class="due-badge upcoming">This month</div>
-                                </div>
-                            </div>
                             {% endif %}
                         </div>
                     </div>
@@ -316,7 +282,6 @@
                                     height: auto !important;
                                     display: block !important;
                                 }
-
                                 .monthly-avg-chart-mobile-revert {
                                     flex: none !important;
                                     height: 180px !important;
@@ -339,23 +304,13 @@
                             </div>
 
                             <!-- Chart -->
-                            <div class="chart monthly-avg-chart-mobile-revert" id="earnings-chart"
-                                style="flex: 1; height: 100%; min-height: 180px;"></div>
+                            <div class="chart monthly-avg-chart-mobile-revert" id="earnings-chart" style="flex: 1; height: 100%; min-height: 180px;"></div>
 
                             <!-- Month Labels -->
                             <div class="chart-labels d-flex justify-content-between">
-                                <div>Jan</div>
-                                <div>Feb</div>
-                                <div>Mar</div>
-                                <div>Apr</div>
-                                <div>May</div>
-                                <div>Jun</div>
-                                <div>Jul</div>
-                                <div>Aug</div>
-                                <div>Sep</div>
-                                <div>Oct</div>
-                                <div>Nov</div>
-                                <div>Dec</div>
+                            <div>Jan</div><div>Feb</div><div>Mar</div><div>Apr</div>
+                            <div>May</div><div>Jun</div><div>Jul</div><div>Aug</div>
+                            <div>Sep</div><div>Oct</div><div>Nov</div><div>Dec</div>
                             </div>
                         </div>
                     </div>
@@ -373,26 +328,20 @@
                         {% for booking in recent_bookings %}
                         <div class="inquiry-item align-items-center mb-3">
                             <div class="inquiry-image">
-                                <img src="{{ booking.property.get_primary_image_url }}"
-                                    onerror="this.src='https://placehold.co/100x100?text=Room'"
-                                    style="width:100%; height: 100%; border-radius: 10px; object-fit: cover;" />
+                                <img src="{{ booking.property.get_primary_image_url }}" onerror="this.src='https://placehold.co/100x100?text=Room'" style="width:100%; height: 100%; border-radius: 10px; object-fit: cover;"/>
                             </div>
                             <!-- Mobile Layout -->
                             <div class="inquiry-details d-lg-none" style="flex: 1;">
                                 <div class="inquiry-dates d-flex justify-content-between">
                                     <span>{{ booking.check_in_date|date:"M j, Y" }} - {{ booking.check_out_date|date:"M j, Y" }} ({{ booking.total_nights }} night{{ booking.total_nights|pluralize }})</span>
-                                    <span>Booked On <span
-                                            style="font-weight:800; font-size: 16px; margin-right: 8px;">{{ booking.created_at|date:"M j, Y" }}</span></span>
+                                    <span>Booked On <span style="font-weight:800; font-size: 16px; margin-right: 8px;">{{ booking.created_at|date:"M j, Y" }}</span></span>
                                 </div>
                                 <div class="inquiry-room d-flex justify-content-between align-items-center">
                                     <span>{{ booking.property.title }}</span>
                                     <div class="dropdown ms-3">
                                         <a href="{% url 'booking:booking-edit' pk=booking.id %}" style="color: #000;">
-                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
-                                                stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                                                stroke-linejoin="round">
-                                                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6">
-                                                </path>
+                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
                                                 <polyline points="15 3 21 3 21 9"></polyline>
                                                 <line x1="10" y1="14" x2="21" y2="3"></line>
                                             </svg>
@@ -401,8 +350,7 @@
                                 </div>
                                 <div class="inquiry-guest d-flex align-items-center mt-1">
                                     {% if booking.channel and booking.channel.icon %}
-                                    <img src="{{ booking.channel.icon.url }}" onerror="this.style.display='none'"
-                                        style="width: 20px; height: 20px; margin-right: 8px; border-radius: 50%;">
+                                    <img src="{{ booking.channel.icon.url }}" onerror="this.style.display='none'" style="width: 20px; height: 20px; margin-right: 8px; border-radius: 50%;">
                                     {% endif %}
                                     <span>{{ booking.channel.name|default:"Direct"|title }}</span>
                                 </div>
@@ -411,13 +359,9 @@
                             <!-- Desktop Layout -->
                             <div class="inquiry-details d-none d-lg-block" style="flex: 1; padding-left: 12px;">
                                 <div class="d-flex justify-content-between align-items-start mb-1">
-                                    <span style="font-weight: 700; font-size: 15px;">{{ booking.check_in_date|date:"M j, Y" }} - {{ booking.check_out_date|date:"M j, Y" }} ({{ booking.total_nights }}
-                                        night{{ booking.total_nights|pluralize }})</span>
-                                    <a href="{% url 'booking:booking-edit' pk=booking.id %}"
-                                        style="color: #000; flex-shrink: 0; margin-left: 10px;">
-                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
-                                            stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                                            stroke-linejoin="round">
+                                    <span style="font-weight: 700; font-size: 15px;">{{ booking.check_in_date|date:"M j, Y" }} - {{ booking.check_out_date|date:"M j, Y" }} ({{ booking.total_nights }} night{{ booking.total_nights|pluralize }})</span>
+                                    <a href="{% url 'booking:booking-edit' pk=booking.id %}" style="color: #000; flex-shrink: 0; margin-left: 10px;">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                             <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
                                             <polyline points="15 3 21 3 21 9"></polyline>
                                             <line x1="10" y1="14" x2="21" y2="3"></line>
@@ -430,8 +374,7 @@
                                 <div class="d-flex justify-content-between align-items-center mt-2">
                                     <div class="d-flex align-items-center">
                                         {% if booking.channel and booking.channel.icon %}
-                                        <img src="{{ booking.channel.icon.url }}" onerror="this.style.display='none'"
-                                            style="width: 20px; height: 20px; margin-right: 6px; border-radius: 50%;">
+                                        <img src="{{ booking.channel.icon.url }}" onerror="this.style.display='none'" style="width: 20px; height: 20px; margin-right: 6px; border-radius: 50%;">
                                         {% endif %}
                                         <span style="font-weight: 600; font-size: 15px;">{{ booking.channel.name|default:"Direct"|title }}</span>
                                     </div>
@@ -440,8 +383,7 @@
                             </div>
                         </div>
                         {% empty %}
-                        <p class="text-muted text-center py-4" style="font-size: 14px;">No recent bookings in the last 7
-                            days</p>
+                        <p class="text-muted text-center py-4" style="font-size: 14px;">No recent bookings in the last 7 days</p>
                         {% endfor %}
                     </div>
                 </div>
@@ -474,70 +416,70 @@
 
 {% include 'frontend/common/confirmation_modal.html' with modal_id="archiveEnquiryModal" title="Confirm Archive" message="Are you sure you want to archive this enquiry?" form_id="archiveEnquiryForm" confirm_text="Archive" confirm_btn_class="btn-danger" %}
 
-{% endblock content %}
+{% endblock content  %}
 
 
 {% block extra_script %}
-<script src="https://unpkg.com/lucide@latest"></script>
-
-<script>
-    // Archive Enquiry Functionality
-    function getCookie(name) {
-        let cookieValue = null;
-        if (document.cookie && document.cookie !== '') {
-            const cookies = document.cookie.split(';');
-            for (let i = 0; i < cookies.length; i++) {
-                const cookie = cookies[i].trim();
-                if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                    break;
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <script>
+        // Archive Enquiry Functionality
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
                 }
             }
+            return cookieValue;
         }
-        return cookieValue;
-    }
 
-    const csrfToken = getCookie('csrftoken');
-    const archiveModalElement = document.getElementById('archiveEnquiryModal');
-    const archiveForm = document.getElementById('archiveEnquiryForm');
-    const archiveSubmitBtn = archiveForm ? archiveForm.querySelector('button[type="submit"]') : null;
-    const archiveModal = archiveModalElement ? new bootstrap.Modal(archiveModalElement) : null;
-    let pendingArchiveEnquiryId = null;
+        const csrfToken = getCookie('csrftoken');
+        const archiveModalElement = document.getElementById('archiveEnquiryModal');
+        const archiveForm = document.getElementById('archiveEnquiryForm');
+        const archiveSubmitBtn = archiveForm ? archiveForm.querySelector('button[type="submit"]') : null;
+        const archiveModal = archiveModalElement ? new bootstrap.Modal(archiveModalElement) : null;
+        let pendingArchiveEnquiryId = null;
 
-    function bindArchiveButtons(root) {
-        const scope = root || document;
-        scope.querySelectorAll('.enquiry-archive-btn').forEach(button => {
-            if (button.dataset.boundArchiveClick === '1') return;
-            button.dataset.boundArchiveClick = '1';
-            button.addEventListener('click', function (e) {
-                e.preventDefault();
-                const enquiryId = this.dataset.enquiryId;
-                if (!enquiryId || !archiveModal) return;
-                pendingArchiveEnquiryId = enquiryId;
-                archiveModal.show();
+        function bindArchiveButtons(root) {
+            const scope = root || document;
+            scope.querySelectorAll('.enquiry-archive-btn').forEach(button => {
+                if (button.dataset.boundArchiveClick === '1') return;
+                button.dataset.boundArchiveClick = '1';
+                button.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    const enquiryId = this.dataset.enquiryId;
+                    if (!enquiryId || !archiveModal) return;
+                    pendingArchiveEnquiryId = enquiryId;
+                    archiveModal.show();
+                });
             });
-        });
-    }
+        }
 
-    bindArchiveButtons(document);
+        bindArchiveButtons(document);
 
-    if (archiveForm) {
-        archiveForm.addEventListener('submit', function (e) {
-            e.preventDefault();
-            if (!pendingArchiveEnquiryId) return;
+        if (archiveForm) {
+            archiveForm.addEventListener('submit', function (e) {
+                e.preventDefault();
+                if (!pendingArchiveEnquiryId) return;
 
-            if (archiveSubmitBtn) {
-                archiveSubmitBtn.disabled = true;
-                archiveSubmitBtn.textContent = 'Archiving...';
-            }
-
-            fetch(`/booking/enquiry/archive/${pendingArchiveEnquiryId}/`, {
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': csrfToken,
-                    'Content-Type': 'application/json'
+                if (archiveSubmitBtn) {
+                    archiveSubmitBtn.disabled = true;
+                    archiveSubmitBtn.textContent = 'Archiving...';
                 }
-            })
+
+                fetch(`/booking/enquiry/archive/${pendingArchiveEnquiryId}/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': csrfToken,
+                        'Content-Type': 'application/json'
+                    }
+                })
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
@@ -556,45 +498,45 @@
                         archiveSubmitBtn.textContent = 'Archive';
                     }
                 });
-        });
-    }
+            });
+        }
 
-    if (archiveModalElement) {
-        archiveModalElement.addEventListener('hidden.bs.modal', function () {
-            pendingArchiveEnquiryId = null;
-        });
-    }
-</script>
+        if (archiveModalElement) {
+            archiveModalElement.addEventListener('hidden.bs.modal', function () {
+                pendingArchiveEnquiryId = null;
+            });
+        }
+    </script>
 
-<script>
-    // New button functionality
-    const newBtn = document.querySelector('.new-btn');
-    if (newBtn) {
-        newBtn.addEventListener('click', function () {
-            // In a real app, this would open a dropdown menu
-            alert('New menu would open here');
-        });
-    }
+    <script>
+        // New button functionality
+        const newBtn = document.querySelector('.new-btn');
+        if (newBtn) {
+            newBtn.addEventListener('click', function() {
+                // In a real app, this would open a dropdown menu
+                alert('New menu would open here');
+            });
+        }
 
-    // Refresh / Manual Sync functionality
-    const refreshBtn = document.querySelector('.refresh-btn');
-    if (refreshBtn) {
-        refreshBtn.addEventListener('click', function (e) {
-            e.preventDefault();
-            const btn = this;
+        // Refresh / Manual Sync functionality
+        const refreshBtn = document.querySelector('.refresh-btn');
+        if (refreshBtn) {
+            refreshBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                const btn = this;
+                
+                // Visual feedback: Disable button and show loading state
+                btn.innerText = 'Syncing...';
+                btn.style.opacity = '0.7';
+                btn.style.pointerEvents = 'none';
 
-            // Visual feedback: Disable button and show loading state
-            btn.innerText = 'Syncing...';
-            btn.style.opacity = '0.7';
-            btn.style.pointerEvents = 'none';
-
-            fetch('{% url "manual-sync" %}', {
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': '{{ csrf_token }}',
-                    'Content-Type': 'application/json'
-                }
-            })
+                fetch('{% url "manual-sync" %}', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': '{{ csrf_token }}',
+                        'Content-Type': 'application/json'
+                    }
+                })
                 .then(response => response.json())
                 .then(data => {
                     // Reload the page to display updated booking and block information
@@ -604,93 +546,93 @@
                     console.error('Error triggering sync:', error);
                     window.location.reload();
                 });
-        });
-    }
-
-    // Notification click
-    document.querySelector('.notification').addEventListener('click', function () {
-        // In a real app, this would open notifications panel
-        alert('Notifications panel would open here');
-    });
-
-    // Navigation items
-    document.querySelectorAll('.nav-item').forEach(item => {
-        item.addEventListener('click', function (e) {
-            e.preventDefault();
-            document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
-            this.classList.add('active');
-        });
-    });
-
-    // View all link
-    document.querySelector('.view-all').addEventListener('click', function (e) {
-        e.preventDefault();
-        alert('View all inquiries would open here');
-    });
-
-    // Chart animation on load
-    window.addEventListener('load', function () {
-        const bars = document.querySelectorAll('.bar:not(.future)');
-        bars.forEach((bar, index) => {
-            bar.style.transform = 'scaleY(0)';
-            bar.style.transformOrigin = 'bottom';
-            bar.style.transition = `transform 0.5s ease ${index * 0.1}s`;
-
-            setTimeout(() => {
-                bar.style.transform = 'scaleY(1)';
-            }, 100);
-        });
-    });
-
-    // Simulate real-time updates
-    setInterval(function () {
-        const newInquiries = document.querySelector('.stat-card:last-child .stat-number');
-        let current = parseInt(newInquiries.textContent);
-
-        // Randomly update inquiries count
-        if (Math.random() > 0.95) {
-            newInquiries.textContent = String(current + 1).padStart(2, '0');
-            newInquiries.style.color = '#ef4444';
-            setTimeout(() => {
-                newInquiries.style.color = '#1a1a1a';
-            }, 1000);
+            });
         }
-    }, 5000);
-</script>
 
-<script>
-    document.getElementById('year-select').addEventListener('change', function () {
-        const year = this.value;
-        const url = new URL(window.location.href);
-        url.searchParams.set('year', year);
-        window.location.href = url.toString();
-    });
-</script>
+        // Notification click
+        document.querySelector('.notification').addEventListener('click', function() {
+            // In a real app, this would open notifications panel
+            alert('Notifications panel would open here');
+        });
 
-<script>
-    // Example earnings data (per month)
-    // const monthlyEarnings = [0, 0, 0, 100, 0, 6748, 0, 0, 0, 0, 0, 0];
-    const monthlyEarnings = JSON.parse('{{ monthly_earnings_js|escapejs }}');
+        // Navigation items
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.addEventListener('click', function(e) {
+                e.preventDefault();
+                document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
+                this.classList.add('active');
+            });
+        });
 
-    console.log(monthlyEarnings);
+        // View all link
+        document.querySelector('.view-all').addEventListener('click', function(e) {
+            e.preventDefault();
+            alert('View all inquiries would open here');
+        });
 
+        // Chart animation on load
+        window.addEventListener('load', function() {
+            const bars = document.querySelectorAll('.bar:not(.future)');
+            bars.forEach((bar, index) => {
+                bar.style.transform = 'scaleY(0)';
+                bar.style.transformOrigin = 'bottom';
+                bar.style.transition = `transform 0.5s ease ${index * 0.1}s`;
+                
+                setTimeout(() => {
+                    bar.style.transform = 'scaleY(1)';
+                }, 100);
+            });
+        });
 
-    // Current month index (0=Jan, 11=Dec)
-    const currentMonth = new Date().getMonth();
+        // Simulate real-time updates
+        setInterval(function() {
+            const newInquiries = document.querySelector('.stat-card:last-child .stat-number');
+            let current = parseInt(newInquiries.textContent);
+            
+            // Randomly update inquiries count
+            if (Math.random() > 0.95) {
+                newInquiries.textContent = String(current + 1).padStart(2, '0');
+                newInquiries.style.color = '#ef4444';
+                setTimeout(() => {
+                    newInquiries.style.color = '#1a1a1a';
+                }, 1000);
+            }
+        }, 5000);
+    </script>
 
-    const maxValue = Math.max(...monthlyEarnings);
-    const chart = document.getElementById("earnings-chart");
-    chart.innerHTML = "";
-    const hasChartData = monthlyEarnings.some(value => Number(value) > 0);
+    <script>
+        document.getElementById('year-select').addEventListener('change', function () {
+            const year = this.value;
+            const url = new URL(window.location.href);
+            url.searchParams.set('year', year);
+            window.location.href = url.toString();
+        });
+    </script>
 
-    if (!hasChartData) {
-        const emptyState = document.createElement("div");
-        emptyState.classList.add("chart-empty-state");
-        emptyState.innerText = "No data found to display";
-        chart.appendChild(emptyState);
-    }
+    <script>
+        // Example earnings data (per month)
+        // const monthlyEarnings = [0, 0, 0, 100, 0, 6748, 0, 0, 0, 0, 0, 0];
+        const monthlyEarnings = JSON.parse('{{ monthly_earnings_js|escapejs }}');
 
-    monthlyEarnings.forEach((value, i) => {
+        console.log(monthlyEarnings);
+        
+
+        // Current month index (0=Jan, 11=Dec)
+        const currentMonth = new Date().getMonth();
+
+        const maxValue = Math.max(...monthlyEarnings);
+        const chart = document.getElementById("earnings-chart");
+        chart.innerHTML = "";
+        const hasChartData = monthlyEarnings.some(value => Number(value) > 0);
+
+        if (!hasChartData) {
+            const emptyState = document.createElement("div");
+            emptyState.classList.add("chart-empty-state");
+            emptyState.innerText = "No data found to display";
+            chart.appendChild(emptyState);
+        }
+
+        monthlyEarnings.forEach((value, i) => {
         const bar = document.createElement("div");
         bar.classList.add("bar");
 
@@ -708,7 +650,7 @@
         if (value > 0) {
             const label = document.createElement("span");
             label.innerText = `$${value.toLocaleString()}`;
-            bar.appendChild(label);
+            bar.appendChild(label); // font size set dynamically by autoSizeBarLabels()
         }
 
         chart.appendChild(bar);
@@ -766,129 +708,110 @@
                     if (span) span.style.fontSize = clampedSize + "px";
                 });
             });
+        })();
 
-            if (maxLabelWidth === 0) return;
+        // Update YTD earnings
+        const ytdValueElement = document.getElementById("ytd-value");
+        if (ytdValueElement) {
+            ytdValueElement.innerText =
+            "$" + monthlyEarnings.reduce((a, b) => a + b, 0).toLocaleString();
+        }
+    </script>
 
-            // Scale so longest label fits within bar width (with 2px padding each side)
-            const availableWidth = barWidth - 4;
-            const scale = availableWidth / maxLabelWidth;
-            const finalSize = Math.min(REF_SIZE, Math.floor(REF_SIZE * scale));
-            const clampedSize = Math.max(6, finalSize); // never below 6px
+    <script>
+        const label = document.getElementById('month-label');
+        const prevBtn = document.getElementById('prev-month');
+        const nextBtn = document.getElementById('next-month');
 
-            // Apply the same size to ALL labels
-            bars.forEach(bar => {
-                const span = bar.querySelector("span");
-                if (span) span.style.fontSize = clampedSize + "px";
-            });
-        });
-    })();
+        let current;
+        if (label && label.dataset && label.dataset.month && label.dataset.year) {
+            current = new Date(parseInt(label.dataset.year, 10), parseInt(label.dataset.month, 10) - 1, 1);
+        } else {
+            current = new Date(); // today
+        }
 
-    // Update YTD earnings
-    const ytdValueElement = document.getElementById("ytd-value");
-    if (ytdValueElement) {
-        ytdValueElement.innerText =
-            window.CURRENCY.symbol + window.toDisplayCurrency(monthlyEarnings.reduce((a, b) => a + b, 0)).toLocaleString();
-    }
-</script>
-
-<script>
-    const label = document.getElementById('month-label');
-    const prevBtn = document.getElementById('prev-month');
-    const nextBtn = document.getElementById('next-month');
-
-    let current;
-    if (label && label.dataset && label.dataset.month && label.dataset.year) {
-        current = new Date(parseInt(label.dataset.year, 10), parseInt(label.dataset.month, 10) - 1, 1);
-    } else {
-        current = new Date(); // today
-    }
-
-    function formatMonthYear(date) {
+        function formatMonthYear(date) {
         const month = date.toLocaleString('en-US', { month: 'short' }); // Jun
         const year = date.getFullYear();
         return `${month} ${year}`;
-    }
+        }
 
-    function updateLabel() {
+        function updateLabel() {
         label.textContent = formatMonthYear(current);
-    }
+        }
 
-    function goToMonth(date) {
-        const url = new URL(window.location.href);
-        url.searchParams.set('upcoming_month', String(date.getMonth() + 1));
-        url.searchParams.set('upcoming_year', String(date.getFullYear()));
-        window.location.href = url.toString();
-    }
+        function goToMonth(date) {
+            const url = new URL(window.location.href);
+            url.searchParams.set('upcoming_month', String(date.getMonth() + 1));
+            url.searchParams.set('upcoming_year', String(date.getFullYear()));
+            window.location.href = url.toString();
+        }
 
-    prevBtn.addEventListener('click', () => {
+        prevBtn.addEventListener('click', () => {
         current.setMonth(current.getMonth() - 1);  // go to previous month
         goToMonth(current);
-    });
+        });
 
-    nextBtn.addEventListener('click', () => {
+        nextBtn.addEventListener('click', () => {
         current.setMonth(current.getMonth() + 1);  // go to next month
         goToMonth(current);
-    });
+        });
 
-    updateLabel(); // initial render
+        updateLabel(); // initial render
 
-</script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script>
-    const centerTextPlugin = {
-        id: 'centerText',
-        afterDraw(chart) {
-            const { width, height, ctx } = chart;
-            const centerX = width / 2;
-            const centerY = height / 2;
-            const isLaptop = window.innerWidth >= 992;
-            ctx.save();
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillStyle = '#4b5563';
-            ctx.font = `500 ${isLaptop ? 16 : 14}px system-ui, -apple-system, sans-serif`;
-            ctx.fillText('Bookings', centerX, centerY - (isLaptop ? 12 : 10));
-            ctx.font = `500 ${isLaptop ? 18 : 16}px system-ui, -apple-system, sans-serif`;
-            ctx.fillText('{{ gross_bookings_count }}', centerX, centerY + (isLaptop ? 10 : 8));
-            ctx.restore();
-        }
-    };
-
-    document.addEventListener('DOMContentLoaded', function () {
-        const ctx = document.getElementById('channelPieChart');
-        if (ctx) {
-            const colors = ['#FF5A5F', '#003580', '#111827', '#009DDF', '#E91E63', '#9C27B0', '#FF9800', '#00BCD4'];
-            const labels = JSON.parse('{{ channel_labels_json|escapejs }}');
-            const counts = JSON.parse('{{ channel_counts_json|escapejs }}');
-            const amounts = JSON.parse('{{ channel_amounts_json|escapejs }}');
-            const colorIndicators = document.querySelectorAll('.legend-color-indicator');
-            document.querySelectorAll('.legend-label').forEach((el, i) => {
-                el.textContent = `${labels[i]} (${counts[i]})`;
-                if (colorIndicators[i]) {
-                    colorIndicators[i].style.backgroundColor = colors[i % colors.length];
-                }
-            });
-    new Chart(ctx, {
-        type: 'doughnut',
-        data: {
-            labels: labels,
-            datasets: [{
-                data: counts,
-                backgroundColor: colors.slice(0, labels.length),
-                borderWidth: 0
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: true,
-            cutout: '65%',
-            plugins: {
-                legend: { display: false }
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        const centerTextPlugin = {
+            id: 'centerText',
+            afterDraw(chart) {
+                const { width, height, ctx } = chart;
+                const centerX = width / 2;
+                const centerY = height / 2;
+                const isLaptop = window.innerWidth >= 992;
+                ctx.save();
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillStyle = '#4b5563';
+                ctx.font = `500 ${isLaptop ? 16 : 14}px system-ui, -apple-system, sans-serif`;
+                ctx.fillText('Bookings', centerX, centerY - (isLaptop ? 12 : 10));
+                ctx.font = `500 ${isLaptop ? 18 : 16}px system-ui, -apple-system, sans-serif`;
+                ctx.fillText('{{ gross_bookings_count }}', centerX, centerY + (isLaptop ? 10 : 8));
+                ctx.restore();
             }
-        },
-        plugins: [centerTextPlugin]
-    });
+        };
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const ctx = document.getElementById('channelPieChart');
+            if (ctx) {
+                const colors = ['#FF5A5F', '#003580', '#111827', '#009DDF', '#E91E63', '#9C27B0', '#FF9800', '#00BCD4'];
+                const labels = {{ channel_labels_json }};
+                const counts = {{ channel_counts_json }};
+                const amounts = {{ channel_amounts_json }};
+                document.querySelectorAll('.legend-label').forEach((el, i) => {
+                    el.textContent = `${labels[i]} (${counts[i]})`;
+                });
+                new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            data: counts,
+                            backgroundColor: colors.slice(0, labels.length),
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        cutout: '65%',
+                        plugins: {
+                            legend: { display: false }
+                        }
+                    },
+                    plugins: [centerTextPlugin]
+                });
             }
         });
-</script>
+    </script>
 {% endblock extra_script %}
