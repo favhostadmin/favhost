@@ -464,7 +464,6 @@ class PropertyToggleStatusView(View):
         return redirect(referer_url)
 
 def check_property_availability(request, pk):
-    property_obj = get_object_or_404(Property, pk=pk)
     check_in_str = request.GET.get('check_in')
     check_out_str = request.GET.get('check_out')
     guests_str = request.GET.get('guests')

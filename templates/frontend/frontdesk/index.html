@@ -181,14 +181,30 @@
   .hk-price-val{font-size:14px;font-weight:800;color:var(--ink)}
   .hk-price-unit{font-size:11.5px;color:var(--muted)}
 
-  .status-select-wrap{display:inline-flex;align-items:center;gap:6px;
-    border:1px solid var(--line-2);border-radius:var(--r-pill);
-    padding:5px 8px 5px 10px;background:#fff;transition:border-color .15s;cursor:pointer}
-  .status-select-wrap:hover{border-color:#C8CACD}
-  .status-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
-  .status-select{border:0;background:none;font-size:12px;font-weight:600;color:var(--ink-soft);
-    appearance:none;-webkit-appearance:none;outline:0;cursor:pointer;padding-right:2px}
-  .status-select-wrap svg{width:13px;height:13px;color:var(--muted)}
+  .hk-status-dd{position:relative;display:inline-block}
+  .hk-status-btn{display:inline-flex;align-items:center;gap:7px;
+    border:1px solid var(--line-2);border-radius:10px;
+    padding:6px 10px 6px 10px;background:#fff;transition:border-color .15s,box-shadow .15s;
+    cursor:pointer;white-space:nowrap;min-width:170px;justify-content:space-between}
+  .hk-status-btn:hover{border-color:#C8CACD;box-shadow:0 1px 4px rgba(0,0,0,.07)}
+  .hk-status-btn-left{display:flex;align-items:center;gap:7px}
+  .hk-status-emoji{font-size:16px;line-height:1}
+  .hk-status-label{font-size:12px;font-weight:600;color:var(--ink-soft)}
+  .hk-status-chevron{width:14px;height:14px;color:var(--muted);transition:transform .2s;flex-shrink:0}
+  .hk-status-dd.open .hk-status-chevron{transform:rotate(180deg)}
+  .hk-status-menu{position:absolute;right:0;top:calc(100% + 6px);min-width:200px;
+    background:#fff;border:1px solid var(--line);border-radius:12px;
+    box-shadow:0 8px 24px rgba(0,0,0,.12);z-index:200;overflow:hidden;
+    display:none;flex-direction:column;padding:4px}
+  .hk-status-dd.open .hk-status-menu{display:flex}
+  .hk-status-opt{display:flex;align-items:center;gap:10px;padding:8px 12px;
+    border-radius:8px;cursor:pointer;transition:background .12s}
+  .hk-status-opt:hover{background:var(--page)}
+  .hk-status-opt.selected{background:var(--purple-soft)}
+  .hk-status-opt-emoji{font-size:17px;line-height:1;flex-shrink:0}
+  .hk-status-opt-info{display:flex;flex-direction:column;gap:1px}
+  .hk-status-opt-label{font-size:12.5px;font-weight:600;color:var(--ink)}
+  .hk-status-opt-desc{font-size:11px;color:var(--muted)}
 
   .empty-state{padding:40px 16px;text-align:center;color:var(--muted)}
   .empty-state svg{width:36px;height:36px;margin:0 auto 10px;opacity:.4}
@@ -322,9 +338,6 @@
           </button>
           <input type="date" id="date-picker" class="date-picker-input" value="{{ date_iso }}">
         </div>
-        <button class="fd-ph-refresh" id="btn-refresh" aria-label="Refresh data">
-          <svg width="17" height="17"><use href="#ic-refresh"/></svg>
-        </button>
       </div>
     </div>
 
@@ -366,7 +379,7 @@
           <div class="kpi"><span class="kpi-val" id="kpi-vacant">{{ total_vacant }}</span><span class="kpi-label">Vacant</span></div>
           <div class="kpi"><span class="kpi-val purple" id="kpi-booked">{{ total_booked_today }}</span><span class="kpi-label">Booked today</span></div>
           <div class="kpi"><span class="kpi-val amber" id="kpi-tasks">{{ total_tasks }}</span><span class="kpi-label">Tasks</span></div>
-          <div class="kpi"><span class="kpi-val" id="kpi-inquiries">{{ total_inquiries }}</span><span class="kpi-label">Inquiries</span></div>
+          <div class="kpi"><span class="kpi-val" id="kpi-payments">${{ total_payments_amount }}</span><span class="kpi-label">Payments</span></div>
         </div>
       </div>
 
@@ -490,15 +503,51 @@
               </div>
             </div>
             <div class="hk-status-col">
-              <span class="status-select-wrap">
-                <i class="status-dot" data-status="{{ h.status }}"></i>
-                <select class="status-select" aria-label="Housekeeping status for {{ h.title }}">
-                  {% for opt in "Dirty,In-Progress,Clean-Uninspected,Clean-Inspected,Clean-Ready,Out-of-Service"|split:"," %}
-                  <option {% if opt == h.status %}selected{% endif %}>{{ opt }}</option>
-                  {% endfor %}
-                </select>
-                <svg width="13" height="13"><use href="#ic-chevd"/></svg>
-              </span>
+              {% with h.status as st %}
+              <div class="hk-status-dd">
+                <button class="hk-status-btn" type="button" aria-haspopup="listbox">
+                  <span class="hk-status-btn-left">
+                    <span class="hk-status-emoji">
+                      {% if st == 'Dirty' %}😟
+                      {% elif st == 'In-Progress' %}😐
+                      {% elif st == 'Out-of-Service' %}😶
+                      {% elif st == 'Clean-Uninspected' %}🙂
+                      {% elif st == 'Clean-Inspected' %}😊
+                      {% elif st == 'Clean-Ready' %}😁
+                      {% else %}😐{% endif %}
+                    </span>
+                    <span class="hk-status-label">{{ st }}</span>
+                  </span>
+                  <svg class="hk-status-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9.5l6 6 6-6"/></svg>
+                </button>
+                <div class="hk-status-menu" role="listbox">
+                  <div class="hk-status-opt{% if st == 'Dirty' %} selected{% endif %}" data-value="Dirty">
+                    <span class="hk-status-opt-emoji">😟</span>
+                    <div class="hk-status-opt-info"><span class="hk-status-opt-label">Dirty</span><span class="hk-status-opt-desc">Needs cleaning</span></div>
+                  </div>
+                  <div class="hk-status-opt{% if st == 'In-Progress' %} selected{% endif %}" data-value="In-Progress">
+                    <span class="hk-status-opt-emoji">😐</span>
+                    <div class="hk-status-opt-info"><span class="hk-status-opt-label">In-Progress</span><span class="hk-status-opt-desc">Currently being cleaned</span></div>
+                  </div>
+                  <div class="hk-status-opt{% if st == 'Clean-Uninspected' %} selected{% endif %}" data-value="Clean-Uninspected">
+                    <span class="hk-status-opt-emoji">🙂</span>
+                    <div class="hk-status-opt-info"><span class="hk-status-opt-label">Clean-Uninspected</span><span class="hk-status-opt-desc">Cleaned, not verified</span></div>
+                  </div>
+                  <div class="hk-status-opt{% if st == 'Clean-Inspected' %} selected{% endif %}" data-value="Clean-Inspected">
+                    <span class="hk-status-opt-emoji">😊</span>
+                    <div class="hk-status-opt-info"><span class="hk-status-opt-label">Clean-Inspected</span><span class="hk-status-opt-desc">Verified clean</span></div>
+                  </div>
+                  <div class="hk-status-opt{% if st == 'Clean-Ready' %} selected{% endif %}" data-value="Clean-Ready">
+                    <span class="hk-status-opt-emoji">😁</span>
+                    <div class="hk-status-opt-info"><span class="hk-status-opt-label">Clean-Ready</span><span class="hk-status-opt-desc">Ready for guest</span></div>
+                  </div>
+                  <div class="hk-status-opt{% if st == 'Out-of-Service' %} selected{% endif %}" data-value="Out-of-Service">
+                    <span class="hk-status-opt-emoji">😶</span>
+                    <div class="hk-status-opt-info"><span class="hk-status-opt-label">Out-of-Service</span><span class="hk-status-opt-desc">Unavailable</span></div>
+                  </div>
+                </div>
+              </div>
+              {% endwith %}
             </div>
           </li>
           {% empty %}
@@ -558,8 +607,8 @@
 
   const btnPrev    = document.getElementById('btn-prev-day');
   const btnNext    = document.getElementById('btn-next-day');
-  const btnToday   = document.getElementById('btn-today');
-  const btnRefresh = document.getElementById('btn-refresh');
+  const btnToday   = document.getElementById('btn-today');   // optional
+  const btnRefresh = document.getElementById('btn-refresh'); // optional
   const dateDisp   = document.getElementById('date-display');
   const datePicker = document.getElementById('date-picker');
 
@@ -587,26 +636,36 @@
     arc.setAttribute('stroke-dasharray', `${fill.toFixed(2)} ${(CIRC - fill).toFixed(2)}`);
   }
 
-  function dotColor(status){
-    const s = (status||'').toLowerCase();
-    if(s.includes('dirty'))          return '#E5484D';
-    if(s.includes('progress'))       return '#F59E0B';
-    if(s.includes('out-of-service')) return '#9AA1AC';
-    return '#1FAE5A';
-  }
+  function applyStatusDD(){
+    document.querySelectorAll('.hk-status-dd').forEach(dd => {
+      const btn  = dd.querySelector('.hk-status-btn');
+      const menu = dd.querySelector('.hk-status-menu');
+      if(!btn || menu.dataset.bound) return;
+      menu.dataset.bound = '1';
 
-  function applyDots(){
-    document.querySelectorAll('.status-dot[data-status]').forEach(dot => {
-      dot.style.background = dotColor(dot.dataset.status);
-    });
-    document.querySelectorAll('.status-select').forEach(sel => {
-      const dot = sel.closest('.status-select-wrap').querySelector('.status-dot');
-      if(dot){ dot.style.background = dotColor(sel.value); dot.dataset.status = sel.value; }
-      sel.addEventListener('change', function(){
-        const d = this.closest('.status-select-wrap').querySelector('.status-dot');
-        if(d){ d.style.background = dotColor(this.value); d.dataset.status = this.value; }
+      btn.addEventListener('click', function(e){
+        e.stopPropagation();
+        const isOpen = dd.classList.contains('open');
+        document.querySelectorAll('.hk-status-dd.open').forEach(o => o.classList.remove('open'));
+        if(!isOpen) dd.classList.add('open');
+      });
+
+      menu.querySelectorAll('.hk-status-opt').forEach(opt => {
+        opt.addEventListener('click', function(e){
+          e.stopPropagation();
+          const val = this.dataset.value;
+          menu.querySelectorAll('.hk-status-opt').forEach(o => o.classList.remove('selected'));
+          this.classList.add('selected');
+          dd.querySelector('.hk-status-emoji').textContent = statusEmoji(val);
+          dd.querySelector('.hk-status-label').textContent = val;
+          dd.classList.remove('open');
+        });
       });
     });
+
+    document.addEventListener('click', function(){
+      document.querySelectorAll('.hk-status-dd.open').forEach(o => o.classList.remove('open'));
+    }, {capture:true, once:false});
   }
 
   function renderGuest(b, timeKey){
@@ -631,7 +690,41 @@
     return `<li><div class="empty-state"><svg><use href="#${icon}"/></svg><p>${msg}</p></div></li>`;
   }
 
-  const HK_OPTS = ['Dirty','In-Progress','Clean-Uninspected','Clean-Inspected','Clean-Ready','Out-of-Service'];
+  const HK_STATUS = [
+    { value:'Dirty',             emoji:'😟', desc:'Needs cleaning' },
+    { value:'In-Progress',       emoji:'😐', desc:'Currently being cleaned' },
+    { value:'Clean-Uninspected', emoji:'🙂', desc:'Cleaned, not verified' },
+    { value:'Clean-Inspected',   emoji:'😊', desc:'Verified clean' },
+    { value:'Clean-Ready',       emoji:'😁', desc:'Ready for guest' },
+    { value:'Out-of-Service',    emoji:'😶', desc:'Unavailable' },
+  ];
+
+  function statusEmoji(val){
+    const s = HK_STATUS.find(x => x.value === val);
+    return s ? s.emoji : '😐';
+  }
+
+  function buildStatusDD(current){
+    const opts = HK_STATUS.map(s => `
+      <div class="hk-status-opt${s.value===current?' selected':''}" data-value="${s.value}">
+        <span class="hk-status-opt-emoji">${s.emoji}</span>
+        <div class="hk-status-opt-info">
+          <span class="hk-status-opt-label">${s.value}</span>
+          <span class="hk-status-opt-desc">${s.desc}</span>
+        </div>
+      </div>`).join('');
+    return `
+      <div class="hk-status-dd">
+        <button class="hk-status-btn" type="button">
+          <span class="hk-status-btn-left">
+            <span class="hk-status-emoji">${statusEmoji(current)}</span>
+            <span class="hk-status-label">${current}</span>
+          </span>
+          <svg class="hk-status-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9.5l6 6 6-6"/></svg>
+        </button>
+        <div class="hk-status-menu">${opts}</div>
+      </div>`;
+  }
   function renderHKItem(h){
     const img = h.image_url
       ? `<img src="${escHTML(h.image_url)}" alt="" loading="lazy">`
@@ -640,7 +733,7 @@
     const availText  = h.available ? 'Available' : 'Not available';
     const petBadge   = h.pet_friendly ? `<span class="hk-meta-item"><svg><use href="#ic-paw"/></svg>Pet friendly</span>` : '';
     const bedBadge   = h.bed_type ? `<span class="hk-meta-item"><svg><use href="#ic-bed"/></svg>${escHTML(h.bed_type)}</span>` : '';
-    const opts = HK_OPTS.map(o => `<option${o===h.status?' selected':''}>${o}</option>`).join('');
+    const opts = buildStatusDD(h.status);
     return `
       <li class="hk-item">
         <div class="hk-thumb-wrap">
@@ -658,20 +751,13 @@
             <span class="hk-price-unit">/ night</span>
           </div>
         </div>
-        <div class="hk-status-col">
-          <span class="status-select-wrap">
-            <i class="status-dot" data-status="${escHTML(h.status)}"></i>
-            <select class="status-select" aria-label="Housekeeping status">${opts}</select>
-            <svg width="13" height="13"><use href="#ic-chevd"/></svg>
-          </span>
-        </div>
+        <div class="hk-status-col">${opts}</div>
       </li>`;
   }
 
   async function loadAll(dateISO){
-    if(isLoading) return;
     isLoading = true;
-    btnRefresh.classList.add('spinning');
+    if(btnRefresh) btnRefresh.classList.add('spinning');
 
     try {
       const qs = `?date=${dateISO}`;
@@ -691,7 +777,7 @@
       document.getElementById('kpi-vacant').textContent      = sum.total_vacant;
       document.getElementById('kpi-booked').textContent      = sum.total_booked_today;
       document.getElementById('kpi-tasks').textContent       = sum.total_tasks;
-      document.getElementById('kpi-inquiries').textContent   = sum.total_inquiries;
+      document.getElementById('kpi-payments').textContent    = '$' + sum.total_payments_amount;
       var eb = document.getElementById('nav-enquiries-badge'); if(eb) eb.textContent = sum.total_inquiries;
       document.getElementById('ci-count').textContent        = sum.total_checkin;
       document.getElementById('co-count').textContent        = sum.total_checkout;
@@ -716,14 +802,14 @@
         ? hk.data.map(renderHKItem).join('')
         : emptyState('ic-home','No active properties');
 
-      applyDots();
+      applyStatusDD();
       attachSearch();
 
     } catch(err) {
       console.error('Frontdesk fetch error:', err);
     } finally {
       isLoading = false;
-      btnRefresh.classList.remove('spinning');
+      if(btnRefresh) btnRefresh.classList.remove('spinning');
     }
   }
 
@@ -732,6 +818,7 @@
     const iso = fmtISO(d);
     dateDisp.textContent = fmtLabel(d);
     datePicker.value = iso;
+    if(dcDateOverlay) dcDateOverlay.value = iso;
     window.history.replaceState(null,'', '?date=' + iso);
     loadAll(iso);
   }
@@ -742,8 +829,8 @@
   btnNext.addEventListener('click', () => {
     const d = new Date(currentDate); d.setDate(d.getDate()+1); setDate(d);
   });
-  btnToday.addEventListener('click', () => setDate(new Date()));
-  btnRefresh.addEventListener('click', () => loadAll(fmtISO(currentDate)));
+  if(btnToday)   btnToday.addEventListener('click', () => setDate(new Date()));
+  if(btnRefresh) btnRefresh.addEventListener('click', () => loadAll(fmtISO(currentDate)));
 
   datePicker.addEventListener('change', function(){
     if(this.value){ setDate(new Date(this.value + 'T12:00:00')); }
@@ -753,7 +840,7 @@
 
   var dcDateOverlay = document.getElementById('dc-date-overlay');
   if(dcDateOverlay) dcDateOverlay.addEventListener('change', function(){
-    if(this.value){ window.location.href = '?date=' + this.value; }
+    if(this.value){ setDate(new Date(this.value + 'T12:00:00')); }
   });
 
   function attachSearch(){
@@ -774,7 +861,7 @@
   }
 
   updateDonut(parseFloat('{{ occupancy_pct }}') || 0);
-  applyDots();
+  applyStatusDD();
   attachSearch();
 
   setInterval(() => loadAll(fmtISO(currentDate)), 5 * 60 * 1000);
