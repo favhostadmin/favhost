@@ -1204,6 +1204,7 @@ class CalendarListView(LoginRequiredMixin, ListView):
                 if b.check_out_date and b.check_out_date.year == year and b.check_out_date.month == month:
                     code, label = status_for(b.check_out_date)
                     events.append({
+                        "id": str(b.id),
                         "date": b.check_out_date.isoformat(),
                         "group": "Checkout",
                         "title": "Check Out",
@@ -1223,6 +1224,7 @@ class CalendarListView(LoginRequiredMixin, ListView):
                 if b.check_in_date and b.check_in_date.year == year and b.check_in_date.month == month:
                     code, label = status_for(b.check_in_date)
                     events.append({
+                        "id": str(b.id),
                         "date": b.check_in_date.isoformat(),
                         "group": "Checkin",
                         "title": "Check In",
@@ -1247,6 +1249,7 @@ class CalendarListView(LoginRequiredMixin, ListView):
                     if p.is_paid:
                         code, label = "paid", "Paid"
                     events.append({
+                        "id": str(b.id),
                         "date": pay_date.isoformat(),
                         "group": "Payment",
                         "title": "Payment",
@@ -1285,6 +1288,7 @@ class CalendarListView(LoginRequiredMixin, ListView):
                     t_prop_image = ""
 
                 events.append({
+                    "id": t.id,
                     "date": t.date.isoformat(),
                     "time": t.time.isoformat() if t.time else None,
                     "group": "Task",
@@ -1300,6 +1304,69 @@ class CalendarListView(LoginRequiredMixin, ListView):
                     "property_image": t_prop_image,
                     "status_code": "completed" if t.completed else code,
                     "status_label": "Completed" if t.completed else label,
+                })
+
+            # Enquiry events
+            enquiries = Enquiry.objects.filter(
+                property__created_by__in=get_visible_user_ids(request.user),
+                check_in_date__year=year,
+                check_in_date__month=month,
+                is_booked=False,
+            ).select_related('property')
+            for e in enquiries:
+                guest_name = f"{e.first_name or ''} {e.last_name or ''}".strip() or "Guest"
+                stay_str = ""
+                if e.check_in_date and e.check_out_date:
+                    nights = (e.check_out_date - e.check_in_date).days
+                    stay_str = f"{e.check_in_date:%b %d, %Y}—{e.check_out_date:%b %d, %Y} ({nights} nights)"
+                events.append({
+                    "id": str(e.unique_id),
+                    "date": e.check_in_date.isoformat(),
+                    "group": "Enquiry",
+                    "title": "New Enquiry",
+                    "property": e.property.title,
+                    "location": e.property.city,
+                    "guest_name": guest_name,
+                    "guest_email": e.email or "",
+                    "guest_phone": format_guest_phone(e.country_code, e.phone),
+                    "stay": stay_str,
+                    "avatar": "",
+                    "property_image": "",
+                    "status_code": "upcoming",
+                    "status_label": "Pending",
+                    "guests": f"{e.adults} adult{'' if e.adults == 1 else 's'}{', ' + str(e.children) + ' child' + ('' if e.children == 1 else 'ren') if e.children else ''}",
+                    "notes": e.notes_for_host or "",
+                })
+
+            # Blocked date events
+            blocked_dates = PropertyBlockDate.objects.filter(
+                property__created_by__in=get_visible_user_ids(request.user),
+                start_date__year=year,
+                start_date__month=month,
+                is_active=True,
+            ).select_related('property')
+            for bd in blocked_dates:
+                stay_str = ""
+                if bd.start_date and bd.end_date:
+                    if bd.start_date == bd.end_date:
+                        stay_str = f"{bd.start_date:%b %d, %Y}"
+                    else:
+                        stay_str = f"{bd.start_date:%b %d, %Y}—{bd.end_date:%b %d, %Y}"
+                events.append({
+                    "id": f"blocked-{bd.id}",
+                    "date": bd.start_date.isoformat(),
+                    "group": "Blocked",
+                    "title": bd.reason or "Blocked",
+                    "property": bd.property.title,
+                    "location": bd.property.city,
+                    "guest_name": "",
+                    "guest_email": "",
+                    "guest_phone": "",
+                    "stay": stay_str,
+                    "avatar": "",
+                    "property_image": "",
+                    "status_code": "blocked",
+                    "status_label": "Unavailable",
                 })
 
             events.sort(key=lambda e: e["date"])

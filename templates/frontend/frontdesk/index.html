@@ -1,0 +1,807 @@
+{% extends 'frontend/base/base.html' %}
+{% load static %}
+{% load frontdesk_extras %}
+{% block extra_head %}
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FavHost · Frontdesk</title>
+<style>
+  .fd-page{
+    --brand:#E6168A;--brand-2:#E5392B;
+    --ink:#23262B;--ink-soft:#565C66;--muted:#9AA1AC;
+    --line:#ECEDEF;--line-2:#E4E6E9;
+    --page:#F4F5F7;--card:#FFFFFF;--charcoal:#1E2028;
+    --green:#1FAE5A;--green-soft:#E1F7EB;--green-ink:#0E7A3D;
+    --red:#E5484D;--red-soft:#FDE7E3;--red-ink:#C23A2C;
+    --purple:#7C5CFC;--purple-soft:#ECE7FF;--purple-ink:#5B3FD6;
+    --amber:#F59E0B;--amber-soft:#FEF3C7;
+    --r-card:14px;--r-pill:999px;
+    --shadow-sm:0 1px 3px rgba(16,24,40,.06);
+    --shadow:0 2px 8px rgba(16,24,40,.07),0 0 0 1px rgba(16,24,40,.04);
+  }
+  .fd-page a{color:inherit;text-decoration:none}
+  .fd-page button,.fd-page input,.fd-page select{font:inherit;color:inherit;cursor:pointer;background:none;border:0;padding:0}
+  .fd-page svg{display:block;flex-shrink:0}
+  .fd-page :focus-visible{outline:2px solid var(--brand);outline-offset:2px;border-radius:6px}
+
+  .fd-wrap{max-width:1400px;margin:0 auto;padding:0 24px;width:100%}
+  .fd-body{flex:1;padding:20px 0 60px}
+
+  .fd-page-header{
+    display:flex;align-items:center;justify-content:space-between;
+    background:var(--charcoal);border-radius:var(--r-card);
+    padding:14px 20px;margin-bottom:18px;gap:16px
+  }
+  .fd-ph-left{display:flex;align-items:center;gap:10px;color:#fff}
+  .fd-ph-left svg{width:19px;height:19px;opacity:.9}
+  .fd-ph-title{font-size:15px;font-weight:700;color:#fff;letter-spacing:-.1px}
+  .fd-ph-right{display:flex;align-items:center;gap:8px}
+
+  .date-nav{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.1);
+    border:1px solid rgba(255,255,255,.15);border-radius:10px;padding:4px 6px}
+  .date-nav-btn{width:28px;height:28px;border-radius:7px;display:flex;align-items:center;justify-content:center;
+    color:rgba(255,255,255,.8);transition:background .15s,color .15s}
+  .date-nav-btn svg{width:15px;height:15px}
+  .date-nav-btn:hover{background:rgba(255,255,255,.15);color:#fff}
+  .date-display{color:#fff;font-size:13px;font-weight:600;padding:0 6px;min-width:130px;text-align:center}
+  .date-picker-btn{background:rgb(255, 255, 255);border:0;color:#fff;font-size:12px;font-weight:600;
+    padding:5px 12px;border-radius:7px;cursor:pointer;transition:background .15s}
+  .date-picker-btn:hover{background:rgb(255, 255, 255)}
+  .date-picker-input{position:absolute;opacity:0;pointer-events:none;width:0;height:0}
+
+  .fd-ph-refresh{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;
+    color:rgba(255,255,255,.75);transition:background .15s,color .15s,transform .4s}
+  .fd-ph-refresh svg{width:17px;height:17px}
+  .fd-ph-refresh:hover{background:rgba(255,255,255,.12);color:#fff}
+  .fd-ph-refresh.spinning svg{animation:spin .7s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  .kpi-strip{display:grid;grid-template-columns:auto 1fr;gap:16px;margin-bottom:18px;align-items:stretch}
+
+  .date-card{background:#fff;border:1px solid var(--line);border-radius:var(--r-card);
+    padding:16px 20px;box-shadow:var(--shadow-sm);display:flex;flex-direction:column;
+    justify-content:center;min-width:154px;position:relative}
+  .dc-cal-btn{position:absolute;right:8px;top:8px;width:26px;height:26px;border-radius:7px;
+    display:flex;align-items:center;justify-content:center;color:var(--muted);
+    transition:background .15s,color .15s;pointer-events:none;z-index:1}
+  .dc-cal-btn svg{width:14px;height:14px}
+  .dc-cal-btn:hover{background:var(--line);color:var(--ink)}
+  .dc-date-overlay{position:absolute;right:8px;top:8px;width:26px;height:26px;
+    opacity:0;cursor:pointer;z-index:2}
+  .dc-dow{font-size:12px;font-weight:700;color:var(--muted);letter-spacing:.5px;text-transform:uppercase;margin-bottom:4px}
+  .dc-date{display:flex;align-items:baseline;gap:6px}
+  .dc-num{font-size:44px;font-weight:900;letter-spacing:-2px;line-height:1;color:var(--ink)}
+  .dc-mon{font-size:20px;font-weight:500;color:var(--ink-soft)}
+  .dc-year{font-size:13px;color:var(--muted);margin-top:4px}
+
+  .metrics-card{background:#fff;border:1px solid var(--line);border-radius:var(--r-card);
+    box-shadow:var(--shadow-sm);display:flex;align-items:center;gap:20px;padding:16px 24px}
+  .occ-ring{flex-shrink:0;position:relative;width:92px;height:92px}
+  .occ-ring svg{transform:rotate(-90deg)}
+  .occ-inner{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+  .occ-inner b{font-size:15px;font-weight:800;letter-spacing:-.3px;color:var(--ink)}
+  .occ-inner small{font-size:10px;color:var(--muted);margin-top:1px;font-weight:600;letter-spacing:.2px;text-transform:uppercase}
+
+  .kpi-grid{flex:1;display:flex;gap:0}
+  .kpi{flex:1;text-align:center;padding:6px 8px;border-left:1px solid var(--line)}
+  .kpi:first-child{border-left:0}
+  .kpi-val{display:block;font-size:20px;font-weight:800;letter-spacing:-.5px;color:var(--ink);line-height:1.1}
+  .kpi-label{display:block;margin-top:4px;font-size:10.5px;color:var(--muted);font-weight:600;
+    letter-spacing:.2px;text-transform:uppercase;white-space:nowrap}
+  .kpi-val.green{color:var(--green)}
+  .kpi-val.red{color:var(--red)}
+  .kpi-val.amber{color:var(--amber)}
+  .kpi-val.purple{color:var(--purple)}
+
+  .columns{display:grid;grid-template-columns:1fr 1fr 1.5fr;gap:16px;align-items:start}
+
+  .col-card{background:#fff;border:1px solid var(--line);border-radius:var(--r-card);
+    box-shadow:var(--shadow);display:flex;flex-direction:column;overflow:hidden}
+  .col-head{display:flex;align-items:center;gap:8px;padding:14px 16px 12px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+  .col-title-pill{display:inline-flex;align-items:center;gap:7px;font-weight:700;font-size:13px;
+    padding:5px 14px;border-radius:var(--r-pill);line-height:1}
+  .col-title-pill .count{font-weight:800}
+  .pill-green{background:var(--green-soft);color:var(--green-ink)}
+  .pill-red{background:var(--red-soft);color:var(--red-ink)}
+  .pill-purple{background:var(--purple-soft);color:var(--purple-ink)}
+
+  .col-search{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line-2);
+    border-radius:9px;padding:5px 10px;flex:1;min-width:80px;max-width:160px;color:var(--muted)}
+  .col-search svg{width:14px;height:14px}
+  .col-search input{border:0;outline:0;background:none;width:100%;font-size:12.5px;color:var(--ink)}
+
+  .view-all{display:inline-flex;align-items:center;gap:4px;margin-left:auto;font-size:12.5px;
+    font-weight:600;color:var(--muted);transition:color .15s;white-space:nowrap;flex-shrink:0}
+  .view-all svg{width:14px;height:14px}
+  .view-all:hover{color:var(--brand)}
+
+  .col-tools{display:flex;align-items:center;gap:2px;margin-left:auto}
+  .tool-btn{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;
+    color:var(--muted);transition:background .15s,color .15s}
+  .tool-btn svg{width:15px;height:15px}
+  .tool-btn:hover{background:#F0F0F2;color:var(--ink)}
+  .tool-btn.active{background:var(--purple-soft);color:var(--purple-ink)}
+
+  .guest-list{list-style:none;overflow-y:auto;max-height:540px;padding:4px 0}
+  .guest-list::-webkit-scrollbar{width:5px}
+  .guest-list::-webkit-scrollbar-thumb{background:#E2E3E6;border-radius:6px}
+  .guest-list::-webkit-scrollbar-track{background:transparent}
+  .guest-list{scrollbar-width:thin;scrollbar-color:#E2E3E6 transparent}
+
+  .guest-item{display:grid;grid-template-columns:auto 1fr auto;gap:12px;
+    align-items:start;padding:12px 16px;border-bottom:1px solid var(--line);transition:background .12s}
+  .guest-item:last-child{border-bottom:0}
+  .guest-item:hover{background:#FAFAFA}
+
+  .g-thumb{width:50px;height:50px;border-radius:10px;overflow:hidden;flex-shrink:0;
+    background:linear-gradient(135deg,#ECE3D6,#D9C4A8);
+    display:flex;align-items:center;justify-content:center;color:#9a7d5a}
+  .g-thumb img{width:100%;height:100%;object-fit:cover}
+  .g-thumb svg{width:42%;height:42%;opacity:.5}
+
+  .g-prop{font-size:11.5px;color:var(--muted);margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .g-name{font-size:14px;font-weight:700;color:var(--ink)}
+  .g-contact{font-size:12px;color:var(--ink-soft);margin-top:2px}
+  .g-time{display:inline-flex;align-items:center;gap:4px;margin-top:4px;font-size:11.5px;
+    color:var(--muted);background:var(--page);padding:2px 7px;border-radius:6px}
+  .g-time svg{width:12px;height:12px}
+
+  .g-ext{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;
+    color:var(--muted);transition:background .15s,color .15s}
+  .g-ext svg{width:15px;height:15px}
+  .g-ext:hover{background:var(--line);color:var(--brand)}
+
+  .hk-list{list-style:none;overflow-y:auto;max-height:600px;padding:4px 0}
+  .hk-list::-webkit-scrollbar{width:5px}
+  .hk-list::-webkit-scrollbar-thumb{background:#E2E3E6;border-radius:6px}
+  .hk-list{scrollbar-width:thin;scrollbar-color:#E2E3E6 transparent}
+
+  .hk-item{display:grid;grid-template-columns:auto 1fr auto;gap:14px;align-items:center;
+    padding:12px 16px;border-bottom:1px solid var(--line);transition:background .12s}
+  .hk-item:last-child{border-bottom:0}
+  .hk-item:hover{background:#FAFAFA}
+
+  .hk-thumb-wrap{display:flex;flex-direction:column;align-items:flex-start;gap:5px}
+  .hk-thumb{width:64px;height:56px;border-radius:10px;overflow:hidden;
+    background:linear-gradient(135deg,#ECE3D6,#D9C4A8);
+    display:flex;align-items:center;justify-content:center;color:#9a7d5a}
+  .hk-thumb img{width:100%;height:100%;object-fit:cover}
+  .hk-thumb svg{width:38%;height:38%;opacity:.45}
+  .avail-badge{font-size:10.5px;font-weight:700;display:inline-flex;align-items:center;gap:3px;padding:2px 0}
+  .avail-badge::before{content:"";width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0}
+  .avail-badge.ok{color:var(--green)}
+  .avail-badge.no{color:var(--red)}
+
+  .hk-title{font-size:13.5px;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:220px}
+  .hk-meta{display:flex;align-items:center;flex-wrap:wrap;gap:5px 10px;margin-top:5px;
+    color:var(--ink-soft);font-size:11.5px}
+  .hk-meta-item{display:inline-flex;align-items:center;gap:4px}
+  .hk-meta-item svg{width:13px;height:13px;color:var(--muted)}
+  .hk-price{display:flex;align-items:center;gap:6px;margin-top:7px}
+  .hk-price-val{font-size:14px;font-weight:800;color:var(--ink)}
+  .hk-price-unit{font-size:11.5px;color:var(--muted)}
+
+  .status-select-wrap{display:inline-flex;align-items:center;gap:6px;
+    border:1px solid var(--line-2);border-radius:var(--r-pill);
+    padding:5px 8px 5px 10px;background:#fff;transition:border-color .15s;cursor:pointer}
+  .status-select-wrap:hover{border-color:#C8CACD}
+  .status-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+  .status-select{border:0;background:none;font-size:12px;font-weight:600;color:var(--ink-soft);
+    appearance:none;-webkit-appearance:none;outline:0;cursor:pointer;padding-right:2px}
+  .status-select-wrap svg{width:13px;height:13px;color:var(--muted)}
+
+  .empty-state{padding:40px 16px;text-align:center;color:var(--muted)}
+  .empty-state svg{width:36px;height:36px;margin:0 auto 10px;opacity:.4}
+  .empty-state p{font-size:13px;font-weight:500}
+  .skeleton{background:linear-gradient(90deg,#f0f0f0 25%,#e8e8e8 50%,#f0f0f0 75%);
+    background-size:200% 100%;animation:shimmer 1.4s infinite;border-radius:6px}
+  @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+  .fab{position:fixed;right:24px;bottom:24px;width:52px;height:52px;border-radius:50%;
+    background:linear-gradient(135deg,#8A6BFF,#6B45E0);color:#fff;
+    display:flex;align-items:center;justify-content:center;
+    box-shadow:0 8px 20px rgba(108,69,224,.4);transition:transform .15s,box-shadow .15s;z-index:50}
+  .fab svg{width:22px;height:22px}
+  .fab:hover{transform:translateY(-2px);box-shadow:0 12px 28px rgba(108,69,224,.5)}
+  .fab.open{transform:translateY(-2px) rotate(45deg)}
+
+  .chat-popup{position:fixed;right:24px;bottom:88px;width:360px;max-height:520px;
+    background:#fff;border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,.18);
+    display:none;flex-direction:column;overflow:hidden;z-index:49;
+    animation:chatIn .25s ease}
+  .chat-popup.open{display:flex}
+  @keyframes chatIn{from{opacity:0;transform:translateY(12px) scale(.96)}to{opacity:1;transform:translateY(0) scale(1)}}
+
+  .chat-head{display:flex;align-items:center;gap:10px;padding:14px 16px;
+    background:var(--charcoal);color:#fff}
+  .chat-head svg{width:18px;height:18px;opacity:.85}
+  .chat-head-title{flex:1;font-size:14px;font-weight:700}
+  .chat-head-close{width:28px;height:28px;border-radius:7px;display:flex;align-items:center;
+    justify-content:center;color:rgba(255,255,255,.7);cursor:pointer;transition:background .15s}
+  .chat-head-close:hover{background:rgba(255,255,255,.12);color:#fff}
+
+  .chat-body{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px;min-height:240px}
+  .chat-msg{max-width:85%;padding:10px 14px;border-radius:12px;font-size:13px;line-height:1.5}
+  .chat-msg.bot{align-self:flex-start;background:#F0F0F2;color:var(--ink);
+    border-bottom-left-radius:4px}
+  .chat-msg.user{align-self:flex-end;background:var(--purple-soft);color:var(--purple-ink);
+    border-bottom-right-radius:4px}
+  .chat-msg.time{font-size:10.5px;color:var(--muted);text-align:center;padding:4px 0}
+
+  .chat-foot{display:flex;align-items:center;gap:8px;padding:10px 14px;border-top:1px solid var(--line)}
+  .chat-foot input{flex:1;border:1px solid var(--line-2);border-radius:9px;padding:9px 12px;
+    font-size:13px;outline:0;transition:border-color .15s;font-family:inherit}
+  .chat-foot input:focus{border-color:var(--purple)}
+  .chat-foot button{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;
+    justify-content:center;background:var(--purple);color:#fff;cursor:pointer;
+    transition:background .15s;border:0}
+  .chat-foot button:hover{background:var(--purple-ink)}
+  .chat-foot button svg{width:16px;height:16px}
+
+  @media (max-width:480px){
+    .chat-popup{right:12px;left:12px;width:auto;bottom:80px;max-height:60vh}
+  }
+
+  @media (max-width:1100px){
+    .columns{grid-template-columns:1fr 1fr}
+    .col-hk{grid-column:1/-1}
+    .hk-list{max-height:none}
+  }
+  @media (max-width:900px){
+    .kpi-strip{grid-template-columns:1fr}
+    .date-card{flex-direction:row;align-items:center;gap:16px;min-width:auto}
+    .metrics-card{flex-wrap:wrap}
+    .kpi-grid{display:grid;grid-template-columns:repeat(5,1fr)}
+  }
+  @media (max-width:720px){
+    .columns{grid-template-columns:1fr}
+    .col-hk{grid-column:auto}
+    .fd-wrap{padding:0 16px}
+    .kpi-grid{grid-template-columns:repeat(3,1fr)}
+  }
+  @media (max-width:480px){
+    .kpi-grid{grid-template-columns:repeat(3,1fr)}
+    .hk-item{grid-template-columns:auto 1fr}
+    .hk-status-col{grid-column:1/-1}
+  }
+  @media (prefers-reduced-motion:reduce){
+    .fd-page *{animation:none!important;transition:none!important}
+  }
+</style>
+{% endblock extra_head %}
+
+{% block content %}
+<div class="fd-page">
+
+<!-- ══════════ ICON SPRITE ══════════ -->
+<svg width="0" height="0" style="position:absolute;overflow:hidden" aria-hidden="true">
+  <symbol id="ic-roof" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M3.2 11.5L12 4.2l8.8 7.3"/><path d="M17.5 8V5h2.2"/></symbol>
+  <symbol id="ic-bell" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></symbol>
+  <symbol id="ic-grid" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></symbol>
+  <symbol id="ic-cal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15" rx="2.2"/><path d="M3.5 9.2h17"/><path d="M8 3.2v3.4"/><path d="M16 3.2v3.4"/></symbol>
+  <symbol id="ic-users" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.1"/><path d="M3.4 19a5.6 5.6 0 0 1 11.2 0"/><path d="M16.2 5.4a3 3 0 0 1 0 5.8"/><path d="M16 13.4a5.6 5.6 0 0 1 4.6 5.6"/></symbol>
+  <symbol id="ic-listings" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6h11"/><path d="M9 12h11"/><path d="M9 18h11"/><circle cx="4.5" cy="6" r="1.1"/><circle cx="4.5" cy="12" r="1.1"/><circle cx="4.5" cy="18" r="1.1"/></symbol>
+  <symbol id="ic-task" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="5" width="14" height="16" rx="2.2"/><path d="M9 5V4.2A1.2 1.2 0 0 1 10.2 3h3.6A1.2 1.2 0 0 1 15 4.2V5"/><path d="M8.8 13.2l2 2 4.2-4.2"/></symbol>
+  <symbol id="ic-mail" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="6" width="17" height="12" rx="2.2"/><path d="M4.2 7.2l7.8 5.6 7.8-5.6"/></symbol>
+  <symbol id="ic-refresh" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 0 1 13.7-5.6"/><path d="M18 3.5V8h-4.5"/><path d="M20 12a8 8 0 0 1-13.7 5.6"/><path d="M6 20.5V16h4.5"/></symbol>
+  <symbol id="ic-chevl" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></symbol>
+  <symbol id="ic-chevr" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></symbol>
+  <symbol id="ic-chevd" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9.5l6 6 6-6"/></symbol>
+  <symbol id="ic-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M5 12h14"/></symbol>
+  <symbol id="ic-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="6.4"/><path d="M20 20l-4.2-4.2"/></symbol>
+  <symbol id="ic-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13"/><path d="M13 6l6 6-6 6"/></symbol>
+  <symbol id="ic-ext" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6"/><path d="M20 4l-8.5 8.5"/><path d="M18.5 13.5V18a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7.5a2 2 0 0 1 2-2h4.5"/></symbol>
+  <symbol id="ic-bed" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18v-6.2A2 2 0 0 1 5 9.8h14a2 2 0 0 1 2 2V18"/><path d="M3 14.2h18"/><path d="M7 9.8V8a1.2 1.2 0 0 1 1.2-1.2h3.3V9.8"/><path d="M3 18v2"/><path d="M21 18v2"/></symbol>
+  <symbol id="ic-user" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.2"/><path d="M5 20a7 7 0 0 1 14 0"/></symbol>
+  <symbol id="ic-paw" viewBox="0 0 24 24" fill="currentColor"><circle cx="6" cy="11" r="1.7"/><circle cx="10" cy="7.6" r="1.7"/><circle cx="14" cy="7.6" r="1.7"/><circle cx="18" cy="11" r="1.7"/><path d="M12 12.6c2.5 0 4.4 1.5 4.4 3.5S14.5 19.6 12 19.6 7.6 18.1 7.6 16.1 9.5 12.6 12 12.6z"/></symbol>
+  <symbol id="ic-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></symbol>
+  <symbol id="ic-chat" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 11.4a8 8 0 0 1-11.9 7L4 20l1.6-4.4A8 8 0 1 1 20.5 11.4z"/><circle cx="9" cy="11.5" r="1" fill="currentColor" stroke="none"/><circle cx="12.5" cy="11.5" r="1" fill="currentColor" stroke="none"/><circle cx="16" cy="11.5" r="1" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="ic-list" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h12"/><path d="M8 12h12"/><path d="M8 18h12"/><path d="M4 6h.01"/><path d="M4 12h.01"/><path d="M4 18h.01"/></symbol>
+  <symbol id="ic-dots" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="19" cy="12" r="1.7"/></symbol>
+  <symbol id="ic-home" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></symbol>
+</svg>
+
+<!-- ══════════ PAGE BODY ══════════ -->
+<div class="fd-body">
+  <div class="fd-wrap">
+
+    <!-- Page header + date nav -->
+    <div class="fd-page-header">
+      <div class="fd-ph-left">
+        <svg><use href="#ic-home"/></svg>
+        <span class="fd-ph-title">Frontdesk</span>
+      </div>
+      <div class="fd-ph-right">
+        <div class="date-nav">
+          <button class="date-nav-btn" id="btn-prev-day" aria-label="Previous day">
+            <svg width="15" height="15"><use href="#ic-chevl"/></svg>
+          </button>
+          <span class="date-display" id="date-display">{{ day_name }}, {{ day_num }} {{ month_name }}</span>
+          <button class="date-nav-btn" id="btn-next-day" aria-label="Next day">
+            <svg width="15" height="15"><use href="#ic-chevr"/></svg>
+          </button>
+          <input type="date" id="date-picker" class="date-picker-input" value="{{ date_iso }}">
+        </div>
+        <button class="fd-ph-refresh" id="btn-refresh" aria-label="Refresh data">
+          <svg width="17" height="17"><use href="#ic-refresh"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- KPI Strip -->
+    <section class="kpi-strip">
+
+      <div class="date-card">
+        <button class="dc-cal-btn" aria-label="Pick a date"><svg><use href="#ic-cal"/></svg></button>
+        <input type="date" class="dc-date-overlay" id="dc-date-overlay" value="{{ date_iso }}">
+        <div class="dc-dow" id="dc-dow">{{ day_name|upper }}</div>
+        <div class="dc-date">
+          <span class="dc-num" id="dc-num">{{ day_num }}</span>
+          <span class="dc-mon" id="dc-mon">{{ month_name }}</span>
+        </div>
+        <div class="dc-year" id="dc-year">{% now "Y" %}</div>
+      </div>
+
+      <div class="metrics-card">
+        <div class="occ-ring">
+          <svg width="92" height="92" viewBox="0 0 108 108" aria-hidden="true">
+            <circle cx="54" cy="54" r="44" fill="none" stroke="#ECEDEF" stroke-width="10"/>
+            <circle id="occ-arc" cx="54" cy="54" r="44" fill="none" stroke="#1FAE5A" stroke-width="10"
+                    stroke-linecap="round"
+                    stroke-dasharray="0 276.46"
+                    style="transition:stroke-dasharray .5s ease"/>
+          </svg>
+          <div class="occ-inner">
+            <b id="occ-pct">{{ occupancy_pct }}%</b>
+            <small>Occupancy</small>
+          </div>
+        </div>
+
+        <div class="kpi-grid">
+          <div class="kpi"><span class="kpi-val green" id="kpi-revpar">${{ revpar }}</span><span class="kpi-label">RevPAR</span></div>
+          <div class="kpi"><span class="kpi-val" id="kpi-inhouse">{{ total_inhouse }}</span><span class="kpi-label">In house</span></div>
+          <div class="kpi"><span class="kpi-val green" id="kpi-checkins">{{ total_checkin }}</span><span class="kpi-label">Check-ins</span></div>
+          <div class="kpi"><span class="kpi-val amber" id="kpi-checkouts">{{ total_checkout }}</span><span class="kpi-label">Check-outs</span></div>
+          <div class="kpi"><span class="kpi-val red" id="kpi-cancel">{{ total_cancellations }}</span><span class="kpi-label">Cancellations</span></div>
+          <div class="kpi"><span class="kpi-val" id="kpi-vacant">{{ total_vacant }}</span><span class="kpi-label">Vacant</span></div>
+          <div class="kpi"><span class="kpi-val purple" id="kpi-booked">{{ total_booked_today }}</span><span class="kpi-label">Booked today</span></div>
+          <div class="kpi"><span class="kpi-val amber" id="kpi-tasks">{{ total_tasks }}</span><span class="kpi-label">Tasks</span></div>
+          <div class="kpi"><span class="kpi-val" id="kpi-inquiries">{{ total_inquiries }}</span><span class="kpi-label">Inquiries</span></div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- Three-column section -->
+    <section class="columns">
+
+      <div class="col-card">
+        <div class="col-head">
+          <span class="col-title-pill pill-green">Check-ins <span class="count" id="ci-count">{{ total_checkin }}</span></span>
+          <label class="col-search" for="ci-search">
+            <svg><use href="#ic-search"/></svg>
+            <input type="search" id="ci-search" placeholder="Search guest…" autocomplete="off">
+          </label>
+          <a class="view-all" href="#">All <svg><use href="#ic-arrow"/></svg></a>
+        </div>
+        <ul class="guest-list" id="checkin-list">
+          {% for b in checkins %}
+          <li class="guest-item" data-name="{{ b.first_name }} {{ b.last_name }}" data-prop="{{ b.property.title }}">
+            <div class="g-thumb">
+              {% if b.property.get_primary_image_url %}
+              <img src="{{ b.property.get_primary_image_url }}" alt="{{ b.property.title }}" loading="lazy">
+              {% else %}
+              <svg><use href="#ic-bed"/></svg>
+              {% endif %}
+            </div>
+            <div class="g-info">
+              <div class="g-prop">{{ b.property.title|truncatechars:32 }}</div>
+              <div class="g-name">{{ b.first_name }} {{ b.last_name }}</div>
+              <div class="g-contact">{{ b.email }}</div>
+              {% if b.check_in_time %}
+              <div class="g-time"><svg><use href="#ic-clock"/></svg>{{ b.check_in_time }}</div>
+              {% endif %}
+            </div>
+            <a class="g-ext" href="#" aria-label="Open reservation"><svg><use href="#ic-ext"/></svg></a>
+          </li>
+          {% empty %}
+          <li>
+            <div class="empty-state">
+              <svg><use href="#ic-users"/></svg>
+              <p>No check-ins today</p>
+            </div>
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+
+      <div class="col-card">
+        <div class="col-head">
+          <span class="col-title-pill pill-red">Check-outs <span class="count" id="co-count">{{ total_checkout }}</span></span>
+          <label class="col-search" for="co-search">
+            <svg><use href="#ic-search"/></svg>
+            <input type="search" id="co-search" placeholder="Search guest…" autocomplete="off">
+          </label>
+          <a class="view-all" href="#">All <svg><use href="#ic-arrow"/></svg></a>
+        </div>
+        <ul class="guest-list" id="checkout-list">
+          {% for b in checkouts %}
+          <li class="guest-item" data-name="{{ b.first_name }} {{ b.last_name }}" data-prop="{{ b.property.title }}">
+            <div class="g-thumb">
+              {% if b.property.get_primary_image_url %}
+              <img src="{{ b.property.get_primary_image_url }}" alt="{{ b.property.title }}" loading="lazy">
+              {% else %}
+              <svg><use href="#ic-bed"/></svg>
+              {% endif %}
+            </div>
+            <div class="g-info">
+              <div class="g-prop">{{ b.property.title|truncatechars:32 }}</div>
+              <div class="g-name">{{ b.first_name }} {{ b.last_name }}</div>
+              <div class="g-contact">{{ b.email }}</div>
+              {% if b.check_out_time %}
+              <div class="g-time"><svg><use href="#ic-clock"/></svg>{{ b.check_out_time }}</div>
+              {% endif %}
+            </div>
+            <a class="g-ext" href="#" aria-label="Open reservation"><svg><use href="#ic-ext"/></svg></a>
+          </li>
+          {% empty %}
+          <li>
+            <div class="empty-state">
+              <svg><use href="#ic-users"/></svg>
+              <p>No check-outs today</p>
+            </div>
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+
+      <div class="col-card col-hk">
+        <div class="col-head">
+          <span class="col-title-pill pill-purple">Housekeeping</span>
+          <div class="col-tools">
+            <button class="tool-btn active" aria-label="List view"><svg><use href="#ic-list"/></svg></button>
+          </div>
+        </div>
+        <ul class="hk-list" id="hk-list">
+          {% for h in housekeeping %}
+          <li class="hk-item">
+            <div class="hk-thumb-wrap">
+              <div class="hk-thumb">
+                {% if h.image_url %}
+                <img src="{{ h.image_url }}" alt="{{ h.title }}" loading="lazy">
+                {% else %}
+                <svg><use href="#ic-bed"/></svg>
+                {% endif %}
+              </div>
+              <span class="avail-badge {% if h.available %}ok{% else %}no{% endif %}">
+                {% if h.available %}Available{% else %}Not available{% endif %}
+              </span>
+            </div>
+            <div class="hk-info">
+              <div class="hk-title">{{ h.title }}</div>
+              <div class="hk-meta">
+                <span class="hk-meta-item"><svg><use href="#ic-user"/></svg>{{ h.guest_max }} guests</span>
+                {% if h.bed_type %}<span class="hk-meta-item"><svg><use href="#ic-bed"/></svg>{{ h.bed_type }}</span>{% endif %}
+                {% if h.pet_friendly %}<span class="hk-meta-item"><svg><use href="#ic-paw"/></svg>Pet friendly</span>{% endif %}
+              </div>
+              <div class="hk-price">
+                <span class="hk-price-val">${{ h.price }}</span>
+                <span class="hk-price-unit">/ night</span>
+              </div>
+            </div>
+            <div class="hk-status-col">
+              <span class="status-select-wrap">
+                <i class="status-dot" data-status="{{ h.status }}"></i>
+                <select class="status-select" aria-label="Housekeeping status for {{ h.title }}">
+                  {% for opt in "Dirty,In-Progress,Clean-Uninspected,Clean-Inspected,Clean-Ready,Out-of-Service"|split:"," %}
+                  <option {% if opt == h.status %}selected{% endif %}>{{ opt }}</option>
+                  {% endfor %}
+                </select>
+                <svg width="13" height="13"><use href="#ic-chevd"/></svg>
+              </span>
+            </div>
+          </li>
+          {% empty %}
+          <li>
+            <div class="empty-state">
+              <svg><use href="#ic-home"/></svg>
+              <p>No active properties</p>
+            </div>
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+
+    </section>
+  </div>
+</div>
+
+<!-- FAB -->
+<button class="fab" id="chat-fab" aria-label="Open chat support"><svg><use href="#ic-chat"/></svg></button>
+
+<!-- Chat popup -->
+<div class="chat-popup" id="chat-popup">
+  <div class="chat-head">
+    <svg><use href="#ic-chat"/></svg>
+    <span class="chat-head-title">Chat Support</span>
+    <button class="chat-head-close" id="chat-close" aria-label="Close chat">&times;</button>
+  </div>
+  <div class="chat-body" id="chat-body">
+    <div class="chat-msg time">Today</div>
+    <div class="chat-msg bot">Hi there! 👋 How can we help you today?</div>
+    <div class="chat-msg bot">Feel free to ask about reservations, bookings, or anything else.</div>
+  </div>
+  <div class="chat-foot">
+    <input type="text" id="chat-input" placeholder="Type a message…" disabled>
+    <button disabled><svg><use href="#ic-arrow"/></svg></button>
+  </div>
+</div>
+
+{% include 'frontend/base/footer.html' %}
+</div><!-- .fd-page -->
+{% endblock content %}
+
+{% block extra_script %}
+<script>
+(function(){
+  'use strict';
+
+  const API = {
+    summary:      '{% url "frontdesk:api-summary" %}',
+    checkins:     '{% url "frontdesk:api-checkins" %}',
+    checkouts:    '{% url "frontdesk:api-checkouts" %}',
+    housekeeping: '{% url "frontdesk:api-housekeeping" %}',
+  };
+
+  let currentDate = new Date('{{ date_iso }}');
+  let isLoading = false;
+
+  const btnPrev    = document.getElementById('btn-prev-day');
+  const btnNext    = document.getElementById('btn-next-day');
+  const btnToday   = document.getElementById('btn-today');
+  const btnRefresh = document.getElementById('btn-refresh');
+  const dateDisp   = document.getElementById('date-display');
+  const datePicker = document.getElementById('date-picker');
+
+  function fmtISO(d){ return d.toISOString().slice(0,10); }
+  function fmtLabel(d){
+    const days  = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    const months= ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    return `${days[d.getDay()]}, ${d.getDate()} ${months[d.getMonth()]}`;
+  }
+  function fmtDow(d){
+    const days=['SUN','MON','TUE','WED','THU','FRI','SAT'];
+    return days[d.getDay()];
+  }
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+  function escHTML(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+  function updateDonut(pct){
+    const CIRC = 2 * Math.PI * 44;
+    const fill = (pct / 100) * CIRC;
+    const arc  = document.getElementById('occ-arc');
+    if(!arc) return;
+    const color = pct >= 80 ? '#E5484D' : pct >= 50 ? '#F59E0B' : '#1FAE5A';
+    arc.style.stroke = color;
+    arc.setAttribute('stroke-dasharray', `${fill.toFixed(2)} ${(CIRC - fill).toFixed(2)}`);
+  }
+
+  function dotColor(status){
+    const s = (status||'').toLowerCase();
+    if(s.includes('dirty'))          return '#E5484D';
+    if(s.includes('progress'))       return '#F59E0B';
+    if(s.includes('out-of-service')) return '#9AA1AC';
+    return '#1FAE5A';
+  }
+
+  function applyDots(){
+    document.querySelectorAll('.status-dot[data-status]').forEach(dot => {
+      dot.style.background = dotColor(dot.dataset.status);
+    });
+    document.querySelectorAll('.status-select').forEach(sel => {
+      const dot = sel.closest('.status-select-wrap').querySelector('.status-dot');
+      if(dot){ dot.style.background = dotColor(sel.value); dot.dataset.status = sel.value; }
+      sel.addEventListener('change', function(){
+        const d = this.closest('.status-select-wrap').querySelector('.status-dot');
+        if(d){ d.style.background = dotColor(this.value); d.dataset.status = this.value; }
+      });
+    });
+  }
+
+  function renderGuest(b, timeKey){
+    const img = b.image_url
+      ? `<img src="${escHTML(b.image_url)}" alt="" loading="lazy">`
+      : `<svg><use href="#ic-bed"/></svg>`;
+    const time = b[timeKey] ? `<div class="g-time"><svg><use href="#ic-clock"/></svg>${escHTML(b[timeKey])}</div>` : '';
+    return `
+      <li class="guest-item" data-name="${escHTML(b.guest_name)}" data-prop="${escHTML(b.property_title)}">
+        <div class="g-thumb">${img}</div>
+        <div class="g-info">
+          <div class="g-prop">${escHTML(b.property_title.substring(0,32))}</div>
+          <div class="g-name">${escHTML(b.guest_name)}</div>
+          <div class="g-contact">${escHTML(b.email)}</div>
+          ${time}
+        </div>
+        <a class="g-ext" href="#" aria-label="Open reservation"><svg><use href="#ic-ext"/></svg></a>
+      </li>`;
+  }
+
+  function emptyState(icon, msg){
+    return `<li><div class="empty-state"><svg><use href="#${icon}"/></svg><p>${msg}</p></div></li>`;
+  }
+
+  const HK_OPTS = ['Dirty','In-Progress','Clean-Uninspected','Clean-Inspected','Clean-Ready','Out-of-Service'];
+  function renderHKItem(h){
+    const img = h.image_url
+      ? `<img src="${escHTML(h.image_url)}" alt="" loading="lazy">`
+      : `<svg><use href="#ic-bed"/></svg>`;
+    const availClass = h.available ? 'ok' : 'no';
+    const availText  = h.available ? 'Available' : 'Not available';
+    const petBadge   = h.pet_friendly ? `<span class="hk-meta-item"><svg><use href="#ic-paw"/></svg>Pet friendly</span>` : '';
+    const bedBadge   = h.bed_type ? `<span class="hk-meta-item"><svg><use href="#ic-bed"/></svg>${escHTML(h.bed_type)}</span>` : '';
+    const opts = HK_OPTS.map(o => `<option${o===h.status?' selected':''}>${o}</option>`).join('');
+    return `
+      <li class="hk-item">
+        <div class="hk-thumb-wrap">
+          <div class="hk-thumb">${img}</div>
+          <span class="avail-badge ${availClass}">${availText}</span>
+        </div>
+        <div class="hk-info">
+          <div class="hk-title">${escHTML(h.title)}</div>
+          <div class="hk-meta">
+            <span class="hk-meta-item"><svg><use href="#ic-user"/></svg>${escHTML(String(h.guest_max))} guests</span>
+            ${bedBadge}${petBadge}
+          </div>
+          <div class="hk-price">
+            <span class="hk-price-val">$${h.price.toFixed(2)}</span>
+            <span class="hk-price-unit">/ night</span>
+          </div>
+        </div>
+        <div class="hk-status-col">
+          <span class="status-select-wrap">
+            <i class="status-dot" data-status="${escHTML(h.status)}"></i>
+            <select class="status-select" aria-label="Housekeeping status">${opts}</select>
+            <svg width="13" height="13"><use href="#ic-chevd"/></svg>
+          </span>
+        </div>
+      </li>`;
+  }
+
+  async function loadAll(dateISO){
+    if(isLoading) return;
+    isLoading = true;
+    btnRefresh.classList.add('spinning');
+
+    try {
+      const qs = `?date=${dateISO}`;
+      const [sum, ci, co, hk] = await Promise.all([
+        fetch(API.summary      + qs).then(r => r.json()),
+        fetch(API.checkins     + qs).then(r => r.json()),
+        fetch(API.checkouts    + qs).then(r => r.json()),
+        fetch(API.housekeeping + qs).then(r => r.json()),
+      ]);
+
+      document.getElementById('occ-pct').textContent         = sum.occupancy_pct + '%';
+      document.getElementById('kpi-revpar').textContent      = '$' + sum.revpar;
+      document.getElementById('kpi-inhouse').textContent     = sum.total_inhouse;
+      document.getElementById('kpi-checkins').textContent    = sum.total_checkin;
+      document.getElementById('kpi-checkouts').textContent   = sum.total_checkout;
+      document.getElementById('kpi-cancel').textContent      = sum.total_cancellations;
+      document.getElementById('kpi-vacant').textContent      = sum.total_vacant;
+      document.getElementById('kpi-booked').textContent      = sum.total_booked_today;
+      document.getElementById('kpi-tasks').textContent       = sum.total_tasks;
+      document.getElementById('kpi-inquiries').textContent   = sum.total_inquiries;
+      var eb = document.getElementById('nav-enquiries-badge'); if(eb) eb.textContent = sum.total_inquiries;
+      document.getElementById('ci-count').textContent        = sum.total_checkin;
+      document.getElementById('co-count').textContent        = sum.total_checkout;
+      updateDonut(sum.occupancy_pct);
+
+      document.getElementById('dc-dow').textContent = sum.day_name.toUpperCase();
+      document.getElementById('dc-num').textContent = sum.day_num;
+      document.getElementById('dc-mon').textContent = sum.month_name;
+
+      const ciList = document.getElementById('checkin-list');
+      ciList.innerHTML = ci.data.length
+        ? ci.data.map(b => renderGuest(b, 'check_in_time')).join('')
+        : emptyState('ic-users','No check-ins on this date');
+
+      const coList = document.getElementById('checkout-list');
+      coList.innerHTML = co.data.length
+        ? co.data.map(b => renderGuest(b, 'check_out_time')).join('')
+        : emptyState('ic-users','No check-outs on this date');
+
+      const hkList = document.getElementById('hk-list');
+      hkList.innerHTML = hk.data.length
+        ? hk.data.map(renderHKItem).join('')
+        : emptyState('ic-home','No active properties');
+
+      applyDots();
+      attachSearch();
+
+    } catch(err) {
+      console.error('Frontdesk fetch error:', err);
+    } finally {
+      isLoading = false;
+      btnRefresh.classList.remove('spinning');
+    }
+  }
+
+  function setDate(d){
+    currentDate = d;
+    const iso = fmtISO(d);
+    dateDisp.textContent = fmtLabel(d);
+    datePicker.value = iso;
+    window.history.replaceState(null,'', '?date=' + iso);
+    loadAll(iso);
+  }
+
+  btnPrev.addEventListener('click', () => {
+    const d = new Date(currentDate); d.setDate(d.getDate()-1); setDate(d);
+  });
+  btnNext.addEventListener('click', () => {
+    const d = new Date(currentDate); d.setDate(d.getDate()+1); setDate(d);
+  });
+  btnToday.addEventListener('click', () => setDate(new Date()));
+  btnRefresh.addEventListener('click', () => loadAll(fmtISO(currentDate)));
+
+  datePicker.addEventListener('change', function(){
+    if(this.value){ setDate(new Date(this.value + 'T12:00:00')); }
+  });
+  document.querySelector('.date-display') && (dateDisp.style.cursor='pointer');
+  dateDisp.addEventListener('click', () => datePicker.showPicker && datePicker.showPicker());
+
+  var dcDateOverlay = document.getElementById('dc-date-overlay');
+  if(dcDateOverlay) dcDateOverlay.addEventListener('change', function(){
+    if(this.value){ window.location.href = '?date=' + this.value; }
+  });
+
+  function attachSearch(){
+    function filterList(inputId, listId){
+      const inp = document.getElementById(inputId);
+      if(!inp) return;
+      inp.addEventListener('input', function(){
+        const q = this.value.toLowerCase();
+        document.querySelectorAll(`#${listId} .guest-item`).forEach(li => {
+          const name = (li.dataset.name||'').toLowerCase();
+          const prop = (li.dataset.prop||'').toLowerCase();
+          li.style.display = (name.includes(q) || prop.includes(q)) ? '' : 'none';
+        });
+      });
+    }
+    filterList('ci-search','checkin-list');
+    filterList('co-search','checkout-list');
+  }
+
+  updateDonut(parseFloat('{{ occupancy_pct }}') || 0);
+  applyDots();
+  attachSearch();
+
+  setInterval(() => loadAll(fmtISO(currentDate)), 5 * 60 * 1000);
+
+  /* ── Chat popup toggle ── */
+  var fabBtn = document.getElementById('chat-fab');
+  var chatPopup = document.getElementById('chat-popup');
+  var chatClose = document.getElementById('chat-close');
+  if(fabBtn && chatPopup){
+    fabBtn.addEventListener('click', function(e){
+      e.stopPropagation();
+      var open = chatPopup.classList.toggle('open');
+      fabBtn.classList.toggle('open', open);
+    });
+    chatClose.addEventListener('click', function(e){
+      e.stopPropagation();
+      chatPopup.classList.remove('open');
+      fabBtn.classList.remove('open');
+    });
+    document.addEventListener('click', function(e){
+      if(chatPopup.classList.contains('open') && !chatPopup.contains(e.target) && e.target !== fabBtn && !fabBtn.contains(e.target)){
+        chatPopup.classList.remove('open');
+        fabBtn.classList.remove('open');
+      }
+    });
+  }
+
+})();
+</script>
+{% endblock extra_script %}
