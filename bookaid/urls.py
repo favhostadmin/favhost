@@ -43,6 +43,7 @@ urlpatterns = [
     path('accounts/', include('accounts.urls')),
 
     path('dashboard/',HostDashboardAPIView.as_view(), name='dashboard'),
+    path('revenue/',RevenueByListingView.as_view(), name='revenue-by-listing'),
     path('property/', include(('property.urls', 'property'), namespace='property')),
     path('booking/', include(('booking.urls', 'booking'), namespace='booking')),
     path('tasks/', include(('tasks.urls', 'tasks'), namespace='tasks')),
