@@ -10,7 +10,7 @@ import datetime
 import calendar
 from collections import defaultdict
 
-from booking.models import Booking, BookingChannel, Payment, Enquiry
+from booking.models import Booking, BookingChannel, Payment, Enquiry, Expense
 from property.models import Property, PropertyChannel, PropertyBlockDate
 from tasks.models import Task
 from django.db.models import Sum, Count
@@ -1584,3 +1584,380 @@ class WebsiteTermsView(TemplateView):
 
 class WebsitePrivacyView(TemplateView):
     template_name = 'frontend/website/privacy-policy.html'
+
+
+# --------------------------------------------------------------------------- #
+# Accounting & expense tracking
+# --------------------------------------------------------------------------- #
+class AccountingView(LoginRequiredMixin, TemplateView):
+    """Accounting & expense tracking — income, expenses and profit for a year.
+
+    Income is intentionally computed the SAME way as the rest of the platform
+    (Dashboard): the sum of *paid* Payments, by the month of their expected
+    payment date, excluding refundable-deposit / refund types. This keeps the
+    Accounting figures consistent with the Dashboard and Revenue cards.
+
+    Expenses come from the Expense model (host-recorded). Everything is stored
+    in USD (the canonical base) and rendered in the viewer's display currency
+    via the {% money %} tag. Profit = income - expenses, per month.
+    """
+    template_name = 'frontend/accounting/accounting.html'
+
+    MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
+    # Payment types that are not real income (mirrors Dashboard / Revenue).
+    EXCLUDED_PAYMENT_TYPES = ['Refundable deposit', 'Refundable to guest']
+
+    def get(self, request, *args, **kwargs):
+        if request.GET.get('export') == 'xlsx':
+            return self._export_xlsx(request)
+        return super().get(request, *args, **kwargs)
+
+    def _resolve_year(self, user_ids):
+        current_year = timezone.now().year
+        # Years drawn from both booking activity and recorded expenses.
+        booking_years = set(
+            Payment.objects
+            .filter(booking__property__created_by__in=user_ids, is_paid=True)
+            .exclude(type__in=self.EXCLUDED_PAYMENT_TYPES)
+            .values_list('expected_payment_date__year', flat=True)
+        )
+        expense_years = set(
+            Expense.objects.filter(created_by__in=user_ids)
+            .values_list('date__year', flat=True)
+        )
+        years = sorted(y for y in (booking_years | expense_years) if y)
+        if current_year not in years:
+            years = sorted(set(years) | {current_year})
+
+        try:
+            selected_year = int(self.request.GET.get('year') or current_year)
+        except (TypeError, ValueError):
+            selected_year = current_year
+        if selected_year not in years:
+            selected_year = current_year
+        return current_year, selected_year, years
+
+    def _build_report(self, user_ids, selected_year):
+        """Return the computed income/expense/profit structure for a year."""
+        properties = list(
+            Property.objects.filter(created_by__in=user_ids).order_by('title')
+        )
+        prop_index = {p.id: i for i, p in enumerate(properties)}
+
+        # ---- Income: paid payments by property, by expected-payment month ----
+        income_by_prop = [[0.0] * 12 for _ in properties]
+        payments = (
+            Payment.objects
+            .filter(
+                booking__property__created_by__in=user_ids,
+                is_paid=True,
+                expected_payment_date__year=selected_year,
+            )
+            .exclude(type__in=self.EXCLUDED_PAYMENT_TYPES)
+            .values_list('booking__property_id', 'expected_payment_date__month', 'amount')
+        )
+        for prop_id, month, amount in payments:
+            idx = prop_index.get(prop_id)
+            if idx is None or not month:
+                continue
+            income_by_prop[idx][month - 1] += float(amount or 0)
+
+        income_total = [sum(col) for col in zip(*income_by_prop)] if properties else [0.0] * 12
+        num_props = len(properties) or 1
+        revpar = [round(income_total[m] / num_props, 2) for m in range(12)]
+
+        income_rows = [{
+            'label': p.title,
+            'values': income_by_prop[i],
+            'overall': sum(income_by_prop[i]),
+        } for i, p in enumerate(properties)]
+
+        # ---- Expenses: by category, by month ----
+        categories = [c[0] for c in Expense.CATEGORY_CHOICES]
+        expense_by_cat = {c: [0.0] * 12 for c in categories}
+        for category, month, amount in (
+            Expense.objects
+            .filter(created_by__in=user_ids, date__year=selected_year)
+            .values_list('category', 'date__month', 'amount')
+        ):
+            if not month:
+                continue
+            bucket = expense_by_cat.setdefault(category, [0.0] * 12)
+            bucket[month - 1] += float(amount or 0)
+
+        expense_rows = [{
+            'label': c,
+            'values': expense_by_cat[c],
+            'overall': sum(expense_by_cat[c]),
+        } for c in categories]
+        expense_total = [sum(expense_by_cat[c][m] for c in categories) for m in range(12)]
+
+        # ---- Profit = income - expenses ----
+        net_profit = [income_total[m] - expense_total[m] for m in range(12)]
+
+        # ---- Profit-by-month bar chart (heights relative to peak magnitude) ----
+        # The single highest-profit month is highlighted blue (mirrors the
+        # Revenue page's peak-month styling); loss months render red.
+        peak = max((abs(v) for v in net_profit), default=0)
+        max_profit = max(net_profit) if net_profit else 0
+        bar_cols = [{
+            'label': self.MONTH_LABELS[m],
+            'value': net_profit[m],
+            'height': round(abs(net_profit[m]) / peak * 100, 1) if peak > 0 else 0,
+            'negative': net_profit[m] < 0,
+            'highlight': max_profit > 0 and net_profit[m] == max_profit,
+        } for m in range(12)]
+
+        return {
+            'properties': properties,
+            'income_rows': income_rows,
+            'income_total': income_total,
+            'income_overall': sum(income_total),
+            'revpar': revpar,
+            'revpar_overall': round(sum(income_total) / num_props, 2),
+            'expense_rows': expense_rows,
+            'expense_total': expense_total,
+            'expense_overall': sum(expense_total),
+            'net_profit': net_profit,
+            'net_profit_overall': sum(net_profit),
+            'bar_cols': bar_cols,
+        }
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        user_ids = get_visible_user_ids(self.request.user)
+        current_year, selected_year, years = self._resolve_year(user_ids)
+
+        report = self._build_report(user_ids, selected_year)
+
+        # ---- Sidebar: recent expenses for the selected year ----
+        recent_expenses = (
+            Expense.objects
+            .filter(created_by__in=user_ids, date__year=selected_year)
+            .select_related('property')
+        )
+
+        context.update(report)
+        context.update({
+            'month_labels': self.MONTH_LABELS,
+            'current_year': current_year,
+            'selected_year': selected_year,
+            'total_years': years,
+            'recent_expenses': recent_expenses,
+            'expense_categories': [c[0] for c in Expense.CATEGORY_CHOICES],
+            'listings': [{'id': str(p.id), 'title': p.title} for p in report['properties']],
+            'has_listings': bool(report['properties']),
+        })
+        return context
+
+    def _export_xlsx(self, request):
+        """Styled .xlsx of the income / expenses / profit ledger for the year."""
+        import io
+        from openpyxl import Workbook
+        from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+        from openpyxl.utils import get_column_letter
+        from accounts import currency as cur
+
+        user_ids = get_visible_user_ids(request.user)
+        _, selected_year, _ = self._resolve_year(user_ids)
+        report = self._build_report(user_ids, selected_year)
+        code = (getattr(request.user, 'currency', None) or cur.BASE_CURRENCY).upper()
+        symbol = cur.symbol_for(code)
+        months = self.MONTH_LABELS
+        ncols = 1 + 12 + 1
+
+        title_font = Font(bold=True, size=14, color='313131')
+        meta_label_font = Font(bold=True, color='6B7280')
+        section_font = Font(bold=True, color='FFFFFF')
+        section_fill = PatternFill('solid', fgColor='1E3A8A')
+        header_font = Font(bold=True, color='111827')
+        header_fill = PatternFill('solid', fgColor='F3F6FB')
+        overall_fill = PatternFill('solid', fgColor='EEF2FF')
+        label_font = Font(bold=True, color='1F2937')
+        total_font = Font(bold=True, color='111827')
+        MONEY_FMT = '#,##0.00'
+        thin = Side(style='thin', color='E5E7EB')
+        border = Border(left=thin, right=thin, top=thin, bottom=thin)
+
+        wb = Workbook()
+        ws = wb.active
+        ws.title = 'Accounting'
+
+        r = 1
+        ws.cell(r, 1, 'FavHost - Accounting & Expense Tracking').font = title_font
+        r += 1
+        try:
+            generated = timezone.localtime(timezone.now()).strftime('%Y-%m-%d %H:%M')
+        except Exception:
+            generated = timezone.now().strftime('%Y-%m-%d %H:%M')
+        for label, val in [('Year', selected_year), ('Currency', f'{code} ({symbol})'), ('Generated', generated)]:
+            ws.cell(r, 1, label).font = meta_label_font
+            ws.cell(r, 2, val)
+            r += 1
+        r += 1
+
+        def money_cell(row_i, col_i, usd):
+            c = ws.cell(row_i, col_i)
+            c.value = float(cur.money_raw(usd, code))
+            c.number_format = MONEY_FMT
+            c.border = border
+            c.alignment = Alignment(horizontal='right')
+            return c
+
+        def section_header(title):
+            nonlocal r
+            ws.merge_cells(start_row=r, start_column=1, end_row=r, end_column=ncols)
+            tc = ws.cell(r, 1, title)
+            tc.font = section_font
+            tc.fill = section_fill
+            tc.alignment = Alignment(horizontal='center')
+            r += 1
+            for i, h in enumerate(['' ] + months + ['Overall'], start=1):
+                hc = ws.cell(r, i, h)
+                hc.font = header_font
+                hc.fill = overall_fill if h == 'Overall' else header_fill
+                hc.border = border
+                hc.alignment = Alignment(horizontal='left' if i == 1 else 'center')
+            r += 1
+
+        def data_row(label, values, overall, bold=False):
+            nonlocal r
+            lc = ws.cell(r, 1, label)
+            lc.font = total_font if bold else label_font
+            lc.border = border
+            for i, v in enumerate(list(values), start=2):
+                money_cell(r, i, v)
+            oc = money_cell(r, ncols, overall)
+            oc.fill = overall_fill
+            if bold:
+                oc.font = total_font
+            r += 1
+
+        section_header('Income')
+        for row in report['income_rows']:
+            data_row(row['label'], row['values'], row['overall'])
+        data_row('Total', report['income_total'], report['income_overall'], bold=True)
+        data_row('RevPAR', report['revpar'], report['revpar_overall'])
+        r += 1
+
+        section_header('Expenses')
+        for row in report['expense_rows']:
+            data_row(row['label'], row['values'], row['overall'])
+        data_row('Total', report['expense_total'], report['expense_overall'], bold=True)
+        r += 1
+
+        section_header('Profit')
+        data_row('Net Profit', report['net_profit'], report['net_profit_overall'], bold=True)
+
+        ws.column_dimensions['A'].width = 24
+        for i in range(2, ncols):
+            ws.column_dimensions[get_column_letter(i)].width = 11
+        ws.column_dimensions[get_column_letter(ncols)].width = 12
+
+        buf = io.BytesIO()
+        wb.save(buf)
+        buf.seek(0)
+        response = HttpResponse(
+            buf.getvalue(),
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        )
+        response['Content-Disposition'] = f'attachment; filename="accounting_{selected_year}.xlsx"'
+        return response
+
+
+def _parse_expense_amount_to_usd(request, raw_amount):
+    """Convert a host-entered amount (display currency) to the USD base."""
+    from accounts import currency as cur
+    code = (getattr(request.user, 'currency', None) or cur.BASE_CURRENCY).upper()
+    return cur.to_usd(raw_amount or 0, code)
+
+
+def _redirect_to_accounting(request):
+    """Return to the accounting page, preserving the selected year."""
+    year = request.POST.get('year') or request.GET.get('year')
+    url = '/accounting/'
+    if year:
+        url = f'{url}?year={year}'
+    return redirect(url)
+
+
+@login_required
+@require_POST
+def add_expense(request):
+    user_ids = get_visible_user_ids(request.user)
+    category = request.POST.get('category') or 'Other expenses'
+    date_str = request.POST.get('date')
+    note = request.POST.get('note') or ''
+    property_id = request.POST.get('property')
+
+    if not date_str:
+        messages.error(request, 'Please provide a date for the expense.')
+        return _redirect_to_accounting(request)
+
+    try:
+        amount_usd = _parse_expense_amount_to_usd(request, request.POST.get('amount'))
+    except Exception:
+        messages.error(request, 'Please enter a valid amount.')
+        return _redirect_to_accounting(request)
+
+    prop = None
+    if property_id:
+        prop = Property.objects.filter(id=property_id, created_by__in=user_ids).first()
+
+    Expense.objects.create(
+        created_by=request.user,
+        property=prop,
+        category=category,
+        amount=amount_usd,
+        date=date_str,
+        note=note,
+        attachment=request.FILES.get('attachment'),
+    )
+    messages.success(request, 'Expense added successfully.')
+    return _redirect_to_accounting(request)
+
+
+@login_required
+@require_POST
+def edit_expense(request, pk):
+    user_ids = get_visible_user_ids(request.user)
+    expense = get_object_or_404(Expense, pk=pk, created_by__in=user_ids)
+
+    expense.category = request.POST.get('category') or expense.category
+    date_str = request.POST.get('date')
+    if date_str:
+        expense.date = date_str
+    expense.note = request.POST.get('note') or ''
+
+    amount_raw = request.POST.get('amount')
+    if amount_raw not in (None, ''):
+        try:
+            expense.amount = _parse_expense_amount_to_usd(request, amount_raw)
+        except Exception:
+            messages.error(request, 'Please enter a valid amount.')
+            return _redirect_to_accounting(request)
+
+    property_id = request.POST.get('property')
+    if property_id:
+        expense.property = Property.objects.filter(id=property_id, created_by__in=user_ids).first()
+    else:
+        expense.property = None
+
+    if request.FILES.get('attachment'):
+        expense.attachment = request.FILES['attachment']
+
+    expense.save()
+    messages.success(request, 'Expense updated successfully.')
+    return _redirect_to_accounting(request)
+
+
+@login_required
+@require_POST
+def delete_expense(request, pk):
+    user_ids = get_visible_user_ids(request.user)
+    expense = get_object_or_404(Expense, pk=pk, created_by__in=user_ids)
+    expense.delete()
+    messages.success(request, 'Expense deleted successfully.')
+    return _redirect_to_accounting(request)
