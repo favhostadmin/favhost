@@ -592,15 +592,18 @@ class RevenueByListingView(LoginRequiredMixin, TemplateView):
 
         ncols = 1 + 12 + 1  # Metric/Channel + 12 months + Overall
 
-        # --- Styles (mirror the on-screen table palette) ---
-        title_font = Font(bold=True, size=14, color='313131')
+        # --- Styles (mirror the updated on-screen palette: brand orange
+        #     accents, charcoal section bands, warm-orange overall cells) ---
+        title_font = Font(bold=True, size=14, color='EB5310')
         meta_label_font = Font(bold=True, color='6B7280')
-        section_font = Font(bold=True, color='1E3A8A')
-        section_fill = PatternFill('solid', fgColor='D6E4FF')
-        header_font = Font(bold=True, color='111827')
-        header_fill = PatternFill('solid', fgColor='F3F6FB')
-        overall_fill = PatternFill('solid', fgColor='EAF1FF')
-        metric_font = Font(bold=True, color='B91C1C')
+        section_font = Font(bold=True, color='FFFFFF')
+        section_fill = PatternFill('solid', fgColor='313131')
+        header_font = Font(bold=True, color='1A1A1A')
+        header_fill = PatternFill('solid', fgColor='FAF7F5')
+        overall_fill = PatternFill('solid', fgColor='FFF3EC')
+        overall_font = Font(bold=True, color='C2410C')
+        metric_font = Font(bold=True, color='1A1A1A')
+        metric_fill = PatternFill('solid', fgColor='FAF7F5')
         empty_font = Font(italic=True, color='6B7280')
         thin = Side(style='thin', color='E5E7EB')
         border = Border(left=thin, right=thin, top=thin, bottom=thin)
@@ -630,7 +633,7 @@ class RevenueByListingView(LoginRequiredMixin, TemplateView):
             r += 1
             for i, h in enumerate([first_header] + months + ['Overall'], start=1):
                 hc = ws.cell(r, i, h)
-                hc.font = header_font
+                hc.font = overall_font if h == 'Overall' else header_font
                 hc.fill = overall_fill if h == 'Overall' else header_fill
                 hc.border = border
                 hc.alignment = Alignment(horizontal='left' if i == 1 else 'center')
@@ -639,6 +642,7 @@ class RevenueByListingView(LoginRequiredMixin, TemplateView):
                 for row in rows:
                     lc = ws.cell(r, 1, row['label'].replace(' $', ''))
                     lc.font = metric_font
+                    lc.fill = metric_fill
                     lc.border = border
                     for i, v in enumerate(list(row['values']) + [row['overall']], start=2):
                         cell = ws.cell(r, i)
@@ -654,6 +658,7 @@ class RevenueByListingView(LoginRequiredMixin, TemplateView):
                         cell.alignment = Alignment(horizontal='right')
                         if i == ncols:
                             cell.fill = overall_fill
+                            cell.font = overall_font
                     r += 1
             elif empty_message:
                 ws.merge_cells(start_row=r, start_column=1, end_row=r, end_column=ncols)
@@ -738,11 +743,14 @@ class RevenueByListingView(LoginRequiredMixin, TemplateView):
         if selected_year not in years:
             selected_year = current_year
 
+        _yidx = years.index(selected_year) if selected_year in years else -1
         context.update({
             'listings': listings,
             'selected_property': {'id': str(selected.id), 'title': selected.title} if selected else None,
             'total_years': years,
             'selected_year': selected_year,
+            'year_prev': years[_yidx - 1] if _yidx > 0 else None,
+            'year_next': years[_yidx + 1] if 0 <= _yidx < len(years) - 1 else None,
             'current_year': current_year,
             'month_labels': self.MONTH_LABELS,
         })
@@ -1610,8 +1618,11 @@ class AccountingView(LoginRequiredMixin, TemplateView):
     EXCLUDED_PAYMENT_TYPES = ['Refundable deposit', 'Refundable to guest']
 
     def get(self, request, *args, **kwargs):
-        if request.GET.get('export') == 'xlsx':
+        export = request.GET.get('export')
+        if export == 'xlsx':
             return self._export_xlsx(request)
+        if export == 'csv':
+            return self._export_csv(request)
         return super().get(request, *args, **kwargs)
 
     def _resolve_year(self, user_ids):
@@ -1739,18 +1750,79 @@ class AccountingView(LoginRequiredMixin, TemplateView):
             .select_related('property')
         )
 
+        _yidx = years.index(selected_year) if selected_year in years else -1
         context.update(report)
         context.update({
             'month_labels': self.MONTH_LABELS,
             'current_year': current_year,
             'selected_year': selected_year,
             'total_years': years,
+            'year_prev': years[_yidx - 1] if _yidx > 0 else None,
+            'year_next': years[_yidx + 1] if 0 <= _yidx < len(years) - 1 else None,
             'recent_expenses': recent_expenses,
             'expense_categories': [c[0] for c in Expense.CATEGORY_CHOICES],
             'listings': [{'id': str(p.id), 'title': p.title} for p in report['properties']],
             'has_listings': bool(report['properties']),
         })
         return context
+
+    def _export_csv(self, request):
+        """Plain CSV of the income / expenses / profit ledger (Excel-ready).
+
+        Money is converted to the viewer's display currency and written as bare
+        numbers so spreadsheets treat them as numeric; a UTF-8 BOM is prepended
+        so currency symbols render correctly in Excel. Mirrors the Revenue CSV.
+        """
+        import csv
+        import io
+        from accounts import currency as cur
+
+        user_ids = get_visible_user_ids(request.user)
+        _, selected_year, _ = self._resolve_year(user_ids)
+        report = self._build_report(user_ids, selected_year)
+        code = (getattr(request.user, 'currency', None) or cur.BASE_CURRENCY).upper()
+        symbol = cur.symbol_for(code)
+        months = list(self.MONTH_LABELS)
+        try:
+            generated = timezone.localtime(timezone.now()).strftime('%Y-%m-%d %H:%M')
+        except Exception:
+            generated = timezone.now().strftime('%Y-%m-%d %H:%M')
+
+        buf = io.StringIO()
+        buf.write('﻿')  # UTF-8 BOM so Excel renders ₹/€/₨ etc. correctly
+        writer = csv.writer(buf)
+
+        writer.writerow(['FavHost - Accounting & Expense Tracking'])
+        writer.writerow(['Year', selected_year])
+        writer.writerow(['Currency', f'{code} ({symbol})'])
+        writer.writerow(['Generated', generated])
+        writer.writerow([])
+
+        def money(value):
+            return cur.money_raw(value, code)
+
+        def section(title, first_header, rows):
+            writer.writerow([title])
+            writer.writerow([first_header] + months + ['Overall'])
+            for label, values, overall in rows:
+                writer.writerow([label] + [money(v) for v in values] + [money(overall)])
+            writer.writerow([])
+
+        income_rows = [(row['label'], row['values'], row['overall']) for row in report['income_rows']]
+        income_rows.append(('Total', report['income_total'], report['income_overall']))
+        income_rows.append(('RevPAR', report['revpar'], report['revpar_overall']))
+        section('Income', 'Property', income_rows)
+
+        expense_rows = [(row['label'], row['values'], row['overall']) for row in report['expense_rows']]
+        expense_rows.append(('Total', report['expense_total'], report['expense_overall']))
+        section('Expenses', 'Category', expense_rows)
+
+        section('Profit', 'Metric',
+                [('Net Profit', report['net_profit'], report['net_profit_overall'])])
+
+        response = HttpResponse(buf.getvalue(), content_type='text/csv; charset=utf-8')
+        response['Content-Disposition'] = f'attachment; filename="accounting_{selected_year}.csv"'
+        return response
 
     def _export_xlsx(self, request):
         """Styled .xlsx of the income / expenses / profit ledger for the year."""
@@ -1768,15 +1840,20 @@ class AccountingView(LoginRequiredMixin, TemplateView):
         months = self.MONTH_LABELS
         ncols = 1 + 12 + 1
 
-        title_font = Font(bold=True, size=14, color='313131')
+        # Palette mirrors the on-screen page: brand orange accents,
+        # charcoal section bands, warm-orange overall/total cells.
+        title_font = Font(bold=True, size=14, color='EB5310')
         meta_label_font = Font(bold=True, color='6B7280')
         section_font = Font(bold=True, color='FFFFFF')
-        section_fill = PatternFill('solid', fgColor='1E3A8A')
-        header_font = Font(bold=True, color='111827')
-        header_fill = PatternFill('solid', fgColor='F3F6FB')
-        overall_fill = PatternFill('solid', fgColor='EEF2FF')
-        label_font = Font(bold=True, color='1F2937')
-        total_font = Font(bold=True, color='111827')
+        section_fill = PatternFill('solid', fgColor='313131')
+        header_font = Font(bold=True, color='1A1A1A')
+        header_fill = PatternFill('solid', fgColor='FAF7F5')
+        overall_fill = PatternFill('solid', fgColor='FFF3EC')
+        overall_font = Font(bold=True, color='C2410C')
+        label_font = Font(bold=True, color='1A1A1A')
+        label_fill = PatternFill('solid', fgColor='FAF7F5')
+        total_font = Font(bold=True, color='C2410C')
+        total_fill = PatternFill('solid', fgColor='FFF3EC')
         MONEY_FMT = '#,##0.00'
         thin = Side(style='thin', color='E5E7EB')
         border = Border(left=thin, right=thin, top=thin, bottom=thin)
@@ -1816,7 +1893,7 @@ class AccountingView(LoginRequiredMixin, TemplateView):
             r += 1
             for i, h in enumerate(['' ] + months + ['Overall'], start=1):
                 hc = ws.cell(r, i, h)
-                hc.font = header_font
+                hc.font = overall_font if h == 'Overall' else header_font
                 hc.fill = overall_fill if h == 'Overall' else header_fill
                 hc.border = border
                 hc.alignment = Alignment(horizontal='left' if i == 1 else 'center')
@@ -1826,13 +1903,16 @@ class AccountingView(LoginRequiredMixin, TemplateView):
             nonlocal r
             lc = ws.cell(r, 1, label)
             lc.font = total_font if bold else label_font
+            lc.fill = total_fill if bold else label_fill
             lc.border = border
             for i, v in enumerate(list(values), start=2):
-                money_cell(r, i, v)
+                cell = money_cell(r, i, v)
+                if bold:
+                    cell.fill = total_fill
+                    cell.font = total_font
             oc = money_cell(r, ncols, overall)
-            oc.fill = overall_fill
-            if bold:
-                oc.font = total_font
+            oc.fill = total_fill if bold else overall_fill
+            oc.font = total_font if bold else overall_font
             r += 1
 
         section_header('Income')
