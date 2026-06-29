@@ -234,6 +234,22 @@
     background: #fff; border-radius: 16px;
     box-shadow: 0 6px 18px rgba(0,0,0,0.06); overflow: hidden;
   }
+  .rev-table-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 22px;
+    border-bottom: 1px solid #f0f0f0;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .rev-table-card-title {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 700;
+    color: #111827;
+  }
+  .rev-table-card-body { padding: 16px 20px; }
   .rev-table-scroll { overflow-x: auto; }
   table.rev-data-table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 1100px; }
   table.rev-data-table thead.section th {
@@ -318,17 +334,19 @@
 
     /* One full-width column for the data (sidebar is hidden). */
     .rev-layout { display: block !important; padding: 0 !important; max-width: none !important; margin: 0 !important; }
-    .rev-main { gap: 12px !important; }
+    .rev-main { gap: 12px !important; display: flex !important; flex-direction: column !important; }
     .rev-page-header { padding: 0 0 8px !important; border: none !important; }
     .rev-toolbar { border: 1px solid #e5e7eb !important; padding: 8px 12px !important; }
 
-    /* Keep charts/cards intact; never split a card across a page break. */
-    .rev-charts-row { grid-template-columns: 1fr 1fr !important; }
-    .rev-card, .rev-charts-row, .rev-table-card { break-inside: avoid; page-break-inside: avoid; }
-
+    /* Charts above tables in PDF, side by side; hide the "Revenue · 2026" card header. */
+    .rev-main > .rev-charts-row { order: 1; }
+    .rev-main > .rev-table-card { order: 2; }
+    .rev-charts-row { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 20px !important; }
+    .rev-card { break-inside: avoid; page-break-inside: avoid; }
+    .rev-table-card-header { display: none !important; }
+    .rev-table-card-body { padding: 0 !important; }
     /* Table: shrink to page width, repeat the month header on every page,
        and never cut a row in half. */
-    .rev-table-card { break-inside: auto; }
     .rev-table-scroll { overflow: visible !important; }
     table.rev-data-table {
       min-width: 0 !important; width: 100% !important;
@@ -445,47 +463,12 @@
       </div>
       {% else %}
 
-      <!-- Charts row -->
-      <div class="rev-charts-row">
-        <!-- Bar chart -->
-        <section class="rev-card">
-          <h2 class="rev-card-title">Revenue by month {{ selected_year }}</h2>
-          <div class="rev-bar-chart">
-            {% for col in bar_cols %}
-            <div class="rev-bar-col {% if col.highlight %}highlight{% endif %}">
-              <span class="rev-bar-value">{% money col.value %}</span>
-              <div class="rev-bar" data-height="{{ col.height }}"></div>
-              <span class="rev-bar-label">{{ col.label }}</span>
-            </div>
-            {% endfor %}
-          </div>
-        </section>
-
-        <!-- Donut chart -->
-        <section class="rev-card">
-          <h2 class="rev-card-title">Revenue by channel {{ selected_year }}</h2>
-          {% if donut_segments %}
-          <div class="rev-channel-body">
-            <div class="rev-donut" role="img" aria-label="Revenue distribution by channel"
-                 data-gradient="{{ donut_gradient }}"></div>
-            <ul class="rev-legend">
-              {% for s in donut_segments %}
-              <li>
-                <span class="rev-legend-swatch" data-color="{{ s.color }}"></span>
-                {{ s.name }}
-                <span class="rev-legend-pct">{{ s.pct }}%</span>
-              </li>
-              {% endfor %}
-            </ul>
-          </div>
-          {% else %}
-          <p class="rev-muted" style="margin:0;">No channel revenue recorded for {{ selected_year }}.</p>
-          {% endif %}
-        </section>
-      </div>
-
       <!-- Data table -->
       <section class="rev-table-card">
+        <div class="rev-table-card-header">
+          <h2 class="rev-table-card-title">Revenue · {{ selected_year }}</h2>
+        </div>
+        <div class="rev-table-card-body">
         <div class="rev-table-scroll">
           <table class="rev-data-table" id="revDataTable" aria-label="Revenue data for {{ selected_property.title }}">
             <thead class="section">
@@ -541,7 +524,47 @@
             </tbody>
           </table>
         </div>
+        </div>
       </section>
+
+      <!-- Charts row -->
+      <div class="rev-charts-row">
+        <!-- Bar chart -->
+        <section class="rev-card">
+          <h2 class="rev-card-title">Revenue by month {{ selected_year }}</h2>
+          <div class="rev-bar-chart">
+            {% for col in bar_cols %}
+            <div class="rev-bar-col {% if col.highlight %}highlight{% endif %}">
+              <span class="rev-bar-value">{% money col.value %}</span>
+              <div class="rev-bar" data-height="{{ col.height }}"></div>
+              <span class="rev-bar-label">{{ col.label }}</span>
+            </div>
+            {% endfor %}
+          </div>
+        </section>
+
+        <!-- Donut chart -->
+        <section class="rev-card">
+          <h2 class="rev-card-title">Revenue by channel {{ selected_year }}</h2>
+          {% if donut_segments %}
+          <div class="rev-channel-body">
+            <div class="rev-donut" role="img" aria-label="Revenue distribution by channel"
+                 data-gradient="{{ donut_gradient }}"></div>
+            <ul class="rev-legend">
+              {% for s in donut_segments %}
+              <li>
+                <span class="rev-legend-swatch" data-color="{{ s.color }}"></span>
+                {{ s.name }}
+                <span class="rev-legend-pct">{{ s.pct }}%</span>
+              </li>
+              {% endfor %}
+            </ul>
+          </div>
+          {% else %}
+          <p class="rev-muted" style="margin:0;">No channel revenue recorded for {{ selected_year }}.</p>
+          {% endif %}
+        </section>
+      </div>
       {% endif %}
     </main>
   </div>
