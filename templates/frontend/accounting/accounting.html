@@ -185,10 +185,70 @@
     background: #fff;
     font-size: 13px;
     color: #4b5563;
+    accent-color: #EB5310;
   }
 
   .acc-filter-pill:hover {
     border-color: #d1d5db;
+  }
+
+  .acc-filter-pill:focus,
+  .acc-filter-toggle:focus,
+  .acc-filter-toggle.show {
+    outline: 2px solid #EB5310;
+    outline-offset: -1px;
+    border-color: transparent;
+    box-shadow: none;
+  }
+
+  /* Custom filter dropdowns (replace native <select> so we control the
+     highlight colour — light orange instead of the OS blue). */
+  .acc-filter-dd {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .acc-filter-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .acc-filter-toggle .acc-filter-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .acc-filter-toggle.dropdown-toggle::after {
+    flex: 0 0 auto;
+    margin-left: 2px;
+    color: #9ca3af;
+  }
+
+  .acc-filter-menu {
+    min-width: 100%;
+    border-radius: 8px;
+    padding: 4px;
+  }
+
+  .acc-filter-menu .dropdown-item {
+    font-size: 13px;
+    padding: 7px 12px;
+    border-radius: 6px;
+    color: #1a1a1a;
+    white-space: nowrap;
+  }
+
+  .acc-filter-menu .dropdown-item:hover,
+  .acc-filter-menu .dropdown-item:focus,
+  .acc-filter-menu .dropdown-item.active,
+  .acc-filter-menu .dropdown-item:active {
+    background: #FEF1EB;
+    color: #EB5310;
   }
 
   .acc-search-row {
@@ -263,6 +323,9 @@
     color: #111827;
     font-weight: 500;
     display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .acc-expense-item .acc-sub {
@@ -969,21 +1032,36 @@
       </button>
 
       <div class="acc-filter-row">
-        <select class="acc-filter-pill" id="accFilterType">
-          <option value="">All types</option>
-          {% for cat in expense_categories %}
-          <option value="{{ cat }}">{{ cat }}</option>
-          {% endfor %}
-        </select>
-        <select class="acc-filter-pill" id="accSortDate">
-          <option value="date-desc">Newest</option>
-          <option value="date-asc">Oldest</option>
-        </select>
-        <select class="acc-filter-pill" id="accSortAmount">
-          <option value="">Amount</option>
-          <option value="amount-desc">High → Low</option>
-          <option value="amount-asc">Low → High</option>
-        </select>
+        <div class="dropdown acc-filter-dd" data-key="type">
+          <button type="button" class="acc-filter-pill acc-filter-toggle dropdown-toggle" data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false">
+            <span class="acc-filter-text">All types</span>
+          </button>
+          <ul class="dropdown-menu acc-filter-menu">
+            <li><a class="dropdown-item active" href="#" data-value="">All types</a></li>
+            {% for cat in expense_categories %}
+            <li><a class="dropdown-item" href="#" data-value="{{ cat }}">{{ cat }}</a></li>
+            {% endfor %}
+          </ul>
+        </div>
+        <div class="dropdown acc-filter-dd" data-key="date">
+          <button type="button" class="acc-filter-pill acc-filter-toggle dropdown-toggle" data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false">
+            <span class="acc-filter-text">Newest</span>
+          </button>
+          <ul class="dropdown-menu acc-filter-menu">
+            <li><a class="dropdown-item active" href="#" data-value="date-desc">Newest</a></li>
+            <li><a class="dropdown-item" href="#" data-value="date-asc">Oldest</a></li>
+          </ul>
+        </div>
+        <div class="dropdown acc-filter-dd" data-key="amount">
+          <button type="button" class="acc-filter-pill acc-filter-toggle dropdown-toggle" data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false">
+            <span class="acc-filter-text">Amount</span>
+          </button>
+          <ul class="dropdown-menu acc-filter-menu">
+            <li><a class="dropdown-item active" href="#" data-value="">Amount</a></li>
+            <li><a class="dropdown-item" href="#" data-value="amount-desc">High → Low</a></li>
+            <li><a class="dropdown-item" href="#" data-value="amount-asc">Low → High</a></li>
+          </ul>
+        </div>
       </div>
 
       <div class="acc-search-row">
@@ -1280,8 +1358,28 @@
   </div>
 </div>
 
-<!-- DELETE confirmation — reuses the shared site modal (frontend/common/confirmation_modal.html) -->
-{% include 'frontend/common/confirmation_modal.html' with modal_id="accDeleteModal" title="Confirm Delete" body_id="accDeleteMsg" form_id="accDeleteForm" confirm_text="Delete" confirm_btn_class="btn-danger" cancel_text="Cancel" %}
+<!-- DELETE confirmation — same markup as frontend/common/confirmation_modal.html,
+     inlined so the code formatter can't line-wrap a long include tag. -->
+<div class="modal fade" id="accDeleteModal" tabindex="-1" aria-labelledby="accDeleteModalLabel" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="accDeleteModalLabel">Confirm Delete</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body" id="accDeleteMsg">
+        Are you sure you want to proceed?
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <form id="accDeleteForm" method="post" style="display:inline;">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-danger" id="accDeleteConfirmBtn">Delete</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
 
 {% include 'frontend/base/footer.html' %}
 {% endblock %}
@@ -1332,17 +1430,18 @@
     // --- Sidebar list: search / filter / sort (client-side) ---
     var list = document.getElementById('accExpenseList');
     var search = document.getElementById('accExpenseSearch');
-    var filterType = document.getElementById('accFilterType');
-    var sortDate = document.getElementById('accSortDate');
-    var sortAmount = document.getElementById('accSortAmount');
-
     function items() {
-      return Array.prototype.slice.call(list.querySelectorAll('.acc-expense-item'));
+      return list ? Array.prototype.slice.call(list.querySelectorAll('.acc-expense-item')) : [];
+    }
+    // Selected value of a custom filter dropdown, by its data-key.
+    function ddValue(key) {
+      var a = document.querySelector('.acc-filter-dd[data-key="' + key + '"] .dropdown-item.active');
+      return a ? (a.getAttribute('data-value') || '') : '';
     }
     function applyFilters() {
       if (!list) return;
       var q = (search && search.value || '').trim().toLowerCase();
-      var cat = filterType && filterType.value || '';
+      var cat = ddValue('type');
       items().forEach(function (it) {
         var name = it.getAttribute('data-name') || '';
         var matchQ = !q || name.indexOf(q) !== -1;
@@ -1353,8 +1452,8 @@
     function applySort() {
       if (!list) return;
       var rows = items();
-      var amt = sortAmount && sortAmount.value;
-      var dt = sortDate && sortDate.value;
+      var amt = ddValue('amount');
+      var dt = ddValue('date');
       rows.sort(function (a, b) {
         if (amt) {
           var av = parseFloat(a.getAttribute('data-amount')) || 0;
@@ -1367,10 +1466,32 @@
       });
       rows.forEach(function (r) { list.appendChild(r); });
     }
+    // Reset a dropdown to its first option (date-sort clears the amount-sort).
+    function ddReset(key) {
+      var dd = document.querySelector('.acc-filter-dd[data-key="' + key + '"]');
+      if (!dd) return;
+      var first = dd.querySelector('.dropdown-item');
+      dd.querySelectorAll('.dropdown-item').forEach(function (i) { i.classList.remove('active'); });
+      var t = dd.querySelector('.acc-filter-text');
+      if (first) { first.classList.add('active'); if (t) t.textContent = first.textContent.trim(); }
+    }
+    // Wire up custom dropdown selection (replaces the old <select> change events).
+    document.querySelectorAll('.acc-filter-dd').forEach(function (dd) {
+      var key = dd.getAttribute('data-key');
+      var text = dd.querySelector('.acc-filter-text');
+      dd.querySelectorAll('.dropdown-item').forEach(function (item) {
+        item.addEventListener('click', function (e) {
+          e.preventDefault();
+          dd.querySelectorAll('.dropdown-item').forEach(function (i) { i.classList.remove('active'); });
+          item.classList.add('active');
+          if (text) text.textContent = item.textContent.trim();
+          if (key === 'type') applyFilters();
+          else if (key === 'date') { ddReset('amount'); applySort(); }
+          else if (key === 'amount') applySort();
+        });
+      });
+    });
     if (search) search.addEventListener('input', applyFilters);
-    if (filterType) filterType.addEventListener('change', applyFilters);
-    if (sortDate) sortDate.addEventListener('change', function () { if (sortAmount) sortAmount.value = ''; applySort(); });
-    if (sortAmount) sortAmount.addEventListener('change', applySort);
 
     // --- Row option menus ---
     // The menu is position:fixed (so the scrolling expense list can't clip it
