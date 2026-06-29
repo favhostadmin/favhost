@@ -110,9 +110,7 @@
 {% block header %}{% endblock header %}
 
 {% block content %}
-    <div style="position:fixed;top:14px;right:14px;z-index:1050;">
-      {% include 'frontend/public_host_website/_currency_switcher.html' %}
-    </div>
+    <div id="dynamic-messages-container"></div>
     <!-- Action Buttons -->
     <div class="container-fluid px-0">
         <div class="banner-head">
@@ -122,7 +120,9 @@
                         <span>Created with</span>
                         <img src="{% static 'img/header/favhost.png' %}" alt="FavHost" style="height:35px;">
                     </div>
-                    <!-- <div class="ld-placeholder"></div> -->
+                    <div style="margin-left:auto;">
+                        {% include 'frontend/public_host_website/_currency_switcher.html' %}
+                    </div>
                 </div>
                 <div class="ld-bar">
                     <div class="ld-bar-left">
@@ -776,22 +776,6 @@
         </div>
     </div>
 
-<div class="modal fade" id="shareListingModal" tabindex="-1" aria-labelledby="shareListingModalLabel" aria-hidden="true">
-  <div class="modal-dialog" role="document">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="shareListingModalLabel">Share Listing</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body" id="shareListingModalBody">
-        Copied
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-      </div>
-    </div>
-  </div>
-</div>
 
 {% with wa_number=host.whatsapp_number|default:host.phone|default:'+10123456789' %}
 {% if wa_number %}
@@ -1715,31 +1699,27 @@
         
         // Share Page URL Logic (Publicly accessible URL)
         const sharePageLinks = document.querySelectorAll(".share-page-link");
-        const shareListingModalEl = document.getElementById("shareListingModal");
-        const shareListingModal = (shareListingModalEl && window.bootstrap && window.bootstrap.Modal)
-            ? new bootstrap.Modal(shareListingModalEl)
-            : null;
-        const shareListingModalBody = document.getElementById("shareListingModalBody");
+
+        function showDynamicMessage(message, type) {
+            const container = document.getElementById('dynamic-messages-container');
+            if (!container) return;
+            const level = type === 'danger' ? 'error' : (type || 'success');
+            const toast = document.createElement('div');
+            toast.className = 'toast-message ' + level;
+            toast.innerHTML = message + ' <span class="toast-close" onclick="this.parentElement.style.display=\'none\';">&times;</span>';
+            container.appendChild(toast);
+            setTimeout(function() { toast.style.display = 'none'; }, 4000);
+        }
 
         function copyShareLink() {
             const shareUrl = window.location.href;
 
             function notifySuccess() {
-                if (shareListingModalBody) {
-                    shareListingModalBody.textContent = "Share Listing Link is Copied";
-                }
-                if (shareListingModal) {
-                    shareListingModal.show();
-                }
+                showDynamicMessage('Link copied', 'success');
             }
 
             function notifyFailure() {
-                if (shareListingModalBody) {
-                    shareListingModalBody.textContent = "Could not copy link";
-                }
-                if (shareListingModal) {
-                    shareListingModal.show();
-                }
+                showDynamicMessage('Could not copy link', 'danger');
             }
 
             if (navigator.clipboard && navigator.clipboard.writeText) {
