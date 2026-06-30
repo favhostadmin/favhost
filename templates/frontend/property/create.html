@@ -260,9 +260,10 @@
                                 <div class="upload-area" id="cover-upload-area">
                                     <div><img src="{% static 'img/property/upload.png' %}" alt="Upload"></div>
                                     <div class="upload-text">Click to upload or drag and drop</div>
-                                    <div class="upload-subtext">Documents, images up to 15MB each</div>
+                                    <div class="upload-subtext">Documents, images up to 5MB each</div>
                                 </div>
                                 <input type="file" id="cover-file-input" name="cover_photo" accept="image/*" style="display:none;">
+                                <div class="error-message" id="cover-error-message"></div>
                                 <div class="doc-preview-container" id="cover-preview-container">
                                     <div class="preview-grid" id="cover-preview-grid"></div>
                                 </div>
@@ -272,7 +273,7 @@
                                 <div class="upload-area" id="upload-area">
                                     <div><img src="{% static 'img/property/upload.png' %}" alt="Upload"></div>
                                     <div class="upload-text">Click to upload or drag and drop</div>
-                                    <div class="upload-subtext">Documents, images up to 15MB each</div>
+                                    <div class="upload-subtext">Documents, images up to 5MB each</div>
                                 </div>
                                 <input type="file" id="file-input" name="property_images" accept="image/*" multiple style="display:none;">
                                 <div class="error-message" id="error-message"></div>
@@ -1311,6 +1312,15 @@
         const container = document.getElementById('cover-preview-grid');
         container.innerHTML = '';
         const file = files[0];
+        const coverErrEl = document.getElementById('cover-error-message');
+        if (file.size > 5 * 1024 * 1024) {
+            coverErrEl.textContent = 'File size must be less than 5MB.';
+            coverErrEl.style.display = 'block';
+            document.getElementById('cover-file-input').value = '';
+            return;
+        }
+        coverErrEl.textContent = '';
+        coverErrEl.style.display = 'none';
         const previewItem = document.createElement('div');
         previewItem.className = 'preview-item';
         const img = document.createElement('img');
