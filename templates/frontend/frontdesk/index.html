@@ -283,6 +283,97 @@
   @media (prefers-reduced-motion:reduce){
     .fd-page *{animation:none!important;transition:none!important}
   }
+  .task-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.55);
+    z-index: 16000;
+    display: none;
+    justify-content: center;
+    align-items: center;
+    backdrop-filter: blur(4px);
+  }
+  .task-modal-overlay.open {
+    display: flex;
+  }
+  .reservation-modal {
+    background: #ffffff;
+    border-radius: 16px;
+    width: 100%;
+    max-width: 1200px;
+    max-height: 90vh;
+    box-shadow: 0 25px 80px rgba(0, 0, 0, 0.3);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    margin: 20px;
+    animation: taskModalIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .reservation-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding: 6px 12px;
+    border: none;
+    flex-shrink: 0;
+    background: #fff;
+    min-height: 0;
+  }
+  .reservation-modal-close {
+    background: none;
+    border: none;
+    font-size: 22px;
+    color: #6b7280;
+    cursor: pointer;
+    padding: 0 4px;
+    line-height: 1;
+  }
+  .reservation-modal-close:hover {
+    color: #111827;
+  }
+  .reservation-modal-body {
+    overflow-y: auto;
+    padding: 0;
+    flex: 1;
+  }
+  .reservation-modal-body .action-buttons {
+    margin: 0;
+    border-radius: 0;
+  }
+  .reservation-modal-body .payment-partial-shell {
+    padding: 0;
+  }
+  .reservation-modal-body .reservation-row {
+    margin: 0 !important;
+    max-width: 1200px;
+    margin: 0 auto !important;
+    padding: 0 32px 24px !important;
+  }
+  .reservation-modal-body .details-col {
+    padding: 0 !important;
+  }
+  .reservation-modal-body .booking-card {
+    border: none !important;
+    border-bottom: 1px solid #f0f0f0 !important;
+    border-radius: 0 !important;
+    padding: 20px 24px !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+    overflow: visible;
+  }
+  .reservation-modal-body .booking-card:first-child {
+    padding-top: 20px !important;
+  }
+  .reservation-modal-body .booking-card:last-child {
+    border-bottom: none !important;
+  }
+  @keyframes taskModalIn {
+    from { opacity: 0; transform: scale(0.92) translateY(20px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+  }
 </style>
 {% endblock extra_head %}
 
@@ -399,7 +490,7 @@
         </div>
         <ul class="guest-list" id="checkin-list">
           {% for b in checkins %}
-          <li class="guest-item" data-name="{{ b.first_name }} {{ b.last_name }}" data-prop="{{ b.property.title }}">
+          <li class="guest-item" data-name="{{ b.first_name }} {{ b.last_name }}" data-prop="{{ b.property.title }}" data-booking-id="{{ b.id }}">
             <div class="g-thumb">
               {% if b.property.get_primary_image_url %}
               <img src="{{ b.property.get_primary_image_url }}" alt="{{ b.property.title }}" loading="lazy">
@@ -415,7 +506,7 @@
               <div class="g-time"><svg><use href="#ic-clock"/></svg>{{ b.check_in_time }}</div>
               {% endif %}
             </div>
-            <a class="g-ext" href="#" aria-label="Open reservation"><svg><use href="#ic-ext"/></svg></a>
+            <a class="g-ext" href="#" aria-label="Open reservation" onclick="event.preventDefault();var li=this.closest('.guest-item');if(li)openReservationPanel(event,li.dataset.bookingId);"><svg><use href="#ic-ext"/></svg></a>
           </li>
           {% empty %}
           <li>
@@ -439,7 +530,7 @@
         </div>
         <ul class="guest-list" id="checkout-list">
           {% for b in checkouts %}
-          <li class="guest-item" data-name="{{ b.first_name }} {{ b.last_name }}" data-prop="{{ b.property.title }}">
+          <li class="guest-item" data-name="{{ b.first_name }} {{ b.last_name }}" data-prop="{{ b.property.title }}" data-booking-id="{{ b.id }}">
             <div class="g-thumb">
               {% if b.property.get_primary_image_url %}
               <img src="{{ b.property.get_primary_image_url }}" alt="{{ b.property.title }}" loading="lazy">
@@ -455,7 +546,7 @@
               <div class="g-time"><svg><use href="#ic-clock"/></svg>{{ b.check_out_time }}</div>
               {% endif %}
             </div>
-            <a class="g-ext" href="#" aria-label="Open reservation"><svg><use href="#ic-ext"/></svg></a>
+            <a class="g-ext" href="#" aria-label="Open reservation" onclick="event.preventDefault();var li=this.closest('.guest-item');if(li)openReservationPanel(event,li.dataset.bookingId);"><svg><use href="#ic-ext"/></svg></a>
           </li>
           {% empty %}
           <li>
@@ -562,6 +653,19 @@
       </div>
 
     </section>
+  </div>
+</div>
+
+<div class="task-modal-overlay" id="reservationModalOverlay" onclick="closeReservationPanel(event)">
+  <div class="reservation-modal" id="reservationModal" onclick="event.stopPropagation()">
+    <div class="reservation-modal-header">
+      <button class="reservation-modal-close" onclick="closeReservationPanel()">&times;</button>
+    </div>
+    <div class="reservation-modal-body" id="reservationModalContent">
+      <div style="display:flex;justify-content:center;align-items:center;height:200px;">
+        <div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -674,7 +778,7 @@
       : `<svg><use href="#ic-bed"/></svg>`;
     const time = b[timeKey] ? `<div class="g-time"><svg><use href="#ic-clock"/></svg>${escHTML(b[timeKey])}</div>` : '';
     return `
-      <li class="guest-item" data-name="${escHTML(b.guest_name)}" data-prop="${escHTML(b.property_title)}">
+      <li class="guest-item" data-name="${escHTML(b.guest_name)}" data-prop="${escHTML(b.property_title)}" data-booking-id="${escHTML(b.id)}">
         <div class="g-thumb">${img}</div>
         <div class="g-info">
           <div class="g-prop">${escHTML(b.property_title.substring(0,32))}</div>
@@ -682,7 +786,7 @@
           <div class="g-contact">${escHTML(b.email)}</div>
           ${time}
         </div>
-        <a class="g-ext" href="#" aria-label="Open reservation"><svg><use href="#ic-ext"/></svg></a>
+        <a class="g-ext" href="#" aria-label="Open reservation" onclick="event.preventDefault();var li=this.closest('.guest-item');if(li)openReservationPanel(event,li.dataset.bookingId);"><svg><use href="#ic-ext"/></svg></a>
       </li>`;
   }
 
@@ -887,6 +991,111 @@
         fabBtn.classList.remove('open');
       }
     });
+  }
+
+  /* ── Reservation Modal ── */
+  window.openReservationPanel = function(event, bookingId) {
+    if (event) event.stopPropagation();
+    const overlay = document.getElementById('reservationModalOverlay');
+    const contentDiv = document.getElementById('reservationModalContent');
+    overlay.classList.add('open');
+    contentDiv.innerHTML = '<div style="display:flex;justify-content:center;align-items:center;height:200px;"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></div>';
+    const fetchUrl = '/booking/payment-details/' + bookingId + '/?partial=true';
+    fetch(fetchUrl)
+      .then(function(r) { if (!r.ok) throw new Error('Network error'); return r.text(); })
+      .then(function(html) {
+        contentDiv.innerHTML = html;
+        contentDiv.querySelectorAll('.contact-info').forEach(function(el) { el.removeAttribute('style'); });
+        initSidebarInteractions(contentDiv);
+      })
+      .catch(function(e) {
+        contentDiv.innerHTML = '<div style="padding:20px;text-align:center;color:red;"><p>Failed to load.</p><p style="font-size:12px;">' + e.message + '</p></div>';
+      });
+  }
+
+  window.closeReservationPanel = function(event) {
+    if (event && event.target !== event.currentTarget) return;
+    document.getElementById('reservationModalOverlay').classList.remove('open');
+  };
+
+  function initSidebarInteractions(container) {
+    const sidebarRoot = container || document.getElementById('reservationSidebar');
+    const sidebarContent = container ? container : document.getElementById('sidebarContent');
+    if (!sidebarRoot || !sidebarContent) return;
+    const isModal = !!container;
+
+    function closeDropdown(element) {
+      const dropdownMenu = element.closest('.dropdown-menu');
+      if (!dropdownMenu) return;
+      const dropdownToggle = dropdownMenu.previousElementSibling;
+      if (!dropdownToggle) return;
+      const instance = bootstrap.Dropdown.getInstance(dropdownToggle);
+      if (instance) instance.hide();
+      else {
+        dropdownToggle.classList.remove('show');
+        dropdownMenu.classList.remove('show');
+      }
+    }
+
+    // 1. Attachment Modal
+    const attachmentModal = sidebarContent.querySelector('#attachmentModal');
+    const openAttachmentBtn = sidebarContent.querySelector('#openAttachmentModal');
+    if (attachmentModal && openAttachmentBtn) {
+      const closeBtn = attachmentModal.querySelector('.close-btn');
+      openAttachmentBtn.onclick = function(e) { e.preventDefault(); attachmentModal.style.display = 'flex'; };
+      if (closeBtn) closeBtn.onclick = function() { attachmentModal.style.display = 'none'; };
+      window.addEventListener('click', function(e) { if (e.target == attachmentModal) attachmentModal.style.display = 'none'; });
+    }
+
+    // 2. Email Guest Modal
+    const emailModal = sidebarContent.querySelector('#emailGuestModal');
+    const emailBtns = sidebarRoot.querySelectorAll('.email-guest-btn');
+    if (emailModal && emailBtns.length > 0) {
+      const placeholder = emailModal.querySelector('#email-modal-content-placeholder');
+      emailBtns.forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+          e.preventDefault();
+          closeDropdown(this);
+          const bookingId = this.dataset.bookingId;
+          const url = '/booking/render-email-form/?booking_id=' + bookingId;
+          placeholder.innerHTML = '<div style="text-align: center; padding: 40px;">Loading...</div>';
+          emailModal.style.display = 'flex';
+          fetch(url).then(function(r) { return r.text(); }).then(function(html) {
+            placeholder.innerHTML = html;
+            const closeEmailBtn = emailModal.querySelector('.btn-cancel-email');
+            if (closeEmailBtn) closeEmailBtn.addEventListener('click', function() { emailModal.style.display = 'none'; });
+          }).catch(function() {
+            placeholder.innerHTML = '<div style="text-align:center;padding:40px;color:red;">Failed to load email form.</div>';
+          });
+        });
+      });
+    }
+
+    // 3. Guest Receipt button
+    const receiptBtns = sidebarRoot.querySelectorAll('.guest-receipt-btn');
+    if (receiptBtns.length > 0) {
+      const receiptModal = document.getElementById('guestReceiptModal');
+      if (receiptModal) {
+        receiptBtns.forEach(function(btn) {
+          btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const receiptUrl = this.dataset.receiptUrl;
+            const placeholder = document.getElementById('guest-receipt-content-placeholder');
+            if (receiptUrl && placeholder) {
+              placeholder.innerHTML = '<div style="text-align:center;padding:40px;">Loading receipt...</div>';
+              receiptModal.style.display = 'block';
+              fetch(receiptUrl).then(function(r) { return r.text(); }).then(function(html) {
+                placeholder.innerHTML = html;
+              }).catch(function() {
+                placeholder.innerHTML = '<div style="text-align:center;padding:40px;color:red;">Failed to load receipt.</div>';
+              });
+            }
+            const closeReceiptBtn = receiptModal.querySelector('.close-receipt-modal');
+            if (closeReceiptBtn) closeReceiptBtn.onclick = function() { receiptModal.style.display = 'none'; };
+          });
+        });
+      }
+    }
   }
 
 })();
