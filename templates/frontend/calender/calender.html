@@ -4304,6 +4304,7 @@
   let currentViewMode = 'month'; // 'month', 'week', 'day'
   let typeFilters = { reservation: true, task: true, payment: true };
   let reservationPanelWasOpenBeforeReceipt = false;
+  let initialFilter = null;
 
   function updateViewTitle() {
     const el = document.getElementById('viewTitle');
@@ -6298,6 +6299,14 @@
         }));
 
         search.addEventListener('input',filterEvents);
+
+        if (initialFilter) {
+          const filterMap = { in:'Checkin', out:'Checkout', pay:'Payment' };
+          const targetType = filterMap[initialFilter.toLowerCase()] || initialFilter;
+          const targetPill = Array.from(pills).find(p => p.dataset.type === targetType);
+          if (targetPill) { targetPill.click(); }
+          initialFilter = null;
+        }
       })
       .catch(()=>{
         c.innerHTML = '<div class="list-wrap"><div class="empty-state" style="display:block"><b>Failed to load events.</b></div></div>';
@@ -7598,12 +7607,35 @@
   }
 
   function init() {
-    currentDisplayDate = new Date();
+    const urlParams = new URLSearchParams(window.location.search);
+    const monthParam = urlParams.get('month');
+    const yearParam = urlParams.get('year');
+    if (monthParam && yearParam) {
+      const m = parseInt(monthParam,10)-1, y = parseInt(yearParam,10);
+      if (!isNaN(m) && !isNaN(y)) currentDisplayDate = new Date(y,m,1);
+    } else {
+      currentDisplayDate = new Date();
+    }
+    if (urlParams.get('view') === 'list') currentViewMode = 'list';
+    initialFilter = urlParams.get('filter') || null;
     
     // Bind view switcher
     const viewSwitcher = document.getElementById('calendarViewSwitcher');
     const viewDropdownBtn = document.getElementById('viewDropdownBtn');
     if (viewSwitcher) {
+      // Sync dropdown to currentViewMode from query params
+      const targetItem = viewSwitcher.querySelector(`.dropdown-menu .dropdown-item[data-view="${currentViewMode}"]`);
+      if (targetItem) {
+        viewSwitcher.querySelectorAll('.dropdown-menu .dropdown-item').forEach(a => a.classList.remove('active'));
+        targetItem.classList.add('active');
+        if (viewDropdownBtn) viewDropdownBtn.firstChild.textContent = targetItem.textContent.trim();
+        const mobileMenu = document.getElementById('mobileActionsMenu');
+        if (mobileMenu) {
+          mobileMenu.querySelectorAll('.mobile-view-btn').forEach(b => b.classList.remove('active'));
+          const mobileBtn = mobileMenu.querySelector(`.mobile-view-btn[data-view="${currentViewMode}"]`);
+          if (mobileBtn) mobileBtn.classList.add('active');
+        }
+      }
       viewSwitcher.querySelectorAll('.dropdown-menu .dropdown-item').forEach(item => {
         item.addEventListener('click', function (e) {
           e.preventDefault();
