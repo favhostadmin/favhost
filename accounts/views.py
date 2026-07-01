@@ -6,6 +6,9 @@ import logging
 from email.mime.image import MIMEImage
 from datetime import timedelta
 from django.utils import timezone
+from django.db.models import Q
+from django.core.validators import validate_email
+from django.core.exceptions import ValidationError
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.views import LoginView
 from django.contrib.auth import login as auth_login
@@ -1080,6 +1083,12 @@ def manage_cohost_view(request):
                 messages.error(request, 'Email and password are required.')
                 return redirect('manage_cohost')
 
+            try:
+                validate_email(email)
+            except ValidationError:
+                messages.error(request, 'Please enter a valid email address.')
+                return redirect('manage_cohost')
+
             # Check if this email is already a co-host of this host
             if CoHost.objects.filter(host=effective_host, co_host__email__iexact=email).exists():
                 messages.error(request, 'This email is already a co-host. Please use a different email.')
@@ -1128,6 +1137,19 @@ def manage_cohost_view(request):
             co_host_user.last_name = name_parts[1] if len(name_parts) > 1 else ''
             co_host_user.phone = phone
             if email:
+                try:
+                    validate_email(email)
+                except ValidationError:
+                    messages.error(request, 'Please enter a valid email address.')
+                    return redirect('manage_cohost')
+
+            if email and email != (co_host_user.email or '').lower():
+                # Don't collide with another account's email/username (unique).
+                if MyUser.objects.exclude(pk=co_host_user.pk).filter(
+                    Q(email__iexact=email) | Q(username__iexact=email)
+                ).exists():
+                    messages.error(request, 'That email is already in use by another account. Please choose a different email.')
+                    return redirect('manage_cohost')
                 co_host_user.email = email
                 co_host_user.username = email
             if password:
