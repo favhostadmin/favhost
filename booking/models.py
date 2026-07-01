@@ -129,6 +129,49 @@ class PaymentAttachment(models.Model):
 
 
 
+class Expense(models.Model):
+    """A host-recorded business expense, used by the Accounting page.
+
+    Like every other monetary value on the platform, ``amount`` is stored in the
+    canonical USD base (see accounts/currency.py); views convert the host-entered
+    display-currency figure to USD on save and the templates render it back with
+    the {% money %} tag. ``property`` is optional so an expense can be tied to a
+    specific listing or kept as a business-wide cost.
+    """
+    CATEGORY_CHOICES = (
+        ('Mortgage', 'Mortgage'),
+        ('Salaries', 'Salaries'),
+        ('Supplies', 'Supplies'),
+        ('Utilities', 'Utilities'),
+        ('Repairs and maintenance', 'Repairs and maintenance'),
+        ('Marketing', 'Marketing'),
+        ('Tax', 'Tax'),
+        ('Insurance', 'Insurance'),
+        ('Legal expenses', 'Legal expenses'),
+        ('Cleaning fees', 'Cleaning fees'),
+        ('Other expenses', 'Other expenses'),
+    )
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    created_by = models.ForeignKey('accounts.MyUser', on_delete=models.CASCADE, related_name='expenses')
+    property = models.ForeignKey('property.Property', on_delete=models.SET_NULL, null=True, blank=True, related_name='expenses')
+    category = models.CharField(max_length=100, choices=CATEGORY_CHOICES, default='Other expenses')
+    amount = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name='Amount (USD)')
+    date = models.DateField()
+    note = models.TextField(null=True, blank=True)
+    attachment = models.FileField(upload_to='expense_attachments/', null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Expense"
+        verbose_name_plural = "Expenses"
+        ordering = ['-date', '-created_at']
+
+    def __str__(self):
+        return f"{self.category} - {self.amount} ({self.date})"
+
+
 class Enquiry(models.Model):
     unique_id = models.UUIDField(default=uuid.uuid4,unique=True, editable=False)
     first_name = models.CharField(max_length=100)

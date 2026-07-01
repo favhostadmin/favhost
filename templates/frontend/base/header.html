@@ -161,6 +161,46 @@
         content: none !important;
     }
 
+    /* Accountancy dropdown */
+    .custom-header .accountancy-nav .dropdown-arrow {
+        font-size: 13px;
+        line-height: 1;
+        transition: transform 0.2s ease;
+    }
+
+    .custom-header .accountancy-dropdown {
+        min-width: 250px;
+        border-radius: 12px;
+        padding: 8px 0;
+        border: none;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12);
+    }
+
+    .custom-header .accountancy-dropdown .dropdown-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 14px;
+        padding: 10px 16px;
+        color: #111 !important;
+        white-space: nowrap;
+    }
+
+    .custom-header .accountancy-dropdown .dropdown-item i {
+        font-size: 16px;
+        color: #e05c2a;
+        flex: 0 0 auto;
+    }
+
+    .custom-header .accountancy-dropdown .dropdown-item:hover {
+        background: #f5f5f5;
+    }
+
+    .custom-header .accountancy-dropdown .dropdown-item.active {
+        background: rgba(224, 92, 42, 0.10);
+        color: #e05c2a !important;
+    }
+
     /* ===== DESKTOP RIGHT ACTIONS ===== */
     .custom-header .desktop-actions {
         position: static;
@@ -587,6 +627,49 @@
             color: #e05c2a !important;
         }
 
+        /* Accountancy dropdown — mobile (dark sidebar) */
+        #navbarContent .accountancy-dropdown {
+            position: static !important;
+            float: none !important;
+            width: 100% !important;
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+            padding: 0 0 0 18px !important;
+            margin: 0 !important;
+        }
+
+        #navbarContent .accountancy-dropdown .dropdown-item {
+            display: flex !important;
+            align-items: center !important;
+            gap: 10px !important;
+            padding: 9px 12px !important;
+            border-radius: 7px !important;
+            font-size: 14px !important;
+            color: #b0b0b0 !important;
+            white-space: normal !important;
+        }
+
+        #navbarContent .accountancy-dropdown .dropdown-item i {
+            font-size: 16px !important;
+            color: #b0b0b0 !important;
+        }
+
+        #navbarContent .accountancy-dropdown .dropdown-item:hover {
+            background: #2a2a2a !important;
+            color: #e8e8e8 !important;
+        }
+
+        #navbarContent .accountancy-dropdown .dropdown-item:hover i {
+            color: #e8e8e8 !important;
+        }
+
+        #navbarContent .accountancy-dropdown .dropdown-item.active,
+        #navbarContent .accountancy-dropdown .dropdown-item.active i {
+            background: rgba(224, 92, 42, 0.10) !important;
+            color: #e05c2a !important;
+        }
+
         /* Sidebar top: logo + close */
         .mob-sidebar-header {
             display: flex;
@@ -725,6 +808,20 @@
                             <img class="create-menu-icon" src="{% static 'img/header/task_icon_white.png' %}" alt="Task">
                             <span>Create Task</span>
                         </a>
+                    </li>
+                    <li>
+                        {% if is_cohost %}
+                        <a class="dropdown-item create-menu-item" href="javascript:void(0)"
+                            data-bs-toggle="modal" data-bs-target="#accAddModal">
+                            <i class="ti ti-calculator" style="font-size:16px;line-height:1;width:16px;color:#111;" aria-hidden="true"></i>
+                            <span>Create Expense</span>
+                        </a>
+                        {% else %}
+                        <a class="dropdown-item create-menu-item" href="{% url 'accounting' %}?add_expense=1">
+                            <i class="ti ti-calculator" style="font-size:16px;line-height:1;width:16px;color:#111;" aria-hidden="true"></i>
+                            <span>Create Expense</span>
+                        </a>
+                        {% endif %}
                     </li>
                 </ul>
             </div>
@@ -881,12 +978,30 @@
                     </a>
                 </li>
 
-                <li class="nav-item">
-                    <a class="nav-link" href="{% url 'revenue-by-listing' %}">
-                        <i class="ti ti-report-money nav-icon" aria-hidden="true"></i>
-                        <span class="header_tab_text">Revenue</span>
+                {% if not is_cohost %}
+                <li class="nav-item dropdown accountancy-nav">
+                    <a class="nav-link dropdown-toggle" href="#" id="accountancyDropdown" role="button"
+                        data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="ti ti-calculator nav-icon" aria-hidden="true"></i>
+                        <span class="header_tab_text">Accountant</span>
+                        <i class="ti ti-chevron-down dropdown-arrow accountancy-caret" aria-hidden="true"></i>
                     </a>
+                    <ul class="dropdown-menu accountancy-dropdown" aria-labelledby="accountancyDropdown">
+                        <li>
+                            <a class="dropdown-item" href="{% url 'revenue-by-listing' %}">
+                                <i class="ti ti-report-money" aria-hidden="true"></i>
+                                <span>Revenue by Listing</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="{% url 'accounting' %}">
+                                <i class="ti ti-calculator" aria-hidden="true"></i>
+                                <span>Accounting &amp; Expense Tracking</span>
+                            </a>
+                        </li>
+                    </ul>
                 </li>
+                {% endif %}
             </ul>
 
             <!-- Mobile sidebar: Follow us footer -->
@@ -934,6 +1049,20 @@
                                 <img class="create-menu-icon" src="{% static 'img/header/task_icon_white.png' %}" alt="Task">
                                 <span>Create Task</span>
                             </a>
+                        </li>
+                        <li>
+                            {% if is_cohost %}
+                            <a class="dropdown-item create-menu-item" href="javascript:void(0)"
+                                data-bs-toggle="modal" data-bs-target="#accAddModal">
+                                <i class="ti ti-calculator" style="font-size:16px;line-height:1;width:16px;color:#111;" aria-hidden="true"></i>
+                                <span>Create Expense</span>
+                            </a>
+                            {% else %}
+                            <a class="dropdown-item create-menu-item" href="{% url 'accounting' %}?add_expense=1">
+                                <i class="ti ti-calculator" style="font-size:16px;line-height:1;width:16px;color:#111;" aria-hidden="true"></i>
+                                <span>Create Expense</span>
+                            </a>
+                            {% endif %}
                         </li>
                     </ul>
                 </div>
@@ -1038,6 +1167,13 @@
     </div>
 </div>
 
+<!-- Add Expense modal for co-hosts (same shared form as the Accounting page).
+     Hosts open it on the Accounting page itself, so it's only rendered here
+     for co-hosts, who cannot access that page. -->
+{% if is_cohost %}
+{% include 'frontend/accounting/_add_expense_modal.html' %}
+{% endif %}
+
 
 <script>
     document.addEventListener('DOMContentLoaded', function () {
@@ -1071,6 +1207,23 @@
                 link.classList.add('active');
             } else {
                 link.classList.remove('active');
+            }
+        });
+
+        // Highlight dropdown parents (e.g. Accountancy) when a child page is active
+        document.querySelectorAll('.custom-header .nav-item.dropdown').forEach(item => {
+            const toggle = item.querySelector('.dropdown-toggle');
+            let matched = false;
+
+            item.querySelectorAll('.dropdown-item').forEach(sub => {
+                if (sub.getAttribute('href') === currentUrl) {
+                    sub.classList.add('active');
+                    matched = true;
+                }
+            });
+
+            if (matched && toggle) {
+                toggle.classList.add('active');
             }
         });
     });
