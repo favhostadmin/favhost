@@ -44,6 +44,10 @@ urlpatterns = [
 
     path('dashboard/',HostDashboardAPIView.as_view(), name='dashboard'),
     path('revenue/',RevenueByListingView.as_view(), name='revenue-by-listing'),
+    path('accounting/', AccountingView.as_view(), name='accounting'),
+    path('accounting/expense/add/', add_expense, name='accounting-expense-add'),
+    path('accounting/expense/<uuid:pk>/edit/', edit_expense, name='accounting-expense-edit'),
+    path('accounting/expense/<uuid:pk>/delete/', delete_expense, name='accounting-expense-delete'),
     path('property/', include(('property.urls', 'property'), namespace='property')),
     path('booking/', include(('booking.urls', 'booking'), namespace='booking')),
     path('tasks/', include(('tasks.urls', 'tasks'), namespace='tasks')),

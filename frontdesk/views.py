@@ -7,7 +7,7 @@ from django.http import JsonResponse
 from django.db.models import Sum, Count, Q
 from django.utils import timezone
 
-from booking.models import Booking, Payment, Enquiry
+from booking.models import Booking, Payment
 from property.models import Property, PropertyBlockDate
 from tasks.models import Task
 from accounts.utils import get_visible_user_ids
@@ -59,7 +59,8 @@ def _fd_data(request, target_date):
 
     paid_payments = Payment.objects.filter(
         booking__property__created_by__in=user_ids,
-        is_paid=True
+        is_paid=True,
+        payment_date__date=target_date
     ).exclude(type__in=['Refundable deposit', 'Refundable to guest'])
     total_revenue = paid_payments.aggregate(total=Sum('amount'))['total'] or 0
     revpar = round(total_revenue / total_active, 2) if total_active > 0 else 0
@@ -80,13 +81,16 @@ def _fd_data(request, target_date):
     ).exclude(status='cancelled').count()
 
     total_tasks = Task.objects.filter(
-        created_by__in=user_ids, completed=False
+        created_by__in=user_ids,
+        date=target_date
     ).count()
 
-    total_inquiries = Enquiry.objects.filter(
-        property__created_by__in=user_ids,
-        is_archive=False, is_booked=False
-    ).count()
+    total_payments = Payment.objects.filter(
+        booking__property__created_by__in=user_ids,
+        is_paid=True,
+        payment_date__date=target_date
+    ).exclude(type__in=['Refundable deposit', 'Refundable to guest'])
+    total_payments_amount = total_payments.aggregate(total=Sum('amount'))['total'] or 0
 
     # Check-ins / Check-outs lists
     checkins = list(active_bookings.filter(
@@ -153,7 +157,7 @@ def _fd_data(request, target_date):
         'total_vacant': total_vacant,
         'total_booked_today': total_booked,
         'total_tasks': total_tasks,
-        'total_inquiries': total_inquiries,
+        'total_payments_amount': total_payments_amount,
         'checkins': checkins,
         'checkouts': checkouts,
         'housekeeping': housekeeping,
@@ -187,7 +191,7 @@ class FrontdeskSummaryAPI(LoginRequiredMixin, View):
             'total_vacant': data['total_vacant'],
             'total_booked_today': data['total_booked_today'],
             'total_tasks': data['total_tasks'],
-            'total_inquiries': data['total_inquiries'],
+            'total_payments_amount': data['total_payments_amount'],
             'date_iso': data['date_iso'],
             'day_name': data['day_name'],
             'day_num': data['day_num'],

@@ -1,4 +1,6 @@
+from django.conf import settings
 from django.shortcuts import render, redirect, get_object_or_404
+import requests as http_requests
 from django.views.generic import CreateView, UpdateView, DeleteView, ListView, DetailView
 from django.contrib import messages
 from django.urls import reverse_lazy
@@ -77,6 +79,7 @@ class PropertyCreateView(LoginRequiredMixin, CreateView):
         context = super().get_context_data(**kwargs)
         context['amenities'] = Amenities.objects.all()
         context['is_edit'] = False
+        context['google_maps_api_key'] = settings.GOOGLE_MAPS_API_KEY
         clone_from_id = self.request.GET.get('clone_from')
         context['is_clone'] = False
         context['selected_amenities'] = []
@@ -88,8 +91,16 @@ class PropertyCreateView(LoginRequiredMixin, CreateView):
             context['existing_check_in_docs'] = all_docs.filter(document_type='check_in')
             context['existing_check_out_docs'] = all_docs.filter(document_type='check_out')
             context['is_clone'] = True
+        step2_fields = [
+            'street_address', 'city', 'zip', 'country', 'state',
+            'price_per_night', 'application_fees', 'cleaning_fee',
+            'refundable_deposit', 'taxes', 'other_fees',
+            'check_in_time', 'check_out_time', 'minimum_booking',
+        ]
+        form = context.get('form')
+        context['has_step2_errors'] = bool(form and any(f in form.errors for f in step2_fields))
         return context
-    
+
     def form_valid(self, form):
         # Assign the effective user (host if co-host) to the created_by field
         form.instance.created_by = get_effective_user(self.request.user)
@@ -235,6 +246,7 @@ class PropertyEditView(LoginRequiredMixin, UpdateView):
         context = super().get_context_data(**kwargs)
         context['amenities'] = Amenities.objects.all()
         context['is_edit'] = True
+        context['google_maps_api_key'] = settings.GOOGLE_MAPS_API_KEY
         context['existing_images'] = self.object.images.all()
         all_docs = self.object.documents.all()
         context['existing_check_in_docs'] = all_docs.filter(document_type='check_in')
@@ -930,3 +942,67 @@ class RequestBokPageView(DetailView):
             getattr(context['host'], 'currency', None),
         )))
         return context
+
+
+# ── Google Places proxy views (keep API key server-side) ──────────────────────
+
+def places_autocomplete_proxy(request):
+    """Return address predictions for a given query string."""
+    q = request.GET.get('q', '').strip()
+    api_key = settings.GOOGLE_MAPS_API_KEY
+    if not q or not api_key:
+        return JsonResponse({'predictions': []})
+    try:
+        resp = http_requests.get(
+            'https://maps.googleapis.com/maps/api/place/autocomplete/json',
+            params={'input': q, 'types': 'address', 'key': api_key},
+            timeout=5,
+        )
+        data = resp.json()
+        return JsonResponse({'predictions': data.get('predictions', [])})
+    except Exception:
+        return JsonResponse({'predictions': []})
+
+
+def place_details_proxy(request):
+    """Return full address components for a given place_id."""
+    place_id = request.GET.get('place_id', '').strip()
+    api_key = settings.GOOGLE_MAPS_API_KEY
+    if not place_id or not api_key:
+        return JsonResponse({'result': {}})
+    try:
+        resp = http_requests.get(
+            'https://maps.googleapis.com/maps/api/place/details/json',
+            params={
+                'place_id': place_id,
+                'fields': 'address_components,formatted_address,geometry',
+                'key': api_key,
+            },
+            timeout=5,
+        )
+        data = resp.json()
+        return JsonResponse({'result': data.get('result', {})})
+    except Exception:
+        return JsonResponse({'result': {}})
+
+
+def geocode_proxy(request):
+    """Geocode a free-form address string → lat, lng."""
+    address = request.GET.get('address', '').strip()
+    api_key = settings.GOOGLE_MAPS_API_KEY
+    if not address or not api_key:
+        return JsonResponse({'lat': None, 'lng': None})
+    try:
+        resp = http_requests.get(
+            'https://maps.googleapis.com/maps/api/geocode/json',
+            params={'address': address, 'key': api_key},
+            timeout=5,
+        )
+        data = resp.json()
+        results = data.get('results', [])
+        if results:
+            loc = results[0]['geometry']['location']
+            return JsonResponse({'lat': loc['lat'], 'lng': loc['lng']})
+        return JsonResponse({'lat': None, 'lng': None})
+    except Exception:
+        return JsonResponse({'lat': None, 'lng': None})

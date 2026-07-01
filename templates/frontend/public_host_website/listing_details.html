@@ -1223,6 +1223,21 @@
             }
         }
 
+        // Auto-check availability when dates & guests are pre-filled from URL
+        const hasPrefilledDates = isValidIsoDate(incomingCheckIn) && isValidIsoDate(incomingCheckOut) && incomingGuests;
+        if (hasPrefilledDates) {
+            if (availabilityBtn) availabilityBtn.style.display = 'none';
+            if (reservationBtn) reservationBtn.style.display = 'none';
+            if (statusDiv) { statusDiv.style.display = 'block'; statusDiv.textContent = 'Checking availability...'; statusDiv.className = 'availability-text'; }
+            window.setTimeout(function () {
+                performCheck({
+                    checkinEl: checkinEl, checkoutEl: checkoutEl,
+                    guestsInput: guestsInput, statusDiv: statusDiv,
+                    reservationBtn: reservationBtn, availabilityBtn: availabilityBtn
+                });
+            }, 0);
+        }
+
         // --- Payment Summary Logic ---
         const ldPricePerNight = parseFloat("{% money_raw property.price_per_night %}");
         const ldCleaningFee   = parseFloat("{% money_raw property.cleaning_fee %}");

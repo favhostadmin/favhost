@@ -32,6 +32,11 @@ urlpatterns = [
     path('request-book/<uuid:pk>/', RequestBokPageView.as_view(), name='request-book-page-detail'),
     path('request-book/<slug:slug>/', RequestBokPageView.as_view(), name='request-book-page-slug'),
     path('request-book/', RequestBokPageView.as_view(), name='request-book-page'),
+
+    # Google Places / Geocoding proxy (keeps API key server-side)
+    path('ajax/places-autocomplete/', places_autocomplete_proxy, name='places-autocomplete'),
+    path('ajax/place-details/', place_details_proxy, name='place-details'),
+    path('ajax/geocode/', geocode_proxy, name='geocode'),
     
     
 
