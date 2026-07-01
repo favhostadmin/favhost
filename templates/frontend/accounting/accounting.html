@@ -1250,59 +1250,8 @@
   </div>
 </div>
 
-<!-- ADD EXPENSE MODAL -->
-<div class="modal fade" id="accAddModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content">
-      <form method="post" action="{% url 'accounting-expense-add' %}" enctype="multipart/form-data">
-        {% csrf_token %}
-        <input type="hidden" name="year" value="{{ selected_year }}">
-        <div class="modal-header">
-          <h5 class="modal-title">Add Expense</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
-        <div class="modal-body">
-          <div class="acc-form-group">
-            <label>Category</label>
-            <select name="category" required>
-              {% for cat in expense_categories %}<option value="{{ cat }}">{{ cat }}</option>{% endfor %}
-            </select>
-          </div>
-          <div class="acc-form-group">
-            <label>Amount</label>
-            <div class="acc-amount-field">
-              <span class="acc-cur-symbol">{{ currency_symbol|default:'$' }}</span>
-              <input type="number" name="amount" step="0.01" min="0" placeholder="0.00" required>
-            </div>
-          </div>
-          <div class="acc-form-group">
-            <label>Date</label>
-            <input type="date" name="date" required>
-          </div>
-          <div class="acc-form-group">
-            <label>Listing (optional)</label>
-            <select name="property">
-              <option value="">— Business-wide —</option>
-              {% for l in listings %}<option value="{{ l.id }}">{{ l.title }}</option>{% endfor %}
-            </select>
-          </div>
-          <div class="acc-form-group">
-            <label>Note (optional)</label>
-            <textarea name="note" rows="2" placeholder="Add a note…"></textarea>
-          </div>
-          <div class="acc-form-group">
-            <label>Attachment (optional)</label>
-            <input type="file" name="attachment">
-          </div>
-        </div>
-        <div class="modal-footer acc-modal-footer">
-          <button type="button" class="acc-btn-cancel" data-bs-dismiss="modal">Cancel</button>
-          <button type="submit" class="acc-btn-primary">Save Expense</button>
-        </div>
-      </form>
-    </div>
-  </div>
-</div>
+<!-- ADD EXPENSE MODAL (shared partial — same form reused in the header) -->
+{% include 'frontend/accounting/_add_expense_modal.html' %}
 
 <!-- EDIT EXPENSE MODAL -->
 <div class="modal fade" id="accEditModal" tabindex="-1" aria-hidden="true">
@@ -1388,6 +1337,20 @@
 <script>
   (function () {
     var ACC_YEAR = '{{ selected_year }}';
+
+    // --- Auto-open the Add Expense modal when arrived via ?add_expense=1 ---
+    // (used by the header "Create > Create Expense" shortcut for hosts)
+    (function openAddExpenseFromQuery() {
+      var params = new URLSearchParams(window.location.search);
+      if (params.get('add_expense') !== '1') return;
+      var addModalEl = document.getElementById('accAddModal');
+      if (!addModalEl || typeof bootstrap === 'undefined' || !bootstrap.Modal) return;
+      new bootstrap.Modal(addModalEl).show();
+      // Clean the URL so a refresh doesn't reopen the modal.
+      params.delete('add_expense');
+      var clean = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
+      window.history.replaceState({}, '', clean);
+    })();
 
     // --- Apply bar heights from server-computed magnitudes ---
     document.querySelectorAll('.acc-bar[data-height]').forEach(function (el) {

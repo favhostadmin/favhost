@@ -1986,12 +1986,24 @@ def _cohost_blocked(request):
     return None
 
 
+def _redirect_after_add_expense(request):
+    """Return the user to the right place after adding an expense.
+
+    Co-hosts add expenses from the shared modal in the header (they cannot open
+    /accounting/), so they go back to the page they came from. Hosts return to
+    the Accounting page (preserving the year), exactly as before.
+    """
+    if CoHost.objects.filter(co_host=request.user).exists():
+        referer = request.META.get('HTTP_REFERER')
+        return redirect(referer) if referer else redirect('dashboard')
+    return _redirect_to_accounting(request)
+
+
 @login_required
 @require_POST
 def add_expense(request):
-    blocked = _cohost_blocked(request)
-    if blocked:
-        return blocked
+    # Note: co-hosts ARE allowed to add expenses (but not to view the
+    # Accounting/Revenue pages, which are guarded separately).
     user_ids = get_visible_user_ids(request.user)
     category = request.POST.get('category') or 'Other expenses'
     date_str = request.POST.get('date')
@@ -2000,13 +2012,13 @@ def add_expense(request):
 
     if not date_str:
         messages.error(request, 'Please provide a date for the expense.')
-        return _redirect_to_accounting(request)
+        return _redirect_after_add_expense(request)
 
     try:
         amount_usd = _parse_expense_amount_to_usd(request, request.POST.get('amount'))
     except Exception:
         messages.error(request, 'Please enter a valid amount.')
-        return _redirect_to_accounting(request)
+        return _redirect_after_add_expense(request)
 
     prop = None
     if property_id:
@@ -2022,7 +2034,7 @@ def add_expense(request):
         attachment=request.FILES.get('attachment'),
     )
     messages.success(request, 'Expense added successfully.')
-    return _redirect_to_accounting(request)
+    return _redirect_after_add_expense(request)
 
 
 @login_required
