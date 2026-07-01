@@ -27,6 +27,7 @@ from django.conf import settings
 from django.views.decorators.http import require_POST
 from .utils import calculateTotalPayment
 from accounts.utils import get_visible_user_ids
+from accounts.models import CoHost
 from django.contrib.staticfiles.storage import staticfiles_storage
 
 class HostDashboardAPIView(LoginRequiredMixin, TemplateView):
@@ -484,6 +485,13 @@ class RevenueByListingView(LoginRequiredMixin, TemplateView):
     PALETTE = ['#ef4444', '#3b82f6', '#facc15', '#22c55e', '#f59e0b',
                '#b91c1c', '#ec4899', '#8b5cf6', '#06b6d4', '#14b8a6',
                '#a855f7', '#cbd5e1']
+
+    def dispatch(self, request, *args, **kwargs):
+        # Co-hosts do not have access to the accountant (revenue) section.
+        if request.user.is_authenticated and CoHost.objects.filter(co_host=request.user).exists():
+            messages.error(request, 'Revenue is not available for co-hosts.')
+            return redirect('dashboard')
+        return super().dispatch(request, *args, **kwargs)
 
     def get(self, request, *args, **kwargs):
         """Serve a file export when ?export=xlsx|csv, otherwise the HTML page."""
@@ -1617,6 +1625,13 @@ class AccountingView(LoginRequiredMixin, TemplateView):
     # Payment types that are not real income (mirrors Dashboard / Revenue).
     EXCLUDED_PAYMENT_TYPES = ['Refundable deposit', 'Refundable to guest']
 
+    def dispatch(self, request, *args, **kwargs):
+        # Co-hosts do not have access to the accountant (accounting) section.
+        if request.user.is_authenticated and CoHost.objects.filter(co_host=request.user).exists():
+            messages.error(request, 'Accounting is not available for co-hosts.')
+            return redirect('dashboard')
+        return super().dispatch(request, *args, **kwargs)
+
     def get(self, request, *args, **kwargs):
         export = request.GET.get('export')
         if export == 'xlsx':
@@ -1963,9 +1978,20 @@ def _redirect_to_accounting(request):
     return redirect(url)
 
 
+def _cohost_blocked(request):
+    """Redirect co-hosts away from accountant actions; returns None otherwise."""
+    if request.user.is_authenticated and CoHost.objects.filter(co_host=request.user).exists():
+        messages.error(request, 'Accounting is not available for co-hosts.')
+        return redirect('dashboard')
+    return None
+
+
 @login_required
 @require_POST
 def add_expense(request):
+    blocked = _cohost_blocked(request)
+    if blocked:
+        return blocked
     user_ids = get_visible_user_ids(request.user)
     category = request.POST.get('category') or 'Other expenses'
     date_str = request.POST.get('date')
@@ -2002,6 +2028,9 @@ def add_expense(request):
 @login_required
 @require_POST
 def edit_expense(request, pk):
+    blocked = _cohost_blocked(request)
+    if blocked:
+        return blocked
     user_ids = get_visible_user_ids(request.user)
     expense = get_object_or_404(Expense, pk=pk, created_by__in=user_ids)
 
@@ -2036,6 +2065,9 @@ def edit_expense(request, pk):
 @login_required
 @require_POST
 def delete_expense(request, pk):
+    blocked = _cohost_blocked(request)
+    if blocked:
+        return blocked
     user_ids = get_visible_user_ids(request.user)
     expense = get_object_or_404(Expense, pk=pk, created_by__in=user_ids)
     expense.delete()

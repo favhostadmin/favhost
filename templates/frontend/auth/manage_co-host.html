@@ -12,43 +12,122 @@
   <link href="{% static 'css/bootstrap.min.css' %}" rel="stylesheet">
   <link rel="stylesheet" href="{% static 'css/manage_co-host.css' %}">
   <style>
-    .toast-container {
-      position: fixed;
-      top: 40px;
-      right: 30px;
-      z-index: 1055;
+    /* Shared toast component (matches base.html / accounting page) */
+    .toast-messages-container {
+      min-width: 300px;
+      max-width: 480px;
+      display: flex !important;
+      flex-direction: column !important;
+      gap: 12px;
+      z-index: 99999 !important;
     }
 
     .toast-message {
-      padding: 15px 40px 15px 15px;
-      margin-bottom: 10px;
-      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      background: rgba(0, 0, 0, 0.9);
       color: #fff;
-      position: relative;
-      font-size: 15px;
-      min-width: 240px;
-      font-family: 'Inter', sans-serif;
+      padding: 20px 58px;
+      border-radius: 10px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+      font-size: 14px;
+      font-weight: 600;
+      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+      line-height: 1.4;
+      animation: toast-fade-in 0.3s ease;
     }
 
-    .toast-message.alert-danger,
-    .toast-message.error {
-      background-color: #dc3545;
+    @media (max-width: 576px) {
+      .toast-messages-container {
+        top: 80px !important;
+      }
+
+      .toast-message {
+        white-space: nowrap;
+      }
     }
 
     .toast-message.alert-success,
     .toast-message.success {
-      background-color: #28a745;
+      color: #4CAF50;
+    }
+
+    .toast-message.alert-success::before,
+    .toast-message.success::before {
+      content: "✓";
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 22px;
+      height: 22px;
+      min-width: 22px;
+      border-radius: 50%;
+      background: #4CAF50;
+      color: #fff;
+      font-size: 12px;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    .toast-message.alert-danger,
+    .toast-message.error {
+      color: #e74c3c;
+    }
+
+    .toast-message.alert-danger::before,
+    .toast-message.error::before {
+      content: "✕";
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 22px;
+      height: 22px;
+      min-width: 22px;
+      border-radius: 50%;
+      background: #e74c3c;
+      color: #fff;
+      font-size: 12px;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    .toast-message.alert-info,
+    .toast-message.info {
+      color: #0dcaf0;
+    }
+
+    .toast-message.alert-info::before,
+    .toast-message.info::before {
+      content: "ℹ";
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 22px;
+      height: 22px;
+      min-width: 22px;
+      border-radius: 50%;
+      background: #0dcaf0;
+      color: #fff;
+      font-size: 12px;
+      font-weight: 700;
+      line-height: 1;
     }
 
     .toast-close {
-      position: absolute;
-      top: 5px;
-      right: 10px;
-      font-size: 20px;
-      cursor: pointer;
-      color: #fff;
-      border: none;
-      background: transparent;
+      display: none !important;
+    }
+
+    @keyframes toast-fade-in {
+      from {
+        opacity: 0;
+        transform: translateY(-16px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
     }
 
     .action-btn img {
@@ -76,11 +155,12 @@
   {% include 'frontend/base/header.html' %}
 
   {% if messages %}
-  <div class="toast-container">
+  <div class="toast-messages-container"
+    style="position: fixed; top: 30px; left: 50%; transform: translateX(-50%); z-index: 1055;">
     {% for message in messages %}
     <div class="toast-message {{ message.tags }}">
       {{ message }}
-      <button class="toast-close" onclick="this.parentElement.style.display='none';" aria-label="Close">&times;</button>
+      <span class="toast-close" onclick="this.parentElement.style.display='none';">&times;</span>
     </div>
     {% endfor %}
   </div>
