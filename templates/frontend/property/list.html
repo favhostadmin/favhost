@@ -584,6 +584,13 @@
         margin: 0;
     }
 
+    .listing-availability-text {
+        font-size: 13px;
+        color: #374151;
+        font-weight: 500;
+        white-space: nowrap;
+    }
+
     @media (max-width: 991px) {
         .mobile-filter-section {
             background: #E7E7E9;
@@ -1614,6 +1621,7 @@
                                 <p class="listing-location">{{ item.city }}, {{ item.state }}</p>
                             </a>
                             <div class="d-flex justify-content-between align-items-center">
+                                {% if check_in and check_out %}
                                 <div style="display: flex; align-items: center; gap: 6px;">
                                     <img src="{% static 'img/property/bed.svg' %}">
                                     <div class="listing-bed-type">{{ item.get_bed_type_display|cut:" Bed" }}</div>
@@ -1626,6 +1634,20 @@
                                         </p>
                                     </a>
                                 </div>
+                                {% else %}
+                                <div style="display: flex; align-items: center; gap: 6px;">
+                                    <img src="{% static 'img/property/bed.svg' %}">
+                                    <div class="listing-bed-type">{{ item.get_bed_type_display|cut:" Bed" }}</div>
+                                    <a href="{% url 'property:property-detail' slug=item.slug %}" data-open-property-preview="true" data-preview-title="{{ item.title|escape }}" rel="noopener noreferrer">
+                                        <p class="listing-price" data-nightly-price="{% money_raw item.price_per_night %}" data-cleaning-fee="{% money_raw item.cleaning_fee %}" data-refundable-deposit="{% money_raw item.refundable_deposit %}" data-application-fee="{% money_raw item.application_fees %}">
+                                            {% money item.price_per_night %} <span class="price-period">Night</span>
+                                        </p>
+                                    </a>
+                                </div>
+                                <div class="listing-stay-wrap listing-stay-badge" style="display: flex; align-items: center; gap: 6px;">
+                                    <span class="listing-availability-text">{% if item.next_available_date %}Available on {{ item.next_available_date|date:"d-M-y" }}{% else %}Available today{% endif %}</span>
+                                </div>
+                                {% endif %}
                             </div>
                             <!-- <div class="property-meta-row">
                                 <span class="property-meta-item">
