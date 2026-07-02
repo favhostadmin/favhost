@@ -1011,6 +1011,8 @@ class CalenderAPIView(LoginRequiredMixin,ListView):
                     'bookingId': b.booking_id or 'N/A',
                     'paymentDates': payment_dates,
                     'paymentsInfo': payments_info,
+                    'check_in_time': (b.check_in_time or b.property.check_in_time).strftime('%H:%M') if (b.check_in_time or b.property.check_in_time) else None,
+                    'check_out_time': (b.check_out_time or b.property.check_out_time).strftime('%H:%M') if (b.check_out_time or b.property.check_out_time) else None,
                 })
 
         # Fetch blocked dates
