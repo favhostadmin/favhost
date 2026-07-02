@@ -1694,7 +1694,16 @@ class AccountingView(LoginRequiredMixin, TemplateView):
 
         income_total = [sum(col) for col in zip(*income_by_prop)] if properties else [0.0] * 12
         num_props = len(properties) or 1
-        revpar = [round(income_total[m] / num_props, 2) for m in range(12)]
+        # RevPAR (Revenue Per Available Room, hotel standard): revenue divided by
+        # available room-nights, i.e. each property counts as one available unit
+        # per night. RevPAR = revenue / (available units × nights in the period).
+        days_in_month = [calendar.monthrange(selected_year, m)[1] for m in range(1, 13)]
+        revpar = [
+            round(income_total[m] / (num_props * days_in_month[m]), 2)
+            if days_in_month[m] else 0.0
+            for m in range(12)
+        ]
+        total_nights = num_props * sum(days_in_month)
 
         income_rows = [{
             'label': p.title,
@@ -1744,7 +1753,7 @@ class AccountingView(LoginRequiredMixin, TemplateView):
             'income_total': income_total,
             'income_overall': sum(income_total),
             'revpar': revpar,
-            'revpar_overall': round(sum(income_total) / num_props, 2),
+            'revpar_overall': round(sum(income_total) / total_nights, 2) if total_nights else 0.0,
             'expense_rows': expense_rows,
             'expense_total': expense_total,
             'expense_overall': sum(expense_total),
