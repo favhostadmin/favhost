@@ -284,20 +284,35 @@ def _check_otp(request, key, submitted):
 
 
 def _send_otp_email(email, first_name, otp, subject, template_name, is_forgot=False, is_resend=False):
-    """Sends HTML email with inline attached logo."""
+    """Send the OTP email (HTML + inline logo).
+
+    Returns True if the mail server accepted the message, False otherwise.
+
+    In DEBUG the code is also written to the server console so local development
+    can proceed even when real delivery fails (e.g. Gmail spam-filtering a
+    custom domain). Never logs the code when DEBUG is off.
+    """
+    # Dev aid: make the code retrievable straight from the runserver console.
+    if getattr(settings, 'DEBUG', False):
+        print(
+            f"\n=== [DEV] Favhost OTP for {email}: {otp} (valid 15 min) ===\n",
+            flush=True,
+        )
+        logger.warning("DEV OTP for %s: %s", email, otp)
+
     try:
         html_body = render_to_string(template_name, {
             'first_name': first_name,
             'otp_code': otp,
             'logo_url': 'cid:logo',
         })
-        
+
         new_prefix = "new " if is_resend else ""
         if is_forgot:
             plain_body = f'Dear {first_name},\n\nYour {new_prefix}password reset code is: {otp}\n\nThis code will expire in 15 minutes.\n\nBest regards,\nTeam Favhost\nsupport@favhost.com'
         else:
             plain_body = f'Dear {first_name},\n\nYour {new_prefix}FavHost verification code is: {otp}\n\nThis code will expire in 15 minutes.\n\nBest regards,\nTeam Favhost\nsupport@favhost.com'
-            
+
         email_msg = EmailMultiAlternatives(
             subject=subject,
             body=plain_body,
@@ -319,9 +334,12 @@ def _send_otp_email(email, first_name, otp, subject, template_name, is_forgot=Fa
                 img.add_header('X-Attachment-Id', 'logo')
                 email_msg.attach(img)
 
-        email_msg.send(fail_silently=True)
+        # fail_silently=False so real SMTP problems surface instead of hiding.
+        sent = email_msg.send(fail_silently=False)
+        return bool(sent)
     except Exception:
         logger.exception("Failed to send OTP email to %s", email)
+        return False
 
 
 def _send_welcome_email(email, first_name, request=None):
@@ -343,9 +361,16 @@ def _send_welcome_email(email, first_name, request=None):
 
         tutorials_url = getattr(settings, 'TUTORIALS_URL', 'https://www.youtube.com/@YOUR_CHANNEL')
 
+        try:
+            from billing.models import PlatformSetting
+            trial_days = PlatformSetting.load().free_trial_days
+        except Exception:
+            trial_days = 90
+
         html_body = render_to_string('frontend/emails/welcome.html', {
             'first_name': first_name,
             'logo_url': 'cid:logo',
+            'trial_days': trial_days,
             'dashboard_url': dashboard_url,
             'pricing_url': pricing_url,
             'terms_url': terms_url,
@@ -357,7 +382,7 @@ def _send_welcome_email(email, first_name, request=None):
         plain_body = (
             f'Dear {first_name},\n\n'
             'Welcome to Favhost! Your account is ready.\n\n'
-            'Your 90-day free trial has started — every feature is unlocked from day one '
+            f'Your {trial_days}-day free trial has started — every feature is unlocked from day one '
             'with no limits. After the trial ends, simply subscribe to keep your full access '
             'and continue without interruption.\n\n'
             f'Go to your dashboard: {dashboard_url}\n'
@@ -443,13 +468,19 @@ def register_view(request):
         }
 
         # Send OTP email (HTML format matching email template)
-        _send_otp_email(
+        sent = _send_otp_email(
             email=email,
             first_name=first_name,
             otp=otp,
             subject='Favhost verification code',
             template_name='frontend/emails/signup_otp.html'
         )
+        if not sent:
+            messages.warning(
+                request,
+                "We couldn't send the verification email just now. "
+                "Please tap 'Resend Code' in a moment, or check the address is correct."
+            )
 
         return render(request, 'frontend/auth/login.html', {
             'show_signup': True,
@@ -703,7 +734,7 @@ def profile_view(request):
 
     now = timezone.now()
     trial_start = user.created_at
-    trial_end = trial_start + timedelta(days=90)
+    trial_end = trial_start + timedelta(days=(user.trial_days or 90))
     trial_days_left = (trial_end - now).days
     if trial_days_left < 0:
         trial_days_left = 0

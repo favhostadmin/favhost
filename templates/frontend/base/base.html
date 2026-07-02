@@ -473,6 +473,19 @@
       transition: background 0.2s;
     }
     .sw-btn-subscribe:hover { background: #d4480d; }
+    .sw-contact-host {
+      background: #fff7f3;
+      border: 1px solid #f6d3c3;
+      border-radius: 8px;
+      padding: 14px 16px;
+      margin-bottom: 8px;
+      font-size: 13.5px;
+      color: #7c2d12;
+      line-height: 1.5;
+    }
+    .sw-contact-host strong { color: #EB5310; }
+    .sw-contact-host a { color: #EB5310; font-weight: 600; text-decoration: none; }
+    .sw-contact-host a:hover { text-decoration: underline; }
     .sw-btn-signout {
       display: block;
       width: 100%;
@@ -587,7 +600,11 @@
         </div>
       </div>
       <h2 class="sw-title">Your Subscription Has Ended</h2>
+      {% if is_cohost %}
+      <p class="sw-subtitle">This account's FavHost subscription is no longer active. Please contact your host to restore full access.</p>
+      {% else %}
       <p class="sw-subtitle">Your FavHost subscription is no longer active. Resubscribe to regain full access to your property management tools.</p>
+      {% endif %}
       {% else %}
       <div class="sw-icon-wrap sw-icon-trial">
         <div class="sw-anim-wrap">
@@ -630,7 +647,11 @@
         </div>
       </div>
       <h2 class="sw-title">Your Free Trial Has Ended</h2>
-      <p class="sw-subtitle">You've enjoyed 90 days of FavHost Premium. Subscribe now to continue managing your properties without interruption.</p>
+      {% if is_cohost %}
+      <p class="sw-subtitle">This account's FavHost trial is over. Please contact your host to continue using the platform.</p>
+      {% else %}
+      <p class="sw-subtitle">You've enjoyed your free trial of FavHost Premium. Subscribe now to continue managing your properties without interruption.</p>
+      {% endif %}
       {% endif %}
 
       <ul class="sw-features">
@@ -641,12 +662,21 @@
         <li>Priority customer support</li>
       </ul>
 
-      <p class="sw-price-note">$9.99 / month &nbsp;·&nbsp; Cancel anytime &nbsp;·&nbsp; No hidden fees</p>
+      {% if is_cohost %}
+      <div class="sw-contact-host">
+        Only the <strong>host</strong> can renew this subscription.
+        Please contact your host{% if account_owner_email %} at
+        <a href="mailto:{{ account_owner_email }}">{{ account_owner_email }}</a>{% endif %}
+        to restore access.
+      </div>
+      {% else %}
+      <p class="sw-price-note">{{ platform_price }} / {{ platform_price_interval }} &nbsp;·&nbsp; Cancel anytime &nbsp;·&nbsp; No hidden fees</p>
 
       <form method="post" action="{% url 'billing:create_checkout_session' %}" style="margin:0;">
         {% csrf_token %}
-        <button type="submit" class="sw-btn-subscribe">Subscribe Now — $9.99 / month</button>
+        <button type="submit" class="sw-btn-subscribe">Subscribe Now — {{ platform_price }} / {{ platform_price_interval }}</button>
       </form>
+      {% endif %}
 
       <form method="post" action="{% url 'logout' %}" style="margin:0;">
         {% csrf_token %}
