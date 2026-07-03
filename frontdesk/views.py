@@ -1,16 +1,20 @@
 import datetime
 import calendar
+import json
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views.generic import TemplateView
 from django.views import View
 from django.http import JsonResponse
 from django.db.models import Sum, Count, Q
 from django.utils import timezone
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
 
-from booking.models import Booking, Payment, Enquiry
+from booking.models import Booking, Payment
 from property.models import Property, PropertyBlockDate
 from tasks.models import Task
 from accounts.utils import get_visible_user_ids
+from .models import HousekeepingStatus
 
 
 def _resolve_date(request):
@@ -59,7 +63,8 @@ def _fd_data(request, target_date):
 
     paid_payments = Payment.objects.filter(
         booking__property__created_by__in=user_ids,
-        is_paid=True
+        is_paid=True,
+        payment_date__date=target_date
     ).exclude(type__in=['Refundable deposit', 'Refundable to guest'])
     total_revenue = paid_payments.aggregate(total=Sum('amount'))['total'] or 0
     revpar = round(total_revenue / total_active, 2) if total_active > 0 else 0
@@ -80,13 +85,16 @@ def _fd_data(request, target_date):
     ).exclude(status='cancelled').count()
 
     total_tasks = Task.objects.filter(
-        created_by__in=user_ids, completed=False
+        created_by__in=user_ids,
+        date=target_date
     ).count()
 
-    total_inquiries = Enquiry.objects.filter(
-        property__created_by__in=user_ids,
-        is_archive=False, is_booked=False
-    ).count()
+    total_payments = Payment.objects.filter(
+        booking__property__created_by__in=user_ids,
+        is_paid=True,
+        payment_date__date=target_date
+    ).exclude(type__in=['Refundable deposit', 'Refundable to guest'])
+    total_payments_amount = total_payments.aggregate(total=Sum('amount'))['total'] or 0
 
     # Check-ins / Check-outs lists
     checkins = list(active_bookings.filter(
@@ -99,6 +107,10 @@ def _fd_data(request, target_date):
 
     # Housekeeping
     properties = active_properties.prefetch_related('images').order_by('title')
+    saved_statuses = {
+        hs.property_id: hs.status
+        for hs in HousekeepingStatus.objects.filter(property__in=properties)
+    }
     housekeeping = []
     for prop in properties:
         is_occupied = prop.id in inhouse_property_ids
@@ -126,10 +138,12 @@ def _fd_data(request, target_date):
             suggested_status = 'Clean-Inspected'
             available = True
 
+        status = saved_statuses.get(prop.id, suggested_status)
+
         housekeeping.append({
             'id': str(prop.id),
             'title': prop.title,
-            'status': suggested_status,
+            'status': status,
             'available': available,
             'price': float(prop.price_per_night or 0),
             'guest_max': prop.guest,
@@ -151,9 +165,10 @@ def _fd_data(request, target_date):
         'total_checkout': total_checkout,
         'total_cancellations': total_cancellations,
         'total_vacant': total_vacant,
+        'total_active': total_active,
         'total_booked_today': total_booked,
         'total_tasks': total_tasks,
-        'total_inquiries': total_inquiries,
+        'total_payments_amount': total_payments_amount,
         'checkins': checkins,
         'checkouts': checkouts,
         'housekeeping': housekeeping,
@@ -185,9 +200,10 @@ class FrontdeskSummaryAPI(LoginRequiredMixin, View):
             'total_checkout': data['total_checkout'],
             'total_cancellations': data['total_cancellations'],
             'total_vacant': data['total_vacant'],
+            'total_active': data['total_active'],
             'total_booked_today': data['total_booked_today'],
             'total_tasks': data['total_tasks'],
-            'total_inquiries': data['total_inquiries'],
+            'total_payments_amount': data['total_payments_amount'],
             'date_iso': data['date_iso'],
             'day_name': data['day_name'],
             'day_num': data['day_num'],
@@ -272,6 +288,11 @@ class HousekeepingAPI(LoginRequiredMixin, View):
             end_date__gte=target_date
         ).values_list('property_id', flat=True))
 
+        saved_statuses = {
+            hs.property_id: hs.status
+            for hs in HousekeepingStatus.objects.filter(property__in=active_properties)
+        }
+
         data = []
         for prop in active_properties:
             is_occupied = prop.id in inhouse_property_ids
@@ -299,10 +320,12 @@ class HousekeepingAPI(LoginRequiredMixin, View):
                 suggested_status = 'Clean-Inspected'
                 available = True
 
+            status = saved_statuses.get(prop.id, suggested_status)
+
             data.append({
                 'id': str(prop.id),
                 'title': prop.title,
-                'status': suggested_status,
+                'status': status,
                 'available': available,
                 'price': float(prop.price_per_night or 0),
                 'guest_max': prop.guest,
@@ -312,3 +335,27 @@ class HousekeepingAPI(LoginRequiredMixin, View):
             })
 
         return JsonResponse({'data': data})
+
+    def post(self, request):
+        user_ids = get_visible_user_ids(request.user)
+        try:
+            body = json.loads(request.body)
+            property_id = body.get('property_id')
+            status = body.get('status')
+        except (json.JSONDecodeError, AttributeError):
+            return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+        valid_statuses = [s[0] for s in HousekeepingStatus.STATUS_CHOICES]
+        if status not in valid_statuses:
+            return JsonResponse({'error': 'Invalid status'}, status=400)
+
+        try:
+            prop = Property.objects.get(id=property_id, created_by__in=user_ids)
+        except Property.DoesNotExist:
+            return JsonResponse({'error': 'Property not found'}, status=404)
+
+        HousekeepingStatus.objects.update_or_create(
+            property=prop,
+            defaults={'status': status}
+        )
+        return JsonResponse({'ok': True})

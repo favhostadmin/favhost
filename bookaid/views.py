@@ -2,6 +2,8 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views import View
 from django.views.generic import TemplateView
 from django.views.generic.list import ListView
+from django.views.decorators.cache import never_cache
+from django.utils.decorators import method_decorator
 from django.db.models import Q
 from django.db.models import Prefetch
 from django.db.models.functions import Concat
@@ -927,6 +929,7 @@ class RevenueByListingView(LoginRequiredMixin, TemplateView):
         return context
 
 
+@method_decorator(never_cache, name='dispatch')
 class CalenderAPIView(LoginRequiredMixin,ListView):
     model = Booking
     template_name = 'frontend/calender/calender.html'
@@ -1024,6 +1027,8 @@ class CalenderAPIView(LoginRequiredMixin,ListView):
                     'bookingId': b.booking_id or 'N/A',
                     'paymentDates': payment_dates,
                     'paymentsInfo': payments_info,
+                    'check_in_time': (b.check_in_time or b.property.check_in_time).strftime('%H:%M') if (b.check_in_time or b.property.check_in_time) else None,
+                    'check_out_time': (b.check_out_time or b.property.check_out_time).strftime('%H:%M') if (b.check_out_time or b.property.check_out_time) else None,
                 })
 
         # Fetch blocked dates

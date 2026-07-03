@@ -215,11 +215,11 @@
     .form-field>label {
         display: block;
         font-size: 14px;
-        font-weight: 700;
-        color: #191919;
+        font-weight: 590;
+        color: #121212;
         margin-bottom: 5px;
-        text-transform: uppercase;
-        letter-spacing: 0.03em;
+        text-transform: none;
+        letter-spacing: 0;
     }
 
     .required-star {
@@ -700,7 +700,7 @@
 
                     <!-- Listings top row -->
                     <div class="listings-top-row">
-                        <span class="listings-label">Select Listings</span>
+                        <span class="listings-label">Select Listings <span class="required-star">*</span></span>
                         <div class="listings-search-box">
                             <input type="text" id="listingSearch" placeholder="Search" autocomplete="off">
                             <button type="button" class="search-clear-btn" id="searchClearBtn">&#x2715;</button>
@@ -736,7 +736,7 @@
                             <div class="form-field">
                                 <label>Task Title <span class="required-star">*</span></label>
                                 <input type="text" name="title" id="taskTitle" placeholder="Enter task title"
-                                    value="{{ form.title.value|default_if_none:'' }}" required>
+                                    value="{{ form.title.value|default_if_none:'' }}" maxlength="60" required>
                             </div>
 
                             <div class="form-field">
@@ -750,10 +750,7 @@
                             <div class="form-field full-width">
                                 <label>Task description</label>
                                 <textarea name="details" id="taskDetails" placeholder="Briefly describe the task"
-                                    maxlength="100" rows="4">{{ form.details.value|default_if_none:'' }}</textarea>
-                                <span
-                                    style="display:block;text-align:right;font-size:11px;color:#9ca3af;margin-top:3px;"
-                                    id="charCount">0/100</span>
+                                    rows="4">{{ form.details.value|default_if_none:'' }}</textarea>
                             </div>
 
                             <!-- If other -->
@@ -892,14 +889,6 @@ document.getElementById('repeatTill').addEventListener('keydown', function(e) { 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
 
-    /* ── Char count ── */
-    const taskDetailsTextarea = document.getElementById('taskDetails');
-    const charCount = document.getElementById('charCount');
-    taskDetailsTextarea.addEventListener('input', function () {
-        charCount.textContent = this.value.length + '/100';
-    });
-    charCount.textContent = (taskDetailsTextarea.value || '').length + '/100';
-
     /* ── Repeat / repeat-till toggle ── */
     const repeatOptionSelect = document.getElementById('repeatOption');
     const repeatTillInput    = document.getElementById('repeatTill');
@@ -907,6 +896,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function toggleRepeatTill() {
         const hasRepeat = repeatOptionSelect.value && repeatOptionSelect.value !== 'None';
+        noEndDateCheck.disabled = !hasRepeat;
+        if (!hasRepeat && noEndDateCheck.checked) {
+            noEndDateCheck.checked = false;
+        }
         repeatTillInput.disabled = !hasRepeat || noEndDateCheck.checked;
         repeatTillInput.required = hasRepeat && !noEndDateCheck.checked;
     }

@@ -584,6 +584,13 @@
         margin: 0;
     }
 
+    .listing-availability-text {
+        font-size: 13px;
+        color: #374151;
+        font-weight: 500;
+        white-space: nowrap;
+    }
+
     @media (max-width: 991px) {
         .mobile-filter-section {
             background: #E7E7E9;
@@ -1127,19 +1134,28 @@
     border-radius: 10px;
   }
 
+  /* Validation modal — small top-center popup */
+  #validationModal .modal-dialog {
+    max-width: 380px !important;
+    width: 90% !important;
+    margin: 40px auto 0 !important;
+  }
+
   /* Property preview modal */
   #propertyPreviewModal .modal-dialog {
-    max-width: min(96vw, 1440px);
-    margin: 16px auto;
+    max-width: min(100vw, 1440px) !important;
+    width: min(100vw, 1440px) !important;
+    height: 100vh !important;
+    margin: 0 auto !important;
   }
 
   #propertyPreviewModal .modal-content {
-    height: min(92vh, 980px);
+    height: 100% !important;
+    border-radius: 0 !important;
+    overflow: hidden;
     display: flex;
     flex-direction: column;
-    border: 0;
-    border-radius: 18px;
-    overflow: hidden;
+    border: 0 !important;
     box-shadow: 0 24px 80px rgba(0, 0, 0, 0.28);
   }
 
@@ -1181,13 +1197,15 @@
     #propertyPreviewModal .modal-dialog {
       max-width: 100%;
       width: 100%;
-      height: 100%;
+      height: 100vh;
+      height: 100dvh;
       margin: 0;
     }
 
     #propertyPreviewModal .modal-content {
-      height: 100vh;
-      border-radius: 0;
+      height: 100vh !important;
+      height: 100dvh !important;
+      border-radius: 0 !important;
     }
 
     #propertyPreviewModal .modal-header {
@@ -1343,9 +1361,9 @@
                 </div>
             </div>
 
-            <button type="button" class="btn-share tooltip-light tooltip-right" data-tooltip="Share Listing" data-tooltip-original="Share Listing" aria-label="Share Listing" onclick="plCopyShareLink(this)" style="background: none; border: none; padding: 0;">
+            <!-- <button type="button" class="btn-share tooltip-light tooltip-right" data-tooltip="Share Listing" data-tooltip-original="Share Listing" aria-label="Share Listing" onclick="plCopyShareLink(this)" style="background: none; border: none; padding: 0;">
                 <img src="{% static 'img/common/white_share_icon.svg' %}" alt="Share">
-            </button>
+            </button> -->
             
         </div>
     </div>
@@ -1384,9 +1402,9 @@
             </div>
 
             <div class="mobile-right-actions">
-                <button type="button" class="mobile-action-btn" aria-label="Share" onclick="plCopyShareLink()">
+                <!-- <button type="button" class="mobile-action-btn" aria-label="Share" onclick="plCopyShareLink()">
                     <img src="{% static 'img/property/share.svg' %}" alt="Share" width="20" height="20">
-                </button>
+                </button> -->
                 <!-- <button type="button" class="mobile-action-btn" id="mobileFilterToggle" aria-label="Open search filters" aria-expanded="false">
                     <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
                         <path d="M9 17A8 8 0 1 0 9 1a8 8 0 0 0 0 16Z" stroke="currentColor" stroke-width="1.5"/>
@@ -1585,7 +1603,7 @@
                                                 </a>
                                             </li>
                                             {% endif %}
-                                            <li>
+                                            <!-- <li>
                                                 <a class="dropdown-item" href="#" >
                                                     <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
                                                         <path d="M10.125 5.875C11.025 4.975 12.475 4.975 13.375 5.875C14.275 6.775 14.275 8.225 13.375 9.125L11.75 10.75" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
@@ -1594,7 +1612,7 @@
                                                     </svg>
                                                     Copy Guest Link
                                                 </a>
-                                            </li>
+                                            </li> -->
                                         </ul>
                                     </div>
                                 </div>
@@ -1603,6 +1621,7 @@
                                 <p class="listing-location">{{ item.city }}, {{ item.state }}</p>
                             </a>
                             <div class="d-flex justify-content-between align-items-center">
+                                {% if check_in and check_out %}
                                 <div style="display: flex; align-items: center; gap: 6px;">
                                     <img src="{% static 'img/property/bed.svg' %}">
                                     <div class="listing-bed-type">{{ item.get_bed_type_display|cut:" Bed" }}</div>
@@ -1615,6 +1634,20 @@
                                         </p>
                                     </a>
                                 </div>
+                                {% else %}
+                                <div style="display: flex; align-items: center; gap: 6px;">
+                                    <img src="{% static 'img/property/bed.svg' %}">
+                                    <div class="listing-bed-type">{{ item.get_bed_type_display|cut:" Bed" }}</div>
+                                    <a href="{% url 'property:property-detail' slug=item.slug %}" data-open-property-preview="true" data-preview-title="{{ item.title|escape }}" rel="noopener noreferrer">
+                                        <p class="listing-price" data-nightly-price="{% money_raw item.price_per_night %}" data-cleaning-fee="{% money_raw item.cleaning_fee %}" data-refundable-deposit="{% money_raw item.refundable_deposit %}" data-application-fee="{% money_raw item.application_fees %}">
+                                            {% money item.price_per_night %} <span class="price-period">Night</span>
+                                        </p>
+                                    </a>
+                                </div>
+                                <div class="listing-stay-wrap listing-stay-badge" style="display: flex; align-items: center; gap: 6px;">
+                                    <span class="listing-availability-text">{% if item.next_available_date %}Available on {{ item.next_available_date|date:"d-M-y" }}{% else %}Available today{% endif %}</span>
+                                </div>
+                                {% endif %}
                             </div>
                             <!-- <div class="property-meta-row">
                                 <span class="property-meta-item">
@@ -1640,11 +1673,11 @@
                 </div>
                 {% empty %}
                 <div class="col-12">
-                    <div class="no-results text-center py-5">
+                    <!-- <div class="no-results text-center py-5">
                         <img src="{% static 'img/not-found/no_property.jpg' %}" alt="No properties" class="mt-2 mb-2" style="width: auto; height: 40vh;">
-                        <h3 style="font-size: 20px;">Your search returned no results</h3>
+                        <h3 style="font-size: 20px;">Your /static/img/common/white_share_icon.svg/static/img/common/white_share_icon.svg returned no results</h3>
                         <p>You can expand your search criteria and try again.</p>
-                    </div>
+                    </div> -->
                 </div>
                 {% endfor %}
             {% else %}
@@ -1666,7 +1699,7 @@
 </main>
 
 <div class="modal fade" id="propertyPreviewModal" tabindex="-1" aria-labelledby="propertyPreviewModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered modal-xl">
+  <div class="modal-dialog modal-fullscreen">
     <div class="modal-content">
       <div class="modal-body">
         <div class="preview-body-wrap">
@@ -1732,17 +1765,17 @@
 
 <!-- Validation Error Modal -->
 <div class="modal fade" id="validationModal" tabindex="-1" aria-labelledby="validationModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered" role="document">
+  <div class="modal-dialog modal-sm" role="document" style="max-width:380px;width:90%;margin:40px auto 0;">
     <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="validationModalLabel">Missing Information</h5>
+      <div class="modal-header border-0 pb-0">
+        <h6 class="modal-title fw-semibold" id="validationModalLabel">Missing Information</h6>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
-      <div class="modal-body" id="validationModalBody">
+      <div class="modal-body pt-2 pb-2" id="validationModalBody" style="font-size:14px;color:#374151;">
         <!-- Message will be inserted here by JavaScript -->
       </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-primary" data-bs-dismiss="modal">OK</button>
+      <div class="modal-footer border-0 pt-0">
+        <button type="button" class="btn btn-primary btn-sm w-100" data-bs-dismiss="modal">OK</button>
       </div>
     </div>
   </div>
