@@ -820,7 +820,7 @@
 </script>
 
 <script>
-    function setupShowMore(containerSelector, maxLength = 400) {
+    function setupShowMore(containerSelector, maxLines = 4) {
         const containers = document.querySelectorAll(containerSelector);
         containers.forEach(function(container) {
             const textElement = container.querySelector('p');
@@ -828,18 +828,19 @@
             if (!textElement || !btn) return;
 
             const fullText = textElement.getAttribute("data-full") || "";
+            const clampStyle = 'display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:' + maxLines + ';overflow:hidden;';
 
-            if (fullText.length > maxLength) {
-                const shortText = fullText.substring(0, maxLength) + "...";
-                textElement.innerHTML = shortText;
+            textElement.innerHTML = fullText;
+            textElement.style.cssText = clampStyle;
 
+            if (textElement.scrollHeight > textElement.clientHeight + 1) {
                 btn.addEventListener("click", function () {
-                    const isShort = textElement.innerHTML.endsWith("...");
-                    textElement.innerHTML = isShort ? fullText : shortText;
-                    btn.textContent = isShort ? "Show less" : "Show more";
+                    const isClamped = textElement.style.cssText !== "";
+                    textElement.style.cssText = isClamped ? "" : clampStyle;
+                    btn.textContent = isClamped ? "Show less" : "Show more";
                 });
             } else {
-                textElement.innerHTML = fullText;
+                textElement.style.cssText = "";
                 btn.style.display = 'none';
             }
         });
