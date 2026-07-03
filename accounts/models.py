@@ -82,6 +82,9 @@ class MyUser(AbstractBaseUser):
     # Set True after the one-time "trial ending in 7 days" email is sent,
     # so a trial user only ever receives that reminder once.
     trial_ending_email_sent = models.BooleanField(default=False)
+    # Free-trial length (days) captured at signup from PlatformSetting, so that
+    # changing the platform-wide trial length later only affects NEW accounts.
+    trial_days = models.PositiveIntegerField(default=90, help_text="This account's free-trial length in days (set at signup).")
 
     objects = MyUserManager()
 
@@ -107,6 +110,16 @@ class MyUser(AbstractBaseUser):
                 if not MyUser.objects.filter(short_code=code).exists():
                     self.short_code = code
                     break
+
+        # On first save (new signup), capture the current platform-wide trial
+        # length so later changes to the setting don't affect this account.
+        if self._state.adding:
+            try:
+                from billing.models import PlatformSetting
+                self.trial_days = PlatformSetting.load().free_trial_days
+            except Exception:
+                pass  # keep the field default (90) if settings aren't ready
+
         super().save(*args, **kwargs)
 
     def get_local_date(self):

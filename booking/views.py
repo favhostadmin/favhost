@@ -102,7 +102,11 @@ class BookingListView(LoginRequiredMixin, ListView):
 
             relevant_info = ''
             time_delta = False
-            if status_filter == 'upcoming':
+            urgency = 'green'
+            if booking.status == 'cancelled':
+                relevant_info = 'Cancelled'
+                urgency = 'red'
+            elif status_filter == 'upcoming':
                 if booking.check_in_date:
                     delta = booking.check_in_date - now
                     if delta.days > 1:
@@ -114,6 +118,8 @@ class BookingListView(LoginRequiredMixin, ListView):
             else:
                 if booking.check_out_date:
                     delta = booking.check_out_date - now
+                    if 0 <= delta.days <= 2:
+                        urgency = 'amber'
                     if delta.days > 1:
                         relevant_info = f"Checkout in {delta.days} days"
                     elif delta.days == 1:
@@ -143,6 +149,7 @@ class BookingListView(LoginRequiredMixin, ListView):
                 'due_status': 'Paid', # Placeholder
                 'checkout_info': relevant_info,
                 'time_delta': time_delta,
+                'urgency': urgency,
                 'email': booking.email,
                 'phone': booking.phone,
             })
@@ -731,16 +738,25 @@ def guest_receipt(request, pk):
     if booking.check_in_date and booking.check_out_date:
         nights = (booking.check_out_date - booking.check_in_date).days
 
-    # Calculate total paid amount and total price
+    # Calculate totals (refundable deposit excluded from all payment math)
     payments = booking.payments.all()
     total_paid = sum(p.amount for p in payments if p.is_paid)
-    total_price = booking.price + (booking.cleaning_fee or 0) + (booking.application_fee or 0)
-    all_paid = total_paid >= total_price
+    deposit = booking.deposit_fee or 0
+    paid_excluding_deposit = max(total_paid - deposit, 0)
+    subtotal = (booking.price_per_night or 0) * nights
+    total_price = subtotal + (booking.cleaning_fee or 0) + (booking.application_fee or 0)
+    all_paid = paid_excluding_deposit >= total_price
+
+    balance_due = max(total_price - paid_excluding_deposit, 0)
 
     context = {
         'booking': booking,
         'nights': nights,
+        'subtotal': subtotal,
         'total_paid': total_paid,
+        'paid_excluding_deposit': paid_excluding_deposit,
+        'total_price': total_price,
+        'balance_due': balance_due,
         'all_paid': all_paid,
         'is_modal': is_modal,
     }

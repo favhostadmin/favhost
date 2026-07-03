@@ -1190,16 +1190,6 @@
                     </li>
                     {% endif %}
 
-                    <li>
-                        <a class="dropdown-item" href="#" >
-                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                                <path d="M10.125 5.875C11.025 4.975 12.475 4.975 13.375 5.875C14.275 6.775 14.275 8.225 13.375 9.125L11.75 10.75" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                                <path d="M5.875 10.125C4.975 11.025 3.525 11.025 2.625 10.125C1.725 9.225 1.725 7.775 2.625 6.875L4.25 5.25" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                                <path d="M5.25 10.75L10.75 5.25" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                            </svg>
-                            Copy Guest Link
-                        </a>
-                    </li>
 
                 </ul>
             {% if request.GET.embed %}
@@ -1218,6 +1208,9 @@
                     <!-- Title and Status Row -->
                     <div class="col-lg-8 col-md-8 col-sm-12 desktop-title">
                         <span style="font-size: 24px; font-weight: 500">{{ property.title }}</span>
+                        {% if property.nick_name %}
+                        <span style="font-size: 14px; color: #6b7280; margin-left: 8px;">({{ property.nick_name }})</span>
+                        {% endif %}
                     </div>
                     <div class="col-lg-4 col-md-4 col-sm-12 desktop-status" style="text-align: end;">
                         {% if property.status == 'Active' %}
@@ -1230,14 +1223,14 @@
                     </div>
                     <div class="col-12 mobile-title-price">
                         <div class="d-flex justify-content-between align-items-start">
-                            <p class="mb-0 fw-semibold mobile-title-text">{{ property.title }}</p>
+                            <p class="mb-0 fw-semibold mobile-title-text">{{ property.title }}{% if property.nick_name %} <span style="font-weight:400;color:#6b7280;">({{ property.nick_name }})</span>{% endif %}</p>
                             <div class="text-end d-flex align-items-center">
                                 <div class="mobile-price-actions">
                                     <div class="mobile-price-row">
                                         <p class="mb-0 fw-bold mobile-price-text">{% money property.price_per_night %} night</p>
                                     </div>
 
-                                    {% if property.cleaning_fee > 0 or property.refundable_deposit > 0 or property.application_fees > 0 %}
+                                    {% if property.cleaning_fee > 0 or property.refundable_deposit > 0 or property.application_fees > 0 or property.taxes > 0 %}
                                     <div class="mobile-fee-row">
                                         <a href="#" id="openOtherFeesModalMobile" class="mobile-fee-link">Other fees</a>
                                     </div>
@@ -1786,13 +1779,25 @@
                             <button class="show-more-btn">Show more</button>
                         </div>
                         {% endif %}
+
+                        <!-- Rental Contract Terms and Conditions Section -->
+                        {% if property.rental_contract_terms %}
+                        <hr class="policies-top-divider">
+                        <div class="policies-section section-policies section-rental-contract">
+                            <h2 style="font-size: 22px;">Rental Contract Terms and Conditions</h2>
+                            <div class="policies-text">
+                                <p class="rules-text" data-full="{{ property.rental_contract_terms|linebreaksbr }}"></p>
+                            </div>
+                            <button class="show-more-btn">Show more</button>
+                        </div>
+                        {% endif %}
                     </div>
 
                     <!-- Booking Card -->
                     <div class="booking-card">
 <div class="booking-card-header">
                             <h3 class="fw-bold text-center me-2 booking-card-price">{% money property.price_per_night %}<small class="text-muted fw-normal"> night</small></h3>
-                            {% if property.cleaning_fee > 0 or property.refundable_deposit > 0 or property.application_fees > 0 %}
+                            {% if property.cleaning_fee > 0 or property.refundable_deposit > 0 or property.application_fees > 0 or property.taxes > 0 %}
                             <a href="#" id="openOtherFeesModal" class="booking-card-fee-link">*Other Fee</a>
                             {% endif %}
                         </div>
@@ -1853,6 +1858,10 @@
                                 <span class="detail-summary-label">Application fee:</span>
                                 <span class="detail-summary-value" id="detail-summary-application-fee">{% money property.application_fees %}</span>
                             </div>
+                            <div class="detail-summary-item">
+                                <span class="detail-summary-label">Taxes:</span>
+                                <span class="detail-summary-value" id="detail-summary-taxes">{% money property.taxes %}</span>
+                            </div>
                             <div class="detail-summary-item detail-summary-total">
                                 <span class="detail-summary-label">Total price:</span>
                                 <span class="detail-summary-value" id="detail-summary-total">{{ currency_symbol }}0.00</span>
@@ -1868,7 +1877,7 @@
                     </div>
                 </div>
             </div>
-            {% include 'frontend/base/footer.html' %}
+            {% if not request.GET.embed %}{% include 'frontend/base/footer.html' %}{% endif %}
 
 
         </div>
@@ -2066,6 +2075,12 @@
                         <td class="text-end fw-bold">{% money property.application_fees %}</td>
                     </tr>
                     {% endif %}
+                    {% if property.taxes > 0 %}
+                    <tr>
+                        <td>Taxes</td>
+                        <td class="text-end fw-bold">{% money property.taxes %}</td>
+                    </tr>
+                    {% endif %}
                 </tbody>
             </table>
         </div>
@@ -2180,6 +2195,7 @@
         // Setup for "Policies"
         setupShowMore('.section-house-rules');
         setupShowMore('.section-cancellation-policy');
+        setupShowMore('.section-rental-contract');
 
         const amenitiesBtn = document.getElementById("toggle-amenities");
         const hiddenItems = document.querySelectorAll(".hidden-amenity");
@@ -2347,11 +2363,13 @@
         const detailSummaryCleaningFee = document.getElementById('detail-summary-cleaning-fee');
         const detailSummaryRefundableDeposit = document.getElementById('detail-summary-refundable-deposit');
         const detailSummaryApplicationFee = document.getElementById('detail-summary-application-fee');
+        const detailSummaryTaxes = document.getElementById('detail-summary-taxes');
         const detailSummaryTotal = document.getElementById('detail-summary-total');
         const propertyPricePerNight = parseFloat("{% money_raw property.price_per_night %}") || 0;
         const propertyCleaningFee = parseFloat("{% money_raw property.cleaning_fee %}") || 0;
         const propertyRefundableDeposit = parseFloat("{% money_raw property.refundable_deposit %}") || 0;
         const propertyApplicationFee = parseFloat("{% money_raw property.application_fees %}") || 0;
+        const propertyTaxes = parseFloat("{% money_raw property.taxes %}") || 0;
 
         function formatLocalIso(dateObj) {
             const y = dateObj.getFullYear();
@@ -2487,7 +2505,7 @@
 
             const nights = Math.ceil((checkoutDate - checkinDate) / (1000 * 60 * 60 * 24));
             const subtotal = propertyPricePerNight * nights;
-            const total = subtotal + propertyCleaningFee + propertyRefundableDeposit + propertyApplicationFee;
+            const total = subtotal + propertyCleaningFee + propertyRefundableDeposit + propertyApplicationFee + propertyTaxes;
 
             detailSummarySection.style.display = 'block';
             if (detailSummaryDailyRate) {
@@ -2507,6 +2525,9 @@
             }
             if (detailSummaryApplicationFee) {
                 detailSummaryApplicationFee.textContent = `{{ currency_symbol }}${propertyApplicationFee.toFixed(2)}`;
+            }
+            if (detailSummaryTaxes) {
+                detailSummaryTaxes.textContent = `{{ currency_symbol }}${propertyTaxes.toFixed(2)}`;
             }
             if (detailSummaryTotal) {
                 detailSummaryTotal.textContent = `{{ currency_symbol }}${total.toFixed(2)}`;

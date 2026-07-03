@@ -40,22 +40,12 @@ def _is_premium(user):
 
 
 def _price_display():
-    """Fetch the Premium price from Stripe once; fall back to a sensible default."""
-    fallback = getattr(settings, 'PREMIUM_PRICE_DISPLAY', '$9.99/month')
-    price_id = getattr(settings, 'STRIPE_PRICE_ID', '')
-    secret = getattr(settings, 'STRIPE_SECRET_KEY', '')
-    if not price_id or not secret:
-        return fallback
+    """Price shown in the email — the admin-set platform price."""
     try:
-        import stripe
-        stripe.api_key = secret
-        price = stripe.Price.retrieve(price_id)
-        from billing.emails import format_price
-        amount = (price.unit_amount or 0) / 100
-        interval = getattr(getattr(price, 'recurring', None), 'interval', 'month') or 'month'
-        return f"{format_price(amount, price.currency)}/{interval}"
+        from billing.models import PlatformSetting
+        return PlatformSetting.load().full_display
     except Exception:
-        return fallback
+        return getattr(settings, 'PREMIUM_PRICE_DISPLAY', '$9.99/month')
 
 
 class Command(BaseCommand):
@@ -72,20 +62,17 @@ class Command(BaseCommand):
         dry = opts['dry_run']
         now = timezone.now()
 
-        # trial_end = created_at + 90d. We want users whose trial ends within the next
-        # `lead` days but has NOT already passed:
-        #   created_at > now - 90d           (trial not yet over)
-        #   created_at <= now - (90 - lead)d (trial ends within `lead` days)
-        window_start = now - timedelta(days=TRIAL_DAYS)
-        window_end = now - timedelta(days=TRIAL_DAYS - lead)
-
+        # Each account now stores its own trial length (MyUser.trial_days), so we
+        # can't use a single created_at window. Instead, scan users who haven't
+        # been emailed yet and compute each one's trial_end individually. A user
+        # is eligible when their trial ends within the next `lead` days and has
+        # not already passed — this also covers short trials (e.g. 3 days), which
+        # fall inside the 7-day lead window immediately.
         cohost_ids = CoHost.objects.values_list('co_host_id', flat=True)
         candidates = (MyUser.objects
                       .filter(trial_ending_email_sent=False,
                               is_subscription_free=False,
-                              is_active=True,
-                              created_at__gt=window_start,
-                              created_at__lte=window_end)
+                              is_active=True)
                       .exclude(id__in=cohost_ids))
 
         price_display = _price_display()
@@ -101,23 +88,31 @@ class Command(BaseCommand):
                 skipped += 1
                 continue
 
-            trial_end = user.created_at + timedelta(days=TRIAL_DAYS)
-            days_left = max(1, (trial_end.date() - now.date()).days)
+            trial_days = user.trial_days or TRIAL_DAYS
+            trial_end = user.created_at + timedelta(days=trial_days)
+            days_left = (trial_end.date() - now.date()).days
+
+            # Only email inside the lead window (not before, not after expiry).
+            if days_left < 0 or days_left > lead:
+                skipped += 1
+                continue
+
+            days_left_display = max(1, days_left)
 
             if dry:
                 self.stdout.write(
-                    f"[dry-run] would email {user.email} — trial ends {trial_end.date()} ({days_left} days)"
+                    f"[dry-run] would email {user.email} — trial ends {trial_end.date()} ({days_left_display} days)"
                 )
                 sent += 1
                 continue
 
-            send_trial_ending_email(user, trial_end, days_left, price_display)
+            send_trial_ending_email(user, trial_end, days_left_display, price_display)
             user.trial_ending_email_sent = True
             user.save(update_fields=['trial_ending_email_sent'])
             sent += 1
-            self.stdout.write(f"Emailed {user.email} — trial ends {trial_end.date()} ({days_left} days)")
+            self.stdout.write(f"Emailed {user.email} — trial ends {trial_end.date()} ({days_left_display} days)")
 
         verb = 'Would send' if dry else 'Sent'
         self.stdout.write(self.style.SUCCESS(
-            f"{verb} {sent} trial-ending email(s); skipped {skipped} (subscribed/no-email)."
+            f"{verb} {sent} trial-ending email(s); skipped {skipped} (subscribed/no-email/outside window)."
         ))

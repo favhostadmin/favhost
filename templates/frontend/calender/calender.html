@@ -7,3494 +7,14 @@
 <link href="{% static 'css/task/listing.css' %}" rel="stylesheet">
 <link href="{% static 'css/booking/list.css' %}" rel="stylesheet">
 <link href="{% static 'css/calender/list.css' %}" rel="stylesheet">
-<style>
-  .date-cell {
-    position: relative;
-    /* overflow: visible; */
-    /* ensure overlays aren't clipped */
-    /* z-index: 1; */
-  }
-
-  .date-row {
-    overflow: visible;
-    --cell-width: var(--timeline-cell-width, 60px);
-    --edge-gap-left: 10px;
-    --edge-gap-right: 10px;
-  }
-
-  .date-column.user-selected-date-column,
-  .date-cell.user-selected-date-column {
-    background: rgba(59, 130, 246, 0.24) !important;
-  }
-
-  .date-column.today-date-column {
-    background: #0f172a !important;
-  }
-
-  .date-cell.today-date-column {
-    background: rgba(22, 163, 74, 0.245) !important;
-  }
-
-  .date-column.today-date-column {
-    box-shadow: inset 0 0 0 1px rgba(13, 166, 69, 0.409) !important;
-  }
-
-  .date-cell.today-date-column {
-    box-shadow: none !important;
-  }
-
-  .date-column.today-date-column.user-selected-date-column,
-  .date-cell.today-date-column.user-selected-date-column {
-    background: rgba(34, 197, 94, 0.14) !important;
-  }
-
-  .date-column.user-selected-date-column {
-    box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.55);
-  }
-
-  .date-cell.user-selected-date-column {
-    box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.4);
-  }
-
-  .date-column,
-  .date-cell,
-  .date-row {
-    cursor: pointer;
-  }
-
-  .month-task-circle {
-    position: absolute;
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    pointer-events: auto;
-    box-shadow: 0 0 0 2px #000, 0 2px 6px rgba(0, 0, 0, 0.2);
-    border: 2px solid rgba(255, 255, 255, 0.4);
-    overflow: hidden;
-    transition: transform 0.15s;
-    z-index: 15;
-  }
-  .month-task-circle:hover {
-    transform: scale(1.15);
-  }
-  .month-task-circle img {
-    width: 16px;
-    height: 16px;
-    object-fit: contain;
-    filter: brightness(0) invert(1);
-    display: block;
-  }
-  .month-task-circle.above-bar {
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-  }
-  .month-task-circle.above-bar:hover {
-    transform: translate(-50%, -50%) scale(1.15);
-  }
-  .month-task-circle.at-bar-start {
-    left: 5px;
-    top: 50%;
-    transform: translateY(-50%);
-  }
-  .month-task-circle.at-bar-start:hover {
-    transform: translateY(-50%) scale(1.15);
-  }
-  .month-task-count {
-    position: absolute;
-    top: -4px;
-    right: -4px;
-    min-width: 16px;
-    height: 16px;
-    border-radius: 999px;
-    padding: 0 4px;
-    background: #ef4444;
-    color: #ffffff;
-    border: 2px solid #ffffff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 9px;
-    font-weight: 700;
-    line-height: 1;
-    z-index: 16;
-  }
-
-  .task-indicator {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    z-index: 100;
-    width: 30px;
-    height: 30px;
-    border-radius: 50%;
-    background: #111827;
-    border: 2px solid #ffffff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
-    cursor: pointer;
-    pointer-events: auto;
-  }
-
-  .task-indicator svg {
-    width: 20px;
-    height: 20px;
-    stroke: #ffffff;
-  }
-
-  .task-indicator-count {
-    position: absolute;
-    top: -5px;
-    right: -5px;
-    min-width: 15px;
-    height: 15px;
-    border-radius: 999px;
-    padding: 0 4px;
-    background: #ef4444;
-    color: #ffffff;
-    border: 2px solid #ffffff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 9px;
-    font-weight: 700;
-    line-height: 1;
-  }
-
-  .payment-indicator {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    z-index: 120;
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    background: #3b82f6;
-    border: 2px solid #ffffff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    pointer-events: auto;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
-  }
-
-  .payment-indicator img {
-    width: 24px;
-    height: 24px;
-    object-fit: contain;
-    filter: brightness(0) invert(1);
-  }
-
-  .cell-payment-dot {
-    position: absolute;
-    bottom: 4px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: #000000;
-    z-index: 130;
-    cursor: pointer;
-    pointer-events: auto;
-  }
-
-  .cell-blinking-dot {
-    position: absolute;
-    bottom: 6px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: #ef4444;
-    z-index: 15;
-    animation: cell-blink 1.2s ease-in-out infinite;
-    cursor: pointer;
-  }
-  @keyframes cell-blink {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.15; }
-  }
-
-  /* Booking Segments */
-  .booking-segment {
-    position: absolute;
-    padding: 10px 5px;
-    top: 2px;
-    bottom: 2px;
-    left: 28px !important;
-    transition: all 0.2s;
-    left: 0;
-    width: 100%;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
-    overflow: visible;
-    position: relative;
-    z-index: 5;
-  }
-
-  .booking-row-layer {
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    z-index: 4;
-  }
-
-  .booking-span-block {
-    position: absolute;
-    top: 50%;
-    height: 32px;
-    transform: translateY(-50%);
-    --span-gap: calc(var(--cell-width) * 0.85);
-    --boundary-start-adjust: 0px;
-    --boundary-end-adjust: 0px;
-    left: calc((var(--cell-width) * var(--start)) + var(--edge-gap-left) + (var(--span-gap) / 2) - var(--boundary-start-adjust));
-    width: calc((var(--cell-width) * var(--len)) - (var(--edge-gap-left) + var(--edge-gap-right) + var(--span-gap)) + var(--boundary-start-adjust) + var(--boundary-end-adjust));
-    border-radius: 9999px;
-    pointer-events: auto;
-    display: flex;
-    align-items: center;
-    justify-content: left;
-    padding: 0 10px 0 36px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
-    overflow: visible;
-    min-width: 0;
-    max-width: 100%;
-    white-space: nowrap;
-  }
-  .booking-span-block.carry-start {
-    padding-left: 10px;
-    border-top-left-radius: 0;
-    border-bottom-left-radius: 0;
-  }
-  .booking-span-block.carry-start .channel-logo-circle {
-    display: none;
-  }
-
-  .booking-span-block.carry-start {
-    --boundary-start-adjust: calc(var(--edge-gap-left) + (var(--span-gap) / 2));
-  }
-
-  .booking-span-block.carry-end {
-    --boundary-end-adjust: calc(var(--edge-gap-right) + (var(--span-gap) / 2));
-    border-top-right-radius: 0;
-    border-bottom-right-radius: 0;
-  }
-
-  .booking-segment:hover {
-    z-index: 6;
-  }
-
-  .booking-segment.expand-to-label {
-    width: auto;
-    min-width: max-content;
-    max-width: none;
-    border-radius: 10px;
-  }
-
-  /* Rounded ends */
-  .booking-segment.rounded-left {
-    border-top-left-radius: 10px;
-    border-bottom-left-radius: 10px;
-  }
-
-  .booking-segment.rounded-right {
-    border-top-right-radius: 10px;
-    border-bottom-right-radius: 10px;
-  }
-
-  /* Position variants */
-  .booking-segment.pos-left {
-    left: 0;
-    width: calc(50% - 8px);
-    /* Leave small gap */
-    display: none;
-  }
-
-  .booking-segment.pos-right {
-    left: calc(50% + 2px);
-    width: calc(50% - 1px);
-    /* Extend 1px to cover right border */
-  }
-
-  .booking-segment.pos-full {
-    left: 0;
-    width: calc(100% + 1px);
-    display: none;
-    /* Extend 1px to cover right border */
-  }
-
-  .segment-content {
-    display: flex !important;
-    align-items: center !important;
-    justify-content: flex-start !important;
-  }
-
-  /* Content inside the segment (avatar etc) */
-  .booking-segment .segment-content {
-    width: 100%;
-    height: 100%;
-    display: flex !important;
-    align-items: center;
-    justify-content: flex-start;
-    padding-left: 8px;
-    padding-right: 8px;
-    overflow: visible;
-    /* Allow pop out */
-    white-space: nowrap;
-    position: relative;
-    z-index: 20;
-    gap: 6px;
-    flex-wrap: nowrap;
-    line-height: 1;
-  }
-
-  .booking-segment .segment-content span {
-    max-width: 100%;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .segment-guest-name {
-    color: #fff !important;
-    font-size: 18px;
-  }
-
-  .booking-segment .segment-content .segment-guest-name {
-    color: #fff !important;
-    font-size: 12px;
-    font-weight: 500;
-    line-height: 1;
-  }
-
-  @media (max-width: 768px) {
-
-    .booking-segment .segment-content .segment-guest-name,
-    .booking-span-block .segment-guest-name {
-      display: inline;
-    }
-
-    .booking-segment .segment-content span {
-      display: inline;
-    }
-  }
-
-  .channel-icon {
-    margin-top: 0px !important;
-    margin-right: 5px !important;
-  }
-
-  .booking-segment .channel-icon {
-    display: block;
-    margin: 0 !important;
-    height: 16px;
-    width: 16px;
-    object-fit: contain;
-    flex: 0 0 auto;
-    vertical-align: middle;
-  }
-
-  .booking-span-block .channel-logo-circle {
-    position: absolute;
-    left: -22px;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 48px;
-    height: 48px;
-    border-radius: 50%;
-    background: transparent;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    border: 5px solid transparent;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
-    box-sizing: border-box;
-    z-index: 2;
-  }
-  .booking-span-block .channel-logo-circle::after {
-    content: '';
-    position: absolute;
-    inset: 3px;
-    border-radius: 50%;
-    border: 2px solid rgba(255, 255, 255, 0.8);
-    pointer-events: none;
-    z-index: 1;
-  }
-  .booking-span-block .channel-logo-circle img {
-    width: 26px;
-    height: 26px;
-    object-fit: contain;
-    display: block;
-    position: relative;
-    z-index: 2;
-  }
-
-  .booking-segment .blocked-icon {
-    display: block;
-    margin: 0 !important;
-    height: 16px;
-    width: 16px;
-    object-fit: contain;
-    flex: 0 0 auto;
-    vertical-align: middle;
-    filter: brightness(0) saturate(100%) invert(1);
-  }
-
-  .booking-home-icon {
-    width: 20px;
-    height: 20px;
-    margin-right: 6px;
-    flex: 0 0 auto;
-    display: inline-block;
-  }
-
-  .booking-segment .avatar-group {
-    position: relative;
-    display: flex;
-    align-items: center;
-    margin-right: 0;
-    height: auto;
-    line-height: 0;
-  }
-
-
-
-  /* Hover Tooltip */
-  .booking-segment:hover .booking-tooltip {
-    visibility: visible;
-    opacity: 1;
-  }
-
-  .booking-tooltip {
-    visibility: hidden;
-    opacity: 0;
-    position: absolute;
-    bottom: 100%;
-    left: 50%;
-    transform: translateX(-50%);
-    background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
-    /* Dark gray */
-    color: white;
-    padding: 12px;
-    border-radius: 8px;
-    width: 260px;
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-    /* Shadow-lg */
-    z-index: 100;
-    z-index: 10000;
-    transition: opacity 0.2s, visibility 0.2s;
-    pointer-events: none;
-    font-size: 13px;
-    line-height: 1.5;
-    margin-bottom: 8px;
-    text-align: left;
-    white-space: normal;
-    /* Allow text wrapping */
-  }
-
-  .booking-tooltip h4 {
-    margin: 0 0 4px 0;
-    font-size: 16px;
-    font-weight: 700;
-    color: white;
-  }
-
-  .booking-tooltip .info-row {
-    margin-bottom: 2px;
-    color: #e2e8f0;
-    font-weight: 500;
-  }
-
-  .booking-tooltip .highlight {
-    color: #f8fafc;
-    font-weight: 600;
-  }
-
-  /* Tooltip flip for top row */
-  .booking-tooltip.tooltip-bottom {
-    bottom: auto;
-    top: 100%;
-    margin-top: 8px;
-    margin-bottom: 0;
-  }
-
-  /* Reservation Side Panel */
-  .reservation-sidebar {
-    position: fixed;
-    top: 0;
-    right: 0;
-    width: 520px;
-    height: 100vh;
-    background: #f5f5f5;
-    z-index: 6000;
-    box-shadow: -8px 0 30px rgba(0, 0, 0, 0.12);
-    transform: translateX(100%);
-    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    display: flex;
-    flex-direction: column;
-    border-left: 1px solid #e0e0e0;
-  }
-
-  @media (min-width: 768px) and (max-width: 1199.98px) {
-    .reservation-sidebar {
-      width: 100%;
-    }
-  }
-
-  .reservation-sidebar.open {
-    transform: translateX(0);
-  }
-
-  .sidebar-header {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 16px 20px;
-    border-bottom: 1px solid #e5e7eb;
-    flex-wrap: nowrap;
-    background: #ffffff;
-  }
-
-  .sidebar-header .sidebar-header-left {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    flex-shrink: 0;
-  }
-
-  .sidebar-header .sidebar-header-left img {
-    width: 22px;
-    height: 22px;
-    filter: brightness(0);
-  }
-
-  .sidebar-header .sidebar-header-left span {
-    font-size: 17px;
-    font-weight: 700;
-    color: #111827;
-    white-space: nowrap;
-    letter-spacing: -0.3px;
-  }
-
-  .sidebar-header .sidebar-header-info {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    flex-wrap: wrap;
-  }
-
-  .sidebar-header .sidebar-header-info p {
-    margin: 0;
-    font-size: 12px;
-    color: #9ca3af;
-    white-space: nowrap;
-    font-weight: 500;
-  }
-
-  .sidebar-header-right {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-left: auto;
-    flex-shrink: 0;
-  }
-
-  .sidebar-header-actions {
-    display: inline-flex;
-    align-items: center;
-    gap: 10px;
-  }
-
-  .sidebar-header-actions:empty {
-    display: none;
-  }
-
-  .sidebar-edit-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    border-radius: 6px;
-    padding: 6px 12px;
-    border: 1px solid #d1d5db;
-    background: #ffffff;
-    color: #374151;
-    font-weight: 500;
-    font-size: 13px;
-    text-decoration: none;
-    transition: all 0.2s;
-  }
-
-  .sidebar-edit-btn svg {
-    width: 15px;
-    height: 15px;
-    stroke: currentColor;
-  }
-
-  .sidebar-edit-btn:hover {
-    background: #f3f4f6;
-    border-color: #9ca3af;
-  }
-
-  @media (max-width: 767.98px) {
-    .sidebar-header-actions {
-      flex-wrap: wrap;
-      gap: 6px;
-    }
-
-    .sidebar-edit-btn {
-      display: inline-flex !important;
-    }
-
-    .sidebar-header .sidebar-header-info {
-      display: none;
-    }
-  }
-
-  .close-sidebar-btn {
-    background: none;
-    border: none;
-    font-size: 22px;
-    color: #9ca3af;
-    cursor: pointer;
-    padding: 4px 6px;
-    border-radius: 6px;
-    transition: all 0.2s;
-    line-height: 1;
-  }
-
-  .close-sidebar-btn:hover {
-    background: #f3f4f6;
-    color: #374151;
-  }
-
-  .sidebar-content {
-    padding: 0;
-    overflow-y: auto;
-    flex: 1;
-  }
-
-  .detail-group {
-    margin-bottom: 24px;
-  }
-
-  .detail-label {
-    font-size: 13px;
-    color: #6b7280;
-    font-weight: 500;
-    margin-bottom: 4px;
-  }
-
-  .detail-value {
-    font-size: 16px;
-    color: #1f2937;
-    font-weight: 600;
-  }
-
-  .overlay-backdrop {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.45);
-    z-index: 5500;
-    display: none;
-    opacity: 0;
-    transition: opacity 0.3s;
-  }
-
-  .overlay-backdrop.open {
-    display: block;
-    opacity: 1;
-  }
-
-  .calendar-header {
-    background: white;
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 5px 12px;
-    border: 1px solid #1f2937;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
-  }
-
-  .header-nav .nav-title {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-weight: 600;
-  }
-
-  .header-nav .nav-title img {
-    width: 20px;
-    height: 20px;
-  }
-
-  .header-nav .header-actions-group {
-    display: inline-flex;
-    align-items: center;
-    gap: 10px;
-  }
-
-  .header-nav .header-actions-group img {
-    filter: brightness(0);
-  }
-
-  .mobile-actions {
-    display: none;
-    position: relative;
-    z-index: 2500;
-  }
-
-  .mobile-actions-toggle {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    border: 1px solid #e5e7eb;
-    background: #ffffff;
-    color: #111827;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 18px;
-    line-height: 1;
-  }
-
-  .mobile-actions-menu {
-    position: absolute;
-    right: 0;
-    top: calc(100% + 8px);
-    background: #E7E7E9;
-    border-radius: 10px;
-    padding: 10px 12px;
-    display: none;
-    gap: 16px;
-    align-items: center;
-    z-index: 4000;
-  }
-
-  .mobile-actions-menu.open {
-    display: flex;
-  }
-
-  .mobile-actions-menu .btn {
-    width: 30px;
-    height: 30px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    background: transparent;
-    border-radius: 6px;
-  }
-
-  .mobile-actions-menu img {
-    width: 18px;
-    height: 18px;
-    display: block;
-    filter: brightness(0);
-  }
-
-  .tooltip-light {
-    position: relative;
-  }
-
-  .tooltip-light:hover::after {
-    content: attr(data-tooltip);
-    position: absolute;
-    left: 50%;
-    top: calc(100% + 8px);
-    transform: translateX(-50%);
-    background: #ffffff;
-    color: #111827;
-    border: 1px solid #d1d5db;
-    border-radius: 6px;
-    padding: 4px 8px;
-    font-size: 14px;
-    font-weight: 700;
-    line-height: 1.2;
-    white-space: nowrap;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
-    z-index: 12000;
-    pointer-events: none;
-  }
-
-  .tooltip-light:hover::before {
-    content: '';
-    position: absolute;
-    left: 50%;
-    top: calc(100% + 4px);
-    transform: translateX(-50%);
-    width: 8px;
-    height: 8px;
-    background: #ffffff;
-    border-right: 1px solid #d1d5db;
-    border-bottom: 1px solid #d1d5db;
-    transform-origin: center;
-    rotate: 45deg;
-    z-index: 11999;
-    pointer-events: none;
-  }
-
-  .tooltip-light.tooltip-right:hover::after {
-    left: auto;
-    right: 0;
-    transform: none;
-  }
-
-  .tooltip-light.tooltip-right:hover::before {
-    left: auto;
-    right: 12px;
-    transform: none;
-    rotate: 45deg;
-  }
-
-  /* Task Details Panel in Navbar */
-  #taskDetailsPanel {
-    position: fixed;
-    top: 65px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: white;
-    border: 2px solid #1d74b2;
-    border-radius: 8px;
-    padding: 16px 20px;
-    z-index: 1000;
-    display: none;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    max-width: 500px;
-    animation: slideDown 0.3s ease-out;
-    pointer-events: auto;
-  }
-
-  #taskDetailsPanel.show {
-    display: block;
-  }
-
-  @keyframes slideDown {
-    from {
-      opacity: 0;
-      transform: translateX(-50%) translateY(-10px);
-    }
-
-    to {
-      opacity: 1;
-      transform: translateX(-50%) translateY(0);
-    }
-  }
-
-  #taskDetailsPanel h5 {
-    margin: 0 0 8px 0;
-    font-size: 14px;
-    font-weight: 600;
-    color: #1f2937;
-  }
-
-  #taskDetailsPanel .task-item-nav {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 8px;
-    padding: 8px;
-    background: #f9fafb;
-    border-radius: 6px;
-  }
-
-  #taskDetailsPanel .task-item-nav:last-child {
-    margin-bottom: 0;
-  }
-
-  #taskDetailsPanel .task-badge {
-    display: inline-block;
-    font-size: 10px;
-    font-weight: 600;
-    padding: 2px 6px;
-    border-radius: 4px;
-    text-transform: capitalize;
-    color: white;
-    min-width: 60px;
-    text-align: center;
-  }
-
-  #taskDetailsPanel .task-info-nav {
-    flex: 1;
-  }
-
-  #taskDetailsPanel .task-info-nav>div {
-    font-size: 12px;
-    color: #4b5563;
-    line-height: 1.4;
-  }
-
-  #taskDetailsPanel .task-status {
-    font-size: 11px;
-    padding: 2px 8px;
-    border-radius: 4px;
-    background: #f0f0f0;
-    color: #666;
-  }
-
-  .nav-button-header {
-    width: 32px;
-    height: 32px;
-    border: none;
-    border-radius: 50%;
-    background: white;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: background-color 0.2s;
-  }
-
-  .nav-button-header svg {
-    width: 18px;
-    height: 18px;
-    color: #374151;
-  }
-
-  .nav-button-header img {
-    width: 18px;
-    height: 18px;
-  }
-
-  .month-display {
-    font-size: 16px;
-    font-weight: 600;
-    color: #1f2937;
-    text-align: center;
-    min-width: 160px;
-    white-space: nowrap;
-
-  }
-
-  .month-picker-wrapper {
-    position: relative;
-  }
-
-  .month-display-btn {
-    border: 0;
-    background: transparent;
-    cursor: pointer;
-    padding: 0;
-  }
-
-  .month-year-panel {
-    position: absolute;
-    top: calc(100% + 10px);
-    left: 50%;
-    transform: translateX(-50%);
-    background: #ffffff;
-    border: 1px solid #d1d5db;
-    border-radius: 10px;
-    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.18);
-    padding: 12px;
-    min-width: 250px;
-    z-index: 6000;
-  }
-
-  .month-year-panel[hidden] {
-    display: none !important;
-  }
-
-  .month-year-controls {
-    display: flex;
-    gap: 8px;
-    margin-bottom: 10px;
-  }
-
-  .month-year-select {
-    flex: 1;
-    border: 1px solid #d1d5db;
-    border-radius: 8px;
-    padding: 8px 10px;
-    font-size: 14px;
-    color: #1f2937;
-    background: #fff;
-  }
-
-  .month-year-actions {
-    display: block;
-  }
-
-  .month-year-apply {
-    width: 100%;
-    border: 1px solid #d1d5db;
-    border-radius: 4px;
-    background: #ffffff;
-    color: #1d74b2;
-    font-size: 18px;
-    font-weight: 700;
-    line-height: 1.2;
-    padding: 10px 15px;
-    text-align: center;
-    cursor: pointer;
-    transition: background-color 0.2s ease, border-color 0.2s ease;
-    font-family: sans-serif;
-  }
-
-  .month-year-apply:hover {
-    background: #f8fafc;
-    border-color: #c5ccd3;
-  }
-
-  .month-year-apply:focus-visible {
-    outline: 2px solid #1d74b2;
-    outline-offset: 2px;
-  }
-
-  .divider {
-    width: 1px;
-    height: 32px;
-    background-color: #000;
-    margin: 0 4px;
-  }
-
-  /* Block Calendar Modal Styles */
-  .bc-modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.5);
-    z-index: 3000;
-    display: none;
-    justify-content: center;
-    align-items: center;
-  }
-
-  .bc-container {
-    width: 100%;
-    max-width: 500px;
-    background: white;
-    border-radius: 12px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    overflow: hidden;
-    margin: 20px;
-  }
-
-  .bc-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 16px;
-    border-bottom: 1px solid #e0e0e0;
-  }
-
-  .bc-header-title {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-size: 20px;
-    font-weight: 600;
-  }
-
-  .bc-content {
-    padding: 20px;
-  }
-
-  .bc-property-card {
-    display: flex;
-    gap: 15px;
-    padding: 15px;
-    background: #f8f9fa;
-    border-radius: 8px;
-    margin-bottom: 25px;
-  }
-
-  .bc-property-image {
-    width: 80px;
-    height: 80px;
-    border-radius: 8px;
-    object-fit: cover;
-  }
-
-  .bc-property-title {
-    font-size: 15px;
-    font-weight: 500;
-    line-height: 1.4;
-    color: #333;
-  }
-
-  .bc-date-inputs {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 20px;
-  }
-
-  .bc-input-group {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-
-  .bc-date-input-wrapper {
-    position: relative;
-  }
-
-  .bc-calendar-icon-input {
-    position: absolute;
-    right: 12px;
-    top: 50%;
-    transform: translateY(-50%);
-    pointer-events: none;
-    color: #666;
-  }
-
-  .bc-success-message {
-    display: none;
-    padding: 15px;
-    background: #d4edda;
-    color: #155724;
-    border-radius: 6px;
-    margin-top: 20px;
-    text-align: center;
-    font-size: 14px;
-  }
-
-  .bc-success-message.show {
-    display: block;
-  }
-
-  /* Search Bar Styles */
-  .properties-column .search-bar {
-    /* padding: 16px; */
-    border-bottom: 1px solid #e0e0e0;
-  }
-
-  .properties-column .search-input {
-    width: 100%;
-    padding: 10px 16px;
-    border: 1px solid #e0e0e0;
-    border-radius: 8px;
-    font-size: 14px;
-    outline: none;
-    background-color: #f9fafb;
-    padding-right: 30px;
-    /* Space for clear button */
-  }
-
-  .property-hover-tooltip {
-    position: fixed;
-    z-index: 100001;
-    display: none;
-    width: fit-content;
-    min-width: 340px;
-    max-width: min(420px, calc(100vw - 20px));
-    background: #000000cd;
-    border-radius: 14px;
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
-    color: #ffffff;
-    padding: 10px;
-    pointer-events: none;
-  }
-
-  .property-hover-tooltip .property-preview-card {
-    display: flex;
-    gap: 12px;
-    align-items: center;
-  }
-
-  .property-hover-tooltip .property-preview-image {
-    width: 120px;
-    height: 120px;
-    border-radius: 12px;
-    object-fit: cover;
-    flex: 0 0 auto;
-    background: #d1d5db;
-  }
-
-  .property-hover-tooltip .property-preview-content {
-    min-width: 0;
-    flex: 1;
-    max-width: 260px;
-  }
-
-  .property-hover-tooltip .property-preview-title {
-    font-size: 18px;
-    font-weight: 700;
-    line-height: 1.2;
-    margin-bottom: 8px;
-    color: #ffffff;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-  }
-
-  .property-hover-tooltip .property-preview-line {
-    font-size: 15px;
-    line-height: 1.25;
-    margin-bottom: 8px;
-    color: #e5e7eb;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .property-hover-tooltip .property-preview-line:last-child {
-    margin-bottom: 0;
-  }
-
-  .property-hover-tooltip .property-preview-line.price-line {
-    color: #ffffff;
-    font-weight: 600;
-  }
-
-  .property-hover-tooltip .property-preview-line.meta-line {
-    color: #e5e7eb;
-  }
-
-  /* Global Tooltip Styles */
-  #globalTooltip {
-    position: fixed;
-    background-color: #000000cd;
-    color: white;
-    padding: 12px;
-    border-radius: 8px;
-    width: 400px;
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2), 0 4px 6px -2px rgba(0, 0, 0, 0.1);
-    z-index: 100000;
-    /* Highest z-index to sit on top of everything */
-    pointer-events: none;
-    font-size: 13px;
-    line-height: 1.5;
-    display: none;
-  }
-
-  #globalTooltip h4 {
-    margin: 0 0 4px 0;
-    font-size: 16px;
-    font-weight: 700;
-    color: white;
-  }
-
-  #globalTooltip .info-row {
-    margin-bottom: 2px;
-    color: white;
-  }
-
-  #globalTooltip .highlight {
-    color: white;
-    font-weight: 600;
-  }
-
-  #globalTooltip.booking-tooltip-variant {
-    background-color: #000000cd;
-    border: 1px solid rgba(32, 31, 31, 0.849);
-    border-radius: 16px;
-    padding: 14px;
-    width: max-content;
-    max-width: min(540px, calc(100vw - 20px));
-  }
-
-  #globalTooltip.booking-tooltip-variant .booking-tooltip-card {
-    display: flex;
-    align-items: stretch;
-    gap: 14px;
-  }
-
-  #globalTooltip.booking-tooltip-variant .booking-tooltip-avatar-wrap {
-    width: 140px;
-    min-width: 140px;
-    max-width: 140px;
-    flex: 0 0 140px;
-    align-self: stretch;
-    position: relative;
-    overflow: hidden;
-    border-radius: 14px;
-  }
-
-  #globalTooltip.booking-tooltip-variant .booking-tooltip-avatar {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    min-height: 0;
-    object-fit: cover;
-    background: #d1d5db;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    display: block;
-  }
-
-  #globalTooltip.booking-tooltip-variant .booking-tooltip-info {
-    flex: 1;
-    min-width: 0;
-    max-width: 320px;
-  }
-
-  #globalTooltip.booking-tooltip-variant .booking-tooltip-name {
-    font-size: 14px;
-    font-weight: 700;
-    line-height: 1.15;
-    margin-bottom: 5px;
-    margin-top: 5px;
-    color: #ffffff;
-    white-space: normal;
-    overflow: visible;
-    text-overflow: clip;
-    word-break: break-word;
-  }
-
-  #globalTooltip.booking-tooltip-variant .booking-tooltip-date {
-    font-size: 13px;
-    font-weight: 600;
-    line-height: 1.2;
-    color: #ffffff;
-    margin-bottom: 7px;
-  }
-
-  #globalTooltip.booking-tooltip-variant .booking-tooltip-meta {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 14px;
-    margin-bottom: 10px;
-    color: #ededed;
-    font-size: 12px;
-    font-weight: 500;
-  }
-
-  #globalTooltip.booking-tooltip-variant .booking-tooltip-meta-item {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-  }
-
-  #globalTooltip.booking-tooltip-variant .booking-tooltip-meta-item svg {
-    width: 16px;
-    height: 16px;
-    stroke: #ededed;
-  }
-
-  #globalTooltip.booking-tooltip-variant .booking-tooltip-line {
-    color: #f3f4f6;
-    font-size: 13px;
-    line-height: 1.25;
-    margin-bottom: 6px;
-    white-space: normal;
-    overflow: visible;
-    text-overflow: clip;
-    word-break: break-word;
-  }
-
-  #globalTooltip.booking-tooltip-variant .booking-tooltip-line:last-child {
-    margin-bottom: 0;
-  }
-
-  #globalTooltip.booking-tooltip-variant .booking-tooltip-line strong {
-    color: #ffffff;
-    font-weight: 700;
-  }
-
-  #globalTooltip.booking-tooltip-variant .booking-tooltip-channel {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-  }
-
-  #globalTooltip.booking-tooltip-variant .booking-tooltip-channel img {
-    width: 16px;
-    height: 16px;
-    object-fit: contain;
-    filter: brightness(0) invert(1);
-  }
-
-  #globalTooltip.task-tooltip-variant {
-    background: rgba(0, 0, 0, 0.82);
-    padding: 0;
-    border: 1px solid rgba(255, 255, 255, 0.18);
-    border-radius: 10px;
-    width: 300px;
-    overflow: hidden;
-  }
-
-  #globalTooltip.task-tooltip-variant .task-tooltip-list {
-    padding: 6px 0;
-  }
-
-  #globalTooltip.task-tooltip-variant .task-tooltip-item {
-    position: relative;
-    display: flex;
-    align-items: flex-start;
-    gap: 10px;
-    padding: 10px 12px;
-  }
-
-  #globalTooltip.task-tooltip-variant .task-tooltip-item+.task-tooltip-item::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 38px;
-    right: 12px;
-    border-top: 1px solid rgba(255, 255, 255, 0.25);
-  }
-
-  #globalTooltip.task-tooltip-variant .task-tooltip-icon {
-    width: 18px;
-    height: 18px;
-    margin-top: 2px;
-    object-fit: contain;
-    filter: brightness(0) invert(1);
-    opacity: 0.95;
-    flex: 0 0 auto;
-  }
-
-  #globalTooltip.task-tooltip-variant .task-tooltip-content {
-    flex: 1;
-    min-width: 0;
-  }
-
-  #globalTooltip.task-tooltip-variant .task-tooltip-title {
-    font-size: 15px;
-    font-weight: 700;
-    line-height: 1.2;
-    color: #ffffff;
-    margin-bottom: 4px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  #globalTooltip.task-tooltip-variant .task-tooltip-line {
-    font-size: 13px;
-    color: #f3f4f6;
-    line-height: 1.2;
-    margin-bottom: 2px;
-  }
-
-  #globalTooltip.task-tooltip-variant .task-tooltip-line b {
-    font-weight: 700;
-    color: #ffffff;
-  }
-
-  #globalTooltip.task-tooltip-variant .task-tooltip-line:last-child {
-    margin-bottom: 0;
-  }
-
-  #globalTooltip.payment-tooltip-variant {
-    background: rgba(0, 0, 0, 0.82);
-    border: none;
-    border-radius: 10px;
-    padding: 0;
-    width: min(320px, calc(100vw - 20px));
-    overflow: hidden;
-  }
-
-  #globalTooltip.payment-tooltip-variant .payment-tooltip-card {
-    color: #ffffff;
-    font-family: Arial, sans-serif;
-  }
-
-  #globalTooltip.payment-tooltip-variant .payment-tooltip-amount {
-    font-size: 20px;
-    font-weight: 700;
-    line-height: 1.1;
-    padding: 12px 12px 8px;
-  }
-
-  #globalTooltip.payment-tooltip-variant .payment-tooltip-status {
-    font-size: 15px;
-    font-weight: 700;
-    line-height: 1.1;
-    padding: 0 12px 10px;
-    border-top: none;
-  }
-
-  #globalTooltip.payment-tooltip-variant .payment-tooltip-meta {
-    font-size: 14px;
-    line-height: 1.15;
-    padding: 8px 12px 10px;
-    border-top: none;
-  }
-
-  #globalTooltip.payment-tooltip-variant .payment-tooltip-dates {
-    font-size: 13px;
-    line-height: 1.15;
-    padding: 8px 12px 12px;
-    border-top: none;
-  }
-
-  #globalTooltip.date-info-variant {
-    background: rgba(0, 0, 0, 0.9);
-    color: #fff;
-    padding: 16px 20px;
-    border-radius: 10px;
-    width: auto;
-    min-width: 180px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
-    font-size: 14px;
-    line-height: 1.5;
-  }
-
-  #globalTooltip.date-info-variant .date-info-item {
-    white-space: nowrap;
-    margin-bottom: 6px;
-  }
-
-  #globalTooltip.date-info-variant .date-info-item:last-child {
-    margin-bottom: 0;
-  }
-
-  #globalTooltip.date-info-variant .date-info-label {
-    color: #fff;
-    font-weight: 400;
-  }
-
-  #globalTooltip.date-info-variant .date-info-value {
-    color: #fff;
-    font-weight: 600;
-  }
-
-  /* Task Detail Modal */
-  .task-modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.55);
-    z-index: 3000;
-    display: none;
-    justify-content: center;
-    align-items: center;
-    backdrop-filter: blur(4px);
-  }
-
-  .task-modal-overlay.open {
-    display: flex;
-  }
-
-  .task-modal {
-    background: #ffffff;
-    border-radius: 16px;
-    width: 100%;
-    max-width: 480px;
-    max-height: 90vh;
-    box-shadow: 0 25px 80px rgba(0, 0, 0, 0.3);
-    overflow: hidden;
-    margin: 20px;
-    animation: taskModalIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-
-  @keyframes taskModalIn {
-    from {
-      opacity: 0;
-      transform: scale(0.92) translateY(20px);
-    }
-    to {
-      opacity: 1;
-      transform: scale(1) translateY(0);
-    }
-  }
-
-  .task-modal-top-bar {
-    height: 5px;
-    width: 100%;
-    flex-shrink: 0;
-  }
-
-  .task-modal-header {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 20px 24px 0;
-  }
-
-  .task-modal-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 7px;
-    padding: 7px 16px;
-    border-radius: 20px;
-    font-size: 13px;
-    font-weight: 700;
-    color: #fff;
-    text-transform: capitalize;
-    letter-spacing: 0.3px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-  }
-
-  .task-modal-badge img {
-    width: 17px;
-    height: 17px;
-    object-fit: contain;
-    filter: brightness(0) invert(1);
-  }
-
-  .task-modal-status {
-    margin-left: auto;
-    font-size: 12px;
-    font-weight: 700;
-    padding: 5px 14px;
-    border-radius: 12px;
-    background: #f3f4f6;
-    color: #6b7280;
-    letter-spacing: 0.3px;
-  }
-
-  .task-modal-status.completed {
-    background: #d1fae5;
-    color: #065f46;
-    box-shadow: inset 0 0 0 1px rgba(5, 150, 105, 0.15);
-  }
-
-  .task-modal-body {
-    padding: 16px 24px 20px;
-  }
-
-  .task-modal-details-wrap {
-    position: relative;
-    margin-bottom: 20px;
-    border-radius: 12px;
-    overflow: hidden;
-  }
-
-  .task-modal-details-accent {
-    position: absolute;
-    top: 0;
-    left: 0;
-    bottom: 0;
-    width: 4px;
-  }
-
-  .task-modal-details {
-    font-size: 15px;
-    line-height: 1.6;
-    color: #1f2937;
-    font-weight: 500;
-    padding: 16px 16px 16px 20px;
-    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-    border-radius: 12px;
-    min-height: 48px;
-  }
-
-  .task-modal-info-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1px;
-    background: #e5e7eb;
-    border-radius: 12px;
-    overflow: hidden;
-    border: 1px solid #e5e7eb;
-  }
-
-  .task-modal-info-item {
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-    padding: 14px 16px;
-    background: #ffffff;
-    transition: background 0.15s;
-  }
-
-  .task-modal-info-item:hover {
-    background: #fafbfc;
-  }
-
-  .task-modal-info-item.full-width {
-    grid-column: 1 / -1;
-  }
-
-  .task-modal-info-label-row {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-
-  .task-modal-info-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    flex-shrink: 0;
-  }
-
-  .task-modal-info-label {
-    font-size: 11px;
-    font-weight: 600;
-    color: #9ca3af;
-    text-transform: uppercase;
-    letter-spacing: 0.6px;
-  }
-
-  .task-modal-info-value {
-    font-size: 15px;
-    font-weight: 600;
-    color: #111827;
-    padding-left: 14px;
-  }
-
-  .task-modal-footer {
-    display: flex;
-    justify-content: flex-end;
-    gap: 10px;
-    padding: 0 24px 20px;
-  }
-
-  .task-modal-close-btn {
-    padding: 10px 28px;
-    border: none;
-    border-radius: 10px;
-    font-size: 14px;
-    font-weight: 700;
-    cursor: pointer;
-    transition: all 0.2s;
-    color: #fff;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
-  }
-
-  .task-modal-close-btn:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
-  }
-
-  .task-modal-close-btn:active {
-    transform: translateY(0);
-  }
-
-  /* --- Payment task modal special effects --- */
-  .task-modal.payment-mode {
-    box-shadow: 0 25px 80px rgba(59, 130, 246, 0.25), 0 0 60px rgba(59, 130, 246, 0.08);
-    animation: paymentModalIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-  .task-modal.payment-mode .task-modal-badge {
-    animation: paymentBadgePulse 2s ease-in-out infinite;
-  }
-  .task-modal.payment-mode .task-modal-details {
-    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
-    border-left: 3px solid #3b82f6;
-  }
-  .task-modal.payment-mode .task-modal-info-grid {
-    background: #bfdbfe;
-    border-color: #bfdbfe;
-  }
-
-  @keyframes paymentModalIn {
-    from {
-      opacity: 0;
-      transform: scale(0.88) translateY(30px) rotateX(6deg);
-    }
-    to {
-      opacity: 1;
-      transform: scale(1) translateY(0) rotateX(0);
-    }
-  }
-  @keyframes paymentBadgePulse {
-    0%, 100% { box-shadow: 0 2px 8px rgba(59,130,246,0.2); }
-    50% { box-shadow: 0 2px 16px rgba(59,130,246,0.5), 0 0 24px rgba(59,130,246,0.15); }
-  }
-
-  .reservation-modal {
-    background: #ffffff;
-    border-radius: 16px;
-    width: 100%;
-    max-width: 960px;
-    max-height: 90vh;
-    box-shadow: 0 25px 80px rgba(0, 0, 0, 0.3);
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    margin: 20px;
-    animation: taskModalIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-
-  .reservation-modal-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 16px 20px;
-    border-bottom: 1px solid #e5e7eb;
-    flex-shrink: 0;
-    background: #fff;
-  }
-
-  .reservation-modal-title {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-size: 16px;
-    font-weight: 700;
-    color: #111827;
-  }
-
-  .reservation-modal-close {
-    background: none;
-    border: none;
-    font-size: 24px;
-    color: #6b7280;
-    cursor: pointer;
-    padding: 0 4px;
-    line-height: 1;
-  }
-
-  .reservation-modal-close:hover {
-    color: #111827;
-  }
-
-  .reservation-modal-body {
-    overflow-y: auto;
-    padding: 0;
-    flex: 1;
-  }
-
-  /* --- Payment partial overrides for modal --- */
-  .reservation-modal-body .action-buttons {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    padding: 12px 24px;
-    margin: 0;
-    border-bottom: 1px solid #f0f0f0;
-    background: #fafafa;
-  }
-
-  .reservation-modal-body .action-buttons .left-section {
-    display: none;
-  }
-
-  .reservation-modal-body .action-buttons .btn-group {
-    margin-left: auto;
-  }
-
-  .reservation-modal-body .action-buttons .dropdown-toggle {
-    background: #fff;
-    border: 1px solid #d1d5db;
-    border-radius: 6px;
-    padding: 6px 14px;
-    font-size: 13px;
-    font-weight: 600;
-    color: #1D74B2;
-  }
-
-  .reservation-modal-body .action-buttons .book-info {
-    margin: 0;
-    font-size: 11px;
-    color: #6b7280;
-    text-align: right;
-    line-height: 1.4;
-  }
-
-  .reservation-modal-body .payment-partial-shell {
-    padding: 0;
-  }
-
-  .reservation-modal-body .reservation-row {
-    margin: 0 !important;
-  }
-
-  .reservation-modal-body .details-col {
-    padding: 0 !important;
-  }
-
-  .reservation-modal-body .booking-card {
-    border: none !important;
-    border-bottom: 1px solid #f0f0f0 !important;
-    border-radius: 0 !important;
-    padding: 20px 24px !important;
-    margin: 0 !important;
-    box-shadow: none !important;
-    overflow: visible;
-  }
-
-  .reservation-modal-body .booking-card:first-child {
-    padding-top: 20px !important;
-  }
-
-  .reservation-modal-body .booking-card:last-child {
-    border-bottom: none !important;
-  }
-
-  .reservation-modal-body .card-content {
-    display: flex !important;
-    flex-direction: row !important;
-    gap: 0;
-    align-items: flex-start;
-    overflow: visible;
-  }
-
-  .reservation-modal-body .card-content > .left-section {
-    flex: 0 0 auto !important;
-    padding-left: 0 !important;
-    min-width: 260px;
-    max-width: 480px;
-    overflow: visible;
-  }
-
-  .reservation-modal-body .guest-top {
-    display: flex !important;
-    align-items: flex-start !important;
-    gap: 16px;
-  }
-
-  .reservation-modal-body .desktop-avatar {
-    flex: 0 0 auto !important;
-  }
-
-  .reservation-modal-body .desktop-avatar .profile-image {
-    width: 160px !important;
-    height: 160px !important;
-    max-height: none !important;
-    border-radius: 12px !important;
-    object-fit: contain !important;
-    display: block;
-  }
-
-  .reservation-modal-body .mobile-avatar {
-    display: none !important;
-  }
-
-  .reservation-modal-body .guest-meta {
-    flex: 1;
-    min-width: 0;
-    min-height: 0 !important;
-    justify-content: flex-start !important;
-  }
-
-  .reservation-modal-body .guest-name {
-    font-size: 18px !important;
-    font-weight: 700 !important;
-    color: #111827 !important;
-    margin-bottom: 10px !important;
-    line-height: 1.3;
-  }
-
-  .reservation-modal-body .contact-info {
-    display: flex !important;
-    flex-direction: column !important;
-    gap: 6px !important;
-    align-items: flex-start !important;
-  }
-
-  .reservation-modal-body .contact-item {
-    display: flex !important;
-    align-items: center !important;
-    gap: 8px !important;
-    font-size: 13px !important;
-    color: #6b7280 !important;
-    margin-bottom: 0 !important;
-  }
-
-  .reservation-modal-body .contact-item img {
-    width: 16px !important;
-    height: 16px !important;
-    object-fit: contain !important;
-    flex-shrink: 0;
-  }
-
-  .reservation-modal-body .card-content > .col-lg-auto {
-    display: flex !important;
-    flex: 0 0 auto !important;
-    padding: 0 12px !important;
-    width: auto !important;
-    align-items: stretch !important;
-    justify-content: center !important;
-  }
-
-  .reservation-modal-body .card-content > .col-lg-auto > .vr {
-    width: 2px !important;
-    min-height: 100% !important;
-    background-color: #d1d5db !important;
-    opacity: 1 !important;
-    border-radius: 1px;
-    align-self: stretch;
-  }
-
-  .reservation-modal-body .right-half-wrapper {
-    flex: 1 1 300px !important;
-    min-width: 280px !important;
-    width: auto !important;
-    padding-left: 0 !important;
-    gap: 20px !important;
-  }
-
-  .reservation-modal-body .property-section {
-    min-width: 160px !important;
-    max-width: 160px !important;
-  }
-
-  .reservation-modal-body .property-section img {
-    width: 100% !important;
-    height: 140px !important;
-    object-fit: cover !important;
-    border-radius: 10px !important;
-    display: block;
-  }
-
-  .reservation-modal-body .desktop-property-title {
-    font-size: 16px !important;
-    line-height: 1.3 !important;
-  }
-
-  .reservation-modal-body .mobile-only {
-    display: none !important;
-  }
-
-  .reservation-modal-body .payment-section {
-    margin: 0 !important;
-  }
-
-  .reservation-modal-body .payment-section .col-lg-6 {
-    padding-right: 12px !important;
-    padding-left: 0 !important;
-  }
-
-  .reservation-modal-body .payment-section .col-lg-4 {
-    padding-left: 24px !important;
-    padding-right: 12px !important;
-    margin-top: 0 !important;
-  }
-
-  .reservation-modal-body .payment-section .col-lg-auto {
-    display: none !important;
-  }
-
-  .reservation-modal-body .payment-section .mx-lg-auto {
-    margin-left: 0 !important;
-    margin-right: 0 !important;
-  }
-
-  .reservation-modal-body .payment-header h3 {
-    font-size: 14px !important;
-  }
-
-  .reservation-modal-body .toggle-btns {
-    position: absolute;
-    right: 10px;
-    top: 50%;
-    transform: translateY(-50%);
-  }
-
-  .reservation-modal-body .toggle-btn {
-    background: none;
-    border: 1px solid #d1d5db;
-    border-radius: 4px;
-    padding: 2px 8px;
-    cursor: pointer;
-    font-size: 16px;
-    line-height: 1;
-    color: #6b7280;
-  }
-
-  .reservation-modal-body .payment-schedule {
-    width: 100%;
-  }
-
-  .reservation-modal-body .payment-schedule-container {
-    border: 1px solid #e5e7eb !important;
-    border-radius: 8px !important;
-  }
-
-  .reservation-modal-body .payment-schedule-row {
-    padding: 8px 12px !important;
-    font-size: 13px !important;
-  }
-
-  .reservation-modal-body .payment-summary {
-    border: 1px solid #e5e7eb;
-    border-radius: 8px;
-    padding: 16px;
-    background: #fafafa;
-  }
-
-  .reservation-modal-body .notes-section h3 {
-    font-size: 15px !important;
-    font-weight: 600 !important;
-    color: #111827 !important;
-    margin-bottom: 8px !important;
-  }
-
-  .reservation-modal-body .notes-text {
-    font-size: 13px !important;
-    line-height: 1.6 !important;
-    color: #374151 !important;
-    margin: 0 !important;
-  }
-
-  @media (max-width: 991.98px) {
-
-    #globalTooltip:not(.payment-tooltip-variant):not(.task-tooltip-variant),
-    .booking-tooltip {
-      display: none !important;
-      visibility: hidden !important;
-      opacity: 0 !important;
-    }
-
-    #globalTooltip.payment-tooltip-variant {
-      display: block !important;
-      visibility: visible !important;
-      opacity: 1 !important;
-      width: min(300px, calc(100vw - 20px));
-    }
-
-    #globalTooltip.task-tooltip-variant {
-      display: block !important;
-      visibility: visible !important;
-      opacity: 1 !important;
-    }
-
-    #globalTooltip.payment-tooltip-variant .payment-tooltip-amount {
-      font-size: 18px;
-      line-height: 1.25;
-    }
-
-    #globalTooltip.payment-tooltip-variant .payment-tooltip-status {
-      font-size: 15px;
-      line-height: 1.3;
-    }
-
-    #globalTooltip.payment-tooltip-variant .payment-tooltip-meta {
-      font-size: 14px;
-      line-height: 1.3;
-    }
-
-    #globalTooltip.payment-tooltip-variant .payment-tooltip-dates {
-      font-size: 13px;
-      line-height: 1.3;
-    }
-  }
-
-  /* Scroll Fixes */
-  .calendar-container {
-    height: calc(100vh - 180px);
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    min-height: 0;
-  }
-
-  .calendar-wrapper {
-    flex: 1;
-    overflow: hidden;
-    display: flex;
-    align-items: flex-start;
-    min-height: 0;
-    position: relative;
-  }
-
-  .properties-column {
-    width: 250px;
-    flex-shrink: 0;
-    background: #fff;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    min-height: 0;
-    overflow: visible;
-    border-right: 1px solid #e0e0e0;
-    position: relative;
-    z-index: 20;
-    isolation: isolate;
-  }
-
-  /* Show properties-list scrollbar (single vertical scrollbar on left pane) */
-  #propertiesList::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
-  }
-
-  #propertiesList::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  #propertiesList::-webkit-scrollbar-thumb {
-    background: #d1d5db;
-    border-radius: 4px;
-  }
-
-  .properties-column .search-bar {
-    flex-shrink: 0;
-    z-index: 40;
-    background: #fff;
-  }
-
-  .property-avatar {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    overflow: hidden;
-  }
-
-  .property-avatar img {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    object-fit: cover;
-  }
-
-  .dates-scroll-container {
-    flex: 1;
-    height: 100%;
-    min-height: 0;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    --timeline-cell-width: 60px;
-    --timeline-grid-width: 0px;
-    position: relative;
-    z-index: 1;
-  }
-
-  .dates-header-scroll {
-    flex-shrink: 0;
-    overflow-x: auto;
-    overflow-y: hidden;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-    background: #1e293b;
-  }
-
-  .dates-header-scroll::-webkit-scrollbar {
-    height: 0;
-  }
-
-  .dates-body-scroll {
-    flex: 1;
-    min-height: 0;
-    overflow-y: auto;
-    overflow-x: auto;
-    scrollbar-width: thin;
-    position: relative;
-  }
-
-  .calendar-empty-state {
-    position: absolute;
-    left: 0;
-    right: 0;
-    top: 56px;
-    bottom: 0;
-    display: none;
-    align-items: center;
-    justify-content: center;
-    font-size: 20px;
-    font-weight: 600;
-    color: #1f2937;
-    text-align: center;
-    pointer-events: none;
-    z-index: 3;
-  }
-
-  #propertiesList {
-    flex: 1;
-    min-height: 0;
-    overflow-y: auto;
-    overflow-x: visible;
-    scrollbar-width: none;
-    padding-bottom: 8px;
-  }
-
-  .property-row:hover,
-  .property-row:hover .property-link,
-  .property-row:hover .property-link *,
-  .property-row:hover .property-info,
-  .property-row:hover .property-name {
-    cursor: pointer;
-  }
-
-  .properties-column .dropdown-menu {
-    z-index: 4500;
-  }
-
-  .property-actions .dropdown {
-    position: relative;
-    overflow: visible;
-  }
-
-  .property-actions .dropdown-menu {
-    position: absolute;
-    left: 100%;
-    top: 0;
-    margin-left: 6px;
-    min-width: 210px;
-    z-index: 5000;
-  }
-
-  .property-actions .dropdown-menu.floating-dropdown-menu {
-    position: fixed !important;
-    margin: 0 !important;
-    inset: auto auto auto auto !important;
-    transform: none !important;
-    z-index: 100000 !important;
-  }
-
-  .week-grid-body {
-    overflow-y: auto;
-  }
-
-  .dates-body-scroll::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
-  }
-
-  .dates-body-scroll::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  .dates-body-scroll::-webkit-scrollbar-thumb {
-    background: #d1d5db;
-    border-radius: 4px;
-  }
-
-  .dates-header {
-    position: relative;
-    z-index: 999;
-    background: #1e293b;
-    border-bottom: 1px solid #334155;
-    width: max(100%, var(--timeline-grid-width));
-    min-width: 100%;
-  }
-
-  .dates-grid {
-    position: relative;
-    width: max(100%, var(--timeline-grid-width));
-    min-width: 100%;
-    padding-bottom: 16px;
-  }
-
-  .dates-grid.has-user-selected-column::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    left: calc(var(--selected-column-index, -1) * var(--timeline-cell-width, 60px));
-    width: var(--timeline-cell-width, 60px);
-    background: rgba(59, 130, 246, 0.22);
-    pointer-events: none;
-    z-index: 2;
-  }
-
-  .dates-grid.has-today-column::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    left: calc(var(--today-column-index, -1) * var(--timeline-cell-width, 60px));
-    width: var(--timeline-cell-width, 60px);
-    background: rgba(71, 105, 135, 0.3);
-    pointer-events: none;
-    z-index: 1;
-  }
-
-  .date-cell.user-selected-date-column {
-    background: transparent !important;
-    box-shadow: none !important;
-  }
-
-  .date-cell.today-date-column.user-selected-date-column {
-    background: transparent !important;
-    box-shadow: none !important;
-  }
-
-  .date-column {
-    min-width: var(--timeline-cell-width, 60px);
-    flex: 0 0 var(--timeline-cell-width, 60px);
-    padding: 10px 4px;
-    text-align: center;
-    border-right: 1px solid #334155;
-    background: #1e293b;
-  }
-  .date-column:last-child {
-    border-right: none;
-  }
-  .date-column.weekend {
-    background: #1a2535;
-  }
-  .date-number {
-    font-size: 16px;
-    font-weight: 700;
-    color: #f1f5f9;
-    line-height: 1.4;
-  }
-  .date-day {
-    font-size: 11px;
-    font-weight: 500;
-    color: #f5f5f5;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    line-height: 1.2;
-  }
-
-  .date-row {
-    width: max(100%, var(--timeline-grid-width));
-    min-width: 100%;
-    border-bottom: 2px solid #d1d5db;
-    min-height: 58px;
-  }
-  .date-row:last-child {
-    border-bottom: none;
-  }
-
-  .date-cell {
-    min-width: var(--timeline-cell-width, 60px);
-    flex: 0 0 var(--timeline-cell-width, 60px);
-    border-right: 1px solid #e5e7eb;
-    border-bottom: 1px solid #e5e7eb;
-    position: relative;
-    height: auto;
-    align-self: stretch;
-  }
-  .date-cell:last-child {
-    border-right: none;
-  }
-  .date-cell.past-date {
-    background: #f9fafb;
-  }
-
-  /* Responsive Adjustments */
-  @media (max-width: 992px) {
-
-    .header-nav,
-    .header-nav .calendar-header {
-      position: relative;
-      overflow: visible;
-      /* z-index: 2500; */
-    }
-
-    .header-nav {
-      background: #E7E7E9;
-      border-radius: 0;
-      padding: 0px !important;
-      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
-    }
-
-    .header-nav .nav-title span {
-      color: #000000;
-      font-weight: 600;
-    }
-
-    .header-nav .nav-title img {
-      filter: brightness(0);
-    }
-
-    .calendar-header {
-      margin-right: 0 !important;
-    }
-
-    .header-nav .row {
-      row-gap: 10px;
-    }
-
-    .header-nav .calendar-header {
-      justify-content: center;
-      width: 100%;
-      background: #E7E7E9;
-      border-radius: 10px;
-      padding: 6px 10px;
-      gap: 8px;
-    }
-
-    .header-nav .header-actions-group {
-      display: none;
-    }
-
-    .mobile-actions {
-      display: block;
-    }
-
-    .header-nav .actions-col {
-      display: none;
-    }
-
-    #propertiesList {
-      padding-bottom: 0px;
-    }
-  }
-
-  @media (max-width: 768px) {
-    .header-nav .row {
-      flex-wrap: wrap;
-      row-gap: 0 !important;
-      margin: 0 !important;
-    }
-
-    .header-nav {
-      padding: 12px 10px !important;
-    }
-
-    .header-nav .calendar-header {
-      gap: 12px;
-      padding: 0 !important;
-      margin: 0 !important;
-      justify-content: center;
-      border-radius: 0 !important;
-      background: transparent !important;
-    }
-
-    .header-nav .month-display {
-      font-size: 16px;
-      width: auto;
-    }
-
-    .header-nav .divider {
-      height: 28px;
-    }
-
-    .header-nav .header-actions-group {
-      gap: 16px;
-    }
-
-    .sidebar-content {
-      padding: 5px 5px;
-
-    }
-
-    .header-nav .actions-col {
-      display: none;
-    }
-
-    .reservation-sidebar {
-      width: 100%;
-    }
-
-    body.reservation-panel-open .header-nav {
-      display: none !important;
-    }
-
-    .properties-column {
-      width: 140px;
-    }
-
-    .property-name {
-      font-size: 12px;
-    }
-
-    .calendar-container {
-      height: calc(100vh - 194px);
-    }
-
-    .calendar-header {
-      margin-right: 0 !important;
-      justify-content: center;
-      width: 100%;
-      margin-bottom: 10px;
-    }
-
-    .month-display {
-      font-size: 16px;
-      width: auto;
-    }
-
-    /* Mobile table layout to match compact timeline view */
-    .calendar-container {
-      margin-top: 8px;
-      border-radius: 10px;
-    }
-
-    .booking-segment {
-      top: 0;
-      bottom: 0;
-      box-shadow: none;
-      border: none;
-    }
-
-    .booking-row-layer {
-      z-index: 4;
-    }
-
-    .booking-span-block {
-      top: 50%;
-      height: 24px;
-      transform: translateY(-50%);
-      box-shadow: none;
-      min-width: 0;
-      overflow: hidden;
-    }
-
-    .booking-segment,
-    .booking-segment * {
-      outline: none !important;
-      border-top: none !important;
-    }
-
-    .calendar-wrapper {
-      align-items: stretch;
-      min-height: 0;
-    }
-
-    .properties-column {
-      width: 90px;
-      border-right: 1px solid #e0e0e0;
-      overflow: visible;
-      min-height: 0;
-      z-index: 19 !important;
-    }
-
-    .properties-column .search-bar {
-      display: none;
-    }
-
-    .properties-column::before {
-      content: "";
-      display: block;
-      height: 56px;
-    background: #E7E7E9;
-      border-bottom: 1px solid #e0e0e0;
-    }
-
-    #propertiesList {
-      min-height: 0;
-      overflow-y: auto;
-      overflow-x: visible;
-      scrollbar-width: thin;
-    }
-
-    .dates-body-scroll {
-      overflow-y: auto;
-      overflow-x: auto;
-      -webkit-overflow-scrolling: touch;
-    scrollbar-width: thin;
-      -ms-overflow-style: none;
-    }
-
-    .calendar-empty-state {
-      font-size: 20px;
-      padding: 0 12px;
-    }
-
-    .dates-body-scroll::-webkit-scrollbar {
-      width: 0;
-      height: 0;
-      display: none;
-    }
-
-    .property-row {
-      justify-content: flex-start;
-      padding: 0 6px;
-      height: 56px;
-      overflow: visible;
-      cursor: pointer;
-    }
-
-    .property-row:hover {
-      cursor: pointer;
-    }
-
-    .property-row>.property-link,
-    .property-row>.property-link * {
-      cursor: pointer;
-    }
-
-    .property-avatar {
-      width: 40px;
-      height: 35px;
-      border-radius: 50%;
-      overflow: hidden;
-    }
-
-    .property-avatar img {
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      object-fit: cover;
-    }
-
-    .property-info {
-      display: none;
-    }
-
-    .property-name {
-      display: none;
-    }
-
-    .property-actions {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 28px;
-      height: 28px;
-      margin-left: 6px;
-    }
-
-    .property-actions .btn {
-      padding: 0;
-      width: 22px;
-      height: 22px;
-      line-height: 1;
-    }
-
-    .property-actions .dropdown-menu.show {
-      inset: auto auto auto auto !important;
-      transform: none !important;
-      left: 100% !important;
-      top: 0 !important;
-      z-index: 5000 !important;
-    }
-
-    .dates-header {
-      height: 56px;
-    }
-
-    .date-column {
-      padding: 6px 2px;
-    }
-
-    .date-row {
-      min-height: 52px;
-    }
-
-    .date-cell {
-      min-height: 52px;
-    }
-
-    .date-row {
-      --cell-width: 52px;
-      --edge-gap-left: 10px;
-      --edge-gap-right: 10px;
-    }
-
-    .booking-segment .segment-content {
-      padding: 0 6px;
-      width: 100%;
-      max-width: 100%;
-      overflow: hidden;
-      justify-content: flex-start;
-    }
-
-    .booking-segment .segment-content span {
-      font-size: 11px;
-      line-height: 1.1;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .booking-home-icon {
-      display: none;
-    }
-
-    .booking-segment {
-      overflow: visible;
-      min-width: max-content;
-    }
-
-    .booking-segment.expand-to-label {
-      width: auto;
-      min-width: max-content;
-    }
-
-    .booking-segment .segment-content {
-      width: max-content;
-      max-width: none;
-    }
-  }
-
-  /* --- Highlighting Property Sidebar Selection --- */
-  .property-row {
-    position: relative;
-    transition: background-color 0.2s, border-left-color 0.2s;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    min-height: 58px;
-    border-bottom: 2px solid #d1d5db;
-  }
-  .property-row:hover {
-    background-color: #f3f4f6;
-  }
-  .property-row.active-property-row {
-    background-color: #eff6ff !important;
-    border-left: 4px solid #3b82f6 !important;
-    font-weight: 600;
-  }
-
-  .property-info {
-    flex: 1;
-    min-width: 0;
-    padding: 0 8px;
-  }
-
-  .property-name {
-    font-size: 11px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  /* --- Month/Week Grid Calendar Styles --- */
-  .month-calendar-grid {
-    display: flex;
-    flex-direction: column;
-    width: 100%;
-    height: 100%;
-    border: 1px solid #e5e7eb;
-    border-radius: 12px;
-    overflow: hidden;
-    background: #ffffff;
-    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03);
-  }
-  .month-calendar-header-row {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    background-color: #1f2937;
-    color: #ffffff;
-    font-weight: 700;
-    font-size: 12px;
-    text-transform: uppercase;
-    text-align: center;
-    border-bottom: 1px solid #1f2937;
-    user-select: none;
-  }
-  .month-calendar-header-cell {
-    padding: 12px 6px;
-    border-right: 1px solid rgba(255, 255, 255, 0.1);
-  }
-  .month-calendar-header-cell:last-child {
-    border-right: none;
-  }
-  .month-calendar-weeks-container {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-  }
-  .month-calendar-week {
-    flex: 1;
-    min-height: 0;
-    border-bottom: 1px solid #e5e7eb;
-    position: relative;
-    overflow: visible;
-  }
-  .month-calendar-week:last-child {
-    border-bottom: none;
-  }
-  .month-calendar-week-bg {
-    position: absolute;
-    inset: 0;
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    pointer-events: none;
-  }
-  .month-calendar-day-cell {
-    border-right: 1px solid #e5e7eb;
-    padding: 6px 8px 6px;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-start;
-    transition: background-color 0.15s;
-  }
-  .month-calendar-day-cell:last-child {
-    border-right: none;
-  }
-  .month-calendar-day-cell.other-month {
-    background-color: #f9fafb;
-  }
-  .month-calendar-day-cell.other-month .day-number {
-    color: #9ca3af;
-  }
-  .month-calendar-day-cell.today {
-    background-color: rgba(59, 130, 246, 0.03);
-  }
-  .month-calendar-day-cell.today .day-number {
-    background-color: #3b82f6;
-    color: #ffffff;
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 700;
-  }
-  .day-number {
-    font-size: 14px;
-    font-weight: 600;
-    color: #374151;
-    margin-bottom: 4px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 24px;
-    height: 24px;
-    flex-shrink: 0;
-  }
-  .month-calendar-events-layer {
-    position: absolute;
-    left: 0;
-    right: 0;
-    top: 34px;
-    bottom: 4px;
-    padding: 0 4px;
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    z-index: 10;
-    pointer-events: none;
-    align-content: start;
-    gap: 0;
-  }
-
-  /* --- Event Span Styling (Pills) --- */
-  .grid-event-span {
-    grid-column: span 1;
-    pointer-events: auto;
-    border-radius: 9999px;
-    padding: 0 8px 0 36px;
-    display: flex;
-    align-items: center;
-    justify-content: flex-start;
-    font-size: 12px;
-    font-weight: 700;
-    color: #ffffff !important;
-    cursor: pointer;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
-    overflow: visible;
-    white-space: nowrap;
-    height: calc(100% - 2px);
-    align-self: center;
-    margin: 1px 0;
-    transition: transform 0.15s, box-shadow 0.15s;
-    gap: 4px;
-    min-height: 30px;
-    position: relative;
-  }
-  .grid-event-span:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-    filter: brightness(1.05);
-  }
-  .grid-event-span.carry-start {
-    border-top-left-radius: 0;
-    border-bottom-left-radius: 0;
-    padding-left: 8px;
-  }
-  .grid-event-span.carry-start .channel-logo-circle {
-    display: none;
-  }
-  .grid-event-span.carry-end {
-    border-top-right-radius: 0;
-    border-bottom-right-radius: 0;
-  }
-  .grid-event-span .channel-logo-circle {
-    position: absolute;
-    left: -20px;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 48px;
-    height: 48px;
-    border-radius: 50%;
-    background: transparent;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    border: 5px solid transparent;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
-    box-sizing: border-box;
-    z-index: 2;
-  }
-  .grid-event-span .channel-logo-circle::after {
-    content: '';
-    position: absolute;
-    inset: 3px;
-    border-radius: 50%;
-    border: 2px solid rgba(255, 255, 255, 0.8);
-    pointer-events: none;
-    z-index: 1;
-  }
-  .grid-event-span .channel-logo-circle img {
-    width: 22px;
-    height: 22px;
-    object-fit: contain;
-    display: block;
-    position: relative;
-    z-index: 2;
-  }
-  .grid-event-span .task-icon-circle {
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.25);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    border: 1.5px solid rgba(255, 255, 255, 0.5);
-    overflow: hidden;
-    margin-left: -14px;
-    z-index: 2;
-  }
-  .grid-event-span .task-icon-circle img {
-    width: 18px;
-    height: 18px;
-    object-fit: contain;
-    filter: brightness(0) invert(1);
-    display: block;
-  }
-
-  /* Circular standalone task bar (month & week view) */
-  .task-circle-bar {
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    box-shadow: 0 0 0 2px #000, 0 2px 6px rgba(0, 0, 0, 0.15);
-    transition: transform 0.15s, box-shadow 0.15s;
-    pointer-events: auto;
-    justify-self: center;
-    align-self: center;
-    border: 2px solid rgba(255, 255, 255, 0.3);
-    overflow: hidden;
-    z-index: 15;
-  }
-  .task-circle-bar:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 0 0 2px #000, 0 4px 8px rgba(0, 0, 0, 0.15);
-    filter: brightness(1.05);
-  }
-  .task-circle-bar img {
-    width: 16px;
-    height: 16px;
-    object-fit: contain;
-    filter: brightness(0) invert(1);
-    display: block;
-  }
-  .grid-event-span .guest-avatar {
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-    object-fit: cover;
-    border: 1px solid rgba(255, 255, 255, 0.5);
-    margin: 0 !important;
-    flex-shrink: 0;
-  }
-  .grid-event-span .event-title {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    font-weight: 600;
-    color: #ffffff;
-    flex: 1;
-    min-width: 0;
-  }
-  
-  /* Task badge styling in calendar cells */
-  .grid-cell-task-pill {
-    background-color: #10b981;
-    color: white;
-    border-radius: 6px;
-    padding: 1px 6px;
-    font-size: 10px;
-    font-weight: 700;
-    margin-top: 2px;
-    cursor: pointer;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    max-width: 100%;
-    display: inline-block;
-    pointer-events: auto;
-  }
-  .grid-cell-task-pill.maintenance {
-    background-color: #f59e0b;
-  }
-  .grid-cell-task-pill.payment {
-    background-color: #3b82f6;
-  }
-  .grid-cell-task-pill.other {
-    background-color: #8b5cf6;
-  }
-
-  /* --- Day Schedule View Styles (Google Calendar Style) --- */
-  .gcal-day-view {
-    display: flex;
-    flex-direction: column;
-    width: 100%;
-    height: 100%;
-    background: #ffffff;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    overflow: hidden;
-  }
-  .gcal-day-topbar {
-    display: flex;
-    align-items: center;
-    border-bottom: 1px solid #e0e0e0;
-    background: #fff;
-    flex-shrink: 0;
-  }
-  .gcal-day-gutter-header {
-    width: 64px;
-    flex-shrink: 0;
-    border-right: 1px solid #e0e0e0;
-    height: 100%;
-  }
-  .gcal-day-col-header {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 10px 0 8px;
-    min-width: 0;
-  }
-  .gcal-day-weekday {
-    font-size: 11px;
-    font-weight: 600;
-    color: #70757a;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    margin-bottom: 4px;
-  }
-  .gcal-day-num {
-    font-size: 32px;
-    font-weight: 400;
-    color: #3c4043;
-    line-height: 1;
-    width: 46px;
-    height: 46px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 50%;
-    transition: background 0.15s;
-  }
-  .gcal-day-num.gcal-today {
-    background: #1a73e8;
-    color: #fff;
-    font-weight: 700;
-  }
-  .gcal-day-scroll-area {
-    flex: 1;
-    overflow-y: auto;
-    overflow-x: hidden;
-    position: relative;
-    scrollbar-width: thin;
-    scrollbar-color: #dadce0 transparent;
-  }
-  .gcal-day-scroll-area::-webkit-scrollbar { width: 6px; }
-  .gcal-day-scroll-area::-webkit-scrollbar-thumb { background: #dadce0; border-radius: 3px; }
-  .gcal-day-grid {
-    display: flex;
-    position: relative;
-    min-height: 1440px; /* 24 hours x 60px */
-  }
-  .gcal-time-gutter {
-    width: 64px;
-    flex-shrink: 0;
-    position: relative;
-    border-right: 1px solid #e0e0e0;
-  }
-  .gcal-time-label {
-    position: absolute;
-    right: 8px;
-    font-size: 10px;
-    font-weight: 500;
-    color: #70757a;
-    line-height: 1;
-    transform: translateY(-50%);
-    white-space: nowrap;
-    user-select: none;
-  }
-  .gcal-day-col {
-    flex: 1;
-    position: relative;
-    border-left: none;
-  }
-  .gcal-hour-line {
-    position: absolute;
-    left: 0;
-    right: 0;
-    border-top: 1px solid #f0f0f0;
-    pointer-events: none;
-  }
-  .gcal-hour-line.major {
-    border-top-color: #e0e0e0;
-  }
-  .gcal-event-block {
-    position: absolute;
-    left: 4px;
-    right: 4px;
-    border-radius: 10px;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    padding: 4px 12px;
-    cursor: pointer;
-    overflow: hidden;
-    min-height: 22px;
-    transition: filter 0.15s, box-shadow 0.15s;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.18);
-  }
-  .gcal-event-block:hover {
-    filter: brightness(1.07);
-    box-shadow: 0 3px 8px rgba(0,0,0,0.22);
-    z-index: 10;
-  }
-  .gcal-event-title {
-    font-size: 12px;
-    font-weight: 700;
-    color: #fff;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    display: flex;
-    align-items: center;
-    gap: 5px;
-  }
-  .gcal-event-sub {
-    font-size: 11px;
-    color: rgba(255,255,255,0.85);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    margin-top: 1px;
-  }
-  .gcal-now-line {
-    position: absolute;
-    left: 0;
-    right: 0;
-    height: 2px;
-    background: #ea4335;
-    z-index: 5;
-    pointer-events: none;
-  }
-  .gcal-now-dot {
-    position: absolute;
-    left: -5px;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    background: #ea4335;
-  }
-  .gcal-section-label {
-    position: absolute;
-    left: 4px;
-    right: 4px;
-    font-size: 10px;
-    font-weight: 700;
-    color: #70757a;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    user-select: none;
-    pointer-events: none;
-  }
-  /* Legacy classes kept for compatibility */
-  .day-view-container { display: none; }
-  .day-empty-text {
-    font-size: 13px;
-    color: #9ca3af;
-    font-style: italic;
-    padding: 8px 0;
-  }
-
-  /* ── List View Design ── */
-  #listViewPane {
-    --ink:#16151C;--text:#1F2430;--muted:#6B7280;--faint:#9AA1AC;
-    --paper:#f5f6f8;--surface:#fff;--line:#E7E9ED;
-    --brand:#F15A24;--brand-700:#D6491A;
-    --in:#059669;--in-text:#047857;--in-bg:#ECFDF5;--in-line:#A7F3D0;
-    --out:#D97706;--out-text:#B45309;--out-bg:#FFFBEB;--out-line:#FCD9A4;
-    --pay:#2563EB;--pay-text:#1D4ED8;--pay-bg:#EFF6FF;--pay-line:#BFDBFE;
-    --enquiry:#7C3AED;--enquiry-bg:#F5F3FF;--enquiry-line:#DDD6FE;
-    --blocked:#DC2626;--blocked-bg:#FEF2F2;--blocked-line:#FECACA;
-    --shadow-sm:0 1px 2px rgba(16,24,40,.05);
-    --shadow-md:0 4px 14px rgba(16,24,40,.07);
-    --radius:14px;
-    --sans:"Manrope",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-    --mono:"Spline Sans Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
-    font-family:var(--sans);color:var(--text);font-size:15px;line-height:1.45;
-    scrollbar-width:thin;
-    padding:0 !important;
-  }
-  #listViewPane ::-webkit-scrollbar{width:8px;}
-  #listViewPane ::-webkit-scrollbar-track{background:transparent;}
-  #listViewPane ::-webkit-scrollbar-thumb{background:#d1d5db;border-radius:4px;}
-  #listViewPane .mono{font-family:var(--mono);font-variant-numeric:tabular-nums;letter-spacing:-.01em;}
-  .list-wrap{max-width:1160px;margin:0 auto;padding:24px;}
-  .list-loading{text-align:center;padding:60px 20px;color:var(--muted);font-size:15px;}
-
-  /* Summary */
-  #listViewPane .summary{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px;}
-  #listViewPane .stat{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px;box-shadow:var(--shadow-sm);display:flex;align-items:center;gap:14px;position:relative;overflow:hidden;}
-  #listViewPane .stat::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--accent,var(--brand));}
-  #listViewPane .stat__ico{width:42px;height:42px;border-radius:11px;flex:0 0 auto;display:grid;place-items:center;background:var(--accent-bg,#F1F3F6);color:var(--accent,var(--brand));}
-  #listViewPane .stat__ico svg{width:21px;height:21px;}
-  #listViewPane .stat__meta{display:flex;flex-direction:column;gap:1px;min-width:0;}
-  #listViewPane .stat__num{font-weight:800;font-size:22px;letter-spacing:-.02em;line-height:1.1;}
-  #listViewPane .stat__label{font-size:12.5px;color:var(--muted);font-weight:600;}
-  #listViewPane .stat--in{--accent:var(--in);--accent-bg:var(--in-bg);}
-  #listViewPane .stat--out{--accent:var(--out);--accent-bg:var(--out-bg);}
-  #listViewPane .stat--pay{--accent:var(--pay);--accent-bg:var(--pay-bg);}
-  #listViewPane .stat--rev{--accent:var(--brand);--accent-bg:#FEF0E9;}
-
-  /* Filter bar */
-  #listViewPane .filterbar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:12px 14px;margin-bottom:22px;box-shadow:var(--shadow-sm);}
-  #listViewPane .search{display:flex;align-items:center;gap:9px;flex:1 1 240px;min-width:180px;background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:0 12px;height:40px;transition:border-color .15s,background .15s;}
-  #listViewPane .search:focus-within{border-color:var(--brand);background:#fff;}
-  #listViewPane .search svg{width:17px;height:17px;color:var(--faint);flex:0 0 auto;}
-  #listViewPane .search input{border:0;background:none;outline:none;width:100%;font-size:14px;color:var(--text);font-family:inherit;}
-  #listViewPane .search input::placeholder{color:var(--faint);}
-  #listViewPane .pills{display:flex;gap:8px;flex-wrap:wrap;}
-  #listViewPane .pill{display:flex;align-items:center;gap:8px;height:40px;padding:0 14px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--muted);font-weight:600;font-size:13.5px;transition:all .15s;}
-  #listViewPane .pill .dot{width:9px;height:9px;border-radius:50%;background:currentColor;opacity:.55;}
-  #listViewPane .pill .cnt{font-family:var(--mono);font-size:12px;font-weight:600;background:var(--paper);color:var(--muted);border-radius:7px;padding:2px 7px;min-width:24px;text-align:center;}
-  #listViewPane .pill:hover{border-color:#d3d6dc;color:var(--text);}
-  #listViewPane .pill[aria-pressed="true"]{color:#fff;border-color:transparent;}
-  #listViewPane .pill[aria-pressed="true"] .dot{opacity:1;background:#fff;}
-  #listViewPane .pill[aria-pressed="true"] .cnt{background:rgba(255,255,255,.22);color:#fff;}
-  #listViewPane .pill--all[aria-pressed="true"]{background:var(--text);}
-  #listViewPane .pill--in[aria-pressed="true"]{background:var(--in);}
-  #listViewPane .pill--out[aria-pressed="true"]{background:var(--out);}
-  #listViewPane .pill--pay[aria-pressed="true"]{background:var(--pay);}
-  #listViewPane .result-count{font-size:13px;color:var(--muted);font-weight:600;white-space:nowrap;}
-  #listViewPane .result-count b{color:var(--text);font-weight:800;}
-
-  /* Timeline */
-  #listViewPane .timeline{position:relative;}
-  #listViewPane .day{display:grid;grid-template-columns:80px 1fr;gap:16px;align-items:stretch;}
-  #listViewPane .day+.day,#listViewPane .day+.marker,#listViewPane .marker+.day{margin-top:14px;}
-  #listViewPane .rail{position:relative;width:80px;}
-  #listViewPane .day:not(.is-last) .rail::after,#listViewPane .marker .rail::after{content:"";position:absolute;left:calc(50%-1px);top:50px;bottom:-14px;width:2px;background:var(--line);}
-  #listViewPane .marker .rail::after{top:0;}
-  #listViewPane .node{position:relative;z-index:1;width:46px;height:46px;margin:0 auto;border-radius:50%;background:var(--surface);border:2px solid var(--line);box-shadow:var(--shadow-sm);display:grid;place-items:center;text-align:center;}
-  #listViewPane .node__day{font-weight:800;font-size:17px;line-height:1;letter-spacing:-.02em;}
-  #listViewPane .node__mon{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-top:1px;}
-  #listViewPane .day__main{min-width:0;}
-  #listViewPane .day__head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;padding:2px 2px 12px;}
-  #listViewPane .day__weekday{font-weight:800;font-size:14px;letter-spacing:-.01em;}
-  #listViewPane .day__date{color:var(--muted);font-size:12px;font-weight:600;}
-  #listViewPane .day__chip{font-size:11px;font-weight:700;color:var(--muted);background:var(--paper);border:1px solid var(--line);border-radius:20px;padding:2px 8px;}
-  #listViewPane .day__events{display:flex;flex-direction:column;gap:10px;}
-  #listViewPane .marker{display:grid;grid-template-columns:80px 1fr;gap:16px;align-items:center;}
-  #listViewPane .marker .rail{display:grid;place-items:center;}
-  #listViewPane .marker__dot{position:relative;z-index:1;width:14px;height:14px;border-radius:50%;background:var(--brand);box-shadow:0 0 0 4px #FEE7DD;}
-  #listViewPane .marker__label{display:flex;align-items:center;gap:10px;color:var(--brand-700);font-weight:800;font-size:12px;}
-  #listViewPane .marker__rule{height:1px;flex:1;background:linear-gradient(90deg,#F8C6B2,transparent);}
-  #listViewPane .empty-state{display:none;text-align:center;padding:60px 20px;color:var(--muted);background:var(--surface);border:1px dashed var(--line);border-radius:var(--radius);}
-  #listViewPane .empty-state b{display:block;color:var(--text);font-size:16px;margin-bottom:4px;}
-
-  /* Event card */
-  #listViewPane .event{position:relative;background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:var(--radius);box-shadow:var(--shadow-sm);transition:transform .14s,box-shadow .14s;cursor:default;}
-  #listViewPane .event:hover{transform:translateY(-1px);box-shadow:var(--shadow-md);}
-  #listViewPane .event--in{--accent:var(--in);}
-  #listViewPane .event--out{--accent:var(--out);}
-  #listViewPane .event--pay{--accent:var(--pay);}
-  #listViewPane .event--enquiry{--accent:var(--enquiry);}
-  #listViewPane .event--blocked{--accent:var(--blocked);}
-  #listViewPane .event__body{display:grid;grid-template-columns:220px 1fr 1.2fr 36px;gap:16px;align-items:center;padding:12px 16px;}
-  #listViewPane .zone{min-width:0;}
-  #listViewPane .zone--type{display:flex;gap:11px;align-items:flex-start;}
-  #listViewPane .ico{width:40px;height:40px;border-radius:10px;flex:0 0 auto;display:grid;place-items:center;}
-  #listViewPane .ico svg{width:20px;height:20px;}
-  #listViewPane .event--in .ico{background:var(--in-bg);color:var(--in);}
-  #listViewPane .event--out .ico{background:var(--out-bg);color:var(--out);}
-  #listViewPane .event--pay .ico{background:var(--pay-bg);color:var(--pay);}
-  #listViewPane .event--enquiry .ico{background:var(--enquiry-bg);color:var(--enquiry);}
-  #listViewPane .event--blocked .ico{background:var(--blocked-bg);color:var(--blocked);}
-  #listViewPane .typecontent{display:flex;flex-direction:column;gap:3px;min-width:0;}
-  #listViewPane .type__label{font-weight:800;font-size:14px;letter-spacing:-.01em;display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
-  #listViewPane .badge{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;padding:2px 7px;border-radius:20px;border:1px solid;}
-  #listViewPane .badge--in{color:var(--in-text);background:var(--in-bg);border-color:var(--in-line);}
-  #listViewPane .badge--out{color:var(--out-text);background:var(--out-bg);border-color:var(--out-line);}
-  #listViewPane .badge--pay{color:var(--pay-text);background:var(--pay-bg);border-color:var(--pay-line);}
-  #listViewPane .badge--enquiry{color:var(--enquiry);background:var(--enquiry-bg);border-color:var(--enquiry-line);}
-  #listViewPane .badge--blocked{color:var(--blocked);background:var(--blocked-bg);border-color:var(--blocked-line);}
-  #listViewPane .amount{font-family:var(--mono);font-weight:600;font-size:17px;letter-spacing:-.02em;color:var(--text);}
-  #listViewPane .amount small{font-size:12px;color:var(--muted);font-weight:500;font-family:var(--sans);}
-  #listViewPane .range{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
-  #listViewPane .range .mono{font-size:12px;font-weight:500;color:var(--text);}
-  #listViewPane .range svg{width:13px;height:13px;color:var(--faint);}
-  #listViewPane .nights{font-family:var(--mono);font-size:11px;font-weight:500;color:var(--muted);background:var(--paper);border:1px solid var(--line);border-radius:6px;padding:1px 7px;}
-
-  #listViewPane .zone--guest{display:flex;gap:10px;align-items:flex-start;}
-  #listViewPane .avatar{width:36px;height:36px;border-radius:50%;flex:0 0 auto;display:grid;place-items:center;font-weight:700;font-size:12px;color:#fff;letter-spacing:.01em;}
-  #listViewPane .avatar--guest{background:#EEF0F3;color:var(--faint);}
-  #listViewPane .guest__meta{display:flex;flex-direction:column;gap:2px;min-width:0;}
-  #listViewPane .guest__name{font-weight:700;font-size:13px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
-  #listViewPane .source{font-size:10px;font-weight:700;border-radius:5px;padding:1px 6px;background:#FFE9EC;color:#E11D48;border:1px solid #FBC9D1;}
-  #listViewPane .contact{display:flex;align-items:center;gap:5px;color:var(--muted);font-size:12px;min-width:0;}
-  #listViewPane .contact svg{width:12px;height:12px;flex:0 0 auto;color:var(--faint);}
-  #listViewPane .contact span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-  #listViewPane .contact--mono span{font-family:var(--mono);font-size:11px;}
-  #listViewPane .contact--none{color:var(--faint);font-style:italic;}
-
-  #listViewPane .zone--prop{display:flex;gap:10px;align-items:flex-start;}
-  #listViewPane .thumb{width:64px;height:48px;border-radius:9px;flex:0 0 auto;display:grid;place-items:center;position:relative;overflow:hidden;box-shadow:inset 0 0 0 1px rgba(16,24,40,.06);}
-  #listViewPane .thumb::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(255,255,255,.35),transparent 55%);}
-  #listViewPane .thumb svg{width:22px;height:22px;position:relative;z-index:1;}
-  #listViewPane .thumb--r2{background:linear-gradient(135deg,#FDE3CE,#F6C39C);color:#B25C28;}
-  #listViewPane .prop__meta{display:flex;flex-direction:column;gap:3px;min-width:0;}
-  #listViewPane .prop__name{font-weight:600;font-size:12px;line-height:1.3;color:var(--text);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
-  #listViewPane .prop__loc{display:flex;align-items:center;gap:4px;color:var(--muted);font-size:11px;}
-  #listViewPane .prop__loc svg{width:12px;height:12px;color:var(--faint);flex:0 0 auto;}
-  #listViewPane .unit{align-self:flex-start;font-family:var(--mono);font-size:10px;font-weight:600;background:var(--paper);border:1px solid var(--line);border-radius:6px;padding:1px 6px;color:var(--muted);}
-
-  #listViewPane .open-btn{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;justify-self:end;color:var(--faint);border:1px solid var(--line);background:var(--surface);transition:background .15s,color .15s;cursor:pointer;}
-  #listViewPane .open-btn svg{width:17px;height:17px;}
-  #listViewPane .event:hover .open-btn{color:var(--brand);border-color:#F6C6B2;background:#FEF3EE;}
-
-  @media(max-width:1100px){
-    #listViewPane .event__body{grid-template-columns:1fr 1fr;gap:14px;padding:14px 16px;}
-    #listViewPane .zone--type{grid-column:1/-1;}
-    #listViewPane .open-btn{position:absolute;top:10px;right:10px;justify-self:auto;}
-  }
-  @media(max-width:768px){
-    #listViewPane .event__body{grid-template-columns:1fr;}
-    #listViewPane .zone--guest,#listViewPane .zone--prop{grid-column:1;}
-    #listViewPane .day{grid-template-columns:56px 1fr;gap:12px;}
-    #listViewPane .rail{width:56px;}
-    #listViewPane .node{width:42px;height:42px;}
-    #listViewPane .node__day{font-size:15px;}
-    #listViewPane .day:not(.is-last) .rail::after,#listViewPane .marker .rail::after{top:46px;}
-    #listViewPane .marker{grid-template-columns:56px 1fr;gap:12px;}
-    #listViewPane .summary{grid-template-columns:repeat(2,1fr);}
-    #listViewPane .pill .cnt{display:none;}
-    .list-wrap{padding:16px;}
-  }
-  @media(max-width:500px){
-    #listViewPane .summary{grid-template-columns:1fr;}
-  }
-
-  body {
-    overflow: hidden;
-  }
-
-  /* Color Legend for day columns */
-  .cal-color-legend {
-    position: absolute;
-    top: 10px;
-    right: 16px;
-    z-index: 2000;
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    background: #ffffff;
-    padding: 8px 18px;
-    border-radius: 999px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.10);
-    font-size: 12px;
-    font-weight: 600;
-    color: #374151;
-    pointer-events: none;
-    white-space: nowrap;
-    border: 1px solid #e5e7eb;
-  }
-
-</style>
+<link href="{% static 'css/calender/calendar-page.css' %}" rel="stylesheet">
 {% endblock extra_head %}
 
 {% block content %}
 <div class="container-fluid p-0">
   <!-- Header Navigation (Active - New Design) -->
   <div class="header-nav" style="padding: 8px 32px;">
-    <div class="row align-items-center justify-content-between w-100 g-3">
+    <div class="row align-items-center justify-content-between w-100 g-0">
       <div class="col-auto actions-col">
         <div class="nav-left">
           <div class="nav-title">
@@ -3503,7 +23,7 @@
           </div>
         </div>
       </div>
-      <div class="col-auto calendar-header" style="margin-right: 4rem;">
+      <div class="col-auto calendar-header">
         <button class="nav-button-header" id="prevBtn" aria-label="Previous month">
           <img src="{% static 'img/calender/left_arrow.svg' %}">
         </button>
@@ -3551,27 +71,44 @@
         <div class="divider"></div>
 
         <!-- Event Type Filter (Checkboxes) -->
-        <div class="dropdown" style="margin-left: 4px; flex: 0 0 auto; width: 130px;">
-          <button class="btn btn-outline-secondary dropdown-toggle btn-sm fw-semibold" type="button" id="calendarTypeFilterBtn" data-bs-toggle="dropdown" aria-expanded="false" style="border-radius: 6px; border: 1px solid #d1d5db; padding: 4px 10px; font-size: 13px; background: #fff; color: #374151; width: 100%; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: inline-block;">
+        <div class="dropdown calendar-filter-dropdown" style="margin-left: 4px; flex: 0 0 auto; width: 130px;">
+          <button class="btn btn-outline-secondary dropdown-toggle btn-sm fw-semibold" type="button"
+            id="calendarTypeFilterBtn" data-bs-toggle="dropdown" aria-expanded="false"
+            style="border-radius: 6px; border: 1px solid #d1d5db; padding: 4px 10px; font-size: 13px; background: #fff; color: #374151; width: 100%; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: inline-block;">
             Show: All
           </button>
-          <ul class="dropdown-menu pt-2 pb-2" aria-labelledby="calendarTypeFilterBtn" id="calendarTypeFilter" style="min-width: 170px;max-height:200px;overflow-y:auto;">
-            <li style="padding: 2px 16px;"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:500;user-select:none;"><input type="checkbox" id="filterAll" checked style="width:16px;height:16px;accent-color:#000000;cursor:pointer;"> All</label></li>
-            <li style="padding: 2px 16px;"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:500;user-select:none;"><input type="checkbox" id="filterReservation" checked class="filter-type-cb" data-type="reservation" style="width:16px;height:16px;accent-color:#000000;cursor:pointer;"> Reservations</label></li>
-            <li style="padding: 2px 16px;"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:500;user-select:none;"><input type="checkbox" id="filterTask" checked class="filter-type-cb" data-type="task" style="width:16px;height:16px;accent-color:#000000;cursor:pointer;"> Tasks</label></li>
-            <li style="padding: 2px 16px;"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:500;user-select:none;"><input type="checkbox" id="filterPayment" checked class="filter-type-cb" data-type="payment" style="width:16px;height:16px;accent-color:#000000;cursor:pointer;"> Payments</label></li>
+          <ul class="dropdown-menu pt-2 pb-2" aria-labelledby="calendarTypeFilterBtn" id="calendarTypeFilter"
+            style="min-width: 170px;max-height:200px;overflow-y:auto;">
+            <li style="padding: 2px 16px;"><label
+                style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:500;user-select:none;"><input
+                  type="checkbox" id="filterAll" checked
+                  style="width:16px;height:16px;accent-color:#000000;cursor:pointer;"> All</label></li>
+            <li style="padding: 2px 16px;"><label
+                style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:500;user-select:none;"><input
+                  type="checkbox" id="filterReservation" checked class="filter-type-cb" data-type="reservation"
+                  style="width:16px;height:16px;accent-color:#000000;cursor:pointer;"> Reservations</label></li>
+            <li style="padding: 2px 16px;"><label
+                style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:500;user-select:none;"><input
+                  type="checkbox" id="filterTask" checked class="filter-type-cb" data-type="task"
+                  style="width:16px;height:16px;accent-color:#000000;cursor:pointer;"> Tasks</label></li>
+            <li style="padding: 2px 16px;"><label
+                style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:500;user-select:none;"><input
+                  type="checkbox" id="filterPayment" checked class="filter-type-cb" data-type="payment"
+                  style="width:16px;height:16px;accent-color:#000000;cursor:pointer;"> Payments</label></li>
           </ul>
         </div>
 
         <!-- View Switcher (Month/Week/Day dropdown) -->
         <div class="d-flex align-items-center" id="calendarViewSwitcher" style="gap: 4px;">
           <div class="dropdown">
-            <button type="button" class="btn btn-light btn-sm px-2 fw-semibold dropdown-toggle" id="viewDropdownBtn" data-bs-toggle="dropdown" aria-expanded="false" style="border: 1px solid #d1d5db; border-radius: 6px; background: #fff; color: #374151; font-size: 13px; padding: 4px 10px;">Month</button>
+            <button type="button" class="btn btn-light btn-sm px-2 fw-semibold dropdown-toggle" id="viewDropdownBtn"
+              data-bs-toggle="dropdown" aria-expanded="false"
+              style="border: 1px solid #d1d5db; border-radius: 6px; background: #fff; color: #374151; font-size: 13px; padding: 4px 10px;">Timeline</button>
             <ul class="dropdown-menu" aria-labelledby="viewDropdownBtn">
-              <li><a class="dropdown-item active" href="#" data-view="month">Month</a></li>
+              <li><a class="dropdown-item" href="#" data-view="month">Month</a></li>
               <li><a class="dropdown-item" href="#" data-view="week">Week</a></li>
               <li><a class="dropdown-item" href="#" data-view="day">Day</a></li>
-              <li><a class="dropdown-item" href="#" data-view="timeline">Timeline</a></li>
+              <li><a class="dropdown-item active" href="#" data-view="timeline">Timeline</a></li>
               <li><a class="dropdown-item" href="#" data-view="list">List View</a></li>
             </ul>
           </div>
@@ -3580,13 +117,33 @@
         <div class="mobile-actions">
           <button class="mobile-actions-toggle" id="mobileActionsToggle" aria-label="Open actions">⋮</button>
           <div class="mobile-actions-menu" id="mobileActionsMenu">
+            <div class="mobile-menu-section">
+              <div class="mobile-menu-label">View</div>
+              <div class="mobile-menu-view-options">
+                <button class="mobile-view-btn" data-view="month">Month</button>
+                <button class="mobile-view-btn" data-view="week">Week</button>
+                <button class="mobile-view-btn" data-view="day">Day</button>
+                <button class="mobile-view-btn active" data-view="timeline">Timeline</button>
+                <button class="mobile-view-btn" data-view="list">List</button>
+              </div>
+            </div>
+            <div class="mobile-menu-divider"></div>
+            <div class="mobile-menu-section">
+              <div class="mobile-menu-label">Show</div>
+              <label class="mobile-menu-cb"><input type="checkbox" id="mobileFilterReservation" checked>
+                Reservations</label>
+              <label class="mobile-menu-cb"><input type="checkbox" id="mobileFilterTask" checked> Tasks</label>
+              <label class="mobile-menu-cb"><input type="checkbox" id="mobileFilterPayment" checked> Payments</label>
+            </div>
+            <div class="mobile-menu-divider"></div>
+            <div class="mobile-menu-bottom-row">
               <button class="btn p-0 tooltip-light" id="mobilePrintBtn" style="border:none">
-              <img src="{% static 'img/calender/print_icon.svg' %}">
-            </button>
-            <button class="btn p-0 tooltip-light" id="mobileRefreshBtn" style="border:none">
-              <img src="{% static 'img/calender/refresh_icon.svg' %}">
-            </button>
-
+                <img src="{% static 'img/calender/print_icon.svg' %}">
+              </button>
+              <button class="btn p-0 tooltip-light" id="mobileRefreshBtn" style="border:none">
+                <img src="{% static 'img/calender/refresh_icon.svg' %}">
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -3600,11 +157,13 @@
           <div></div>
           <div class="header-actions-group">
             <div class="dropdown">
-              <button class="btn p-0 tooltip-light" id="printBtn" style="border:1px solid #1f2937;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;">
+              <button class="btn p-0 tooltip-light" id="printBtn"
+                style="border:1px solid #1f2937;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;">
                 <img src="{% static 'img/calender/print_icon.svg' %}">
               </button>
             </div>
-            <button class="btn p-0 tooltip-light" id="refreshBtn" style="border:1px solid #1f2937;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;">
+            <button class="btn p-0 tooltip-light" id="refreshBtn"
+              style="border:1px solid #1f2937;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;">
               <img src="{% static 'img/calender/refresh_icon.svg' %}">
             </button>
 
@@ -3645,11 +204,15 @@
         </div>
       </div>
       <!-- Grid Calendar Pane for Month/Week/Day Views -->
-      <div id="gridCalendarPane" style="display: none; flex: 1; height: 100%; min-height: 0; overflow-y: auto; padding: 16px; background-color: #fafafa; position: relative; box-sizing: border-box;">
+      <div id="gridCalendarPane"
+        style="display: none; flex: 1; height: 100%; min-height: 0; overflow-y: auto; padding: 16px; background-color: #fafafa; position: relative; box-sizing: border-box;">
       </div>
       <!-- List View Pane -->
-      <div id="listViewPane" class="list-view-pane" style="display: none; flex: 1; height: 100%; min-height: 0; overflow-y: auto; background-color: #f5f6f8; position: relative; box-sizing: border-box;">
-        <div id="listViewContent"><div class="list-loading">Loading events…</div></div>
+      <div id="listViewPane" class="list-view-pane"
+        style="display: none; flex: 1; height: 100%; min-height: 0; overflow-y: auto; background-color: #f5f6f8; position: relative; box-sizing: border-box;">
+        <div id="listViewContent">
+          <div class="list-loading">Loading events…</div>
+        </div>
       </div>
       <div class="calendar-empty-state" id="calendarEmptyState">No data to display</div>
     </div>
@@ -3854,7 +417,8 @@
         </div>
       </div>
       <div class="task-modal-footer">
-        <button class="task-modal-close-btn" id="taskModalToggleBtn" onclick="toggleTaskCompletion()" style="margin-right:auto"></button>
+        <button class="task-modal-close-btn" id="taskModalToggleBtn" onclick="toggleTaskCompletion()"
+          style="margin-right:auto"></button>
         <button class="task-modal-close-btn" id="taskModalCloseBtn" onclick="closeTaskDetailModal()">Close</button>
       </div>
     </div>
@@ -3866,7 +430,8 @@
       <div class="task-modal-top-bar" style="background:#000;"></div>
       <div class="task-modal-header">
         <div class="task-modal-badge" style="background:linear-gradient(135deg,#000,#333);">
-          <img src="{% static 'img/task/type/payment.svg' %}" alt="payment" style="width:20px;height:20px;filter:brightness(0) invert(1);" />
+          <img src="{% static 'img/task/type/payment.svg' %}" alt="payment"
+            style="width:20px;height:20px;filter:brightness(0) invert(1);" />
           <span>Payment</span>
         </div>
         <div class="task-modal-status" id="paymentModalStatus" style="background:#000;color:#fff;"></div>
@@ -3915,7 +480,8 @@
         </div>
       </div>
       <div class="task-modal-footer">
-        <button class="task-modal-close-btn" id="paymentModalCloseBtn" onclick="closePaymentDetailModal()" style="background:linear-gradient(135deg,#000,#333);margin-left:auto;">Close</button>
+        <button class="task-modal-close-btn" id="paymentModalCloseBtn" onclick="closePaymentDetailModal()"
+          style="background:linear-gradient(135deg,#000,#333);margin-left:auto;">Close</button>
       </div>
     </div>
   </div>
@@ -3923,12 +489,9 @@
   <!-- Reservation Detail Modal -->
   <div class="task-modal-overlay" id="reservationModalOverlay" onclick="closeReservationPanel(event)">
     <div class="reservation-modal" id="reservationModal" onclick="event.stopPropagation()">
-      <div class="reservation-modal-header">
-        <div class="reservation-modal-title">
-          <img src="{% static 'img/booking/reservation_icon.svg'%}" alt="" style="width:20px;height:20px;">
-          <span>Reservation details</span>
-        </div>
-        <button class="reservation-modal-close" onclick="closeReservationPanel()">&times;</button>
+      <div class="reservation-modal-header" style="justify-content:flex-end;border:none;padding:6px 12px;min-height:0;">
+        <button class="reservation-modal-close" onclick="closeReservationPanel()"
+          style="font-size:22px;">&times;</button>
       </div>
       <div class="reservation-modal-body" id="reservationModalContent">
         <div style="display:flex;justify-content:center;align-items:center;height:200px;">
@@ -4017,9 +580,10 @@
   let currentDisplayDate = new Date(); // Starts at today
   let selectedWeekStart = null; // Sunday of current week
   let activePropertyId = (properties && properties.length > 0) ? String(properties[0].id) : null;
-  let currentViewMode = 'month'; // 'month', 'week', 'day'
+  let currentViewMode = 'timeline'; // 'month', 'week', 'day', 'timeline', 'list'
   let typeFilters = { reservation: true, task: true, payment: true };
   let reservationPanelWasOpenBeforeReceipt = false;
+  let initialFilter = null;
 
   function updateViewTitle() {
     const el = document.getElementById('viewTitle');
@@ -4167,7 +731,7 @@
     const lastDate = allDates[allDates.length - 1];
 
     // Ensure we cover the full range of the view
-    const url = `?start_date=${toISODateString(firstDate)}&end_date=${toISODateString(lastDate)}`;
+    const url = `?start_date=${toISODateString(firstDate)}&end_date=${toISODateString(lastDate)}&_=${Date.now()}`;
 
     try {
       const response = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
@@ -4355,6 +919,8 @@
           renderProperties(propertiesToRender);
           renderActiveView();
         } else {
+          const shouldProceed = togglePropertyPreview(event, property.id);
+          if (!shouldProceed) return;
           if (detailUrl && detailUrl !== '#') window.open(detailUrl, '_blank', 'noopener,noreferrer');
         }
       });
@@ -4415,11 +981,49 @@
     tooltip.style.top = `${top}px`;
   }
 
+  let previewOpenPropertyId = null;
+
   function hidePropertyPreview() {
     const tooltip = document.getElementById('propertyHoverTooltip');
     if (!tooltip) return;
     tooltip.style.display = 'none';
+    previewOpenPropertyId = null;
   }
+
+  function isNoHoverDevice() {
+    return window.matchMedia('(hover: none)').matches;
+  }
+
+  // Touch devices have no hover state, so the property preview card needs a
+  // tap-to-toggle fallback. Returns true when the caller's default action
+  // (e.g. row-click navigation) should still proceed, false when this tap
+  // was consumed just to open the preview.
+  function togglePropertyPreview(event, propertyId) {
+    if (event.target.closest('.property-actions')) return true;
+    if (!isNoHoverDevice()) return true;
+    if (activePropertyDropdown) return false;
+    event.stopPropagation();
+
+    const tooltip = document.getElementById('propertyHoverTooltip');
+    const alreadyOpen = tooltip && tooltip.style.display === 'block' && previewOpenPropertyId === String(propertyId);
+    if (alreadyOpen) {
+      hidePropertyPreview();
+      return true;
+    }
+
+    event.preventDefault();
+    showPropertyPreview(event, propertyId);
+    previewOpenPropertyId = String(propertyId);
+    return false;
+  }
+
+  document.addEventListener('click', function (event) {
+    if (!previewOpenPropertyId) return;
+    const tooltip = document.getElementById('propertyHoverTooltip');
+    if (tooltip && tooltip.contains(event.target)) return;
+    if (event.target.closest('.property-row') || event.target.closest('.week-sidebar-col')) return;
+    hidePropertyPreview();
+  });
 
 
 
@@ -4463,8 +1067,6 @@
       payment: "{% static 'img/task/type/payment.svg' %}",
       other: "{% static 'img/task/type/others.svg' %}"
     };
-    const labelCharLimit = 5;
-    const shortSpanMaxNights = 3;
     const todayDateKey = toISODateString(today);
     const todayColIndex = allDates.findIndex(d => toISODateString(d) === todayDateKey);
     const selectedColIndex = (hasManualDateSelection && selectedDateKey && selectedDateKey !== todayDateKey)
@@ -4514,12 +1116,10 @@
         const carryStartClass = b.startsBeforeView ? 'carry-start' : '';
         const carryEndClass = b.endsAfterView ? 'carry-end' : '';
         const nights = Math.max(1, daysBetweenISO(b.startDateStr, b.endDateStr) - 1);
-        const showFullLabel = nights > shortSpanMaxNights;
         const guestName = b.guestName || '';
-        const shortName = guestName.length > labelCharLimit
-          ? `${guestName.slice(0, labelCharLimit)}...`
-          : guestName;
-        const labelText = showFullLabel ? guestName : shortName;
+        // Always render the full name — the bar truncates it with an
+        // ellipsis via CSS to fit whatever width the bar actually has.
+        const labelText = guestName;
         const shouldShowLabel = nights > 1;
         const channelLogoUrl = getChannelLogo(b.channelName, b.channelIcon);
         const channelLogoTimeline = channelLogoUrl && !isBlocked
@@ -4531,7 +1131,7 @@
              <div class="avatar-group">
                  ${channelLogoTimeline}
              </div>
-             <div>
+             <div class="segment-name-wrap">
               ${shouldShowLabel ? `<span class="segment-guest-name">${labelText}</span>` : ''}
               </div>
           </div>
@@ -4541,7 +1141,7 @@
           content = `
             <div class="segment-content">
               <img class="blocked-icon" src="${blockedIconUrl}" alt="Blocked" />
-              <span style="color: #fff; font-size: 18px; font-weight: 500; margin-left:3px;">${blockedLabel}</span>
+              <span class="blocked-label-text">${blockedLabel}</span>
             </div>
           `;
         }
@@ -4564,30 +1164,29 @@
         ? ''
         : (!typeFilters.reservation || !typeFilters.payment)
           ? spans.filter(b => {
-              const hasPay = b.paymentsInfo && Object.keys(b.paymentsInfo).length > 0;
-              if (typeFilters.reservation && typeFilters.payment) return true;
-              if (typeFilters.reservation) return !hasPay || b.type === 'blocked';
-              if (typeFilters.payment) return hasPay && b.type !== 'blocked';
-              return true;
-            }).map(b => {
-              const isBlocked = b.type === 'blocked';
-              const onClick = isBlocked ? `onclick="openUnblockModal(event, '${b.id}')"` : `onclick="openReservationPanel(event, '${b.id || 101}')"`;
-              const channelColor = getChannelColor(b.channelName) || b.color || '#3b82f6';
-              const bgColor = isBlocked ? '#9ca3af' : channelColor;
-              const nights = Math.max(1, daysBetweenISO(b.startDateStr, b.endDateStr) - 1);
-              const carryStartClass = b.startsBeforeView ? 'carry-start' : '';
-              const carryEndClass = b.endsAfterView ? 'carry-end' : '';
-              const guestName = b.guestName || '';
-              const shortName = guestName.length > labelCharLimit ? `${guestName.slice(0, labelCharLimit)}...` : guestName;
-              const labelText = nights > shortSpanMaxNights ? guestName : shortName;
-              const shouldShowLabel = nights > 1;
-              const channelLogoUrl = getChannelLogo(b.channelName, b.channelIcon);
-              const channelLogoTimeline = channelLogoUrl && !isBlocked
-                ? `<div class="channel-logo-circle" style="border-color:${bgColor};background-color:${bgColor}"><img src="${channelLogoUrl}" alt="${b.channelName || ''}" /></div>`
-                : '';
-              const content = `<div class="segment-content"><div class="avatar-group">${channelLogoTimeline}</div><div>${shouldShowLabel ? `<span class="segment-guest-name">${labelText}</span>` : ''}</div></div>`;
-              return `<div class="booking-span-block ${carryStartClass} ${carryEndClass}" ${onClick} onmouseenter="showGlobalTooltip(event, '${b.id}')" onmouseleave="hideGlobalTooltip()" style="--start:${b.startIndex}; --len:${Math.max(1,b.length)}; background-color:${bgColor}; cursor:pointer;">${content}</div>`;
-            }).join('')
+            const hasPay = b.paymentsInfo && Object.keys(b.paymentsInfo).length > 0;
+            if (typeFilters.reservation && typeFilters.payment) return true;
+            if (typeFilters.reservation) return !hasPay || b.type === 'blocked';
+            if (typeFilters.payment) return hasPay && b.type !== 'blocked';
+            return true;
+          }).map(b => {
+            const isBlocked = b.type === 'blocked';
+            const onClick = isBlocked ? `onclick="openUnblockModal(event, '${b.id}')"` : `onclick="openReservationPanel(event, '${b.id || 101}')"`;
+            const channelColor = getChannelColor(b.channelName) || b.color || '#3b82f6';
+            const bgColor = isBlocked ? '#9ca3af' : channelColor;
+            const nights = Math.max(1, daysBetweenISO(b.startDateStr, b.endDateStr) - 1);
+            const carryStartClass = b.startsBeforeView ? 'carry-start' : '';
+            const carryEndClass = b.endsAfterView ? 'carry-end' : '';
+            const guestName = b.guestName || '';
+            const labelText = guestName;
+            const shouldShowLabel = nights > 1;
+            const channelLogoUrl = getChannelLogo(b.channelName, b.channelIcon);
+            const channelLogoTimeline = channelLogoUrl && !isBlocked
+              ? `<div class="channel-logo-circle" style="border-color:${bgColor};background-color:${bgColor}"><img src="${channelLogoUrl}" alt="${b.channelName || ''}" /></div>`
+              : '';
+            const content = `<div class="segment-content"><div class="avatar-group">${channelLogoTimeline}</div><div class="segment-name-wrap">${shouldShowLabel ? `<span class="segment-guest-name">${labelText}</span>` : ''}</div></div>`;
+            return `<div class="booking-span-block ${carryStartClass} ${carryEndClass}" ${onClick} onmouseenter="showGlobalTooltip(event, '${b.id}')" onmouseleave="hideGlobalTooltip()" style="--start:${b.startIndex}; --len:${Math.max(1, b.length)}; background-color:${bgColor}; cursor:pointer;">${content}</div>`;
+          }).join('')
           : spanOverlays;
 
       const rowHtml = allDates.map((date, index) => {
@@ -5328,7 +1927,6 @@
       if (!actionButtons) return;
 
       if (isModal) {
-        actionButtons.querySelector('.left-section')?.remove();
         return;
       }
 
@@ -5560,16 +2158,16 @@
                 headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
                 body: JSON.stringify({ payment_id: paymentId, is_paid: isChecked })
               })
-              .then(r => r.json())
-              .then(d => {
-                if (d.success) {
-                  const row = document.getElementById(`payment-item-${paymentId}`);
-                  if (isChecked) row.classList.add('row-paid'); else row.classList.remove('row-paid');
-                } else {
-                  cb.checked = !isChecked;
-                  throw new Error(d.error);
-                }
-              })
+                .then(r => r.json())
+                .then(d => {
+                  if (d.success) {
+                    const row = document.getElementById(`payment-item-${paymentId}`);
+                    if (isChecked) row.classList.add('row-paid'); else row.classList.remove('row-paid');
+                  } else {
+                    cb.checked = !isChecked;
+                    throw new Error(d.error);
+                  }
+                })
             );
           }
         });
@@ -5828,50 +2426,51 @@
     const year = currentDisplayDate.getFullYear();
     const url = "{% url 'calendar-list-view' %}";
 
-    fetch(url+'?month='+month+'&year='+year,{headers:{'X-Requested-With':'XMLHttpRequest'}})
-      .then(r=>r.json()).then(data=>{
+    fetch(url + '?month=' + month + '&year=' + year, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+      .then(r => r.json()).then(data => {
         const events = data.events || [];
         if (!events.length) { c.innerHTML = '<div class="list-wrap"><div class="empty-state" style="display:block"><b>No events for this month</b></div></div>'; return; }
 
         // helpers
         const today = new Date(); const todayStr = today.toISOString().split('T')[0];
-        const fmt = (d,s)=>d.toLocaleDateString('en-US',{month:s||'short',day:'numeric',year:'numeric'});
-        const fmtShort = (d)=>d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'});
-        const money = n=>'$'+Number(n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
-        const esc = s=>{let d=document.createElement('div');d.textContent=s||'';return d.innerHTML;};
-        const isToday = d=>d===todayStr;
+        const fmt = (d, s) => d.toLocaleDateString('en-US', { month: s || 'short', day: 'numeric', year: 'numeric' });
+        const fmtShort = (d) => d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+        const money = n => '$' + Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        const esc = s => { let d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; };
+        const isToday = d => d === todayStr;
 
         // icons
         const icons = {
-          in:'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>',
-          out:'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>',
-          pay:'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>',
-          enq:'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
-          blk:'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>',
-          prop:'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>',
-          mail:'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>',
-          phone:'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>',
-          chev:'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>'
+          in: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>',
+          out: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>',
+          pay: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>',
+          enq: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
+          blk: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>',
+          task: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg>',
+          prop: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>',
+          mail: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>',
+          phone: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>',
+          chev: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>'
         };
 
         // compute stats and counts
-        let stats = { checkin:0, checkout:0, payments:0, revenue:0 };
-        let typeCounts = { All:0, Checkin:0, Checkout:0, Payment:0, Task:0, Enquiry:0, Blocked:0 };
-        events.forEach(ev=>{
+        let stats = { checkin: 0, checkout: 0, payments: 0, revenue: 0 };
+        let typeCounts = { All: 0, Checkin: 0, Checkout: 0, Payment: 0, Task: 0, Enquiry: 0, Blocked: 0 };
+        events.forEach(ev => {
           typeCounts.All++;
-          const g = ev.group||'';
-          if (g==='Checkin'){ typeCounts.Checkin++; stats.checkin++; }
-          else if (g==='Checkout'){ typeCounts.Checkout++; stats.checkout++; }
-          else if (g==='Payment'){ typeCounts.Payment++; stats.payments++; if(ev.paid) stats.revenue+=Number(ev.amount||0); }
-          else if (g==='Task') typeCounts.Task++;
-          else if (g==='Enquiry') typeCounts.Enquiry++;
-          else if (g==='Blocked') typeCounts.Blocked++;
+          const g = ev.group || '';
+          if (g === 'Checkin') { typeCounts.Checkin++; stats.checkin++; }
+          else if (g === 'Checkout') { typeCounts.Checkout++; stats.checkout++; }
+          else if (g === 'Payment') { typeCounts.Payment++; stats.payments++; if (ev.paid) stats.revenue += Number(ev.amount || 0); }
+          else if (g === 'Task') typeCounts.Task++;
+          else if (g === 'Enquiry') typeCounts.Enquiry++;
+          else if (g === 'Blocked') typeCounts.Blocked++;
         });
 
         // group events by date maintaining order
         const dateGroups = {};
-        events.forEach(ev=>{
-          if(!dateGroups[ev.date]) dateGroups[ev.date]=[];
+        events.forEach(ev => {
+          if (!dateGroups[ev.date]) dateGroups[ev.date] = [];
           dateGroups[ev.date].push(ev);
         });
         const dates = Object.keys(dateGroups).sort();
@@ -5880,93 +2479,95 @@
         let html = '<div class="list-wrap">';
 
         // summary strip
-        html += '<div class="summary">'+
-         
-        '</div>';
+        html += '<div class="summary">' +
+
+          '</div>';
 
         // filter bar
-        const pillOrder = ['All','Checkin','Checkout','Payment','Task','Enquiry','Blocked'];
-        const pillDots = { All:'#16151C', Checkin:'#059669', Checkout:'#D97706', Payment:'#2563EB', Task:'#6B7280', Enquiry:'#7C3AED', Blocked:'#DC2626' };
-        html += '<div class="filterbar" id="listFilterBar">'+
-          '<div class="search"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input type="text" id="listSearch" placeholder="Search guest, property\u2026"></div>'+
-          '<div class="pills" id="listPills">'+
-            pillOrder.map(t=>'<button class="pill pill--'+(t==='All'?'all':t.toLowerCase())+'" data-type="'+t+'" aria-pressed="'+(t==='All'?'true':'false')+'"><span class="dot" style="color:'+pillDots[t]+'"></span>'+t+'<span class="cnt">'+typeCounts[t]+'</span></button>').join('')+
-          '</div>'+
-          '<span class="result-count"><b id="resultCount">'+events.length+'</b> event'+((events.length!==1)?'s':'')+'</span>'+
-        '</div>';
+        const pillOrder = ['All', 'Checkin', 'Checkout', 'Payment', 'Task', 'Enquiry', 'Blocked'];
+        const pillDots = { All: '#16151C', Checkin: '#059669', Checkout: '#D97706', Payment: '#2563EB', Task: '#6B7280', Enquiry: '#7C3AED', Blocked: '#DC2626' };
+        html += '<div class="filterbar" id="listFilterBar">' +
+          '<div class="search"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input type="text" id="listSearch" placeholder="Search guest, property\u2026"></div>' +
+          '<div class="pills" id="listPills">' +
+          pillOrder.map(t => '<button class="pill pill--' + (t === 'All' ? 'all' : t === 'Checkin' ? 'in' : t === 'Checkout' ? 'out' : t === 'Payment' ? 'pay' : t.toLowerCase()) + '" data-type="' + t + '" aria-pressed="' + (t === 'All' ? 'true' : 'false') + '"><span class="dot" style="color:' + pillDots[t] + '"></span>' + t + '<span class="cnt">' + typeCounts[t] + '</span></button>').join('') +
+          '</div>' +
+          '<span class="result-count"><b id="resultCount">' + events.length + '</b> event' + ((events.length !== 1) ? 's' : '') + '</span>' +
+          '</div>';
 
         // timeline
         html += '<div class="timeline" id="listTimeline">';
-        dates.forEach((iso,i)=>{
-          const d = new Date(iso+'T00:00:00');
-          const isLast = i===dates.length-1;
+        dates.forEach((iso, i) => {
+          const d = new Date(iso + 'T00:00:00');
+          const isLast = i === dates.length - 1;
 
           // today marker
-          if(iso===todayStr) html += '<div class="marker" id="todayMarker"><div class="rail"><div class="marker__dot"></div><div class="marker__label"><span>Today</span><div class="marker__rule"></div></div></div></div>';
+          if (iso === todayStr) html += '<div class="marker" id="todayMarker"><div class="rail"><div class="marker__dot"></div><div class="marker__label"><span>Today</span><div class="marker__rule"></div></div></div></div>';
 
-          const weekday = d.toLocaleDateString('en-US',{weekday:'short'});
-          const monthL = d.toLocaleDateString('en-US',{month:'short'});
+          const weekday = d.toLocaleDateString('en-US', { weekday: 'short' });
+          const monthL = d.toLocaleDateString('en-US', { month: 'short' });
           const dayNum = d.getDate();
           const items = dateGroups[iso];
 
-          html += '<div class="day'+(isLast?' is-last':'')+'" data-date="'+iso+'">'+
-            '<div class="rail"><div class="node"><div class="node__day">'+dayNum+'</div><div class="node__mon">'+monthL+'</div></div></div>'+
-            '<div class="day__main">'+
-              '<div class="day__head"><span class="day__weekday">'+weekday+'</span><span class="day__date">'+fmt(d,'long')+'</span><span class="day__chip">'+items.length+' event'+(items.length!==1?'s':'')+'</span></div>'+
-              '<div class="day__events">';
+          html += '<div class="day' + (isLast ? ' is-last' : '') + '" data-date="' + iso + '">' +
+            '<div class="rail"><div class="node"><div class="node__day">' + dayNum + '</div><div class="node__mon">' + monthL + '</div></div></div>' +
+            '<div class="day__main">' +
+            '<div class="day__head"><span class="day__weekday">' + weekday + '</span><span class="day__date">' + fmt(d, 'long') + '</span><span class="day__chip">' + items.length + ' event' + (items.length !== 1 ? 's' : '') + '</span></div>' +
+            '<div class="day__events">';
 
-          items.forEach(ev=>{
-            const g = ev.group||'';
-            const eClass = g==='Checkin'?'in':g==='Checkout'?'out':g==='Payment'?'pay':g==='Enquiry'?'enquiry':g==='Blocked'?'blocked':'pay';
+          items.forEach(ev => {
+            const g = ev.group || '';
+            const eClass = g === 'Checkin' ? 'in' : g === 'Checkout' ? 'out' : g === 'Payment' ? 'pay' : g === 'Task' ? 'task' : g === 'Enquiry' ? 'enquiry' : g === 'Blocked' ? 'blocked' : 'pay';
             let sub = '';
-            if(g==='Checkin'||g==='Checkout') sub = esc(ev.stay);
-            else if(g==='Payment') sub = money(ev.amount)+(ev.paid?' <span class="badge badge--pay">Paid</span>':' <span class="badge badge--out">Due</span>');
-            else if(g==='Task') sub = esc(ev.details||'');
-            else if(g==='Enquiry') sub = (ev.guests?esc(ev.guests)+' \u00b7 ':'')+esc(ev.stay);
-            else if(g==='Blocked') sub = esc(ev.stay||'');
+            if (g === 'Checkin' || g === 'Checkout') sub = esc(ev.stay);
+            else if (g === 'Payment') sub = money(ev.amount) + (ev.paid ? ' <span class="badge badge--pay">Paid</span>' : ' <span class="badge badge--out">Due</span>');
+            else if (g === 'Task') sub = esc(ev.details || '');
+            else if (g === 'Enquiry') sub = (ev.guests ? esc(ev.guests) + ' \u00b7 ' : '') + esc(ev.stay);
+            else if (g === 'Blocked') sub = esc(ev.stay || '');
 
-            const guestName = g==='Blocked'?'\u2014':esc(ev.guest_name||'\u2014');
-            const guestEmail = g==='Blocked'?'':esc(ev.guest_email||'');
-            const guestPhone = g==='Blocked'?'':esc(ev.guest_phone||ev.guest_id||'');
-            const propName = esc(ev.property||'');
-            const propLoc = esc(ev.location||'');
-            const hasAvatar = ev.avatar&&ev.avatar.trim();
-            const hasPropImg = ev.property_image&&ev.property_image.trim();
+            const guestName = g === 'Blocked' ? '\u2014' : esc(ev.guest_name || '\u2014');
+            const guestEmail = g === 'Blocked' ? '' : esc(ev.guest_email || '');
+            const guestPhone = g === 'Blocked' ? '' : esc(ev.guest_phone || ev.guest_id || '');
+            const propName = esc(ev.property || '');
+            const propLoc = esc(ev.location || '');
+            const hasAvatar = ev.avatar && ev.avatar.trim();
+            const hasPropImg = ev.property_image && ev.property_image.trim();
             let typeIco = icons.pay;
-            if(g==='Checkin') typeIco = icons.in;
-            else if(g==='Checkout') typeIco = icons.out;
-            else if(g==='Enquiry') typeIco = icons.enq;
-            else if(g==='Blocked') typeIco = icons.blk;
+            if (g === 'Checkin') typeIco = icons.in;
+            else if (g === 'Checkout') typeIco = icons.out;
+            else if (g === 'Task') typeIco = icons.task;
+            else if (g === 'Enquiry') typeIco = icons.enq;
+            else if (g === 'Blocked') typeIco = icons.blk;
 
-            const badge = g==='Checkin'?'<span class="badge badge--in">Check-in</span>':
-              g==='Checkout'?'<span class="badge badge--out">Check-out</span>':
-              g==='Payment'?'<span class="badge badge--pay">Payment</span>':
-              g==='Enquiry'?'<span class="badge badge--enquiry">Enquiry</span>':
-              g==='Blocked'?'<span class="badge badge--blocked">Blocked</span>':
-              '';
+            const badge = g === 'Checkin' ? '<span class="badge badge--in">Check-in</span>' :
+              g === 'Checkout' ? '<span class="badge badge--out">Check-out</span>' :
+                g === 'Payment' ? '<span class="badge badge--pay">Payment</span>' :
+                  g === 'Task' ? '<span class="badge badge--task">Task</span>' :
+                    g === 'Enquiry' ? '<span class="badge badge--enquiry">Enquiry</span>' :
+                      g === 'Blocked' ? '<span class="badge badge--blocked">Blocked</span>' :
+                        '';
 
-            html += '<div class="event event--'+eClass+'" data-type="'+g.toLowerCase()+'">'+
-              '<div class="event__body">'+
-                // type
-                '<div class="zone zone--type"><div class="ico">'+typeIco+'</div><div class="typecontent"><div class="type__label">'+esc(ev.title||g)+' '+badge+'</div>'+(sub?'<div class="range">'+sub+'</div>':'')+'</div></div>'+
-                // guest
-                '<div class="zone zone--guest">'+
-                  '<div class="avatar avatar--guest">'+(hasAvatar?'<img src="'+esc(ev.avatar)+'" style="width:100%;height:100%;border-radius:50%;object-fit:cover;" alt="">':guestName.charAt(0).toUpperCase())+'</div>'+
-                  '<div class="guest__meta"><div class="guest__name">'+guestName+'</div>'+
-                  (guestEmail?'<div class="contact">'+icons.mail+'<span>'+guestEmail+'</span></div>':'')+
-                  (guestPhone?'<div class="contact contact--mono">'+icons.phone+'<span>'+guestPhone+'</span></div>':'')+
-                  (!guestEmail&&!guestPhone?'<div class="contact contact--none">No contact</div>':'')+
-                  '</div>'+
-                '</div>'+
-                // property
-                '<div class="zone zone--prop">'+
-                  '<div class="thumb thumb--r2">'+(hasPropImg?'<img src="'+esc(ev.property_image)+'" style="width:100%;height:100%;object-fit:cover;" alt="">':icons.prop)+'</div>'+
-                  '<div class="prop__meta"><div class="prop__name">'+propName+'</div><div class="prop__loc">'+icons.prop+'<span>'+propLoc+'</span></div></div>'+
-                '</div>'+
-                // open
-                '<button class="open-btn" onclick="this.closest(\'.day\').querySelector(\'.day__head\').scrollIntoView({behavior:\'smooth\',block:\'center\'})">'+icons.chev+'</button>'+
-              '</div>'+
-            '</div>';
+            html += '<div class="event event--' + eClass + '" data-type="' + g.toLowerCase() + '">' +
+              '<div class="event__body">' +
+              // type
+              '<div class="zone zone--type"><div class="ico">' + typeIco + '</div><div class="typecontent"><div class="type__label">' + esc(ev.title || g) + ' ' + badge + '</div>' + (sub ? '<div class="range">' + sub + '</div>' : '') + '</div></div>' +
+              // guest
+              '<div class="zone zone--guest">' +
+              '<div class="avatar avatar--guest">' + (hasAvatar ? '<img src="' + esc(ev.avatar) + '" style="width:100%;height:100%;border-radius:50%;object-fit:cover;" alt="">' : guestName.charAt(0).toUpperCase()) + '</div>' +
+              '<div class="guest__meta"><div class="guest__name">' + guestName + '</div>' +
+              (guestEmail ? '<div class="contact">' + icons.mail + '<span>' + guestEmail + '</span></div>' : '') +
+              (guestPhone ? '<div class="contact contact--mono">' + icons.phone + '<span>' + guestPhone + '</span></div>' : '') +
+              (!guestEmail && !guestPhone ? '<div class="contact contact--none">No contact</div>' : '') +
+              '</div>' +
+              '</div>' +
+              // property
+              '<div class="zone zone--prop">' +
+              '<div class="thumb thumb--r2">' + (hasPropImg ? '<img src="' + esc(ev.property_image) + '" style="width:100%;height:100%;object-fit:cover;" alt="">' : icons.prop) + '</div>' +
+              '<div class="prop__meta"><div class="prop__name">' + propName + '</div><div class="prop__loc">' + icons.prop + '<span>' + propLoc + '</span></div></div>' +
+              '</div>' +
+              // open
+
+              '</div>' +
+              '</div>';
           });
 
           html += '</div></div></div>';
@@ -5982,38 +2583,46 @@
         const search = document.getElementById('listSearch');
         const resultCount = document.getElementById('resultCount');
 
-        function filterEvents(){
-          const q = (search.value||'').toLowerCase().trim();
+        function filterEvents() {
+          const q = (search.value || '').toLowerCase().trim();
           const active = document.querySelector('#listPills .pill[aria-pressed="true"]');
           const activeType = active ? active.dataset.type : 'All';
           let visible = 0;
-          cards.forEach(card=>{
+          cards.forEach(card => {
             const t = card.dataset.type;
-            const matchesType = activeType==='All'||activeType.toLowerCase()===t;
+            const matchesType = activeType === 'All' || activeType.toLowerCase() === t;
             const text = card.textContent.toLowerCase();
-            const matchesSearch = !q||text.includes(q);
-            card.style.display = (matchesType&&matchesSearch)?'':'none';
-            if(matchesType&&matchesSearch) visible++;
+            const matchesSearch = !q || text.includes(q);
+            card.style.display = (matchesType && matchesSearch) ? '' : 'none';
+            if (matchesType && matchesSearch) visible++;
           });
           // hide empty days
-          daySections.forEach(day=>{
-            const vis = Array.from(day.querySelectorAll('.event')).filter(el=>el.style.display!=='none').length;
-            day.style.display = vis?'grid':'none';
+          daySections.forEach(day => {
+            const vis = Array.from(day.querySelectorAll('.event')).filter(el => el.style.display !== 'none').length;
+            day.style.display = vis ? 'grid' : 'none';
           });
           resultCount.textContent = visible;
         }
 
-        pills.forEach(p=>p.addEventListener('click',function(){
-          const wasPressed = this.getAttribute('aria-pressed')==='true';
-          pills.forEach(pp=>pp.setAttribute('aria-pressed','false'));
-          if(!wasPressed) this.setAttribute('aria-pressed','true');
-          else document.querySelector('#listPills .pill--all').setAttribute('aria-pressed','true');
+        pills.forEach(p => p.addEventListener('click', function () {
+          const wasPressed = this.getAttribute('aria-pressed') === 'true';
+          pills.forEach(pp => pp.setAttribute('aria-pressed', 'false'));
+          if (!wasPressed) this.setAttribute('aria-pressed', 'true');
+          else document.querySelector('#listPills .pill--all').setAttribute('aria-pressed', 'true');
           filterEvents();
         }));
 
-        search.addEventListener('input',filterEvents);
+        search.addEventListener('input', filterEvents);
+
+        if (initialFilter) {
+          const filterMap = { in: 'Checkin', out: 'Checkout', pay: 'Payment' };
+          const targetType = filterMap[initialFilter.toLowerCase()] || initialFilter;
+          const targetPill = Array.from(pills).find(p => p.dataset.type === targetType);
+          if (targetPill) { targetPill.click(); }
+          initialFilter = null;
+        }
       })
-      .catch(()=>{
+      .catch(() => {
         c.innerHTML = '<div class="list-wrap"><div class="empty-state" style="display:block"><b>Failed to load events.</b></div></div>';
       });
   }
@@ -6159,6 +2768,8 @@
     if (typeFilters.reservation) {
       spansList.push(...pBookings.map(b => ({ ...b, isEnquiry: false })));
       spansList.push(...pEnquiries.map(eq => ({ ...eq, isEnquiry: true })));
+    } else if (typeFilters.payment) {
+      spansList.push(...pBookings.map(b => ({ ...b, isEnquiry: false })));
     }
 
     const firstDay = new Date(year, month, 1);
@@ -6246,9 +2857,9 @@
       const enquirySpans = weekSpans.filter(span => span.event.isEnquiry);
 
       const spanOffsets = (span) => {
-        const n = span.endCol - span.startCol + 1;
+        const n = Math.max(span.endCol - span.startCol + 1, 2);
         const mlPct = span.carryStart ? 0 : (100 / (2 * n));
-        const mrPct = span.carryEnd  ? 0 : (100 / (2 * n));
+        const mrPct = span.carryEnd ? 0 : (100 / (2 * n));
         return `margin-left:${mlPct.toFixed(2)}%;margin-right:${mrPct.toFixed(2)}%`;
       };
 
@@ -6282,19 +2893,19 @@
 
         // Payment collision: small black dot at bottom when payment date coincides with reservation start
         if (hasPaymentCollision) {
-          eventsHtml += `<div style="grid-column:${colIdx+1}/${colIdx+2};grid-row:1/-1;align-self:end;justify-self:center;width:8px;height:8px;border-radius:50%;background:#000;z-index:130;cursor:pointer;pointer-events:auto;margin-bottom:4px;" onmouseenter="showPaymentTooltip(event,'${bookingWithPayment.id}','${dateStr}')" onmouseleave="handleIndicatorHoverLeave()"></div>`;
+          eventsHtml += `<div style="grid-column:${colIdx + 1}/${colIdx + 2};grid-row:1/-1;align-self:end;justify-self:center;width:8px;height:8px;border-radius:50%;background:#000;z-index:130;cursor:pointer;pointer-events:auto;margin-bottom:4px;" onmouseenter="showPaymentTooltip(event,'${bookingWithPayment.id}','${dateStr}')" onmouseleave="handleIndicatorHoverLeave()"></div>`;
         }
 
         // Normal payment indicator (when no collision with reservation start)
         if (!hasPaymentCollision && bookingWithPayment && typeFilters.payment && !(bookingStartsHere && dayTasksForBand.length > 0)) {
-          eventsHtml += `<div style="grid-column:${colIdx+1}/${colIdx+2};grid-row:1;align-self:center;justify-self:center;width:36px;height:36px;border-radius:50%;background:#3b82f6;border:2px solid #fff;display:flex;align-items:center;justify-content:center;z-index:120;cursor:pointer;pointer-events:auto;box-shadow:0 1px 3px rgba(0,0,0,0.25);" onclick="handlePaymentIndicatorClick(event,'${bookingWithPayment.id}','${dateStr}')" onmouseenter="showPaymentTooltip(event,'${bookingWithPayment.id}','${dateStr}')" onmouseleave="handleIndicatorHoverLeave()"><img src="${paymentIconUrl}" alt="payment" style="width:24px;height:24px;object-fit:contain;filter:brightness(0) invert(1);" /></div>`;
+          eventsHtml += `<div style="grid-column:${colIdx + 1}/${colIdx + 2};grid-row:1;align-self:center;justify-self:center;width:36px;height:36px;border-radius:50%;background:#3b82f6;border:2px solid #fff;display:flex;align-items:center;justify-content:center;z-index:120;cursor:pointer;pointer-events:auto;box-shadow:0 1px 3px rgba(0,0,0,0.25);" onclick="handlePaymentIndicatorClick(event,'${bookingWithPayment.id}','${dateStr}')" onmouseenter="showPaymentTooltip(event,'${bookingWithPayment.id}','${dateStr}')" onmouseleave="handleIndicatorHoverLeave()"><img src="${paymentIconUrl}" alt="payment" style="width:24px;height:24px;object-fit:contain;filter:brightness(0) invert(1);" /></div>`;
         }
 
         if (dayTasksForBand.length === 0) return;
         const t0 = dayTasksForBand[0];
 
         if (bookingStartsHere) {
-          eventsHtml += `<div style="position:static;grid-column:${colIdx+1}/${colIdx+2};grid-row:1/-1;align-self:end;justify-self:center;width:8px;height:8px;border-radius:50%;background:#ef4444;z-index:15;cursor:pointer;pointer-events:auto;animation:cell-blink 1.2s ease-in-out infinite;" onclick="openTaskDetailModal(event,'${t0.id}')"></div>`;
+          eventsHtml += `<div style="position:static;grid-column:${colIdx + 1}/${colIdx + 2};grid-row:1/-1;align-self:end;justify-self:center;width:8px;height:8px;border-radius:50%;background:#ef4444;z-index:15;cursor:pointer;pointer-events:auto;animation:cell-blink 1.2s ease-in-out infinite;" onclick="openTaskDetailModal(event,'${t0.id}')"></div>`;
           return;
         }
         const taskIconsMap = {
@@ -6307,7 +2918,7 @@
         const taskColors = { cleaning: '#10b981', maintenance: '#f59e0b', payment: '#3b82f6', other: '#8b5cf6' };
         const taskColor = taskColors[t0.task_type] || taskColors.other;
         const paymentRing = t0.task_type === 'payment' ? 'box-shadow:0 0 0 2.5px #38bdf8,0 2px 6px rgba(0,0,0,0.15);width:30px;height:30px;' : '';
-        eventsHtml += `<div class="task-circle-bar" style="grid-column:${colIdx+1}/${colIdx+2};grid-row:1;background-color:${taskColor};${paymentRing}" onclick="openTaskDetailModal(event,'${t0.id}')">${t0.task_type === 'payment' ? `<div style="position:relative;display:flex;align-items:center;justify-content:center;width:100%;height:100%;"><img src="${taskIconUrl}" alt="" style="width:16px;height:16px;filter:brightness(0) invert(1);opacity:0.5;position:absolute;" /><span style="color:#fff;font-weight:900;font-size:14px;line-height:1;position:relative;z-index:1;">$</span></div>` : `<img src="${taskIconUrl}" alt="" />`}</div>`;
+        eventsHtml += `<div class="task-circle-bar" style="grid-column:${colIdx + 1}/${colIdx + 2};grid-row:1;background-color:${taskColor};${paymentRing}" onclick="openTaskDetailModal(event,'${t0.id}')">${t0.task_type === 'payment' ? `<div style="position:relative;display:flex;align-items:center;justify-content:center;width:100%;height:100%;"><img src="${taskIconUrl}" alt="" style="width:16px;height:16px;filter:brightness(0) invert(1);opacity:0.5;position:absolute;" /><span style="color:#fff;font-weight:900;font-size:14px;line-height:1;position:relative;z-index:1;">$</span></div>` : `<img src="${taskIconUrl}" alt="" />`}</div>`;
       });
 
       html += `
@@ -6351,10 +2962,13 @@
     if (typeFilters.reservation) {
       spansList.push(...pBookings.map(b => ({ ...b, isEnquiry: false })));
       spansList.push(...pEnquiries.map(eq => ({ ...eq, isEnquiry: true })));
+    } else if (typeFilters.payment) {
+      spansList.push(...pBookings.map(b => ({ ...b, isEnquiry: false })));
     }
 
     const weekDates = [];
     const temp = new Date(selectedWeekStart);
+    temp.setHours(0, 0, 0, 0);
     for (let d = 0; d < 7; d++) {
       weekDates.push(new Date(temp));
       temp.setDate(temp.getDate() + 1);
@@ -6370,21 +2984,20 @@
       other: "{% static 'img/task/type/others.svg' %}"
     };
     const taskColors = { cleaning: '#10b981', maintenance: '#f59e0b', payment: '#3b82f6', other: '#8b5cf6' };
-    const dayNames = ['SUN','MON','TUE','WED','THU','FRI','SAT'];
+    const dayNames = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
     const propsToRender = filteredProperties.length > 0 ? filteredProperties : properties;
-    const SIDEBAR_W = 240;
 
     const spanOffsets = (span) => {
-      const n = span.endCol - span.startCol + 1;
+      const n = Math.max(span.endCol - span.startCol + 1, 2);
       const mlPct = span.carryStart ? 0 : (100 / (2 * n));
-      const mrPct = span.carryEnd  ? 0 : (100 / (2 * n));
+      const mrPct = span.carryEnd ? 0 : (100 / (2 * n));
       return `margin-left:${mlPct.toFixed(2)}%;margin-right:${mrPct.toFixed(2)}%`;
     };
 
     let html = `
-      <div style="display:flex;flex-direction:column;flex:1;min-height:0;">
-        <div style="display:flex;border:1px solid #1f2937;border-radius:12px 12px 0 0;overflow:hidden;background:#1f2937;color:#fff;font-weight:700;font-size:11px;text-transform:uppercase;user-select:none;">
-          <div style="width:${SIDEBAR_W}px;flex-shrink:0;display:flex;align-items:center;padding:10px;background:#f9fafb;">
+      <div class="week-grid-scroll" style="display:flex;flex-direction:column;flex:1;min-height:0;">
+        <div style="display:flex;min-width:max-content;border:1px solid #1f2937;border-radius:12px 12px 0 0;overflow:hidden;background:#1f2937;color:#fff;font-weight:700;font-size:11px;text-transform:uppercase;user-select:none;">
+          <div class="week-sidebar-col" style="display:flex;align-items:center;padding:10px;background:#f9fafb;position:sticky;left:0;z-index:2;">
             <div style="display:flex;align-items:center;gap:6px;width:100%;padding:8px 10px;border:1px solid #e5e7eb;border-radius:8px;background:#f9fafb;">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:#9ca3af;flex-shrink:0;"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.35-4.35"></path></svg>
               <input type="text" id="weekPropertySearchInput" placeholder="Search listings"
@@ -6392,92 +3005,94 @@
                 style="width:100%;border:none;font-size:13px;background:transparent;color:#1f2937;outline:none;box-sizing:border-box;" />
             </div>
           </div>
-          <div style="flex:1;display:grid;grid-template-columns:repeat(7,1fr);text-align:center;">
-            ${weekDates.map((d,i) => `<div style="padding:12px 4px;border-left:1px solid rgba(255,255,255,0.1);">${dayNames[d.getDay()]} ${d.getDate()}</div>`).join('')}
+          <div class="week-days-grid" style="flex:1;text-align:center;">
+            ${weekDates.map((d, i) => `<div style="padding:12px 4px;border-left:1px solid rgba(255,255,255,0.1);">${dayNames[d.getDay()]} ${d.getDate()}</div>`).join('')}
           </div>
         </div>
-        <div class="week-grid-body" style="flex:1;overflow-y:auto;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 12px 12px;background:#fff;">
+        <div class="week-grid-body" style="flex:1;min-width:max-content;overflow-y:auto;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 12px 12px;background:#fff;">
           ${propsToRender.map(property => {
-            const propImg = property.image || "{% static 'img/common/default_user_icon_1.png' %}";
-            const propName = property.title || 'Property';
-            const propertySpans = spansList.filter(s => String(s.propertyId) === String(property.id));
-            const propertyTasks = pTasks.filter(t => String(t.propertyId) === String(property.id));
-            const propertyBookings = pBookings.filter(b => String(b.propertyId) === String(property.id));
+      const propImg = property.image || "{% static 'img/common/default_user_icon_1.png' %}";
+      const propName = property.title || 'Property';
+      const propertySpans = spansList.filter(s => String(s.propertyId) === String(property.id));
+      const propertyTasks = pTasks.filter(t => String(t.propertyId) === String(property.id));
+      const propertyBookings = pBookings.filter(b => String(b.propertyId) === String(property.id));
 
-            const weekSpans = [];
-            propertySpans.forEach(event => {
-              const evStart = new Date(event.startDateStr + 'T00:00:00');
-              const evEnd = new Date(event.endDateStr + 'T00:00:00');
-              evEnd.setDate(evEnd.getDate() - 1);
-              if (evStart <= weekEnd && evEnd >= weekStart) {
-                const carryStart = evStart < weekStart;
-                const carryEnd = evEnd > weekEnd;
-                const startCol = carryStart ? 0 : Math.round((evStart - weekStart) / (1000 * 60 * 60 * 24));
-                const endCol = carryEnd ? 6 : Math.round((evEnd - weekStart) / (1000 * 60 * 60 * 24));
-                weekSpans.push({ event, startCol, endCol, carryStart, carryEnd, length: endCol - startCol + 1 });
-              }
-            });
+      const weekSpans = [];
+      propertySpans.forEach(event => {
+        const evStart = new Date(event.startDateStr + 'T00:00:00');
+        const evEnd = new Date(event.endDateStr + 'T00:00:00');
+        evEnd.setDate(evEnd.getDate() - 1);
+        if (evStart <= weekEnd && evEnd >= weekStart) {
+          const carryStart = evStart < weekStart;
+          const carryEnd = evEnd > weekEnd;
+          const startCol = carryStart ? 0 : Math.round((evStart - weekStart) / (1000 * 60 * 60 * 24));
+          const endCol = carryEnd ? 6 : Math.round((evEnd - weekStart) / (1000 * 60 * 60 * 24));
+          weekSpans.push({ event, startCol, endCol, carryStart, carryEnd, length: endCol - startCol + 1 });
+        }
+      });
 
-            const bookingSpans = weekSpans.filter(s => !s.event.isEnquiry);
-            let rowHtml = '';
+      const bookingSpans = weekSpans.filter(s => !s.event.isEnquiry);
+      let rowHtml = '';
 
-            bookingSpans.forEach(span => {
-              const ev = span.event;
-              const gridColStart = span.startCol + 1;
-              const gridColEnd = span.endCol + 2;
-              const onClick = ev.type === 'blocked'
-                ? `onclick="openUnblockModal(event, '${ev.id}')"`
-                : `onclick="openReservationPanel(event, '${ev.id}')"`;
-              const carryStartClass = span.carryStart ? 'carry-start' : '';
-              const carryEndClass = span.carryEnd ? 'carry-end' : '';
-              const labelName = ev.guestName || 'Blocked';
-              const labelText = span.carryStart ? `-- ${labelName}` : labelName;
-              const channelLogoUrl = getChannelLogo(ev.channelName, ev.channelIcon);
-              const channelColor = getChannelColor(ev.channelName) || ev.color || '#3b82f6';
-              const channelLogoHtml = channelLogoUrl && ev.type !== 'blocked'
-                ? `<div class="channel-logo-circle" style="border-color:${channelColor};background-color:${channelColor}"><img src="${channelLogoUrl}" alt="${ev.channelName || ''}" /></div>`
-                : '';
-              const style = ev.type === 'blocked' ? 'background-color:#9ca3af;' : `background-color:${channelColor};`;
-              rowHtml += `<div class="grid-event-span ${carryStartClass} ${carryEndClass}" style="grid-column:${gridColStart}/${gridColEnd};grid-row:1;${style};${spanOffsets(span)}" ${onClick} onmouseenter="showMonthEventTooltip(event,'${ev.id}',false)" onmouseleave="hideGlobalTooltip()">${channelLogoHtml}<span class="event-title">${labelText}</span></div>`;
-            });
+      bookingSpans.forEach(span => {
+        const ev = span.event;
+        const gridColStart = span.startCol + 1;
+        const gridColEnd = span.endCol + 2;
+        const onClick = ev.type === 'blocked'
+          ? `onclick="openUnblockModal(event, '${ev.id}')"`
+          : `onclick="openReservationPanel(event, '${ev.id}')"`;
+        const carryStartClass = span.carryStart ? 'carry-start' : '';
+        const carryEndClass = span.carryEnd ? 'carry-end' : '';
+        const labelName = ev.guestName || 'Blocked';
+        const labelText = span.carryStart ? `-- ${labelName}` : labelName;
+        const channelLogoUrl = getChannelLogo(ev.channelName, ev.channelIcon);
+        const channelColor = getChannelColor(ev.channelName) || ev.color || '#3b82f6';
+        const channelLogoHtml = channelLogoUrl && ev.type !== 'blocked'
+          ? `<div class="channel-logo-circle" style="border-color:${channelColor};background-color:${channelColor}"><img src="${channelLogoUrl}" alt="${ev.channelName || ''}" /></div>`
+          : '';
+        const style = ev.type === 'blocked' ? 'background-color:#9ca3af;' : `background-color:${channelColor};`;
+        rowHtml += `<div class="grid-event-span ${carryStartClass} ${carryEndClass}" style="grid-column:${gridColStart}/${gridColEnd};grid-row:1;${style};${spanOffsets(span)}" ${onClick} onmouseenter="showMonthEventTooltip(event,'${ev.id}',false)" onmouseleave="hideGlobalTooltip()">${channelLogoHtml}<span class="event-title">${labelText}</span></div>`;
+      });
 
-            weekDates.forEach((d, colIdx) => {
-              const dateStr = toISODateString(d);
-              const dayTasks = propertyTasks.filter(t => t.date === dateStr);
-              const bookingStartsHere = weekSpans.some(s => !s.carryStart && s.startCol === colIdx);
+      weekDates.forEach((d, colIdx) => {
+        const dateStr = toISODateString(d);
+        const dayTasks = propertyTasks.filter(t => t.date === dateStr);
+        const bookingStartsHere = weekSpans.some(s => !s.carryStart && s.startCol === colIdx);
 
-              const bookingWithPayment = propertyBookings.find(b => b.paymentsInfo && b.paymentsInfo[dateStr]);
-              const hasPaymentCollision = bookingStartsHere && bookingWithPayment && typeFilters.payment;
+        const bookingWithPayment = propertyBookings.find(b => b.paymentsInfo && b.paymentsInfo[dateStr]);
+        const hasPaymentCollision = bookingStartsHere && bookingWithPayment && typeFilters.payment;
 
-              // Payment collision: small black dot at bottom when payment date coincides with reservation start
-              if (hasPaymentCollision) {
-                rowHtml += `<div style="grid-column:${colIdx+1}/${colIdx+2};grid-row:1/-1;align-self:end;justify-self:center;width:8px;height:8px;border-radius:50%;background:#000;z-index:130;cursor:pointer;pointer-events:auto;margin-bottom:4px;" onmouseenter="showPaymentTooltip(event,'${bookingWithPayment.id}','${dateStr}')" onmouseleave="handleIndicatorHoverLeave()"></div>`;
-              }
+        // Payment collision: small black dot at bottom when payment date coincides with reservation start
+        if (hasPaymentCollision) {
+          rowHtml += `<div style="grid-column:${colIdx + 1}/${colIdx + 2};grid-row:1/-1;align-self:end;justify-self:center;width:8px;height:8px;border-radius:50%;background:#000;z-index:130;cursor:pointer;pointer-events:auto;margin-bottom:4px;" onmouseenter="showPaymentTooltip(event,'${bookingWithPayment.id}','${dateStr}')" onmouseleave="handleIndicatorHoverLeave()"></div>`;
+        }
 
-              // Normal payment indicator (when no collision with reservation start)
-              if (!hasPaymentCollision && bookingWithPayment && typeFilters.payment && !(bookingStartsHere && dayTasks.length > 0)) {
-                rowHtml += `<div style="grid-column:${colIdx+1}/${colIdx+2};grid-row:1;align-self:center;justify-self:center;width:36px;height:36px;border-radius:50%;background:#3b82f6;border:2px solid #fff;display:flex;align-items:center;justify-content:center;z-index:120;cursor:pointer;pointer-events:auto;box-shadow:0 1px 3px rgba(0,0,0,0.25);" onclick="handlePaymentIndicatorClick(event,'${bookingWithPayment.id}','${dateStr}')" onmouseenter="showPaymentTooltip(event,'${bookingWithPayment.id}','${dateStr}')" onmouseleave="handleIndicatorHoverLeave()"><img src="${paymentIconUrl}" alt="payment" style="width:24px;height:24px;object-fit:contain;filter:brightness(0) invert(1);" /></div>`;
-              }
+        // Normal payment indicator (when no collision with reservation start)
+        if (!hasPaymentCollision && bookingWithPayment && typeFilters.payment && !(bookingStartsHere && dayTasks.length > 0)) {
+          rowHtml += `<div style="grid-column:${colIdx + 1}/${colIdx + 2};grid-row:1;align-self:center;justify-self:center;width:36px;height:36px;border-radius:50%;background:#3b82f6;border:2px solid #fff;display:flex;align-items:center;justify-content:center;z-index:120;cursor:pointer;pointer-events:auto;box-shadow:0 1px 3px rgba(0,0,0,0.25);" onclick="handlePaymentIndicatorClick(event,'${bookingWithPayment.id}','${dateStr}')" onmouseenter="showPaymentTooltip(event,'${bookingWithPayment.id}','${dateStr}')" onmouseleave="handleIndicatorHoverLeave()"><img src="${paymentIconUrl}" alt="payment" style="width:24px;height:24px;object-fit:contain;filter:brightness(0) invert(1);" /></div>`;
+        }
 
-              if (dayTasks.length === 0) return;
-              const t0 = dayTasks[0];
+        if (dayTasks.length === 0) return;
+        const t0 = dayTasks[0];
 
-              if (bookingStartsHere) {
-                rowHtml += `<div style="position:static;grid-column:${colIdx+1}/${colIdx+2};grid-row:1/-1;align-self:end;justify-self:center;width:8px;height:8px;border-radius:50%;background:#ef4444;z-index:15;cursor:pointer;pointer-events:auto;animation:cell-blink 1.2s ease-in-out infinite;" onclick="openTaskDetailModal(event,'${t0.id}')"></div>`;
-                return;
-              }
-              const taskIconUrl = taskIconsMap[t0.task_type] || taskIconsMap.other;
-              const taskColor = taskColors[t0.task_type] || taskColors.other;
+        if (bookingStartsHere) {
+          rowHtml += `<div style="position:static;grid-column:${colIdx + 1}/${colIdx + 2};grid-row:1/-1;align-self:end;justify-self:center;width:8px;height:8px;border-radius:50%;background:#ef4444;z-index:15;cursor:pointer;pointer-events:auto;animation:cell-blink 1.2s ease-in-out infinite;" onclick="openTaskDetailModal(event,'${t0.id}')"></div>`;
+          return;
+        }
+        const taskIconUrl = taskIconsMap[t0.task_type] || taskIconsMap.other;
+        const taskColor = taskColors[t0.task_type] || taskColors.other;
         const paymentRing = t0.task_type === 'payment' ? 'box-shadow:0 0 0 2.5px #38bdf8,0 2px 6px rgba(0,0,0,0.15);width:30px;height:30px;' : '';
-              rowHtml += `<div class="task-circle-bar" style="grid-column:${colIdx+1}/${colIdx+2};grid-row:1;background-color:${taskColor};${paymentRing}" onclick="openTaskDetailModal(event,'${t0.id}')">${t0.task_type === 'payment' ? `<div style="position:relative;display:flex;align-items:center;justify-content:center;width:100%;height:100%;"><img src="${taskIconUrl}" alt="" style="width:16px;height:16px;filter:brightness(0) invert(1);opacity:0.5;position:absolute;" /><span style="color:#fff;font-weight:900;font-size:14px;line-height:1;position:relative;z-index:1;">$</span></div>` : `<img src="${taskIconUrl}" alt="" />`}</div>`;
-            });
+        rowHtml += `<div class="task-circle-bar" style="grid-column:${colIdx + 1}/${colIdx + 2};grid-row:1;background-color:${taskColor};${paymentRing}" onclick="openTaskDetailModal(event,'${t0.id}')">${t0.task_type === 'payment' ? `<div style="position:relative;display:flex;align-items:center;justify-content:center;width:100%;height:100%;"><img src="${taskIconUrl}" alt="" style="width:16px;height:16px;filter:brightness(0) invert(1);opacity:0.5;position:absolute;" /><span style="color:#fff;font-weight:900;font-size:14px;line-height:1;position:relative;z-index:1;">$</span></div>` : `<img src="${taskIconUrl}" alt="" />`}</div>`;
+      });
 
-            const detailHref = property.slug ? `/property/detail/${property.slug}/` : (property.detail_url || property.url || '#');
-            return `
-              <div style="display:flex;border-bottom:1px solid #e5e7eb;">
-                <div style="width:${SIDEBAR_W}px;flex-shrink:0;display:flex;align-items:center;gap:0;padding:8px 10px;border-right:1px solid #e5e7eb;background:#fafafa;min-width:0;">
+      const detailHref = property.slug ? `/property/detail/${property.slug}/` : (property.detail_url || property.url || '#');
+      return `
+              <div style="display:flex;min-width:max-content;border-bottom:1px solid #e5e7eb;">
+                <div class="week-sidebar-col" style="display:flex;align-items:center;gap:0;padding:8px 10px;border-right:1px solid #e5e7eb;background:#fafafa;position:sticky;left:0;z-index:2;"
+                     onmouseenter="showPropertyPreview(event, '${property.id}')" onmouseleave="hidePropertyPreview()"
+                     onclick="togglePropertyPreview(event, '${property.id}')">
                   <img src="${propImg}" alt="" style="width:32px;height:32px;border-radius:50%;object-fit:cover;flex-shrink:0;" onerror="this.onerror=null;this.src='{% static "img/common/default_user_icon_1.png" %}';">
-                  <span style="flex:1;font-size:12px;font-weight:600;color:#1f2937;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-left:8px;">${propName}</span>
+                  <span class="week-property-name-text">${propName}</span>
                   <div class="property-actions">
                     <div class="dropdown dropend">
                       <button class="btn btn-sm" type="button" data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false" style="padding:2px 6px;font-size:18px;line-height:1;border:none;background:none;color:#6b7280;cursor:pointer;">⋮</button>
@@ -6493,19 +3108,19 @@
                   </div>
                 </div>
                 <div style="flex:1;min-height:58px;position:relative;">
-                  <div style="display:grid;grid-template-columns:repeat(7,1fr);height:100%;">
+                  <div class="week-days-grid" style="height:100%;">
                     ${weekDates.map((d, i) => {
-                      const isToday = d.toDateString() === today.toDateString();
-                      return `<div style="border-left:${i>0?'1px solid #e5e7eb':'none'};${isToday?'background:rgba(22,163,74,0.08)':''};"></div>`;
-                    }).join('')}
+        const isToday = d.toDateString() === today.toDateString();
+        return `<div style="border-left:${i > 0 ? '1px solid #e5e7eb' : 'none'};${isToday ? 'background:rgba(22,163,74,0.08)' : ''};"></div>`;
+      }).join('')}
                   </div>
-                  <div style="position:absolute;top:2px;left:0;right:0;bottom:2px;display:grid;grid-template-columns:repeat(7,1fr);grid-template-rows:${FIXED_GRID};pointer-events:none;">
+                  <div class="week-days-grid" style="position:absolute;top:14px;left:0;right:0;bottom:6px;grid-template-rows:${FIXED_GRID};pointer-events:none;">
                     ${rowHtml}
                   </div>
                 </div>
               </div>
             `;
-          }).join('')}
+    }).join('')}
         </div>
       </div>
     `;
@@ -6535,36 +3150,20 @@
     const today = new Date();
     const isToday = dateObj.toDateString() === today.toDateString();
 
-    const weekdays = ['SUN','MON','TUE','WED','THU','FRI','SAT'];
+    const weekdays = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
     const weekdayStr = weekdays[dateObj.getDay()];
     const dayNum = dateObj.getDate();
 
-    // --- Data (backend logic unchanged) ---
-    const checkIns    = typeFilters.reservation ? pBookings.filter(b => b.start_date === dateStr) : [];
-    const checkOuts   = typeFilters.reservation ? pBookings.filter(b => b.end_date === dateStr) : [];
-    const inHouse     = typeFilters.reservation ? pBookings.filter(b => dateStr > b.start_date && dateStr < b.end_date) : [];
-    const dayTasks    = pTasks.filter(t => t.date === dateStr);
-    const dayEnquiries= pEnquiries.filter(eq => eq.start_date === dateStr);
-
-    const getTaskColor = (type) =>
-      ({ 'cleaning': '#e53935', 'maintenance': '#e53935', 'payment': '#e53935' }[type] || '#e53935');
+    // --- Data ---
+    const checkIns = typeFilters.reservation ? pBookings.filter(b => b.start_date === dateStr) : [];
+    const checkOuts = typeFilters.reservation ? pBookings.filter(b => b.end_date === dateStr) : [];
+    const dayTasks = pTasks.filter(t => t.date === dateStr);
+    const dayEnquiries = pEnquiries.filter(eq => eq.start_date === dateStr);
 
     const dayPaymentIconUrl = "{% static 'img/task/type/payment.svg' %}";
 
     function bookingHasPayment(b) {
       return b.paymentsInfo && b.paymentsInfo[dateStr] && typeFilters.payment;
-    }
-
-    function makeEvent(b, startHour, endHour, title, sub, color, onClick) {
-      return {
-        startHour, endHour,
-        title,
-        sub,
-        color,
-        onClick,
-        bookingId: b.id,
-        hasPayment: bookingHasPayment(b)
-      };
     }
 
     // --- Build events list with time placement ---
@@ -6584,74 +3183,124 @@
     checkIns.forEach(b => {
       const prop = properties.find(p => String(p.id) === String(b.propertyId));
       const propName = prop ? prop.title : '';
-      events.push(makeEvent(b,
-        parseTime(b.check_in_time, 14),
-        parseTime(b.check_in_time, 14) + 1,
-        `\u2713 Check-in: ${b.guestName}`,
-        `${propName}${propName && b.channelName ? ' · ' : ''}${b.channelName || ''}${b.bookingId ? ' · ' + b.bookingId : ''}`,
-        '#2979ff',
-        `openReservationPanel(event, '${b.id}')`
-      ));
+      events.push({
+        startHour: parseTime(b.check_in_time, 14),
+        endHour: parseTime(b.check_in_time, 14) + 1,
+        title: b.guestName || 'Guest',
+        badgeText: 'Check-in',
+        sub: `${propName}${propName && b.channelName ? ' · ' : ''}${b.channelName || ''}${b.bookingId ? ' · ' + b.bookingId : ''}`,
+        type: 'check-in',
+        color: '#2979ff',
+        background: 'rgba(41, 121, 255, 0.3)',
+        textColor: '#1565c0',
+        onClick: `openReservationPanel(event, '${b.id}')`,
+        bookingId: b.id,
+        hasPayment: bookingHasPayment(b)
+      });
     });
+
     checkOuts.forEach(b => {
       const prop = properties.find(p => String(p.id) === String(b.propertyId));
       const propName = prop ? prop.title : '';
-      events.push(makeEvent(b,
-        parseTime(b.check_out_time, 11),
-        parseTime(b.check_out_time, 11) + 1,
-        `\u2713 Check-out: ${b.guestName}`,
-        `${propName}${propName && b.channelName ? ' · ' : ''}${b.channelName || ''}${b.bookingId ? ' · ' + b.bookingId : ''}`,
-        '#5c6bc0',
-        `openReservationPanel(event, '${b.id}')`
-      ));
+      events.push({
+        startHour: parseTime(b.check_out_time, 11),
+        endHour: parseTime(b.check_out_time, 11) + 1,
+        title: b.guestName || 'Guest',
+        badgeText: 'Check-out',
+        sub: `${propName}${propName && b.channelName ? ' · ' : ''}${b.channelName || ''}${b.bookingId ? ' · ' + b.bookingId : ''}`,
+        type: 'check-out',
+        color: '#5c6bc0',
+        background: 'rgba(92, 107, 192, 0.3)',
+        textColor: '#283593',
+        onClick: `openReservationPanel(event, '${b.id}')`,
+        bookingId: b.id,
+        hasPayment: bookingHasPayment(b)
+      });
     });
-    inHouse.forEach(b => {
-      const prop = properties.find(p => String(p.id) === String(b.propertyId));
-      const propName = prop ? prop.title : '';
-      events.push(makeEvent(b, 12, 13,
-        `${b.guestName || 'Guest'}`,
-        `${propName}${propName ? ' · ' : ''}${b.nights || 1} nights${b.channelName ? ' · ' + b.channelName : ''}`,
-        '#3b82f6',
-        `openReservationPanel(event, '${b.id}')`
-      ));
-    });
+
+    // Payments: rendering as cards directly on the schedule
+    if (typeFilters.payment) {
+      const bookingsWithPayment = bookings.filter(b => b.paymentsInfo && b.paymentsInfo[dateStr]);
+      bookingsWithPayment.forEach(b => {
+        const payInfo = b.paymentsInfo[dateStr];
+        let hour = 12;
+        if (b.start_date === dateStr) {
+          hour = parseTime(b.check_in_time, 14);
+        } else if (b.end_date === dateStr) {
+          hour = parseTime(b.check_out_time, 11);
+        }
+        const prop = properties.find(p => String(p.id) === String(b.propertyId));
+        const propName = prop ? prop.title : '';
+        const isPaid = payInfo.is_paid;
+        events.push({
+          startHour: hour,
+          endHour: hour + 1,
+          title: fmtMoney(payInfo.amount),
+          badgeText: 'Payment',
+          sub: `${propName ? propName + ' · ' : ''}${payInfo.type || 'Payment'} (${isPaid ? 'Paid' : 'Pending'})`,
+          type: 'payment',
+          color: isPaid ? '#10b981' : '#f59e0b',
+          background: isPaid ? 'rgba(16, 185, 129, 0.3)' : 'rgba(245, 158, 11, 0.3)',
+          textColor: isPaid ? '#065f46' : '#92400e',
+          onClick: `handlePaymentIndicatorClick(event,'${b.id}','${dateStr}')`,
+          bookingId: b.id,
+          hasPayment: false
+        });
+      });
+    }
 
     dayTasks.forEach(t => {
       const prop = properties.find(p => String(p.id) === String(t.propertyId));
       const propName = prop ? prop.title : '';
-      const sh = parseTime(t.start_time, 9);
+      const sh = parseTime(t.time, 9);
       const eh = parseTime(t.end_time, sh + 1);
+      const taskColorsMap = {
+        cleaning: { color: '#10b981', background: 'rgba(16, 185, 129, 0.3)', text: '#065f46' },
+        maintenance: { color: '#ef4444', background: 'rgba(239, 68, 68, 0.3)', text: '#c62828' },
+        payment: { color: '#3b82f6', background: 'rgba(59, 130, 246, 0.3)', text: '#1d4ed8' },
+        other: { color: '#8b5cf6', background: 'rgba(139, 92, 246, 0.3)', text: '#5b21b6' }
+      };
+      const activeType = t.task_type || 'other';
+      const styleTheme = taskColorsMap[activeType] || taskColorsMap.other;
+
       events.push({
         startHour: sh,
-        endHour:   eh,
-        title: `\u2715 ${t.details || 'Task'}`,
-        sub:   `${propName ? propName + ' · ' : ''}${t.task_type ? t.task_type.charAt(0).toUpperCase()+t.task_type.slice(1) : ''} · ${t.assigned_to || 'Unassigned'}`,
-        color: getTaskColor(t.task_type),
-        onClick: `openTaskDetailModal(event, '${t.id}')`,
-        icon: ''
+        endHour: eh,
+        title: t.details || 'Task',
+        badgeText: activeType.charAt(0).toUpperCase() + activeType.slice(1),
+        sub: `${propName ? propName + ' · ' : ''}${activeType.charAt(0).toUpperCase() + activeType.slice(1)} · ${t.assigned_to || 'Unassigned'}`,
+        type: 'task',
+        color: styleTheme.color,
+        background: styleTheme.background,
+        textColor: styleTheme.text,
+        onClick: `openTaskDetailModal(event, '${t.id}')`
       });
     });
+
     dayEnquiries.forEach(eq => {
       const prop = properties.find(p => String(p.id) === String(eq.propertyId));
       const propName = prop ? prop.title : '';
       events.push({
         startHour: 10,
-        endHour:   11,
-        title: `Enquiry: ${eq.guestName}`,
-        sub:   `${propName ? propName + ' · ' : ''}${eq.email}`,
+        endHour: 11,
+        title: eq.guestName || 'Inquirer',
+        badgeText: 'Enquiry',
+        sub: `${propName ? propName + ' · ' : ''}${eq.email}`,
+        type: 'enquiry',
         color: '#8e24aa',
-        onClick: `openEnquiryPanel(event, '${eq.id}')`,
-        icon: ''
+        background: 'rgba(142, 36, 170, 0.3)',
+        textColor: '#4a148c',
+        onClick: `openEnquiryPanel(event, '${eq.id}')`
       });
     });
 
     // --- Build time labels & hour lines ---
     let timeLabelsHtml = '';
-    let hourLinesHtml  = '';
+    let hourLinesHtml = '';
     for (let h = 0; h <= 24; h++) {
       const top = h * HOUR_PX;
       if (h > 0 && h < 24) {
-        const label = h < 12 ? `${h} AM` : h === 12 ? '12 PM' : `${h-12} PM`;
+        const label = h < 12 ? `${h} AM` : h === 12 ? '12 PM' : `${h - 12} PM`;
         timeLabelsHtml += `<div class="gcal-time-label" style="top:${top}px">${label}</div>`;
       }
       if (h < 24) {
@@ -6697,52 +3346,36 @@
 
     let eventBlocksHtml = '';
     positionedEvents.forEach(ev => {
-      const topPx    = ev.startHour * HOUR_PX;
-      const heightPx = Math.max((ev.endHour - ev.startHour) * HOUR_PX - 2, 22);
-      const numCols  = ev._numCols || 1;
-      const col      = ev._col || 0;
+      const topPx = ev.startHour * HOUR_PX;
+      const heightPx = Math.max((ev.endHour - ev.startHour) * HOUR_PX - 2, 28);
+      const numCols = ev._numCols || 1;
+      const col = ev._col || 0;
       const widthPct = (100 / numCols);
-      const leftPct  = col * widthPct;
+      const leftPct = col * widthPct;
       const style = [
         `top:${topPx}px`,
         `height:${heightPx}px`,
-        `background:${ev.color}`,
+        `background:${ev.background || 'rgba(0,0,0,0.05)'}`,
+        `border-left: 4px solid ${ev.color || '#6b7280'}`,
+        `border-top: none`,
+        `border-right: none`,
+        `border-bottom: none`,
+        `border-radius: 6px`,
+        `padding: 6px 12px 6px 10px`,
         `left:calc(${leftPct}% + 4px)`,
         `width:calc(${widthPct}% - 8px)`
       ].join(';');
+
       eventBlocksHtml += `
         <div class="gcal-event-block" style="${style}" onclick="${ev.onClick}">
-          <div class="gcal-event-title">${ev.title}</div>
-          ${ev.sub ? `<div class="gcal-event-sub">${ev.sub}</div>` : ''}
+          <div class="gcal-event-title" style="color: ${ev.textColor || '#1f2937'}; display: flex; align-items: center; gap: 4px; flex-wrap: wrap;">
+            ${ev.badgeText ? `<span style="background: ${ev.color}; color: #fff; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 800; text-transform: uppercase; display: inline-flex; align-items: center; height: 16px; margin-right: 2px; line-height: 1;">${ev.badgeText}</span>` : ''}
+            <span style="line-height: 1.2;">${ev.title}</span>
+          </div>
+          ${ev.sub ? `<div class="gcal-event-sub" style="color: ${ev.textColor || '#4b5563'}e6; font-weight: 500; margin-top: 3px;">${ev.sub}</div>` : ''}
         </div>
       `;
     });
-
-    let paymentIndicatorsHtml = '';
-    if (typeFilters.payment) {
-      const bookingsWithPayment = bookings.filter(b => b.paymentsInfo && b.paymentsInfo[dateStr]);
-      bookingsWithPayment.forEach(b => {
-        let hour = 12;
-        if (b.start_date === dateStr) {
-          hour = parseTime(b.check_in_time, 14);
-        } else if (b.end_date === dateStr) {
-          hour = parseTime(b.check_out_time, 11);
-        }
-        const topPx = hour * HOUR_PX;
-        const indicatorSize = 32;
-        const indicatorTop = topPx + Math.max(HOUR_PX - indicatorSize, 0) / 2;
-
-        // Find if there is a matching visible event to align leftPct
-        const matchingEv = positionedEvents.find(e => e.bookingId === b.id);
-        const leftPct = matchingEv ? (matchingEv._col * (100 / matchingEv._numCols)) : 0;
-
-        paymentIndicatorsHtml += `
-          <div style="position:absolute;top:${indicatorTop}px;left:calc(${leftPct}% + 4px);width:${indicatorSize}px;height:${indicatorSize}px;border-radius:50%;background:#000;border:2px solid #fff;display:flex;align-items:center;justify-content:center;z-index:20;cursor:pointer;pointer-events:auto;box-shadow:0 1px 3px rgba(0,0,0,0.25);" onclick="handlePaymentIndicatorClick(event,'${b.id}','${dateStr}')" onmouseenter="showPaymentTooltip(event,'${b.id}','${dateStr}')" onmouseleave="handleIndicatorHoverLeave()">
-            <img src="${dayPaymentIconUrl}" alt="" style="width:20px;height:20px;object-fit:contain;filter:brightness(0) invert(1);" />
-          </div>
-        `;
-      });
-    }
 
     // --- Render ---
     pane.innerHTML = `
@@ -6759,19 +3392,11 @@
               ${hourLinesHtml}
               ${nowLineHtml}
               ${eventBlocksHtml}
-              ${paymentIndicatorsHtml}
               ${events.length === 0 ? `<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:14px;color:#9ca3af;font-style:italic;pointer-events:none;">No events scheduled</div>` : ''}
             </div>
           </div>
         </div>
-        <!-- Color legend -->
-        <div style="display:flex;gap:16px;padding:8px 16px;background:#fff;border-top:1px solid #e5e7eb;flex-shrink:0;font-size:11px;font-weight:600;color:#6b7280;">
-          <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:2px;background:#3b82f6;"></span> Reservation</span>
-          <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:2px;background:#e53935;"></span> Task</span>
-          <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:2px;background:#000;"></span> Payment</span>
-          <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:2px;background:#8e24aa;"></span> Enquiry</span>
-        </div>
-      </div>
+
     `;
 
     // Scroll to 7 AM by default (or now-line if today)
@@ -6923,18 +3548,18 @@
       },
       body: JSON.stringify({ completed: newStatus })
     })
-    .then(r => r.json())
-    .then(data => {
-      if (data.success) {
-        t.completed = newStatus;
-        closeTaskDetailModal();
-        renderActiveView();
-      }
-    })
-    .catch(() => {});
+      .then(r => r.json())
+      .then(data => {
+        if (data.success) {
+          t.completed = newStatus;
+          closeTaskDetailModal();
+          renderActiveView();
+        }
+      })
+      .catch(() => { });
   }
 
-  document.addEventListener('keydown', function(event) {
+  document.addEventListener('keydown', function (event) {
     if (event.key === 'Escape') {
       const overlay = document.getElementById('taskModalOverlay');
       if (overlay && overlay.classList.contains('open')) {
@@ -6947,28 +3572,28 @@
   function openEnquiryPanel(event, enquiryId) {
     if (event) event.stopPropagation();
     hideGlobalTooltip();
-    
+
     const eq = enquiries.find(x => x.id === enquiryId);
     if (!eq) return;
-    
+
     const sidebar = document.getElementById('reservationSidebar');
     const backdrop = document.getElementById('overlayBackdrop');
     const contentDiv = document.getElementById('sidebarContent');
-    
+
     const titleSpan = sidebar.querySelector('.sidebar-header-left span');
     if (titleSpan) titleSpan.textContent = 'Enquiry details';
-    
+
     document.body.classList.add('reservation-panel-open');
     sidebar.classList.add('open');
     backdrop.classList.add('open');
-    
+
     const startObj = new Date(eq.start_date + 'T00:00:00');
     const endObj = new Date(eq.end_date + 'T00:00:00');
     const nights = Math.ceil((endObj - startObj) / (1000 * 60 * 60 * 24));
-    
+
     const formattedStart = startObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
     const formattedEnd = endObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-    
+
     contentDiv.innerHTML = `
       <div style="padding: 24px;">
         <div style="display: flex; gap: 20px; align-items: center; margin-bottom: 24px; background: #fff; padding: 16px; border-radius: 10px; border: 1px solid #e5e7eb;">
@@ -7035,15 +3660,15 @@
         'Content-Type': 'application/json'
       }
     })
-    .then(r => r.json())
-    .then(data => {
-      if (data.success) {
-        closeReservationPanel();
-        refreshData();
-      } else {
-        alert('Failed to archive: ' + (data.error || 'Unknown error'));
-      }
-    });
+      .then(r => r.json())
+      .then(data => {
+        if (data.success) {
+          closeReservationPanel();
+          refreshData();
+        } else {
+          alert('Failed to archive: ' + (data.error || 'Unknown error'));
+        }
+      });
   }
 
   /* --- Enquiry Tooltip Display --- */
@@ -7052,17 +3677,17 @@
       showGlobalTooltip(event, id);
       return;
     }
-    
+
     const eq = enquiries.find(x => x.id == id);
     if (!eq) return;
-    
+
     const tooltip = document.getElementById('globalTooltip');
     setTooltipVariant(tooltip, 'booking');
-    
+
     const displayEndDate = new Date(eq.endDateStr + 'T00:00:00');
     displayEndDate.setDate(displayEndDate.getDate() - 1);
     const nights = Math.ceil((displayEndDate - eq.startDate) / (1000 * 60 * 60 * 24));
-    
+
     tooltip.innerHTML = `
       <div class="booking-tooltip-card">
         <div class="booking-tooltip-avatar-wrap">
@@ -7133,8 +3758,9 @@
     const datesContainer = document.getElementById('datesContainer');
     if (!datesPane || !datesContainer || allDates.length === 0) return;
 
+    const isSmallPhone = window.innerWidth <= 576;
     const isMobile = window.innerWidth <= 768;
-    const minCellWidth = isMobile ? 52 : 60;
+    const minCellWidth = isSmallPhone ? 46 : (isMobile ? 52 : 60);
     const containerWidth = datesContainer.clientWidth || 0;
     const autoCellWidth = containerWidth > 0 ? Math.floor(containerWidth / allDates.length) : minCellWidth;
     const cellWidth = Math.max(minCellWidth, autoCellWidth);
@@ -7240,10 +3866,14 @@
     const viewportGap = 8;
 
     let left = toggleRect.right + 8;
-    let top = toggleRect.top;
+    let top = toggleRect.bottom - menuRect.height;
 
     if (left + menuRect.width > window.innerWidth - viewportGap) {
       left = Math.max(viewportGap, toggleRect.left - menuRect.width - 8);
+    }
+
+    if (top < viewportGap) {
+      top = viewportGap;
     }
 
     if (top + menuRect.height > window.innerHeight - viewportGap) {
@@ -7306,12 +3936,38 @@
   }
 
   function init() {
-    currentDisplayDate = new Date();
-    
+    const urlParams = new URLSearchParams(window.location.search);
+    const monthParam = urlParams.get('month');
+    const yearParam = urlParams.get('year');
+    if (monthParam && yearParam) {
+      const m = parseInt(monthParam, 10) - 1, y = parseInt(yearParam, 10);
+      if (!isNaN(m) && !isNaN(y)) currentDisplayDate = new Date(y, m, 1);
+    } else {
+      currentDisplayDate = new Date();
+    }
+    const urlView = urlParams.get('view');
+    if (urlView && ['month', 'week', 'day', 'timeline', 'list'].includes(urlView)) {
+      currentViewMode = urlView;
+    }
+    initialFilter = urlParams.get('filter') || null;
+
     // Bind view switcher
     const viewSwitcher = document.getElementById('calendarViewSwitcher');
     const viewDropdownBtn = document.getElementById('viewDropdownBtn');
     if (viewSwitcher) {
+      // Sync dropdown to currentViewMode from query params
+      const targetItem = viewSwitcher.querySelector(`.dropdown-menu .dropdown-item[data-view="${currentViewMode}"]`);
+      if (targetItem) {
+        viewSwitcher.querySelectorAll('.dropdown-menu .dropdown-item').forEach(a => a.classList.remove('active'));
+        targetItem.classList.add('active');
+        if (viewDropdownBtn) viewDropdownBtn.firstChild.textContent = targetItem.textContent.trim();
+        const mobileMenu = document.getElementById('mobileActionsMenu');
+        if (mobileMenu) {
+          mobileMenu.querySelectorAll('.mobile-view-btn').forEach(b => b.classList.remove('active'));
+          const mobileBtn = mobileMenu.querySelector(`.mobile-view-btn[data-view="${currentViewMode}"]`);
+          if (mobileBtn) mobileBtn.classList.add('active');
+        }
+      }
       viewSwitcher.querySelectorAll('.dropdown-menu .dropdown-item').forEach(item => {
         item.addEventListener('click', function (e) {
           e.preventDefault();
@@ -7319,6 +3975,12 @@
           this.classList.add('active');
           viewDropdownBtn.firstChild.textContent = this.textContent.trim();
           currentViewMode = this.dataset.view;
+          const mobileMenu = document.getElementById('mobileActionsMenu');
+          if (mobileMenu) {
+            mobileMenu.querySelectorAll('.mobile-view-btn').forEach(b => b.classList.remove('active'));
+            const mobileBtn = mobileMenu.querySelector(`.mobile-view-btn[data-view="${currentViewMode}"]`);
+            if (mobileBtn) mobileBtn.classList.add('active');
+          }
           // Reset date navigation to today/this week for the selected view
           const today = new Date();
           const dayOfWeek = today.getDay();
@@ -7555,6 +4217,14 @@
 
   document.addEventListener('DOMContentLoaded', init);
 
+  window.addEventListener('pageshow', (event) => {
+    if (event.persisted) refreshData();
+  });
+
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) refreshData();
+  });
+
   const mobileActionsToggle = document.getElementById('mobileActionsToggle');
   const mobileActionsMenu = document.getElementById('mobileActionsMenu');
   const mobilePrintBtn = document.getElementById('mobilePrintBtn');
@@ -7570,6 +4240,67 @@
       if (!mobileActionsMenu.contains(event.target) && event.target !== mobileActionsToggle) {
         mobileActionsMenu.classList.remove('open');
       }
+    });
+
+    // Mobile view switcher
+    mobileActionsMenu.querySelectorAll('.mobile-view-btn').forEach(btn => {
+      btn.addEventListener('click', function () {
+        const view = this.dataset.view;
+        const viewDropdownBtn = document.getElementById('viewDropdownBtn');
+        const desktopItem = viewDropdownBtn?.closest('.dropdown')?.querySelector(`[data-view="${view}"]`);
+        if (desktopItem) {
+          desktopItem.click();
+        } else {
+          currentViewMode = view;
+          const today = new Date();
+          const dayOfWeek = today.getDay();
+          const sunday = new Date(today);
+          sunday.setDate(today.getDate() - dayOfWeek);
+          if (currentViewMode === 'week') {
+            selectedWeekStart = sunday;
+            currentDisplayDate = new Date(sunday);
+          } else {
+            currentDisplayDate = new Date(today.getFullYear(), today.getMonth(), 1);
+            selectedWeekStart = sunday;
+            selectedDateKey = toISODateString(today);
+          }
+          refreshView();
+        }
+        mobileActionsMenu.querySelectorAll('.mobile-view-btn').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+        mobileActionsMenu.classList.remove('open');
+      });
+    });
+
+    // Mobile filter checkboxes
+    const syncMobileFilters = () => {
+      const resCb = document.getElementById('mobileFilterReservation');
+      const taskCb = document.getElementById('mobileFilterTask');
+      const payCb = document.getElementById('mobileFilterPayment');
+      const desktopResCb = document.getElementById('filterReservation');
+      const desktopTaskCb = document.getElementById('filterTask');
+      const desktopPayCb = document.getElementById('filterPayment');
+      if (resCb && desktopResCb) desktopResCb.checked = resCb.checked;
+      if (taskCb && desktopTaskCb) desktopTaskCb.checked = taskCb.checked;
+      if (payCb && desktopPayCb) desktopPayCb.checked = payCb.checked;
+      typeFilters.reservation = resCb.checked;
+      typeFilters.task = taskCb.checked;
+      typeFilters.payment = payCb.checked;
+      const allCb = document.getElementById('filterAll');
+      if (allCb) allCb.checked = resCb.checked && taskCb.checked && payCb.checked;
+      const filterBtn = document.getElementById('calendarTypeFilterBtn');
+      if (filterBtn) {
+        const labels = [];
+        if (resCb.checked) labels.push('Reservations');
+        if (taskCb.checked) labels.push('Tasks');
+        if (payCb.checked) labels.push('Payments');
+        filterBtn.textContent = labels.length === 3 ? 'Show: All' : 'Show: ' + (labels.join(', ') || 'None');
+      }
+      renderActiveView();
+    };
+
+    document.querySelectorAll('#mobileFilterReservation, #mobileFilterTask, #mobileFilterPayment').forEach(cb => {
+      cb.addEventListener('change', syncMobileFilters);
     });
   }
 

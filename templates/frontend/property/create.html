@@ -4,6 +4,209 @@
 {% block extra_head %}
     <link href="{% static 'css/property/create.css' %}" rel="stylesheet">
     <style>
+        #addr-ac-dropdown {
+            position: fixed;
+            z-index: 999999;
+            background: #fff;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            box-shadow: 0 8px 28px rgba(0,0,0,.18);
+            margin: 0;
+            padding: 4px 0;
+            list-style: none;
+            display: none;
+            max-height: 280px;
+            overflow-y: auto;
+            font-size: 14px;
+            font-family: inherit;
+        }
+        #addr-ac-dropdown li {
+            padding: 10px 14px;
+            cursor: pointer;
+            border-bottom: 1px solid #f3f4f6;
+            color: #374151;
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            line-height: 1.4;
+        }
+        #addr-ac-dropdown li:last-child { border-bottom: none; }
+        #addr-ac-dropdown li:hover,
+        #addr-ac-dropdown li.ac-active { background: #e8f0fe; }
+        #addr-ac-dropdown li svg { flex-shrink: 0; margin-top: 2px; }
+    </style>
+    <script>
+    window._placesACDone = false;
+
+    window.setupAddressAutocomplete = function() {
+        if (window._placesACDone) return;
+
+        var streetInput = document.getElementById('id_street_address');
+        if (!streetInput) return;
+
+        /* ── Dropdown appended to body so it floats above everything ── */
+        var dropdown = document.getElementById('addr-ac-dropdown');
+        if (!dropdown) {
+            dropdown = document.createElement('ul');
+            dropdown.id = 'addr-ac-dropdown';
+            document.body.appendChild(dropdown);
+        }
+
+        function positionDropdown() {
+            var rect = streetInput.getBoundingClientRect();
+            dropdown.style.top   = (rect.bottom + 2) + 'px';
+            dropdown.style.left  = rect.left + 'px';
+            dropdown.style.width = rect.width + 'px';
+        }
+
+        function fillFields(result) {
+            var comp = {};
+            (result.address_components || []).forEach(function(c) {
+                c.types.forEach(function(t) { comp[t] = c; });
+            });
+
+            var num   = (comp.street_number || {}).long_name || '';
+            var route = (comp.route         || {}).long_name || '';
+            streetInput.value = [num, route].filter(Boolean).join(' ') || result.formatted_address || '';
+
+            var cityEl = document.getElementById('id_city');
+            if (cityEl) cityEl.value =
+                (comp.locality || comp.postal_town || comp.sublocality_level_1 || {}).long_name || '';
+
+            var zipEl = document.getElementById('id_zip');
+            if (zipEl) zipEl.value = (comp.postal_code || {}).long_name || '';
+
+            var countryEl = document.getElementById('country');
+            if (countryEl && comp.country) {
+                var cn = comp.country.long_name.toLowerCase();
+                var opt = Array.from(countryEl.options).find(function(o) {
+                    return o.value.toLowerCase() === cn;
+                });
+                if (opt) countryEl.value = opt.value;
+            }
+
+            var stateEl = document.getElementById('state');
+            if (stateEl && comp.administrative_area_level_1)
+                stateEl.value = comp.administrative_area_level_1.long_name;
+
+            var geo = (result.geometry || {}).location;
+            if (geo) {
+                var lat = geo.lat, lng = geo.lng;
+                var fr = document.getElementById('map-iframe');
+                if (fr) {
+                    var d = 0.01;
+                    fr.src = 'https://www.openstreetmap.org/export/embed.html?bbox=' +
+                        (lng-d)+','+(lat-d)+','+(lng+d)+','+(lat+d)+
+                        '&layer=mapnik&marker='+lat+','+lng;
+                }
+            }
+        }
+
+        function pickPrediction(placeId, description) {
+            streetInput.value = description;
+            closeDropdown();
+            fetch('{% url "property:place-details" %}?place_id=' + encodeURIComponent(placeId))
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    if (data.result && data.result.address_components) fillFields(data.result);
+                })
+                .catch(function() {});
+        }
+
+        var timer;
+        var activeIndex = -1;
+        var predictions = [];
+
+        function setActive(index) {
+            var items = dropdown.querySelectorAll('li');
+            items.forEach(function(li) { li.classList.remove('ac-active'); });
+            if (index >= 0 && index < items.length) {
+                activeIndex = index;
+                items[index].classList.add('ac-active');
+                items[index].scrollIntoView({ block: 'nearest' });
+            }
+        }
+
+        function closeDropdown() {
+            dropdown.style.display = 'none';
+            dropdown.innerHTML = '';
+            activeIndex = -1;
+            predictions = [];
+        }
+
+        streetInput.addEventListener('input', function() {
+            clearTimeout(timer);
+            activeIndex = -1;
+            var q = this.value.trim();
+            if (q.length < 2) { closeDropdown(); return; }
+            timer = setTimeout(function() {
+                fetch('{% url "property:places-autocomplete" %}?q=' + encodeURIComponent(q))
+                    .then(function(r) { return r.json(); })
+                    .then(function(data) {
+                        dropdown.style.display = 'none';
+                        dropdown.innerHTML = '';
+                        activeIndex = -1;
+                        predictions = data.predictions || [];
+                        if (!predictions.length) return;
+                        predictions.forEach(function(pred, idx) {
+                            var li = document.createElement('li');
+                            li.dataset.idx = idx;
+                            li.innerHTML =
+                                '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1d74b2" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">' +
+                                '<path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0118 0z"/>' +
+                                '<circle cx="12" cy="10" r="3"/></svg>' +
+                                '<span>' + pred.description + '</span>';
+                            li.addEventListener('mouseover', function() { setActive(idx); });
+                            li.addEventListener('mousedown', function(e) {
+                                e.preventDefault();
+                                pickPrediction(pred.place_id, pred.description);
+                            });
+                            dropdown.appendChild(li);
+                        });
+                        positionDropdown();
+                        dropdown.style.display = 'block';
+                    })
+                    .catch(function() {});
+            }, 350);
+        });
+
+        streetInput.addEventListener('blur', function() { setTimeout(closeDropdown, 200); });
+
+        streetInput.addEventListener('keydown', function(e) {
+            var isOpen = dropdown.style.display === 'block';
+            var items  = dropdown.querySelectorAll('li');
+
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                if (!isOpen) return;
+                setActive(activeIndex < items.length - 1 ? activeIndex + 1 : 0);
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                if (!isOpen) return;
+                setActive(activeIndex > 0 ? activeIndex - 1 : items.length - 1);
+            } else if (e.key === 'Enter') {
+                if (isOpen && activeIndex >= 0 && predictions[activeIndex]) {
+                    e.preventDefault();
+                    pickPrediction(predictions[activeIndex].place_id, predictions[activeIndex].description);
+                }
+            } else if (e.key === 'Escape') {
+                closeDropdown();
+            }
+        });
+
+        /* Reposition on scroll / resize */
+        var scrollEl = document.getElementById('formScrollContainer');
+        if (scrollEl) scrollEl.addEventListener('scroll', function() {
+            if (dropdown.style.display === 'block') positionDropdown();
+        });
+        window.addEventListener('resize', function() {
+            if (dropdown.style.display === 'block') positionDropdown();
+        });
+
+        window._placesACDone = true;
+    };
+    </script>
+    <style>
         .price-input input[type=number]::-webkit-inner-spin-button,
         .price-input input[type=number]::-webkit-outer-spin-button,
         .number-input input[type=number]::-webkit-inner-spin-button,
@@ -34,7 +237,12 @@
             border-top: 5px solid #6c757d;
             pointer-events: none;
         }
-        .select-wrap select { padding-right: 28px; }
+        .select-wrap select {
+            padding-right: 28px;
+            appearance: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+        }
         .main_row_div { padding: 0rem 12%; }
 
         @media (max-width: 640px) {
@@ -174,6 +382,44 @@
             padding-right: 3rem !important;
             box-sizing: border-box;
         }
+
+        /* Missing required fields modal */
+        .missing-fields-backdrop {
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,0.55);
+            display: none; align-items: center; justify-content: center;
+            z-index: 1300; padding: 16px;
+        }
+        .missing-fields-card {
+            background: #ffffff; border-radius: 12px;
+            padding: 28px 28px 24px; max-width: 460px;
+            width: 100%; text-align: left;
+            box-shadow: 0 16px 40px rgba(0,0,0,0.18);
+        }
+        .missing-fields-title {
+            font-size: 17px; font-weight: 700; color: #b91c1c;
+            margin-bottom: 12px; display: flex; align-items: center; gap: 8px;
+        }
+        .missing-fields-title .icon { font-size: 18px; }
+        .missing-fields-list {
+            list-style: none; margin: 0 0 20px; padding: 0;
+        }
+        .missing-fields-list li {
+            font-size: 14px; color: #374151; padding: 8px 0;
+            border-bottom: 1px solid #f3f4f6;
+        }
+        .missing-fields-list li:last-child { border-bottom: none; }
+        .missing-fields-list li::before {
+            content: '•'; color: #dc2626; font-weight: 700; margin-right: 8px;
+        }
+        .missing-fields-btn {
+            border: none; background: #dc2626; color: #fff;
+            padding: 10px 22px; border-radius: 10px;
+            font-weight: 600; cursor: pointer; transition: background 0.15s ease;
+            display: block; width: 100%;
+        }
+        .missing-fields-btn:hover { background: #b91c1c; }
+
     </style>
 {% endblock extra_head %}
 
@@ -248,9 +494,11 @@
                         </div>
 
                         <!-- Description -->
-                        <div class="form-group">
-                            <label class="form-label">Description<span class="required">*</span></label>
-                            {{ form.description }}
+                        <div class="row m-0 p-0">
+                            <div class="col-12 ps-0 form-group">
+                                <label class="form-label">Description<span class="required">*</span></label>
+                                {{ form.description }}
+                            </div>
                         </div>
 
                         <!-- Upload Cover Photo | Upload Other Photos -->
@@ -260,9 +508,10 @@
                                 <div class="upload-area" id="cover-upload-area">
                                     <div><img src="{% static 'img/property/upload.png' %}" alt="Upload"></div>
                                     <div class="upload-text">Click to upload or drag and drop</div>
-                                    <div class="upload-subtext">Documents, images up to 15MB each</div>
+                                    <div class="upload-subtext">Documents, images up to 5MB each</div>
                                 </div>
                                 <input type="file" id="cover-file-input" name="cover_photo" accept="image/*" style="display:none;">
+                                <div class="error-message" id="cover-error-message"></div>
                                 <div class="doc-preview-container" id="cover-preview-container">
                                     <div class="preview-grid" id="cover-preview-grid"></div>
                                 </div>
@@ -272,40 +521,40 @@
                                 <div class="upload-area" id="upload-area">
                                     <div><img src="{% static 'img/property/upload.png' %}" alt="Upload"></div>
                                     <div class="upload-text">Click to upload or drag and drop</div>
-                                    <div class="upload-subtext">Documents, images up to 15MB each</div>
+                                    <div class="upload-subtext">Documents, images up to 5MB each</div>
                                 </div>
                                 <input type="file" id="file-input" name="property_images" accept="image/*" multiple style="display:none;">
                                 <div class="error-message" id="error-message"></div>
-                            </div>
-                        </div>
 
-                        <!-- Existing / new image previews -->
-                        <div style="max-height: 300px; overflow-y: auto; padding: 6px;">
-                            <div class="preview-container" id="image-preview-container">
-                                <div class="preview-grid" id="preview-grid"></div>
-                                <div class="upload-count" id="upload-count"></div>
-                            </div>
-                            {% if is_edit or is_clone %}
-                                {% if existing_images %}
-                                <div class="existing-images mb-3">
-                                    <div class="preview-grid">
-                                        {% for image in existing_images %}
-                                        <div class="preview-item" data-image-id="{{ image.id }}">
-                                            <a href="{{ image.image.url }}" target="_blank">
-                                                <img src="{{ image.image.url }}" alt="Preview" class="preview-doc">
-                                            </a>
-                                            {% if is_edit %}
-                                            <button type="button" class="remove-btn" onclick="deleteExistingImage(this.parentElement.dataset.imageId)">×</button>
-                                            {% elif is_clone %}
-                                            <button type="button" class="remove-btn" onclick="deleteClonedFile(this)">×</button>
-                                            <input type="hidden" name="clone_images" value="{{ image.id }}">
-                                            {% endif %}
-                                        </div>
-                                        {% endfor %}
+                                <!-- Existing / new image previews -->
+                                <div style="max-height: 300px; overflow-y: auto; padding: 6px 6px 6px 0;">
+                                    <div class="preview-container" id="image-preview-container">
+                                        <div class="preview-grid" id="preview-grid"></div>
+                                        <div class="upload-count" id="upload-count"></div>
                                     </div>
+                                    {% if is_edit or is_clone %}
+                                        {% if existing_images %}
+                                        <div class="existing-images mb-3">
+                                            <div class="preview-grid">
+                                                {% for image in existing_images %}
+                                                <div class="preview-item" data-image-id="{{ image.id }}">
+                                                    <a href="{{ image.image.url }}" target="_blank">
+                                                        <img src="{{ image.image.url }}" alt="Preview" class="preview-doc">
+                                                    </a>
+                                                    {% if is_edit %}
+                                                    <button type="button" class="remove-btn" onclick="deleteExistingImage(this.parentElement.dataset.imageId)">×</button>
+                                                    {% elif is_clone %}
+                                                    <button type="button" class="remove-btn" onclick="deleteClonedFile(this)">×</button>
+                                                    <input type="hidden" name="clone_images" value="{{ image.id }}">
+                                                    {% endif %}
+                                                </div>
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+                                        {% endif %}
+                                    {% endif %}
                                 </div>
-                                {% endif %}
-                            {% endif %}
+                            </div>
                         </div>
 
                         <!-- YouTube link | Private/Shared -->
@@ -432,7 +681,7 @@
                     <!-- Address -->
                     <div class="section-block">
                         <h2 class="section-title">Address</h2>
-                        <div class="form-group">
+                        <div class="form-group ps-0">
                             <label class="form-label">Street address</label>
                             {{ form.street_address }}
                         </div>
@@ -645,51 +894,60 @@
                         <!-- Map placeholder -->
                         <div class="map-placeholder">
                             <iframe
-                                src="https://www.openstreetmap.org/export/embed.html?bbox=-0.1,51.4,-0.0,51.5&layer=mapnik"
+                                id="map-iframe"
+                                src="about:blank"
                                 style="width:100%;height:100%;border:none;"
                                 title="Map"
                                 loading="lazy">
                             </iframe>
                         </div>
-                    </div>
+                    </div><!-- end Address section-block -->
 
                     <!-- Pricing -->
-                    <div class="section-block flex-grow-1">
+                    <div class="section-block flex-grow-1 mt-3">
                         <h2 class="section-title">Pricing</h2>
 
                         <div class="row m-0 p-0">
-                            <div class=" col-12 ps-0 form-group">
+                            <div class="col-12 ps-0 form-group">
                                 <label class="form-label">Price/night  ({{ currency_symbol }} {{ display_currency }})<span class="required">*</span></label>
                                 <div class="price-input">
                                     <span class="currency-prefix">{{ currency_symbol }}</span>
                                     {{ form.price_per_night }}
                                 </div>
                             </div>
-                            <!-- <div class="col-lg-6 col-12 ps-0 form-group">
-                                <label class="form-label">Application Fees ({{ currency_symbol }} {{ display_currency }})</label>
-                                <div class="price-input">{{ form.application_fees }}</div>
-                            </div> -->
                         </div>
 
                         <div class="row m-0 p-0">
                             <div class="col-lg-6 col-12 ps-0 form-group">
                                 <label class="form-label">Taxes</label>
-                                <div class="price-input">{{ form.taxes }}</div>
+                                <div class="price-input">
+                                    <span class="currency-prefix">{{ currency_symbol }}</span>
+                                    {{ form.taxes }}
+                                </div>
                             </div>
                             <div class="col-lg-6 col-12 ps-0 form-group">
                                 <label class="form-label">Cleaning fee</label>
-                                <div class="price-input">{{ form.cleaning_fee }}</div>
+                                <div class="price-input">
+                                    <span class="currency-prefix">{{ currency_symbol }}</span>
+                                    {{ form.cleaning_fee }}
+                                </div>
                             </div>
                         </div>
 
                         <div class="row m-0 p-0">
                             <div class="col-lg-6 col-12 ps-0 form-group">
                                 <label class="form-label">Refundable deposit</label>
-                                <div class="price-input">{{ form.refundable_deposit }}</div>
+                                <div class="price-input">
+                                    <span class="currency-prefix">{{ currency_symbol }}</span>
+                                    {{ form.refundable_deposit }}
+                                </div>
                             </div>
                             <div class="col-lg-6 col-12 ps-0 form-group">
                                 <label class="form-label">Other fees</label>
-                                <div class="price-input">{{ form.other_fees }}</div>
+                                <div class="price-input">
+                                    <span class="currency-prefix">{{ currency_symbol }}</span>
+                                    {{ form.other_fees }}
+                                </div>
                             </div>
                         </div>
                     </div><!-- end Pricing section-block -->
@@ -739,7 +997,7 @@
                             <div class="col-lg-6 col-12 ps-0 form-group">
                                 <label class="form-label">
                                     Upload Check-in Instruction
-                                    <a href="#" class="sample-link">Sample</a>
+                                    <a href="{% static 'docs/CheckIn Sample template.docx' %}" class="sample-link" download>Sample</a>
                                 </label>
                                 <div class="upload-area" id="checkin-doc-upload-area">
                                     <div><img src="{% static 'img/property/upload.png' %}" alt="Upload"></div>
@@ -775,7 +1033,7 @@
                             <div class="col-lg-6 col-12 ps-0 form-group">
                                 <label class="form-label">
                                     Upload Check-out Instruction
-                                    <a href="#" class="sample-link">Sample</a>
+                                    <a href="{% static 'docs/CheckOut Sample template.docx' %}" class="sample-link" download>Sample</a>
                                 </label>
                                 <div class="upload-area" id="checkout-doc-upload-area">
                                     <div><img src="{% static 'img/property/upload.png' %}" alt="Upload"></div>
@@ -876,6 +1134,15 @@
     </div>
 </div>
 
+<!-- Missing Required Fields Modal -->
+<div class="missing-fields-backdrop" id="missingFieldsModal">
+    <div class="missing-fields-card">
+        <div class="missing-fields-title"><span class="icon">⚠</span> <span>Please fill the following required fields</span></div>
+        <ul class="missing-fields-list" id="missingFieldsList"></ul>
+        <button type="button" class="missing-fields-btn" id="missingFieldsClose">OK</button>
+    </div>
+</div>
+
 <!-- General Confirmation Modal -->
 {% include 'frontend/common/confirmation_modal.html' with modal_id="generalConfirmModal" title="Confirm Action" message="Are you sure?" form_id="generalConfirmForm" confirm_text="Confirm" confirm_btn_class="btn-primary" confirm_btn_id="generalConfirmBtn" confirm_btn_type="button" %}
 
@@ -904,6 +1171,10 @@
             step1Nav.style.display = 'none';
             step2Nav.style.removeProperty('display');
             step2Nav.style.display = 'flex';
+            // Initialize Google Places autocomplete now that the address field is visible
+            if (typeof window.setupAddressAutocomplete === 'function') {
+                window.setupAddressAutocomplete();
+            }
         } else {
             step2Content.classList.remove('active');
             step2Content.style.display = 'none';
@@ -918,10 +1189,22 @@
 
     // Initialise display state
     document.addEventListener('DOMContentLoaded', function() {
-        document.getElementById('step2-content').style.display = 'none';
-        document.getElementById('step2-nav').style.display = 'none';
-        document.getElementById('step1-nav').style.display = 'flex';
-        document.getElementById('step1-content').style.display = 'block';
+        const isEdit = document.getElementById('propertyForm').dataset.isEdit === 'true';
+        if (isEdit) {
+            // Edit page — address section is already visible, initialise now
+            window.setupAddressAutocomplete();
+        } else {
+            const hasStep2Errors = {{ has_step2_errors|yesno:"true,false" }};
+            if (hasStep2Errors) {
+                goToStep(2);
+                window.setupAddressAutocomplete();
+            } else {
+                document.getElementById('step2-content').style.display = 'none';
+                document.getElementById('step2-nav').style.display = 'none';
+                document.getElementById('step1-nav').style.display = 'flex';
+                document.getElementById('step1-content').style.display = 'block';
+            }
+        }
     });
 </script>
 
@@ -1311,6 +1594,15 @@
         const container = document.getElementById('cover-preview-grid');
         container.innerHTML = '';
         const file = files[0];
+        const coverErrEl = document.getElementById('cover-error-message');
+        if (file.size > 5 * 1024 * 1024) {
+            coverErrEl.textContent = 'File size must be less than 5MB.';
+            coverErrEl.style.display = 'block';
+            document.getElementById('cover-file-input').value = '';
+            return;
+        }
+        coverErrEl.textContent = '';
+        coverErrEl.style.display = 'none';
         const previewItem = document.createElement('div');
         previewItem.className = 'preview-item';
         const img = document.createElement('img');
@@ -1404,12 +1696,92 @@
         setTimeout(() => { toast.style.display = 'none'; }, 4000);
     }
 
+    function getFieldControl(group) {
+        const fileInput = group.querySelector('input[type="file"]');
+        if (fileInput) return group.querySelector('.upload-area') || fileInput;
+        return group.querySelector('select') ||
+            group.querySelector('input[type="text"], input[type="number"], input[type="email"], input[type="tel"], textarea');
+    }
+
+    function focusField(control) {
+        if (!control) return;
+        if (control.classList && control.classList.contains('upload-area') && !control.hasAttribute('tabindex')) {
+            control.setAttribute('tabindex', '-1');
+        }
+        control.focus({ preventScroll: true });
+    }
+
+    function getRequiredFieldLabel(group) {
+        const label = group.querySelector('.form-label');
+        if (!label) return 'This field';
+        return label.textContent.replace('*', '').trim();
+    }
+
+    function isFieldGroupEmpty(group) {
+        const fileInput = group.querySelector('input[type="file"]');
+        if (fileInput) {
+            const hasNewFile = fileInput.files && fileInput.files.length > 0;
+            const hasExistingPreview = group.querySelector('.preview-item, .preview-doc-item, [data-image-id]');
+            // On edit, an existing cover photo lives among the other existing images,
+            // not previewed inside the Cover Photo box itself.
+            const isEdit = document.getElementById('propertyForm').dataset.isEdit === 'true';
+            const hasAnyExistingImage = isEdit && fileInput.id === 'cover-file-input' &&
+                document.querySelector('.existing-images [data-image-id]');
+            return !hasNewFile && !hasExistingPreview && !hasAnyExistingImage;
+        }
+        const select = group.querySelector('select');
+        if (select) return !select.value;
+        const textField = group.querySelector('input[type="text"], input[type="number"], input[type="email"], input[type="tel"], textarea');
+        if (textField) return !textField.value || !textField.value.trim();
+        return false;
+    }
+
+    function collectMissingRequiredFields(form) {
+        const missing = [];
+        form.querySelectorAll('.form-group').forEach(group => {
+            const requiredMark = group.querySelector(':scope > label .required');
+            if (!requiredMark) return;
+            if (isFieldGroupEmpty(group)) {
+                missing.push({ label: getRequiredFieldLabel(group), group, control: getFieldControl(group) });
+            }
+        });
+        return missing;
+    }
+
+    function showMissingFieldsModal(missingFields, onClose) {
+        const list = document.getElementById('missingFieldsList');
+        list.innerHTML = '';
+        missingFields.forEach(f => {
+            const li = document.createElement('li');
+            li.textContent = f.label;
+            list.appendChild(li);
+        });
+        const modal = document.getElementById('missingFieldsModal');
+        modal.style.display = 'flex';
+        const closeBtn = document.getElementById('missingFieldsClose');
+        closeBtn.onclick = function() {
+            modal.style.display = 'none';
+            if (typeof onClose === 'function') onClose();
+        };
+    }
+
     document.addEventListener('DOMContentLoaded', function() {
         const form = document.getElementById('propertyForm');
         const isEdit = form.dataset.isEdit === 'true';
 
         form.addEventListener('submit', function(event) {
             showLoader();
+
+            const missingFields = collectMissingRequiredFields(form);
+            if (missingFields.length > 0) {
+                event.preventDefault(); hideLoader();
+                const firstGroup = missingFields[0].group;
+                const isInStep2 = !!firstGroup.closest('#step2-content');
+                goToStep(isInStep2 ? 2 : 1);
+                firstGroup.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                showMissingFieldsModal(missingFields, () => focusField(missingFields[0].control));
+                return;
+            }
 
             const countrySelect = document.getElementById('country') || document.querySelector('select[name="country"]');
             const stateSelect = document.getElementById('state') || document.querySelector('select[name="state"]');
@@ -1421,6 +1793,7 @@
                 showToastMessage('Please select a country.', 'error');
                 goToStep(2);
                 countrySelect.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                focusField(countrySelect);
                 return;
             }
             if (!stateValue) {
@@ -1428,6 +1801,7 @@
                 showToastMessage('Please select a state.', 'error');
                 goToStep(2);
                 (stateInput || stateSelect).scrollIntoView({ behavior: 'smooth', block: 'center' });
+                focusField(stateInput || stateSelect);
                 return;
             }
 
@@ -1446,6 +1820,7 @@
                         showToastMessage(`${field.label} cannot be empty and must be 0 or greater.`, 'error');
                         goToStep(2);
                         input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        focusField(input);
                         return;
                     }
                 }
@@ -1464,6 +1839,7 @@
                         showToastMessage(`${field.label} must be greater than 0.`, 'error');
                         goToStep(1);
                         input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        focusField(input);
                         return;
                     }
                 }
@@ -1482,11 +1858,6 @@
                 return;
             }
 
-            if (!isEdit) {
-                event.preventDefault();
-                submitPropertyForm(form);
-                return;
-            }
         });
     });
 
@@ -1542,6 +1913,54 @@
         const minBookingInput = document.querySelector('[name="minimum_booking"]');
         if (minBookingInput) minBookingInput.setAttribute('min', '0');
     });
+</script>
+
+<script>
+/* ── Update map when address fields are filled manually ── */
+(function () {
+    var geocodeTimer;
+
+    function updateMapFromFields() {
+        var street  = (document.getElementById('id_street_address') || {}).value || '';
+        var city    = (document.getElementById('id_city')           || {}).value || '';
+        var zip     = (document.getElementById('id_zip')            || {}).value || '';
+        var country = (document.getElementById('country')           || {}).value || '';
+        var state   = (document.getElementById('state')             || {}).value || '';
+
+        var parts = [street, city, state, zip, country].filter(function(v){ return v.trim(); });
+        if (parts.length < 2) return;   // need at least 2 pieces to be meaningful
+
+        var address = parts.join(', ');
+
+        clearTimeout(geocodeTimer);
+        geocodeTimer = setTimeout(function () {
+            fetch('{% url "property:geocode" %}?address=' + encodeURIComponent(address))
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    if (!data.lat || !data.lng) return;
+                    var lat = data.lat, lng = data.lng, d = 0.01;
+                    var fr = document.getElementById('map-iframe');
+                    if (fr) {
+                        fr.src = 'https://www.openstreetmap.org/export/embed.html?bbox=' +
+                            (lng - d) + ',' + (lat - d) + ',' + (lng + d) + ',' + (lat + d) +
+                            '&layer=mapnik&marker=' + lat + ',' + lng;
+                    }
+                })
+                .catch(function () {});
+        }, 800);   // debounce: wait 800 ms after the last keystroke
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        ['id_street_address', 'id_city', 'id_zip', 'country', 'state'].forEach(function (id) {
+            var el = document.getElementById(id);
+            if (!el) return;
+            el.addEventListener('input',  updateMapFromFields);
+            el.addEventListener('change', updateMapFromFields);
+        });
+        // On edit page the fields are already populated — geocode immediately on load.
+        updateMapFromFields();
+    });
+})();
 </script>
 
 {% endblock extra_script %}
