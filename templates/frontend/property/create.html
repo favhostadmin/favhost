@@ -237,7 +237,12 @@
             border-top: 5px solid #6c757d;
             pointer-events: none;
         }
-        .select-wrap select { padding-right: 28px; }
+        .select-wrap select {
+            padding-right: 28px;
+            appearance: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+        }
         .main_row_div { padding: 0rem 12%; }
 
         @media (max-width: 640px) {
@@ -378,6 +383,43 @@
             box-sizing: border-box;
         }
 
+        /* Missing required fields modal */
+        .missing-fields-backdrop {
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,0.55);
+            display: none; align-items: center; justify-content: center;
+            z-index: 1300; padding: 16px;
+        }
+        .missing-fields-card {
+            background: #ffffff; border-radius: 12px;
+            padding: 28px 28px 24px; max-width: 460px;
+            width: 100%; text-align: left;
+            box-shadow: 0 16px 40px rgba(0,0,0,0.18);
+        }
+        .missing-fields-title {
+            font-size: 17px; font-weight: 700; color: #b91c1c;
+            margin-bottom: 12px; display: flex; align-items: center; gap: 8px;
+        }
+        .missing-fields-title .icon { font-size: 18px; }
+        .missing-fields-list {
+            list-style: none; margin: 0 0 20px; padding: 0;
+        }
+        .missing-fields-list li {
+            font-size: 14px; color: #374151; padding: 8px 0;
+            border-bottom: 1px solid #f3f4f6;
+        }
+        .missing-fields-list li:last-child { border-bottom: none; }
+        .missing-fields-list li::before {
+            content: '•'; color: #dc2626; font-weight: 700; margin-right: 8px;
+        }
+        .missing-fields-btn {
+            border: none; background: #dc2626; color: #fff;
+            padding: 10px 22px; border-radius: 10px;
+            font-weight: 600; cursor: pointer; transition: background 0.15s ease;
+            display: block; width: 100%;
+        }
+        .missing-fields-btn:hover { background: #b91c1c; }
+
     </style>
 {% endblock extra_head %}
 
@@ -483,36 +525,36 @@
                                 </div>
                                 <input type="file" id="file-input" name="property_images" accept="image/*" multiple style="display:none;">
                                 <div class="error-message" id="error-message"></div>
-                            </div>
-                        </div>
 
-                        <!-- Existing / new image previews -->
-                        <div style="max-height: 300px; overflow-y: auto; padding: 6px 6px 6px 0;">
-                            <div class="preview-container" id="image-preview-container">
-                                <div class="preview-grid" id="preview-grid"></div>
-                                <div class="upload-count" id="upload-count"></div>
-                            </div>
-                            {% if is_edit or is_clone %}
-                                {% if existing_images %}
-                                <div class="existing-images mb-3">
-                                    <div class="preview-grid">
-                                        {% for image in existing_images %}
-                                        <div class="preview-item" data-image-id="{{ image.id }}">
-                                            <a href="{{ image.image.url }}" target="_blank">
-                                                <img src="{{ image.image.url }}" alt="Preview" class="preview-doc">
-                                            </a>
-                                            {% if is_edit %}
-                                            <button type="button" class="remove-btn" onclick="deleteExistingImage(this.parentElement.dataset.imageId)">×</button>
-                                            {% elif is_clone %}
-                                            <button type="button" class="remove-btn" onclick="deleteClonedFile(this)">×</button>
-                                            <input type="hidden" name="clone_images" value="{{ image.id }}">
-                                            {% endif %}
-                                        </div>
-                                        {% endfor %}
+                                <!-- Existing / new image previews -->
+                                <div style="max-height: 300px; overflow-y: auto; padding: 6px 6px 6px 0;">
+                                    <div class="preview-container" id="image-preview-container">
+                                        <div class="preview-grid" id="preview-grid"></div>
+                                        <div class="upload-count" id="upload-count"></div>
                                     </div>
+                                    {% if is_edit or is_clone %}
+                                        {% if existing_images %}
+                                        <div class="existing-images mb-3">
+                                            <div class="preview-grid">
+                                                {% for image in existing_images %}
+                                                <div class="preview-item" data-image-id="{{ image.id }}">
+                                                    <a href="{{ image.image.url }}" target="_blank">
+                                                        <img src="{{ image.image.url }}" alt="Preview" class="preview-doc">
+                                                    </a>
+                                                    {% if is_edit %}
+                                                    <button type="button" class="remove-btn" onclick="deleteExistingImage(this.parentElement.dataset.imageId)">×</button>
+                                                    {% elif is_clone %}
+                                                    <button type="button" class="remove-btn" onclick="deleteClonedFile(this)">×</button>
+                                                    <input type="hidden" name="clone_images" value="{{ image.id }}">
+                                                    {% endif %}
+                                                </div>
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+                                        {% endif %}
+                                    {% endif %}
                                 </div>
-                                {% endif %}
-                            {% endif %}
+                            </div>
                         </div>
 
                         <!-- YouTube link | Private/Shared -->
@@ -955,7 +997,7 @@
                             <div class="col-lg-6 col-12 ps-0 form-group">
                                 <label class="form-label">
                                     Upload Check-in Instruction
-                                    <a href="#" class="sample-link">Sample</a>
+                                    <a href="{% static 'docs/CheckIn Sample template.docx' %}" class="sample-link" download>Sample</a>
                                 </label>
                                 <div class="upload-area" id="checkin-doc-upload-area">
                                     <div><img src="{% static 'img/property/upload.png' %}" alt="Upload"></div>
@@ -991,7 +1033,7 @@
                             <div class="col-lg-6 col-12 ps-0 form-group">
                                 <label class="form-label">
                                     Upload Check-out Instruction
-                                    <a href="#" class="sample-link">Sample</a>
+                                    <a href="{% static 'docs/CheckOut Sample template.docx' %}" class="sample-link" download>Sample</a>
                                 </label>
                                 <div class="upload-area" id="checkout-doc-upload-area">
                                     <div><img src="{% static 'img/property/upload.png' %}" alt="Upload"></div>
@@ -1089,6 +1131,15 @@
         </div>
         <div class="listing-success-sub">Navigate to Listing from the menu to view your listing</div>
         <button type="button" class="listing-success-btn" id="listingSuccessContinue">Continue</button>
+    </div>
+</div>
+
+<!-- Missing Required Fields Modal -->
+<div class="missing-fields-backdrop" id="missingFieldsModal">
+    <div class="missing-fields-card">
+        <div class="missing-fields-title"><span class="icon">⚠</span> <span>Please fill the following required fields</span></div>
+        <ul class="missing-fields-list" id="missingFieldsList"></ul>
+        <button type="button" class="missing-fields-btn" id="missingFieldsClose">OK</button>
     </div>
 </div>
 
@@ -1645,12 +1696,92 @@
         setTimeout(() => { toast.style.display = 'none'; }, 4000);
     }
 
+    function getFieldControl(group) {
+        const fileInput = group.querySelector('input[type="file"]');
+        if (fileInput) return group.querySelector('.upload-area') || fileInput;
+        return group.querySelector('select') ||
+            group.querySelector('input[type="text"], input[type="number"], input[type="email"], input[type="tel"], textarea');
+    }
+
+    function focusField(control) {
+        if (!control) return;
+        if (control.classList && control.classList.contains('upload-area') && !control.hasAttribute('tabindex')) {
+            control.setAttribute('tabindex', '-1');
+        }
+        control.focus({ preventScroll: true });
+    }
+
+    function getRequiredFieldLabel(group) {
+        const label = group.querySelector('.form-label');
+        if (!label) return 'This field';
+        return label.textContent.replace('*', '').trim();
+    }
+
+    function isFieldGroupEmpty(group) {
+        const fileInput = group.querySelector('input[type="file"]');
+        if (fileInput) {
+            const hasNewFile = fileInput.files && fileInput.files.length > 0;
+            const hasExistingPreview = group.querySelector('.preview-item, .preview-doc-item, [data-image-id]');
+            // On edit, an existing cover photo lives among the other existing images,
+            // not previewed inside the Cover Photo box itself.
+            const isEdit = document.getElementById('propertyForm').dataset.isEdit === 'true';
+            const hasAnyExistingImage = isEdit && fileInput.id === 'cover-file-input' &&
+                document.querySelector('.existing-images [data-image-id]');
+            return !hasNewFile && !hasExistingPreview && !hasAnyExistingImage;
+        }
+        const select = group.querySelector('select');
+        if (select) return !select.value;
+        const textField = group.querySelector('input[type="text"], input[type="number"], input[type="email"], input[type="tel"], textarea');
+        if (textField) return !textField.value || !textField.value.trim();
+        return false;
+    }
+
+    function collectMissingRequiredFields(form) {
+        const missing = [];
+        form.querySelectorAll('.form-group').forEach(group => {
+            const requiredMark = group.querySelector(':scope > label .required');
+            if (!requiredMark) return;
+            if (isFieldGroupEmpty(group)) {
+                missing.push({ label: getRequiredFieldLabel(group), group, control: getFieldControl(group) });
+            }
+        });
+        return missing;
+    }
+
+    function showMissingFieldsModal(missingFields, onClose) {
+        const list = document.getElementById('missingFieldsList');
+        list.innerHTML = '';
+        missingFields.forEach(f => {
+            const li = document.createElement('li');
+            li.textContent = f.label;
+            list.appendChild(li);
+        });
+        const modal = document.getElementById('missingFieldsModal');
+        modal.style.display = 'flex';
+        const closeBtn = document.getElementById('missingFieldsClose');
+        closeBtn.onclick = function() {
+            modal.style.display = 'none';
+            if (typeof onClose === 'function') onClose();
+        };
+    }
+
     document.addEventListener('DOMContentLoaded', function() {
         const form = document.getElementById('propertyForm');
         const isEdit = form.dataset.isEdit === 'true';
 
         form.addEventListener('submit', function(event) {
             showLoader();
+
+            const missingFields = collectMissingRequiredFields(form);
+            if (missingFields.length > 0) {
+                event.preventDefault(); hideLoader();
+                const firstGroup = missingFields[0].group;
+                const isInStep2 = !!firstGroup.closest('#step2-content');
+                goToStep(isInStep2 ? 2 : 1);
+                firstGroup.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                showMissingFieldsModal(missingFields, () => focusField(missingFields[0].control));
+                return;
+            }
 
             const countrySelect = document.getElementById('country') || document.querySelector('select[name="country"]');
             const stateSelect = document.getElementById('state') || document.querySelector('select[name="state"]');
@@ -1662,6 +1793,7 @@
                 showToastMessage('Please select a country.', 'error');
                 goToStep(2);
                 countrySelect.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                focusField(countrySelect);
                 return;
             }
             if (!stateValue) {
@@ -1669,6 +1801,7 @@
                 showToastMessage('Please select a state.', 'error');
                 goToStep(2);
                 (stateInput || stateSelect).scrollIntoView({ behavior: 'smooth', block: 'center' });
+                focusField(stateInput || stateSelect);
                 return;
             }
 
@@ -1687,6 +1820,7 @@
                         showToastMessage(`${field.label} cannot be empty and must be 0 or greater.`, 'error');
                         goToStep(2);
                         input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        focusField(input);
                         return;
                     }
                 }
@@ -1705,6 +1839,7 @@
                         showToastMessage(`${field.label} must be greater than 0.`, 'error');
                         goToStep(1);
                         input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        focusField(input);
                         return;
                     }
                 }

@@ -447,6 +447,35 @@ class PropertyListView(LoginRequiredMixin, ListView):
         context['guests'] = self.request.GET.get('guests', '')
         context['total_listing'] = Property.objects.filter(created_by__in=get_visible_user_ids(self.request.user)).count()
         context['is_profile_complete'] = self.request.user.is_profile_complete()
+
+        # Only relevant when the user hasn't searched with specific dates yet.
+        if not (check_in and check_out):
+            today = self.request.user.get_local_date()
+            upcoming_bookings = Booking.objects.filter(
+                property__in=properties_on_page,
+                status='confirmed',
+                check_out_date__gte=today,
+            ).order_by('property_id', 'check_in_date')
+
+            bookings_by_property = {}
+            for booking in upcoming_bookings:
+                bookings_by_property.setdefault(booking.property_id, []).append(booking)
+
+            next_available_by_property = {}
+            for property_id, bookings in bookings_by_property.items():
+                # Merge overlapping/back-to-back bookings starting from the nearest one
+                # so the badge reflects when the property is next fully free.
+                chain_end = bookings[0].check_out_date
+                for booking in bookings[1:]:
+                    if booking.check_in_date <= chain_end:
+                        chain_end = max(chain_end, booking.check_out_date)
+                    else:
+                        break
+                next_available_by_property[property_id] = chain_end
+
+            for prop in properties_on_page:
+                prop.next_available_date = next_available_by_property.get(prop.id)
+
         return context
 
 class PropertyDetailView(LoginRequiredMixin, DetailView):
