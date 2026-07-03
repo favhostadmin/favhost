@@ -1,5 +1,6 @@
 
 {% load static %}
+{% load currency_tags %}
 
 <!DOCTYPE html>
 <html lang="en">
@@ -7,31 +8,63 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Find your perfect place to stay</title>
+  <link href="{% static 'website/img/fev.png' %}" rel="icon" type="image/png">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/intl-tel-input@25.12.1/build/css/intlTelInput.css">
   <link href="{% static 'css/public_host_website/listing.css' %}" rel="stylesheet">
   <style>
     #toast-container {
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      z-index: 11000;
+      position: fixed !important;
+      top: 80px !important;
+      right: auto !important;
+      left: 50% !important;
+      transform: translateX(-50%);
+      z-index: 11000 !important;
     }
     .success-toast {
-      background: #28a745;
-      color: white;
-      padding: 14px 24px;
-      border-radius: 8px;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-      font-weight: 500;
-      animation: toastIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      background: rgba(0, 0, 0, 0.9);
+      color: #4CAF50;
+      padding: 20px 58px;
+      border-radius: 10px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.35);
+      font-size: 14px;
+      font-weight: 600;
+      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+      line-height: 1.4;
+      animation: toast-fade-in 0.3s ease;
+    }
+    .success-toast::before {
+      content: "✓";
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 22px;
+      height: 22px;
+      min-width: 22px;
+      border-radius: 50%;
+      background: #4CAF50;
+      color: #fff;
+      font-size: 12px;
+      font-weight: 700;
+      line-height: 1;
+    }
+    .toast-close {
+      display: none;
     }
     .iti {
       width: 100%;
     }
-    @keyframes toastIn {
-      from { transform: translateX(100%); opacity: 0; }
-      to { transform: translateX(0); opacity: 1; }
+    @keyframes toast-fade-in {
+      from { opacity: 0; transform: translateY(-16px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @media (max-width: 576px) {
+      .success-toast {
+        white-space: nowrap;
+      }
     }
     .listing-footer {
       padding: 24px 16px 32px;
@@ -153,15 +186,17 @@
       {% endif %}
 
       <header class="top-nav">
-        <div class="hero-brand">
+        <div class="hero-brand" onclick="window.open('{% url 'index' %}', '_blank')" style="cursor:pointer;">
           <small>Created with</small>
-          <img class="hero-logo-desktop" src="{% static 'img/login/favhost_new_logo.png' %}" alt="FavHost logo">
-          <img class="hero-logo-mobile" src="{% static 'img/login/favhost.png' %}" alt="FavHost logo">
+          <img class="hero-logo-desktop" src="{% static 'img/login/favhost_new_logo.png' %}" alt="Favhost vacation rental software logo">
+          <img class="hero-logo-mobile" src="{% static 'img/login/favhost_new_logo.png' %}" alt="Favhost vacation rental software logo">
         </div>
 
         <div class="mobile-header-actions">
-          {% if host.profile_picture %}
-            <img class="hero-avatar host-avatar-trigger" src="{{ host.profile_picture.url }}" alt="Host avatar">
+          {% include 'frontend/public_host_website/_currency_switcher.html' %}
+          {% if not is_cohost %}
+          {% if host.profile_picture_url %}
+            <img class="hero-avatar host-avatar-trigger" src="{{ host.profile_picture_url }}" alt="Host avatar">
           {% else %}
             <img
               class="hero-avatar host-avatar-trigger"
@@ -169,14 +204,16 @@
               alt="Host avatar"
             >
           {% endif %}
+          {% endif %}
           <a class="hero-icon-link share-page-link mobile-share-icon" href="#" id="mobileSharePageLink" aria-label="Share">
             <img src="{% static 'img/public_host_website/share_new.png' %}" alt="Share icon">
           </a>
         </div>
 
         <div class="top-nav-right">
-          {% if host.profile_picture %}
-            <img class="hero-avatar host-avatar-trigger" src="{{ host.profile_picture.url }}" alt="Host avatar">
+          {% if not is_cohost %}
+          {% if host.profile_picture_url %}
+            <img class="hero-avatar host-avatar-trigger" src="{{ host.profile_picture_url }}" alt="Host avatar">
           {% else %}
             <img
               class="hero-avatar host-avatar-trigger"
@@ -188,8 +225,10 @@
             <img class="hero-phone-icon" src="{% static 'img/public_host_website/phone.png' %}" alt="Phone icon">
             <span class="hero-phone" >{{ host.phone|default:'NA' }}</span>
           </div>
+          {% endif %}
 
           <div class="hero-actions " aria-label="Social links">
+            {% if not is_cohost %}
             <a class="hero-icon-link" href="{{ host.facebook_url|default:'#' }}" aria-label="Facebook">
               <img src="{% static 'img/public_host_website/facebooks.png' %}" alt="Facebook icon">
             </a>
@@ -199,6 +238,7 @@
             <a class="hero-icon-link" href="{{ host.instagram_url|default:'#' }}" aria-label="Instagram">
               <img src="{% static 'img/public_host_website/instagram.png' %}" alt="Instagram icon">
             </a>
+            {% endif %}
             <a class="hero-icon-link share-page-link me-2" href="#" id="sharePageLink" aria-label="Share">
               <img src="{% static 'img/public_host_website/share_new.png' %}" alt="Share icon">
             </a>
@@ -265,7 +305,22 @@
             <div class="card-body">
               <h3 class="card-title">{{ property.title }}</h3>
               <p class="card-sub-title">{{ property.city }}, {{ property.state }}</p>
-              <p class="card-sub-title">${{ property.price_per_night|floatformat:2 }} night</p>
+              {% if num_nights %}
+              <div class="card-stay-info">
+                <span class="stay-bed-type">
+                  <img src="{% static 'img/property/bed.svg' %}" style="width: 16px; height: auto;">
+                  {{ property.bed_type }}
+                </span>
+                <span class="stay-nights-badge">
+                  <!-- <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg> -->
+                   <img src="{% static 'img/property/min_nights.svg' %}" style="width:15px;height:auto;">
+                  {{ num_nights }} night{{ num_nights|pluralize }}
+                  <strong>{{ currency_symbol }}<span class="js-total" data-price="{% money_raw property.price_per_night %}" data-nights="{{ num_nights }}" data-cleaning="{% money_raw property.cleaning_fee %}" data-appfee="{% money_raw property.application_fees %}" data-deposit="{% money_raw property.refundable_deposit %}"></span></strong>
+                </span>
+              </div>
+              {% else %}
+              <p class="card-sub-title">{% money property.price_per_night %} / night</p>
+              {% endif %}
             </div>
           </a>
         {% empty %}
@@ -292,7 +347,7 @@
             <article class="host-card">
               <div class="host-flex">
                 <div class="host-photo-wrap">
-                  <img class="host-photo" src="{{ host.profile_picture.url|default:'https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?auto=format&fit=crop&w=700&q=80' }}" alt="Host portrait">
+                  <img class="host-photo" src="{{ host.profile_picture_url|default:'https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?auto=format&fit=crop&w=700&q=80' }}" alt="Host portrait">
                 </div>
                 <div class="host-meta">
                   <h4>{{ host.get_full_name|default:host.username }}</h4>
@@ -761,6 +816,19 @@
         phoneInput.addEventListener("countrychange", syncCountryCode);
       }
 
+      function fillTotalPrices(container) {
+        (container || document).querySelectorAll('.js-total[data-price][data-nights]').forEach(function(el) {
+          var price    = parseFloat(el.dataset.price)   || 0;
+          var nights   = parseInt(el.dataset.nights, 10) || 0;
+          var cleaning = parseFloat(el.dataset.cleaning) || 0;
+          var appfee   = parseFloat(el.dataset.appfee)   || 0;
+          var deposit  = parseFloat(el.dataset.deposit)  || 0;
+          if (nights > 0) {
+            el.textContent = ((price * nights) + cleaning + appfee + deposit).toFixed(2);
+          }
+        });
+      }
+
       function observeExistingCards() {
         const cardObserver = new IntersectionObserver(function (entries) {
           entries.forEach(function (entry) {
@@ -781,6 +849,7 @@
       }
 
       observeExistingCards();
+      fillTotalPrices();
 
       if (listingLoadSentinel && listingsContainer) {
         let nextUrl = listingLoadSentinel.dataset.nextUrl || "";
@@ -809,6 +878,7 @@
                 listingsContainer.appendChild(card);
               });
 
+              fillTotalPrices(listingsContainer);
               observeExistingCards();
 
               if (nextSentinel) {
@@ -853,6 +923,8 @@
           const shareUrl = window.location.origin + "/property/listing/" + shortCode + "/";
           
           function updateButton() {
+            const container = document.getElementById("toast-container");
+            if (container.querySelector(".success-toast")) return;
             const originalLabel = sharePageLink.getAttribute("aria-label") || "Share";
             sharePageLink.setAttribute("aria-label", "Copied");
             sharePageLink.classList.add("is-copied");
@@ -860,6 +932,11 @@
               sharePageLink.setAttribute("aria-label", originalLabel);
               sharePageLink.classList.remove("is-copied");
             }, 2000);
+            const toast = document.createElement("div");
+            toast.className = "success-toast";
+            toast.textContent = "Link copied";
+            container.appendChild(toast);
+            setTimeout(() => { toast.remove(); }, 2500);
           }
 
           // Try modern Clipboard API (requires HTTPS)

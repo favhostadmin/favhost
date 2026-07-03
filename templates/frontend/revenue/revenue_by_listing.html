@@ -1,0 +1,648 @@
+{% extends 'frontend/base/base.html' %}
+{% load static %}
+{% load currency_tags %}
+
+{% block extra_head %}
+<style>
+  /* ===========================================================
+     Revenue by Listing — scoped under .rev-page so nothing here
+     collides with Bootstrap / the shared header styles.
+     UI mirrors the revenue-dashboard.html guide.
+     =========================================================== */
+  .rev-page {
+    background: #FAFAFA;
+    color: #1a1a1a;
+    font-size: 14px;
+    line-height: 1.4;
+    flex: 1 0 auto;
+    padding-bottom: 40px;
+  }
+  /* Sticky footer: keep the footer pinned to the bottom on short pages
+     (scoped to this template only — these rules don't affect other pages). */
+  .main-content-body { display: flex; flex-direction: column; min-height: calc(100vh - 58px); }
+  .main-content-body > div:last-child { flex: 1 0 auto; display: flex; flex-direction: column; }
+  .rev-page *, .rev-page *::before, .rev-page *::after { box-sizing: border-box; }
+  .rev-page img { max-width: 100%; }
+
+  /* Branded print header — hidden on screen, revealed in @media print. */
+  .rev-print-header { display: none; }
+  .rev-page button { font-family: inherit; cursor: pointer; }
+  .rev-page a { color: inherit; text-decoration: none; }
+
+  /* ---------- Page header ---------- */
+  .rev-page-header {
+    background: #E7E7E9;
+    min-height: 52px;
+    padding: 8px 32px;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 12px;
+  }
+  .rev-page-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #111827;
+    margin: 0;
+  }
+  .rev-page-title svg { width: 18px; height: 18px; color: #EB5310; flex: 0 0 auto; }
+  .rev-page-actions { display: flex; align-items: center; gap: 8px; justify-self: end; }
+  .rev-icon-btn {
+    width: 32px; height: 32px;
+    border-radius: 6px;
+    background: #fff;
+    border: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #4b5563;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+  .rev-icon-btn:hover { background: #f3f4f6; color: #111827; }
+  .rev-icon-btn svg { width: 16px; height: 16px; }
+  .rev-icon-btn.dropdown-toggle::after { display: none; }
+  .rev-download-menu { min-width: 152px; border-radius: 8px; padding: 4px; }
+  .rev-download-menu .dropdown-item { font-size: 13px; padding: 7px 12px; border-radius: 6px; }
+
+  /* ---------- Layout ---------- */
+  .rev-layout {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    gap: 20px;
+    padding: 20px 32px 0;
+    max-width: 1600px;
+    margin: 0 auto;
+  }
+
+  /* ---------- Sidebar (listings) ---------- */
+  .rev-sidebar {
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.06);
+    padding: 14px 0;
+    height: fit-content;
+    position: sticky;
+    top: 16px;
+  }
+  .rev-search-box {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 16px 14px;
+    border-bottom: 1px solid #f0f0f0;
+    color: #9ca3af;
+  }
+  .rev-search-box svg { width: 18px; height: 18px; flex-shrink: 0; }
+  .rev-search-box input {
+    border: none; outline: none; width: 100%;
+    font-size: 14px; color: #374151; background: transparent; font-family: inherit;
+  }
+  .rev-search-box input::placeholder { color: #9ca3af; }
+
+  .rev-listing-list {
+    list-style: none; margin: 0; padding: 0;
+    /* Fit the sticky sidebar within the viewport so the list scrolls fully,
+       however many listings there are (min keeps it usable on short screens). */
+    max-height: max(200px, calc(100vh - 220px)); overflow-y: auto;
+  }
+  .rev-listing-item { border-bottom: 1px solid #f5f5f5; }
+  .rev-listing-item:last-child { border-bottom: none; }
+  .rev-listing-link {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 16px;
+    transition: background 0.15s ease;
+  }
+  .rev-listing-link:hover { background: #f9fafb; }
+  .rev-listing-item.active .rev-listing-link { background: #FEF1EB; }
+  .rev-listing-item.active .rev-listing-name { color: #EB5310; font-weight: 600; }
+  .rev-listing-thumb {
+    width: 44px; height: 36px;
+    border-radius: 4px;
+    background: #e5e7eb center/cover no-repeat;
+    flex-shrink: 0;
+  }
+  .rev-listing-name {
+    font-size: 14px; font-weight: 500; color: #4b5563; letter-spacing: 0.02em;
+  }
+  .rev-empty-listings { padding: 20px 16px; color: #9ca3af; font-size: 13px; }
+  .rev-listing-list::-webkit-scrollbar { width: 6px; }
+  .rev-listing-list::-webkit-scrollbar-track { background: transparent; }
+  .rev-listing-list::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
+
+  /* ---------- Main content ---------- */
+  .rev-main { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+  .rev-toolbar {
+    display: flex; align-items: center; gap: 12px;
+    background: #fff; padding: 14px 18px;
+    border-radius: 16px; box-shadow: 0 6px 18px rgba(0,0,0,0.06);
+  }
+  /* Year stepper box — centered in the header, square corners */
+  .rev-yearbox {
+    justify-self: center;
+    display: inline-flex; align-items: center; gap: 4px;
+    background: #fff; border: 1.5px solid #d1d5db; border-radius: 0;
+    padding: 3px 4px;
+  }
+  .rev-yearbox-arrow {
+    width: 26px; height: 26px; border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: #fff; border: 1px solid #e5e7eb; color: #374151;
+    text-decoration: none; flex: 0 0 auto;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+  .rev-yearbox-arrow:hover { background: #f3f4f6; color: #111827; }
+  .rev-yearbox-arrow.disabled { opacity: 0.35; pointer-events: none; }
+  .rev-yearbox-arrow svg { width: 14px; height: 14px; }
+  .rev-yearbox-current {
+    background: none; border: none;
+    font-size: 14px; font-weight: 700; color: #1a1a1a;
+    padding: 2px 12px; min-width: 58px; text-align: center; cursor: pointer;
+    line-height: 1.2;
+  }
+  .rev-yearbox-current:hover { color: #EB5310; }
+  .rev-yearbox-current.dropdown-toggle::after { display: none; }
+  /* Open the year dropdown centered directly under the box */
+  .rev-yearbox .dropdown-menu {
+    left: 50% !important;
+    right: auto !important;
+    transform: translateX(-50%) !important;
+    margin-top: 6px;
+  }
+  .rev-year-menu {
+    min-width: 110px; border-radius: 10px; padding: 4px;
+    max-height: 280px; overflow-y: auto;
+  }
+  .rev-year-menu .dropdown-item { font-size: 14px; padding: 6px 12px; border-radius: 6px; text-align: center; }
+  .rev-year-menu .dropdown-item.active { background: #EB5310; color: #fff; }
+
+  /* ---------- Cards ---------- */
+  .rev-charts-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .rev-card {
+    background: #fff; border-radius: 16px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.06); padding: 22px;
+  }
+  .rev-card-title { font-size: 18px; font-weight: 700; color: #111827; margin: 0 0 18px; }
+
+  /* Bar chart */
+  .rev-bar-chart {
+    display: grid; grid-template-columns: repeat(12, 1fr);
+    gap: 8px; align-items: end; height: 220px;
+    padding: 28px 4px 0; position: relative;
+  }
+  .rev-bar-col {
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: end;
+    gap: 6px; height: 100%; position: relative;
+  }
+  .rev-bar-value { font-size: 11px; color: #6b7280; font-weight: 500; white-space: nowrap; }
+  .rev-bar-col.highlight .rev-bar-value { color: #111827; font-weight: 700; font-size: 12px; }
+  .rev-bar {
+    width: 100%; max-width: 26px; min-height: 2px;
+    background: #d1d5db; border-radius: 3px 3px 0 0;
+    transition: background 0.2s ease;
+  }
+  .rev-bar-col.highlight .rev-bar { background: #EB5310; }
+  .rev-bar-label { font-size: 12px; color: #4b5563; font-weight: 500; margin-top: 4px; }
+  .rev-bar-col.highlight .rev-bar-label {
+    background: #EB5310; color: #fff;
+    padding: 4px 10px; border-radius: 4px; font-weight: 600; margin-top: 0;
+  }
+
+  /* Donut chart */
+  .rev-channel-body {
+    display: grid; grid-template-columns: minmax(0, 200px) 1fr;
+    gap: 24px; align-items: center;
+  }
+  .rev-donut {
+    width: 100%; aspect-ratio: 1 / 1; max-width: 200px;
+    border-radius: 50%; position: relative;
+  }
+  .rev-donut::after {
+    content: ""; position: absolute; inset: 28%;
+    background: #fff; border-radius: 50%;
+  }
+  .rev-legend { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+  .rev-legend li { display: flex; align-items: center; gap: 10px; font-size: 13px; color: #374151; }
+  .rev-legend-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+  .rev-legend-pct { margin-left: auto; font-weight: 600; color: #111827; }
+  .rev-muted { color: #9ca3af; font-size: 13px; }
+
+  /* ---------- Table ---------- */
+  .rev-table-card {
+    background: #fff; border-radius: 16px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.06); overflow: hidden;
+  }
+  .rev-table-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 22px;
+    border-bottom: 1px solid #f0f0f0;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .rev-table-card-title {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 700;
+    color: #111827;
+  }
+  .rev-table-card-body { padding: 16px 20px; }
+  .rev-table-scroll { overflow-x: auto; }
+  table.rev-data-table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 1100px; }
+  table.rev-data-table thead.section th {
+    background: #313131; color: #fff; font-weight: 700;
+    text-align: center; padding: 8px 10px; border: 1px solid #313131; font-size: 13px; letter-spacing: 0.02em;
+  }
+  table.rev-data-table th, table.rev-data-table td {
+    padding: 7px 10px; border: 1px solid #e5e7eb;
+    text-align: left; color: #374151; white-space: nowrap;
+  }
+  table.rev-data-table thead.months th { background: #faf7f5; font-weight: 600; color: #1a1a1a; }
+  table.rev-data-table thead.months th.overall { background: #FFF3EC; color: #C2410C; }
+  table.rev-data-table tbody tr:hover td { background: #fafafa; }
+  table.rev-data-table td.overall { background: #FFF3EC; font-weight: 700; color: #C2410C; }
+  table.rev-data-table td.first-col { color: #1a1a1a; font-weight: 600; background: #faf7f5; }
+
+  /* ---------- Responsive ---------- */
+  @media (max-width: 1100px) {
+    .rev-layout { grid-template-columns: 1fr; padding: 16px 16px 0; }
+    .rev-sidebar { position: static; max-height: 360px; overflow-y: auto; }
+    .rev-listing-list { max-height: none; }
+    .rev-charts-row { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 720px) {
+    .rev-page-header {
+      display: flex; flex-wrap: wrap; justify-content: center;
+      padding: 8px 16px;
+    }
+    .rev-channel-body { grid-template-columns: 1fr; }
+    .rev-donut { margin: 0 auto; }
+    .rev-bar-chart { height: 180px; }
+    .rev-page-title { font-size: 16px; }
+  }
+
+  /* ===========================================================
+     PRINT / Save-as-PDF — capture the FULL revenue report.
+     Removes the app's scroll clipping + chrome, fits the wide
+     table to the page, and lets long data flow onto extra pages.
+     =========================================================== */
+  @media print {
+    @page { size: A4 landscape; margin: 10mm; }
+
+    /* Force background colours (table/chart fills) to actually print. */
+    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+
+    /* Branded header: logo pinned left, generated date/time pinned right.
+       Dark band so the white FavHost logo is visible on the printed page. */
+    .rev-print-header {
+      display: flex !important;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      background: #313131;
+      padding: 8px 14px;
+      margin-bottom: 12px;
+      border-radius: 6px;
+    }
+    .rev-print-logo { height: 30px; width: auto; }
+    .rev-print-meta { font-size: 11px; color: #e5e7eb; white-space: nowrap; }
+
+    /* Hide everything that isn't the report itself. */
+    #loader-overlay,
+    .custom-header,
+    #mobileNavbarBackdrop,
+    #headerProfileCompleteModal,
+    .toast-messages-container,
+    .sw-overlay,
+    .footer,
+    .rev-page-actions,
+    .rev-search-box,
+    .rev-sidebar { display: none !important; }
+
+    /* Drop the viewport-height clipping so all content flows across sheets. */
+    html, body { height: auto !important; overflow: visible !important; background: #fff !important; }
+    .content, .container-fluid { display: block !important; }
+    .main-content-body {
+      max-height: none !important; min-height: 0 !important;
+      overflow: visible !important; display: block !important;
+    }
+    .main-content-body > div:last-child { display: block !important; }
+    .rev-page { flex: none !important; min-height: 0 !important; padding: 0 !important; background: #fff !important; }
+
+    /* One full-width column for the data (sidebar is hidden). */
+    .rev-layout { display: block !important; padding: 0 !important; max-width: none !important; margin: 0 !important; }
+    .rev-main { gap: 12px !important; display: flex !important; flex-direction: column !important; }
+    .rev-page-header { padding: 0 0 8px !important; border: none !important; }
+    .rev-toolbar { border: 1px solid #e5e7eb !important; padding: 8px 12px !important; }
+
+    /* Charts above tables in PDF, side by side; hide the "Revenue · 2026" card header. */
+    .rev-main > .rev-charts-row { order: 1; }
+    .rev-main > .rev-table-card { order: 2; }
+    .rev-charts-row { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 20px !important; }
+    .rev-card { break-inside: avoid; page-break-inside: avoid; }
+    .rev-table-card-header { display: none !important; }
+    .rev-table-card-body { padding: 0 !important; }
+    /* Table: shrink to page width, repeat the month header on every page,
+       and never cut a row in half. */
+    .rev-table-scroll { overflow: visible !important; }
+    table.rev-data-table {
+      min-width: 0 !important; width: 100% !important;
+      font-size: 8.5px !important; table-layout: fixed;
+    }
+    table.rev-data-table th, table.rev-data-table td {
+      padding: 3px 2px !important; white-space: nowrap; overflow: hidden;
+    }
+    table.rev-data-table td.first-col, table.rev-data-table th:first-child {
+      width: 13% !important; white-space: normal; word-break: break-word;
+    }
+    /* Repeat ONLY the month-labels row on each page. The listing-name banner
+       and the section dividers are also <thead>, so keep them as normal rows
+       that print once instead of repeating on every page. */
+    table.rev-data-table thead.months { display: table-header-group; }
+    table.rev-data-table thead.section { display: table-row-group; }
+    table.rev-data-table tr { break-inside: avoid; page-break-inside: avoid; }
+
+    /* Always start the "Number of bookings by Channel" block on a fresh page
+       (the repeated month-labels header re-appears above it for context). */
+    table.rev-data-table thead.rev-break-page,
+    table.rev-data-table thead.rev-break-page tr {
+      break-before: page;
+      page-break-before: always;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="rev-page">
+
+  <!-- Branded header — only visible when printing / saving as PDF -->
+  <div class="rev-print-header" aria-hidden="true">
+    <img src="{% static 'img/login/favhost_new_logo.png' %}" alt="FavHost" class="rev-print-logo">
+    <span class="rev-print-meta" id="revPrintMeta"></span>
+  </div>
+
+  <!-- ============ PAGE HEADER ============ -->
+  <section class="rev-page-header">
+    <h1 class="rev-page-title">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      Revenue by Listing
+    </h1>
+    <div class="rev-yearbox" role="group" aria-label="Select year">
+      <a class="rev-yearbox-arrow {% if not year_prev %}disabled{% endif %}"
+         href="?{% if selected_property %}listing={{ selected_property.id }}&{% endif %}year={{ year_prev }}" aria-label="Previous year" title="Previous year">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><polyline points="15 18 9 12 15 6"/></svg>
+      </a>
+      <div class="dropdown">
+        <button class="rev-yearbox-current dropdown-toggle" type="button" data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false" title="Select year">
+          {{ selected_year }}
+        </button>
+        <ul class="dropdown-menu rev-year-menu">
+          {% for y in total_years %}
+          <li><a class="dropdown-item {% if y == selected_year %}active{% endif %}"
+                 href="?{% if selected_property %}listing={{ selected_property.id }}&{% endif %}year={{ y }}">{{ y }}</a></li>
+          {% endfor %}
+        </ul>
+      </div>
+      <a class="rev-yearbox-arrow {% if not year_next %}disabled{% endif %}"
+         href="?{% if selected_property %}listing={{ selected_property.id }}&{% endif %}year={{ year_next }}" aria-label="Next year" title="Next year">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><polyline points="9 18 15 12 9 6"/></svg>
+      </a>
+    </div>
+    <div class="rev-page-actions">
+      <button class="rev-icon-btn" id="revRefreshBtn" aria-label="Refresh" title="Refresh">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+      </button>
+      <button class="rev-icon-btn" id="revPrintBtn" aria-label="Print" title="Print">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+      </button>
+      <div class="dropdown">
+        <button class="rev-icon-btn dropdown-toggle" id="revDownloadBtn" type="button" data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false" aria-label="Download" title="Download">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end rev-download-menu">
+          <li><a class="dropdown-item rev-export-link" href="#" data-format="xlsx">Excel (.xlsx)</a></li>
+          <li><a class="dropdown-item rev-export-link" href="#" data-format="csv">CSV (.csv)</a></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ MAIN LAYOUT ============ -->
+  <div class="rev-layout">
+
+    <!-- LEFT: listings sidebar -->
+    <aside class="rev-sidebar" aria-label="Listings">
+      <div class="rev-search-box">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="search" id="revListingSearch" placeholder="Search listings" autocomplete="off" />
+      </div>
+      <ul class="rev-listing-list" id="revListingList">
+        {% for p in listings %}
+        <li class="rev-listing-item {% if selected_property and p.id == selected_property.id %}active{% endif %}" data-name="{{ p.title|lower }}">
+          <a class="rev-listing-link" href="?listing={{ p.id }}&year={{ selected_year }}">
+            <span class="rev-listing-thumb" data-bg="{{ p.image }}"></span>
+            <span class="rev-listing-name">{{ p.title }}</span>
+          </a>
+        </li>
+        {% empty %}
+        <li class="rev-empty-listings">No listings yet. Create a listing to see its revenue.</li>
+        {% endfor %}
+      </ul>
+    </aside>
+
+    <!-- RIGHT: main content -->
+    <main class="rev-main">
+
+      {% if not selected_property %}
+      <div class="rev-card">
+        <p class="rev-muted" style="margin:0;">Select or create a listing to view its revenue breakdown.</p>
+      </div>
+      {% else %}
+
+      <!-- Data table -->
+      <section class="rev-table-card">
+        <div class="rev-table-card-header">
+          <h2 class="rev-table-card-title">Revenue · {{ selected_year }}</h2>
+        </div>
+        <div class="rev-table-card-body">
+        <div class="rev-table-scroll">
+          <table class="rev-data-table" id="revDataTable" aria-label="Revenue data for {{ selected_property.title }}">
+            <thead class="section">
+              <tr><th colspan="14">{{ selected_property.title }}</th></tr>
+            </thead>
+            <thead class="months">
+              <tr>
+                <th>{{ selected_year }}</th>
+                {% for m in month_labels %}<th>{{ m }}</th>{% endfor %}
+                <th class="overall">Overall</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in table_rows %}
+              <tr>
+                <td class="first-col">{{ row.label }}</td>
+                {% for v in row.values %}
+                <td>{% if row.fmt == 'money' %}{% money v %}{% else %}{{ v }}{% endif %}</td>
+                {% endfor %}
+                <td class="overall">{% if row.fmt == 'money' %}{% money row.overall %}{% else %}{{ row.overall }}{% endif %}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+
+            <thead class="section rev-break-page">
+              <tr><th colspan="14">Number of bookings by Channel</th></tr>
+            </thead>
+            <tbody>
+              {% for row in bookings_channel_rows %}
+              <tr>
+                <td class="first-col">{{ row.label }}</td>
+                {% for v in row.values %}<td>{{ v }}</td>{% endfor %}
+                <td class="overall">{{ row.overall }}</td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="14" class="rev-muted">No bookings for {{ selected_year }}.</td></tr>
+              {% endfor %}
+            </tbody>
+
+            <thead class="section">
+              <tr><th colspan="14">Revenue by Channel</th></tr>
+            </thead>
+            <tbody>
+              {% for row in revenue_channel_rows %}
+              <tr>
+                <td class="first-col">{{ row.label }}</td>
+                {% for v in row.values %}<td>{% money v %}</td>{% endfor %}
+                <td class="overall">{% money row.overall %}</td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="14" class="rev-muted">No channel revenue for {{ selected_year }}.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        </div>
+      </section>
+
+      <!-- Charts row -->
+      <div class="rev-charts-row">
+        <!-- Bar chart -->
+        <section class="rev-card">
+          <h2 class="rev-card-title">Revenue by month {{ selected_year }}</h2>
+          <div class="rev-bar-chart">
+            {% for col in bar_cols %}
+            <div class="rev-bar-col {% if col.highlight %}highlight{% endif %}">
+              <span class="rev-bar-value">{% money col.value %}</span>
+              <div class="rev-bar" data-height="{{ col.height }}"></div>
+              <span class="rev-bar-label">{{ col.label }}</span>
+            </div>
+            {% endfor %}
+          </div>
+        </section>
+
+        <!-- Donut chart -->
+        <section class="rev-card">
+          <h2 class="rev-card-title">Revenue by channel {{ selected_year }}</h2>
+          {% if donut_segments %}
+          <div class="rev-channel-body">
+            <div class="rev-donut" role="img" aria-label="Revenue distribution by channel"
+                 data-gradient="{{ donut_gradient }}"></div>
+            <ul class="rev-legend">
+              {% for s in donut_segments %}
+              <li>
+                <span class="rev-legend-swatch" data-color="{{ s.color }}"></span>
+                {{ s.name }}
+                <span class="rev-legend-pct">{{ s.pct }}%</span>
+              </li>
+              {% endfor %}
+            </ul>
+          </div>
+          {% else %}
+          <p class="rev-muted" style="margin:0;">No channel revenue recorded for {{ selected_year }}.</p>
+          {% endif %}
+        </section>
+      </div>
+      {% endif %}
+    </main>
+  </div>
+</div>
+
+{% include 'frontend/base/footer.html' %}
+{% endblock %}
+
+{% block extra_script %}
+<script>
+  (function () {
+    // --- Apply dynamic styles from data-* attributes ---
+    // (kept out of inline style="" so the values come straight from the
+    // server without tripping the editor's CSS-in-attribute validator.)
+    document.querySelectorAll('.rev-listing-thumb[data-bg]').forEach(function (el) {
+      var url = el.getAttribute('data-bg');
+      if (url) el.style.backgroundImage = "url('" + url + "')";
+    });
+    document.querySelectorAll('.rev-bar[data-height]').forEach(function (el) {
+      el.style.height = (el.getAttribute('data-height') || 0) + '%';
+    });
+    var donut = document.querySelector('.rev-donut[data-gradient]');
+    if (donut) donut.style.background = donut.getAttribute('data-gradient');
+    document.querySelectorAll('.rev-legend-swatch[data-color]').forEach(function (el) {
+      el.style.background = el.getAttribute('data-color');
+    });
+
+    // --- Stamp the print header with the generation date/time ---
+    function revStampPrintDate() {
+      var el = document.getElementById('revPrintMeta');
+      if (el) el.textContent = 'Generated: ' + new Date().toLocaleString();
+    }
+    revStampPrintDate();
+    window.addEventListener('beforeprint', revStampPrintDate);
+
+    // --- Sidebar search (client-side filter) ---
+    var search = document.getElementById('revListingSearch');
+    if (search) {
+      search.addEventListener('input', function () {
+        var q = this.value.trim().toLowerCase();
+        document.querySelectorAll('#revListingList .rev-listing-item').forEach(function (item) {
+          var name = item.getAttribute('data-name') || '';
+          item.style.display = name.indexOf(q) !== -1 ? '' : 'none';
+        });
+      });
+    }
+
+    // --- Header actions ---
+    var refreshBtn = document.getElementById('revRefreshBtn');
+    if (refreshBtn) refreshBtn.addEventListener('click', function () { window.location.reload(); });
+
+    var printBtn = document.getElementById('revPrintBtn');
+    if (printBtn) printBtn.addEventListener('click', function () { window.print(); });
+
+    // --- Download as Excel or CSV (server-built, spreadsheet-ready) ---
+    // Reuse the current listing/year and ask the view for the chosen export.
+    // We load it in a hidden iframe rather than navigating: the server replies
+    // with an attachment, so the file downloads without firing the page's
+    // beforeunload loader — the page stays exactly as-is.
+    document.querySelectorAll('.rev-export-link').forEach(function (link) {
+      link.addEventListener('click', function (e) {
+        e.preventDefault();
+        var fmt = link.getAttribute('data-format') || 'xlsx';
+        var params = new URLSearchParams(window.location.search);
+        params.set('export', fmt);
+        var url = window.location.pathname + '?' + params.toString();
+        var iframe = document.getElementById('revDownloadFrame');
+        if (!iframe) {
+          iframe = document.createElement('iframe');
+          iframe.id = 'revDownloadFrame';
+          iframe.style.display = 'none';
+          document.body.appendChild(iframe);
+        }
+        iframe.src = url;
+      });
+    });
+  })();
+</script>
+{% endblock %}

@@ -4,7 +4,7 @@ import re
 from django.core.files import File
 from django.views.generic import ListView, View
 from .models import *
-from property.models import Property
+from property.models import Property, PropertyBlockDate
 from django.urls import reverse_lazy
 from django.db import transaction
 from django.contrib import messages
@@ -15,10 +15,14 @@ from django.db.models import Q, Value
 from django.db.models.functions import Concat
 from calendar import monthrange
 from datetime import datetime, timedelta
-from decimal import Decimal
 from django.contrib.auth.mixins import LoginRequiredMixin
+from accounts.utils import get_visible_user_ids
+from accounts import currency
 from .enums import BOOKING_CHANNELS
 from .utils import generate_booking_payments
+from accounts.utils import get_visible_user_ids
+from tasks.models import Task
+from property.models import PropertyBlockDate
 
 from django.core.mail import send_mail
 from django.conf import settings
@@ -35,13 +39,13 @@ class BookingListView(LoginRequiredMixin, ListView):
         now = self.request.user.get_local_date()
 
         # Base queryset for the logged-in user
-        base_qs = Booking.objects.filter(property__created_by=self.request.user).select_related('property', 'channel').prefetch_related('images')
+        base_qs = Booking.objects.filter(property__created_by__in=get_visible_user_ids(self.request.user)).select_related('property', 'channel').prefetch_related('images')
 
         property_id = self.request.GET.get('property_id')
         current_property = None
         if property_id:
             base_qs = base_qs.filter(property_id=property_id)
-            current_property = Property.objects.filter(id=property_id, created_by=self.request.user).first()
+            current_property = Property.objects.filter(id=property_id, created_by__in=get_visible_user_ids(self.request.user)).first()
 
         # Calculate counts for all statuses
         now = self.request.user.get_local_date()
@@ -52,8 +56,8 @@ class BookingListView(LoginRequiredMixin, ListView):
             bookings = bookings.order_by('-check_out_date')
         elif status_filter == 'current':
             bookings = base_qs.filter(check_in_date__lte=now, check_out_date__gte=now, status='confirmed')
-            # List sorted by Checkin Date, first checking date on the top
-            bookings = bookings.order_by('check_in_date')
+            # List sorted by Checkin Date, latest checking date on the top
+            bookings = bookings.order_by('-check_in_date')
         elif status_filter == 'upcoming':
             bookings = base_qs.filter(check_in_date__gt=now, status='confirmed')
             # List sorted by Checkin Date, Closest checking date on the top
@@ -98,7 +102,11 @@ class BookingListView(LoginRequiredMixin, ListView):
 
             relevant_info = ''
             time_delta = False
-            if status_filter == 'upcoming':
+            urgency = 'green'
+            if booking.status == 'cancelled':
+                relevant_info = 'Cancelled'
+                urgency = 'red'
+            elif status_filter == 'upcoming':
                 if booking.check_in_date:
                     delta = booking.check_in_date - now
                     if delta.days > 1:
@@ -110,6 +118,8 @@ class BookingListView(LoginRequiredMixin, ListView):
             else:
                 if booking.check_out_date:
                     delta = booking.check_out_date - now
+                    if 0 <= delta.days <= 2:
+                        urgency = 'amber'
                     if delta.days > 1:
                         relevant_info = f"Checkout in {delta.days} days"
                     elif delta.days == 1:
@@ -131,7 +141,7 @@ class BookingListView(LoginRequiredMixin, ListView):
                 'nights': booking.total_nights,
                 'guests': booking.guest_count,
                 'reservation_number': booking.booking_id,
-                'total_price': f"${booking.price:.2f}",
+                'total_price': currency.money(booking.price, self.request.user.currency),
                 'platform': booking.channel.name if booking.channel else 'Others',
                 'platform_icon': booking.channel.icon.url if booking.channel and booking.channel.icon else '',
                 'guest_avatar': guest_image.image.url if guest_image else '/static/img/common/default_user_icon.png',
@@ -139,6 +149,7 @@ class BookingListView(LoginRequiredMixin, ListView):
                 'due_status': 'Paid', # Placeholder
                 'checkout_info': relevant_info,
                 'time_delta': time_delta,
+                'urgency': urgency,
                 'email': booking.email,
                 'phone': booking.phone,
             })
@@ -178,7 +189,7 @@ class BookingCreateView(LoginRequiredMixin, View):
 
         form_data = {}
         if enquiry_id:
-            enquiry = get_object_or_404(Enquiry, unique_id=enquiry_id, property__created_by=request.user)
+            enquiry = get_object_or_404(Enquiry, unique_id=enquiry_id, property__created_by__in=get_visible_user_ids(request.user))
             property_id = enquiry.property_id
             check_in_val = enquiry.check_in_date.strftime('%Y-%m-%d') if enquiry.check_in_date else None
             check_out_val = enquiry.check_out_date.strftime('%Y-%m-%d') if enquiry.check_out_date else None
@@ -205,7 +216,7 @@ class BookingCreateView(LoginRequiredMixin, View):
             enquiry_images = None
             enquiry_documents = None
 
-        all_properties = Property.objects.filter(created_by=request.user, status='Active').order_by('title')
+        all_properties = Property.objects.filter(created_by__in=get_visible_user_ids(request.user), status='Active').order_by('title')
 
         context = {
             'channels': BookingChannel.objects.all(),
@@ -234,7 +245,7 @@ class BookingCreateView(LoginRequiredMixin, View):
                 # Re-render form with submitted data
                 context = {
                     'channels': BookingChannel.objects.all(),
-                    'all_properties': Property.objects.filter(created_by=request.user, status='Active').order_by('title'),
+                    'all_properties': Property.objects.filter(created_by__in=get_visible_user_ids(request.user), status='Active').order_by('title'),
                     'form_data': request.POST,
                     'enquiry_id': enquiry_id,
                     'enquiry_images': EnquiryImage.objects.filter(enquiry__unique_id=enquiry_id) if enquiry_id else None,
@@ -249,7 +260,7 @@ class BookingCreateView(LoginRequiredMixin, View):
                     messages.error(request, "Phone number must be at least 5 digits.")
                     context = {
                         'channels': BookingChannel.objects.all(),
-                        'all_properties': Property.objects.filter(created_by=request.user, status='Active').order_by('title'),
+                        'all_properties': Property.objects.filter(created_by__in=get_visible_user_ids(request.user), status='Active').order_by('title'),
                         'form_data': request.POST,
                         'enquiry_id': enquiry_id,
                         'enquiry_images': EnquiryImage.objects.filter(enquiry__unique_id=enquiry_id) if enquiry_id else None,
@@ -260,39 +271,59 @@ class BookingCreateView(LoginRequiredMixin, View):
             check_in_date = datetime.strptime(check_in_str, '%Y-%m-%d').date()
             check_out_date = datetime.strptime(check_out_str, '%Y-%m-%d').date()
 
-            # Check for conflicting confirmed bookings
-            is_booked = Booking.objects.filter(
-                property_id=property_id,
-                status='confirmed',
-                check_in_date__lt=check_out_date,
-                check_out_date__gt=check_in_date
-            ).exists()
-
-            if is_booked:
-                messages.error(request, "The selected property is already booked for these dates. Please choose different dates or another property.")
-                return redirect(request.META.get('HTTP_REFERER', reverse_lazy('booking:booking-create')))
-            
-
             with transaction.atomic():
+                # Lock the property row to serialize booking creation for this property
+                Property.objects.select_for_update().get(pk=property_id)
+
+                # Check for conflicting confirmed bookings
+                is_booked = Booking.objects.filter(
+                    property_id=property_id,
+                    status='confirmed',
+                    check_in_date__lt=check_out_date,
+                    check_out_date__gt=check_in_date
+                ).exists()
+
+                if is_booked:
+                    raise Exception("The selected property is already booked for these dates. Please choose different dates or another property.")
+
+                # Check for blocked dates
+                is_blocked = PropertyBlockDate.objects.filter(
+                    property_id=property_id,
+                    is_active=True,
+                    start_date__lt=check_out_date,
+                    end_date__gt=check_in_date
+                ).exists()
+
+                if is_blocked:
+                    raise Exception("The selected property is blocked for these dates. Please choose different dates or another property.")
                 booking = Booking.objects.create(
                     first_name=request.POST.get('first_name'),
                     last_name=request.POST.get('last_name'),
                     email=request.POST.get('email'),
                     phone=request.POST.get('phone'),
+                    street_address=request.POST.get('street_address'),
+                    city=request.POST.get('city'),
+                    zip=request.POST.get('zip'),
+                    country=request.POST.get('country'),
+                    state=request.POST.get('state'),
+                    nationality=request.POST.get('nationality'),
+                    vehicle_information=request.POST.get('vehicle_information'),
                     country_code=request.POST.get('country_code'),
                     guest_count=int(request.POST.get('guest_count') or 0),
                     channel_id=request.POST.get('channel'),
                     property_id=request.POST.get('property'),
+                    purpose_of_stay=request.POST.get('purpose_of_stay'),
                     check_in_date=datetime.strptime(request.POST.get('check_in_date'), '%Y-%m-%d').date() if request.POST.get('check_in_date') else None,
                     check_out_date=datetime.strptime(request.POST.get('check_out_date'), '%Y-%m-%d').date() if request.POST.get('check_out_date') else None,
                     check_in_time=request.POST.get('check_in_time'),
                     check_out_time=request.POST.get('check_out_time'),
                     notes=request.POST.get('notes'),
-                    price=Decimal(request.POST.get('price', '0.00')),
-                    price_per_night=Decimal(request.POST.get('price_per_night', '0.00')),
-                    deposit_fee=Decimal(request.POST.get('deposit_fee', '0.00')),
-                    application_fee=Decimal(request.POST.get('application_fee', '0.00')),
-                    cleaning_fee=Decimal(request.POST.get('cleaning_fee', '0.00'))
+                    # Amounts are submitted in the host's display currency; store as USD.
+                    price=currency.to_usd(request.POST.get('price', '0.00'), request.user.currency),
+                    price_per_night=currency.to_usd(request.POST.get('price_per_night', '0.00'), request.user.currency),
+                    deposit_fee=currency.to_usd(request.POST.get('deposit_fee', '0.00'), request.user.currency),
+                    application_fee=currency.to_usd(request.POST.get('application_fee', '0.00'), request.user.currency),
+                    cleaning_fee=currency.to_usd(request.POST.get('cleaning_fee', '0.00'), request.user.currency)
 
                 )
 
@@ -355,14 +386,14 @@ class BookingUpdateView(LoginRequiredMixin, View):
     template_name = 'frontend/booking/update.html'
 
     def get(self, request, *args, **kwargs):
-        booking = get_object_or_404(Booking, pk=kwargs['pk'], property__created_by=request.user)
+        booking = get_object_or_404(Booking, pk=kwargs['pk'], property__created_by__in=get_visible_user_ids(request.user))
         
         # Find available properties for the booking's current dates/guests
         available_properties = []
         if booking.check_in_date and booking.check_out_date and booking.guest_count:
             # Find properties with overlapping confirmed bookings, excluding the current one
             overlapping_bookings = Booking.objects.filter(
-                property__created_by=request.user,
+                property__created_by__in=get_visible_user_ids(request.user),
                 status='confirmed',
                 check_in_date__lt=booking.check_out_date,
                 check_out_date__gt=booking.check_in_date
@@ -370,7 +401,7 @@ class BookingUpdateView(LoginRequiredMixin, View):
 
             # Get properties that are not in the overlapping list and can accommodate the guests
             available_properties_qs = Property.objects.filter(
-                created_by=request.user,
+                created_by__in=get_visible_user_ids(request.user),
                 guest__gte=booking.guest_count
             ).exclude(id__in=overlapping_bookings)
             available_properties = list(available_properties_qs)
@@ -389,7 +420,7 @@ class BookingUpdateView(LoginRequiredMixin, View):
         return render(request, self.template_name, context)
 
     def post(self, request, *args, **kwargs):
-        booking = get_object_or_404(Booking, pk=kwargs['pk'], property__created_by=request.user)
+        booking = get_object_or_404(Booking, pk=kwargs['pk'], property__created_by__in=get_visible_user_ids(request.user))
 
         phone = request.POST.get('phone')
         if phone:
@@ -405,20 +436,32 @@ class BookingUpdateView(LoginRequiredMixin, View):
         check_in_date = datetime.strptime(check_in_str, '%Y-%m-%d').date()
         check_out_date = datetime.strptime(check_out_str, '%Y-%m-%d').date()
 
-        # Check for conflicting confirmed bookings, excluding the current one
-        is_booked = Booking.objects.filter(
-            property_id=property_id,
-            status='confirmed',
-            check_in_date__lt=check_out_date,
-            check_out_date__gt=check_in_date
-        ).exclude(pk=booking.pk).exists()
-
-        if is_booked:
-            messages.error(request, "The selected property is already booked for these dates. Please choose different dates or another property.")
-            return redirect(request.META.get('HTTP_REFERER', reverse_lazy('booking:booking-edit', kwargs={'pk': booking.pk})))
-
         try:
             with transaction.atomic():
+                # Lock the property row to serialize booking updates for this property
+                Property.objects.select_for_update().get(pk=property_id)
+
+                # Check for conflicting confirmed bookings, excluding the current one
+                is_booked = Booking.objects.filter(
+                    property_id=property_id,
+                    status='confirmed',
+                    check_in_date__lt=check_out_date,
+                    check_out_date__gt=check_in_date
+                ).exclude(pk=booking.pk).exists()
+
+                if is_booked:
+                    raise Exception("The selected property is already booked for these dates. Please choose different dates or another property.")
+
+                # Check for blocked dates
+                is_blocked = PropertyBlockDate.objects.filter(
+                    property_id=property_id,
+                    is_active=True,
+                    start_date__lt=check_out_date,
+                    end_date__gt=check_in_date
+                ).exists()
+
+                if is_blocked:
+                    raise Exception("The selected property is blocked for these dates. Please choose different dates or another property.")
                 old_check_in_date = booking.check_in_date
                 old_check_out_date = booking.check_out_date
 
@@ -426,17 +469,26 @@ class BookingUpdateView(LoginRequiredMixin, View):
                 booking.last_name = request.POST.get('last_name')
                 booking.email = request.POST.get('email')
                 booking.phone = request.POST.get('phone')
+                booking.street_address = request.POST.get('street_address')
+                booking.city = request.POST.get('city')
+                booking.zip = request.POST.get('zip')
+                booking.country = request.POST.get('country')
+                booking.state = request.POST.get('state')
+                booking.nationality = request.POST.get('nationality')
+                booking.vehicle_information = request.POST.get('vehicle_information')
                 booking.country_code = request.POST.get('country_code')
                 booking.guest_count = int(request.POST.get('guest_count') or 0)
                 booking.channel_id = request.POST.get('channel')
                 booking.property_id = request.POST.get('property')
+                booking.purpose_of_stay = request.POST.get('purpose_of_stay')
                 booking.check_in_date = datetime.strptime(request.POST.get('check_in_date'), '%Y-%m-%d').date() if request.POST.get('check_in_date') else None
                 booking.check_out_date = datetime.strptime(request.POST.get('check_out_date'), '%Y-%m-%d').date() if request.POST.get('check_out_date') else None
                 booking.check_in_time = request.POST.get('check_in_time')
                 booking.check_out_time = request.POST.get('check_out_time')
                 booking.notes = request.POST.get('notes')
-                booking.price = Decimal(request.POST.get('price', '0.00'))
-                booking.price_per_night = Decimal(request.POST.get('price_per_night', '0.00'))
+                # Amounts are submitted in the host's display currency; store as USD.
+                booking.price = currency.to_usd(request.POST.get('price', '0.00'), request.user.currency)
+                booking.price_per_night = currency.to_usd(request.POST.get('price_per_night', '0.00'), request.user.currency)
                 booking.save()
 
                 # --- Handle Guest Images ---
@@ -480,7 +532,7 @@ def delete_guest_image(request):
     try:
         data = json.loads(request.body)
         image_id = data.get('image_id')
-        image = get_object_or_404(GuestImage, id=image_id, reservation__property__created_by=request.user)
+        image = get_object_or_404(GuestImage, id=image_id, reservation__property__created_by__in=get_visible_user_ids(request.user))
         image.delete()
         return JsonResponse({'success': True})
     except Exception as e:
@@ -491,7 +543,7 @@ def delete_guest_document(request):
     try:
         data = json.loads(request.body)
         document_id = data.get('document_id')
-        document = get_object_or_404(GuestDocument, id=document_id, reservation__property__created_by=request.user)
+        document = get_object_or_404(GuestDocument, id=document_id, reservation__property__created_by__in=get_visible_user_ids(request.user))
         document.delete()
         return JsonResponse({'success': True})
     except Exception as e:
@@ -499,11 +551,12 @@ def delete_guest_document(request):
     
 @login_required
 def payment_details(request, pk):
-    booking = get_object_or_404(Booking, pk=pk, property__created_by=request.user)
+    booking = get_object_or_404(Booking, pk=pk, property__created_by__in=get_visible_user_ids(request.user))
     payment_schedule = []
     subtotal = 0
     total_price = 0
     monthly_payment = 0
+    nights = 0
 
     now = request.user.get_local_date()
 
@@ -511,10 +564,19 @@ def payment_details(request, pk):
         nights = booking.total_nights
         subtotal = booking.price_per_night * nights
 
-        payments = booking.payments.all().order_by('pk')
+        payments = booking.payments.prefetch_related('attachments').all().order_by('pk')
         for payment in payments:
             payment_schedule.append({
-                'id': payment.id, 'name': payment.type, 'amount': payment.amount, 'date': payment.expected_payment_date, 'is_paid': payment.is_paid
+                'id': payment.id,
+                'name': payment.type,
+                'amount': payment.amount,
+                'date': payment.expected_payment_date,
+                'is_paid': payment.is_paid,
+                'notes': payment.notes or '',
+                'attachments': [
+                    {'id': a.id, 'url': a.file.url, 'name': a.name}
+                    for a in payment.attachments.all().order_by('created_at')
+                ],
             })
         
         if nights >= 30:
@@ -537,7 +599,7 @@ def payment_details(request, pk):
     elif booking.check_in_date and booking.check_in_date > now and booking.status == 'confirmed':
         booking_status = 'upcoming'
 
-    delta = booking.check_out_date - now
+    delta = (booking.check_out_date - now) if booking.check_out_date else None
 
 
     context = {
@@ -547,7 +609,7 @@ def payment_details(request, pk):
         'subtotal': subtotal,
         'total_price': total_price,
         'monthly_payment': monthly_payment,
-        'time_delta': True if delta.days == 0 else False,
+        'time_delta': True if (delta and delta.days == 0) else False,
     }
     context['booking_status'] = booking_status
 
@@ -563,10 +625,59 @@ def update_payment_status(request):
         payment_id = data.get('payment_id')
         is_paid = data.get('is_paid')
 
-        payment = get_object_or_404(Payment, id=payment_id, booking__property__created_by=request.user)
+        payment = get_object_or_404(Payment, id=payment_id, booking__property__created_by__in=get_visible_user_ids(request.user))
         payment.is_paid = is_paid
         payment.save()
         return JsonResponse({'success': True, 'message': 'Payment status updated.'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+@require_POST
+@login_required
+def add_payment_attachment(request):
+    try:
+        payment_id = request.POST.get('payment_id')
+        file = request.FILES.get('attachment')
+        if not file:
+            return JsonResponse({'success': False, 'error': 'No file provided.'}, status=400)
+        if file.size > 2 * 1024 * 1024:
+            return JsonResponse({'success': False, 'error': 'File size must not exceed 2 MB.'}, status=400)
+
+        payment = get_object_or_404(Payment, id=payment_id, booking__property__created_by__in=get_visible_user_ids(request.user))
+        att = PaymentAttachment.objects.create(payment=payment, file=file, name=file.name)
+        return JsonResponse({
+            'success': True,
+            'attachment': {'id': att.id, 'url': att.file.url, 'name': att.name},
+        })
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+
+@require_POST
+@login_required
+def delete_payment_attachment(request):
+    try:
+        data = json.loads(request.body)
+        att_id = data.get('attachment_id')
+        att = get_object_or_404(PaymentAttachment, id=att_id, payment__booking__property__created_by__in=get_visible_user_ids(request.user))
+        att.file.delete(save=False)
+        att.delete()
+        return JsonResponse({'success': True})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+
+@require_POST
+@login_required
+def update_payment_notes(request):
+    try:
+        data = json.loads(request.body)
+        payment_id = data.get('payment_id')
+        notes = data.get('notes', '').strip()
+        payment = get_object_or_404(Payment, id=payment_id, booking__property__created_by__in=get_visible_user_ids(request.user))
+        payment.notes = notes
+        payment.save()
+        return JsonResponse({'success': True, 'notes': payment.notes or ''})
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
@@ -574,7 +685,7 @@ def update_payment_status(request):
 def render_email_form(request):
     booking_id = request.GET.get('booking_id')
     try:
-        booking = get_object_or_404(Booking, id=booking_id, property__created_by=request.user)
+        booking = get_object_or_404(Booking, id=booking_id, property__created_by__in=get_visible_user_ids(request.user))
         nights = 0
         if booking.check_in_date and booking.check_out_date:
             nights = (booking.check_out_date - booking.check_in_date).days
@@ -597,7 +708,7 @@ def send_guest_email(request):
         subject = request.POST.get('subject')
         message = request.POST.get('message')
         
-        booking = get_object_or_404(Booking, id=booking_id, property__created_by=request.user)
+        booking = get_object_or_404(Booking, id=booking_id, property__created_by__in=get_visible_user_ids(request.user))
         
         send_mail(
             subject=subject,
@@ -618,7 +729,7 @@ def send_guest_email(request):
 
 @login_required
 def guest_receipt(request, pk):
-    booking = get_object_or_404(Booking, pk=pk, property__created_by=request.user)
+    booking = get_object_or_404(Booking, pk=pk, property__created_by__in=get_visible_user_ids(request.user))
 
     # Check if the request is for a modal view
     is_modal = request.GET.get('is_modal') == 'true'
@@ -627,16 +738,25 @@ def guest_receipt(request, pk):
     if booking.check_in_date and booking.check_out_date:
         nights = (booking.check_out_date - booking.check_in_date).days
 
-    # Calculate total paid amount and total price
+    # Calculate totals (refundable deposit excluded from all payment math)
     payments = booking.payments.all()
     total_paid = sum(p.amount for p in payments if p.is_paid)
-    total_price = booking.price + (booking.cleaning_fee or 0) + (booking.application_fee or 0)
-    all_paid = total_paid >= total_price
+    deposit = booking.deposit_fee or 0
+    paid_excluding_deposit = max(total_paid - deposit, 0)
+    subtotal = (booking.price_per_night or 0) * nights
+    total_price = subtotal + (booking.cleaning_fee or 0) + (booking.application_fee or 0)
+    all_paid = paid_excluding_deposit >= total_price
+
+    balance_due = max(total_price - paid_excluding_deposit, 0)
 
     context = {
         'booking': booking,
         'nights': nights,
+        'subtotal': subtotal,
         'total_paid': total_paid,
+        'paid_excluding_deposit': paid_excluding_deposit,
+        'total_price': total_price,
+        'balance_due': balance_due,
         'all_paid': all_paid,
         'is_modal': is_modal,
     }
@@ -647,10 +767,7 @@ def guest_receipt(request, pk):
 class CancelBookingView(LoginRequiredMixin, View):
     def post(self, request, *args, **kwargs):
         booking_id = kwargs.get('pk')
-        booking = get_object_or_404(Booking, pk=booking_id)
-
-        if booking.property.created_by != request.user:
-            return JsonResponse({'success': False, 'error': 'You do not have permission to cancel this booking.'}, status=403)
+        booking = get_object_or_404(Booking, pk=booking_id, property__created_by__in=get_visible_user_ids(request.user))
 
         # Prevent cancellation of bookings that are not upcoming
         # if booking.status != 'upcoming':
@@ -733,7 +850,7 @@ class EnquiryListView(LoginRequiredMixin, ListView):
 
         # Base queryset for the logged-in user
         enquiry_qs = Enquiry.objects.filter(
-            property__created_by=self.request.user,
+            property__created_by__in=get_visible_user_ids(self.request.user),
             ).select_related(
                 'property'
             )
@@ -787,7 +904,7 @@ class EnquiryDetailView(LoginRequiredMixin, View):
     template_name = 'frontend/enquiry/details.html'
 
     def get(self, request, *args, **kwargs):
-        enquiry = get_object_or_404(Enquiry, unique_id=kwargs['unique_id'], property__created_by=request.user)
+        enquiry = get_object_or_404(Enquiry, unique_id=kwargs['unique_id'], property__created_by__in=get_visible_user_ids(request.user))
 
         # Financial calculations based on the associated property
         prop = enquiry.property
@@ -825,7 +942,7 @@ class EnquiryDetailView(LoginRequiredMixin, View):
 @login_required
 def archive_enquiry_api(request, unique_id):
     """API endpoint to archive an Enquiry."""
-    enquiry = get_object_or_404(Enquiry, unique_id=unique_id, property__created_by=request.user)
+    enquiry = get_object_or_404(Enquiry, unique_id=unique_id, property__created_by__in=get_visible_user_ids(request.user))
     enquiry.is_archive = True
     enquiry.save()
     return JsonResponse({'success': True, 'message': 'Enquiry archived successfully.'})

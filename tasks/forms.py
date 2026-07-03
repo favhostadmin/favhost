@@ -1,6 +1,7 @@
 from django import forms
 from .models import Task
 from property.models import Property
+from accounts.utils import get_visible_user_ids
 
 class TaskForm(forms.ModelForm):
     property = forms.ModelChoiceField(queryset=Property.objects.none(), empty_label="Select a listing", required=True, widget=forms.Select(attrs={'class': 'form-control property-select'}))
@@ -8,13 +9,18 @@ class TaskForm(forms.ModelForm):
     class Meta:
         model = Task
         fields = [
-            'property', 'details', 'date', 'time', 'repeat', 'repeat_till',
-            'task_type', 'other_explanation', 'assigned_to', 'phone', 'country_code'
+            'property', 'title', 'details', 'date', 'time', 'repeat', 'repeat_till',
+            'task_type', 'other_explanation', 'assigned_to', 'phone', 'country_code',
+            'email',
         ]
         widgets = {
-            'details': forms.Textarea(attrs={
-                'placeholder': 'Briefly describe the task in 100 characters',
+            'title': forms.TextInput(attrs={
+                'id': 'taskTitle',
+                'placeholder': 'Enter task title',
                 'maxlength': '100',
+            }),
+            'details': forms.Textarea(attrs={
+                'placeholder': 'Briefly describe the task',
                 'id': 'taskDetails',
                 'rows': 3,
             }),
@@ -30,6 +36,7 @@ class TaskForm(forms.ModelForm):
             'assigned_to': forms.TextInput(attrs={'id': 'assignedTo', 'placeholder': 'Enter name'}),
             'phone': forms.TextInput(attrs={'type': 'tel', 'id': 'phone', 'placeholder': 'Phone number'}),
             'country_code': forms.HiddenInput(attrs={'id': 'id_country_code'}),
+            'email': forms.EmailInput(attrs={'id': 'taskEmail', 'placeholder': 'Enter email'}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -53,11 +60,14 @@ class TaskForm(forms.ModelForm):
 
 
         if user: # Filter properties by the logged-in user
-            self.fields['property'].queryset = Property.objects.filter(created_by=user, status='Active')
+            self.fields['property'].queryset = Property.objects.filter(created_by__in=get_visible_user_ids(user), status='Active')
 
         # Make fields not required by the model as optional in the form
+        self.fields['title'].required = False
+        self.fields['title'].max_length = 100
         self.fields['repeat_till'].required = False
         self.fields['other_explanation'].required = False
+        self.fields['email'].required = False
 
         # Set a more user-friendly empty label for select fields
         # For ChoiceFields (not ModelChoiceField) ensure a visible empty option labeled 'Select'

@@ -1,4 +1,5 @@
 {% load static %}
+{% load currency_tags %}
 <link href="{% static 'css/booking/details.css' %}" rel="stylesheet">
 <style>
     .guest-details h2 {
@@ -14,6 +15,13 @@
         margin-bottom: 20px;
         color: #6b7280;
         font-size: 14px;
+    }
+
+    .contact-item .icon-spacer {
+        width: 20px;
+        height: 20px;
+        flex: 0 0 20px;
+        display: inline-block;
     }
 
     .attachments-link {
@@ -107,11 +115,26 @@
 
 
     .payment-schedule-container {
-        border-radius: 8px;
-        overflow: hidden;
+        border-radius: 0 0 8px 8px;
         background: #fff;
         margin: auto;
         font-family: Arial, sans-serif;
+    }
+
+    #payment-body {
+        max-height: 300px;
+        overflow-y: auto;
+        border: 1px solid #ddd;
+        border-top: none;
+        border-radius: 0 0 8px 8px;
+    }
+
+    #payment-body::-webkit-scrollbar {
+        width: 5px;
+    }
+    #payment-body::-webkit-scrollbar-thumb {
+        background: #c8c8c8;
+        border-radius: 4px;
     }
 
     .payment-schedule-header {
@@ -129,11 +152,21 @@
 
     .payment-schedule-row {
         display: grid;
-        grid-template-columns: 1.5fr 1fr 1fr 0.5fr;
-        padding: 10px;
+        grid-template-columns: 1.5fr 1fr 1fr 0.5fr 0.4fr;
+        padding: 7px 10px;
         align-items: center;
         border-bottom: 1px solid #eee;
-        font-size: 14px;
+        font-size: 12px;
+    }
+
+    .payment-schedule-row-head {
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        background: #f5f5f5 !important;
+        font-size: 12px !important;
+        padding: 7px 10px !important;
+        border-bottom: 1px solid #ddd !important;
     }
 
     .payment-schedule-row.row-paid {
@@ -250,6 +283,20 @@
         justify-content: flex-start;
     }
 
+    .payment-details-wrapper {
+        width: 100%;
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 0 32px 24px;
+    }
+
+    .guest-meta {
+        min-height: 200px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+
     .property-image {
         width: 100%;
         height: 150px;
@@ -292,13 +339,21 @@
 
     @media (max-width: 991.98px) {
         .guest-name{
-            margin-bottom: 8px;
+            margin: 0 !important;
+            padding: 0 !important;
+            margin-bottom: 8px !important;
             font-size: 14px;
+            line-height: 1.35;
         }
         .contact-item {
             gap: 8px;
             margin-bottom: 8px;
             font-size: 12px;
+        }
+        .contact-item .icon-spacer {
+            width: 16px;
+            height: 16px;
+            flex: 0 0 16px;
         }
         /* .main_div {
             max-height: calc(100vh - 140px);
@@ -328,7 +383,11 @@
         }
 
         .booking-card {
-            padding: 6px 0;
+            padding: 16px;
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            margin-bottom: 16px;
         }
 
         .card-content {
@@ -338,45 +397,49 @@
 
         .left-section {
             padding-right: 0;
+            padding-left: 0 !important;
             padding-bottom: 0px;
-            /* border-bottom: 1px solid #e5e7eb; */
             order: 1;
         }
 
         .guest-top {
-            display: grid;
-            grid-template-columns: 96px 1fr;
-            column-gap: 12px;
+            display: flex;
+            gap: 12px;
             align-items: stretch;
         }
 
         .mobile-avatar {
-            display: block;
-            width: 96px;
+            display: flex;
+            flex-direction: column;
+            flex: 0 0 96px;
             align-self: stretch;
         }
 
         .mobile-avatar .profile-image {
-            width: 96px;
+            width: 100%;
             height: 100%;
+            object-fit: cover;
             border-radius: 10px;
+            border: 1px solid #b9b9b9;
         }
 
         .guest-meta {
             flex: 1 1 auto;
+            min-height: auto !important;
+            justify-content: flex-start !important;
         }
 
         .desktop-only {
-            display: none;
+            display: none !important;
         }
 
         .mobile-only {
-            display: block;
+            display: block !important;
             order: 2;
         }
 
         .action-buttons {
-            background-color: #ffffff;
+            background-color: #E7E7E9;
             flex-direction: row;
             align-items: center;
             justify-content: space-between;
@@ -390,7 +453,7 @@
         }
 
         .action-buttons .left-section span {
-            color: #111827;
+            color: #000000;
         }
 
         .action-buttons .left-section img {
@@ -585,9 +648,83 @@
         }
     }
 
-    .payment-schedule-container {
-        border-radius: 8px;
+    /* ── Documents section ── */
+    .documents-section h3 {
+        font-size: 16px;
+        font-weight: 600;
+        color: #111827;
+        margin: 0 0 14px;
+    }
+    .documents-grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 14px;
+    }
+    .doc-card {
+        width: 160px;
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
         overflow: hidden;
+        cursor: pointer;
+        text-decoration: none;
+        background: #fff;
+        transition: box-shadow 0.15s;
+        display: flex;
+        flex-direction: column;
+    }
+    .doc-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+    .doc-card-preview {
+        background: #f3f4f6;
+        height: 100px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+    }
+    .doc-preview-inner {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        padding: 8px;
+        gap: 4px;
+        pointer-events: none;
+    }
+    .doc-preview-line {
+        height: 6px;
+        border-radius: 3px;
+        background: #d1d5db;
+    }
+    .doc-preview-line.dark { background: #9ca3af; }
+    .doc-preview-line.short { width: 60%; }
+    .doc-card-label {
+        padding: 8px 10px 10px;
+        display: flex;
+        align-items: center;
+        gap: 7px;
+    }
+    .doc-card-label svg { flex-shrink: 0; color: #3b82f6; }
+    .doc-card-label span {
+        font-size: 12px;
+        color: #111827;
+        font-weight: 500;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .doc-card-label small {
+        display: block;
+        font-size: 10px;
+        color: #6b7280;
+        font-weight: 400;
+    }
+    .documents-empty { font-size: 13px; color: #9ca3af; }
+    @media (max-width: 575px) {
+        .doc-card { width: calc(50% - 7px); }
+    }
+
+    .payment-schedule-container {
+        border-radius: 0 0 8px 8px;
         background: #fff;
         margin: auto;
         font-family: Arial, sans-serif;
@@ -608,11 +745,11 @@
 
     .payment-schedule-row {
         display: grid;
-        grid-template-columns: 1.5fr 1fr 1fr 0.5fr;
-        padding: 10px;
+        grid-template-columns: 1.5fr 1fr 1fr 0.5fr 0.4fr;
+        padding: 7px 10px;
         align-items: center;
         border-bottom: 1px solid #eee;
-        font-size: 14px;
+        font-size: 12px;
     }
 
     .payment-schedule-row.row-paid {
@@ -795,19 +932,14 @@
     }
 
     .payment-partial-shell {
-        background: #efefef;
+        background: #FAFAFA;
         padding: 12px 20px;
     }
 
     body.reservation-panel-open .payment-partial-shell {
-        padding: 0;
-    }
-
-    body.reservation-panel-open .main_div.desktop-details-shell > .content {
-        max-width: none !important;
-        width: 100% !important;
-        margin: 0 !important;
-        padding: 12px !important;
+        padding: 20px 16px 24px;
+        width: 100%;
+        box-sizing: border-box;
     }
 
     body.reservation-panel-open #globalTooltip {
@@ -815,6 +947,362 @@
         visibility: hidden !important;
         opacity: 0 !important;
         pointer-events: none !important;
+    }
+
+    body.reservation-panel-open .booking-card {
+        padding: 18px;
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        margin-bottom: 14px;
+        margin-top: 0;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    }
+    body.reservation-panel-open .booking-card:first-of-type {
+        margin-top: 0;
+    }
+    body.reservation-panel-open .booking-card:has(.payment-section) {
+        padding: 0;
+        overflow: hidden;
+    }
+    body.reservation-panel-open .card-content {
+        display: block !important;
+    }
+    body.reservation-panel-open .card-content > .left-section {
+        width: auto !important;
+        padding: 0 !important;
+    }
+    body.reservation-panel-open .guest-top {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        gap: 12px;
+    }
+    body.reservation-panel-open .guest-meta {
+        text-align: center;
+        width: 100%;
+    }
+    body.reservation-panel-open .guest-name {
+        font-size: 20px;
+        font-weight: 700;
+        margin-bottom: 12px;
+        color: #0f172a;
+    }
+    body.reservation-panel-open .desktop-avatar {
+        display: block;
+        margin: 0 auto;
+    }
+    body.reservation-panel-open .desktop-avatar .profile-image {
+        height: 80px;
+        width: 80px;
+        border-radius: 999px;
+        object-fit: cover;
+        border: 3px solid #e2e8f0;
+    }
+    body.reservation-panel-open .mobile-avatar {
+        display: none;
+    }
+    body.reservation-panel-open .contact-item {
+        margin-bottom: 8px;
+        font-size: 13px;
+        gap: 8px;
+        color: #475569;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    body.reservation-panel-open .contact-item img {
+        width: 14px;
+        height: 14px;
+        opacity: 0.4;
+        flex-shrink: 0;
+    }
+    body.reservation-panel-open .contact-item span,
+    body.reservation-panel-open .contact-item a {
+        color: #334155;
+    }
+    body.reservation-panel-open .right-half-wrapper {
+        display: none !important;
+    }
+    body.reservation-panel-open .payment-divider {
+        display: none !important;
+    }
+    body.reservation-panel-open .mobile-only {
+        display: block;
+    }
+    body.reservation-panel-open .desktop-only.property-section {
+        display: none !important;
+    }
+    body.reservation-panel-open .desktop-property-title {
+        display: none;
+    }
+    body.reservation-panel-open .rental-section {
+        display: none;
+    }
+
+    /* Property info card */
+    body.reservation-panel-open .mobile-booking-details {
+        display: flex;
+        gap: 14px;
+        align-items: center;
+        padding-top: 16px;
+        margin-top: 16px;
+        border-top: 1px solid #f1f5f9;
+    }
+    body.reservation-panel-open .mobile-booking-image {
+        width: 72px;
+        height: 72px;
+        object-fit: cover;
+        border-radius: 10px;
+        flex: 0 0 72px;
+        border: 1px solid #e2e8f0;
+    }
+    body.reservation-panel-open .mobile-booking-content {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: 5px;
+    }
+    body.reservation-panel-open .mobile-booking-title {
+        font-size: 15px;
+        font-weight: 600;
+        color: #0f172a;
+        line-height: 1.3;
+    }
+    body.reservation-panel-open .mobile-date-row {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 13px;
+        color: #475569;
+    }
+    body.reservation-panel-open .mobile-date-row:last-of-type {
+        margin-bottom: 0;
+    }
+    body.reservation-panel-open .mobile-date-icon {
+        width: 13px;
+        height: 13px;
+        object-fit: contain;
+        flex: 0 0 13px;
+        opacity: 0.4;
+    }
+    body.reservation-panel-open .mobile-stat-row {
+        display: flex;
+        gap: 16px;
+        align-items: center;
+        font-size: 12px;
+        color: #64748b;
+        margin-top: 2px;
+    }
+    body.reservation-panel-open .mobile-stat-item {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+    }
+    body.reservation-panel-open .mobile-stat-icon {
+        width: 13px;
+        height: 13px;
+        object-fit: contain;
+        flex: 0 0 13px;
+        opacity: 0.4;
+    }
+
+    /* Notes section */
+    body.reservation-panel-open .booking-card .notes-section {
+        padding: 14px;
+        background: #fffdfa;
+        border: 1px solid #fef3c7;
+        border-radius: 8px;
+        text-align: center;
+    }
+    body.reservation-panel-open .booking-card .notes-section h3 {
+        font-size: 11px;
+        font-weight: 700;
+        margin: 0 0 8px;
+        color: #d97706;
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+    }
+    body.reservation-panel-open .booking-card .notes-text {
+        font-size: 13px;
+        color: #451a03;
+        line-height: 1.6;
+        margin: 0;
+    }
+
+    /* Payment section */
+    body.reservation-panel-open .payment-section {
+        padding: 0;
+        margin: 0;
+        display: block !important;
+    }
+    body.reservation-panel-open .payment-section > .col-lg-6,
+    body.reservation-panel-open .payment-section > .col-lg-4 {
+        width: 100%;
+        max-width: 100%;
+        flex: none;
+        padding: 16px 20px;
+    }
+    body.reservation-panel-open .payment-section > .col-lg-6 {
+        padding-bottom: 0;
+    }
+    body.reservation-panel-open .payment-section > .col-lg-4 {
+        padding-top: 0;
+    }
+    body.reservation-panel-open .payment-header {
+        background: #f8fafc !important;
+        border: 1px solid #e2e8f0 !important;
+        border-bottom: none !important;
+        border-radius: 8px 8px 0 0 !important;
+        padding: 10px 16px !important;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+    body.reservation-panel-open .payment-header h3 {
+        font-size: 12px;
+        font-weight: 700;
+        margin: 0;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #334155;
+    }
+    body.reservation-panel-open .payment-schedule-table {
+        border-radius: 0 0 8px 8px;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    body.reservation-panel-open .payment-schedule-row {
+        font-size: 12px;
+        padding: 10px 12px;
+        display: grid;
+        grid-template-columns: 1.2fr 1fr 0.8fr 0.4fr 0.3fr;
+        border-bottom: 1px solid #f1f5f9;
+        align-items: center;
+        transition: background 0.15s;
+        min-width: 440px;
+    }
+    body.reservation-panel-open .payment-schedule-row:hover {
+        background: #fafbfc;
+    }
+    body.reservation-panel-open .payment-schedule-row:last-child {
+        border-bottom: none;
+    }
+    body.reservation-panel-open .payment-schedule-row-head {
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        background: #f8fafc;
+        font-weight: 600;
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #64748b;
+        padding: 9px 12px;
+        border-bottom: 1px solid #e2e8f0;
+    }
+    body.reservation-panel-open .payment-schedule-row.row-paid {
+        background: #f0fdf4;
+    }
+    body.reservation-panel-open .payment-schedule-row.row-paid:hover {
+        background: #e6f7ea;
+    }
+    body.reservation-panel-open .col-payment-type {
+        color: #1e293b;
+        font-weight: 500;
+    }
+    body.reservation-panel-open .col-due-date {
+        color: #475569;
+    }
+    body.reservation-panel-open .col-amount {
+        font-weight: 600;
+        color: #1e293b;
+    }
+    body.reservation-panel-open .payment-summary {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 16px;
+    }
+    body.reservation-panel-open .payment-summary h3 {
+        font-size: 12px;
+        font-weight: 700;
+        margin: 0 0 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #334155;
+    }
+    body.reservation-panel-open .payment-summary hr {
+        display: none;
+    }
+    body.reservation-panel-open .payment-summary .summary-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 5px 0;
+        font-size: 13px;
+    }
+    body.reservation-panel-open .payment-summary .summary-label {
+        color: #64748b;
+    }
+    body.reservation-panel-open .payment-summary .summary-value {
+        font-weight: 500;
+        color: #1e293b;
+    }
+    body.reservation-panel-open .payment-summary .summary-item:last-of-type {
+        font-size: 15px;
+        font-weight: 700;
+        padding-top: 10px;
+        border-top: 1px solid #e2e8f0;
+        margin-top: 6px;
+    }
+    body.reservation-panel-open .payment-summary .summary-item:last-of-type .summary-label,
+    body.reservation-panel-open .payment-summary .summary-item:last-of-type .summary-value {
+        color: #0f172a;
+    }
+
+    /* Toggle buttons for payment */
+    body.reservation-panel-open .toggle-btns {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+    body.reservation-panel-open .toggle-btn {
+        width: 24px;
+        height: 24px;
+        border-radius: 6px;
+        border: 1px solid #d1d5db;
+        background: #ffffff;
+        color: #374151;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        line-height: 1;
+        transition: all 0.15s;
+    }
+    body.reservation-panel-open .toggle-btn:hover {
+        background: #f3f4f6;
+        border-color: #9ca3af;
+    }
+
+    body.reservation-panel-open .reservation-row {
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+    body.reservation-panel-open .details-col {
+        padding: 0 !important;
+    }
+
+    body.reservation-panel-open .no-data {
+        text-align: center;
+        padding: 20px;
+        color: #9ca3af;
+        font-size: 13px;
     }
 
     .payment-partial-shell .action-buttons {
@@ -830,22 +1318,6 @@
     }
 
     @media (min-width: 992px) {
-        .main_div.desktop-details-shell {
-            max-height: none !important;
-            min-height: auto !important;
-            overflow: visible !important;
-            /* padding: 0 2% 24px; */
-        }
-
-        .main_div.desktop-details-shell > .content {
-            background: #fff;
-            border: 1px solid #c8c8c8;
-            border-radius: 8px;
-            padding: 30px 14px 14px 14px !important;
-            max-width: 1280px;
-            margin: 0 auto;
-        }
-
         .reservation-row {
             align-items: flex-start;
         }
@@ -853,22 +1325,23 @@
         .guest-top {
             display: flex;
             align-items: flex-start;
-            gap: 16px;
+            gap: 24px;
         }
 
         .desktop-avatar {
             display: block;
-            flex: 0 0 220px;
-            max-width: 220px;
+            flex: 0 0 200px;
+            max-width: 200px;
         }
 
         .desktop-avatar .profile-image {
-            height: 220px;
+            height: 200px;
             width: 100%;
             border-radius: 10px;
             border: 1px solid #d3d3d3;
             object-fit: cover;
             object-position: center top;
+            display: block;
         }
 
         .details-col {
@@ -878,20 +1351,29 @@
         }
 
         .booking-card {
-            padding: 0;
+            padding: 20px;
+            background: #fff;
+            border: 1px solid #c8c8c8;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .booking-card:first-of-type {
+            margin-top: 20px;
         }
 
         .card-content {
             display: flex !important;
             flex-wrap: nowrap;
             gap: 16px;
-            align-items: flex-start;
+            align-items: stretch;
         }
 
         .left-section {
-            flex: 1 1 auto;
+            flex: 1;
+            width: 0;
             min-width: 0;
-            padding-right: 4px;
+            padding-right: 32px;
         }
 
         .right-section {
@@ -899,23 +1381,23 @@
             gap: 8px;
         }
 
-        .card-content > .right-section.desktop-only:not(.property-section) {
-            flex: 0 0 220px;
-            padding-left: 18px;
+        .card-content > .right-half-wrapper .right-section.desktop-only:not(.property-section) {
+            flex: 1 1 auto;
         }
 
-        .card-content > .right-section.property-section.desktop-only {
-            flex: 0 0 220px;
+        .card-content > .right-half-wrapper .right-section.property-section.desktop-only {
+            flex: 0 0 200px;
         }
 
         .right-section.property-section {
-            min-width: 220px !important;
-            max-width: 220px !important;
+            min-width: 200px !important;
+            max-width: 200px !important;
         }
 
         .right-section.property-section img {
-            height: 220px !important;
+            height: 200px !important;
             border-radius: 10px !important;
+            display: block;
         }
 
         .right-section.property-section .rental-link {
@@ -938,24 +1420,40 @@
         }
 
         .notes-section p {
-            max-width: 97%;
+            max-width: 100%;
             line-height: 1.5;
+            word-break: break-word;
+            white-space: normal;
+            overflow-wrap: break-word;
         }
 
         .guest-name {
-            margin-bottom: 10px;
+            font-size: 24px;
+            font-weight: 600;
+            color: #000;
+            margin-bottom: 12px;
         }
 
         .contact-item {
-            margin-bottom: 11px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            font-size: 16px;
+        }
+        
+        .contact-item img {
+            width: 20px;
+            height: 20px;
+            object-fit: contain;
         }
 
         .card-content .payment-divider {
-            display: none !important;
+            /* Removed display: none */
         }
 
         .card-content > .col-lg-auto.d-none.d-lg-flex.desktop-only {
-            display: none !important;
+            /* Removed display: none */
         }
 
         .payment-section {
@@ -999,10 +1497,6 @@
             padding: 8px 10px;
         }
 
-        .payment-partial-shell .main_div {
-            border: none;
-            padding: 0;
-        }
     }
 
 </style>
@@ -1095,13 +1589,11 @@
         </div>
     </div>
 
-    <div class="main_div desktop-details-shell" >
-        <div class="content" style="padding: 0rem 2%;">
             <div class="row m-0 p-0 reservation-row">
                 <div class="col-12 details-col">
                     <div class="booking-card">
                         <div class="card-content">
-                            <div class="left-section p-0">
+                            <div class="left-section" style="padding-left: 32px;">
                                 <div class="guest-top">
                                     <div class="desktop-avatar">
                                         {% with guest_image=booking.images.first %}
@@ -1119,9 +1611,9 @@
                                         {% endwith %}
                                     </div>
                                     <div class="guest-meta">
-                                        <h1 class="guest-name">{{ booking.first_name }} {{ booking.last_name }}</h1>
+                                        <div class="guest-name">{{ booking.first_name }} {{ booking.last_name }}</div>
 
-                                        <div class="contact-info mb-3" style="display:block !important;">
+                                        <div class="contact-info" style="display:block !important;">
                                             {% if booking.email %}
                                             <div class="contact-item">
                                                 <img class="mobile-date-icon" src="{% static 'img/booking/email_icon.svg' %}" alt="Email">
@@ -1144,34 +1636,24 @@
                                             </div>
                                             {% endif %}
 
-                                            <div  class="contact-item">
+                                            <div class="contact-item">
                                                 <img class="mobile-date-icon" src="{% static 'img/booking/booked_icon.svg' %}" alt="Booked via">
-                                                
-                                                <div>
-                                                    <!-- <span style="color: #000;">Booked through</span><br> -->
-                                                    <span><strong>{{ booking.channel.name|default:"N/A" }}</strong></span>
-                                                </div>
+                                                <span style="color: #000;">{{ booking.channel.name|default:"Airbnb"|title }}</span>
                                             </div>
+
+                                            {% if booking.nationality %}
+                                            <div class="contact-item">
+                                                <span class="icon-spacer"></span>
+                                                <span style="color: #000;">{{ booking.nationality }}</span>
+                                            </div>
+                                            {% endif %}
                                         </div>
 
-                                        <div class="booking-platform mobile-only flex" style="align-items: start;">
-                                            
-                                        </div>
+                                        <div class="booking-platform mobile-only flex" style="align-items: start;"></div>
                                     </div>
                                 </div>
 
-                                <div class="rental-section desktop-only">
-                                    <!-- <div class="rental-label" style="align-items: start;">
-                                        <img src="{% static 'img/booking/rental_Icon.svg' %}" alt="Rental">
-                                        <div>
-                                            <span style="color: #000;">Rental</span><br>
-                                            <a href="{% url 'property:property-detail' slug=booking.property.slug %}"
-                                                class="rental-link">{{ booking.property.title }}</a>
-                                        </div>
-                                    </div> -->
-
-
-                                </div>
+                                <div class="rental-section desktop-only"></div>
                             </div>
 
                             <div class="mobile-only">
@@ -1201,67 +1683,94 @@
                                 </div>
                             </div>
 
-                            <div class="col-lg-auto d-none d-lg-flex align-items-center p-0 desktop-only">
-                                <div class="payment-divider h-100"></div>
+                            <div class="col-lg-auto d-none d-lg-flex align-items-stretch p-0 desktop-only">
+                                <div class="payment-divider" style="width: 1px; background-color: #dcdcdc;"></div>
                             </div>
 
-
-                            <div class="right-section desktop-only">
-                                <div class="desktop-property-title">{{ booking.property.title }}</div>
-                                <div class="date-item">
-                                    <div class="date-label" style="color: #000;">Check-In</div>
-                                    <div class="date-value" style="font-weight: 600;">
-                                        {{ booking.check_in_date|date:"D, M d, Y" }}, {{ booking.check_in_time|time:"g:i a" }}</div>
-                                </div>
-
-                                <div class="date-item">
-                                    <div class="date-label" style="color: #000;">Check-Out</div>
-                                    <div class="date-value" style="font-weight: 600;">
-                                        {{ booking.check_out_date|date:"D, M d, Y" }}, {{ booking.check_out_time|time:"g:i a" }}</div>
-                                </div>
-
-                                <div class="stats-row">
-                                    <div class="stat-item">
-                                        <div class="stat-label" style="color: #000;">Nights</div>
-                                        <div class="stat-value" style="font-weight: 600;">{{ nights }}</div>
+                            <div class="right-half-wrapper desktop-only" style="display: flex; flex: 1; width: 0; gap: 24px; justify-content: flex-start; padding-left: 24px;">
+                                <div class="right-section property-section desktop-only" style="min-width: 200px; max-width: 200px;">
+                                    <div class="date-item">
+                                        <img src="{{ booking.property.get_primary_image_url }}" alt="{{ booking.property.title }}" style="width: 100%; height: 200px; object-fit: cover; border-radius: 12px;">
                                     </div>
-                                    <div class="stat-item mt-2">
-                                        <div class="stat-label" style="color: #000;">Guests</div>
-                                        <div class="stat-value" style="font-weight: 600;">{{ booking.guest_count }}
+                                </div>
+
+                                <div class="right-section desktop-only" style="flex: 1 1 auto; display: flex; flex-direction: column; justify-content: space-between; min-height: 200px; gap: 16px;">
+                                    <div>
+                                        <div class="desktop-property-title" style="font-size: 18px; font-weight: 600; line-height: 1.4; color: #000; margin-bottom: 0;">
+                                            {{ booking.property.title }}
+                                        </div>
+                                        
+                                        <div style="display: flex; align-items: center; gap: 8px; font-size: 16px; font-weight: 500; color: #000; margin-top: 12px;">
+                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                                <circle cx="12" cy="7" r="4"></circle>
+                                            </svg>
+                                            {{ booking.guest_count }} Guest{{ booking.guest_count|pluralize }}
                                         </div>
                                     </div>
-                                </div>
-                            </div>
 
-                            <div class="right-section property-section desktop-only" style="min-width: 200px; max-width: 200px;">
-                                <div class="date-item">
-                                    <img src="{{ booking.property.get_primary_image_url }}" alt="{{ booking.property.title }}" style="width: 100%; height: 150px; object-fit: cover; border-radius: 6px;">
-                                </div>
+                                    <div style="border: 1px solid #e5e7eb; border-radius: 12px; padding: 12px 14px; display: flex; justify-content: space-between; align-items: flex-start; box-shadow: 0 2px 8px rgba(0,0,0,0.04); margin-bottom: 6px;">
+                                        
+                                        <!-- Check-in -->
+                                        <div style="display: flex; flex-direction: column; gap: 4px;">
+                                            <div style="color: #6b7280; font-size: 12px; margin-bottom: 8px; font-weight: 500;">Check-in</div>
+                                            <div style="font-weight: 600; color: #000; font-size: 13px; white-space: nowrap;">{{ booking.check_in_date|date:"d-M-Y" }}</div>
+                                            <div style="font-weight: 600; color: #000; font-size: 13px; white-space: nowrap;">{{ booking.check_in_date|date:"l" }}</div>
+                                            <div style="color: #6b7280; font-size: 12px; margin-top: 4px; white-space: nowrap;">{{ booking.check_in_time|time:"g:i a" }}</div>
+                                        </div>
 
-                                 <a href="{% url 'property:property-detail' slug=booking.property.slug %}"
-                                                class="rental-link" style="display: block; margin-top: 8px; font-weight: 600; font-size: 14px; color: #111827;">{{ booking.property.title }}</a>
+                                        <!-- Nights -->
+                                        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; margin-top: 24px; padding: 0 4px;">
+                                            <div style="font-weight: 600; color: #000; font-size: 13px;">{{ nights }}</div>
+                                            <div style="height: 1px; width: 30px; background-color: #d1d5db; margin: 8px 0;"></div>
+                                            <div style="color: #6b7280; font-size: 11px;">nights</div>
+                                        </div>
+
+                                        <!-- Check-out -->
+                                        <div style="display: flex; flex-direction: column; gap: 4px;">
+                                            <div style="color: #6b7280; font-size: 12px; margin-bottom: 8px; font-weight: 500;">Check-out</div>
+                                            <div style="font-weight: 600; color: #000; font-size: 13px; white-space: nowrap;">{{ booking.check_out_date|date:"d-M-Y" }}</div>
+                                            <div style="font-weight: 600; color: #000; font-size: 13px; white-space: nowrap;">{{ booking.check_out_date|date:"l" }}</div>
+                                            <div style="color: #6b7280; font-size: 12px; margin-top: 4px; white-space: nowrap;">{{ booking.check_out_time|time:"g:i a" }}</div>
+                                        </div>
+
+                                    </div>
+                                </div>
                             </div>
 
                         </div>
                     </div>
 
-                    <hr>
+                    {% if booking.vehicle_information or booking.purpose_of_stay %}
+                    <div class="booking-card">
+                        <div class="notes-section row">
+                            <div class="col-md-6">
+                                <h3>Vehicle information</h3>
+                                <p class="notes-text" style="color: #000;">{{ booking.vehicle_information|default:"Not provided." }}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <h3>Purpose of Stay</h3>
+                                <p class="notes-text" style="color: #000;">{{ booking.purpose_of_stay|default:"Not provided." }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
                     <div class="booking-card">
                         <div class="notes-section">
                             <h3>Notes</h3>
-                            <p style="color: #000;">{{ booking.notes|default:"No notes provided." }}</p>
+                            <p class="notes-text" style="color: #000;">{{ booking.notes|default:"No notes provided."|linebreaksbr }}</p>
                         </div>
                     </div>
-                    <hr>
 
                     {% if booking.status == 'confirmed' %}
                     <div class="booking-card">
                         <div class="payment-section row">
-                            <div class="col-lg-7 col-md-12">
+                            <div class="col-lg-6 col-md-12">
 
                                 <div class="payment-schedule">
                                     <div class="payment-header"
-                                        style="border: 0.25px solid #bdbaba; padding: 6px 10px; justify-content: center; position: relative;">
+                                        style="border: 0.25px solid #bdbaba; padding: 6px 10px; justify-content: center; position: relative; background-color: #ffffff !important;">
                                         <h3 class="mb-0">Payment Schedule</h3>
                                         <div class="toggle-btns" id="payment-toggle-btns">
                                             <button class="toggle-btn" id="expand-payments"
@@ -1277,7 +1786,13 @@
                                                     <div class="col-payment-type">Payment Type</div>
                                                     <div class="col-due-date">Due date</div>
                                                     <div class="col-amount">Amount</div>
-                                                    <div class="col-paid">Paid</div>
+                                                    <div class="col-paid" style="display: flex; align-items: center; gap: 4px;">
+                                                        <label class="custom-checkbox-container" style="padding-left: 0px; width: 18px; height: 18px;">
+                                                            <input type="checkbox" id="select-all-payments" class="select-all-checkbox" style="width: 18px; height: 18px;">
+                                                            <span class="checkmark" style="width: 18px; height: 18px;"></span>
+                                                        </label>
+                                                    </div>
+                                                    <div class="col-attach-head" style="display:flex;justify-content:center;"></div>
                                                 </div>
 
                                                 {% for item in payment_schedule %}
@@ -1295,7 +1810,7 @@
                                                     </div>
                                                     <div class="col-amount"
                                                         style="font-weight: bold; padding-left:6px;">
-                                                        ${{ item.amount|floatformat:2 }}
+                                                        {% money item.amount %}
                                                     </div>
                                                     <div class="col-paid">
                                                         <label class="custom-checkbox-container"
@@ -1305,10 +1820,26 @@
                                                             <span class="checkmark"></span>
                                                         </label>
                                                     </div>
+                                                    <div class="col-attach" style="display:flex;justify-content:center;align-items:center;">
+                                                        <button type="button"
+                                                            class="payment-attach-btn"
+                                                            data-payment-id="{{ item.id }}"
+                                                            data-notes="{{ item.notes }}"
+                                                            data-attachments='[{% for a in item.attachments %}{"id":{{ a.id }},"url":"{{ a.url }}","name":"{{ a.name }}"}{% if not forloop.last %},{% endif %}{% endfor %}]'
+                                                            title="Attachments &amp; Notes"
+                                                            style="background:none;border:none;padding:0;cursor:pointer;display:flex;align-items:center;position:relative;">
+                                                            {% if item.attachments %}
+                                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+                                                            <span style="position:absolute;top:-6px;right:-8px;background:#2563eb;color:#fff;border-radius:999px;font-size:9px;min-width:14px;height:14px;display:flex;align-items:center;justify-content:center;padding:0 2px;line-height:1;">{{ item.attachments|length }}</span>
+                                                            {% else %}
+                                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+                                                            {% endif %}
+                                                        </button>
+                                                    </div>
                                                 </div>
                                                 {% empty %}
                                                 <div class="payment-schedule-row no-data">
-                                                    <div class="col-payment-type" colspan="4"
+                                                    <div class="col-payment-type" colspan="5"
                                                         style="text-align: center;">
                                                         No payment schedule available.
                                                     </div>
@@ -1326,39 +1857,43 @@
                             </div>
 
 
-                            <div class="col-lg-4 col-md-12 mt-3">
+                            <div class="col-lg-4 col-md-12 mt-3 mx-lg-auto">
                                 <div class="payment-summary">
                                     <h3 >Payment Summary</h3>
                                     <hr>
                                     <div class="section-divider"></div>
 
                                     <div class="summary-item">
+                                        <span class="summary-label">Daily rate</span>
+                                        <span class="summary-value">{% money booking.price_per_night %}</span>
+                                    </div>
+                                    <div class="summary-item">
                                         <span class="summary-label">
-                                            ${{ booking.price_per_night|floatformat:2 }} x {{ nights }} night {{ nights|pluralize }}</span>
-                                        <span class="summary-value">${{ subtotal|floatformat:2 }}</span>
+                                            {% money booking.price_per_night %} x {{ nights }} night{{ nights|pluralize }}</span>
+                                        <span class="summary-value">{% money subtotal %}</span>
                                     </div>
                                     {% if nights > 30 %}
                                     <div class="summary-item">
                                         <span class="summary-label">Monthly Payment</span>
-                                        <span class="summary-value">${{ monthly_payment|floatformat:2 }}</span>
+                                        <span class="summary-value">{% money monthly_payment %}</span>
                                     </div>
                                     {% endif %}
                                     <div class="summary-item">
                                         <span class="summary-label">Cleaning fee</span>
-                                        <span class="summary-value">${{ booking.cleaning_fee|floatformat:2 }}</span>
+                                        <span class="summary-value">{% money booking.cleaning_fee %}</span>
                                     </div>
                                     <div class="summary-item">
                                         <span class="summary-label">Refundable deposit</span>
-                                        <span class="summary-value">${{ booking.deposit_fee|floatformat:2 }}</span>
+                                        <span class="summary-value">{% money booking.deposit_fee %}</span>
                                     </div>
                                     <div class="summary-item">
                                         <span class="summary-label">Application fee</span>
-                                        <span class="summary-value">${{ booking.application_fee|floatformat:2 }}</span>
+                                        <span class="summary-value">{% money booking.application_fee %}</span>
                                     </div>
                                     <hr>
                                     <div class="summary-item" style="font-size: 16px;">
-                                        <span class="summary-label">Total due before checkin</span>
-                                        <span class="summary-value">${{ total_price|floatformat:2 }}</span>
+                                        <span class="summary-label">Total</span>
+                                        <span class="summary-value">{% money total_price %}</span>
                                     </div>
 
                                 </div>
@@ -1366,10 +1901,46 @@
                         </div>
                     </div>
                     {% endif %}
+
+                    <!-- Documents Section -->
+                    <div class="booking-card">
+                        <div class="documents-section">
+                            <h3>Documents</h3>
+                            <div class="documents-grid">
+                                {% if time_delta or booking_status == 'past' %}
+                                <a href="#" class="doc-card guest-receipt-btn"
+                                   data-receipt-url="{% url 'booking:guest-receipt' pk=booking.id %}">
+                                    <div class="doc-card-preview">
+                                        <div class="doc-preview-inner">
+                                            <div class="doc-preview-line dark" style="width:55%;margin-bottom:6px;"></div>
+                                            <div class="doc-preview-line" style="width:90%;"></div>
+                                            <div class="doc-preview-line short"></div>
+                                            <div class="doc-preview-line" style="width:80%;"></div>
+                                            <div class="doc-preview-line short" style="margin-top:6px;"></div>
+                                            <div class="doc-preview-line" style="width:70%;"></div>
+                                            <div class="doc-preview-line" style="width:85%;"></div>
+                                        </div>
+                                    </div>
+                                    <div class="doc-card-label">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                            <polyline points="14 2 14 8 20 8"/>
+                                        </svg>
+                                        <div>
+                                            <span>Guest Receipt</span>
+                                            <small>Reservation #{{ booking.booking_id }}</small>
+                                        </div>
+                                    </div>
+                                </a>
+                                {% else %}
+                                <p class="documents-empty">No documents available yet.</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
             </div>
-        </div>
-    </div>
 </div>
 
 <!-- Attachment Modal -->

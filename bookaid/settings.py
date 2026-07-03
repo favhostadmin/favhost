@@ -29,16 +29,36 @@ SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-+m!dtn=()j@rs%01t#c^c&(s3l
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DEBUG', 'True') == 'True'
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '*').split(',')
 CORS_ALLOW_ALL_ORIGINS = True
 SECURE_CROSS_ORIGIN_OPENER_POLICY = None
 CSRF_TRUSTED_ORIGINS = [
-    'http://34.207.186.12:8000',
+
+    'https://dev.favhost.com',
+    # 'http://34.207.186.12:8000',
+    'http://107.22.56.63:8000',
     'https://*.ngrok-free.app',
     'https://*.ngrok.io',
     'http://favhost.com',
     'https://favhost.com',
+    'https://dev.favhost.com',
+    'http://localhost:8000',
+    'http://127.0.0.1:8000',
 ]
+
+# ── Production security hardening (only active when DEBUG=False) ──
+# Kept off in local dev so plain http://localhost keeps working.
+if not DEBUG:
+    # Trust the X-Forwarded-Proto header set by nginx / the load balancer
+    # so Django knows the original request was HTTPS.
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_HSTS_SECONDS = 31536000  # 1 year
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
 
 
 
@@ -62,7 +82,10 @@ INSTALLED_APPS = [
     'property',
     'booking',
     'tasks',
-    'global'
+    'global',
+    'billing',
+    'printpanel',
+    'frontdesk',
 
 
 ]
@@ -96,6 +119,9 @@ TEMPLATES = [
                 'django.contrib.messages.context_processors.messages',
                 'property.context_processors.property_context',
                 'bookaid.context_processors.enquiry_counts',
+                'billing.context_processors.subscription_status',
+                'accounts.context_processors.currency_context',
+                'django.template.context_processors.static',
             ],
         },
     },
@@ -117,7 +143,7 @@ WSGI_APPLICATION = 'bookaid.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': os.getenv('DB_ENGINE', 'django.db.backends.postgresql_psycopg2'),
-        'NAME': os.getenv('DB_NAME', 'bookaid'),
+        'NAME': os.getenv('DB_NAME', 'favhost'),
         'USER': os.getenv('DB_USER', 'postgres'),
         'PASSWORD': os.getenv('DB_PASSWORD', 'postgres'),
         # 'HOST': 'localhost',
@@ -184,6 +210,10 @@ CELERY_BEAT_SCHEDULE = {
         'task': 'booking.tasks.send_daily_booking_emails',
         'schedule': crontab(minute=1, hour=2),  # Runs daily at 2:01 AM
     },
+    'refresh-exchange-rates-daily': {
+        'task': 'accounts.tasks.refresh_exchange_rates_task',
+        'schedule': crontab(minute=30, hour=0),  # Runs daily at 12:30 AM
+    },
 }
 
 SESSION_COOKIE_AGE = 3600  # 60 minutes
@@ -209,6 +239,38 @@ EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'True') == 'True'
 EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
 DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', EMAIL_HOST_USER)
+# Address used for Reply-To and the List-Unsubscribe mailto on outgoing emails.
+SUPPORT_EMAIL = os.getenv('SUPPORT_EMAIL', 'support@favhost.com')
+
+# --- Tutorials / YouTube channel ---
+# Set this to your real YouTube channel (or on-site tutorials page) URL.
+# Used by the "Watch tutorials" button in the welcome email.
+TUTORIALS_URL = os.getenv('TUTORIALS_URL', 'https://www.youtube.com/@YOUR_CHANNEL')
+
+# --- Stripe Configuration ---
+STRIPE_PUBLISHABLE_KEY = os.getenv('STRIPE_PUBLISHABLE_KEY', '')
+STRIPE_SECRET_KEY = os.getenv('STRIPE_SECRET_KEY', '')
+STRIPE_PRICE_ID = os.getenv('STRIPE_PRICE_ID', '')
+STRIPE_WEBHOOK_SECRET = os.getenv('STRIPE_WEBHOOK_SECRET', '')
+DOMAIN_URL = os.getenv('DOMAIN_URL', 'http://localhost:8000')
+
+# --- Firebase Configuration ---
+FIREBASE_API_KEY = os.getenv('FIREBASE_API_KEY', '')
+FIREBASE_AUTH_DOMAIN = os.getenv('FIREBASE_AUTH_DOMAIN', '')
+FIREBASE_PROJECT_ID = os.getenv('FIREBASE_PROJECT_ID', '')
+FIREBASE_STORAGE_BUCKET = os.getenv('FIREBASE_STORAGE_BUCKET', '')
+FIREBASE_MESSAGING_SENDER_ID = os.getenv('FIREBASE_MESSAGING_SENDER_ID', '')
+FIREBASE_APP_ID = os.getenv('FIREBASE_APP_ID', '')
+FIREBASE_MEASUREMENT_ID = os.getenv('FIREBASE_MEASUREMENT_ID', '')
+FIREBASE_ADMIN_PRIVATE_KEY = os.getenv('FIREBASE_ADMIN_PRIVATE_KEY', '')
+FIREBASE_ADMIN_CLIENT_EMAIL = os.getenv('FIREBASE_ADMIN_CLIENT_EMAIL', '')
+
+# Google Identity Services (GIS) — used for "Continue with Google".
+# This is the OAuth 2.0 Web client ID from Google Cloud Console (the same one
+# Firebase auto-created for this project). GIS avoids the Firebase redirect flow
+# that breaks on iOS due to WebKit storage partitioning.
+GOOGLE_OAUTH_CLIENT_ID = os.getenv('GOOGLE_OAUTH_CLIENT_ID', '')
+GOOGLE_MAPS_API_KEY = os.getenv('GOOGLE_MAPS_API_KEY', '')
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
@@ -237,8 +299,11 @@ JAZZMIN_SETTINGS = {
 }
 
 LOGIN_URL = 'login'
-LOGIN_REDIRECT_URL = 'dashboard'
+LOGIN_REDIRECT_URL = 'frontdesk:index'
 LOGOUT_REDIRECT_URL = 'login'
 
 # Base URL for generating absolute URLs in emails
 BASE_URL = os.getenv('BASE_URL', 'http://favhost.com')
+
+# Allow same-origin framing (needed for detail modal on list page)
+X_FRAME_OPTIONS = 'SAMEORIGIN'

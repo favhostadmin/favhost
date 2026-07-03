@@ -1,0 +1,502 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Manage Co-host</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="{% static 'css/bootstrap.min.css' %}" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'css/manage_co-host.css' %}">
+  <style>
+    /* Shared toast component (matches base.html / accounting page) */
+    .toast-messages-container {
+      min-width: 300px;
+      max-width: 480px;
+      display: flex !important;
+      flex-direction: column !important;
+      gap: 12px;
+      z-index: 99999 !important;
+    }
+
+    .toast-message {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      background: rgba(0, 0, 0, 0.9);
+      color: #fff;
+      padding: 20px 58px;
+      border-radius: 10px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+      font-size: 14px;
+      font-weight: 600;
+      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+      line-height: 1.4;
+      animation: toast-fade-in 0.3s ease;
+    }
+
+    @media (max-width: 576px) {
+      .toast-messages-container {
+        top: 80px !important;
+      }
+
+      .toast-message {
+        white-space: nowrap;
+      }
+    }
+
+    .toast-message.alert-success,
+    .toast-message.success {
+      color: #4CAF50;
+    }
+
+    .toast-message.alert-success::before,
+    .toast-message.success::before {
+      content: "✓";
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 22px;
+      height: 22px;
+      min-width: 22px;
+      border-radius: 50%;
+      background: #4CAF50;
+      color: #fff;
+      font-size: 12px;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    .toast-message.alert-danger,
+    .toast-message.error {
+      color: #e74c3c;
+    }
+
+    .toast-message.alert-danger::before,
+    .toast-message.error::before {
+      content: "✕";
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 22px;
+      height: 22px;
+      min-width: 22px;
+      border-radius: 50%;
+      background: #e74c3c;
+      color: #fff;
+      font-size: 12px;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    .toast-message.alert-info,
+    .toast-message.info {
+      color: #0dcaf0;
+    }
+
+    .toast-message.alert-info::before,
+    .toast-message.info::before {
+      content: "ℹ";
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 22px;
+      height: 22px;
+      min-width: 22px;
+      border-radius: 50%;
+      background: #0dcaf0;
+      color: #fff;
+      font-size: 12px;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    .toast-close {
+      display: none !important;
+    }
+
+    @keyframes toast-fade-in {
+      from {
+        opacity: 0;
+        transform: translateY(-16px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .action-btn img {
+      width: 20px;
+      height: 20px;
+      display: block;
+    }
+
+    .add-btn img {
+      width: 16px;
+      height: 16px;
+    }
+
+    .empty-state img {
+      display: block;
+      margin: 0 auto 12px;
+      width: 240px;
+      max-width: 55%;
+      height: auto;
+    }
+  </style>
+</head>
+
+<body>
+  {% include 'frontend/base/header.html' %}
+
+  {% if messages %}
+  <div class="toast-messages-container"
+    style="position: fixed; top: 30px; left: 50%; transform: translateX(-50%); z-index: 1055;">
+    {% for message in messages %}
+    <div class="toast-message {{ message.tags }}">
+      {{ message }}
+      <span class="toast-close" onclick="this.parentElement.style.display='none';">&times;</span>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <div class="page">
+    <main class="manage-wrap">
+      <div class="toolbar">
+        <h1>Manage Co-host</h1>
+        <button class="add-btn" id="openCohostModal" type="button" aria-label="Add Co-host" {% if cohost_limit_reached %}disabled{% endif %}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+            <circle cx="9" cy="7" r="4" />
+            <line x1="19" y1="8" x2="19" y2="14" />
+            <line x1="22" y1="11" x2="16" y2="11" />
+          </svg>
+          Add Co-host
+        </button>
+      </div>
+
+      <section class="table-wrap">
+        {% if cohost_limit_reached %}
+        <div class="limit-banner">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round">
+            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+            <line x1="12" y1="9" x2="12" y2="13" />
+            <line x1="12" y1="17" x2="12.01" y2="17" />
+          </svg>
+          <span>You've reached the limit of 5 co-hosts. Remove an existing co-host to add a new one.</span>
+        </div>
+        {% endif %}
+        {% if cohosts %}
+        <table>
+          <thead>
+            <tr>
+              <th>Cohost Email</th>
+              <th>Cohost Password</th>
+              <th>Full name</th>
+              <th>Phone</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for cohost in cohosts %}
+            <tr data-id="{{ cohost.id }}">
+              <td data-label="Cohost Email">
+                <div class="user-cell">
+                  <img class="table-avatar"
+                    src="https://ui-avatars.com/api/?name={{ cohost.co_host.get_full_name|default:cohost.co_host.email|urlencode }}&background=random&color=fff&size=56"
+                    alt="Cohost avatar">
+                  <span>{{ cohost.co_host.email }}
+                    {% if cohost.co_host.id == current_user.id %}
+                    <span class="you-badge">(You)</span>
+                    {% endif %}
+                  </span>
+                </div>
+              </td>
+              <td data-label="Cohost Password">{{ cohost.display_password|default:'••••••••' }}</td>
+              <td data-label="Full name">{{ cohost.co_host.get_full_name|default:'' }}</td>
+              <td data-label="Phone">{{ cohost.co_host.phone|default:'' }}</td>
+              <td class="actions" data-label="Actions">
+                <button class="action-btn delete-cohost" type="button" aria-label="Delete cohost"
+                  data-id="{{ cohost.id }}" data-email="{{ cohost.co_host.email }}">
+                  <img src="{% static 'img/delete_outline_cohost.png' %}" alt="delete">
+                </button>
+                <button class="action-btn edit-cohost" type="button" aria-label="Edit cohost" data-id="{{ cohost.id }}"
+                  data-email="{{ cohost.co_host.email }}" data-password="{{ cohost.display_password|default:'' }}"
+                  data-fullname="{{ cohost.co_host.get_full_name|default:'' }}"
+                  data-phone="{{ cohost.co_host.phone|default:'' }}">
+                  <img src="{% static 'img/edit_outline_cohost.png' %}" alt="edit">
+                </button>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <div class="empty-state">
+          <img class="empty-state-icon" src="{% static 'img/common/5556.jpg' %}" alt="No co-hosts added yet"
+            width="240" style="max-width:55%; height:auto;">
+          <p>No co-hosts added yet.</p>
+          <p class="sub">Click "Add Co-host" to invite someone to help manage your properties.</p>
+        </div>
+        {% endif %}
+      </section>
+    </main>
+  </div>
+
+  <div class="cohost-modal-overlay" id="cohostModalOverlay" aria-hidden="true">
+    <div class="cohost-modal-box" role="dialog" aria-modal="true" aria-labelledby="cohostModalTitle">
+      <div class="cohost-modal-header">
+        <h2 class="cohost-modal-title" id="cohostModalTitle">
+          <span class="modal-icon-wrap">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+              <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+            </svg>
+          </span>
+          <span>Add Co-host</span>
+        </h2>
+        <button class="cohost-close-btn" id="closeCohostModal" type="button" aria-label="Close modal">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+            stroke-linecap="round">
+            <path d="M6 6l12 12M18 6L6 18" />
+          </svg>
+        </button>
+      </div>
+      <div class="cohost-modal-body">
+        <form id="cohostForm" method="post" action="{% url 'manage_cohost' %}">
+          {% csrf_token %}
+          <input type="hidden" name="action" id="formAction" value="add">
+          <input type="hidden" name="cohost_id" id="formCohostId" value="">
+          <div class="cohost-form-grid">
+            <div class="cohost-field">
+              <label for="cohostEmail">Email</label>
+              <div class="cohost-input-wrap">
+                <span class="cohost-input-icon">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round">
+                    <path d="M20 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z" />
+                    <polyline points="22,6 12,13 2,6" />
+                  </svg>
+                </span>
+                <input id="cohostEmail" name="cohostEmail" type="text" placeholder="Enter email" required>
+              </div>
+            </div>
+            <div class="cohost-field">
+              <label for="cohostPassword">Cohost Password</label>
+              <div class="cohost-input-wrap">
+                <span class="cohost-input-icon">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                  </svg>
+                </span>
+                <input id="cohostPassword" name="cohostPassword" type="text" placeholder="Set a password" required>
+              </div>
+            </div>
+            <div class="cohost-field">
+              <label for="cohostFullname">Full Name</label>
+              <div class="cohost-input-wrap">
+                <span class="cohost-input-icon">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                    <circle cx="12" cy="7" r="4" />
+                  </svg>
+                </span>
+                <input id="cohostFullname" name="cohostFullname" type="text" placeholder="Full name" required>
+              </div>
+            </div>
+            <div class="cohost-field">
+              <label for="cohostPhone">Phone</label>
+              <div class="cohost-input-wrap">
+                <span class="cohost-input-icon">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round">
+                    <path
+                      d="M22 16.92v3a2 2 0 0 1-2.18 2A19.79 19.79 0 0 1 11.27 18a19.45 19.45 0 0 1-6-6A19.79 19.79 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z" />
+                  </svg>
+                </span>
+                <input id="cohostPhone" name="cohostPhone" type="tel" placeholder="Phone number" required>
+              </div>
+            </div>
+          </div>
+          <div class="cohost-modal-divider"></div>
+          <div class="cohost-modal-actions">
+            <button class="cohost-btn cohost-btn-secondary" id="cancelCohostModal" type="button">Cancel</button>
+            <button class="cohost-btn cohost-btn-primary" type="submit">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                stroke-linecap="round">
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+              Save Co-host
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete Confirmation Modal (shared site-wide component) -->
+  {% include 'frontend/common/confirmation_modal.html' with modal_id="deleteCohostModal" title="Confirm Delete" body_id="deleteCohostMessage" form_id="deleteCohostForm" confirm_text="Delete" confirm_btn_class="btn-danger" cancel_text="Cancel" %}
+
+  {% include 'frontend/base/footer.html' %}
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0/dist/js/bootstrap.bundle.min.js"></script>
+
+  <script>
+    (function () {
+      const openBtn = document.getElementById('openCohostModal');
+      const closeBtn = document.getElementById('closeCohostModal');
+      const cancelBtn = document.getElementById('cancelCohostModal');
+      const overlay = document.getElementById('cohostModalOverlay');
+      const form = document.getElementById('cohostForm');
+      const formAction = document.getElementById('formAction');
+      const formCohostId = document.getElementById('formCohostId');
+      const modalTitle = document.getElementById('cohostModalTitle');
+      const emailInput = document.getElementById('cohostEmail');
+      const passwordInput = document.getElementById('cohostPassword');
+      const fullnameInput = document.getElementById('cohostFullname');
+      const phoneInput = document.getElementById('cohostPhone');
+
+      function openModal() {
+        overlay.classList.add('show');
+        overlay.setAttribute('aria-hidden', 'false');
+        document.body.style.overflow = 'hidden';
+        setTimeout(function () { emailInput.focus(); }, 0);
+      }
+
+      function closeModal() {
+        overlay.classList.remove('show');
+        overlay.setAttribute('aria-hidden', 'true');
+        document.body.style.overflow = '';
+      }
+      function setModalTitle(text) {
+        modalTitle.innerHTML = `
+          <span class="modal-icon-wrap">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+            </svg>
+          </span>
+          <span>${text}</span>`;
+      }
+
+      function resetForm() {
+        formAction.value = 'add';
+        formCohostId.value = '';
+        emailInput.value = '';
+        passwordInput.value = '';
+        fullnameInput.value = '';
+        phoneInput.value = '';
+        passwordInput.required = true;
+        setModalTitle('Add Co-host');
+      }
+
+      openBtn.addEventListener('click', function () {
+        if (openBtn.disabled) return;
+        resetForm();
+        openModal();
+      });
+
+      closeBtn.addEventListener('click', closeModal);
+      cancelBtn.addEventListener('click', closeModal);
+
+      overlay.addEventListener('click', function (event) {
+        if (event.target === overlay) closeModal();
+      });
+
+      document.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape' && overlay.classList.contains('show')) closeModal();
+      });
+
+      // Edit co-host
+      document.querySelectorAll('.edit-cohost').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          formAction.value = 'edit';
+          formCohostId.value = btn.getAttribute('data-id');
+          emailInput.value = btn.getAttribute('data-email');
+          passwordInput.value = btn.getAttribute('data-password');
+          passwordInput.required = false;
+          fullnameInput.value = btn.getAttribute('data-fullname');
+          phoneInput.value = btn.getAttribute('data-phone');
+          setModalTitle('Edit Co-host');
+          openModal();
+        });
+      });
+
+      // Delete co-host — uses the shared site-wide confirmation modal
+      var deleteCohostForm = document.getElementById('deleteCohostForm');
+      var deleteCohostMessage = document.getElementById('deleteCohostMessage');
+      var deleteCohostModalEl = document.getElementById('deleteCohostModal');
+      var deleteCohostModalInstance = null;
+
+      function getDeleteCohostModal() {
+        if (!deleteCohostModalEl || typeof bootstrap === 'undefined' || !bootstrap.Modal) {
+          return null;
+        }
+        if (!deleteCohostModalInstance) {
+          deleteCohostModalInstance = new bootstrap.Modal(deleteCohostModalEl);
+        }
+        return deleteCohostModalInstance;
+      }
+
+      function setHiddenField(formEl, name, value) {
+        var input = formEl.querySelector('input[name="' + name + '"]');
+        if (!input) {
+          input = document.createElement('input');
+          input.type = 'hidden';
+          input.name = name;
+          formEl.appendChild(input);
+        }
+        input.value = value;
+      }
+
+      document.querySelectorAll('.delete-cohost').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          var id = btn.getAttribute('data-id');
+          var email = btn.getAttribute('data-email');
+          // Post to the cohost endpoint with the same action/cohost_id contract
+          deleteCohostForm.setAttribute('action', "{% url 'manage_cohost' %}");
+          setHiddenField(deleteCohostForm, 'action', 'delete');
+          setHiddenField(deleteCohostForm, 'cohost_id', id);
+
+          var modal = getDeleteCohostModal();
+          if (modal) {
+            // Build the message with DOM nodes so the email can't inject markup
+            deleteCohostMessage.textContent = 'Are you sure you want to remove ';
+            var emailEl = document.createElement('strong');
+            emailEl.textContent = email;
+            deleteCohostMessage.appendChild(emailEl);
+            deleteCohostMessage.appendChild(document.createTextNode(' as a co-host?'));
+            modal.show();
+          } else if (confirm('Are you sure you want to remove ' + email + ' as a co-host?')) {
+            // Fallback: delete still works even if Bootstrap JS failed to load
+            deleteCohostForm.submit();
+          }
+        });
+      });
+
+      // Auto-dismiss toasts
+      document.querySelectorAll('.toast-message').forEach(function (toast) {
+        setTimeout(function () {
+          toast.style.opacity = '0';
+          toast.style.transition = 'opacity 0.5s';
+          setTimeout(function () { toast.style.display = 'none'; }, 500);
+        }, 4000);
+      });
+    })();
+  </script>
+</body>
+
+</html>

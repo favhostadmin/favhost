@@ -1,5 +1,8 @@
 {% extends 'frontend/base/base.html' %}
 {% load static %}
+{% load currency_tags %}
+
+{% block body_class %}single-scroll{% endblock %}
 
 {% block extra_head %}
 <link href="{% static 'css/booking/list.css' %}" rel="stylesheet">
@@ -19,6 +22,13 @@
         margin-bottom: 20px;
         color: #6b7280;
         font-size: 14px;
+    }
+
+    .contact-item .icon-spacer {
+        width: 20px;
+        height: 20px;
+        flex: 0 0 20px;
+        display: inline-block;
     }
 
     .attachments-link {
@@ -117,11 +127,26 @@
 
     /* Match payment_details_partial layout */
     .payment-schedule-container {
-        border-radius: 8px;
-        overflow: hidden;
+        border-radius: 0 0 8px 8px;
         background: #fff;
         margin: auto;
         font-family: Arial, sans-serif;
+    }
+
+    #payment-body {
+        max-height: 300px;
+        overflow-y: auto;
+        border: 1px solid #ddd;
+        border-top: none;
+        border-radius: 0 0 8px 8px;
+    }
+
+    #payment-body::-webkit-scrollbar {
+        width: 5px;
+    }
+    #payment-body::-webkit-scrollbar-thumb {
+        background: #c8c8c8;
+        border-radius: 4px;
     }
 
     .payment-schedule-header {
@@ -139,11 +164,21 @@
 
     .payment-schedule-row {
         display: grid;
-        grid-template-columns: 1.5fr 1fr 1fr 0.5fr;
-        padding: 10px;
+        grid-template-columns: 1.5fr 1fr 1fr 0.5fr 0.4fr;
+        padding: 7px 10px;
         align-items: center;
         border-bottom: 1px solid #eee;
-        font-size: 14px;
+        font-size: 12px;
+    }
+
+    .payment-schedule-row-head {
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        background: #f5f5f5 !important;
+        font-size: 12px !important;
+        padding: 7px 10px !important;
+        border-bottom: 1px solid #ddd !important;
     }
 
     .payment-schedule-row.row-paid {
@@ -303,13 +338,21 @@
 
     @media (max-width: 991.98px) {
         .guest-name{
-            margin-bottom: 8px;
+            margin: 0 !important;
+            padding: 0 !important;
+            margin-bottom: 8px !important;
             font-size: 14px;
+            line-height: 1.35;
         }
         .contact-item {
             gap: 8px;
             margin-bottom: 8px;
             font-size: 12px;
+        }
+        .contact-item .icon-spacer {
+            width: 16px;
+            height: 16px;
+            flex: 0 0 16px;
         }
         .reservation-row {
             gap: 12px;
@@ -332,7 +375,11 @@
         }
 
         .booking-card {
-            padding: 6px 0;
+            padding: 16px;
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            margin-bottom: 16px;
         }
 
         .card-content {
@@ -342,14 +389,14 @@
 
         .left-section {
             padding-right: 0;
+            padding-left: 0 !important;
             padding-bottom: 0px;
             order: 1;
         }
 
         .guest-top {
-            display: grid;
-            grid-template-columns: 96px 1fr;
-            column-gap: 12px;
+            display: flex;
+            gap: 12px;
             align-items: stretch;
         }
 
@@ -358,37 +405,37 @@
         }
 
         .mobile-avatar {
-            display: block;
-            width: 96px;
+            display: flex;
+            flex-direction: column;
+            flex: 0 0 96px;
             align-self: stretch;
-        }
-        .profile-image{
-            margin-bottom: 0px;
         }
 
         .mobile-avatar .profile-image {
-            width: 96px;
+            width: 100%;
             height: 100%;
+            object-fit: cover;
             border-radius: 10px;
             border: 1px solid #b9b9b9;
-
         }
 
         .guest-meta {
             flex: 1 1 auto;
+            min-height: auto !important;
+            justify-content: flex-start !important;
         }
 
         .desktop-only {
-            display: none;
+            display: none !important;
         }
 
         .mobile-only {
-            display: block;
+            display: block !important;
             order: 2;
         }
 
         .action-buttons {
-            background-color: #ffffff;
+            background-color: #E7E7E9;
             flex-direction: row;
             align-items: center;
             justify-content: space-between;
@@ -402,7 +449,7 @@
         }
 
         .action-buttons .left-section span {
-            color: #111827;
+            color: #000000;
         }
 
         .action-buttons .left-section img {
@@ -694,9 +741,92 @@
         }
     }
 
-    .payment-schedule-container {
-        border-radius: 8px;
+    /* ── Documents section ── */
+    .documents-section h3 {
+        font-size: 16px;
+        font-weight: 600;
+        color: #111827;
+        margin: 0 0 14px;
+    }
+    .documents-grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 14px;
+    }
+    .doc-card {
+        width: 160px;
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
         overflow: hidden;
+        cursor: pointer;
+        text-decoration: none;
+        background: #fff;
+        transition: box-shadow 0.15s;
+        display: flex;
+        flex-direction: column;
+    }
+    .doc-card:hover {
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .doc-card-preview {
+        background: #f3f4f6;
+        height: 100px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        overflow: hidden;
+    }
+    .doc-card-preview svg {
+        color: #9ca3af;
+    }
+    .doc-card-preview .doc-preview-inner {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        padding: 8px;
+        gap: 4px;
+        pointer-events: none;
+    }
+    .doc-preview-line {
+        height: 6px;
+        border-radius: 3px;
+        background: #d1d5db;
+    }
+    .doc-preview-line.dark { background: #9ca3af; }
+    .doc-preview-line.short { width: 60%; }
+    .doc-card-label {
+        padding: 8px 10px 10px;
+        display: flex;
+        align-items: center;
+        gap: 7px;
+    }
+    .doc-card-label svg { flex-shrink: 0; color: #3b82f6; }
+    .doc-card-label span {
+        font-size: 12px;
+        color: #111827;
+        font-weight: 500;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .doc-card-label small {
+        display: block;
+        font-size: 10px;
+        color: #6b7280;
+        font-weight: 400;
+    }
+    .documents-empty {
+        font-size: 13px;
+        color: #9ca3af;
+    }
+    @media (max-width: 575px) {
+        .doc-card { width: calc(50% - 7px); }
+    }
+
+    .payment-schedule-container {
+        border-radius: 0 0 8px 8px;
         background: #fff;
         margin: auto;
         font-family: Arial, sans-serif;
@@ -717,11 +847,11 @@
 
     .payment-schedule-row {
         display: grid;
-        grid-template-columns: 1.5fr 1fr 1fr 0.5fr;
-        padding: 10px;
+        grid-template-columns: 1.5fr 1fr 1fr 0.5fr 0.4fr;
+        padding: 7px 10px;
         align-items: center;
         border-bottom: 1px solid #eee;
-        font-size: 14px;
+        font-size: 12px;
     }
 
     .payment-schedule-row.row-paid {
@@ -823,6 +953,13 @@
         padding: 0 32px 24px;
     }
 
+    .guest-meta {
+        min-height: 200px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+
     @media (max-width: 1200px) {
         .payment-details-wrapper {
             padding: 0 24px 20px;
@@ -842,22 +979,6 @@
     }
 
     @media (min-width: 992px) {
-        .main_div.desktop-details-shell {
-            max-height: none !important;
-            min-height: auto !important;
-            overflow: visible !important;
-            padding: 0 2% 24px;
-        }
-
-        .main_div.desktop-details-shell > .content {
-            background: #fff;
-            border: 1px solid #c8c8c8;
-            border-radius: 8px;
-            padding: 30px 14px 14px 14px !important;
-            max-width: 1280px;
-            margin: 0 auto;
-        }
-
         .reservation-row {
             align-items: flex-start;
         }
@@ -865,21 +986,22 @@
         .guest-top {
             display: flex;
             align-items: flex-start;
-            gap: 16px;
+            gap: 32px;
         }
 
         .desktop-avatar {
-            flex: 0 0 220px;
-            max-width: 220px;
+            flex: 0 0 200px;
+            max-width: 200px;
         }
 
         .desktop-avatar .profile-image {
-            height: 220px;
+            height: 200px;
             width: 100%;
             border-radius: 10px;
             border: 1px solid #d3d3d3;
             object-fit: cover;
             object-position: center top;
+            display: block;
         }
 
         .details-col {
@@ -890,20 +1012,29 @@
         }
 
         .booking-card {
-            padding: 0;
+            padding: 20px;
+            background: #fff;
+            border: 1px solid #c8c8c8;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .booking-card:first-of-type {
+            margin-top: 20px;
         }
 
         .card-content {
             display: flex !important;
             flex-wrap: nowrap;
             gap: 16px;
-            align-items: flex-start;
+            align-items: stretch;
         }
 
         .left-section {
-            flex: 1 1 auto;
+            flex: 1;
+            width: 0;
             min-width: 0;
-            padding-right: 4px;
+            padding-right: 32px;
         }
 
         .right-section {
@@ -911,24 +1042,23 @@
             gap: 8px;
         }
 
-        .card-content > .right-section.desktop-only:not(.property-section) {
-            flex: 0 0 220px;
-            /* border-left: 1px solid #d3d3d3; */
-            padding-left: 18px;
+        .card-content > .right-half-wrapper .right-section.desktop-only:not(.property-section) {
+            flex: 1 1 auto;
         }
 
-        .card-content > .right-section.property-section.desktop-only {
-            flex: 0 0 220px;
+        .card-content > .right-half-wrapper .right-section.property-section.desktop-only {
+            flex: 0 0 200px;
         }
 
         .right-section.property-section {
-            min-width: 220px !important;
-            max-width: 220px !important;
+            min-width: 200px !important;
+            max-width: 200px !important;
         }
 
         .right-section.property-section img {
-            height: 220px !important;
+            height: 200px !important;
             border-radius: 10px !important;
+            display: block;
         }
 
         .right-section.property-section .rental-link {
@@ -958,19 +1088,32 @@
         }
 
         .guest-name {
-            margin-bottom: 10px;
+            font-size: 24px;
+            font-weight: 600;
+            color: #000;
+            margin-bottom: 12px;
         }
 
         .contact-item {
-            margin-bottom: 11px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            font-size: 16px;
+        }
+        
+        .contact-item img {
+            width: 20px;
+            height: 20px;
+            object-fit: contain;
         }
 
         .card-content .payment-divider {
-            display: none !important;
+            /* Removed display: none */
         }
 
         .card-content > .col-lg-auto.d-none.d-lg-flex.desktop-only {
-            display: none !important;
+            /* Removed display: none */
         }
 
         .payment-section {
@@ -1118,14 +1261,12 @@
     </div>
 
     <div class="payment-details-wrapper">
-    <div class="main_div desktop-details-shell">
-        <div class="content" style="padding: 0rem 2%;">
             <div class="row m-0 p-0 reservation-row">
                 
                 <div class="col-12 details-col">
                     <div class="booking-card">
                         <div class="card-content">
-                            <div class="left-section p-0">
+                            <div class="left-section" style="padding-left: 32px;">
                                 
                                 <div class="guest-top">
                                     <div class="desktop-avatar">
@@ -1144,9 +1285,9 @@
                                         {% endwith %}
                                     </div>
                                     <div class="guest-meta">
-                                        <h1 class="guest-name">{{ booking.first_name }} {{ booking.last_name }}</h1>
+                                        <div class="guest-name">{{ booking.first_name }} {{ booking.last_name }}</div>
 
-                                        <div class="contact-info mb-3" style="display:block !important;">
+                                        <div class="contact-info" style="display:block !important;">
                                             {% if booking.email %}
                                             <div class="contact-item">
                                                 <img class="mobile-date-icon" src="{% static 'img/booking/email_icon.svg' %}" alt="Email">
@@ -1170,12 +1311,16 @@
                                             {% endif %}
 
                                             <div class="contact-item">
-                                                <img  class="mobile-date-icon" src="{% static 'img/booking/booked_icon.svg' %}" alt="Booked via">
-                                                <div>
-                                                    <!-- <span style="color: #000;">Booked through</span><br> -->
-                                                    <span><strong>{{ booking.channel.name|default:"N/A" }}</strong></span>
-                                                </div>
+                                                <img class="mobile-date-icon" src="{% static 'img/booking/booked_icon.svg' %}" alt="Booked via">
+                                                <span style="color: #000;">{{ booking.channel.name|default:"Airbnb"|title }}</span>
                                             </div>
+
+                                            {% if booking.nationality %}
+                                            <div class="contact-item">
+                                                <span class="icon-spacer"></span>
+                                                <span style="color: #000;">{{ booking.nationality }}</span>
+                                            </div>
+                                            {% endif %}
                                         </div>
 
                                         <div class="booking-platform mobile-only flex" style="align-items: start;"></div>
@@ -1212,67 +1357,95 @@
                                 </div>
                             </div>
 
-                            <div class="col-lg-auto d-none d-lg-flex align-items-center p-0 desktop-only">
-                                <div class="payment-divider h-100"></div>
+                            <div class="col-lg-auto d-none d-lg-flex align-items-stretch p-0 desktop-only">
+                                <div class="payment-divider" style="width: 1px; background-color: #dcdcdc;"></div>
                             </div>
 
 
-                            <div class="right-section desktop-only">
-                                <div class="desktop-property-title">{{ booking.property.title }}</div>
-                                <div class="date-item">
-                                    <div class="date-label" style="color: #000;">Check-In</div>
-                                    <div class="date-value" style="font-weight: 600;">
-                                        {{ booking.check_in_date|date:"D, M d, Y" }}, {{ booking.check_in_time|time:"g:i a" }}</div>
-                                </div>
-
-                                <div class="date-item">
-                                    <div class="date-label" style="color: #000;">Check-Out</div>
-                                    <div class="date-value" style="font-weight: 600;">
-                                        {{ booking.check_out_date|date:"D, M d, Y" }}, {{ booking.check_out_time|time:"g:i a" }}</div>
-                                </div>
-
-                                <div class="stats-row">
-                                    <div class="stat-item">
-                                        <div class="stat-label" style="color: #000;">Nights</div>
-                                        <div class="stat-value" style="font-weight: 600;">{{ nights }}</div>
+                            <div class="right-half-wrapper desktop-only" style="display: flex; flex: 1; width: 0; gap: 24px; justify-content: flex-start; padding-left: 24px;">
+                                <div class="right-section property-section desktop-only" style="min-width: 200px; max-width: 200px;">
+                                    <div class="date-item">
+                                        <img src="{{ booking.property.get_primary_image_url }}" alt="{{ booking.property.title }}" style="width: 100%; height: 200px; object-fit: cover; border-radius: 12px;">
                                     </div>
-                                    <div class="stat-item mt-2">
-                                        <div class="stat-label" style="color: #000;">Guests</div>
-                                        <div class="stat-value" style="font-weight: 600;">{{ booking.guest_count }}
+                                </div>
+
+                                <div class="right-section desktop-only" style="flex: 1 1 auto; display: flex; flex-direction: column; justify-content: space-between; min-height: 200px; gap: 16px;">
+                                    <div>
+                                        <div class="desktop-property-title" style="font-size: 18px; font-weight: 600; line-height: 1.4; color: #000; margin-bottom: 0;">
+                                            {{ booking.property.title }}
+                                        </div>
+                                        
+                                        <div style="display: flex; align-items: center; gap: 8px; font-size: 16px; font-weight: 500; color: #000; margin-top: 12px;">
+                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                                <circle cx="12" cy="7" r="4"></circle>
+                                            </svg>
+                                            {{ booking.guest_count }} Guest{{ booking.guest_count|pluralize }}
                                         </div>
                                     </div>
-                                </div>
-                            </div>
-                           
-                            <div class="right-section property-section desktop-only" style="min-width: 200px; max-width: 200px;">
-                                <div class="date-item">
-                                    <img src="{{ booking.property.get_primary_image_url }}" alt="{{ booking.property.title }}" style="width: 100%; height: 150px; object-fit: cover; border-radius: 6px;">
-                                </div>
 
-                                 <a href="{% url 'property:property-detail' slug=booking.property.slug %}"
-                                                class="rental-link" style="display: block; margin-top: 8px; font-weight: 600; font-size: 14px; color: #111827;">{{ booking.property.title }}</a>
+                                    <div style="border: 1px solid #e5e7eb; border-radius: 12px; padding: 12px 14px; display: flex; justify-content: space-between; align-items: flex-start; box-shadow: 0 2px 8px rgba(0,0,0,0.04); margin-bottom: 6px;">
+                                        
+                                        <!-- Check-in -->
+                                        <div style="display: flex; flex-direction: column; gap: 4px;">
+                                            <div style="color: #6b7280; font-size: 12px; margin-bottom: 8px; font-weight: 500;">Check-in</div>
+                                            <div style="font-weight: 600; color: #000; font-size: 13px; white-space: nowrap;">{{ booking.check_in_date|date:"d-M-Y" }}</div>
+                                            <div style="font-weight: 600; color: #000; font-size: 13px; white-space: nowrap;">{{ booking.check_in_date|date:"l" }}</div>
+                                            <div style="color: #6b7280; font-size: 12px; margin-top: 4px; white-space: nowrap;">{{ booking.check_in_time|time:"g:i a" }}</div>
+                                        </div>
+
+                                        <!-- Nights -->
+                                        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; margin-top: 24px; padding: 0 4px;">
+                                            <div style="font-weight: 600; color: #000; font-size: 13px;">{{ nights }}</div>
+                                            <div style="height: 1px; width: 30px; background-color: #d1d5db; margin: 8px 0;"></div>
+                                            <div style="color: #6b7280; font-size: 11px;">nights</div>
+                                        </div>
+
+                                        <!-- Check-out -->
+                                        <div style="display: flex; flex-direction: column; gap: 4px;">
+                                            <div style="color: #6b7280; font-size: 12px; margin-bottom: 8px; font-weight: 500;">Check-out</div>
+                                            <div style="font-weight: 600; color: #000; font-size: 13px; white-space: nowrap;">{{ booking.check_out_date|date:"d-M-Y" }}</div>
+                                            <div style="font-weight: 600; color: #000; font-size: 13px; white-space: nowrap;">{{ booking.check_out_date|date:"l" }}</div>
+                                            <div style="color: #6b7280; font-size: 12px; margin-top: 4px; white-space: nowrap;">{{ booking.check_out_time|time:"g:i a" }}</div>
+                                        </div>
+
+                                    </div>
+                                </div>
                             </div>
 
                         </div>
                     </div>
 
-                    <hr>
+                    {% if booking.vehicle_information or booking.purpose_of_stay %}
+                    <div class="booking-card">
+                        <div class="notes-section row">
+                            <div class="col-md-6">
+                                <h3>Vehicle information</h3>
+                                <p class="notes-text" style="color: #000;">{{ booking.vehicle_information|default:"Not provided." }}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <h3>Purpose of Stay</h3>
+                                <p class="notes-text" style="color: #000;">{{ booking.purpose_of_stay|default:"Not provided." }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
                     <div class="booking-card">
                         <div class="notes-section">
                             <h3>Notes</h3>
                             <p class="notes-text" style="color: #000;">{{ booking.notes|default:"No notes provided."|linebreaksbr }}</p>
                         </div>
                     </div>
-                    <hr>
 
                     {% if booking.status == 'confirmed' %}
                     <div class="booking-card">
                         <div class="payment-section row">
-                            <div class="col-lg-7 col-md-12">
+                            <div class="col-lg-6 col-md-12">
 
                                 <div class="payment-schedule">
                                     <div class="payment-header"
-                                        style="border: 0.25px solid #bdbaba; padding: 6px 10px; justify-content: center; position: relative;">
+                                        style="border: 0.25px solid #bdbaba; padding: 6px 10px; justify-content: center; position: relative; background-color: #ffffff !important;">
                                         <h3 class="mb-0">Payment Schedule</h3>
                                         <div class="toggle-btns" id="payment-toggle-btns">
                                             <button class="toggle-btn" id="expand-payments"
@@ -1288,7 +1461,13 @@
                                                     <div class="col-payment-type">Payment Type</div>
                                                     <div class="col-due-date">Due date</div>
                                                     <div class="col-amount">Amount</div>
-                                                    <div class="col-paid">Paid</div>
+                                                    <div class="col-paid" style="display: flex; align-items: center; gap: 4px;">
+                                                        <label class="custom-checkbox-container" style="padding-left: 0px; width: 18px; height: 18px;">
+                                                            <input type="checkbox" id="select-all-payments" class="select-all-checkbox" style="width: 18px; height: 18px;">
+                                                            <span class="checkmark" style="width: 18px; height: 18px;"></span>
+                                                        </label>
+                                                    </div>
+                                                    <div class="col-attach-head" style="display:flex;justify-content:center;"></div>
                                                 </div>
 
                                                 {% for item in payment_schedule %}
@@ -1306,7 +1485,7 @@
                                                     </div>
                                                     <div class="col-amount"
                                                         style="font-weight: bold; padding-left:6px;">
-                                                        ${{ item.amount|floatformat:2 }}
+                                                        {% money item.amount %}
                                                     </div>
                                                     <div class="col-paid">
                                                         <label class="custom-checkbox-container"
@@ -1316,10 +1495,26 @@
                                                             <span class="checkmark"></span>
                                                         </label>
                                                     </div>
+                                                    <div class="col-attach" style="display:flex;justify-content:center;align-items:center;">
+                                                        <button type="button"
+                                                            class="payment-attach-btn"
+                                                            data-payment-id="{{ item.id }}"
+                                                            data-notes="{{ item.notes }}"
+                                                            data-attachments='[{% for a in item.attachments %}{"id":{{ a.id }},"url":"{{ a.url }}","name":"{{ a.name }}"}{% if not forloop.last %},{% endif %}{% endfor %}]'
+                                                            title="Attachments &amp; Notes"
+                                                            style="background:none;border:none;padding:0;cursor:pointer;display:flex;align-items:center;position:relative;">
+                                                            {% if item.attachments %}
+                                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+                                                            <span style="position:absolute;top:-6px;right:-8px;background:#2563eb;color:#fff;border-radius:999px;font-size:9px;min-width:14px;height:14px;display:flex;align-items:center;justify-content:center;padding:0 2px;line-height:1;">{{ item.attachments|length }}</span>
+                                                            {% else %}
+                                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+                                                            {% endif %}
+                                                        </button>
+                                                    </div>
                                                 </div>
                                                 {% empty %}
                                                 <div class="payment-schedule-row no-data">
-                                                    <div class="col-payment-type" colspan="4"
+                                                    <div class="col-payment-type" colspan="5"
                                                         style="text-align: center;">
                                                         No payment schedule available.
                                                     </div>
@@ -1337,39 +1532,43 @@
                             </div>
 
 
-                            <div class="col-lg-4 col-md-12 mt-3">
+                            <div class="col-lg-4 col-md-12 mt-3 mx-lg-auto">
                                 <div class="payment-summary">
                                     <h3>Payment Summary</h3>
                                     <hr>
                                     <div class="section-divider"></div>
 
                                     <div class="summary-item">
+                                        <span class="summary-label">Daily rate</span>
+                                        <span class="summary-value">{% money booking.price_per_night %}</span>
+                                    </div>
+                                    <div class="summary-item">
                                         <span class="summary-label">
-                                            ${{ booking.price_per_night|floatformat:2 }} x {{ nights }} night {{ nights|pluralize }}</span>
-                                        <span class="summary-value">${{ subtotal|floatformat:2 }}</span>
+                                            {% money booking.price_per_night %} x {{ nights }} night{{ nights|pluralize }}</span>
+                                        <span class="summary-value">{% money subtotal %}</span>
                                     </div>
                                     {% if nights > 30 %}
                                     <div class="summary-item">
                                         <span class="summary-label">Monthly Payment</span>
-                                        <span class="summary-value">${{ monthly_payment|floatformat:2 }}</span>
+                                        <span class="summary-value">{% money monthly_payment %}</span>
                                     </div>
                                     {% endif %}
                                     <div class="summary-item">
                                         <span class="summary-label">Cleaning fee</span>
-                                        <span class="summary-value">${{ booking.cleaning_fee|floatformat:2 }}</span>
+                                        <span class="summary-value">{% money booking.cleaning_fee %}</span>
                                     </div>
                                     <div class="summary-item">
                                         <span class="summary-label">Refundable deposit</span>
-                                        <span class="summary-value">${{ booking.deposit_fee|floatformat:2 }}</span>
+                                        <span class="summary-value">{% money booking.deposit_fee %}</span>
                                     </div>
                                     <div class="summary-item">
                                         <span class="summary-label">Application fee</span>
-                                        <span class="summary-value">${{ booking.application_fee|floatformat:2 }}</span>
+                                        <span class="summary-value">{% money booking.application_fee %}</span>
                                     </div>
                                     <hr>
                                     <div class="summary-item" style="font-size: 16px;">
-                                        <span class="summary-label">Total due before checkin</span>
-                                        <span class="summary-value">${{ total_price|floatformat:2 }}</span>
+                                        <span class="summary-label">Total</span>
+                                        <span class="summary-value">{% money total_price %}</span>
                                     </div>
 
                                 </div>
@@ -1377,10 +1576,47 @@
                         </div>
                     </div>
                     {% endif %}
+
+                    <!-- Documents Section -->
+                    <div class="booking-card">
+                        <div class="documents-section">
+                            <h3>Documents</h3>
+                            <div class="documents-grid">
+                                {% if time_delta or booking_status == 'past' %}
+                                <a href="#" class="doc-card guest-receipt-btn"
+                                   data-receipt-url="{% url 'booking:guest-receipt' pk=booking.id %}">
+                                    <div class="doc-card-preview">
+                                        <div class="doc-preview-inner">
+                                            <div class="doc-preview-line dark" style="width:55%;margin-bottom:6px;"></div>
+                                            <div class="doc-preview-line" style="width:90%;"></div>
+                                            <div class="doc-preview-line short"></div>
+                                            <div class="doc-preview-line" style="width:80%;"></div>
+                                            <div class="doc-preview-line short" style="margin-top:6px;"></div>
+                                            <div class="doc-preview-line" style="width:70%;"></div>
+                                            <div class="doc-preview-line" style="width:85%;"></div>
+                                        </div>
+                                    </div>
+                                    <div class="doc-card-label">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                            <polyline points="14 2 14 8 20 8"/>
+                                        </svg>
+                                        <div>
+                                            <span>Guest Receipt</span>
+                                            <small>Reservation #{{ booking.booking_id }}</small>
+                                        </div>
+                                    </div>
+                                </a>
+                                {% else %}
+                                <p class="documents-empty">No documents available yet.</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
             </div>
-        </div>
-    </div>
+</div>
 </div>
 
 <!-- Attachment Modal -->
@@ -1415,6 +1651,45 @@
     </div>
 </div>
 
+<!-- Payment Attachment & Notes Modal -->
+<div id="paymentAttachModal" class="modal" style="display:none;align-items:center;justify-content:center;">
+    <div class="modal-content" style="max-width:500px;width:95%;border-radius:8px;">
+        <div class="modal-header" style="display:flex;justify-content:space-between;align-items:center;padding:16px 20px 12px;">
+            <h2 style="margin:0;font-size:16px;font-weight:600;">Attachments &amp; Notes</h2>
+            <span id="closePaymentAttachModal" style="cursor:pointer;font-size:20px;line-height:1;">&times;</span>
+        </div>
+        <div class="modal-body" style="padding:0 20px 4px;max-height:60vh;overflow-y:auto;">
+            <!-- upload new — top -->
+            <div style="margin-bottom:14px;">
+                <label style="display:block;font-size:13px;font-weight:500;margin-bottom:6px;">Add Attachment <span style="color:#6b7280;font-weight:400;">(max 2 MB)</span></label>
+                <div style="display:flex;gap:8px;align-items:center;">
+                    <label style="flex:1;display:flex;align-items:center;gap:8px;cursor:pointer;border:1px solid #d1d5db;border-radius:6px;padding:7px 12px;font-size:13px;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+                        <span id="attachFileLabel">Choose file</span>
+                        <input type="file" id="attachFile" accept=".pdf,.jpg,.jpeg,.png,.gif,.webp" style="display:none;">
+                    </label>
+                    <button type="button" id="uploadAttachBtn" style="padding:7px 16px;border:none;border-radius:6px;background:#111827;color:#fff;font-size:13px;cursor:pointer;white-space:nowrap;">Upload</button>
+                </div>
+                <p id="attachError" style="color:#dc2626;font-size:12px;margin:5px 0 0;min-height:16px;"></p>
+            </div>
+            <!-- existing attachments list -->
+            <div style="border-top:1px solid #e5e7eb;padding-top:12px;margin-bottom:14px;">
+                <p style="font-size:13px;font-weight:500;margin:0 0 8px;">Uploaded Attachments</p>
+                <div id="attachmentsList"></div>
+            </div>
+            <!-- notes -->
+            <div style="border-top:1px solid #e5e7eb;padding-top:12px;margin-bottom:4px;">
+                <label for="attachNotes" style="display:block;font-size:13px;font-weight:500;margin-bottom:6px;">Notes</label>
+                <textarea id="attachNotes" rows="3" style="width:100%;border:1px solid #d1d5db;border-radius:6px;padding:8px 10px;font-size:13px;resize:vertical;box-sizing:border-box;" placeholder="Add a note for this payment…"></textarea>
+            </div>
+        </div>
+        <div style="padding:12px 20px;display:flex;justify-content:flex-end;gap:10px;border-top:1px solid #e5e7eb;">
+            <button type="button" id="saveNotesBtn" style="padding:6px 16px;border:none;border-radius:6px;background:#111827;color:#fff;font-size:13px;cursor:pointer;">Save Notes</button>
+            <button type="button" id="closePaymentAttachModal2" style="padding:6px 16px;border:1px solid #d1d5db;border-radius:6px;background:#fff;color:#374151;font-size:13px;cursor:pointer;">Close</button>
+        </div>
+    </div>
+</div>
+
 <!-- Cancel Reservation Confirmation Modal -->
 <div id="cancelReservationModal" class="modal">
     <div class="modal-content" style="max-width: 500px;">
@@ -1441,6 +1716,7 @@
     </div>
 </div>
 
+{% include 'frontend/base/footer.html' %}
 {% endblock content %}
 
 {% block extra_script %}
@@ -1696,6 +1972,45 @@
                 });
         });
 
+        // Select All payments toggle
+        const selectAllCheckbox = document.getElementById('select-all-payments');
+        if (selectAllCheckbox) {
+            selectAllCheckbox.addEventListener('change', function () {
+                const isChecked = this.checked;
+                const fetches = [];
+                document.querySelectorAll('.payment-checkbox:not(:disabled)').forEach(cb => {
+                    if (cb.checked !== isChecked) {
+                        cb.checked = isChecked;
+                        const paymentId = cb.dataset.paymentId;
+                        fetches.push(
+                            fetch(`{% url 'booking:update-payment-status' %}`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+                                body: JSON.stringify({ payment_id: paymentId, is_paid: isChecked })
+                            })
+                            .then(r => r.json())
+                            .then(d => { if (!d.success) throw new Error(d.error); })
+                        );
+                    }
+                });
+                if (fetches.length > 0) {
+                    Promise.all(fetches)
+                        .then(() => window.location.reload())
+                        .catch(() => { alert('Some payments failed to update.'); window.location.reload(); });
+                }
+            });
+            function updateSelectAllState() {
+                const checkboxes = document.querySelectorAll('.payment-checkbox:not(:disabled)');
+                const checked = document.querySelectorAll('.payment-checkbox:not(:disabled):checked');
+                selectAllCheckbox.checked = checkboxes.length > 0 && checkboxes.length === checked.length;
+                selectAllCheckbox.indeterminate = checked.length > 0 && checked.length < checkboxes.length;
+            }
+            document.querySelectorAll('.payment-checkbox').forEach(cb => {
+                cb.addEventListener('change', updateSelectAllState);
+            });
+            updateSelectAllState();
+        }
+
         // Payment schedule expand/collapse
         const paymentBody = document.getElementById('payment-body');
         const expandBtn = document.getElementById('expand-payments');
@@ -1733,6 +2048,202 @@
                 el.innerHTML = el.innerHTML.replace(/reservations\\//gi, 'reservations/<wbr>');
             });
         }
+    });
+
+    // Payment attachments & notes modal
+    document.addEventListener('DOMContentLoaded', function () {
+        const modal = document.getElementById('paymentAttachModal');
+        const closeBtn = document.getElementById('closePaymentAttachModal');
+        const closeBtn2 = document.getElementById('closePaymentAttachModal2');
+        const fileInput = document.getElementById('attachFile');
+        const fileLabel = document.getElementById('attachFileLabel');
+        const notesInput = document.getElementById('attachNotes');
+        const errorEl = document.getElementById('attachError');
+        const attachmentsList = document.getElementById('attachmentsList');
+        const uploadBtn = document.getElementById('uploadAttachBtn');
+        const saveNotesBtn = document.getElementById('saveNotesBtn');
+        const CSRF = '{{ csrf_token }}';
+        let activePaymentId = null;
+
+        function showToast(msg, type) {
+            let container = document.querySelector('.toast-messages-container');
+            if (!container) {
+                container = document.createElement('div');
+                container.className = 'toast-messages-container';
+                container.style.cssText = 'position:fixed;top:30px;left:50%;transform:translateX(-50%);z-index:999999;';
+                document.body.appendChild(container);
+            }
+            const toast = document.createElement('div');
+            toast.className = `toast-message ${type}`;
+            toast.textContent = msg;
+            container.appendChild(toast);
+            setTimeout(() => toast.remove(), 4000);
+        }
+
+        function makeAttachRow(a) {
+            const div = document.createElement('div');
+            div.id = `att-row-${a.id}`;
+            div.style.cssText = 'border-bottom:1px solid #f3f4f6;font-size:13px;';
+
+            // normal view
+            const normal = document.createElement('div');
+            normal.style.cssText = 'display:flex;align-items:center;gap:8px;padding:6px 0;';
+            normal.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg><a href="${a.url}" target="_blank" rel="noopener" style="color:#111827;flex:1;word-break:break-all;">${a.name}</a><button type="button" class="del-att-btn" data-att-id="${a.id}" style="background:none;border:none;cursor:pointer;padding:2px 4px;display:flex;align-items:center;color:#dc2626;font-size:12px;gap:4px;" title="Delete"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg></button>`;
+
+            // inline confirm view
+            const confirm = document.createElement('div');
+            confirm.style.cssText = 'display:none;align-items:center;gap:8px;padding:6px 0;background:#fff5f5;border-radius:6px;padding:6px 10px;';
+            confirm.innerHTML = `<span style="font-size:12px;color:#dc2626;flex:1;">Delete this attachment?</span><button type="button" class="confirm-yes-btn" style="padding:3px 12px;border:none;border-radius:5px;background:#dc2626;color:#fff;font-size:12px;cursor:pointer;">Delete</button><button type="button" class="confirm-no-btn" style="padding:3px 12px;border:1px solid #d1d5db;border-radius:5px;background:#fff;color:#374151;font-size:12px;cursor:pointer;">Cancel</button>`;
+
+            div.appendChild(normal);
+            div.appendChild(confirm);
+
+            normal.querySelector('.del-att-btn').addEventListener('click', () => {
+                normal.style.display = 'none';
+                confirm.style.display = 'flex';
+            });
+            confirm.querySelector('.confirm-no-btn').addEventListener('click', () => {
+                confirm.style.display = 'none';
+                normal.style.display = 'flex';
+            });
+            confirm.querySelector('.confirm-yes-btn').addEventListener('click', () => {
+                const attId = a.id;
+                fetch('{% url "booking:delete-payment-attachment" %}', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+                    body: JSON.stringify({ attachment_id: attId }),
+                })
+                .then(r => r.json())
+                .then(d => {
+                    if (d.success) {
+                        div.remove();
+                        updateIconFromList();
+                        showToast('Attachment deleted.', 'success');
+                        if (!attachmentsList.querySelector('[id^="att-row-"]')) {
+                            attachmentsList.innerHTML = '<p style="font-size:13px;color:#6b7280;margin:0;">No attachments yet.</p>';
+                        }
+                    } else {
+                        showToast(d.error || 'Delete failed.', 'error');
+                        confirm.style.display = 'none';
+                        normal.style.display = 'flex';
+                    }
+                })
+                .catch(() => { showToast('An error occurred.', 'error'); confirm.style.display = 'none'; normal.style.display = 'flex'; });
+            });
+
+            return div;
+        }
+
+        function renderAttachments(attachments) {
+            attachmentsList.innerHTML = '';
+            if (!attachments.length) {
+                attachmentsList.innerHTML = '<p style="font-size:13px;color:#6b7280;margin:0;">No attachments yet.</p>';
+                return;
+            }
+            attachments.forEach(a => attachmentsList.appendChild(makeAttachRow(a)));
+        }
+
+        function updateIconFromList() {
+            const btn = document.querySelector(`.payment-attach-btn[data-payment-id="${activePaymentId}"]`);
+            if (!btn) return;
+            const rows = attachmentsList.querySelectorAll('[id^="att-row-"]');
+            const count = rows.length;
+            const svg = btn.querySelector('svg');
+            let badge = btn.querySelector('span');
+            if (count > 0) {
+                svg.querySelector('path').setAttribute('stroke', '#2563eb');
+                if (!badge) {
+                    badge = document.createElement('span');
+                    badge.style.cssText = 'position:absolute;top:-6px;right:-8px;background:#2563eb;color:#fff;border-radius:999px;font-size:9px;min-width:14px;height:14px;display:flex;align-items:center;justify-content:center;padding:0 2px;line-height:1;';
+                    btn.appendChild(badge);
+                }
+                badge.textContent = count;
+            } else {
+                svg.querySelector('path').setAttribute('stroke', '#9ca3af');
+                if (badge) badge.remove();
+            }
+            // Sync data-attachments so reopening the modal shows current state
+            const attachments = Array.from(rows).map(row => {
+                const link = row.querySelector('a');
+                const delBtn = row.querySelector('.del-att-btn');
+                return { id: delBtn.dataset.attId, url: link.href, name: link.textContent };
+            });
+            btn.dataset.attachments = JSON.stringify(attachments);
+        }
+
+        const closeModal = () => { modal.style.display = 'none'; };
+        closeBtn.addEventListener('click', closeModal);
+        closeBtn2.addEventListener('click', closeModal);
+        modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
+
+        document.querySelectorAll('.payment-attach-btn').forEach(btn => {
+            btn.addEventListener('click', function () {
+                activePaymentId = this.dataset.paymentId;
+                notesInput.value = this.dataset.notes || '';
+                errorEl.textContent = '';
+                fileInput.value = '';
+                fileLabel.textContent = 'Choose file';
+                const raw = this.dataset.attachments || '[]';
+                try { renderAttachments(JSON.parse(raw)); } catch { renderAttachments([]); }
+                modal.style.display = 'flex';
+            });
+        });
+
+        fileInput.addEventListener('change', function () {
+            if (this.files[0]) {
+                fileLabel.textContent = this.files[0].name;
+                errorEl.textContent = this.files[0].size > 2 * 1024 * 1024 ? 'File must be 2 MB or smaller.' : '';
+            }
+        });
+
+        uploadBtn.addEventListener('click', function () {
+            if (!fileInput.files[0]) { errorEl.textContent = 'Please choose a file first.'; return; }
+            if (fileInput.files[0].size > 2 * 1024 * 1024) { errorEl.textContent = 'File must be 2 MB or smaller.'; return; }
+            errorEl.textContent = '';
+            const fd = new FormData();
+            fd.append('payment_id', activePaymentId);
+            fd.append('attachment', fileInput.files[0]);
+            fd.append('csrfmiddlewaretoken', CSRF);
+            uploadBtn.disabled = true; uploadBtn.textContent = 'Uploading…';
+            fetch('{% url "booking:add-payment-attachment" %}', { method: 'POST', body: fd })
+            .then(r => r.json())
+            .then(data => {
+                uploadBtn.disabled = false; uploadBtn.textContent = 'Upload';
+                if (data.success) {
+                    fileInput.value = ''; fileLabel.textContent = 'Choose file';
+                    const noMsg = attachmentsList.querySelector('p');
+                    if (noMsg) noMsg.remove();
+                    attachmentsList.appendChild(makeAttachRow(data.attachment));
+                    updateIconFromList();
+                    showToast('Attachment uploaded.', 'success');
+                } else {
+                    errorEl.textContent = data.error || 'Upload failed.';
+                    showToast(data.error || 'Upload failed.', 'error');
+                }
+            })
+            .catch(() => { uploadBtn.disabled = false; uploadBtn.textContent = 'Upload'; errorEl.textContent = 'An error occurred.'; showToast('An error occurred.', 'error'); });
+        });
+
+        saveNotesBtn.addEventListener('click', function () {
+            saveNotesBtn.disabled = true; saveNotesBtn.textContent = 'Saving…';
+            fetch('{% url "booking:update-payment-notes" %}', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+                body: JSON.stringify({ payment_id: activePaymentId, notes: notesInput.value }),
+            })
+            .then(r => r.json())
+            .then(data => {
+                saveNotesBtn.disabled = false; saveNotesBtn.textContent = 'Save Notes';
+                if (data.success) {
+                    const btn = document.querySelector(`.payment-attach-btn[data-payment-id="${activePaymentId}"]`);
+                    if (btn) btn.dataset.notes = data.notes;
+                    showToast('Notes saved.', 'success compact');
+                } else {
+                    showToast(data.error || 'Failed to save notes.', 'error');
+                }
+            })
+            .catch(() => { saveNotesBtn.disabled = false; saveNotesBtn.textContent = 'Save Notes'; showToast('An error occurred.', 'error'); });
+        });
     });
 </script>
 <script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"></script>

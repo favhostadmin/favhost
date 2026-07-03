@@ -3,410 +3,26 @@
 
 {% block extra_head %}
     <link href="{% static 'css/host_dashboard.css' %}" rel="stylesheet">
-    <link href="{% static 'css/task/listing.css' %}" rel="stylesheet">
-    <link href="{% static 'css/booking/list.css' %}" rel="stylesheet">
     <style>
-
-        html, body {
-            height: 100%;
-            margin: 0;
-            overflow: hidden; /* kill browser scroll */
-        }
-
-        
-        /* Dashboard header (grey bar) */
-        .header-nav {
-            position: fixed;
-            top: 65px; /* height of top global navbar */
-            left: 15px;
-            right: 15px;
-            height: 52px;
-            z-index: 999;
-            background: #5A5A5A;
-        }
-        .main {
-            position: fixed;
-            top: 116px; /* 64px navbar + 52px dashboard bar */
-            left: 0;
-            right: 0;
-            bottom: 0;
-
-            overflow-y: auto;
-            overflow-x: hidden;
-
-            padding: 16px;
-            background: #f9fafb;
-        }
-
-        .stats-grid {
-            margin-top: 1rem;
-        }
-
-        .enquiry-mobile-status {
-            margin-top: 8px;
-            font-size: 33px;
-            line-height: 1;
-            font-weight: 700;
-            color: #1f8a28;
-        }
-
-        .enquiry-mobile-status,
-        .property-not-availability {
-            margin-top: 6px !important;
-            font-size: 13px !important;
-            line-height: 1.1 !important;
-        }
-
-        .tab-header {
-        display: flex;
-        gap: 1.5rem;
-        /* border-bottom: 2px solid #e0e0e0; */
-        /* margin-bottom: 1rem; */
-        }
-        .tab-header .tab {
-        cursor: pointer;
-        padding-bottom: 0.25rem;
-        font-size: 1.1rem;
-        color: #6c757d;
-        }
-        .tab-header .tab.active {
-        color: #000;
-        border-bottom: 2px solid #000;
-        font-weight: 500;
-        }
-
-        .stat-card {
-            background: #fff;
-            border-radius: 14px;
-            padding: 20px;
-            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
-            height: 100%;
-        }
-
-        .stat-label {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            color: #111827;
-            font-size: 14px;
-            font-weight: 500;
-        }
-
-        .stat-label img {
-            width: 20px;
-            height: 20px;
-        }
-
-        .stat-number {
-            margin-top: 12px;
-            font-size: 32px;
-            font-weight: 700;
-            color: #000;
-        }
-
-       
-        .stat-card .h5 {
-        margin: 0;
-        font-size: 1.5rem;
-        font-weight: bold;
-        }
-        .stat-card .label {
-        font-size: 0.9rem;
-        color: #6c757d;
-        }
-        .start-card-removed-css{
-            border: none; 
-            border-radius: 0; 
-            border-right: 1px solid #e5e7eb; 
-            min-height: auto; 
-            padding: 0px;
-        }
-        .tab-header a {
-            text-decoration: none;
-        }
-        .tab-header a:hover {
-            text-decoration: none;
-        }
-        .month-picker {
-            display: inline-flex;
-            align-items: center;
-            gap: 12px;
-            padding: 6px 16px;
-            border: 2px solid #000;
-            border-radius: 10px;      /* pill shape */
-            /* font-family: system-ui, sans-serif; */
-        }
-        .month-picker button {
-            border: none;
-            background: none;
-            font-size: 20px;
-            cursor: pointer;
-        }
-        #month-label {
-            font-weight: 600;
-        }
-        .year-select {
-            padding: 2px 14px;
-            font-size: 12px;
-            border-radius: 6px;      
-            border: 1px solid #000;
-            background-color: #fff;
-            appearance: none;         
-            -moz-appearance: none;
-            -webkit-appearance: none;
-            background-image: linear-gradient(45deg, transparent 50%, #000 50%),
-                                linear-gradient(135deg, #000 50%, transparent 50%);
-            background-position: calc(100% - 8px) 50%, calc(100% - 4px) 50%;
-            background-size: 4px 4px, 4px 4px;
-            background-repeat: no-repeat;
-        }
-
-        .chart {
-            position: relative;
-        }
-
-        .chart-empty-state {
-            position: absolute;
-            inset: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #191e26;
-            font-size: 18px;
-            font-weight: 500;
-            pointer-events: none;
-            text-align: center;
-        }
-
-        .stat-number-font{
-            font-size: 18px !important;
-        }
-
-        .nav-title span {
-            white-space: nowrap;
-            font-weight: 500;
-            color: #fff;
-        }
-
-        .refresh-btn {
-            background-color: #ffffff;
-            color: #1D74B2 !important;
-            padding: 4px 11px;
-            font-weight: 500;
-            white-space: nowrap;
-        }
-
-       
-         /* Responsive spacing */
-        @media (max-width: 576px) {
-            .stat-number-font{
-                font-size: 14px !important;
-            }
-            .stat-number {
-                font-size: 26px;
-            }
-            .main {
-                padding: 0px !important;
-                background: none;
-            }
-            .stats-grid{
-                margin-top: 0rem !important;
-            }
-            .main_div{
-                padding: 0px;
-            }
-             .inquiries_mobile_view {
-                display: none !important;
-            }
-
-            .chart-card {
-                display: none !important;
-            }
-            /* Stats container */
-            .upcoming-section .row.text-center {
-                background: #fff;
-                border-radius: 18px;
-                box-shadow: 0 6px 18px rgba(0,0,0,0.08);
-                padding: 10px 6px;
-                margin: 0;
-            }
-
-            /* Force 3 columns per row */
-            .upcoming-section .row.text-center > div {
-                flex: 0 0 33.3333%;
-                max-width: 33.3333%;
-                padding: 8px 4px;
-            }
-
-            /* Remove card look */
-            .stat-card {
-                /* box-shadow: none; */
-                padding: 0;
-                background: transparent;
-            }
-
-            .stat-card .card-body {
-                padding: 6px 0;
-            }
-
-            /* Vertical divider (except last in row) */
-            .upcoming-section .row.text-center > div:not(:nth-child(3n)) {
-                border-right: 1px solid #e5e7eb;
-            }
-
-            /* Horizontal divider for first row */
-            .upcoming-section .row.text-center > div:nth-child(-n+3) {
-                border-bottom: 1px solid #e5e7eb;
-            }
-
-            /* Numbers */
-            .stat-card .h5 {
-                font-size: 22px;
-                font-weight: 700;
-                margin-bottom: 2px;
-            }
-
-            /* Labels */
-            .stat-card .label {
-                font-size: 12px;
-                color: #6b7280;
-                white-space: nowrap;
-            }
-
-            /* Remove old borders */
-            .start-card-removed-css {
-                border: none !important;
-            }
-            .upcoming-header {
-                font-size: 22px;
-                font-weight: 600;
-                margin-bottom: 0px;
-            }
-
-            .month-picker {
-                gap: 8px;
-                padding: 3px 14px;
-            }
-        }
-
-        /* ===== Tablet + Mobile stats layout ===== */
+        /* header_logo src swap needs Django template tag — cannot live in .css file */
         @media (max-width: 991.98px) {
-
-            html, body {
-                height: auto;
-                overflow: auto;
-            }
-
-            .header-nav {
-                position: static;
-                top: auto;
-                left: auto;
-                right: auto;
-                height: auto;
-                background: #ffffff;
-                padding: 16px 20px !important;
-                border-radius: 0;
-                box-shadow: none;
-            }
-            .header_title{
-                color: #000000 !important;
-            }
-            .header_logo{
-                content: url("{% static 'img/dashboard/dashboard_icon.png' %}");
-
-            }
-            .nav-title {
-                padding-bottom: 0px;
-            }
-
-            .header-actions {
-                width: 100%;
-                text-align: right;
-            }
-            .refresh-btn {
-                display: none;
-            }
-            .main {
-                position: static;
-                top: auto;
-                left: auto;
-                right: auto;
-                bottom: auto;
-                overflow: visible;
-                padding: 16px 16px 24px;
-            }
-            /* Stats wrapper */
-            .upcoming-section .row.text-center {
-                background: #fff;
-                border-radius: 18px;
-                box-shadow: 0 6px 18px rgba(0,0,0,0.08);
-                padding: 12px 8px;
-                margin: 0;
-            }
-
-            /* Force 3 columns per row */
-            .upcoming-section .row.text-center > div {
-                flex: 0 0 33.3333%;
-                max-width: 33.3333%;
-                padding: 10px 6px;
-            }
-
-            /* Remove card styling */
-            .stat-card {
-                background: transparent;
-                /* box-shadow: none; */
-                padding: 10px;
-                height: auto;
-            }
-
-            .stat-card .card-body {
-                padding: 6px 0;
-            }
-
-            /* Vertical dividers */
-            .upcoming-section .row.text-center > div:not(:nth-child(3n)) {
-                border-right: 1px solid #e5e7eb;
-            }
-
-            /* Horizontal divider between rows */
-            .upcoming-section .row.text-center > div:nth-child(-n+3) {
-                border-bottom: 1px solid #e5e7eb;
-            }
-
-            /* Numbers */
-            .stat-card .h5 {
-                font-size: 22px;
-                font-weight: 700;
-                margin-bottom: 4px;
-            }
-
-            /* Labels */
-            .stat-card .label {
-                font-size: 12px;
-                color: #6b7280;
-                white-space: nowrap;
-            }
-
-            /* Remove old borders */
-            .start-card-removed-css {
-                border: none !important;
-            }
+            .header_logo { content: url("{% static 'img/dashboard/dashboard_icon.png' %}"); }
         }
     </style>
 {% endblock extra_head %}
 
 
 {% block content %}
-<div class="container-fluid  ">
+<div class="container-fluid p-0">
      <!-- Header Navigation -->
-    <div class="header-nav" style="padding: 8px 16px; ">
+    <div class="header-nav" style="padding: 8px 32px;">
         <div class="row align-items-center justify-content-between w-100 g-3">
     
             <!-- Left: Dashboard title -->
             <div class="col-6 col-md-auto">
                 <div class="nav-left d-flex align-items-center">
                     <div class="nav-title d-flex align-items-center gap-2">
-                        <img src="{% static 'img/dashboard/dashboard_icon_white.svg' %}" style="color: #1D74B2;" class="header_logo" alt="Dashboard">
+                        <img src="{% static 'img/dashboard/dashboard_icon_white.svg' %}" style="filter: brightness(0);" class="header_logo" alt="Dashboard">
                         <span class="header_title">Dashboard</span>
                     </div>
                 </div>
@@ -429,87 +45,82 @@
 
     <main class="main">
         {% comment %} Card section {% endcomment %}
-        <div class="row stats-grid g-3">
-            <div class="col-lg-3 col-md-6 col-sm-6 col-6 ">
-                <div class="stat-card">
-                    <div class="stat-label">
-                        <img src="{% static 'img/dashboard/active_listing.svg' %}">
-                        <span class="stat-number  stat-number-font">Active Listings</span>
+        <div class="row g-3 align-items-stretch p-3">
+            <div class="col-6 d-flex flex-column">
+                <div class="row stats-grid gx-3 ">
+                    <div class="col-6">
+                        <a href="{% url 'property:property-list' %}" style="text-decoration:none;color:inherit;display:block;">
+                        <div class="stat-card sc1">
+                            <div class="stat-icon ic1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V8l7-5 7 5v13"/><path d="M9 21v-5h6v5"/><path d="M9 11h.01M15 11h.01"/></svg></div>
+                            <div class="stat-lbl">Active Listings</div>
+                            <div class="stat-number">{{active_listings_count}}</div>
+                        </div>
+                        </a>
                     </div>
-                    <div class="stat-number" style="margin-left: 28px;">{{active_listings_count}}</div>
-                    <!-- <div style="font-size: 12px; color: #000000; margin-top: 4px;">Total active properties</div> -->
-                </div>
-            </div>
 
-            <div class="col-lg-3 col-md-6 col-sm-6 col-6 ">
-                <div class="stat-card">
-                    <div class="stat-label">
-                        <img src="{% static 'img/dashboard/revenue.svg' %}">
-                        <span class="stat-number  stat-number-font ">Total revenue </span>
+                    <div class="col-6">
+                        <a href="{% url 'booking:booking-list' %}" style="text-decoration:none;color:inherit;display:block;">
+                        <div class="stat-card sc2">
+                            <div class="stat-icon ic2"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6" width="19" height="12" rx="2.5"/><circle cx="12" cy="12" r="2.6"/><path d="M6 9.5h.01M18 14.5h.01"/></svg></div>
+                            <div class="stat-lbl">Total Revenue</div>
+                            <div class="stat-number">$ {{total_revenue}}</div>
+                        </div>
+                        </a>
                     </div>
-                    <div class="stat-number" style="margin-left: 28px;">$ {{total_revenue}}</div>
-                    <!-- <div style="font-size: 12px; color: #000000; margin-top: 4px;">Next 30 days</div> -->
-                </div>
-            </div>
 
-            <div class="col-lg-3 col-md-6 col-sm-6 col-6 ">
-                <div class="stat-card">
-                    <div class="stat-label">
-                        <img src="{% static 'img/dashboard/pending_task.svg' %}">
-                        <span class="stat-number  stat-number-font">Pending Tasks</span>
+                    <div class="col-6">
+                        <a href="{% url 'tasks:task-list' %}" style="text-decoration:none;color:inherit;display:block;">
+                        <div class="stat-card sc3">
+                            <div class="stat-icon ic3"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3.5" width="16" height="17" rx="2.5"/><path d="M9 8h6M9 12h6M9 16h3"/></svg></div>
+                            <div class="stat-lbl">Pending Tasks</div>
+                            <div class="stat-number">{{pending_tasks_count}}</div>
+                        </div>
+                        </a>
                     </div>
-                    <div class="stat-number" style="margin-left: 28px;">{{pending_tasks_count}}</div>
-                    <!-- <div style="font-size: 12px; color: #000000; margin-top: 4px;">To be completed</div> -->
-                </div>
-            </div>
 
-            <div class="col-lg-3 col-md-6 col-sm-6 col-6 ">
-                <div class="stat-card">
-                    <div class="stat-label">
-                        <img src="{% static 'img/dashboard/new_Inquiries.png' %}">
-                        <span class="stat-number stat-number-font">New Inquiries</span>
+                    <div class="col-6">
+                        <a href="{% url 'booking:enquiry-list' %}?status=new" style="text-decoration:none;color:inherit;display:block;">
+                        <div class="stat-card sc4">
+                            <div class="stat-icon ic4"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4L3 21l1.1-4.5A8.5 8.5 0 1 1 21 11.5z"/></svg></div>
+                            <div class="stat-lbl">New Inquiries</div>
+                            <div class="stat-number">{{ new_enquiry_count|default:0 }}</div>
+                        </div>
+                        </a>
                     </div>
-                    <div style="font-size: 12px; color: #000000; margin-top: 4px;">
-                        
-                    </div>
-                    <div class="stat-number" style="margin-left: 28px;">{{ new_enquiry_count|default:0 }}</div>
                 </div>
-            </div>
-        </div>
 
-        <div class="row g-3 align-items-stretch">
-            <div class="col-lg-6 col-12 inquiries_mobile_view">
-                <div class="row">
-                    <div class="col-12 d-flex">
-                        <div class="inquiries-section flex-fill">
+                <div class="row mt-3 gx-3 inquiries_mobile_view">
+                    <div class="col-12 d-flex flex-fill">
+                        <div class="inquiries-section flex-fill d-flex flex-column laptop-padded-section" style="height: 400px;">
                             <div class="section-header">
                                 <h2 class="section-title" style="font-size: 20px;">New Inquiries</h2>
-                                <a href="{% url 'booking:enquiry-list' %}?status=new" class="view-all" style="color: #000000; text-decoration: underline;">
-                                    View all
-                                </a>
+                                <a href="{% url 'booking:enquiry-list' %}?status=new" class="view-all">View all →</a>
                             </div>
 
+                            <div class="inquiries-scroll" style="flex: 1; overflow-y: auto;">
 
                             {% for inquiry in new_enquiry_list %}
-                                <div class="inquiry-item align-items-center">
-                                    <div class="inquiry-image">
-                                        <img src="{{inquiry.property.get_primary_image_url}}" style="width:100%; height: 100%; border-radius: 10px;"/>
+                                <div class="inquiry-item">
+                                    <div class="inquiry-image-col">
+                                        <div class="inquiry-image">
+                                            <img src="{{inquiry.property.get_primary_image_url}}" style="width:100%; height:100%; border-radius:12px; object-fit:cover;"/>
+                                        </div>
                                         {% if status_filter != 'reserved' %}
                                             {% if inquiry.is_available %}
-                                            <p class="enquiry-mobile-status">Available</p>
+                                                <p class="enquiry-status-label enquiry-status-available">Available</p>
                                             {% else %}
-                                            <p class="property-not-availability">Not Available</p>
+                                                <p class="enquiry-status-label enquiry-status-unavailable">Unavailable</p>
                                             {% endif %}
                                         {% endif %}
                                     </div>
                                     <div class="inquiry-details">
-                                        <div class="inquiry-dates d-flex justify-content-between">
-                                            <span>{{ inquiry.check_in_date|date:"M d, Y" }} - {{ inquiry.check_out_date|date:"M d, Y" }} ({{ inquiry.total_nights }} nights)</span>
-                                            <span>Sent On <span style="font-weight:800; font-size: 16px; margin-right: 8px;">{{ inquiry.created_at|date:"M d, Y" }}</span></span>
+                                        <div class="inquiry-dates">
+                                            <span>{{ inquiry.check_in_date|date:"M d, Y" }} – {{ inquiry.check_out_date|date:"M d, Y" }}</span>
+                                            <span class="nights-pill">{{ inquiry.total_nights }} nights</span>
                                         </div>
-                                        <div class="inquiry-room d-flex justify-content-between align-items-center">
-                                            <span>{{ inquiry.property.title }}</span>
-                                            <div class="dropdown ms-3">
+                                        <div class="inquiry-sent-row">
+                                            <span class="inquiry-sent">Sent <b>{{ inquiry.created_at|date:"M d, Y" }}</b></span>
+                                            <div class="dropdown ms-auto">
                                                 <button class="options-btn" type="button" data-bs-toggle="dropdown" data-toggle="dropdown" aria-expanded="false" data-bs-boundary="window" data-boundary="window">
                                                     <img src="{% static 'img/booking/horizontal_dots.svg' %}">
                                                 </button>
@@ -517,9 +128,8 @@
                                                     <li>
                                                         <a class="dropdown-item" href="{% url 'booking:enquiry-detail' unique_id=inquiry.unique_id %}">
                                                             <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                                                                <path d="M2 8C3.3 5.7 5.3 4.5 8 4.5C10.7 4.5 12.7 5.7 14 8C12.7 10.3 10.7 11.5 8 11.5C5.3 11.5 3.3 10.3 2 8Z"
-                                                                    stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
-                                                                <circle cx="8" cy="8" r="1.75" stroke="currentColor" stroke-width="1.5" />
+                                                                <path d="M2 8C3.3 5.7 5.3 4.5 8 4.5C10.7 4.5 12.7 5.7 14 8C12.7 10.3 10.7 11.5 8 11.5C5.3 11.5 3.3 10.3 2 8Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                                                <circle cx="8" cy="8" r="1.75" stroke="currentColor" stroke-width="1.5"/>
                                                             </svg>
                                                             Details
                                                         </a>
@@ -534,11 +144,10 @@
                                                     {% endif %}
                                                     <li>
                                                         <a class="dropdown-item enquiry-archive-btn" href="#" data-enquiry-id="{{ inquiry.unique_id }}">
-                                                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="stroke: currentColor;">
-                                                                <rect x="2" y="3" width="12" height="3" rx="1" stroke="currentColor" stroke-width="1.5" />
-                                                                <path d="M3.5 6V12.5C3.5 13.0523 3.94772 13.5 4.5 13.5H11.5C12.0523 13.5 12.5 13.0523 12.5 12.5V6"
-                                                                    stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
-                                                                <path d="M6 8.5H10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+                                                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                                                <rect x="2" y="3" width="12" height="3" rx="1" stroke="currentColor" stroke-width="1.5"/>
+                                                                <path d="M3.5 6V12.5C3.5 13.0523 3.94772 13.5 4.5 13.5H11.5C12.0523 13.5 12.5 13.0523 12.5 12.5V6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                                                <path d="M6 8.5H10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
                                                             </svg>
                                                             Archive
                                                         </a>
@@ -546,53 +155,156 @@
                                                 </ul>
                                             </div>
                                         </div>
+                                        <div class="inquiry-room">{{ inquiry.property.title }}</div>
                                         <div class="inquiry-guest">
-                                            {{ inquiry.guest_name }} 
-                                            | 
-                                            {{ inquiry.adults }} guest{{ inquiry.adults|pluralize }}
-                                            , {{ inquiry.children }} Child {% if inquiry.children > 1 %}ren{% endif %}
-                                            , {{ inquiry.pets }} pet{{ inquiry.pets|pluralize }}
+                                            {{ inquiry.guest_name }} · {{ inquiry.adults }} guest{{ inquiry.adults|pluralize }} · {{ inquiry.children }} child{% if inquiry.children != 1 %}ren{% endif %} · {{ inquiry.pets }} pet{{ inquiry.pets|pluralize }}
                                         </div>
                                     </div>
                                 </div>
                             {% empty %}
                                 <p>No new inquiries available.</p>
                             {% endfor %}
+                            </div>
                         </div>
                     </div>
                 </div>
-                <div class="row mt-5">
-                    <div class="col-12 d-flex">
-                        <div class="chart-card flex-fill">
-                            <div class="chart-header d-flex justify-content-between align-items-start">
-                                <div class="chart-title">
-                                    <p> Monthly Average: $ {{monthly_average}}</p>
-                                    
-                                </div>
+            </div>
 
-                                <div style="display: flex;  text-align: right;">
-                                    <!-- <div class="chart-title">$ YTD Earnings</div>
-                                    <div class="chart-value" id="ytd-value">$0</div>
-                                    <div class="chart-subtitle">Year to date</div> -->
-                                    <div class="d-flex me-3">
-                                        <img src="{% static 'img/dashboard/monthly_profit.svg' %}">
-                                        <span>+0%</span>
+            <div class="col-6 d-flex flex-column">
+                <div class="upcoming-section flex-fill d-flex flex-column laptop-padded-section">
+
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h2 class="upcoming-header">Upcoming</h2>
+                        <div class="month-picker">
+                            <button id="prev-month" aria-label="Previous month"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" width="16" height="16"><path d="M15 6l-6 6 6 6"/></svg></button>
+                            <span id="month-label" data-month="{{ upcoming_month }}" data-year="{{ upcoming_year }}"></span>
+                            <button id="next-month" aria-label="Next month"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" width="16" height="16"><path d="M9 6l6 6-6 6"/></svg></button>
+                        </div>
+                    </div>
+
+                    <div class="position-relative flex-fill upcoming-container-wrapper">
+                        <div class="position-absolute w-100 h-100 upcoming-scroll-content" style="overflow-y: auto; overflow-x: hidden; top: 0; left: 0; padding-right: 8px;">
+                            {% if upcoming_groups %}
+                                    {% for group in upcoming_groups %}
+                                        <div class="upcoming-item">
+                                            <div class="upcoming-date">
+                                                <div class="left">
+                                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px;flex-shrink:0;opacity:.6"><rect x="3" y="4.5" width="18" height="16" rx="2.5"/><path d="M3 9h18M8 2.5v4M16 2.5v4"/></svg>
+                                                    {{ group.date|date:"M d, Y, D" }}
+                                                </div>
+                                                <div class="due-badge {{ group.status_code }}">{{ group.status_label }}</div>
+                                            </div>
+                                            <div class="upcoming-entries">
+                                                {% for item in group.items %}
+                                                    <div class="upcoming-entry">
+                                                        <div class="entry-left">
+                                                            <div class="entry-icon-wrap entry-icon-{{ item.group|lower }}">
+                                                                {% if item.group == "Payment" %}
+                                                                    <svg class="entry-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2.5" y="6" width="19" height="12" rx="2.5"/><circle cx="12" cy="12" r="2.6"/><path d="M6 9.5h.01M18 14.5h.01"/></svg>
+                                                                {% elif item.group == "Checkin" %}
+                                                                    <svg class="entry-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="M10 17l5-5-5-5M15 12H3"/></svg>
+                                                                {% elif item.group == "Checkout" %}
+                                                                    <svg class="entry-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></svg>
+                                                                {% elif item.group == "Cleaning" %}
+                                                                    <svg class="entry-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 22l4-4m0 0l7-7m-7 7l-1.5-1.5M14 11l3-3m0 0l2-2a2 2 0 0 0-3-3l-2 2m3 3l-7 7"/></svg>
+                                                                {% else %}
+                                                                    <svg class="entry-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3.5" width="16" height="17" rx="2.5"/><path d="m8.5 12 2.2 2.2L15 9.8"/></svg>
+                                                                {% endif %}
+                                                            </div>
+                                                            <div class="entry-body">
+                                                                <div class="entry-title">
+                                                                    <span class="entry-label">
+                                                                        {{ item.title }}{% if item.amount %} ${{ item.amount }}{% endif %}
+                                                                    </span>
+                                                                    {% if item.group == "Payment" %}
+                                                                        <span class="payment-status {% if item.paid %}paid{% else %}unpaid{% endif %}">
+                                                                            {% if item.paid %}Paid{% else %}Not paid{% endif %}
+                                                                        </span>
+                                                                    {% endif %}
+                                                                </div>
+                                                                <div class="entry-subtitle">
+                                                                    <img src="{{ item.property_image }}" class="entry-property-icon" alt="">
+                                                                    <span>{{ item.property }}</span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div class="entry-right">
+                                                            <div class="guest-avatar-wrap">
+                                                                <img src="{{ item.avatar }}" class="user-avatar" alt="Guest">
+                                                                <div class="guest-tooltip">
+                                                                    <div class="tooltip-name">{{ item.guest_name }}</div>
+                                                                    {% if item.guest_phone %}
+                                                                        <div class="tooltip-line">{{ item.guest_phone }}</div>
+                                                                    {% endif %}
+                                                                    {% if item.guest_email %}
+                                                                        <div class="tooltip-line">{{ item.guest_email }}</div>
+                                                                    {% endif %}
+                                                                    {% if item.stay %}
+                                                                        <div class="tooltip-line">{{ item.stay }}</div>
+                                                                    {% endif %}
+                                                                    {% if item.channel_name %}
+                                                                        <div class="tooltip-line">{{ item.channel_name }}</div>
+                                                                    {% endif %}
+                                                                </div>
+                                                            </div>
+                                                            <div class="user-name" data-full="{{ item.guest_name }}">{{ item.guest_name|truncatewords:2 }}</div>
+                                                        </div>
+                                                    </div>
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+                                    {% endfor %}
+                                {% else %}
+                                    <div class="upcoming-item">
+                                        <div class="upcoming-date">
+                                            <div class="left">
+                                                <img src="{% static 'img/dashboard/upcoming_event_calender.png' %}"/>
+                                                No upcoming events
+                                            </div>
+                                            <div class="due-badge upcoming">This month</div>
+                                        </div>
                                     </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
 
+        </div>
 
+        <div class="row g-3 p-3">
+            <div class="col-lg-6 col-12">
+                <div class="row gx-3">
+                    <div class="col-12 d-flex">
+                        <style>
+                            @media (max-width: 991px) {
+                                .monthly-avg-card-mobile-revert {
+                                    height: auto !important;
+                                    display: block !important;
+                                }
+                                .monthly-avg-chart-mobile-revert {
+                                    flex: none !important;
+                                    height: 180px !important;
+                                    min-height: auto !important;
+                                }
+                            }
+                        </style>
+                        <div class="chart-card flex-fill monthly-avg-card-mobile-revert laptop-padded-section">
+                            <div class="chart-header d-flex justify-content-between align-items-center">
+                                <div class="chart-title">
+                                    <p>Monthly average <b>${{monthly_average}}</b></p>
+                                </div>
+                                <div class="d-flex align-items-center gap-2">
                                     <select id="year-select" class="year-select">
                                         {% for y in total_years %}
-                                            <option value="{{ y }}" {% if y == selected_year %}selected{% endif %}>
-                                            {{ y }}
-                                            </option>
+                                            <option value="{{ y }}" {% if y == selected_year %}selected{% endif %}>{{ y }}</option>
                                         {% endfor %}
                                     </select>
-
                                 </div>
                             </div>
 
                             <!-- Chart -->
-                            <div class="chart" id="earnings-chart"></div>
+                            <div class="chart monthly-avg-chart-mobile-revert" id="earnings-chart" style="flex: 1; height: 100%; min-height: 180px;"></div>
 
                             <!-- Month Labels -->
                             <div class="chart-labels d-flex justify-content-between">
@@ -604,160 +316,100 @@
                     </div>
                 </div>
             </div>
+        </div>
+
+        <div class="row g-3 p-3">
+            <div class="col-lg-6 mb-3 mb-lg-0">
+                <div class="dash-card d-flex flex-column laptop-padded-section">
+                    <div class="section-header">
+                        <h2 class="section-title">Recent Bookings <span class="section-count">({{ recent_bookings|length }})</span></h2>
+                    </div>
+                    <div class="inquiries-scroll">
+                        {% for booking in recent_bookings %}
+                        <div class="inquiry-item align-items-center mb-3">
+                            <div class="inquiry-image">
+                                <img src="{{ booking.property.get_primary_image_url }}" onerror="this.src='https://placehold.co/100x100?text=Room'" style="width:100%; height: 100%; border-radius: 10px; object-fit: cover;"/>
+                            </div>
+                            <!-- Mobile Layout -->
+                            <div class="inquiry-details d-lg-none" style="flex: 1;">
+                                <div class="inquiry-dates d-flex justify-content-between">
+                                    <span>{{ booking.check_in_date|date:"M j, Y" }} - {{ booking.check_out_date|date:"M j, Y" }} ({{ booking.total_nights }} night{{ booking.total_nights|pluralize }})</span>
+                                    <span>Booked On <span style="font-weight:800; font-size: 16px; margin-right: 8px;">{{ booking.created_at|date:"M j, Y" }}</span></span>
+                                </div>
+                                <div class="inquiry-room d-flex justify-content-between align-items-center">
+                                    <span>{{ booking.property.title }}</span>
+                                    <div class="dropdown ms-3">
+                                        <a href="{% url 'booking:booking-edit' pk=booking.id %}" style="color: #000;">
+                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                                                <polyline points="15 3 21 3 21 9"></polyline>
+                                                <line x1="10" y1="14" x2="21" y2="3"></line>
+                                            </svg>
+                                        </a>
+                                    </div>
+                                </div>
+                                <div class="inquiry-guest d-flex align-items-center mt-1">
+                                    {% if booking.channel and booking.channel.icon %}
+                                    <img src="{{ booking.channel.icon.url }}" onerror="this.style.display='none'" style="width: 20px; height: 20px; margin-right: 8px; border-radius: 50%;">
+                                    {% endif %}
+                                    <span>{{ booking.channel.name|default:"Direct"|title }}</span>
+                                </div>
+                            </div>
+
+                            <!-- Desktop Layout -->
+                            <div class="inquiry-details d-none d-lg-block" style="flex: 1; padding-left: 12px;">
+                                <div class="d-flex justify-content-between align-items-start mb-1">
+                                    <span style="font-weight: 700; font-size: 15px;">{{ booking.check_in_date|date:"M j, Y" }} - {{ booking.check_out_date|date:"M j, Y" }} ({{ booking.total_nights }} night{{ booking.total_nights|pluralize }})</span>
+                                    <a href="{% url 'booking:booking-edit' pk=booking.id %}" style="color: #000; flex-shrink: 0; margin-left: 10px;">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                                            <polyline points="15 3 21 3 21 9"></polyline>
+                                            <line x1="10" y1="14" x2="21" y2="3"></line>
+                                        </svg>
+                                    </a>
+                                </div>
+                                <div class="mb-1">
+                                    <span style="color: #888; font-size: 15px;">{{ booking.property.title }}</span>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center mt-2">
+                                    <div class="d-flex align-items-center">
+                                        {% if booking.channel and booking.channel.icon %}
+                                        <img src="{{ booking.channel.icon.url }}" onerror="this.style.display='none'" style="width: 20px; height: 20px; margin-right: 6px; border-radius: 50%;">
+                                        {% endif %}
+                                        <span style="font-weight: 600; font-size: 15px;">{{ booking.channel.name|default:"Direct"|title }}</span>
+                                    </div>
+                                    <span style="font-size: 14px;">Booked on <span style="font-weight:700;">{{ booking.created_at|date:"M j, Y" }}</span></span>
+                                </div>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <p class="text-muted text-center py-4" style="font-size: 14px;">No recent bookings in the last 7 days</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
             
-
-            <div class="col-lg-6 col-12 upcoming-section">
-
-                <div class="tab-header">
-                    <a href="?type=today" class="tab {% if not selected_type or selected_type == 'today' %}active{% endif %}">Today</a>
-                    <a href="?type=tomorrow" class="tab {% if selected_type == 'tomorrow' %}active{% endif %}">Tomorrow</a>
+            <div class="col-lg-6">
+                <div class="channel-card monthly-avg-card-mobile-revert">
+                    <!-- <div class="chart-header">
+                        <h2 class="section-title" style="font-size: 20px;">Bookings by Channel</h2>
+                    </div> -->
+                    <div class="channel-chart-container" style="display: flex; align-items: center; justify-content: center; align-content: center; gap: clamp(56px, 12vw, 80px); flex-wrap: nowrap; width: 100%; max-height: 384px; padding: 0 5px;">
+                          <div class="laptop-chart-size" style="position: relative; flex: 0 0 auto; width: clamp(100px, 40vw, 220px); aspect-ratio: 1/1;">
+                              <canvas id="channelPieChart"></canvas>
+                          </div>
+                          <div class="laptop-legend-center" style="flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: clamp(4px, 1vw, 8px);">
+                              {% for label in channel_labels %}
+                              <div class="laptop-legend-text-size" style="display: flex; align-items: center; gap: 6px; font-size: clamp(11px, 3vw, 13px);">
+                                  <span style="width: 10px; height: 10px; flex-shrink: 0; background: {% cycle '#FF5A5F' '#003580' '#111827' '#009DDF' '#E91E63' '#9C27B0' '#FF9800' '#00BCD4' %}"></span>
+                                  <span class="legend-label" style="color: #4b5563; font-weight: 500; word-break: break-word;">{{ label }}</span>
+                              </div>
+                              {% endfor %}
+                          </div>
+                      </div>
                 </div>
-                <hr>
-
-                <!-- Stats boxes row -->
-                <div class="row text-center">
-                    <div class="col-lg-2 col-md-2 col-6 m-0 p-0">
-                        <div class="card stat-card start-card-removed-css">
-                            <div class="card-body">
-                            <div class="h5">{{total_checkin}}</div>
-                            <div class="label">Check-ins</div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-lg-2 col-md-2 col-6 m-0 p-0">
-                        <div class="card stat-card start-card-removed-css">
-                            <div class="card-body">
-                            <div class="h5">{{total_checkout}}</div>
-                            <div class="label">Check-outs</div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-lg-2 col-md-2 col-6 m-0 p-0">
-                        <div class="card stat-card start-card-removed-css">
-                            <div class="card-body">
-                            <div class="h5">{{total_inhouse}}</div>
-                            <div class="label">In-house</div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-lg-2 col-md-2 col-6 m-0 p-0">
-                        <div class="card stat-card start-card-removed-css">
-                            <div class="card-body">
-                            <div class="h5">{{total_vacant}}</div>
-                            <div class="label">Vacant</div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-lg-2 col-md-2 col-6 m-0 p-0">
-                        <div class="card stat-card start-card-removed-css">
-                            <div class="card-body">
-                            <div class="h5">{{total_payment}}</div>
-                            <div class="label">Payment</div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-lg-2 col-md-2 col-6 m-0 p-0">
-                        <div class="card stat-card start-card-removed-css border-0">
-                            <div class="card-body">
-                            <div class="h5">{{total_tasks}}</div>
-                            <div class="label">Tasks</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <hr>
-
-                <div class="row" style="max-height: 466px; overflow: auto;">
-                    <div class="col-12">
-                        <div class=" flex-fill">
-                            <div class="d-flex justify-content-between align-items-center mb-3">
-                                <h2 class="upcoming-header">Upcoming</h2>
-                                <div class="month-picker">
-                                    <button id="prev-month" aria-label="Previous month">‹</button>
-                                    <span id="month-label" data-month="{{ upcoming_month }}" data-year="{{ upcoming_year }}"></span>
-                                    <button id="next-month" aria-label="Next month">›</button>
-                                </div>
-                            </div>
-                            {% if upcoming_groups %}
-                                {% for group in upcoming_groups %}
-                                    <div class="upcoming-item">
-                                        <div class="upcoming-date">
-                                            <div class="left">
-                                                <img src="{% static 'img/dashboard/upcoming_event_calender.png' %}"/>
-                                                {{ group.date|date:"M d, Y, D" }}
-                                            </div>
-                                            <div class="due-badge {{ group.status_code }}">{{ group.status_label }}</div>
-                                        </div>
-                                        <div class="upcoming-entries">
-                                            {% for item in group.items %}
-                                                <div class="upcoming-entry">
-                                                    <div class="entry-left">
-                                                        <div class="entry-title">
-                                                            <img src="{% static item.icon %}" class="entry-icon" alt="">
-                                                            <span class="entry-label">
-                                                                {{ item.title }}
-                                                                {% if item.amount %}
-                                                                    ${{ item.amount }}
-                                                                {% endif %}
-                                                            </span>
-                                                            {% if item.group == "Payment" %}
-                                                                <span class="payment-status {% if item.paid %}paid{% else %}unpaid{% endif %}">
-                                                                    {% if item.paid %}Paid{% else %}Not paid{% endif %}
-                                                                </span>
-                                                            {% endif %}
-                                                        </div>
-                                                        <div class="entry-subtitle">
-                                                            <img src="{{ item.property_image }}" class="entry-property-icon" alt="">
-                                                            <span>{{ item.property }}</span>
-                                                        </div>
-                                                    </div>
-                                                    <div class="entry-right">
-                                                        <div class="guest-avatar-wrap">
-                                                            <img src="{{ item.avatar }}" class="user-avatar" alt="Guest">
-                                                            <div class="guest-tooltip">
-                                                                <div class="tooltip-name">{{ item.guest_name }}</div>
-                                                                {% if item.guest_phone %}
-                                                                    <div class="tooltip-line">{{ item.guest_phone }}</div>
-                                                                {% endif %}
-                                                                {% if item.guest_email %}
-                                                                    <div class="tooltip-line">{{ item.guest_email }}</div>
-                                                                {% endif %}
-                                                                {% if item.stay %}
-                                                                    <div class="tooltip-line">{{ item.stay }}</div>
-                                                                {% endif %}
-                                                                {% if item.channel_name %}
-                                                                    <div class="tooltip-line">{{ item.channel_name }}</div>
-                                                                {% endif %}
-                                                            </div>
-                                                        </div>
-                                                        <div class="user-name" data-full="{{ item.guest_name }}">{{ item.guest_name|truncatewords:2 }}</div>
-                                                    </div>
-                                                </div>
-                                            {% endfor %}
-                                        </div>
-                                    </div>
-                                {% endfor %}
-                            {% else %}
-                                <div class="upcoming-item">
-                                    <div class="upcoming-date">
-                                        <div class="left">
-                                            <img src="{% static 'img/dashboard/upcoming_event_calender.png' %}"/>
-                                            No upcoming events
-                                        </div>
-                                        <div class="due-badge upcoming">This month</div>
-                                    </div>
-                                </div>
-                            {% endif %}
-
-                            
-                        </div>
-                    </div>
-                </div>
-                
             </div>
         </div>
-        <br>
-            
         {% include 'frontend/base/footer.html' %}
     </main>
 </div>
@@ -960,7 +612,7 @@
     <script>
         // Example earnings data (per month)
         // const monthlyEarnings = [0, 0, 0, 100, 0, 6748, 0, 0, 0, 0, 0, 0];
-        const monthlyEarnings = {{ monthly_earnings_js }};
+        const monthlyEarnings = JSON.parse('{{ monthly_earnings_js|escapejs }}');
 
         console.log(monthlyEarnings);
         
@@ -998,11 +650,65 @@
         if (value > 0) {
             const label = document.createElement("span");
             label.innerText = `$${value.toLocaleString()}`;
-            bar.appendChild(label);
+            bar.appendChild(label); // font size set dynamically by autoSizeBarLabels()
         }
 
         chart.appendChild(bar);
         });
+
+        // Draw avg line using the same monthly_average value shown in the header
+        if (hasChartData && maxValue > 0) {
+            const avg = parseFloat("{{ monthly_average }}");
+            const avgPct = Math.min((avg / maxValue) * 100, 100);
+            const avgLine = document.createElement("div");
+            avgLine.className = "avg-line";
+            avgLine.style.bottom = avgPct + "%";
+            const avgLbl = document.createElement("span");
+            avgLbl.textContent = "$" + avg.toLocaleString("en-US", {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            avgLine.appendChild(avgLbl);
+            chart.appendChild(avgLine);
+        }
+
+        // Dynamically size all bar labels equally so the longest fits without overlap
+        (function autoSizeBarLabels() {
+            const isMobile = window.innerWidth <= 576;
+            if (!isMobile) return;
+
+            const bars = chart.querySelectorAll(".bar");
+            if (!bars.length) return;
+
+            // Wait for layout so bar widths are available
+            requestAnimationFrame(() => {
+                const barWidth = bars[0].offsetWidth;
+                if (!barWidth) return;
+
+                // Find the longest label text width at a reference font size
+                const REF_SIZE = 11; // px — start here and scale down
+                let maxLabelWidth = 0;
+
+                bars.forEach(bar => {
+                    const span = bar.querySelector("span");
+                    if (!span) return;
+                    // Measure at reference size
+                    span.style.fontSize = REF_SIZE + "px";
+                    maxLabelWidth = Math.max(maxLabelWidth, span.offsetWidth);
+                });
+
+                if (maxLabelWidth === 0) return;
+
+                // Scale so longest label fits within bar width (with 2px padding each side)
+                const availableWidth = barWidth - 4;
+                const scale = availableWidth / maxLabelWidth;
+                const finalSize = Math.min(REF_SIZE, Math.floor(REF_SIZE * scale));
+                const clampedSize = Math.max(6, finalSize); // never below 6px
+
+                // Apply the same size to ALL labels
+                bars.forEach(bar => {
+                    const span = bar.querySelector("span");
+                    if (span) span.style.fontSize = clampedSize + "px";
+                });
+            });
+        })();
 
         // Update YTD earnings
         const ytdValueElement = document.getElementById("ytd-value");
@@ -1053,5 +759,59 @@
 
         updateLabel(); // initial render
 
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        const centerTextPlugin = {
+            id: 'centerText',
+            afterDraw(chart) {
+                const { width, height, ctx } = chart;
+                const centerX = width / 2;
+                const centerY = height / 2;
+                const isLaptop = window.innerWidth >= 992;
+                ctx.save();
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillStyle = '#4b5563';
+                ctx.font = `500 ${isLaptop ? 16 : 14}px system-ui, -apple-system, sans-serif`;
+                ctx.fillText('Bookings', centerX, centerY - (isLaptop ? 12 : 10));
+                ctx.font = `500 ${isLaptop ? 18 : 16}px system-ui, -apple-system, sans-serif`;
+                ctx.fillText('{{ gross_bookings_count }}', centerX, centerY + (isLaptop ? 10 : 8));
+                ctx.restore();
+            }
+        };
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const ctx = document.getElementById('channelPieChart');
+            if (ctx) {
+                const colors = ['#FF5A5F', '#003580', '#111827', '#009DDF', '#E91E63', '#9C27B0', '#FF9800', '#00BCD4'];
+                const labels = {{ channel_labels_json }};
+                const counts = {{ channel_counts_json }};
+                const amounts = {{ channel_amounts_json }};
+                document.querySelectorAll('.legend-label').forEach((el, i) => {
+                    el.textContent = `${labels[i]} (${counts[i]})`;
+                });
+                new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            data: counts,
+                            backgroundColor: colors.slice(0, labels.length),
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        cutout: '65%',
+                        plugins: {
+                            legend: { display: false }
+                        }
+                    },
+                    plugins: [centerTextPlugin]
+                });
+            }
+        });
     </script>
 {% endblock extra_script %}

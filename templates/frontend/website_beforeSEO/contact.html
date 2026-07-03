@@ -1,0 +1,574 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Favhost - Manage Short-term rentals</title>
+    <link rel="icon" type="image/favhost" href="{% static 'website/img/fev.png' %}">
+
+    <!-- libraries CSS -->
+    <link rel="stylesheet" href="{% static 'website/icon/flaticon_charitics.css' %}">
+    <link rel="stylesheet" href="{% static 'website/vendor/bootstrap/bootstrap.min.css' %}">
+    <link rel="stylesheet" href="{% static 'website/vendor/splide/splide.min.css' %}">
+    <link rel="stylesheet" href="{% static 'website/vendor/swiper/swiper-bundle.min.css' %}">
+    <link rel="stylesheet" href="{% static 'website/vendor/slim-select/slimselect.css' %}">
+    <link rel="stylesheet" href="{% static 'website/vendor/animate-wow/animate.min.css' %}">
+    <link rel="stylesheet" href="{% static 'website/vendor/flatpickr/flatpickr.min.css' %}">
+
+    <!-- custom CSS -->
+    <link rel="stylesheet" href="{% static 'website/css/style.css' %}">
+    <style>
+        .ul-header-bottom.to-be-sticky {
+            position: fixed !important;
+            top: 0;
+            width: 100%;
+            background: transparent !important;
+            box-shadow: none !important;
+            transition: background 0.3s ease, backdrop-filter 0.3s ease;
+        }
+
+        .ul-header-bottom.to-be-sticky.scrolled {
+            background: rgba(30, 37, 47, 0.9) !important;
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+        }
+
+        .ul-header-bottom.to-be-sticky.scrolled .ul-header-nav a,
+        .ul-header-bottom.to-be-sticky.scrolled .ul-header-nav a:not([href]):not([class]) {
+            color: #fff !important;
+        }
+
+        .ul-header-bottom.to-be-sticky.scrolled .ul-header-actions button {
+            color: #fff !important;
+        }
+
+        /* ── Mobile header: login icon button ── */
+        @media (max-width: 991px) {
+            .btn-mobile-login-icon {
+                background: none;
+                border: none;
+                padding: 4px 6px;
+                cursor: pointer;
+                font-size: 20px;
+                line-height: 1;
+                color: inherit;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+            }
+
+            .btn-mobile-login-icon i {
+                display: inline-flex;
+            }
+
+            .ul-header-bottom.to-be-sticky.scrolled .btn-mobile-login-icon {
+                color: #fff !important;
+            }
+        }
+
+        /* ── Mobile sidebar: dark glass matching header ── */
+        @media (max-width: 991px) {
+            .ul-sidebar {
+                background: rgba(17, 24, 39, 0.88) !important;
+                backdrop-filter: blur(12px) !important;
+                -webkit-backdrop-filter: blur(12px) !important;
+                border-left: 1px solid rgba(255, 255, 255, 0.12) !important;
+            }
+
+            .ul-sidebar-header {
+                border-bottom-color: rgba(255, 255, 255, 0.15) !important;
+            }
+
+            .ul-sidebar-closer,
+            .ul-sidebar-closer i,
+            .ul-sidebar-closer:focus {
+                color: #fff !important;
+            }
+
+            .ul-sidebar-closer:hover {
+                color: rgba(255, 255, 255, 0.7) !important;
+            }
+
+            .ul-sidebar-header-nav-wrapper a,
+            .ul-sidebar-header-nav-wrapper a:not([href]):not([class]),
+            .ul-sidebar .ul-header-nav a,
+            .ul-sidebar .ul-header-nav a:not([href]):not([class]) {
+                color: #fff !important;
+                display: block;
+                padding: 10px 0;
+                font-size: 16px;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.35);
+            }
+
+            .ul-sidebar-header-nav-wrapper a:hover,
+            .ul-sidebar .ul-header-nav a:hover {
+                color: rgba(255, 255, 255, 0.7) !important;
+            }
+
+            .ul-sidebar-header-nav-wrapper nav,
+            .ul-sidebar .ul-header-nav {
+                display: flex !important;
+                flex-direction: column !important;
+                gap: 0 !important;
+                padding: 0 !important;
+                border-top: 1px solid rgba(255, 255, 255, 0.35) !important;
+            }
+
+            .ul-sidebar-footer-title {
+                color: #fff !important;
+            }
+
+            .ul-sidebar-footer-social a {
+                color: #fff !important;
+                border-color: rgba(255, 255, 255, 0.4) !important;
+            }
+
+            .ul-sidebar-footer-social a:hover {
+                background-color: rgba(255, 255, 255, 0.2) !important;
+                border-color: rgba(255, 255, 255, 0.6) !important;
+            }
+
+            .ul-sidebar-footer-social i {
+                color: #fff !important;
+            }
+
+            .ul-sidebar,
+            .ul-sidebar span,
+            .ul-sidebar p,
+            .ul-sidebar i {
+                color: #fff !important;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="preloader" id="preloader">
+        <div class="loader"></div>
+    </div>
+
+    <!-- SIDEBAR SECTION START -->
+    <div class="ul-sidebar">
+        <!-- header -->
+        <div class="ul-sidebar-header">
+            <div class="ul-sidebar-header-logo">
+                <a href="{% url 'index' %}">
+                    <img src="{% static 'img/login/favhost_new_logo.png' %}" alt="logo" class="logo"
+                        style="height:48px;width:auto;">
+                </a>
+            </div>
+            <!-- sidebar closer -->
+            <button class="ul-sidebar-closer"><i class="flaticon-close"></i></button>
+        </div>
+
+        <div class="ul-sidebar-header-nav-wrapper d-block d-lg-none"></div>
+
+
+        <!-- sidebar footer -->
+        <div class="ul-sidebar-footer">
+            <span class="ul-sidebar-footer-title">Follow us</span>
+
+            <div class="ul-sidebar-footer-social">
+                <a href="https://www.facebook.com/profile.php?id=61590927320511" target="_blank"><i
+                        class="flaticon-facebook"></i></a>
+                <!-- <a href="#"><i class="flaticon-twitter"></i></a> -->
+                <a href="https://www.instagram.com/favhost/" target="_blank"><i class="flaticon-instagram"></i></a>
+                <a href="https://www.youtube.com/@favhost" target="_blank"><i class="flaticon-youtube"></i></a>
+            </div>
+        </div>
+    </div>
+    <!-- SIDEBAR SECTION END -->
+
+    <!-- SEARCH MODAL SECTION START -->
+    <div class="ul-search-form-wrapper flex-grow-1 flex-shrink-0">
+        <button class="ul-search-closer"><i class="flaticon-close"></i></button>
+
+        <form action="#" class="ul-search-form">
+            <div class="ul-search-form-right">
+                <input type="search" name="search" id="ul-search" placeholder="Search Here">
+                <button type="submit"><span class="icon"><i class="flaticon-search"></i></span></button>
+            </div>
+        </form>
+    </div>
+    <!-- SEARCH MODAL SECTION END -->
+
+    <!-- HEADER SECTION START -->
+    <header class="ul-header">
+        <div class="ul-header-bottom to-be-sticky">
+            <div class="ul-header-bottom-wrapper ul-header-container">
+                <a href="{% url 'index' %}" class="d-inline-block"><img
+                        src="{% static 'img/login/favhost_new_logo.png' %}" alt="logo" class="logo"
+                        style="height:48px;width:auto;"></a>
+
+                <!-- header nav -->
+                <div class="ul-header-nav-wrapper">
+                    <div class="to-go-to-sidebar-in-mobile">
+                        <nav class="ul-header-nav">
+
+                            <a href="{% url 'index' %}#feature">Features</a>
+                            <a href="{% url 'index' %}#watchdemo">Watch Demo</a>
+                            <a href="{% url 'index' %}#pricing">Pricing</a>
+
+                            <a href="{% url 'index' %}#about">About us</a>
+
+                            <a href="{% url 'index' %}#cstories">Customer stories</a>
+
+                            <a href="{% url 'index' %}#faq">FAQ</a>
+
+                            <a href="{% url 'index' %}#resources">Resources</a>
+
+
+                            <a href="{% url 'contact' %}">Contact us</a>
+                        </nav>
+                    </div>
+                </div>
+
+                <!-- actions -->
+                <div class="ul-header-actions">
+                    <!--                    <button class="ul-header-search-opener"><i class="flaticon-search"></i></button>-->
+                    <!-- desktop: login button -->
+                    <button onclick="window.location.href='{% url 'accounts:login' %}';"
+                        class="btn-login d-none d-lg-inline-flex">Log In</button>
+                    <!-- mobile: login icon + signup button -->
+                    <button onclick="window.location.href='{% url 'accounts:login' %}';"
+                        class="btn-mobile-login-icon d-lg-none" aria-label="Login"><svg
+                            xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+                            <polyline points="10 17 15 12 10 7" />
+                            <line x1="15" y1="12" x2="3" y2="12" />
+                        </svg></button>
+                    <button onclick="window.location.href='{% url 'contact' %}';" class="btn-login d-lg-none">Sign
+                        Up</button>
+                    <a href="{% url 'contact' %}" class="ul-btn d-sm-inline-flex d-none"><i
+                            class="flaticon-fast-forward-double-right-arrows-symbol"></i> Get started </a>
+                    <button class="ul-header-sidebar-opener d-lg-none d-inline-flex"><i
+                            class="flaticon-menu"></i></button>
+                </div>
+            </div>
+        </div>
+    </header>
+    <!-- HEADER SECTION END -->
+
+
+    <main>
+        <!-- BREADCRUMBS SECTION START -->
+        <section class="ul-breadcrumb ul-section-spacing">
+            <div class="ul-container">
+                <h2 class="ul-breadcrumb-title">Contact us</h2>
+                <!--
+                <ul class="ul-breadcrumb-nav">
+                    <li><a href="{% url 'index' %}">Home</a></li>
+                    <li><span class="separator"><i class="flaticon-right"></i></span></li>
+                    <li>Contact us</li>
+                </ul>
+-->
+            </div>
+        </section>
+        <!-- BREADCRUMBS SECTION END -->
+
+
+        <!-- CONTACT INFOS SECTION START -->
+        <style>
+            .ul-contact-infos .ul-section-spacing {
+                padding-top: clamp(30px, 3vw, 48px);
+                padding-bottom: 16px;
+            }
+
+            .ul-contact-infos .ul-bs-row {
+                justify-content: center;
+            }
+
+            .ul-inner-contact.ul-section-spacing {
+                padding-top: 60px;
+            }
+        </style>
+        <div class="ul-contact-infos">
+            <div class="ul-section-spacing ul-container">
+                <div class="row row-cols-md-3 row-cols-2 row-cols-xxs-1 ul-bs-row">
+                    <!-- single info -->
+                    <div class="col">
+                        <div class="ul-contact-info">
+                            <div class="icon"><i class="flaticon-phone-call"></i></div>
+                            <div class="txt">
+                                <span class="title">Phone number</span>
+                                <a href="tel:+442045770077">+44 204 577 0077</a>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- single info -->
+                    <div class="col">
+                        <div class="ul-contact-info">
+                            <div class="icon"><i class="flaticon-comment"></i></div>
+                            <div class="txt">
+                                <span class="title">Email address</span>
+                                <a href="mailto:support@favhost.com">support@favhost.com</a>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- COMMENTED OUT: office address
+                    <div class="col">
+                        <div class="ul-contact-info">
+                            <div class="icon"><i class="flaticon-location"></i></div>
+                            <div class="txt">
+                                <span class="title">Office Address</span>
+                                <span class="descr">Washington Ave, NY</span>
+                            </div>
+                        </div>
+                    </div>
+                    END COMMENTED OUT -->
+                </div>
+            </div>
+        </div>
+        <!-- CONTACT INFOS SECTION END -->
+
+        <!-- COMMENTED OUT: maps section
+        <div class="ul-contact-map">
+            <iframe
+                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d4273.369923927683!2d89.24843545559786!3d25.755317550773302!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x39e32e0754341e5f%3A0xa50209e1e2d5aed5!2sRangpur%20Zoo!5e0!3m2!1sen!2sbd!4v1736854209235!5m2!1sen!2sbd"
+                allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+        </div>
+        END COMMENTED OUT -->
+
+
+        <!-- CONTACT SECTION START -->
+        <section class="ul-inner-contact ul-section-spacing">
+            <div class="ul-section-heading justify-content-center text-center">
+                <div>
+                    <span class="ul-section-sub-title">Contact us</span>
+                    <h2 class="ul-section-title">Feel Free To Write Us Anytime</h2>
+                </div>
+            </div>
+
+            <div class="ul-inner-contact-container">
+                <form action="#" class="ul-contact-form ul-form">
+                    <div class="row row-cols-2 row-cols-xxs-1 ul-bs-row">
+                        <div class="col">
+                            <div class="form-group">
+                                <input type="text" name="name" id="ul-contact-name" placeholder="Your Name">
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="form-group">
+                                <input type="email" name="email" id="ul-contact-email" placeholder="Email Address">
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="form-group">
+                                <input type="text" name="subject" id="ul-contact-subject" placeholder="Subject">
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="form-group">
+                                <textarea name="message" id="ul-contact-msg" placeholder="Type your message"></textarea>
+                            </div>
+                        </div>
+                        <div class="col-12 text-center">
+                            <button class="ul-btn"><i class="flaticon-fast-forward-double-right-arrows-symbol"></i> Get
+                                in Touch</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </section>
+        <!-- CONTACT SECTION END -->
+    </main>
+
+
+    <!-- FOOTER SECTION START -->
+    <footer class="ul-footer wow animate__fadeInUp">
+        <!-- COMMENTED OUT: footer top contact bar
+        <div class="ul-footer-top">
+            <div class="ul-footer-container">
+                <div class="ul-footer-top-contact-infos">
+                    single info
+                    <div class="ul-footer-top-contact-info">
+                        icon
+                        <div class="ul-footer-top-contact-info-icon">
+                            <div class="ul-footer-top-contact-info-icon-inner">
+                                <i class="flaticon-pin"></i>
+                            </div>
+                        </div>
+                        txt
+                        <div class="ul-footer-top-contact-info-txt">
+                            <span class="ul-footer-top-contact-info-label">Address</span>
+                            <h5 class="ul-footer-top-contact-info-address">4648 Rocky Road Philadelphia PA, 1920</h5>
+                        </div>
+                    </div>
+
+                    single info
+                    <div class="ul-footer-top-contact-info">
+                        icon
+                        <div class="ul-footer-top-contact-info-icon">
+                            <div class="ul-footer-top-contact-info-icon-inner">
+                                <i class="flaticon-email"></i>
+                            </div>
+                        </div>
+                        txt
+                        <div class="ul-footer-top-contact-info-txt">
+                            <span class="ul-footer-top-contact-info-label">Send Email</span>
+                            <h5 class="ul-footer-top-contact-info-address"><a
+                                    href="mailto:info@exmple.com">info@exmple.com</a></h5>
+                        </div>
+                    </div>
+
+                    single info
+                    <div class="ul-footer-top-contact-info">
+                        icon
+                        <div class="ul-footer-top-contact-info-icon">
+                            <div class="ul-footer-top-contact-info-icon-inner">
+                                <i class="flaticon-telephone-call-1"></i>
+                            </div>
+                        </div>
+                        txt
+                        <div class="ul-footer-top-contact-info-txt">
+                            <span class="ul-footer-top-contact-info-label">Call Us</span>
+                            <h5 class="ul-footer-top-contact-info-address"><a href="tel:88012365499">+88 0123 654 99</a>
+                            </h5>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        END COMMENTED OUT -->
+
+        <div class="ul-footer-middle">
+            <div class="ul-footer-container">
+                <div class="ul-footer-middle-wrapper wow animate__fadeInUp">
+                    <div class="ul-footer-about">
+                        <a href="{% url 'index' %}"><img src="{% static 'img/login/favhost_new_logo.png' %}" alt="logo"
+                                class="logo"></a>
+                        <p class="ul-footer-about-txt">Centralizes property management by synchronizing availability,
+                            reservations across multiple channels like Airbnb and Vrbo via real-time integrations.</p>
+                        <div class="ul-footer-socials">
+                            <a href="https://www.facebook.com/profile.php?id=61590927320511" target="_blank"><i
+                                    class="flaticon-facebook"></i></a>
+                            <!-- <a href="#"><i class="flaticon-twitter"></i></a> -->
+                            <a href="https://www.instagram.com/favhost/" target="_blank"><i
+                                    class="flaticon-instagram"></i></a>
+                            <a href="https://www.youtube.com/@favhost" target="_blank"><i
+                                    class="flaticon-youtube"></i></a>
+                        </div>
+                    </div>
+
+                    <div class="ul-footer-widget">
+                        <h3 class="ul-footer-widget-title">Quick Links</h3>
+
+                        <div class="ul-footer-widget-links">
+                            <a href="{% url 'index' %}#feature">Features</a>
+                            <a href="{% url 'index' %}#watchdemo">Watch Demo</a>
+                            <a href="{% url 'index' %}#pricing">Pricing</a>
+                            <a href="{% url 'index' %}#about">About us</a>
+                            <a href="{% url 'index' %}#cstories">Customer stories</a>
+                            <a href="{% url 'index' %}#faq">FAQ</a>
+                            <a href="{% url 'index' %}#resources">Resources</a>
+                            <a href="{% url 'contact' %}">Contact Us</a>
+                        </div>
+                    </div>
+
+                    <div class="ul-footer-widget ul-footer-recent-posts">
+                        <h3 class="ul-footer-widget-title">Resources</h3>
+
+                        <div class="ul-blog-sidebar-posts">
+                            <!-- single post -->
+                            <div class="ul-blog-sidebar-post ul-footer-post">
+                                <div class="img">
+                                    <img src="{% static 'website/img/blog-2.jpg' %}" alt="Post Image">
+                                </div>
+
+                                <div class="txt">
+                                    <span class="date">
+                                        <span class="icon"><i class="flaticon-calendar"></i></span>
+                                        <span>April 5, 2026</span>
+                                    </span>
+
+                                    <h4 class="title"><a
+                                            href="{% url 'blog-details' 'the-risks-of-manual-management' %}">The Risks
+                                            of Manual Management</a></h4>
+                                </div>
+                            </div>
+
+                            <!-- single post -->
+                            <div class="ul-blog-sidebar-post ul-footer-post">
+                                <div class="img">
+                                    <img src="{% static 'website/img/blog-1.jpg' %}" alt="Post Image">
+                                </div>
+
+                                <div class="txt">
+                                    <span class="date">
+                                        <span class="icon"><i class="flaticon-calendar"></i></span>
+                                        <span>April 7, 2026</span>
+                                    </span>
+
+                                    <h4 class="title"><a
+                                            href="{% url 'blog-details' 'the-secret-to-scaling-your-rental-business' %}">The
+                                            Secret to Scaling Your Rental Business</a></h4>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="ul-footer-widget ul-nwsltr-widget">
+                        <h3 class="ul-footer-widget-title">Contact Us</h3>
+                        <div class="ul-footer-widget-links ul-footer-contact-links">
+                            <a href="mailto:support@favhost.com"><i class="flaticon-mail"></i> support@favhost.com</a>
+                            <a href="tel:123-456-7890"><i class="flaticon-telephone-call"></i> 123-456-7890</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- footer bottom -->
+        <div class="ul-footer-bottom">
+            <div class="ul-footer-container">
+                <div class="ul-footer-bottom-wrapper">
+                    <p class="copyright-txt">&copy;
+                        <span id="footer-copyright-year"></span> Favhost.LLC.All rights reserved.
+                    </p>
+                    <div class="ul-footer-bottom-nav"><a href="{% url 'terms' %}">Terms & Conditions</a> <a
+                            href="{% url 'privacy' %}">Privacy Policy</a></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- vector -->
+        <div class="ul-footer-vectors">
+            <img src="{% static 'website/img/footer-vector-img.png' %}" alt="Footer Image" class="ul-footer-vector-1">
+        </div>
+    </footer>
+    <!-- FOOTER SECTION END -->
+
+    <!-- libraries JS -->
+    <script src="{% static 'website/vendor/bootstrap/bootstrap.bundle.min.js' %}"></script>
+    <script src="{% static 'website/vendor/splide/splide.min.js' %}"></script>
+    <script src="{% static 'website/vendor/splide/splide-extension-auto-scroll.min.js' %}"></script>
+    <script src="{% static 'website/vendor/swiper/swiper-bundle.min.js' %}"></script>
+    <script src="{% static 'website/vendor/slim-select/slimselect.min.js' %}"></script>
+    <script src="{% static 'website/vendor/animate-wow/wow.min.js' %}"></script>
+    <script src="{% static 'website/vendor/splittype/index.min.js' %}"></script>
+    <script src="{% static 'website/vendor/mixitup/mixitup.min.js' %}"></script>
+    <script src="{% static 'website/vendor/fslightbox/fslightbox.js' %}"></script>
+    <script src="{% static 'website/vendor/flatpickr/flatpickr.js' %}"></script>
+
+    <!-- custom JS -->
+    <script src="{% static 'website/js/main.js' %}"></script>
+    <script src="{% static 'website/js/tab.js' %}"></script>
+    <!-- <script src="{% static 'website/js/countdown.js' %}"></script> -->
+    <script src="{% static 'website/js/accordion.js' %}"></script>
+    <script src="{% static 'website/js/progressbar.js' %}"></script>
+    <script>
+        (function () {
+            var header = document.querySelector('.ul-header-bottom.to-be-sticky');
+            if (!header) return;
+            window.addEventListener('scroll', function () {
+                header.classList.toggle('scrolled', window.scrollY > 50);
+            }, { passive: true });
+        })();
+    </script>
+</body>
+
+</html>

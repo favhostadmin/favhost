@@ -1,0 +1,1288 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Edit Profile - {{ user.username }}</title>
+  <link
+    href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display&display=swap"
+    rel="stylesheet">
+  <link href="{% static 'css/bootstrap.min.css' %}" rel="stylesheet">
+  <link href="{% static 'css/style.css' %}" rel="stylesheet">
+  <link href="{% static 'css/header.css' %}" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'css/bookaid-profile.css' %}?v=2">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/css/intlTelInput.css"/>
+  <style>
+    .iti {
+      width: 100%;
+    }
+    .iti__flag-container {
+      width: 100%;
+      pointer-events: none;
+    }
+    .iti__selected-flag {
+      pointer-events: auto;
+      width: fit-content;
+    }
+    .iti__country-list {
+      width: 100% !important;
+      pointer-events: auto;
+    }
+    
+    /* Custom Currency Dropdown styling */
+    .select-wrap.custom-dropdown-wrap::after {
+      display: none;
+    }
+    .custom-dropdown-toggle {
+      background: var(--input-bg);
+      border: 1px solid #353535;
+      border-radius: 9px;
+      padding: 13px 10px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      color: var(--dark);
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      user-select: none;
+    }
+    .custom-dropdown-menu {
+      display: none;
+      position: absolute;
+      top: 100%;
+      left: 0;
+      width: 100%;
+      background: white;
+      border: 1px solid #ccc;
+      border-radius: 0;
+      margin-top: 4px;
+      max-height: 250px;
+      overflow-y: auto;
+      z-index: 1000;
+      box-shadow: 1px 1px 4px rgba(0,0,0,0.2);
+    }
+    .custom-dropdown-menu.open {
+      display: block;
+    }
+    .custom-dropdown-option {
+      padding: 6px 12px;
+      cursor: pointer;
+      font-size: 14px;
+      color: var(--dark);
+      transition: background 0.1s;
+    }
+    .custom-dropdown-option:hover {
+      background: #f3f3f3;
+    }
+    .custom-dropdown-option.selected {
+      background: #e7e7e9;
+      font-weight: bold;
+    }
+  </style>
+</head>
+
+<body>
+
+  {% include 'frontend/base/header.html' %}
+
+<form method="POST" enctype="multipart/form-data" action="{% url 'profile_edit' %}">
+    {% csrf_token %}
+
+    <div class="profile-header">
+      <div class="profile-header-left">
+        <svg viewBox="0 0 24 24">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+          <circle cx="12" cy="7" r="4" />
+        </svg>
+        Profile
+      </div>
+      <div class="profile-header-right">
+        {% if user.date_joined %}
+        <span class="created-on">Created on <span>{{ user.date_joined|date:"M d, Y" }}</span></span>
+        {% endif %}
+        <button type="submit" class="btn-save">Save</button>
+        <a href="{% url 'profile' %}" class="btn-cancel"
+          style="text-decoration: none; display: inline-block; text-align: center; line-height: 1;">Cancel</a>
+      </div>
+    </div>
+
+    <!-- MAIN -->
+    <main>
+      <div class="profile-card">
+
+        <!-- Two-column body -->
+        <div class="profile-body">
+
+          <!-- LEFT: personal info -->
+          <div class="form-left">
+            <div class="form-row">
+              <div class="form-group">
+                <label>First Name<span class="req">*</span></label>
+                <input type="text" name="first_name" value="{{ user.first_name|default:'' }}" placeholder="" required>
+              </div>
+              <div class="form-group">
+                <label>Last Name<span class="req">*</span></label>
+                <input type="text" name="last_name" value="{{ user.last_name|default:'' }}" placeholder="" required>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label>Email<span class="req">*</span></label>
+                <input type="email" name="email" value="{{ user.email|default:'' }}" placeholder="" required>
+              </div>
+              <div class="form-group">
+                <label>Phone<span class="req">*</span></label>
+                <input type="tel" name="phone_number" id="phone" value="{% if phone_number %}{{ phone_code }} {{ phone_number }}{% endif %}" placeholder="Enter phone number" required>
+                <input type="hidden" name="phone_code" id="phoneCodeSelect" value="{{ phone_code }}">
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label>Country<span class="req">*</span></label>
+                <div class="select-wrap">
+                    <select name="country" required>
+                    <option value="">Select country</option>
+                    <option value="Afghanistan" {% if user.country == 'Afghanistan' %}selected{% endif %}>Afghanistan</option>
+                    <option value="Albania" {% if user.country == 'Albania' %}selected{% endif %}>Albania</option>
+                    <option value="Algeria" {% if user.country == 'Algeria' %}selected{% endif %}>Algeria</option>
+                    <option value="Andorra" {% if user.country == 'Andorra' %}selected{% endif %}>Andorra</option>
+                    <option value="Angola" {% if user.country == 'Angola' %}selected{% endif %}>Angola</option>
+                    <option value="Argentina" {% if user.country == 'Argentina' %}selected{% endif %}>Argentina</option>
+                    <option value="Armenia" {% if user.country == 'Armenia' %}selected{% endif %}>Armenia</option>
+                    <option value="Australia" {% if user.country == 'Australia' %}selected{% endif %}>Australia</option>
+                    <option value="Austria" {% if user.country == 'Austria' %}selected{% endif %}>Austria</option>
+                    <option value="Azerbaijan" {% if user.country == 'Azerbaijan' %}selected{% endif %}>Azerbaijan</option>
+                    <option value="Bahrain" {% if user.country == 'Bahrain' %}selected{% endif %}>Bahrain</option>
+                    <option value="Bangladesh" {% if user.country == 'Bangladesh' %}selected{% endif %}>Bangladesh</option>
+                    <option value="Belarus" {% if user.country == 'Belarus' %}selected{% endif %}>Belarus</option>
+                    <option value="Belgium" {% if user.country == 'Belgium' %}selected{% endif %}>Belgium</option>
+                    <option value="Benin" {% if user.country == 'Benin' %}selected{% endif %}>Benin</option>
+                    <option value="Bhutan" {% if user.country == 'Bhutan' %}selected{% endif %}>Bhutan</option>
+                    <option value="Bolivia" {% if user.country == 'Bolivia' %}selected{% endif %}>Bolivia</option>
+                    <option value="Bosnia and Herzegovina" {% if user.country == 'Bosnia and Herzegovina' %}selected{% endif %}>Bosnia and Herzegovina</option>
+                    <option value="Botswana" {% if user.country == 'Botswana' %}selected{% endif %}>Botswana</option>
+                    <option value="Brazil" {% if user.country == 'Brazil' %}selected{% endif %}>Brazil</option>
+                    <option value="Brunei" {% if user.country == 'Brunei' %}selected{% endif %}>Brunei</option>
+                    <option value="Bulgaria" {% if user.country == 'Bulgaria' %}selected{% endif %}>Bulgaria</option>
+                    <option value="Burkina Faso" {% if user.country == 'Burkina Faso' %}selected{% endif %}>Burkina Faso</option>
+                    <option value="Burundi" {% if user.country == 'Burundi' %}selected{% endif %}>Burundi</option>
+                    <option value="Cambodia" {% if user.country == 'Cambodia' %}selected{% endif %}>Cambodia</option>
+                    <option value="Cameroon" {% if user.country == 'Cameroon' %}selected{% endif %}>Cameroon</option>
+                    <option value="Canada" {% if user.country == 'Canada' %}selected{% endif %}>Canada</option>
+                    <option value="Cape Verde" {% if user.country == 'Cape Verde' %}selected{% endif %}>Cape Verde</option>
+                    <option value="Chad" {% if user.country == 'Chad' %}selected{% endif %}>Chad</option>
+                    <option value="Chile" {% if user.country == 'Chile' %}selected{% endif %}>Chile</option>
+                    <option value="China" {% if user.country == 'China' %}selected{% endif %}>China</option>
+                    <option value="Colombia" {% if user.country == 'Colombia' %}selected{% endif %}>Colombia</option>
+                    <option value="Costa Rica" {% if user.country == 'Costa Rica' %}selected{% endif %}>Costa Rica</option>
+                    <option value="Croatia" {% if user.country == 'Croatia' %}selected{% endif %}>Croatia</option>
+                    <option value="Cuba" {% if user.country == 'Cuba' %}selected{% endif %}>Cuba</option>
+                    <option value="Cyprus" {% if user.country == 'Cyprus' %}selected{% endif %}>Cyprus</option>
+                    <option value="Czech Republic" {% if user.country == 'Czech Republic' %}selected{% endif %}>Czech Republic</option>
+                    <option value="Democratic Republic of the Congo" {% if user.country == 'Democratic Republic of the Congo' %}selected{% endif %}>Democratic Republic of the Congo</option>
+                    <option value="Denmark" {% if user.country == 'Denmark' %}selected{% endif %}>Denmark</option>
+                    <option value="Djibouti" {% if user.country == 'Djibouti' %}selected{% endif %}>Djibouti</option>
+                    <option value="Dominican Republic" {% if user.country == 'Dominican Republic' %}selected{% endif %}>Dominican Republic</option>
+                    <option value="Ecuador" {% if user.country == 'Ecuador' %}selected{% endif %}>Ecuador</option>
+                    <option value="Egypt" {% if user.country == 'Egypt' %}selected{% endif %}>Egypt</option>
+                    <option value="El Salvador" {% if user.country == 'El Salvador' %}selected{% endif %}>El Salvador</option>
+                    <option value="Equatorial Guinea" {% if user.country == 'Equatorial Guinea' %}selected{% endif %}>Equatorial Guinea</option>
+                    <option value="Eritrea" {% if user.country == 'Eritrea' %}selected{% endif %}>Eritrea</option>
+                    <option value="Estonia" {% if user.country == 'Estonia' %}selected{% endif %}>Estonia</option>
+                    <option value="Eswatini" {% if user.country == 'Eswatini' %}selected{% endif %}>Eswatini</option>
+                    <option value="Ethiopia" {% if user.country == 'Ethiopia' %}selected{% endif %}>Ethiopia</option>
+                    <option value="Faroe Islands" {% if user.country == 'Faroe Islands' %}selected{% endif %}>Faroe Islands</option>
+                    <option value="Finland" {% if user.country == 'Finland' %}selected{% endif %}>Finland</option>
+                    <option value="France" {% if user.country == 'France' %}selected{% endif %}>France</option>
+                    <option value="Gabon" {% if user.country == 'Gabon' %}selected{% endif %}>Gabon</option>
+                    <option value="Gambia" {% if user.country == 'Gambia' %}selected{% endif %}>Gambia</option>
+                    <option value="Georgia" {% if user.country == 'Georgia' %}selected{% endif %}>Georgia</option>
+                    <option value="Germany" {% if user.country == 'Germany' %}selected{% endif %}>Germany</option>
+                    <option value="Ghana" {% if user.country == 'Ghana' %}selected{% endif %}>Ghana</option>
+                    <option value="Greece" {% if user.country == 'Greece' %}selected{% endif %}>Greece</option>
+                    <option value="Greenland" {% if user.country == 'Greenland' %}selected{% endif %}>Greenland</option>
+                    <option value="Guatemala" {% if user.country == 'Guatemala' %}selected{% endif %}>Guatemala</option>
+                    <option value="Guinea" {% if user.country == 'Guinea' %}selected{% endif %}>Guinea</option>
+                    <option value="Guinea-Bissau" {% if user.country == 'Guinea-Bissau' %}selected{% endif %}>Guinea-Bissau</option>
+                    <option value="Haiti" {% if user.country == 'Haiti' %}selected{% endif %}>Haiti</option>
+                    <option value="Honduras" {% if user.country == 'Honduras' %}selected{% endif %}>Honduras</option>
+                    <option value="Hong Kong" {% if user.country == 'Hong Kong' %}selected{% endif %}>Hong Kong</option>
+                    <option value="Hungary" {% if user.country == 'Hungary' %}selected{% endif %}>Hungary</option>
+                    <option value="Iceland" {% if user.country == 'Iceland' %}selected{% endif %}>Iceland</option>
+                    <option value="India" {% if user.country == 'India' %}selected{% endif %}>India</option>
+                    <option value="Indonesia" {% if user.country == 'Indonesia' %}selected{% endif %}>Indonesia</option>
+                    <option value="Iran" {% if user.country == 'Iran' %}selected{% endif %}>Iran</option>
+                    <option value="Iraq" {% if user.country == 'Iraq' %}selected{% endif %}>Iraq</option>
+                    <option value="Ireland" {% if user.country == 'Ireland' %}selected{% endif %}>Ireland</option>
+                    <option value="Israel" {% if user.country == 'Israel' %}selected{% endif %}>Israel</option>
+                    <option value="Italy" {% if user.country == 'Italy' %}selected{% endif %}>Italy</option>
+                    <option value="Ivory Coast" {% if user.country == 'Ivory Coast' %}selected{% endif %}>Ivory Coast</option>
+                    <option value="Japan" {% if user.country == 'Japan' %}selected{% endif %}>Japan</option>
+                    <option value="Jordan" {% if user.country == 'Jordan' %}selected{% endif %}>Jordan</option>
+                    <option value="Kazakhstan" {% if user.country == 'Kazakhstan' %}selected{% endif %}>Kazakhstan</option>
+                    <option value="Kenya" {% if user.country == 'Kenya' %}selected{% endif %}>Kenya</option>
+                    <option value="Kosovo" {% if user.country == 'Kosovo' %}selected{% endif %}>Kosovo</option>
+                    <option value="Kuwait" {% if user.country == 'Kuwait' %}selected{% endif %}>Kuwait</option>
+                    <option value="Kyrgyzstan" {% if user.country == 'Kyrgyzstan' %}selected{% endif %}>Kyrgyzstan</option>
+                    <option value="Laos" {% if user.country == 'Laos' %}selected{% endif %}>Laos</option>
+                    <option value="Latvia" {% if user.country == 'Latvia' %}selected{% endif %}>Latvia</option>
+                    <option value="Lebanon" {% if user.country == 'Lebanon' %}selected{% endif %}>Lebanon</option>
+                    <option value="Lesotho" {% if user.country == 'Lesotho' %}selected{% endif %}>Lesotho</option>
+                    <option value="Liberia" {% if user.country == 'Liberia' %}selected{% endif %}>Liberia</option>
+                    <option value="Libya" {% if user.country == 'Libya' %}selected{% endif %}>Libya</option>
+                    <option value="Lithuania" {% if user.country == 'Lithuania' %}selected{% endif %}>Lithuania</option>
+                    <option value="Luxembourg" {% if user.country == 'Luxembourg' %}selected{% endif %}>Luxembourg</option>
+                    <option value="Macau" {% if user.country == 'Macau' %}selected{% endif %}>Macau</option>
+                    <option value="Madagascar" {% if user.country == 'Madagascar' %}selected{% endif %}>Madagascar</option>
+                    <option value="Malawi" {% if user.country == 'Malawi' %}selected{% endif %}>Malawi</option>
+                    <option value="Malaysia" {% if user.country == 'Malaysia' %}selected{% endif %}>Malaysia</option>
+                    <option value="Maldives" {% if user.country == 'Maldives' %}selected{% endif %}>Maldives</option>
+                    <option value="Mali" {% if user.country == 'Mali' %}selected{% endif %}>Mali</option>
+                    <option value="Malta" {% if user.country == 'Malta' %}selected{% endif %}>Malta</option>
+                    <option value="Mauritania" {% if user.country == 'Mauritania' %}selected{% endif %}>Mauritania</option>
+                    <option value="Mauritius" {% if user.country == 'Mauritius' %}selected{% endif %}>Mauritius</option>
+                    <option value="Mexico" {% if user.country == 'Mexico' %}selected{% endif %}>Mexico</option>
+                    <option value="Moldova" {% if user.country == 'Moldova' %}selected{% endif %}>Moldova</option>
+                    <option value="Mongolia" {% if user.country == 'Mongolia' %}selected{% endif %}>Mongolia</option>
+                    <option value="Montenegro" {% if user.country == 'Montenegro' %}selected{% endif %}>Montenegro</option>
+                    <option value="Morocco" {% if user.country == 'Morocco' %}selected{% endif %}>Morocco</option>
+                    <option value="Mozambique" {% if user.country == 'Mozambique' %}selected{% endif %}>Mozambique</option>
+                    <option value="Myanmar" {% if user.country == 'Myanmar' %}selected{% endif %}>Myanmar</option>
+                    <option value="Namibia" {% if user.country == 'Namibia' %}selected{% endif %}>Namibia</option>
+                    <option value="Nepal" {% if user.country == 'Nepal' %}selected{% endif %}>Nepal</option>
+                    <option value="Netherlands" {% if user.country == 'Netherlands' %}selected{% endif %}>Netherlands</option>
+                    <option value="New Zealand" {% if user.country == 'New Zealand' %}selected{% endif %}>New Zealand</option>
+                    <option value="Nicaragua" {% if user.country == 'Nicaragua' %}selected{% endif %}>Nicaragua</option>
+                    <option value="Niger" {% if user.country == 'Niger' %}selected{% endif %}>Niger</option>
+                    <option value="Nigeria" {% if user.country == 'Nigeria' %}selected{% endif %}>Nigeria</option>
+                    <option value="North Korea" {% if user.country == 'North Korea' %}selected{% endif %}>North Korea</option>
+                    <option value="North Macedonia" {% if user.country == 'North Macedonia' %}selected{% endif %}>North Macedonia</option>
+                    <option value="Norway" {% if user.country == 'Norway' %}selected{% endif %}>Norway</option>
+                    <option value="Oman" {% if user.country == 'Oman' %}selected{% endif %}>Oman</option>
+                    <option value="Pakistan" {% if user.country == 'Pakistan' %}selected{% endif %}>Pakistan</option>
+                    <option value="Palestine" {% if user.country == 'Palestine' %}selected{% endif %}>Palestine</option>
+                    <option value="Panama" {% if user.country == 'Panama' %}selected{% endif %}>Panama</option>
+                    <option value="Paraguay" {% if user.country == 'Paraguay' %}selected{% endif %}>Paraguay</option>
+                    <option value="Peru" {% if user.country == 'Peru' %}selected{% endif %}>Peru</option>
+                    <option value="Philippines" {% if user.country == 'Philippines' %}selected{% endif %}>Philippines</option>
+                    <option value="Poland" {% if user.country == 'Poland' %}selected{% endif %}>Poland</option>
+                    <option value="Portugal" {% if user.country == 'Portugal' %}selected{% endif %}>Portugal</option>
+                    <option value="Qatar" {% if user.country == 'Qatar' %}selected{% endif %}>Qatar</option>
+                    <option value="Republic of the Congo" {% if user.country == 'Republic of the Congo' %}selected{% endif %}>Republic of the Congo</option>
+                    <option value="Romania" {% if user.country == 'Romania' %}selected{% endif %}>Romania</option>
+                    <option value="Russia" {% if user.country == 'Russia' %}selected{% endif %}>Russia</option>
+                    <option value="Rwanda" {% if user.country == 'Rwanda' %}selected{% endif %}>Rwanda</option>
+                    <option value="San Marino" {% if user.country == 'San Marino' %}selected{% endif %}>San Marino</option>
+                    <option value="Saudi Arabia" {% if user.country == 'Saudi Arabia' %}selected{% endif %}>Saudi Arabia</option>
+                    <option value="Senegal" {% if user.country == 'Senegal' %}selected{% endif %}>Senegal</option>
+                    <option value="Serbia" {% if user.country == 'Serbia' %}selected{% endif %}>Serbia</option>
+                    <option value="Sierra Leone" {% if user.country == 'Sierra Leone' %}selected{% endif %}>Sierra Leone</option>
+                    <option value="Singapore" {% if user.country == 'Singapore' %}selected{% endif %}>Singapore</option>
+                    <option value="Slovakia" {% if user.country == 'Slovakia' %}selected{% endif %}>Slovakia</option>
+                    <option value="Slovenia" {% if user.country == 'Slovenia' %}selected{% endif %}>Slovenia</option>
+                    <option value="Somalia" {% if user.country == 'Somalia' %}selected{% endif %}>Somalia</option>
+                    <option value="South Africa" {% if user.country == 'South Africa' %}selected{% endif %}>South Africa</option>
+                    <option value="South Korea" {% if user.country == 'South Korea' %}selected{% endif %}>South Korea</option>
+                    <option value="South Sudan" {% if user.country == 'South Sudan' %}selected{% endif %}>South Sudan</option>
+                    <option value="Spain" {% if user.country == 'Spain' %}selected{% endif %}>Spain</option>
+                    <option value="Sri Lanka" {% if user.country == 'Sri Lanka' %}selected{% endif %}>Sri Lanka</option>
+                    <option value="Sudan" {% if user.country == 'Sudan' %}selected{% endif %}>Sudan</option>
+                    <option value="Suriname" {% if user.country == 'Suriname' %}selected{% endif %}>Suriname</option>
+                    <option value="Sweden" {% if user.country == 'Sweden' %}selected{% endif %}>Sweden</option>
+                    <option value="Switzerland" {% if user.country == 'Switzerland' %}selected{% endif %}>Switzerland</option>
+                    <option value="Syria" {% if user.country == 'Syria' %}selected{% endif %}>Syria</option>
+                    <option value="Taiwan" {% if user.country == 'Taiwan' %}selected{% endif %}>Taiwan</option>
+                    <option value="Tajikistan" {% if user.country == 'Tajikistan' %}selected{% endif %}>Tajikistan</option>
+                    <option value="Tanzania" {% if user.country == 'Tanzania' %}selected{% endif %}>Tanzania</option>
+                    <option value="Thailand" {% if user.country == 'Thailand' %}selected{% endif %}>Thailand</option>
+                    <option value="Togo" {% if user.country == 'Togo' %}selected{% endif %}>Togo</option>
+                    <option value="Trinidad and Tobago" {% if user.country == 'Trinidad and Tobago' %}selected{% endif %}>Trinidad and Tobago</option>
+                    <option value="Tunisia" {% if user.country == 'Tunisia' %}selected{% endif %}>Tunisia</option>
+                    <option value="Turkey" {% if user.country == 'Turkey' %}selected{% endif %}>Turkey</option>
+                    <option value="Turkmenistan" {% if user.country == 'Turkmenistan' %}selected{% endif %}>Turkmenistan</option>
+                    <option value="Uganda" {% if user.country == 'Uganda' %}selected{% endif %}>Uganda</option>
+                    <option value="Ukraine" {% if user.country == 'Ukraine' %}selected{% endif %}>Ukraine</option>
+                    <option value="United Arab Emirates" {% if user.country == 'United Arab Emirates' %}selected{% endif %}>United Arab Emirates</option>
+                    <option value="United Kingdom" {% if user.country == 'United Kingdom' %}selected{% endif %}>United Kingdom</option>
+                    <option value="United States" {% if user.country == 'United States' %}selected{% endif %}>United States</option>
+                    <option value="Uruguay" {% if user.country == 'Uruguay' %}selected{% endif %}>Uruguay</option>
+                    <option value="Uzbekistan" {% if user.country == 'Uzbekistan' %}selected{% endif %}>Uzbekistan</option>
+                    <option value="Vatican City" {% if user.country == 'Vatican City' %}selected{% endif %}>Vatican City</option>
+                    <option value="Venezuela" {% if user.country == 'Venezuela' %}selected{% endif %}>Venezuela</option>
+                    <option value="Vietnam" {% if user.country == 'Vietnam' %}selected{% endif %}>Vietnam</option>
+                    <option value="Western Sahara" {% if user.country == 'Western Sahara' %}selected{% endif %}>Western Sahara</option>
+                    <option value="Yemen" {% if user.country == 'Yemen' %}selected{% endif %}>Yemen</option>
+                    <option value="Zambia" {% if user.country == 'Zambia' %}selected{% endif %}>Zambia</option>
+                    <option value="Zimbabwe" {% if user.country == 'Zimbabwe' %}selected{% endif %}>Zimbabwe</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-group">
+                <label>State<span class="req">*</span></label>
+                <input type="text" name="state" value="{{ user.state|default:'' }}" placeholder="" required>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label>Currency<span class="req">*</span></label>
+                <div class="select-wrap">
+                    <select name="currency" required>
+                    <option value="USD" {% if user.currency == 'USD' %}selected{% endif %}>USD</option>
+                    <option value="EUR" {% if user.currency == 'EUR' %}selected{% endif %}>EUR</option>
+                    <option value="GBP" {% if user.currency == 'GBP' %}selected{% endif %}>GBP</option>
+                    <option value="INR" {% if user.currency == 'INR' %}selected{% endif %}>INR</option>
+                    <option value="CAD" {% if user.currency == 'CAD' %}selected{% endif %}>CAD</option>
+                    <option value="AUD" {% if user.currency == 'AUD' %}selected{% endif %}>AUD</option>
+                    <option value="JPY" {% if user.currency == 'JPY' %}selected{% endif %}>JPY</option>
+                    <option value="CNY" {% if user.currency == 'CNY' %}selected{% endif %}>CNY</option>
+                    <option value="KRW" {% if user.currency == 'KRW' %}selected{% endif %}>KRW</option>
+                    <option value="SGD" {% if user.currency == 'SGD' %}selected{% endif %}>SGD</option>
+                    <option value="HKD" {% if user.currency == 'HKD' %}selected{% endif %}>HKD</option>
+                    <option value="TWD" {% if user.currency == 'TWD' %}selected{% endif %}>TWD</option>
+                    <option value="BRL" {% if user.currency == 'BRL' %}selected{% endif %}>BRL</option>
+                    <option value="RUB" {% if user.currency == 'RUB' %}selected{% endif %}>RUB</option>
+                    <option value="MXN" {% if user.currency == 'MXN' %}selected{% endif %}>MXN</option>
+                    <option value="ZAR" {% if user.currency == 'ZAR' %}selected{% endif %}>ZAR</option>
+                    <option value="TRY" {% if user.currency == 'TRY' %}selected{% endif %}>TRY</option>
+                    <option value="AED" {% if user.currency == 'AED' %}selected{% endif %}>AED</option>
+                    <option value="SAR" {% if user.currency == 'SAR' %}selected{% endif %}>SAR</option>
+                    <option value="CHF" {% if user.currency == 'CHF' %}selected{% endif %}>CHF</option>
+                    <option value="SEK" {% if user.currency == 'SEK' %}selected{% endif %}>SEK</option>
+                    <option value="NOK" {% if user.currency == 'NOK' %}selected{% endif %}>NOK</option>
+                    <option value="DKK" {% if user.currency == 'DKK' %}selected{% endif %}>DKK</option>
+                    <option value="PLN" {% if user.currency == 'PLN' %}selected{% endif %}>PLN</option>
+                    <option value="CZK" {% if user.currency == 'CZK' %}selected{% endif %}>CZK</option>
+                    <option value="HUF" {% if user.currency == 'HUF' %}selected{% endif %}>HUF</option>
+                    <option value="RON" {% if user.currency == 'RON' %}selected{% endif %}>RON</option>
+                    <option value="ILS" {% if user.currency == 'ILS' %}selected{% endif %}>ILS</option>
+                    <option value="THB" {% if user.currency == 'THB' %}selected{% endif %}>THB</option>
+                    <option value="VND" {% if user.currency == 'VND' %}selected{% endif %}>VND</option>
+                    <option value="IDR" {% if user.currency == 'IDR' %}selected{% endif %}>IDR</option>
+                    <option value="MYR" {% if user.currency == 'MYR' %}selected{% endif %}>MYR</option>
+                    <option value="PHP" {% if user.currency == 'PHP' %}selected{% endif %}>PHP</option>
+                    <option value="PKR" {% if user.currency == 'PKR' %}selected{% endif %}>PKR</option>
+                    <option value="BDT" {% if user.currency == 'BDT' %}selected{% endif %}>BDT</option>
+                    <option value="LKR" {% if user.currency == 'LKR' %}selected{% endif %}>LKR</option>
+                    <option value="NPR" {% if user.currency == 'NPR' %}selected{% endif %}>NPR</option>
+                    <option value="EGP" {% if user.currency == 'EGP' %}selected{% endif %}>EGP</option>
+                    <option value="NGN" {% if user.currency == 'NGN' %}selected{% endif %}>NGN</option>
+                    <option value="KES" {% if user.currency == 'KES' %}selected{% endif %}>KES</option>
+                    <option value="TZS" {% if user.currency == 'TZS' %}selected{% endif %}>TZS</option>
+                    <option value="UGX" {% if user.currency == 'UGX' %}selected{% endif %}>UGX</option>
+                    <option value="GHS" {% if user.currency == 'GHS' %}selected{% endif %}>GHS</option>
+                    <option value="XOF" {% if user.currency == 'XOF' %}selected{% endif %}>XOF</option>
+                    <option value="XAF" {% if user.currency == 'XAF' %}selected{% endif %}>XAF</option>
+                    <option value="MAD" {% if user.currency == 'MAD' %}selected{% endif %}>MAD</option>
+                    <option value="DZD" {% if user.currency == 'DZD' %}selected{% endif %}>DZD</option>
+                    <option value="TND" {% if user.currency == 'TND' %}selected{% endif %}>TND</option>
+                    <option value="QAR" {% if user.currency == 'QAR' %}selected{% endif %}>QAR</option>
+                    <option value="OMR" {% if user.currency == 'OMR' %}selected{% endif %}>OMR</option>
+                    <option value="KWD" {% if user.currency == 'KWD' %}selected{% endif %}>KWD</option>
+                    <option value="BHD" {% if user.currency == 'BHD' %}selected{% endif %}>BHD</option>
+                    <option value="COP" {% if user.currency == 'COP' %}selected{% endif %}>COP</option>
+                    <option value="CLP" {% if user.currency == 'CLP' %}selected{% endif %}>CLP</option>
+                    <option value="ARS" {% if user.currency == 'ARS' %}selected{% endif %}>ARS</option>
+                    <option value="PEN" {% if user.currency == 'PEN' %}selected{% endif %}>PEN</option>
+                    <option value="UYU" {% if user.currency == 'UYU' %}selected{% endif %}>UYU</option>
+                    <option value="PYG" {% if user.currency == 'PYG' %}selected{% endif %}>PYG</option>
+                    <option value="BOB" {% if user.currency == 'BOB' %}selected{% endif %}>BOB</option>
+                    <option value="CRC" {% if user.currency == 'CRC' %}selected{% endif %}>CRC</option>
+                    <option value="PAB" {% if user.currency == 'PAB' %}selected{% endif %}>PAB</option>
+                    <option value="GTQ" {% if user.currency == 'GTQ' %}selected{% endif %}>GTQ</option>
+                    <option value="HNL" {% if user.currency == 'HNL' %}selected{% endif %}>HNL</option>
+                    <option value="NIO" {% if user.currency == 'NIO' %}selected{% endif %}>NIO</option>
+                    <option value="DOP" {% if user.currency == 'DOP' %}selected{% endif %}>DOP</option>
+                    <option value="CUP" {% if user.currency == 'CUP' %}selected{% endif %}>CUP</option>
+                    <option value="IRR" {% if user.currency == 'IRR' %}selected{% endif %}>IRR</option>
+                    <option value="IQD" {% if user.currency == 'IQD' %}selected{% endif %}>IQD</option>
+                    <option value="SYP" {% if user.currency == 'SYP' %}selected{% endif %}>SYP</option>
+                    <option value="JOD" {% if user.currency == 'JOD' %}selected{% endif %}>JOD</option>
+                    <option value="LBP" {% if user.currency == 'LBP' %}selected{% endif %}>LBP</option>
+                    <option value="YER" {% if user.currency == 'YER' %}selected{% endif %}>YER</option>
+                    <option value="AFA" {% if user.currency == 'AFA' %}selected{% endif %}>AFA</option>
+                    <option value="TJS" {% if user.currency == 'TJS' %}selected{% endif %}>TJS</option>
+                    <option value="KZT" {% if user.currency == 'KZT' %}selected{% endif %}>KZT</option>
+                    <option value="UZS" {% if user.currency == 'UZS' %}selected{% endif %}>UZS</option>
+                    <option value="TMT" {% if user.currency == 'TMT' %}selected{% endif %}>TMT</option>
+                    <option value="GEL" {% if user.currency == 'GEL' %}selected{% endif %}>GEL</option>
+                    <option value="AMD" {% if user.currency == 'AMD' %}selected{% endif %}>AMD</option>
+                    <option value="AZN" {% if user.currency == 'AZN' %}selected{% endif %}>AZN</option>
+                    <option value="BYN" {% if user.currency == 'BYN' %}selected{% endif %}>BYN</option>
+                    <option value="UAH" {% if user.currency == 'UAH' %}selected{% endif %}>UAH</option>
+                    <option value="MDL" {% if user.currency == 'MDL' %}selected{% endif %}>MDL</option>
+                    <option value="ALL" {% if user.currency == 'ALL' %}selected{% endif %}>ALL</option>
+                    <option value="BAM" {% if user.currency == 'BAM' %}selected{% endif %}>BAM</option>
+                    <option value="MKD" {% if user.currency == 'MKD' %}selected{% endif %}>MKD</option>
+                    <option value="RSD" {% if user.currency == 'RSD' %}selected{% endif %}>RSD</option>
+                    <option value="HRK" {% if user.currency == 'HRK' %}selected{% endif %}>HRK</option>
+                    <option value="ISK" {% if user.currency == 'ISK' %}selected{% endif %}>ISK</option>
+                    <option value="ETB" {% if user.currency == 'ETB' %}selected{% endif %}>ETB</option>
+                    <option value="SOS" {% if user.currency == 'SOS' %}selected{% endif %}>SOS</option>
+                    <option value="DJF" {% if user.currency == 'DJF' %}selected{% endif %}>DJF</option>
+                    <option value="ERN" {% if user.currency == 'ERN' %}selected{% endif %}>ERN</option>
+                    <option value="SDG" {% if user.currency == 'SDG' %}selected{% endif %}>SDG</option>
+                    <option value="SSP" {% if user.currency == 'SSP' %}selected{% endif %}>SSP</option>
+                    <option value="MZN" {% if user.currency == 'MZN' %}selected{% endif %}>MZN</option>
+                    <option value="AOA" {% if user.currency == 'AOA' %}selected{% endif %}>AOA</option>
+                    <option value="CVE" {% if user.currency == 'CVE' %}selected{% endif %}>CVE</option>
+                    <option value="MGA" {% if user.currency == 'MGA' %}selected{% endif %}>MGA</option>
+                    <option value="MWK" {% if user.currency == 'MWK' %}selected{% endif %}>MWK</option>
+                    <option value="ZMW" {% if user.currency == 'ZMW' %}selected{% endif %}>ZMW</option>
+                    <option value="BWP" {% if user.currency == 'BWP' %}selected{% endif %}>BWP</option>
+                    <option value="NAD" {% if user.currency == 'NAD' %}selected{% endif %}>NAD</option>
+                    <option value="LSL" {% if user.currency == 'LSL' %}selected{% endif %}>LSL</option>
+                    <option value="SZL" {% if user.currency == 'SZL' %}selected{% endif %}>SZL</option>
+                    <option value="MUR" {% if user.currency == 'MUR' %}selected{% endif %}>MUR</option>
+                    <option value="SCR" {% if user.currency == 'SCR' %}selected{% endif %}>SCR</option>
+                    <option value="KMF" {% if user.currency == 'KMF' %}selected{% endif %}>KMF</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Language I speak<span class="req">*</span></label>
+                <div class="select-wrap">
+                  <select name="language" required>
+                    <option value="">Select language</option>
+                    <option value="Mandarin Chinese" {% if user.language == 'Mandarin Chinese' %}selected{% endif %}>Mandarin Chinese</option>
+                    <option value="Spanish" {% if user.language == 'Spanish' %}selected{% endif %}>Spanish</option>
+                    <option value="English" {% if user.language == 'English' %}selected{% endif %}>English</option>
+                    <option value="Arabic" {% if user.language == 'Arabic' %}selected{% endif %}>Arabic (all varieties)</option>
+                    <option value="Hindi" {% if user.language == 'Hindi' %}selected{% endif %}>Hindi</option>
+                    <option value="Portuguese" {% if user.language == 'Portuguese' %}selected{% endif %}>Portuguese</option>
+                    <option value="Bengali" {% if user.language == 'Bengali' %}selected{% endif %}>Bengali</option>
+                    <option value="Russian" {% if user.language == 'Russian' %}selected{% endif %}>Russian</option>
+                    <option value="Japanese" {% if user.language == 'Japanese' %}selected{% endif %}>Japanese</option>
+                    <option value="Punjabi" {% if user.language == 'Punjabi' %}selected{% endif %}>Punjabi</option>
+                    <option value="Marathi" {% if user.language == 'Marathi' %}selected{% endif %}>Marathi</option>
+                    <option value="Vietnamese" {% if user.language == 'Vietnamese' %}selected{% endif %}>Vietnamese</option>
+                    <option value="Yue Chinese (Cantonese)" {% if user.language == 'Yue Chinese (Cantonese)' %}selected{% endif %}>Yue Chinese (Cantonese)</option>
+                    <option value="Turkish" {% if user.language == 'Turkish' %}selected{% endif %}>Turkish</option>
+                    <option value="Telugu" {% if user.language == 'Telugu' %}selected{% endif %}>Telugu</option>
+                    <option value="Wu Chinese" {% if user.language == 'Wu Chinese' %}selected{% endif %}>Wu Chinese (incl. Shanghainese)</option>
+                    <option value="Korean" {% if user.language == 'Korean' %}selected{% endif %}>Korean</option>
+                    <option value="French" {% if user.language == 'French' %}selected{% endif %}>French</option>
+                    <option value="Malay/Indonesian" {% if user.language == 'Malay/Indonesian' %}selected{% endif %}>Malay / Indonesian</option>
+                    <option value="Tamil" {% if user.language == 'Tamil' %}selected{% endif %}>Tamil</option>
+                    <option value="Egyptian Arabic" {% if user.language == 'Egyptian Arabic' %}selected{% endif %}>Egyptian Arabic</option>
+                    <option value="German" {% if user.language == 'German' %}selected{% endif %}>German</option>
+                    <option value="Urdu" {% if user.language == 'Urdu' %}selected{% endif %}>Urdu</option>
+                    <option value="Javanese" {% if user.language == 'Javanese' %}selected{% endif %}>Javanese</option>
+                    <option value="Italian" {% if user.language == 'Italian' %}selected{% endif %}>Italian</option>
+                    <option value="Iranian Persian (Farsi)" {% if user.language == 'Iranian Persian (Farsi)' %}selected{% endif %}>Iranian Persian (Farsi)</option>
+                    <option value="Pashto" {% if user.language == 'Pashto' %}selected{% endif %}>Pashto</option>
+                    <option value="Gujarati" {% if user.language == 'Gujarati' %}selected{% endif %}>Gujarati</option>
+                    <option value="Hausa" {% if user.language == 'Hausa' %}selected{% endif %}>Hausa</option>
+                    <option value="Bhojpuri" {% if user.language == 'Bhojpuri' %}selected{% endif %}>Bhojpuri</option>
+                    <option value="Southern Min" {% if user.language == 'Southern Min' %}selected{% endif %}>Southern Min (incl. Hokkien, Teochew)</option>
+                    <option value="Hakka Chinese" {% if user.language == 'Hakka Chinese' %}selected{% endif %}>Hakka Chinese</option>
+                    <option value="Yoruba" {% if user.language == 'Yoruba' %}selected{% endif %}>Yoruba</option>
+                    <option value="Jin Chinese" {% if user.language == 'Jin Chinese' %}selected{% endif %}>Jin Chinese</option>
+                    <option value="Kannada" {% if user.language == 'Kannada' %}selected{% endif %}>Kannada</option>
+                    <option value="Polish" {% if user.language == 'Polish' %}selected{% endif %}>Polish</option>
+                    <option value="Levantine Arabic" {% if user.language == 'Levantine Arabic' %}selected{% endif %}>Levantine Arabic</option>
+                    <option value="Oromo" {% if user.language == 'Oromo' %}selected{% endif %}>Oromo</option>
+                    <option value="Algerian Arabic" {% if user.language == 'Algerian Arabic' %}selected{% endif %}>Algerian Arabic</option>
+                    <option value="Mesopotamian Arabic" {% if user.language == 'Mesopotamian Arabic' %}selected{% endif %}>Mesopotamian Arabic</option>
+                    <option value="Malayalam" {% if user.language == 'Malayalam' %}selected{% endif %}>Malayalam</option>
+                    <option value="Odia (Oriya)" {% if user.language == 'Odia (Oriya)' %}selected{% endif %}>Odia (Oriya)</option>
+                    <option value="Uzbek" {% if user.language == 'Uzbek' %}selected{% endif %}>Uzbek</option>
+                    <option value="Moroccan Arabic (Darija)" {% if user.language == 'Moroccan Arabic (Darija)' %}selected{% endif %}>Moroccan Arabic (Darija)</option>
+                    <option value="Burmese" {% if user.language == 'Burmese' %}selected{% endif %}>Burmese</option>
+                    <option value="Maithili" {% if user.language == 'Maithili' %}selected{% endif %}>Maithili</option>
+                    <option value="Amharic" {% if user.language == 'Amharic' %}selected{% endif %}>Amharic</option>
+                    <option value="Sudanese Arabic" {% if user.language == 'Sudanese Arabic' %}selected{% endif %}>Sudanese Arabic</option>
+                    <option value="Sundanese" {% if user.language == 'Sundanese' %}selected{% endif %}>Sundanese</option>
+                    <option value="Igbo" {% if user.language == 'Igbo' %}selected{% endif %}>Igbo</option>
+                    <option value="Lao" {% if user.language == 'Lao' %}selected{% endif %}>Lao</option>
+                    <option value="Kurdish" {% if user.language == 'Kurdish' %}selected{% endif %}>Kurdish</option>
+                    <option value="Cebuano" {% if user.language == 'Cebuano' %}selected{% endif %}>Cebuano</option>
+                    <option value="Ukrainian" {% if user.language == 'Ukrainian' %}selected{% endif %}>Ukrainian</option>
+                    <option value="Sindhi" {% if user.language == 'Sindhi' %}selected{% endif %}>Sindhi</option>
+                    <option value="Dutch" {% if user.language == 'Dutch' %}selected{% endif %}>Dutch</option>
+                    <option value="Tagalog/Filipino" {% if user.language == 'Tagalog/Filipino' %}selected{% endif %}>Tagalog / Filipino</option>
+                    <option value="Romanian" {% if user.language == 'Romanian' %}selected{% endif %}>Romanian</option>
+                    <option value="Azerbaijani" {% if user.language == 'Azerbaijani' %}selected{% endif %}>Azerbaijani</option>
+                    <option value="Somali" {% if user.language == 'Somali' %}selected{% endif %}>Somali</option>
+                    <option value="Serbo-Croatian (BCMS)" {% if user.language == 'Serbo-Croatian (BCMS)' %}selected{% endif %}>Serbo-Croatian (BCMS)</option>
+                    <option value="Thai" {% if user.language == 'Thai' %}selected{% endif %}>Thai</option>
+                    <option value="Khmer" {% if user.language == 'Khmer' %}selected{% endif %}>Khmer</option>
+                    <option value="Sinhala" {% if user.language == 'Sinhala' %}selected{% endif %}>Sinhala</option>
+                    <option value="Nepali" {% if user.language == 'Nepali' %}selected{% endif %}>Nepali</option>
+                    <option value="Swahili" {% if user.language == 'Swahili' %}selected{% endif %}>Swahili</option>
+                    <option value="Assamese" {% if user.language == 'Assamese' %}selected{% endif %}>Assamese</option>
+                    <option value="Greek" {% if user.language == 'Greek' %}selected{% endif %}>Greek</option>
+                    <option value="Hungarian" {% if user.language == 'Hungarian' %}selected{% endif %}>Hungarian</option>
+                    <option value="Kazakh" {% if user.language == 'Kazakh' %}selected{% endif %}>Kazakh</option>
+                    <option value="Zulu" {% if user.language == 'Zulu' %}selected{% endif %}>Zulu</option>
+                    <option value="Czech" {% if user.language == 'Czech' %}selected{% endif %}>Czech</option>
+                    <option value="Swedish" {% if user.language == 'Swedish' %}selected{% endif %}>Swedish</option>
+                    <option value="Tigrinya" {% if user.language == 'Tigrinya' %}selected{% endif %}>Tigrinya</option>
+                    <option value="Hebrew" {% if user.language == 'Hebrew' %}selected{% endif %}>Hebrew</option>
+                    <option value="Bulgarian" {% if user.language == 'Bulgarian' %}selected{% endif %}>Bulgarian</option>
+                    <option value="Tajik" {% if user.language == 'Tajik' %}selected{% endif %}>Tajik</option>
+                    <option value="Albanian" {% if user.language == 'Albanian' %}selected{% endif %}>Albanian</option>
+                    <option value="Turkmen" {% if user.language == 'Turkmen' %}selected{% endif %}>Turkmen</option>
+                    <option value="Armenian" {% if user.language == 'Armenian' %}selected{% endif %}>Armenian</option>
+                    <option value="Danish" {% if user.language == 'Danish' %}selected{% endif %}>Danish</option>
+                    <option value="Mongolian" {% if user.language == 'Mongolian' %}selected{% endif %}>Mongolian</option>
+                    <option value="Tibetan" {% if user.language == 'Tibetan' %}selected{% endif %}>Tibetan</option>
+                    <option value="Finnish" {% if user.language == 'Finnish' %}selected{% endif %}>Finnish</option>
+                    <option value="Norwegian" {% if user.language == 'Norwegian' %}selected{% endif %}>Norwegian</option>
+                    <option value="Belarusian" {% if user.language == 'Belarusian' %}selected{% endif %}>Belarusian</option>
+                    <option value="Slovak" {% if user.language == 'Slovak' %}selected{% endif %}>Slovak</option>
+                    <option value="Kyrgyz" {% if user.language == 'Kyrgyz' %}selected{% endif %}>Kyrgyz</option>
+                    <option value="Catalan" {% if user.language == 'Catalan' %}selected{% endif %}>Catalan</option>
+                    <option value="Georgian" {% if user.language == 'Georgian' %}selected{% endif %}>Georgian</option>
+                    <option value="Lithuanian" {% if user.language == 'Lithuanian' %}selected{% endif %}>Lithuanian</option>
+                    <option value="Latvian" {% if user.language == 'Latvian' %}selected{% endif %}>Latvian</option>
+                    <option value="Estonian" {% if user.language == 'Estonian' %}selected{% endif %}>Estonian</option>
+                    <option value="Welsh" {% if user.language == 'Welsh' %}selected{% endif %}>Welsh</option>
+                    <option value="Icelandic" {% if user.language == 'Icelandic' %}selected{% endif %}>Icelandic</option>
+                    <option value="Irish (Gaeilge)" {% if user.language == 'Irish (Gaeilge)' %}selected{% endif %}>Irish (Gaeilge)</option>
+                    <option value="Modern Standard Arabic" {% if user.language == 'Modern Standard Arabic' %}selected{% endif %}>Modern Standard Arabic (literary)</option>
+                    <option value="Esperanto" {% if user.language == 'Esperanto' %}selected{% endif %}>Esperanto (constructed)</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-group full" style="margin-top:2px">
+              <label>Tell us about yourselves and your hosting experience<span class="req">*</span></label>
+              <textarea name="about_me" placeholder="" required>{{ user.about_me|default:'' }}</textarea>
+            </div>
+          </div>
+
+          <!-- RIGHT: uploads + social -->
+          <div class="form-right">
+
+            <!-- Top uploads row: Profile Photo + Local Authority Permission side by side -->
+            <div class="upload-section">
+              <div class="upload-grid">
+                <div>
+                  <p class="upload-label">Upload Profile Photo<span class="req">*</span></p>
+                  <div class="upload-box" role="button" tabindex="0" data-file-trigger="profile-photo-input">
+                    <svg viewBox="0 0 24 24">
+                      <polyline points="16 16 12 12 8 16" />
+                      <line x1="12" y1="12" x2="12" y2="21" />
+                      <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3" />
+                    </svg>
+                    <p>Click to upload or drag and drop<br>PNG, JPG, GIF up to 5MB (Profile image)</p>
+                  </div>
+                  <input class="hidden-file-input" id="profile-photo-input" name="profile_picture" type="file"
+                    accept=".png,.jpg,.jpeg,.gif">
+                  <div class="upload-file-list" id="profile-photo-input-files" aria-live="polite">
+                    {% if user.profile_picture %}
+                    <div class="upload-file-item">
+                      <span class="upload-file-name">
+                        <a href="{{ user.profile_picture_url }}" target="_blank">{{ user.profile_picture.name }}</a>
+                      </span>
+                    </div>
+                    {% endif %}
+                  </div>
+                </div>
+                <div>
+                  <p class="upload-label">Upload documents for local authority permission</p>
+                  <div class="upload-box" role="button" tabindex="0" data-file-trigger="local-permission-input">
+                    <svg viewBox="0 0 24 24">
+                      <polyline points="16 16 12 12 8 16" />
+                      <line x1="12" y1="12" x2="12" y2="21" />
+                      <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3" />
+                    </svg>
+                    <p>Click to upload or drag and drop<br>PNG, JPG, GIF up to 1MB (Profile image)</p>
+                  </div>
+                  <input class="hidden-file-input" id="local-permission-input" name="permission_documents" type="file"
+                    accept=".png,.jpg,.jpeg,.gif,.pdf" multiple>
+                  <div class="upload-file-list" id="local-permission-input-files" aria-live="polite">
+                    {% for doc in permission_docs %}
+                    <div class="upload-file-item" id="doc-item-{{ doc.id }}">
+                      <span class="upload-file-name">
+                        <a href="{{ doc.document.url }}" target="_blank">{{ doc.name|default:doc.document.name }}</a>
+                      </span>
+                      <button type="button" class="upload-file-remove" onclick="deleteDocument({{ doc.id }})"
+                        aria-label="Remove document">×</button>
+                    </div>
+                    {% endfor %}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Govt ID — full width below the two boxes -->
+            <div class="upload-section">
+              <p class="upload-label">Upload govt. issued ID card<span class="req">*</span></p>
+              <div class="upload-box" style="margin-top:8px" role="button" tabindex="0"
+                data-file-trigger="govt-id-input">
+                <svg viewBox="0 0 24 24">
+                  <polyline points="16 16 12 12 8 16" />
+                  <line x1="12" y1="12" x2="12" y2="21" />
+                  <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3" />
+                </svg>
+                <p>Click to upload or drag and drop<br>PNG, JPG, GIF up to 5MB (Profile image)</p>
+              </div>
+              <input class="hidden-file-input" id="govt-id-input" name="govt_id_document" type="file"
+                accept=".png,.jpg,.jpeg,.gif,.pdf">
+              <div class="upload-file-list" id="govt-id-input-files" aria-live="polite">
+                {% for doc in govt_id_docs %}
+                <div class="upload-file-item" id="doc-item-{{ doc.id }}">
+                  <span class="upload-file-name">
+                    <a href="{{ doc.document.url }}" target="_blank">{{ doc.name|default:doc.document.name }}</a>
+                  </span>
+                  <button type="button" class="upload-file-remove" onclick="deleteDocument({{ doc.id }})"
+                    aria-label="Remove document">×</button>
+                </div>
+                {% endfor %}
+              </div>
+            </div>
+
+            <!-- Social Media -->
+            <div class="social-section">
+              <h3>Social Media links</h3>
+              <div class="social-grid">
+                <div class="social-item">
+                  <label>
+                    <span class="social-icon">
+                      <img src="{% static 'img/instagram_icon_profile.png' %}" alt="instagram">
+                    </span>
+                    Instagram (Optional)
+                  </label>
+                  <input type="text" name="instagram_url" value="{{ user.instagram_url|default:'' }}" placeholder="https://www.instagram.com/">
+                </div>
+                <div class="social-item">
+                  <label>
+                    <span class="social-icon">
+                      <img src="{% static 'img/facebook_outline_icon_profile.png' %}" alt="facebook_outline">
+                    </span>
+                    Facebook (Optional)
+                  </label>
+                  <input type="text" name="facebook_url" value="{{ user.facebook_url|default:'' }}" placeholder="https://www.facebook.com/">
+                </div>
+                <div class="social-item">
+                  <label>
+                    <span class="social-icon">
+                      <img src="{% static 'img/twitter_icon_profile.png' %}" alt="twitter">
+                    </span>
+                    X (Optional)
+                  </label>
+                  <input type="text" name="twitter_url" value="{{ user.twitter_url|default:'' }}" placeholder="https://x.com/">
+                </div>
+                <div class="social-item">
+                  <label>
+                    <span class="social-icon">
+                      <img src="{% static 'img/youtube_icon_profile.png' %}" alt="youtube">
+                    </span>
+                    Youtube (Optional)
+                  </label>
+                  <input type="text" name="youtube_url" value="{{ user.youtube_url|default:'' }}" placeholder="https://www.youtube.com/">
+                </div>
+                <div class="social-item">
+                  <label>
+                    <span class="social-icon">
+                      <img src="{% static 'img/linkedin_icon_profile.png' %}" alt="linkedin">
+                    </span>
+                    Linkedin (Optional)
+                  </label>
+                  <input type="text" name="linkedin_url" value="{{ user.linkedin_url|default:'' }}" placeholder="https://www.linkedin.com/">
+                </div>
+                <div class="social-item">
+                  <label>
+                    <span class="social-icon">
+                      <img src="{% static 'img/whatsapp_icon_profile.png' %}" alt="WhatsApp">
+                    </span>
+                    Whatsapp number (Optional)
+                  </label>
+                  <input type="tel" name="whatsapp_number" id="whatsapp_number" value="{{ user.whatsapp_number|default:'' }}"
+                    placeholder="Enter WhatsApp number">
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </main>
+  </form>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/js/intlTelInput.min.js"></script>
+  <script>
+    (function () {
+      function updateProfileBodyHeight() {
+        const profileHeader = document.querySelector('.profile-header');
+        const profileHeaderHeight = profileHeader ? profileHeader.offsetHeight : 0;
+        document.documentElement.style.setProperty(
+          '--profile-header-total-height',
+          profileHeaderHeight + 'px'
+        );
+      }
+
+      updateProfileBodyHeight();
+      window.addEventListener('resize', updateProfileBodyHeight);
+
+      // No more flag emoji — phone uses standard select-wrap now
+
+      const uploadBoxes = document.querySelectorAll('.upload-box[data-file-trigger]');
+
+      function createInputFiles(input, files) {
+        if (typeof DataTransfer === 'undefined') return;
+        const dataTransfer = new DataTransfer();
+        files.forEach(function (file) {
+          dataTransfer.items.add(file);
+        });
+        input.files = dataTransfer.files;
+      }
+
+      function renderFileList(input) {
+        const list = document.getElementById(input.id + '-files');
+        if (!list) return;
+
+        // Remove previously staged temp files (not backend doc-item-* ones)
+        const tempItems = list.querySelectorAll('.upload-file-item:not([id^="doc-item-"])');
+        tempItems.forEach(el => el.remove());
+
+        Array.from(input.files).forEach(function (file, index) {
+          const item = document.createElement('div');
+          item.className = 'upload-file-item';
+
+          const name = document.createElement('span');
+          name.className = 'upload-file-name';
+          name.textContent = file.name;
+
+          const removeBtn = document.createElement('button');
+          removeBtn.type = 'button';
+          removeBtn.className = 'upload-file-remove';
+          removeBtn.setAttribute('aria-label', 'Remove ' + file.name);
+          removeBtn.textContent = '×';
+          removeBtn.addEventListener('click', function () {
+            const currentFiles = Array.from(input.files);
+            currentFiles.splice(index, 1);
+            if (typeof DataTransfer === 'undefined') {
+              input.value = '';
+            } else {
+              createInputFiles(input, currentFiles);
+            }
+            renderFileList(input);
+          });
+
+          item.appendChild(name);
+          item.appendChild(removeBtn);
+          list.appendChild(item);
+        });
+      }
+
+      uploadBoxes.forEach(function (box) {
+        const inputId = box.getAttribute('data-file-trigger');
+        const fileInput = inputId ? document.getElementById(inputId) : null;
+        if (!fileInput) return;
+
+        box.addEventListener('click', function () {
+          fileInput.click();
+        });
+
+        box.addEventListener('keydown', function (event) {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            fileInput.click();
+          }
+        });
+
+        fileInput.addEventListener('change', function () {
+          renderFileList(fileInput);
+        });
+      });
+    })();
+
+    // Document Deletion AJAX
+    function deleteDocument(docId) {
+      if (confirm('Are you sure you want to delete this document?')) {
+        fetch(`/accounts/profile/document/delete/${docId}/`, {
+          method: 'POST',
+          headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json'
+          }
+        })
+          .then(response => response.json())
+          .then(data => {
+            if (data.status === 'success') {
+              const item = document.getElementById(`doc-item-${docId}`);
+              if (item) item.remove();
+            } else {
+              alert('Failed to delete document: ' + (data.message || 'Unknown error'));
+            }
+          })
+          .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while deleting the document.');
+          });
+      }
+    }
+  // Language → Countries & Currency mapping
+  const langMap = {
+    'Mandarin Chinese': { countries: ['China', 'Taiwan', 'Singapore'], currency: 'CNY' },
+    'Spanish': { countries: ['Spain', 'Mexico', 'Argentina', 'Colombia', 'Chile', 'Peru', 'Venezuela', 'Ecuador', 'Guatemala', 'Cuba', 'Bolivia', 'Dominican Republic', 'Honduras', 'Paraguay', 'El Salvador', 'Nicaragua', 'Costa Rica', 'Panama', 'Uruguay', 'Puerto Rico', 'Equatorial Guinea'], currency: 'EUR' },
+    'English': { countries: ['United Kingdom', 'United States', 'Canada', 'Australia', 'India', 'New Zealand', 'Ireland', 'South Africa', 'Nigeria', 'Ghana', 'Kenya', 'Uganda', 'Tanzania', 'Zambia', 'Zimbabwe', 'Botswana', 'Malawi', 'Liberia', 'Sierra Leone', 'Gambia'], currency: 'USD' },
+    'Arabic': { countries: ['Saudi Arabia', 'Egypt', 'Iraq', 'Jordan', 'Lebanon', 'Syria', 'Yemen', 'Oman', 'United Arab Emirates', 'Qatar', 'Bahrain', 'Kuwait', 'Palestine', 'Libya', 'Tunisia', 'Algeria', 'Morocco', 'Mauritania', 'Sudan', 'Somalia', 'Djibouti', 'Comoros'], currency: 'SAR' },
+    'Hindi': { countries: ['India'], currency: 'INR' },
+    'Portuguese': { countries: ['Brazil', 'Portugal', 'Angola', 'Mozambique', 'Cape Verde', 'Guinea-Bissau', 'Equatorial Guinea', 'Macau'], currency: 'BRL' },
+    'Bengali': { countries: ['Bangladesh', 'India'], currency: 'BDT' },
+    'Russian': { countries: ['Russia', 'Kazakhstan', 'Belarus', 'Kyrgyzstan', 'Tajikistan', 'Uzbekistan', 'Turkmenistan', 'Moldova'], currency: 'RUB' },
+    'Japanese': { countries: ['Japan'], currency: 'JPY' },
+    'Punjabi': { countries: ['Pakistan', 'India'], currency: 'PKR' },
+    'Marathi': { countries: ['India'], currency: 'INR' },
+    'Vietnamese': { countries: ['Vietnam'], currency: 'VND' },
+    'Yue Chinese (Cantonese)': { countries: ['Hong Kong', 'Macau', 'China'], currency: 'HKD' },
+    'Turkish': { countries: ['Turkey', 'Cyprus'], currency: 'TRY' },
+    'Telugu': { countries: ['India'], currency: 'INR' },
+    'Wu Chinese': { countries: ['China'], currency: 'CNY' },
+    'Korean': { countries: ['South Korea', 'North Korea'], currency: 'KRW' },
+    'French': { countries: ['France', 'Belgium', 'Canada', 'Switzerland', 'Senegal', 'Ivory Coast', 'Cameroon', 'Burkina Faso', 'Mali', 'Niger', 'Rwanda', 'Benin', 'Guinea', 'Togo', 'Madagascar', 'Democratic Republic of the Congo', 'Haiti', 'Gabon', 'Equatorial Guinea'], currency: 'EUR' },
+    'Malay/Indonesian': { countries: ['Indonesia', 'Malaysia', 'Brunei', 'Singapore'], currency: 'IDR' },
+    'Tamil': { countries: ['India', 'Sri Lanka', 'Singapore'], currency: 'INR' },
+    'Egyptian Arabic': { countries: ['Egypt'], currency: 'EGP' },
+    'German': { countries: ['Germany', 'Austria', 'Switzerland', 'Belgium', 'Luxembourg'], currency: 'EUR' },
+    'Urdu': { countries: ['Pakistan', 'India'], currency: 'PKR' },
+    'Javanese': { countries: ['Indonesia'], currency: 'IDR' },
+    'Italian': { countries: ['Italy', 'Switzerland', 'San Marino', 'Vatican City'], currency: 'EUR' },
+    'Iranian Persian (Farsi)': { countries: ['Iran'], currency: 'IRR' },
+    'Pashto': { countries: ['Afghanistan', 'Pakistan'], currency: 'AFA' },
+    'Gujarati': { countries: ['India'], currency: 'INR' },
+    'Hausa': { countries: ['Nigeria', 'Niger', 'Ghana'], currency: 'NGN' },
+    'Bhojpuri': { countries: ['India', 'Nepal'], currency: 'INR' },
+    'Southern Min': { countries: ['China', 'Taiwan', 'Philippines'], currency: 'CNY' },
+    'Hakka Chinese': { countries: ['China', 'Taiwan'], currency: 'CNY' },
+    'Yoruba': { countries: ['Nigeria', 'Benin', 'Togo'], currency: 'NGN' },
+    'Jin Chinese': { countries: ['China'], currency: 'CNY' },
+    'Kannada': { countries: ['India'], currency: 'INR' },
+    'Polish': { countries: ['Poland'], currency: 'PLN' },
+    'Levantine Arabic': { countries: ['Syria', 'Lebanon', 'Jordan', 'Palestine'], currency: 'JOD' },
+    'Oromo': { countries: ['Ethiopia', 'Kenya'], currency: 'ETB' },
+    'Algerian Arabic': { countries: ['Algeria'], currency: 'DZD' },
+    'Mesopotamian Arabic': { countries: ['Iraq', 'Syria'], currency: 'IQD' },
+    'Malayalam': { countries: ['India'], currency: 'INR' },
+    'Odia (Oriya)': { countries: ['India'], currency: 'INR' },
+    'Uzbek': { countries: ['Uzbekistan'], currency: 'UZS' },
+    'Moroccan Arabic (Darija)': { countries: ['Morocco'], currency: 'MAD' },
+    'Burmese': { countries: ['Myanmar'], currency: 'MMK' },
+    'Maithili': { countries: ['India', 'Nepal'], currency: 'INR' },
+    'Amharic': { countries: ['Ethiopia'], currency: 'ETB' },
+    'Sudanese Arabic': { countries: ['Sudan', 'South Sudan'], currency: 'SDG' },
+    'Sundanese': { countries: ['Indonesia'], currency: 'IDR' },
+    'Igbo': { countries: ['Nigeria'], currency: 'NGN' },
+    'Lao': { countries: ['Laos', 'Thailand'], currency: 'LAK' },
+    'Kurdish': { countries: ['Turkey', 'Iraq', 'Iran', 'Syria'], currency: 'TRY' },
+    'Cebuano': { countries: ['Philippines'], currency: 'PHP' },
+    'Ukrainian': { countries: ['Ukraine'], currency: 'UAH' },
+    'Sindhi': { countries: ['Pakistan', 'India'], currency: 'PKR' },
+    'Dutch': { countries: ['Netherlands', 'Belgium', 'Suriname'], currency: 'EUR' },
+    'Tagalog/Filipino': { countries: ['Philippines'], currency: 'PHP' },
+    'Romanian': { countries: ['Romania', 'Moldova'], currency: 'RON' },
+    'Azerbaijani': { countries: ['Azerbaijan', 'Iran'], currency: 'AZN' },
+    'Somali': { countries: ['Somalia', 'Ethiopia', 'Kenya', 'Djibouti'], currency: 'SOS' },
+    'Serbo-Croatian (BCMS)': { countries: ['Serbia', 'Croatia', 'Bosnia and Herzegovina', 'Montenegro'], currency: 'RSD' },
+    'Thai': { countries: ['Thailand'], currency: 'THB' },
+    'Khmer': { countries: ['Cambodia'], currency: 'KHR' },
+    'Sinhala': { countries: ['Sri Lanka'], currency: 'LKR' },
+    'Nepali': { countries: ['Nepal', 'India'], currency: 'NPR' },
+    'Swahili': { countries: ['Tanzania', 'Kenya', 'Uganda', 'Democratic Republic of the Congo', 'Rwanda'], currency: 'TZS' },
+    'Assamese': { countries: ['India'], currency: 'INR' },
+    'Greek': { countries: ['Greece', 'Cyprus'], currency: 'EUR' },
+    'Hungarian': { countries: ['Hungary'], currency: 'HUF' },
+    'Kazakh': { countries: ['Kazakhstan', 'China'], currency: 'KZT' },
+    'Zulu': { countries: ['South Africa'], currency: 'ZAR' },
+    'Czech': { countries: ['Czech Republic'], currency: 'CZK' },
+    'Swedish': { countries: ['Sweden', 'Finland'], currency: 'SEK' },
+    'Tigrinya': { countries: ['Eritrea', 'Ethiopia'], currency: 'ERN' },
+    'Hebrew': { countries: ['Israel'], currency: 'ILS' },
+    'Bulgarian': { countries: ['Bulgaria'], currency: 'BGN' },
+    'Tajik': { countries: ['Tajikistan', 'Uzbekistan'], currency: 'TJS' },
+    'Albanian': { countries: ['Albania', 'Kosovo', 'North Macedonia'], currency: 'ALL' },
+    'Turkmen': { countries: ['Turkmenistan'], currency: 'TMT' },
+    'Armenian': { countries: ['Armenia'], currency: 'AMD' },
+    'Danish': { countries: ['Denmark', 'Greenland', 'Faroe Islands'], currency: 'DKK' },
+    'Mongolian': { countries: ['Mongolia', 'China'], currency: 'MNT' },
+    'Tibetan': { countries: ['China', 'Nepal', 'Bhutan'], currency: 'CNY' },
+    'Finnish': { countries: ['Finland'], currency: 'EUR' },
+    'Norwegian': { countries: ['Norway'], currency: 'NOK' },
+    'Belarusian': { countries: ['Belarus'], currency: 'BYN' },
+    'Slovak': { countries: ['Slovakia'], currency: 'EUR' },
+    'Kyrgyz': { countries: ['Kyrgyzstan'], currency: 'KGS' },
+    'Catalan': { countries: ['Spain', 'Andorra'], currency: 'EUR' },
+    'Georgian': { countries: ['Georgia'], currency: 'GEL' },
+    'Lithuanian': { countries: ['Lithuania'], currency: 'EUR' },
+    'Latvian': { countries: ['Latvia'], currency: 'EUR' },
+    'Estonian': { countries: ['Estonia'], currency: 'EUR' },
+    'Welsh': { countries: ['United Kingdom'], currency: 'GBP' },
+    'Icelandic': { countries: ['Iceland'], currency: 'ISK' },
+    'Irish (Gaeilge)': { countries: ['Ireland'], currency: 'EUR' },
+    'Modern Standard Arabic': { countries: [], currency: 'SAR' },
+    'Esperanto': { countries: [], currency: 'EUR' },
+  };
+
+  const countryCurrencyMap = {
+    'United States': 'USD', 'United Kingdom': 'GBP', 'India': 'INR', 'Canada': 'CAD', 'Australia': 'AUD', 'Germany': 'EUR', 'France': 'EUR', 'Spain': 'EUR', 'Italy': 'EUR', 'Brazil': 'BRL', 'Japan': 'JPY', 'China': 'CNY', 'South Korea': 'KRW', 'Russia': 'RUB', 'Mexico': 'MXN', 'South Africa': 'ZAR', 'Turkey': 'TRY', 'Switzerland': 'CHF', 'Sweden': 'SEK', 'Norway': 'NOK', 'Denmark': 'DKK', 'Poland': 'PLN', 'Czech Republic': 'CZK', 'Hungary': 'HUF', 'Romania': 'RON', 'Israel': 'ILS', 'Thailand': 'THB', 'Vietnam': 'VND', 'Indonesia': 'IDR', 'Malaysia': 'MYR', 'Philippines': 'PHP', 'Singapore': 'SGD', 'Hong Kong': 'HKD', 'Taiwan': 'TWD', 'United Arab Emirates': 'AED', 'Saudi Arabia': 'SAR', 'Qatar': 'QAR', 'Oman': 'OMR', 'Kuwait': 'KWD', 'Bahrain': 'BHD', 'Egypt': 'EGP', 'Nigeria': 'NGN', 'Kenya': 'KES', 'Tanzania': 'TZS', 'Uganda': 'UGX', 'Ghana': 'GHS', 'Morocco': 'MAD', 'Algeria': 'DZD', 'Tunisia': 'TND', 'Pakistan': 'PKR', 'Bangladesh': 'BDT', 'Sri Lanka': 'LKR', 'Nepal': 'NPR', 'Ireland': 'EUR', 'Netherlands': 'EUR', 'Belgium': 'EUR', 'Portugal': 'EUR', 'Austria': 'EUR', 'Finland': 'EUR', 'Greece': 'EUR', 'Croatia': 'EUR', 'Slovakia': 'EUR', 'Lithuania': 'EUR', 'Latvia': 'EUR', 'Estonia': 'EUR', 'Luxembourg': 'EUR', 'Slovenia': 'EUR', 'Cyprus': 'EUR', 'Malta': 'EUR', 'Bulgaria': 'BGN', 'Serbia': 'RSD', 'Bosnia and Herzegovina': 'BAM', 'Albania': 'ALL', 'North Macedonia': 'MKD', 'Montenegro': 'EUR', 'Kosovo': 'EUR', 'Iceland': 'ISK', 'Ukraine': 'UAH', 'Belarus': 'BYN', 'Moldova': 'MDL', 'Georgia': 'GEL', 'Armenia': 'AMD', 'Azerbaijan': 'AZN', 'Kazakhstan': 'KZT', 'Uzbekistan': 'UZS', 'Turkmenistan': 'TMT', 'Kyrgyzstan': 'KGS', 'Tajikistan': 'TJS', 'Mongolia': 'MNT', 'Afghanistan': 'AFN', 'Iran': 'IRR', 'Iraq': 'IQD', 'Syria': 'SYP', 'Jordan': 'JOD', 'Lebanon': 'LBP', 'Yemen': 'YER', 'Palestine': 'ILS', 'Libya': 'LYD', 'Sudan': 'SDG', 'South Sudan': 'SSP', 'Somalia': 'SOS', 'Djibouti': 'DJF', 'Eritrea': 'ERN', 'Ethiopia': 'ETB', 'Angola': 'AOA', 'Mozambique': 'MZN', 'Zambia': 'ZMW', 'Zimbabwe': 'ZWL', 'Botswana': 'BWP', 'Namibia': 'NAD', 'Malawi': 'MWK', 'Lesotho': 'LSL', 'Eswatini': 'SZL', 'Mauritius': 'MUR', 'Seychelles': 'SCR', 'Comoros': 'KMF', 'Madagascar': 'MGA', 'Cape Verde': 'CVE', 'Guinea-Bissau': 'XOF', 'Equatorial Guinea': 'XAF', 'Gabon': 'XAF', 'Cameroon': 'XAF', 'Chad': 'XAF', 'Central African Republic': 'XAF', 'Republic of the Congo': 'XAF', 'Democratic Republic of the Congo': 'CDF', 'Rwanda': 'RWF', 'Burundi': 'BIF', 'Senegal': 'XOF', 'Ivory Coast': 'XOF', 'Burkina Faso': 'XOF', 'Mali': 'XOF', 'Niger': 'XOF', 'Togo': 'XOF', 'Benin': 'XOF', 'Guinea': 'GNF', 'Sierra Leone': 'SLL', 'Liberia': 'LRD', 'Gambia': 'GMD', 'Mauritania': 'MRU', 'Western Sahara': 'MAD', 'Trinidad and Tobago': 'TTD', 'Haiti': 'HTG', 'Dominican Republic': 'DOP', 'Cuba': 'CUP', 'Jamaica': 'JMD', 'Bahamas': 'BSD', 'Barbados': 'BBD', 'New Zealand': 'NZD', 'Papua New Guinea': 'PGK', 'Fiji': 'FJD', 'Solomon Islands': 'SBD', 'Vanuatu': 'VUV', 'Samoa': 'WST', 'Tonga': 'TOP', 'Argentina': 'ARS', 'Bolivia': 'BOB', 'Chile': 'CLP', 'Colombia': 'COP', 'Costa Rica': 'CRC', 'Ecuador': 'USD', 'El Salvador': 'USD', 'Guatemala': 'GTQ', 'Honduras': 'HNL', 'Nicaragua': 'NIO', 'Panama': 'PAB', 'Paraguay': 'PYG', 'Peru': 'PEN', 'Uruguay': 'UYU', 'Venezuela': 'VES', 'Macau': 'MOP', 'Brunei': 'BND', 'Myanmar': 'MMK', 'Cambodia': 'KHR', 'Laos': 'LAK', 'Maldives': 'MVR', 'Bhutan': 'BTN', 'Suriname': 'SRD', 'Guyana': 'GYD', 'Fiji': 'FJD',
+  };
+
+  const countryPhoneMap = {
+    'United States': '+1', 'Canada': '+1', 'United Kingdom': '+44', 'India': '+91', 'Australia': '+61',
+    'New Zealand': '+64', 'Ireland': '+353', 'South Africa': '+27', 'Nigeria': '+234', 'Ghana': '+233',
+    'Kenya': '+254', 'Uganda': '+256', 'Tanzania': '+255', 'Zambia': '+260', 'Zimbabwe': '+263',
+    'Botswana': '+267', 'Malawi': '+265', 'Liberia': '+231', 'Sierra Leone': '+232', 'Gambia': '+220',
+    'Germany': '+49', 'France': '+33', 'Spain': '+34', 'Italy': '+39', 'Brazil': '+55',
+    'Portugal': '+351',     'Japan': '+81', 'China': '+86', 'South Korea': '+82', 'Russia': '+7',
+    'Mexico': '+52', 'Turkey': '+90', 'Switzerland': '+41', 'Sweden': '+46', 'Norway': '+47',
+    'Denmark': '+45', 'Poland': '+48', 'Czech Republic': '+420', 'Hungary': '+36', 'Romania': '+40',
+    'Netherlands': '+31', 'Belgium': '+32', 'Austria': '+43', 'Finland': '+358', 'Greece': '+30',
+    'Croatia': '+385', 'Slovakia': '+421', 'Lithuania': '+370', 'Latvia': '+371', 'Estonia': '+372',
+    'Luxembourg': '+352', 'Slovenia': '+386', 'Cyprus': '+357', 'Malta': '+356', 'Bulgaria': '+359',
+    'Serbia': '+381', 'Bosnia and Herzegovina': '+387', 'Albania': '+355', 'North Macedonia': '+389',
+    'Montenegro': '+382', 'Kosovo': '+383', 'Iceland': '+354', 'Ukraine': '+380', 'Belarus': '+375',
+    'Moldova': '+373', 'Israel': '+972', 'Thailand': '+66', 'Vietnam': '+84', 'Indonesia': '+62',
+    'Malaysia': '+60', 'Philippines': '+63', 'Singapore': '+65', 'Hong Kong': '+852', 'Taiwan': '+886',
+    'United Arab Emirates': '+971', 'Saudi Arabia': '+966', 'Qatar': '+974', 'Oman': '+968',
+    'Kuwait': '+965', 'Bahrain': '+973', 'Egypt': '+20', 'Morocco': '+212', 'Algeria': '+213',
+    'Tunisia': '+216', 'Pakistan': '+92', 'Bangladesh': '+880', 'Sri Lanka': '+94', 'Nepal': '+977',
+    'Afghanistan': '+93', 'Iran': '+98', 'Iraq': '+964', 'Syria': '+963', 'Jordan': '+962',
+    'Lebanon': '+961', 'Yemen': '+967', 'Palestine': '+970', 'Libya': '+218', 'Sudan': '+249',
+    'South Sudan': '+211', 'Somalia': '+252', 'Djibouti': '+253', 'Eritrea': '+291', 'Ethiopia': '+251',
+    'Angola': '+244', 'Mozambique': '+258', 'Cape Verde': '+238', 'Guinea-Bissau': '+245',
+    'Equatorial Guinea': '+240', 'Macau': '+853', 'Rwanda': '+250', 'Benin': '+229', 'Guinea': '+224',
+    'Togo': '+228', 'Madagascar': '+261', 'Democratic Republic of the Congo': '+243',
+    'Republic of the Congo': '+242', 'Haiti': '+509', 'Gabon': '+241', 'Ivory Coast': '+225', 'Cameroon': '+237',
+    'Burkina Faso': '+226', 'Mali': '+223', 'Niger': '+227', 'Senegal': '+221', 'Chad': '+235',
+    'Central African Republic': '+236', 'Mauritania': '+222', 'Mauritius': '+230', 'Seychelles': '+248',
+    'Comoros': '+269', 'Sao Tome and Principe': '+239', 'Laos': '+856', 'Cambodia': '+855',
+    'Myanmar': '+95', 'Mongolia': '+976', 'Turkmenistan': '+993', 'Uzbekistan': '+998',
+    'Tajikistan': '+992', 'Kyrgyzstan': '+996', 'Kazakhstan': '+7', 'Azerbaijan': '+994',
+    'Armenia': '+374', 'Georgia': '+995', 'Argentina': '+54', 'Chile': '+56', 'Colombia': '+57',
+    'Peru': '+51', 'Venezuela': '+58', 'Ecuador': '+593', 'Guatemala': '+502', 'Cuba': '+53',
+    'Bolivia': '+591', 'Dominican Republic': '+1-809', 'Honduras': '+504', 'Paraguay': '+595',
+    'El Salvador': '+503', 'Nicaragua': '+505', 'Costa Rica': '+506', 'Panama': '+507',
+    'Uruguay': '+598', 'Puerto Rico': '+1', 'Suriname': '+597', 'Guyana': '+592', 'Belize': '+501',
+    'Bahamas': '+1', 'Barbados': '+1', 'Jamaica': '+1', 'Trinidad and Tobago': '+1',
+    'Greenland': '+299',     'Faroe Islands': '+298', 'Western Sahara': '+212', 'Andorra': '+376', 'Liechtenstein': '+423',
+    'Monaco': '+377', 'San Marino': '+378', 'Vatican City': '+379', 'Brunei': '+673',
+    'Vanuatu': '+678', 'Solomon Islands': '+677', 'Samoa': '+685', 'Tonga': '+676',
+    'Fiji': '+679', 'Papua New Guinea': '+675', 'North Korea': '+850',     'Eswatini': '+268',
+    'Lesotho': '+266', 'Namibia': '+264', 'Bhutan': '+975', 'Maldives': '+960',
+    'Timor-Leste': '+670', 'Barbuda': '+1', 'Antigua': '+1', 'St. Kitts': '+1',
+    'Nevis': '+1', 'Dominica': '+1', 'St. Lucia': '+1', 'St. Vincent': '+1',
+    'Grenada': '+1', 'St. Vincent and the Grenadines': '+1',
+    'Chinese Taipei': '+886', 'Côte d\'Ivoire': '+225',
+    'United States of America': '+1', 'UK': '+44', 'U.S.': '+1',
+    'Russia (Kazakhstan)': '+7',
+  };
+
+  (function() {
+    const langSelect = document.querySelector('select[name="language"]');
+    const countrySelect = document.querySelector('select[name="country"]');
+    const currencySelect = document.querySelector('select[name="currency"]');
+    const phoneCodeSelect = document.getElementById('phoneCodeSelect');
+    const phoneInputField = document.querySelector("#phone");
+    const whatsappInputField = document.querySelector("#whatsapp_number");
+
+    if (!langSelect || !countrySelect || !currencySelect) return;
+
+    // --- intl-tel-input initialization ---
+    let phoneInput = null;
+    if (phoneInputField) {
+      let initialCountryCode = "auto";
+      const userCountryName = "{{ user.country|escapejs }}";
+      if (userCountryName) {
+        const countries = window.intlTelInputGlobals.getCountryData();
+        const match = countries.find(c => c.name.toLowerCase().includes(userCountryName.toLowerCase()) || userCountryName.toLowerCase().includes(c.name.toLowerCase()));
+        if (match) {
+          initialCountryCode = match.iso2;
+        }
+      }
+
+      phoneInput = window.intlTelInput(phoneInputField, {
+        initialCountry: initialCountryCode,
+        geoIpLookup: function(callback) {
+          if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+            callback('us');
+            return;
+          }
+          fetch("https://ipapi.co/json")
+            .then(res => res.ok ? res.json() : Promise.reject())
+            .then(data => callback(data.country_code))
+            .catch(() => callback("us"));
+        },
+        separateDialCode: true,
+        utilsScript: "https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/js/utils.js",
+      });
+
+      window.phoneInput = phoneInput;
+
+      // Restrict phone input to only numbers
+      phoneInputField.addEventListener('input', function() {
+        this.value = this.value.replace(/[^0-9]/g, '');
+      });
+
+      // Update phoneCodeSelect hidden input when flag is clicked/changed
+      phoneInputField.addEventListener("countrychange", function() {
+        const countryData = phoneInput.getSelectedCountryData();
+        if (countryData && countryData.dialCode && phoneCodeSelect) {
+          phoneCodeSelect.value = "+" + countryData.dialCode;
+        }
+      });
+
+      // Update phone field on form submit
+      const editForm = phoneInputField.closest('form');
+      if (editForm) {
+        editForm.addEventListener('submit', function() {
+          if (phoneInputField.value.trim().length > 0) {
+            phoneInputField.value = phoneInput.getNumber();
+            const countryData = phoneInput.getSelectedCountryData();
+            if (countryData && countryData.dialCode && phoneCodeSelect) {
+              phoneCodeSelect.value = "+" + countryData.dialCode;
+            }
+          }
+        });
+      }
+    }
+
+    // --- whatsapp-tel-input initialization ---
+    let whatsappInput = null;
+    if (whatsappInputField) {
+      let initialWhatsappCountryCode = "auto";
+      const userCountryName = "{{ user.country|escapejs }}";
+      if (userCountryName) {
+        const countries = window.intlTelInputGlobals.getCountryData();
+        const match = countries.find(c => c.name.toLowerCase().includes(userCountryName.toLowerCase()) || userCountryName.toLowerCase().includes(c.name.toLowerCase()));
+        if (match) {
+          initialWhatsappCountryCode = match.iso2;
+        }
+      }
+
+      whatsappInput = window.intlTelInput(whatsappInputField, {
+        initialCountry: initialWhatsappCountryCode,
+        geoIpLookup: function(callback) {
+          if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+            callback('us');
+            return;
+          }
+          fetch("https://ipapi.co/json")
+            .then(res => res.ok ? res.json() : Promise.reject())
+            .then(data => callback(data.country_code))
+            .catch(() => callback("us"));
+        },
+        separateDialCode: true,
+        utilsScript: "https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/js/utils.js",
+      });
+
+      window.whatsappInput = whatsappInput;
+
+      // Restrict whatsapp input to only numbers
+      whatsappInputField.addEventListener('input', function() {
+        this.value = this.value.replace(/[^0-9]/g, '');
+      });
+
+      // Update whatsapp field on form submit
+      const editForm = whatsappInputField.closest('form');
+      if (editForm) {
+        editForm.addEventListener('submit', function() {
+          if (whatsappInputField.value.trim().length > 0) {
+            whatsappInputField.value = whatsappInput.getNumber();
+          }
+        });
+      }
+    }
+
+    // --- Reusable Custom Dropdown Builder ---
+    function makeCustomDropdown(selectElement) {
+      if (!selectElement) return null;
+      const selectWrap = selectElement.parentElement;
+      selectWrap.classList.add('custom-dropdown-wrap');
+      
+      const trigger = document.createElement('div');
+      trigger.className = 'custom-dropdown-toggle';
+      trigger.innerHTML = `<span></span><span style="font-size: 10px; margin-left: 8px;">▼</span>`;
+      selectWrap.appendChild(trigger);
+
+      const menu = document.createElement('div');
+      menu.className = 'custom-dropdown-menu';
+      selectWrap.appendChild(menu);
+
+      function syncCustomDropdown() {
+        const selectedOption = selectElement.options[selectElement.selectedIndex];
+        if (selectedOption) {
+          trigger.querySelector('span').textContent = selectedOption.textContent;
+          menu.querySelectorAll('.custom-dropdown-option').forEach(opt => {
+            if (opt.dataset.value === selectElement.value) {
+              opt.classList.add('selected');
+            } else {
+              opt.classList.remove('selected');
+            }
+          });
+        } else {
+          trigger.querySelector('span').textContent = '';
+        }
+      }
+
+      function rebuild() {
+        menu.innerHTML = '';
+        Array.from(selectElement.options).forEach(opt => {
+          const item = document.createElement('div');
+          item.className = 'custom-dropdown-option';
+          if (opt.disabled) {
+            item.className += ' disabled-option';
+            item.style.pointerEvents = 'none';
+            item.style.color = '#888';
+            item.style.textAlign = 'center';
+            item.style.borderTop = '1px solid #eee';
+            item.style.borderBottom = '1px solid #eee';
+            item.style.background = '#f9f9f9';
+            item.style.fontSize = '12px';
+            item.style.padding = '4px 12px';
+          } else {
+            item.dataset.value = opt.value;
+          }
+          item.textContent = opt.textContent;
+
+          if (!opt.disabled) {
+            item.addEventListener('click', function(e) {
+              e.stopPropagation();
+              selectElement.value = opt.value;
+              const event = new Event('change', { bubbles: true });
+              selectElement.dispatchEvent(event);
+              syncCustomDropdown();
+              menu.classList.remove('open');
+            });
+          }
+
+          menu.appendChild(item);
+        });
+        syncCustomDropdown();
+      }
+
+      trigger.addEventListener('click', function(e) {
+        e.stopPropagation();
+        // Close other custom dropdowns
+        document.querySelectorAll('.custom-dropdown-menu').forEach(m => {
+          if (m !== menu) m.classList.remove('open');
+        });
+        menu.classList.toggle('open');
+      });
+
+      document.addEventListener('click', function() {
+        menu.classList.remove('open');
+      });
+
+      rebuild();
+      selectElement.addEventListener('change', syncCustomDropdown);
+      selectElement.style.display = 'none';
+
+      return {
+        rebuild: rebuild,
+        sync: syncCustomDropdown
+      };
+    }
+
+    const currencyCustomSelect = makeCustomDropdown(currencySelect);
+    const countryCustomSelect = makeCustomDropdown(countrySelect);
+    const langCustomSelect = makeCustomDropdown(langSelect);
+
+    // Store all original country options
+    const allCountryOptions = Array.from(countrySelect.options);
+
+    function updateCountryAndCurrency(lang) {
+      const mapping = langMap[lang];
+      if (!mapping) return;
+
+      // Clear and rebuild country options
+      countrySelect.innerHTML = '<option value="">Select country</option>';
+      const preferred = mapping.countries;
+
+      // Add preferred countries first
+      preferred.forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c;
+        opt.textContent = c;
+        if (c === '{{ user.country|escapejs }}') opt.selected = true;
+        countrySelect.appendChild(opt);
+      });
+
+      // Add remaining countries as a grouped separator
+      if (allCountryOptions.length > preferred.length + 1) {
+        const divider = document.createElement('option');
+        divider.disabled = true;
+        divider.textContent = '── Other ──';
+        countrySelect.appendChild(divider);
+
+        allCountryOptions.forEach(opt => {
+          if (opt.value && !preferred.includes(opt.value)) {
+            countrySelect.appendChild(opt.cloneNode(true));
+          }
+        });
+      }
+
+      // Auto-select first preferred country if user hasn't selected one
+      if (!countrySelect.value && preferred.length > 0) {
+        countrySelect.value = preferred[0];
+      }
+
+      // Rebuild the custom country dropdown options
+      if (countryCustomSelect) {
+        countryCustomSelect.rebuild();
+      }
+
+      // Update currency
+      if (mapping.currency) {
+        currencySelect.value = mapping.currency;
+        currencySelect.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+
+      // Update phone code & flag based on selected country
+      updatePhoneAndFlag();
+    }
+
+    function updatePhoneAndFlag() {
+      const country = countrySelect.value;
+      const code = countryPhoneMap[country] || '';
+      if (code && phoneCodeSelect) {
+        phoneCodeSelect.value = code;
+      }
+      if (country) {
+        const countries = window.intlTelInputGlobals.getCountryData();
+        const match = countries.find(c => c.name.toLowerCase().includes(country.toLowerCase()) || country.toLowerCase().includes(c.name.toLowerCase()));
+        if (match) {
+          if (window.phoneInput) {
+            window.phoneInput.setCountry(match.iso2);
+          }
+          if (window.whatsappInput) {
+            window.whatsappInput.setCountry(match.iso2);
+          }
+        }
+      }
+    }
+
+    langSelect.addEventListener('change', function() {
+      updateCountryAndCurrency(this.value);
+    });
+
+    // When country changes manually, update currency & phone code
+    countrySelect.addEventListener('change', function() {
+      const curr = countryCurrencyMap[this.value];
+      if (curr && currencySelect.querySelector(`option[value="${curr}"]`)) {
+        currencySelect.value = curr;
+        currencySelect.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+      updatePhoneAndFlag();
+    });
+
+    // Sync phone code from saved country on page load
+    updatePhoneAndFlag();
+  })();
+
+  </script>
+
+  {% include 'frontend/base/footer.html' %}
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>

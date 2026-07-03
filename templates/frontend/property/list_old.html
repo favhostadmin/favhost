@@ -1,0 +1,2688 @@
+{% extends 'frontend/base/base.html' %}
+{% load static %}
+
+{% block extra_head %}
+<link href="{% static 'css/property/listing.css' %}" rel="stylesheet">
+<style>
+    .share-input-group {
+        position: relative;
+    }
+    
+    .share-input {
+        padding-right: 40px;
+        background: transparent !important;
+        border: 1px solid #dee2e6;
+    }
+    
+    .share-external-icon {
+        position: absolute;
+        right: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #6c757d;
+    }
+    
+    .modal-footer .btn {
+        min-width: 100px;
+    }
+    
+    .copy-success {
+        color: #198754;
+        font-size: 14px;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+    
+    .copy-success.show {
+        opacity: 1;
+    }
+
+    #copySuccess {
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
+        white-space: nowrap;
+        z-index: 1;
+    }
+
+    .modal#shareItineraryModal .d-flex.align-items-center {
+        position: relative;
+    }
+
+
+    .search-box {
+        position: relative;
+        display: flex;
+        align-items: center;
+    }
+
+    .search-box input {
+        background: #fff;
+        border: none;
+        border-radius: 8px;
+        padding: 8px 70px 8px 16px;
+        width: 100%;
+        max-width: 200px;
+        font-size: 13px;
+        outline: none;
+    }
+
+    .search-icon {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: pointer;
+    color: #666;
+    }
+
+    .clear-icon {
+    position: absolute;
+    right: 40px;
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: pointer;
+    color: #666;
+    display: none; /* Initially hidden */
+    }
+
+    .listing-card {
+        border: 1px solid #e0e0e0;
+        border-radius: 6px;
+        /* padding: 12px; */
+        transition: background-color 0.3s ease, border-color 0.3s ease;
+    }
+
+    .listing-card:hover {
+        background-color: #f5f5f5;
+        border-color: #d6d6d6;
+    }
+
+    .image-nav {
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        pointer-events: none;
+    }
+
+    .listing-image-container:hover .image-nav {
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+    .tooltip-light {
+        position: relative;
+    }
+
+    .tooltip-light:hover::after {
+        content: attr(data-tooltip);
+        position: absolute;
+        left: 50%;
+        top: calc(100% + 8px);
+        transform: translateX(-50%);
+        background: #ffffff;
+        color: #111827;
+        border: 1px solid #d1d5db;
+        border-radius: 6px;
+        padding: 4px 8px;
+        font-size: 14px;
+        font-weight: 700;
+        line-height: 1.2;
+        white-space: nowrap;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
+        z-index: 12000;
+        pointer-events: none;
+    }
+
+    .tooltip-light:hover::before {
+        content: '';
+        position: absolute;
+        left: 50%;
+        top: calc(100% + 4px);
+        transform: translateX(-50%);
+        width: 8px;
+        height: 8px;
+        background: #ffffff;
+        border-right: 1px solid #d1d5db;
+        border-bottom: 1px solid #d1d5db;
+        transform-origin: center;
+        rotate: 45deg;
+        z-index: 11999;
+        pointer-events: none;
+    }
+
+    .tooltip-light.tooltip-right:hover::after {
+        left: auto;
+        right: 0;
+        transform: none;
+    }
+
+    .tooltip-light.tooltip-right:hover::before {
+        left: auto;
+        right: 12px;
+        transform: none;
+        rotate: 45deg;
+    }
+
+   
+    
+</style>
+
+<!-- Modern Search Bar Styles -->
+<style>
+    .search-bar {
+        position: relative;
+        background-color: #ffffff;
+        border-radius: 50px;
+        /* padding: 10px 16px; */
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        /* gap: 12px; */
+        /* flex: 1; */
+        /* margin: 0 20px; */
+    }
+
+    .search-bar .search-item {
+        display: block !important;
+        justify-content: space-between;
+        width: 120px;
+        align-items: center;
+        /* gap: 6px; */
+        background: transparent;
+        border: none;
+        color: #000000;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        white-space: nowrap;
+        /* padding: 0 10px; */
+        border-radius: 20px;
+        transition: background-color 0.2s ease;
+    }
+
+    .desktop-inline-date-input {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        opacity: 0.01;
+        border: none;
+        background: transparent;
+        cursor: pointer;
+        z-index: 3;
+        -webkit-appearance: none;
+        appearance: none;
+    }
+
+    .search-bar .search-item > .d-flex {
+        width: 100%;
+    }
+
+    @media (min-width: 992px) {
+        .search-bar .desktop-date-range-trigger {
+            width: 260px;
+            background: #ffffff;
+            border-radius: 999px;
+            padding: 10px 14px;
+            margin: 0 6px;
+            position: relative;
+        }
+
+        .search-bar .desktop-date-range-trigger .date-range-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #1f2937;
+            line-height: 1;
+        }
+
+        .search-bar .desktop-date-range-trigger .date-range-separator {
+            color: #6b7280;
+        }
+
+        .search-bar .desktop-date-range-trigger .desktop-inline-date-input {
+            display: none;
+        }
+    }
+
+
+    .search-bar .search-item label {
+        text-align: center !important;
+        margin: 0 !important;
+        font-size: 14px;
+        font-weight: 500;
+        color: #000000;
+    }
+
+    #guests-btn {
+        justify-content: center;
+        width: auto;
+        min-width: 180px;
+        flex: 0 0 auto;
+    }
+
+    #guests-btn .d-flex {
+        flex-wrap: nowrap;
+        white-space: nowrap;
+    }
+
+    .search-bar .input-wrap {
+        display: none;
+    }
+
+    .search-bar .divider {
+        width: 1px;
+        height: 20px;
+        background-color: #e0e0e0;
+        margin: 0 4px;
+    }
+
+    .search-bar svg {
+        width: 18px;
+        height: 18px;
+        stroke: currentColor;
+        fill: none;
+        stroke-width: 2;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+    }
+
+    .search-bar .clear-btn {
+        background-color: transparent;
+        border: 1px solid #d0d0d0;
+        color: #666;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 13px;
+        font-weight: 500;
+        transition: all 0.2s ease;
+        margin-left: auto;
+    }
+
+    .search-bar .clear-btn:hover {
+        border-color: #999;
+        color: #333;
+        background-color: #f9f9f9;
+    }
+
+    .search-bar .guest-search-btn {
+        margin-left: 18px !important;
+        flex: 0 0 auto;
+        white-space: nowrap;
+    }
+
+    .search-bar .search-btn {
+        background-color: transparent;
+        border: none;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 6px 10px;
+        border-radius: 50%;
+        transition: background-color 0.2s ease;
+    }
+
+    /* .search-bar .search-btn:hover {
+        background-color: #f0f0f0;
+    } */
+
+    .search-bar .clear-btn:hover {
+        background-color: transparent;
+    }
+
+    .search-bar .search-btn svg {
+        width: 20px;
+        height: 20px;
+    }
+
+    .search-bar .search-btn img {
+        width: 20px;
+        height: 20px;
+    }
+
+    /* Desktop/Mobile date-range picker */
+    .date-range-picker {
+        position: fixed;
+        top: 96px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #ffffff;
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
+        padding: 12px;
+        width: min(720px, calc(100vw - 16px));
+        z-index: 9999;
+        display: none;
+        max-height: calc(100vh - 140px);
+        overflow: auto;
+    }
+
+    .date-range-picker.open {
+        display: block;
+    }
+
+    .drp-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 10px;
+    }
+
+    .drp-nav {
+        border: 1px solid #d1d5db;
+        background: #fff;
+        border-radius: 8px;
+        width: 32px;
+        height: 32px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: background 0.15s ease, border-color 0.15s ease;
+    }
+
+    .drp-nav:hover {
+        background: #f3f4f6;
+        border-color: #9ca3af;
+    }
+
+    .drp-months {
+        display: grid;
+        grid-template-columns: repeat(var(--months, 2), minmax(0, 1fr));
+        gap: 12px;
+    }
+
+    .drp-month-title {
+        text-align: center;
+        font-weight: 600;
+        margin-bottom: 6px;
+        color: #111827;
+    }
+
+    .drp-weekdays,
+    .drp-days {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 0;
+    }
+
+    .drp-weekday {
+        text-align: center;
+        font-size: 12px;
+        color: #45484e;
+        padding: 4px 0;
+        font-weight: 600;
+    }
+
+    .drp-day {
+        text-align: center;
+        padding: 9px 0;
+        border-radius: 10px;
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 600;
+        color: #111827;
+        position: relative;
+        transition: background 0.1s ease, color 0.1s ease;
+        margin: 0;
+    }
+
+    .drp-day.blank {
+        cursor: default;
+    }
+
+    .drp-day:not(.blank):hover {
+        background: #6d6a68;
+    }
+
+    .drp-day.disabled {
+        color: #d1d5db;
+        cursor: not-allowed;
+    }
+
+    .drp-day.in-range {
+        background: #d8d8d8; /* deeper fill */
+        color: #111827;
+        border-radius: 0;
+    }
+
+    .drp-day.start,
+    .drp-day.end {
+        background: #6d6a68;
+        color: #fff;
+    }
+
+    .drp-day.start {
+        border-top-left-radius: 12px;
+        border-bottom-left-radius: 12px;
+        border-top-right-radius: 0;
+        border-bottom-right-radius: 0;
+        box-shadow: 6px 0 0 #d8d8d8;
+    }
+
+    .drp-day.end {
+        border-top-right-radius: 12px;
+        border-bottom-right-radius: 12px;
+        border-top-left-radius: 0;
+        border-bottom-left-radius: 0;
+        box-shadow: -6px 0 0 #d8d8d8;
+    }
+
+    .drp-day.start.end {
+        border-radius: 12px;
+        box-shadow: none;
+    }
+
+    @media (max-width: 991.98px) {
+        .date-range-picker {
+            top: 120px;
+            width: calc(100vw - 12px);
+            left: 50%;
+            transform: translateX(-50%);
+        }
+    }
+
+    @media (max-width: 768px) {
+        .date-range-picker {
+            padding: 10px;
+        }
+
+        .drp-months {
+            grid-template-columns: repeat(var(--months, 1), minmax(0, 1fr));
+            gap: 10px;
+        }
+    }
+
+    .guest-counter {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .guest-arrows {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        margin-left: 2px;
+    }
+
+    .guest-arrow-icon {
+        width: 12px;
+        height: 12px;
+        stroke: currentColor;
+        fill: none;
+        stroke-width: 2.5;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+    }
+
+    .arrow-up {
+        margin-bottom: -6px;
+    }
+
+    .input-wrap input[type="date"]{
+        text-align: center !important;
+        margin-left: 9px !important;
+    }
+
+    .property-meta-row {
+        display: none;
+    }
+
+    .desktop-header .header-filter {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+        align-items: center;
+        column-gap: 16px;
+    }
+
+    .desktop-header .header-filter-left {
+        justify-self: start;
+    }
+
+    .desktop-header .header-filter-right {
+        justify-self: end;
+    }
+
+    .desktop-header .search-bar {
+        justify-self: center;
+        margin: 0 auto;
+    }
+
+    .main_content_div{
+        padding: 0rem 10% !important; 
+        min-height: calc(100vh - 193px);
+    }
+
+    @media (max-width: 991px) {
+        .mobile-filter-section {
+            background: #E7E7E9;
+            border-bottom: 1px solid #e5e7eb;
+            padding: 10px 0 8px;
+            position: sticky;
+            top: 0;
+            z-index: 90;
+            padding: 0px !important;
+        }
+        .mobile-filter-section .container-fluid {
+            position: relative;
+            padding: 0px 0px !important;
+            margin: 10px 0px;
+        }
+
+        .mobile-listing-top {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+        }
+
+        .mobile-inline-filter {
+            flex: 1;
+            min-width: 0;
+            height: 40px;
+            border: 1.5px solid #9ca3af;
+            border-radius: 999px;
+            background: #fff;
+            display: flex;
+            align-items: center;
+            padding: 0 4px;
+            justify-content: flex-start;
+            overflow: hidden;
+            white-space: nowrap;
+        }
+
+        .mobile-inline-filter::-webkit-scrollbar {
+            display: none;
+        }
+
+        .mobile-inline-item {
+            border: none;
+            background: transparent;
+            color: #111827;
+            font-size: 14px;
+            font-weight: 600;
+            white-space: nowrap;
+            display: inline-flex;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 4px;
+            padding: 0 6px;
+            min-width: 0;
+            flex: 1 1 0;
+            text-align: left;
+        }
+
+        .mobile-inline-item.search-trigger {
+            text-decoration: underline;
+            margin-left: 0;
+            min-width: 68px;
+            padding-right: 0;
+            flex: 0 0 auto;
+        }
+
+        .mobile-inline-separator {
+            width: 1px;
+            height: 24px;
+            background: #d1d5db;
+            flex: 0 0 auto;
+            margin: 0 2px;
+        }
+
+        #mobile-checkin-btn,
+        #mobile-checkout-btn {
+            flex: 1 1 0;
+            padding-left: 4px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .mobile-inline-icon {
+            width: 14px;
+            height: 14px;
+        }
+
+        .mobile-inline-date-input {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0.01;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            z-index: 3;
+            -webkit-appearance: none;
+            appearance: none;
+            font-size: 16px;
+        }
+
+        .mobile-guest-stepper {
+            display: inline-flex;
+            flex-direction: column;
+            margin-left: 2px;
+            line-height: 1;
+        }
+
+        .mobile-guest-stepper button {
+            border: none;
+            background: transparent;
+            padding: 0;
+            font-size: 10px;
+            line-height: 1;
+            color: #111827;
+        }
+
+        .mobile-right-actions {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            flex: 0 0 auto;
+        }
+
+        .mobile-action-btn {
+            border: none;
+            background: transparent;
+            width: 28px;
+            height: 28px;
+            padding: 0;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .mobile-slide-panel {
+            position: absolute;
+            top: calc(100% + 8px);
+            right: 0;
+            width: min(420px, calc(100vw - 24px));
+            background: #ffffff;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.14);
+            padding: 10px;
+            opacity: 0;
+            transform: translateY(-8px);
+            visibility: hidden;
+            transition: opacity 0.25s ease, transform 0.25s ease, visibility 0.25s ease;
+            pointer-events: none;
+            overflow: hidden;
+            z-index: 120;
+        }
+
+        .mobile-slide-panel.open {
+            opacity: 1;
+            transform: translateY(0);
+            visibility: visible;
+            pointer-events: auto;
+        }
+
+        .mobile-slide-panel .mobile-search-input,
+        .mobile-slide-panel .filter-item {
+            margin-bottom: 10px;
+        }
+
+        .mobile-slide-panel .mobile-extra-fields {
+            position: absolute;
+            left: -9999px;
+            width: 1px;
+            height: 1px;
+            opacity: 0;
+            pointer-events: none;
+            overflow: hidden;
+        }
+        .main_content_div{
+            padding: 0 10px !important;
+            min-height: auto !important;
+        }
+
+    }
+    @media (max-width: 575px) {
+        .mobile-inline-item {
+            font-size: 12px;
+            padding: 0 6px;
+        }
+
+        .mobile-inline-filter {
+            justify-content: flex-start;
+            overflow-x: auto;
+            overflow-y: hidden;
+            scrollbar-width: none;
+        }
+
+        .mobile-inline-item {
+            min-width: max-content;
+            flex: 0 0 auto;
+        }
+
+        .property-card-col {
+            padding: 8px 6px !important;
+        }
+
+        .listing-card {
+            gap: 12px;
+            padding: 12px;
+            border-radius: 14px;
+        }
+
+        .listing-card-link {
+            flex: 0 0 128px;
+            width: 128px;
+        }
+
+        .listing-image-container {
+            height: 120px;
+            border-radius: 10px;
+        }
+
+        .listing-title {
+            font-size: 15px;
+            line-height: 1.3;
+            margin: 0 24px 6px 0;
+        }
+
+        .listing-location {
+            font-size: 12px;
+            margin: 0 0 6px 0;
+        }
+
+        .listing-price {
+            font-size: 14px;
+        }
+
+        .price-period {
+            font-size: 13px;
+        }
+
+        .property-meta-row {
+            gap: 12px;
+            margin-top: 6px;
+        }
+
+        .property-meta-item {
+            font-size: 12px;
+            gap: 5px;
+        }
+
+        .status-badge {
+            top: 8px;
+            right: 8px;
+            font-size: 11px;
+            padding: 2px 8px;
+        }
+    }
+
+    @media (max-width: 991px) {
+        .property-card-col {
+            flex: 0 0 100%;
+            max-width: 100%;
+            padding: 6px 2px !important;
+        }
+
+        .listing-card {
+            display: flex;
+            flex-direction: row;
+            gap: 10px;
+            padding: 10px;
+            border-radius: 14px;
+            border: 1px solid #e5e7eb;
+            background: #ffffff;
+            overflow: visible;
+            min-height: 0;
+        }
+
+        .listing-card-link {
+            flex: 0 0 126px;
+            width: 126px;
+            display: block;
+        }
+
+        .listing-image-container {
+            height: 102px;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .listing-info {
+            flex: 1;
+            min-width: 0;
+            padding: 0;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .listing-title {
+            font-size: 16px;
+            line-height: 1.3;
+            margin: 0 26px 4px 0;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .listing-location {
+            font-size: 12px;
+            margin: 0 0 4px 0;
+            color: #6b7280;
+        }
+
+        .listing-info > .d-flex {
+            align-items: center !important;
+            justify-content: flex-start !important;
+            margin-top: 0;
+        }
+
+        .listing-info > .d-flex > div:last-child {
+            position: absolute;
+            top: 0;
+            right: 0;
+        }
+
+        .options-btn {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            border: 1px solid #d1d5db;
+            background: #ffffff;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+        }
+
+        .options-dots-icon {
+            width: 14px;
+            height: 14px;
+            fill: #111827;
+            display: block;
+        }
+
+        /* Keep mobile action menu inside the card flow so it doesn't get clipped by scroll container */
+        .listing-info .btn-group.dropup .dropdown-menu,
+        .listing-info .btn-group .dropdown-menu {
+            top: calc(100% + 6px) !important;
+            bottom: auto !important;
+            right: 0 !important;
+            left: auto !important;
+            transform: none !important;
+            margin-top: 0 !important;
+            margin-bottom: 0 !important;
+        }
+
+        .listing-price {
+            font-size: 14px;
+            font-weight: 700;
+            margin: 0;
+            color: #111827;
+        }
+
+        .price-period {
+            font-size: 13px;
+            color: #111827;
+        }
+
+        .property-meta-row {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-top: 4px;
+            color: #1f2937;
+        }
+
+        .property-meta-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            color: #1f2937;
+            white-space: nowrap;
+        }
+
+        .property-meta-item svg {
+            width: 14px;
+            height: 14px;
+            stroke: currentColor;
+            stroke-width: 1.8;
+            fill: none;
+        }
+
+        .status-badge {
+            top: 8px;
+            right: 8px;
+            font-size: 11px;
+            padding: 2px 9px;
+        }
+    }
+</style>
+
+<style>
+
+  /* Share modal — phone */
+  .modal#shareItineraryModal .modal-dialog {
+    margin: 60px 0 0;
+    max-width: 100%;
+    height: calc(100% - 60px);
+  }
+  .modal#shareItineraryModal .modal-content {
+    border-radius: 0;
+    min-height: 100%;
+  }
+  .modal#shareItineraryModal .modal-body {
+    padding: 16px !important;
+  }
+  .modal#shareItineraryModal .btn-group {
+    flex-wrap: wrap;
+    gap: 8px;
+    width: 100%;
+  }
+  .modal#shareItineraryModal .btn-group .btn {
+    flex: 1;
+    min-width: 0;
+    text-align: center;
+    font-size: 13px;
+    padding: 8px 6px;
+  }
+
+  /* Validation / Error modals — phone */
+  .modal#validationModal .modal-dialog,
+  .modal#errorModal .modal-dialog {
+    margin: 16px;
+    max-width: calc(100% - 32px);
+  }
+  .modal#validationModal .modal-content,
+  .modal#errorModal .modal-content {
+    border-radius: 12px;
+  }
+
+  /* Confirmation modals — phone */
+  .modal[id$="Modal"] .modal-dialog {
+    margin: 16px;
+    max-width: calc(100% - 32px);
+  }
+  .modal[id$="Modal"] .modal-content {
+    border-radius: 12px;
+  }
+  .modal[id$="Modal"] .modal-footer {
+    flex-direction: column;
+    gap: 8px;
+  }
+  .modal[id$="Modal"] .modal-footer .btn,
+  .modal[id$="Modal"] .modal-footer form {
+    width: 100%;
+  }
+  .modal[id$="Modal"] .modal-footer form {
+    display: block !important;
+  }
+}
+
+/* Desktop modal border-radius */
+.modal#shareItineraryModal .modal-content,
+.modal#validationModal .modal-content,
+.modal#errorModal .modal-content,
+.modal[id$="Modal"] .modal-content {
+  border-radius: 10px;
+}
+</style>
+{% endblock extra_head %}
+
+{% block content %}
+
+
+<!-- Desktop Header -->
+<div class="desktop-header d-none d-lg-block">
+    <div class="header-filter" >
+        <!-- Left Logo Section -->
+        <div class="header-filter-logo-section header-filter-left">
+            <div class="header-filter-logo">
+                <img src="{% static 'img/property/hotel_room.svg' %}" style="height: 30px;">
+            </div>
+            <span class="logo-text">Listings ({{properties|length}})</span>
+        </div>
+
+        <!-- Middle Search Bar -->
+        <div class="search-bar">
+            <div class="search-item desktop-date-range-trigger" id="checkin-btn">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div class="date-range-label">
+                        <span id="checkin-display">Check-in</span>
+                        <span class="date-range-separator">—</span>
+                        <span id="checkout-display">Check-out</span>
+                    </div>
+                    <div class="ps-2">
+                        <img src="{% static 'img/property/uit_calendar.svg' %}" alt="" srcset="" style="height: 16px;margin-top:-2px">
+                    </div>
+                    <!-- Hidden inputs for data storage -->
+                    <div>
+                        <input type="date" name="check_in" id="id_check_in_date" class="desktop-inline-date-input" aria-label="Check-in" value="{{ check_in }}">
+                        <input type="date" name="check_out" id="id_check_out_date" class="desktop-inline-date-input" aria-label="Check-out" value="{{ check_out }}">
+                    </div>
+                </div>
+            </div>
+
+            <div class="divider"></div>
+
+            <div class="search-item" id="guests-btn">
+                <div class="d-flex align-items-center">
+                    <span>Guests</span>
+                    <span id="guest-count" class="ms-2 me-2">{{ guests|default:'1' }}</span>
+                    <div class="guest-arrows">
+                        <img src="{% static 'img/property/uparrow.svg' %}" alt="Increment guests" onclick="incrementGuests(event)" style="height: 6px; cursor: pointer;">
+                        <img src="{% static 'img/property/downarrow.svg' %}" alt="Decrement guests" onclick="decrementGuests(event)" style="height: 6px;margin-top:4px; cursor: pointer;">
+                    </div>
+                    <button type="button" class="clear-btn guest-search-btn" onclick="performSearch()">Search</button>
+
+                    <!-- Hidden input for data storage -->
+                    <input type="number" min="1" name="guests" style="display: none;" value="{{ guests|default:'1' }}">
+                </div>
+
+            </div>
+
+            <div class="divider"></div>
+
+            <!-- <button class="search-btn" type="button" id="search-btn-icon" onclick="performSearch()" style="padding: 0px; width:auto; height:35px">
+                <img src="{% static 'img/property/search_icon.svg' %}" alt="" srcset="" >
+            </button> -->
+
+            <button type="button" class="clear-btn" id="clear-filters-btn" onclick="clearFilters()" style="display: block; border: none; padding: 0px 12px; padding-left: 8px;">
+                <span style="font-weight: 600; color: #000000; text-decoration: underline;">
+                    Clear
+                </span>
+            </button>
+
+            <!-- Desktop date range picker -->
+            <div id="desktop-date-range-picker" class="date-range-picker" aria-hidden="true"></div>
+        </div>
+
+        <!-- Right Search Input -->
+        <div class="header-filter-logo-section header-filter-right">
+            
+            <!-- <a href="javascript:void(0);" onclick="checkProfileAndCreateListing()" class="btn" style="background-color: #ffffff; color: #1D74B2; padding: 4px 11px;">Create</a> -->
+              
+            <div class="search-box">
+                <input type="text" name="search" placeholder="Search" value="{{ search_query|default:'' }}">
+                <div class="search-icon" onclick="performTextSearch()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: black;">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <path d="m21 21-4.35-4.35"></path>
+                    </svg>
+                </div>
+                <div class="divider" style="position: absolute; right: 35px; top: 50%; transform: translateY(-50%); height: 16px; width: 1px; background-color: #ccc;"></div>
+                <div class="clear-icon" onclick="clearTextSearch()" style="display: none; cursor: pointer; right: 40px;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: black;">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="15" y1="9" x2="9" y2="15"></line>
+                        <line x1="9" y1="9" x2="15" y2="15"></line>
+                    </svg>
+                </div>
+            </div>
+
+            <button type="button" class="btn-share tooltip-light tooltip-right" data-tooltip="Share Listing" aria-label="Share Listing" data-bs-toggle="modal" data-bs-target="#shareItineraryModal" style="background: none; border: none; padding: 0;">
+                <img src="{% static 'img/common/white_share_icon.svg' %}" alt="Share">
+            </button>
+            
+        </div>
+    </div>
+</div>
+
+<!-- Mobile Filter Section -->
+<div class="mobile-filter-section d-lg-none">
+    <div class="container-fluid">
+        <div class="mobile-listing-top">
+            <div class="mobile-inline-filter">
+                <div class="mobile-inline-item" id="mobile-checkin-btn" role="group" aria-label="Check-in date">
+                    <span id="mobile-checkin-display">In</span>
+                    <img class="mobile-inline-icon" src="{% static 'img/property/uit_calendar.svg' %}" alt="">
+                    <input type="date" class="mobile-inline-date-input" name="check_in" id="mobile_check_in_date" value="{{ check_in }}" aria-label="Check-in">
+                </div>
+                <div class="mobile-inline-separator"></div>
+
+                <div class="mobile-inline-item" id="mobile-checkout-btn" role="group" aria-label="Check-out date">
+                    <span id="mobile-checkout-display">Check-out</span>
+                    <img class="mobile-inline-icon" src="{% static 'img/property/uit_calendar.svg' %}" alt="">
+                    <input type="date" class="mobile-inline-date-input" name="check_out" id="mobile_check_out_date" value="{{ check_out }}" aria-label="Check-out">
+                </div>
+                <div class="mobile-inline-separator"></div>
+
+                <div class="mobile-inline-item">
+                    <span>Guests</span>
+                    <span id="mobile-inline-guests">{{ guests|default:'1' }}</span>
+                    <div class="mobile-guest-stepper">
+                        <button type="button" id="mobile-guest-inc" aria-label="Increase guests">▲</button>
+                        <button type="button" id="mobile-guest-dec" aria-label="Decrease guests">▼</button>
+                    </div>
+                </div>
+                <div class="mobile-inline-separator"></div>
+
+                <button type="button" class="mobile-inline-item search-trigger" onclick="performSearch()">Search</button>
+            </div>
+
+            <div class="mobile-right-actions">
+                <button type="button" class="mobile-action-btn tooltip-light tooltip-right" data-tooltip="Share" data-bs-toggle="modal" data-bs-target="#shareItineraryModal" aria-label="Share">
+                    <img src="{% static 'img/property/share.svg' %}" alt="Share" width="20" height="20">
+                </button>
+                <!-- <button type="button" class="mobile-action-btn" id="mobileFilterToggle" aria-label="Open search filters" aria-expanded="false">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                        <path d="M9 17A8 8 0 1 0 9 1a8 8 0 0 0 0 16Z" stroke="currentColor" stroke-width="1.5"/>
+                        <path d="m19 19-4.35-4.35" stroke="currentColor" stroke-width="1.5"/>
+                    </svg>
+                </button> -->
+            </div>
+        </div>
+
+        <div class="mobile-slide-panel" id="mobileSlidePanel">
+            <div class="row mobile-search-row">
+                <div class="col-12">
+                <div class="mobile-search-input">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" class="search-icon">
+                        <path d="M9 17A8 8 0 1 0 9 1a8 8 0 0 0 0 16Z" stroke="currentColor" stroke-width="1.5"/>
+                        <path d="m19 19-4.35-4.35" stroke="currentColor" stroke-width="1.5"/>
+                    </svg>
+                        <input type="text" class="form-control" name="search_mobile" placeholder="Search Listing" value="{{ search_query|default:'' }}">
+                    </div>
+                </div>
+            </div>
+
+            <div class="mobile-extra-fields">
+            <div class="row">
+                <div class="col-12 mt-2">
+                    <div class="filter-item">
+                        <label class="filter-label">Guests</label>
+                        <div class="filter-input">
+                            <input type="number" class="form-control" placeholder="Add guests" name="guests" id="mobile_guests_input" min="1" value="{{ guests|default:'1' }}">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mobile-search-btn-row">
+                <button class="mobile-search-btn" onclick="performSearch()" aria-label="Perform Search">
+                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                            <path d="M9 17A8 8 0 1 0 9 1a8 8 0 0 0 0 16Z" stroke="currentColor" stroke-width="1.5"/>
+                            <path d="m19 19-4.35-4.35" stroke="currentColor" stroke-width="1.5"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<main class="main-content" style="max-height: calc(100vh - 146px);min-height: calc(100vh - 146px); overflow-y:auto">
+    <div class="container-fluid main_content_div" >
+        <div class="row">
+            {% if total_listing > 0 %}
+                {% for item in page_obj.object_list %}
+                <div class="property-card-col col-12 col-sm-6 col-md-3 col-lg-3 col-xl-3 p-2">
+                    <div class="listing-card" data-property-id="{{ item.id }}">
+                        <a href="{% url 'property:property-detail' slug=item.slug %}" class="listing-card-link" target="_blank" rel="noopener noreferrer">
+                            <div class="listing-image-container">
+                                {% with images=item.images.all %}
+                                {% if images %}
+                                    <div class="listing-image active" style="background-image: url('{{ images.0.image.url }}');">
+                                        <div class="status-badge {{ item.status|lower }}">{{ item.status }}</div>
+                                    </div>
+                                    {% if images|length > 1 %}
+                                    <div class="deferred-images" style="display: none;" data-status="{{ item.status }}" data-status-class="{{ item.status|lower }}">
+                                        {% for image in images|slice:"1:5" %}
+                                            <span data-url="{{ image.image.url }}"></span>
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                {% else %}
+                                    <div class="listing-image active no-image">
+                                        <div class="status-badge {{ item.status|lower }}">{{ item.status }}</div>
+                                        <div class="no-image-placeholder">
+                                            <img src="{% static 'img/property/placeholder-image.png' %}" alt="No image">
+                                        </div>
+                                    </div>
+                                {% endif %}
+                                {% endwith %}
+
+                                <!-- Navigation arrows -->
+                                {% if item.images.count > 1 %}
+                                <button class="image-nav prev-btn" onclick="changeImage(event, this, 'prev')" data-property="{{ item.id }}">
+                                    <img src="{% static 'img/property/previous.png' %}">
+                                </button>
+                                <button class="image-nav next-btn" onclick="changeImage(event, this, 'next')" data-property="{{ item.id }}">
+                                    <img src="{% static 'img/property/next.png' %}">
+                                </button>
+                                {% endif %}
+                            </div>
+                        </a>
+                        <div class="listing-info">
+                            <a href="{% url 'property:property-detail' slug=item.slug %}" rel="noopener noreferrer">
+                                <h3 class="listing-title">
+                                    {{ item.title }}
+                                </h3>
+                            </a>
+                            <a href="{% url 'property:property-detail' slug=item.slug %}" rel="noopener noreferrer">
+                                <p class="listing-location">{{ item.city }}, {{ item.state }}</p>
+                            </a>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <a href="{% url 'property:property-detail' slug=item.slug %}" rel="noopener noreferrer">
+                                    <p class="listing-price">${{ item.price_per_night|floatformat:2 }} <span class="price-period">night</span></p>
+                                    </a>
+                                </div>
+                                <div>
+                                    <div class="btn-group dropup">
+                                        <button class="options-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="More options">
+                                            <svg class="options-dots-icon" viewBox="0 0 18 18" aria-hidden="true">
+                                                <circle cx="9" cy="4" r="1.5"></circle>
+                                                <circle cx="9" cy="9" r="1.5"></circle>
+                                                <circle cx="9" cy="14" r="1.5"></circle>
+                                            </svg>
+                                        </button>
+                                        <ul class="dropdown-menu">
+                                            {% if item.status == 'Active' %}
+                                                <li>
+                                                <a class="dropdown-item" href="{% url 'booking:booking-create' %}?property_id={{ item.id }}">
+                                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                                        <path d="M12 2H4C2.89543 2 2 2.89543 2 4V12C2 13.1046 2.89543 14 4 14H12C13.1046 14 14 13.1046 14 12V4C14 2.89543 13.1046 2 12 2Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                                        <path d="M11 1V3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                                        <path d="M5 1V3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                                        <path d="M2 7H14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                                        </svg>
+                                                        Create a Reservation
+                                                    </a>
+                                                </li>
+                                                <li>
+                                                    <a class="dropdown-item" href="{% url 'tasks:task-create' %}?property_id={{ item.id }}">
+                                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                                                        <rect x="3" y="3" width="18" height="18" rx="3" stroke="currentColor" stroke-width="1.6"/>
+                                                        <path d="M7 9L9 11L13 7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                                                        <path d="M7 14H17" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+                                                        <path d="M7 18L9 20L13 16" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                                                        </svg>
+                                                        Create Task
+                                                    </a>
+
+                                                </li>
+                                            {% endif %}
+                                            <li>
+                                                <a class="dropdown-item" href="{% url 'booking:booking-list' %}?property_id={{ item.id }}&status=current">
+                                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                                        <path d="M11 7C12.1046 7 13 6.10457 13 5C13 3.89543 12.1046 3 11 3C9.89543 3 9 3.89543 9 5C9 6.10457 9.89543 7 11 7Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                                        <path d="M6 13V11C6 9.89543 6.89543 9 8 9H14C15.1046 9 16 9.89543 16 11V13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                                        <path d="M5 7C6.10457 7 7 6.10457 7 5C7 3.89543 6.10457 3 5 3C3.89543 3 3 3.89543 3 5C3 6.10457 3.89543 7 5 7Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                                        <path d="M0 13V11C0 9.89543 0.895431 9 2 9H8C9.10457 9 10 9.89543 10 11V13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                                    </svg>
+                                                    View Guests
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item" href="{% url 'property:property-edit' pk=item.id %}">
+                                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                                        <path d="M11.5 2.5L13.5 4.5L5 13H3V11L11.5 2.5Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                                    </svg>
+                                                    Edit
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item" onclick="deleteProperty('{{ item.id }}')" style="cursor: pointer;">
+                                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                                        <path d="M2 4H14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                                        <path d="M6.5 1H9.5C10.0523 1 10.5 1.44772 10.5 2V4H5.5V2C5.5 1.44772 5.94772 1 6.5 1Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                                        <path d="M12.5 4V13C12.5 14.1046 11.6046 15 10.5 15H5.5C4.39543 15 3.5 14.1046 3.5 13V4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                                        <path d="M6.5 7.5V11.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                                        <path d="M9.5 7.5V11.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                                    </svg>
+                                                    Delete
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item" href="{% url 'property:property-create' %}?clone_from={{ item.id }}">
+                                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                                        <path d="M4 6H2C1.44772 6 1 6.44772 1 7V14C1 14.5523 1.44772 15 2 15H9C9.55228 15 10 14.5523 10 14V12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                                        <path d="M7 1H14C14.5523 1 15 1.44772 15 2V9C15 9.55228 14.5523 10 14 10H7C6.44772 10 6 9.55228 6 9V2C6 1.44772 6.44772 1 7 1Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                                    </svg>
+                                                    Clone
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item" href="javascript:void(0)"
+                                                    onclick="toggleStatus('{{ item.id }}', '{{ item.status }}')">
+                                                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                                            <path d="M8 15C11.866 15 15 11.866 15 8C15 4.13401 11.866 1 8 1C4.13401 1 1 4.13401 1 8C1 11.866 4.13401 15 8 15Z"
+                                                                stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                                            <path d="M8 4V8L11 11"
+                                                                stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                                        </svg>
+                                                        {% if item.status == "Active" %}
+                                                            Make Inactive
+                                                        {% else %}
+                                                            Make Active
+                                                        {% endif %}
+                                                </a>
+                                            </li>
+                                            {% if item.status == "Active" %}
+                                            <li>
+                                                <a class="dropdown-item" href="/manage/{{item.id}}/" >
+                                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                                        <path d="M4 6H2C1.44772 6 1 6.44772 1 7V14C1 14.5523 1.44772 15 2 15H9C9.55228 15 10 14.5523 10 14V12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                                        <path d="M7 1H14C14.5523 1 15 1.44772 15 2V9C15 9.55228 14.5523 10 14 10H7C6.44772 10 6 9.55228 6 9V2C6 1.44772 6.44772 1 7 1Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                                    </svg>
+                                                    Channel Integration
+                                                </a>
+                                            </li>
+                                            {% endif %}
+
+                                            <li>
+                                                <a class="dropdown-item" href="#" >
+                                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                                        <path d="M10.125 5.875C11.025 4.975 12.475 4.975 13.375 5.875C14.275 6.775 14.275 8.225 13.375 9.125L11.75 10.75" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                                        <path d="M5.875 10.125C4.975 11.025 3.525 11.025 2.625 10.125C1.725 9.225 1.725 7.775 2.625 6.875L4.25 5.25" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                                        <path d="M5.25 10.75L10.75 5.25" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                                    </svg>
+                                                    Copy Guest Link
+                                                </a>
+                                            </li>
+
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- <div class="property-meta-row">
+                                <span class="property-meta-item">
+                                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                                        <path d="M4 20V7a2 2 0 0 1 2-2h3v15"></path>
+                                        <path d="M9 20V4a2 2 0 0 1 2-2h3v18"></path>
+                                        <path d="M14 20v-9a2 2 0 0 1 2-2h4v11"></path>
+                                    </svg>
+                                    <span>Entire place</span>
+                                </span>
+                                <span class="property-meta-item">
+                                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                                        <circle cx="7" cy="10" r="2.2"></circle>
+                                        <circle cx="17" cy="10" r="2.2"></circle>
+                                        <circle cx="12" cy="7" r="2.2"></circle>
+                                        <path d="M4 17c.5-2.3 2.3-3.5 4.2-3.5 1.5 0 2.8.6 3.8 1.7 1-1.1 2.3-1.7 3.8-1.7 1.9 0 3.7 1.2 4.2 3.5"></path>
+                                    </svg>
+                                    <span>Pet friendly</span>
+                                </span>
+                            </div> -->
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="col-12">
+                    <div class="no-results text-center py-5">
+                        <img src="{% static 'img/not-found/no_property.jpg' %}" alt="No properties" class="mt-2 mb-2" style="width: auto; height: 40vh;">
+                        <h3 style="font-size: 20px;">Your search returned no results</h3>
+                        <p>You can expand your search criteria and try again.</p>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="col-12">
+                    <div class="no-results text-center py-5">
+                        <img src="{% static 'img/not-found/empty_listing.png' %}" alt="No properties" class="mt-2 mb-2" style="width: auto; height: 30vh;">
+                        <p>You do not have any listing created yet</p>
+                        <h3 class="mt-2" style="font-size: 20px;">Get started with your first listing</h3>
+                        <a href="javascript:void(0);" onclick="checkProfileAndCreateListing()" class="btn mt-3" style="border: 0.75px solid #00000080; color: #1D74B2; padding: 8px 6rem;">Create Listing</a>
+                    </div>
+                </div>
+            {% endif %}
+
+        </div>
+    </div>
+    {% include 'frontend/base/pagination.html' %}
+    {% include 'frontend/base/footer.html' %}
+    
+</main>
+
+<!-- share modal -->
+<div class="modal fade" id="shareItineraryModal" tabindex="-1" aria-labelledby="shareItineraryModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content p-2">
+      <div class="modal-header border-0 p-2 position-relative">
+        <h5 class="modal-title me-auto" id="shareItineraryModalLabel" style="font-weight: 590; font-style: Semibold; font-size: 20px; line-height: 150%; letter-spacing: 0%;">
+          <img class="me-2" src="{% static 'img/property/share.svg' %}" alt="share icon">
+          Share
+        </h5>
+        <!-- Close Button Top Right -->
+        <a href="#" role="button" class="btn p-0 border-0 shadow-none" data-bs-dismiss="modal" aria-label="Close">
+            <img class="me-2" src="{% static 'img/common/close-icon.svg' %}" alt="Close">
+
+        </a>
+      </div>
+      <hr style="background: #DD971580; opacity: 1; margin: 0;">
+      <div class="modal-body p-3">
+        <p class="text-muted mb-3" style="color: #000000;">Copy the below link and share with your guests</p>
+        <div class="share-input-group mb-3">
+          <input type="text"
+                 class="form-control share-input"
+                 id="shareUrl"
+                 value="{{ request.build_absolute_uri }}"
+                 readonly
+                 style="color: #000000; font-weight: bold;">
+          <a href="{{ request.build_absolute_uri }}" target="_blank" rel="noopener noreferrer">
+            <img class="share-external-icon" src="{% static 'img/property/link.svg' %}" style="cursor: pointer;" alt="Open link in new tab">
+          </a>
+        </div>
+        <!-- Share buttons -->
+        <div class="d-flex align-items-center gap-2 mb-3">
+            <div id="copySuccess" class="copy-success text-success text-center" style="display: none;">
+                <i class="fa fa-check"></i> Link copied
+            </div>
+          <div class="btn-group ms-auto">
+            <button type="button" class="btn " onclick="copyLinkToClipboard()" style="border: 0.75px solid #00000080; font-weight: 600; color: #1D74B2;">Copy Link</button>
+            <a href="mailto:?subject=I’d like to share a link with you&amp;body={{ request.build_absolute_uri }}" class="btn" style="border: 0.75px solid #00000080; font-weight: 600; color: black;">Email</a>
+            <a href="https://wa.me/?text={{ request.build_absolute_uri }}" target="_blank" class="btn" style="border: 0.75px solid #00000080; font-weight: 600; color: green;">WhatsApp</a>
+          </div>
+        </div>
+        <!-- <div id="copySuccess" class="copy-success text-success d-none text-center">
+          <i class="fa fa-check"></i> The link is copied to the clipboard
+        </div> -->
+      </div>
+     
+    </div>
+  </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+{% include 'frontend/common/confirmation_modal.html' with modal_id="deleteModal" title="Confirm Delete" message="Are you sure you want to delete this property? <br> Deleting this property will permanently remove all associated reservation records." form_id="deleteForm" confirm_text="Delete" confirm_btn_class="btn-danger" %}
+
+<!-- Validation Error Modal -->
+<div class="modal fade" id="validationModal" tabindex="-1" aria-labelledby="validationModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="validationModalLabel">Missing Information</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body" id="validationModalBody">
+        <!-- Message will be inserted here by JavaScript -->
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" data-bs-dismiss="modal">OK</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Toogle status Confirmation Modal -->
+
+{% include 'frontend/common/confirmation_modal.html' with modal_id="toggleStatusModal" title="Confirm Status Change" body_id="toggleStatusMessage" form_id="toggleStatusForm" confirm_text="Yes, change" confirm_btn_class="btn-primary" %}
+
+<!-- Profile Completion Modal -->
+{% include 'frontend/common/confirmation_modal.html' with modal_id="profileCompleteModal" title="Complete Your Profile" message="Please complete your profile before creating a listing." form_id="profileCompleteForm" confirm_text="Complete Profile" confirm_btn_class="btn-primary" cancel_text="Later" confirm_btn_id="profileConfirmBtn" confirm_btn_type="button" %}
+
+<!-- Clone Confirmation Modal -->
+{% include 'frontend/common/confirmation_modal.html' with modal_id="cloneConfirmationModal" title="Clone Property" message="Are you sure you want to clone this property?" form_id="cloneConfirmationForm" confirm_text="Clone" confirm_btn_class="btn-primary" %}
+
+<!-- Error Modal -->
+<div class="modal fade" id="errorModal" tabindex="-1" aria-labelledby="errorModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="errorModalLabel">Error</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body" id="errorModalBody">
+        <!-- Error message will be inserted here by JavaScript -->
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" data-bs-dismiss="modal">OK</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% include 'frontend/common/confirmation_modal.html' %}
+
+
+
+{% endblock content  %}
+
+{% block extra_script %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const checkinInput = document.getElementById('id_check_in_date');
+        const checkoutInput = document.getElementById('id_check_out_date');
+
+        const checkinDisplay = document.getElementById('checkin-display');
+        const checkoutDisplay = document.getElementById('checkout-display');
+
+        function formatDateByLocale(dateStr) {
+            if (!dateStr) return '';
+
+            const [year, month, day] = dateStr.split('-').map(Number);
+            const date = new Date(year, month - 1, day);
+
+            return date.toLocaleDateString(undefined, {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit'
+            });
+        }
+
+        function updateCheckin() {
+            checkinDisplay.textContent = checkinInput.value
+                ? formatDateByLocale(checkinInput.value)
+                : 'Check-in';
+        }
+
+        function updateCheckout() {
+            checkoutDisplay.textContent = checkoutInput.value
+                ? formatDateByLocale(checkoutInput.value)
+                : 'Check-out';
+        }
+
+        checkinInput.addEventListener('change', updateCheckin);
+        checkoutInput.addEventListener('change', updateCheckout);
+
+        // Initialize on page load (for persisted filters)
+        updateCheckin();
+        updateCheckout();
+    });
+</script>
+
+<script>
+        let guests = parseInt(document.getElementById('guest-count').textContent) || 1;
+
+        function updateGuestUI() {
+            document.getElementById('guest-count').textContent = guests;
+            document.querySelector('input[name="guests"]').value = guests;
+        }
+
+        function incrementGuests(event) {
+            event.stopPropagation();
+            guests++;
+            updateGuestUI();
+        }
+
+        function decrementGuests(event) {
+            event.stopPropagation();
+            if (guests > 1) {
+                guests--;
+                updateGuestUI();
+            }
+        }
+
+        // Ensure correct state on load (Django default value support)
+        document.addEventListener('DOMContentLoaded', function () {
+            updateGuestUI();
+        });
+</script>
+
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const today = (function () {
+            const now = new Date();
+            const y = now.getFullYear();
+            const m = String(now.getMonth() + 1).padStart(2, '0');
+            const d = String(now.getDate()).padStart(2, '0');
+            return `${y}-${m}-${d}`;
+        })();
+        function formatLocalIso(dateObj) {
+            const year = dateObj.getFullYear();
+            const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+            const day = String(dateObj.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+        function addDaysToIso(value, days) {
+            const baseDate = value
+                ? (() => {
+                    const [y, m, d] = value.split('-').map(part => parseInt(part, 10));
+                    return new Date(y, m - 1, d);
+                })()
+                : new Date();
+            baseDate.setDate(baseDate.getDate() + days);
+            return formatLocalIso(baseDate);
+        }
+        const defaultCheckoutMin = addDaysToIso(today, 1);
+
+        const searchInput = document.querySelector('.search-box input[name="search"]');
+        const clearIcon = document.querySelector('.search-box .clear-icon');
+
+        function toggleClearIcon() {
+            clearIcon.style.display = searchInput.value ? 'block' : 'none';
+        }
+
+        searchInput.addEventListener('input', toggleClearIcon);
+        toggleClearIcon(); 
+
+
+        // Set the minimum date for all date inputs to today
+        document.querySelectorAll('input[name="check_in"]').forEach(function(input) {
+            input.setAttribute('min', today);
+        });
+        document.querySelectorAll('input[name="check_out"]').forEach(function(input) {
+            input.setAttribute('min', defaultCheckoutMin);
+            input.min = defaultCheckoutMin;
+        });
+
+        // Get date inputs for both desktop and mobile
+        const desktopCheckin = document.querySelector('.desktop-header input[name="check_in"]');
+        const desktopCheckout = document.querySelector('.desktop-header input[name="check_out"]');
+        const mobileCheckin = document.querySelector('.mobile-filter-section input[name="check_in"]');
+        const mobileCheckout = document.querySelector('.mobile-filter-section input[name="check_out"]');
+
+        // Function to link check-in and check-out dates
+        function linkDateInputs(checkinInput, checkoutInput) {
+            const initialMin = checkinInput.value ? addDaysToIso(checkinInput.value, 1) : defaultCheckoutMin;
+            checkoutInput.min = initialMin;
+            checkoutInput.setAttribute('min', initialMin);
+            if (checkinInput.value && (!checkoutInput.value || checkoutInput.value < initialMin)) {
+                checkoutInput.value = initialMin;
+                checkoutInput.dispatchEvent(new Event('change'));
+            }
+
+            checkinInput.addEventListener('change', function() {
+                const nextDay = this.value ? addDaysToIso(this.value, 1) : defaultCheckoutMin;
+                checkoutInput.min = nextDay;
+                checkoutInput.setAttribute('min', nextDay);
+                if (!checkoutInput.value || checkoutInput.value < nextDay) {
+                    checkoutInput.value = nextDay;
+                    checkoutInput.dispatchEvent(new Event('change'));
+                }
+            });
+        }
+
+        // Apply the logic to both desktop and mobile pairs
+        if (desktopCheckin && desktopCheckout) linkDateInputs(desktopCheckin, desktopCheckout);
+        if (mobileCheckin && mobileCheckout) linkDateInputs(mobileCheckin, mobileCheckout);
+
+        const profileConfirmBtn = document.getElementById('profileConfirmBtn');
+        if (profileConfirmBtn) {
+            profileConfirmBtn.addEventListener('click', function(event) {
+                event.preventDefault();
+                window.location.href = "{% url 'accounts:profile' %}";
+            });
+        }
+
+        const params = new URLSearchParams(window.location.search);
+        const searchValue = params.get('search');
+        if (searchValue) {
+            // Desktop input
+            const desktopInput = document.querySelector('.desktop-header input[placeholder="Search Listing"]');
+            if (desktopInput) {
+                desktopInput.value = searchValue;
+                desktopInput.focus();
+            }
+
+            // Mobile input
+            const mobileInput = document.querySelector('.mobile-filter-section input[placeholder="Search Listing"]');
+            if (mobileInput) {
+                mobileInput.value = searchValue;
+            }
+        }
+
+        const mobileSlidePanel = document.getElementById('mobileSlidePanel');
+        const mobileFilterToggle = document.getElementById('mobileFilterToggle');
+        const mobileCheckinInput = document.getElementById('mobile_check_in_date');
+        const mobileCheckoutInput = document.getElementById('mobile_check_out_date');
+        const mobileGuestsInput = document.getElementById('mobile_guests_input');
+        const mobileInlineGuests = document.getElementById('mobile-inline-guests');
+        const mobileCheckinDisplay = document.getElementById('mobile-checkin-display');
+        const mobileCheckoutDisplay = document.getElementById('mobile-checkout-display');
+        const mobileGuestInc = document.getElementById('mobile-guest-inc');
+        const mobileGuestDec = document.getElementById('mobile-guest-dec');
+        const mobileCheckinBtn = document.getElementById('mobile-checkin-btn');
+        const mobileCheckoutBtn = document.getElementById('mobile-checkout-btn');
+        const MAX_GUESTS = 50;
+
+        function formatMobileDate(dateStr) {
+            if (!dateStr) return '';
+            const [year, month, day] = dateStr.split('-').map(Number);
+            const date = new Date(year, month - 1, day);
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        }
+
+        function syncInlineMobileFilter() {
+            if (mobileCheckinDisplay && mobileCheckinInput) {
+                mobileCheckinDisplay.textContent = mobileCheckinInput.value ? formatMobileDate(mobileCheckinInput.value) : 'Check-in';
+            }
+            if (mobileCheckoutDisplay && mobileCheckoutInput) {
+                mobileCheckoutDisplay.textContent = mobileCheckoutInput.value ? formatMobileDate(mobileCheckoutInput.value) : 'Check-out';
+            }
+            if (mobileInlineGuests && mobileGuestsInput) {
+                const guestVal = parseInt(mobileGuestsInput.value || '1', 10);
+                mobileInlineGuests.textContent = String(Math.max(1, Math.min(MAX_GUESTS, guestVal)));
+            }
+        }
+
+        function openNativeDatePicker(input) {
+            if (!input) return;
+            try {
+                if (typeof input.showPicker === 'function') {
+                    input.showPicker();
+                    return;
+                }
+            } catch (err) {}
+            input.focus();
+            input.click();
+        }
+
+        function setupMobileDateTrigger(containerEl, inputEl) {
+            if (!containerEl || !inputEl) return;
+            containerEl.addEventListener('click', function(event) {
+                if (event.target === inputEl) return;
+                openNativeDatePicker(inputEl);
+            });
+        }
+
+        if (mobileFilterToggle && mobileSlidePanel) {
+            mobileFilterToggle.addEventListener('click', function() {
+                const isOpen = mobileSlidePanel.classList.toggle('open');
+                mobileFilterToggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+            });
+        }
+
+        if (mobileCheckinInput) {
+            mobileCheckinInput.addEventListener('change', syncInlineMobileFilter);
+            mobileCheckinInput.addEventListener('change', function() {
+                // Auto-open checkout picker right after picking check-in (mobile/tablet)
+                if (window.innerWidth < 992 && mobileCheckoutInput) {
+                    setTimeout(() => {
+                        try {
+                            if (mobileCheckoutInput.showPicker) {
+                                mobileCheckoutInput.showPicker();
+                            } else {
+                                mobileCheckoutInput.focus();
+                                mobileCheckoutInput.click();
+                            }
+                        } catch (err) {
+                            mobileCheckoutInput.focus();
+                            mobileCheckoutInput.click();
+                        }
+                    }, 60);
+                }
+            });
+        }
+
+        setupMobileDateTrigger(mobileCheckinBtn, mobileCheckinInput);
+        setupMobileDateTrigger(mobileCheckoutBtn, mobileCheckoutInput);
+
+        if (mobileCheckoutInput) {
+            mobileCheckoutInput.addEventListener('change', syncInlineMobileFilter);
+        }
+
+        if (mobileGuestsInput) {
+            mobileGuestsInput.addEventListener('input', syncInlineMobileFilter);
+            mobileGuestsInput.addEventListener('change', syncInlineMobileFilter);
+        }
+
+        if (mobileGuestInc && mobileGuestsInput) {
+            mobileGuestInc.addEventListener('click', function() {
+                const current = parseInt(mobileGuestsInput.value || '1', 10);
+                mobileGuestsInput.value = Math.min(MAX_GUESTS, Math.max(1, current + 1));
+                syncInlineMobileFilter();
+            });
+        }
+
+        if (mobileGuestDec && mobileGuestsInput) {
+            mobileGuestDec.addEventListener('click', function() {
+                const current = parseInt(mobileGuestsInput.value || '1', 10);
+                mobileGuestsInput.value = Math.max(1, current - 1);
+                syncInlineMobileFilter();
+            });
+        }
+
+        syncInlineMobileFilter();
+
+    // Desktop date inputs
+    document.querySelectorAll('.desktop-header .input-wrap input[type="date"]').forEach(function(input){
+        const wrap = input.closest('.input-wrap');
+
+        // update UI based on current value
+        function update() {
+        if (input.value) {
+            wrap.classList.add('has-value');
+            input.classList.remove('hide-value');
+        } else {
+            wrap.classList.remove('has-value');
+            // only hide the built-in text when input is not focused and has no value
+            if (!input.matches(':focus')) input.classList.add('hide-value');
+        }
+        }
+
+        input.addEventListener('input', update);
+        input.addEventListener('change', update);
+
+        input.addEventListener('focus', function() {
+        wrap.classList.add('focused');
+        wrap.querySelector('.fake-placeholder').style.display = 'none';
+        input.classList.remove('hide-value'); // reveal the date text while focused
+        });
+
+        input.addEventListener('blur', function() {
+        wrap.classList.remove('focused');
+        update();
+        if (!input.value) wrap.querySelector('.fake-placeholder').style.display = 'inline';
+        });
+
+        // initialize state on load (useful if values are prefilled)
+        update();
+    });
+    
+    // Desktop guests input
+    document.querySelectorAll('.desktop-header .input-wrap input[name="guests"]').forEach(function(input) {
+        const wrap = input.closest('.input-wrap');
+        const placeholder = wrap.querySelector('.fake-placeholder');
+
+        function updateGuestPlaceholder() {
+            if (input.value) {
+                placeholder.style.display = 'none';
+            } else if (!input.matches(':focus')) {
+                placeholder.style.display = 'inline';
+            }
+        }
+
+        input.addEventListener('input', updateGuestPlaceholder);
+        input.addEventListener('focus', function() {
+            placeholder.style.display = 'none';
+        });
+        input.addEventListener('blur', function() {
+            updateGuestPlaceholder();
+        });
+
+        // Initial check on page load
+        updateGuestPlaceholder();
+    });
+
+    // Mobile date inputs
+    document.querySelectorAll('.mobile-filter-section input[type="date"]').forEach(function(input){
+        const placeholder = input.nextElementSibling;
+
+        function updateMobile() {
+        if (input.value) {
+            input.classList.remove('hide-mobile-date');
+            if (placeholder) placeholder.style.opacity = '0';
+        } else {
+            input.classList.add('hide-mobile-date');
+            if (placeholder) placeholder.style.opacity = '1';
+        }
+        }
+
+        input.addEventListener('input', updateMobile);
+        input.addEventListener('change', updateMobile);
+        
+        input.addEventListener('focus', function() {
+        input.classList.remove('hide-mobile-date');
+        if (placeholder) placeholder.style.display = 'none';
+        });
+
+        input.addEventListener('blur', function() {
+        updateMobile();
+        if (!input.value && placeholder) placeholder.style.display = 'inline';
+        });
+
+        // Initialize
+        updateMobile();
+    });
+
+    // Search box functionality
+    const desktopSearchInput = document.querySelector('.desktop-header .search-box input[name="search"]');
+    const desktopClearIcon = document.querySelector('.desktop-header .search-box .clear-icon');
+    const mobileSearchInput = document.querySelector('.mobile-filter-section .mobile-search-input input');
+
+    function setupSearch(input, clearIcon) {
+        if (!input) return;
+
+        function toggleClearIcon() {
+            if (clearIcon) {
+                clearIcon.style.display = input.value ? 'block' : 'none';
+            }
+        }
+
+        input.addEventListener('input', toggleClearIcon);
+        toggleClearIcon(); // Initial check
+    }
+
+    setupSearch(desktopSearchInput, desktopClearIcon);
+    // Note: The mobile search doesn't have a clear icon in the current HTML structure.
+    // If you add one, you can call setupSearch for it as well.
+
+    // New Modern Search Bar Functionality
+    let guestCount = parseInt(document.getElementById('guest-count').textContent) || 1;
+    const guestCountElement = document.getElementById('guest-count');
+    const guestsBtn = document.getElementById('guests-btn');
+    const guestInput = document.querySelector('.desktop-header .search-item input[name="guests"]');
+    const clearBtn = document.getElementById('clear-filters-btn');
+    const checkinInput = document.getElementById('id_check_in_date');
+    const checkoutInput = document.getElementById('id_check_out_date');
+
+    // Function to increment guests
+    window.incrementGuests = function(event) {
+        event.stopPropagation();
+        guestCount++;
+        if (guestCount > 50) guestCount = 50;
+        guestCountElement.textContent = guestCount;
+        if (guestInput) guestInput.value = guestCount;
+        updateClearButtonVisibility();
+    };
+
+    // Function to decrement guests
+    window.decrementGuests = function(event) {
+        event.stopPropagation();
+        guestCount--;
+        if (guestCount < 1) guestCount = 1;
+        guestCountElement.textContent = guestCount;
+        if (guestInput) guestInput.value = guestCount;
+        updateClearButtonVisibility();
+    };
+
+    // Function to update clear button visibility
+    function updateClearButtonVisibility() {
+        if (checkinInput.value || checkoutInput.value || (guestCount && guestCount !== 1)) {
+            clearBtn.style.display = 'flex';
+        } else {
+            clearBtn.style.display = 'none';
+        }
+    }
+
+    // Helper to format date safely (avoiding timezone issues)
+    function formatDateDisplay(dateString) {
+        if (!dateString) return '';
+        const [year, month, day] = dateString.split('-').map(Number);
+        const date = new Date(year, month - 1, day);
+        const options = { month: 'short', day: 'numeric' };
+        if (window.innerWidth >= 992) {
+            options.year = 'numeric';
+        }
+        return date.toLocaleDateString('en-US', options);
+    }
+
+    // Handle date input changes - using both 'input' and 'change' events for better compatibility
+    function updateCheckinDisplay() {
+        if (checkinInput.value) {
+            document.getElementById('checkin-display').textContent = formatDateDisplay(checkinInput.value);
+        } else {
+            document.getElementById('checkin-display').textContent = 'Check-in';
+        }
+        updateClearButtonVisibility();
+    }
+
+    function updateCheckoutDisplay() {
+        if (checkoutInput.value) {
+            document.getElementById('checkout-display').textContent = formatDateDisplay(checkoutInput.value);
+        } else {
+            document.getElementById('checkout-display').textContent = 'Check-out';
+        }
+        updateClearButtonVisibility();
+    }
+
+    checkinInput.addEventListener('input', updateCheckinDisplay);
+    checkinInput.addEventListener('change', updateCheckinDisplay);
+
+    checkoutInput.addEventListener('input', updateCheckoutDisplay);
+    checkoutInput.addEventListener('change', updateCheckoutDisplay);
+
+    // -------- Desktop date range picker (two-month view with range highlight) --------
+    const rangePicker = document.getElementById('desktop-date-range-picker');
+    const searchBarEl = document.querySelector('.desktop-header .search-bar');
+    if (rangePicker && searchBarEl && checkinInput && checkoutInput) {
+        const minDate = new Date();
+        minDate.setHours(0, 0, 0, 0);
+
+        let startDate = parseDateInput(checkinInput.value);
+        let endDate = parseDateInput(checkoutInput.value);
+        let hoverDate = null;
+        let viewCursor = startDate ? new Date(startDate) : new Date();
+        viewCursor.setDate(1);
+
+        function parseDateInput(val) {
+            if (!val) return null;
+            const [y, m, d] = val.split('-').map(Number);
+            return new Date(y, m - 1, d);
+        }
+
+        function formatInput(date) {
+            // Build YYYY-MM-DD in local time to avoid timezone offsets shifting the day
+            const y = date.getFullYear();
+            const m = String(date.getMonth() + 1).padStart(2, '0');
+            const d = String(date.getDate()).padStart(2, '0');
+            return `${y}-${m}-${d}`;
+        }
+
+        function sameDay(a, b) {
+            return a && b && a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+        }
+
+        function isDisabled(dateObj) {
+            return dateObj < minDate;
+        }
+
+        function buildMonth(year, month) {
+            const firstDay = new Date(year, month, 1);
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const startWeekday = firstDay.getDay(); // 0 = Sunday
+            const cells = [];
+            for (let i = 0; i < startWeekday; i++) cells.push(null);
+            for (let d = 1; d <= daysInMonth; d++) {
+                cells.push(new Date(year, month, d));
+            }
+            while (cells.length % 7 !== 0) cells.push(null);
+
+            const monthLabel = firstDay.toLocaleString('en-US', { month: 'short', year: 'numeric' });
+            const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => `<div class="drp-weekday">${d}</div>`).join('');
+
+            const dayCells = cells.map(cell => {
+                if (!cell) return `<div class="drp-day blank"></div>`;
+                const iso = formatInput(cell);
+                const disabled = isDisabled(cell);
+                const previewStart = startDate && !endDate && hoverDate
+                    ? (hoverDate < startDate ? hoverDate : startDate)
+                    : null;
+                const previewEnd = startDate && !endDate && hoverDate
+                    ? (hoverDate > startDate ? hoverDate : startDate)
+                    : null;
+                const inRange = startDate && endDate && cell > startDate && cell < endDate;
+                const inPreviewRange = previewStart && previewEnd && cell > previewStart && cell < previewEnd;
+                const classes = ['drp-day'];
+                if (disabled) classes.push('disabled');
+                if (inRange) classes.push('in-range');
+                if (inPreviewRange) classes.push('in-range');
+                if (sameDay(cell, startDate)) classes.push('start');
+                if (sameDay(cell, endDate)) classes.push('end');
+                if (!endDate && hoverDate && sameDay(cell, hoverDate)) classes.push('end');
+                return `<div class="${classes.join(' ')}" data-date="${iso}">${cell.getDate()}</div>`;
+            }).join('');
+
+            return `
+                <div class="drp-month">
+                    <div class="drp-month-title">${monthLabel}</div>
+                    <div class="drp-weekdays">${weekdays}</div>
+                    <div class="drp-days">${dayCells}</div>
+                </div>
+            `;
+        }
+
+        function renderRangePicker() {
+            const monthsToShow = window.innerWidth < 992 ? 1 : 2;
+            const next = new Date(viewCursor);
+            next.setMonth(next.getMonth() + 1);
+
+            const monthsMarkup = monthsToShow === 1
+                ? buildMonth(viewCursor.getFullYear(), viewCursor.getMonth())
+                : buildMonth(viewCursor.getFullYear(), viewCursor.getMonth()) + buildMonth(next.getFullYear(), next.getMonth());
+
+            rangePicker.style.setProperty('--months', monthsToShow);
+
+            rangePicker.innerHTML = `
+                <div class="drp-header">
+                    <button type="button" class="drp-nav" data-dir="-1" aria-label="Previous month">‹</button>
+                    <div style="flex:1;"></div>
+                    <button type="button" class="drp-nav" data-dir="1" aria-label="Next month">›</button>
+                </div>
+                <div class="drp-months">
+                    ${monthsMarkup}
+                </div>
+            `;
+
+            rangePicker.querySelectorAll('.drp-nav').forEach(btn => {
+                btn.addEventListener('click', function (e) {
+                    e.stopPropagation();
+                    const dir = parseInt(this.dataset.dir, 10);
+                    viewCursor.setMonth(viewCursor.getMonth() + dir);
+                    // prevent navigating to months entirely before today
+                    const earliest = new Date(minDate);
+                    earliest.setDate(1);
+                    if (viewCursor < earliest) viewCursor = earliest;
+                    renderRangePicker();
+                });
+            });
+
+            rangePicker.querySelectorAll('.drp-day[data-date]').forEach(dayEl => {
+                if (dayEl.classList.contains('disabled')) return;
+                dayEl.addEventListener('click', function (e) {
+                    e.stopPropagation();
+                    const clicked = parseDateInput(this.dataset.date);
+                    if (!startDate || (startDate && endDate)) {
+                        startDate = clicked;
+                        endDate = null;
+                        hoverDate = null;
+                    } else if (clicked < startDate) {
+                        startDate = clicked;
+                        endDate = null;
+                        hoverDate = null;
+                    } else if (sameDay(clicked, startDate)) {
+                        // Single-day stay
+                        endDate = clicked;
+                        hoverDate = null;
+                    } else {
+                        endDate = clicked;
+                        hoverDate = null;
+                    }
+                    syncInputs();
+                    renderRangePicker();
+                    if (startDate && endDate) closePicker();
+                });
+                dayEl.addEventListener('mouseenter', function () {
+                    if (!startDate || endDate) return;
+                    const nextHoverDate = parseDateInput(this.dataset.date);
+                    if (sameDay(hoverDate, nextHoverDate)) return;
+                    hoverDate = nextHoverDate;
+                    renderRangePicker();
+                });
+            });
+        }
+
+        function syncInputs() {
+            if (startDate) {
+                checkinInput.value = formatInput(startDate);
+                checkinInput.dispatchEvent(new Event('input'));
+                checkinInput.dispatchEvent(new Event('change'));
+            }
+            if (endDate) {
+                checkoutInput.value = formatInput(endDate);
+                checkoutInput.dispatchEvent(new Event('input'));
+                checkoutInput.dispatchEvent(new Event('change'));
+            } else {
+                checkoutInput.value = '';
+                checkoutInput.dispatchEvent(new Event('input'));
+                checkoutInput.dispatchEvent(new Event('change'));
+            }
+
+            const mobileCheckinEl = document.getElementById('mobile_check_in_date');
+            const mobileCheckoutEl = document.getElementById('mobile_check_out_date');
+            if (mobileCheckinEl) mobileCheckinEl.value = startDate ? formatInput(startDate) : '';
+            if (mobileCheckoutEl) mobileCheckoutEl.value = endDate ? formatInput(endDate) : '';
+            if (mobileCheckinEl) mobileCheckinEl.dispatchEvent(new Event('change'));
+            if (mobileCheckoutEl) mobileCheckoutEl.dispatchEvent(new Event('change'));
+        }
+
+        function openPicker() {
+            // Place just under the active header (desktop or mobile)
+            let anchor = document.querySelector('.desktop-header');
+            if (window.innerWidth < 992) {
+                anchor = document.querySelector('.mobile-filter-section') || document.querySelector('.mobile-inline-filter') || anchor;
+            }
+            const scrollY = window.scrollY || window.pageYOffset;
+            if (anchor) {
+                const rect = anchor.getBoundingClientRect();
+                const topPx = rect.bottom + scrollY + 8; // 8px gap
+                rangePicker.style.top = `${topPx}px`;
+            } else {
+                rangePicker.style.top = `${scrollY + 72}px`; // fallback
+            }
+            rangePicker.classList.add('open');
+            renderRangePicker();
+        }
+
+        function closePicker() {
+            hoverDate = null;
+            rangePicker.classList.remove('open');
+        }
+
+        rangePicker.addEventListener('mouseleave', function () {
+            if (!startDate || endDate || !hoverDate) return;
+            hoverDate = null;
+            renderRangePicker();
+        });
+
+        // Desktop triggers
+        ['checkin-btn', 'checkout-btn'].forEach(id => {
+            const trigger = document.getElementById(id);
+            if (trigger) {
+                trigger.addEventListener('click', function (e) {
+                    if (window.innerWidth < 992) return; // let mobile use native
+                    e.stopPropagation();
+                    openPicker();
+                });
+            }
+        });
+
+        // Mobile: keep native pickers; no custom open handlers
+
+        // Prevent native picker and open custom one (desktop only)
+        function handleInputOpen(e) {
+            if (window.innerWidth < 992) return; // allow native on mobile/tablet
+            e.preventDefault();
+            openPicker();
+        }
+        ['focus', 'click'].forEach(evt => {
+            checkinInput.addEventListener(evt, handleInputOpen);
+            checkoutInput.addEventListener(evt, handleInputOpen);
+        });
+
+        document.addEventListener('click', function (e) {
+            if (!rangePicker.classList.contains('open')) return;
+            const mobileFilter = document.querySelector('.mobile-filter-section');
+            const withinTriggers = searchBarEl.contains(e.target) || (mobileFilter && mobileFilter.contains(e.target));
+            if (!rangePicker.contains(e.target) && !withinTriggers) {
+                closePicker();
+            }
+        });
+
+        window.addEventListener('resize', closePicker);
+    }
+
+    });
+</script>
+
+<script>
+    // Date input functionality
+    document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('.input-wrap input[type="date"]').forEach(function(input){
+            const wrap = input.closest('.input-wrap');
+
+            function update() {
+                if (input.value) {
+                    wrap.classList.add('has-value');
+                    input.classList.remove('hide-value');
+                } else {
+                    wrap.classList.remove('has-value');
+                    if (!input.matches(':focus')) input.classList.add('hide-value');
+                }
+            }
+
+            input.addEventListener('input', update);
+            input.addEventListener('change', update);
+
+            input.addEventListener('focus', function() {
+                wrap.classList.add('focused');
+                input.classList.remove('hide-value');
+            });
+
+            input.addEventListener('blur', function() {
+                wrap.classList.remove('focused');
+                update();
+            });
+
+            update();
+        });    
+    });
+
+    // Search functionality
+    function performSearch() {
+        let checkIn, checkOut, guests, mobileSearch;
+
+        if (window.innerWidth < 992) { // Corresponds to d-lg-none
+            checkIn = document.querySelector('.mobile-filter-section input[name="check_in"]').value;
+            checkOut = document.querySelector('.mobile-filter-section input[name="check_out"]').value;
+            guests = document.querySelector('.mobile-filter-section input[name="guests"]').value;
+            const mobileSearchInput = document.querySelector('.mobile-filter-section input[name="search_mobile"]');
+            mobileSearch = mobileSearchInput ? mobileSearchInput.value.trim() : '';
+        } else {
+            checkIn = document.querySelector('.desktop-header input[name="check_in"]').value;
+            checkOut = document.querySelector('.desktop-header input[name="check_out"]').value;
+            guests = document.querySelector('.desktop-header input[name="guests"]').value;
+        }
+
+        // Additional validation for guests
+        if (parseInt(guests, 10) < 1) {
+            document.getElementById('validationModalBody').innerText = 'Number of guests must be at least 1.';
+            const validationModal = new bootstrap.Modal(document.getElementById('validationModal'));
+            validationModal.show();
+            return;
+        }
+
+        // Validation
+        if (!checkIn || !checkOut || !guests) {
+            let missingFields = [];
+            if (!checkIn) missingFields.push("Check-in date");
+            if (!checkOut) missingFields.push("Check-out date");
+            if (!guests) missingFields.push("Guests");
+
+            document.getElementById('validationModalBody').innerText = `Please provide the following: ${missingFields.join(', ')}.`;
+            const validationModal = new bootstrap.Modal(document.getElementById('validationModal'));
+            validationModal.show();
+            return;
+        }
+        
+        const currentParams = new URLSearchParams(window.location.search);
+        const newParams = new URLSearchParams();
+
+        // Preserve or update search parameter.
+        if (window.innerWidth < 992) {
+            if (mobileSearch) newParams.set('search', mobileSearch);
+        } else if (currentParams.has('search')) {
+            newParams.set('search', currentParams.get('search'));
+        }
+
+        // Set new values from the form fields.
+        if (checkIn) newParams.set('check_in', checkIn);
+        if (checkOut) newParams.set('check_out', checkOut);
+        if (guests) newParams.set('guests', guests);
+        
+        const newUrl = new URL(window.location.pathname, window.location.origin);
+        newUrl.search = newParams.toString();
+        window.location.href = newUrl.toString();
+    }
+
+    const SEARCH_FOCUS_KEY = 'propertyListSearchFocus';
+
+    function performTextSearch(element) {
+        const searchInput = element || (window.innerWidth < 992
+            ? document.querySelector('.mobile-filter-section input[name="search_mobile"]')
+            : document.querySelector('.search-box input[name="search"]'));
+        if (!searchInput) return;
+        const query = searchInput.value;
+        const instance = searchInput.dataset.searchInstance || 'property-search-default';
+        sessionStorage.setItem(SEARCH_FOCUS_KEY, instance);
+        const params = new URLSearchParams(window.location.search);
+
+        if (query.trim()) {
+            params.set('search', query.trim());
+        } else {
+            params.delete('search');
+        }
+
+        const newUrl = new URL(window.location.pathname, window.location.origin);
+        newUrl.search = params.toString();
+        window.location.href = newUrl.toString();
+    }
+
+    function clearTextSearch() {
+        const searchInput = window.innerWidth < 992
+            ? document.querySelector('.mobile-filter-section input[name="search_mobile"]')
+            : document.querySelector('.search-box input[name="search"]');
+        if (!searchInput) return;
+        searchInput.value = '';
+
+        const params = new URLSearchParams(window.location.search);
+        params.delete('search');
+
+        const newUrl = new URL(window.location.pathname, window.location.origin);
+        newUrl.search = params.toString();
+        window.location.href = newUrl.toString();
+    }
+
+    function setupAutoSearch() {
+        const searchInputs = [
+            ...document.querySelectorAll('.search-box input[name="search"]'),
+            ...document.querySelectorAll('.mobile-filter-section input[name="search_mobile"]')
+        ];
+        searchInputs.forEach(input => {
+            let timer;
+            if (!input.dataset.searchInstance) {
+                input.dataset.searchInstance = `property-search-${Math.random().toString(36).slice(2)}`;
+            }
+            input.addEventListener('input', function () {
+                clearTimeout(timer);
+                timer = setTimeout(() => performTextSearch(this), 400);
+            });
+            input.addEventListener('keydown', function (event) {
+                if (event.key === 'Enter') {
+                    clearTimeout(timer);
+                    performTextSearch(this);
+                }
+            });
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', setupAutoSearch);
+
+    function focusStoredSearch() {
+        const stored = sessionStorage.getItem(SEARCH_FOCUS_KEY);
+        let target;
+        if (stored) {
+            target = document.querySelector(`[data-search-instance="${stored}"]`);
+        }
+        if (!target) {
+            target = document.querySelector('.search-box input[name="search"]');
+        }
+        if (target) {
+            setTimeout(() => {
+                target.focus();
+                target.setSelectionRange(target.value.length, target.value.length);
+            }, 50);
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', focusStoredSearch);
+    window.addEventListener('pageshow', focusStoredSearch);
+
+    function checkProfileAndCreateListing() {
+        // This assumes `is_profile_complete` is passed into the template context.
+        // The backend view needs to provide this boolean variable.
+        const isProfileComplete = `{{ is_profile_complete|yesno:"true,false" }}` === 'true';
+
+        if (isProfileComplete) {
+            window.location.href = "{% url 'property:property-create' %}";
+        } else {
+            const profileModal = new bootstrap.Modal(document.getElementById('profileCompleteModal'));
+            profileModal.show();
+        }
+    }
+
+
+    // Clear all filters
+    function clearFilters() {
+        const baseUrl = '{% url "property:property-list" %}';
+        window.location.href = baseUrl;
+    }
+
+    // Image navigation
+    function changeImage(event, button, direction) {
+        event.preventDefault();
+        const propertyId = button.dataset.property;
+        const container = button.closest('.listing-image-container');
+        const images = container.querySelectorAll('.listing-image');
+        const currentIndex = Array.from(images).findIndex(img => img.classList.contains('active'));
+        
+        images[currentIndex].classList.remove('active');
+        
+        let newIndex;
+        if (direction === 'next') {
+            newIndex = (currentIndex + 1) % images.length;
+        } else {
+            newIndex = (currentIndex - 1 + images.length) % images.length;
+        }
+        
+        images[newIndex].classList.add('active');
+    }
+
+
+    // Delete property
+    function deleteProperty(propertyId) {
+        // console.log('propertyId==>', propertyId);
+
+        // Set form action
+        const form = document.getElementById('deleteForm');
+        form.action = `/property/delete/${propertyId}/`;
+
+        // Show modal
+        $('#deleteModal').modal('show');
+    }
+
+    // Toggle status
+    function toggleStatus(propertyId, currentStatus) {
+        const form = document.getElementById("toggleStatusForm");
+        form.action = `/property/toggle-status/${propertyId}/`;
+
+        const newStatus = currentStatus === "Active" ? "Inactive" : "Active";
+        document.getElementById("toggleStatusMessage").innerText =
+        `Are you sure you want to make this property ${newStatus}?`;
+
+        const modal = new bootstrap.Modal(document.getElementById("toggleStatusModal"));
+        modal.show();
+    }
+
+
+
+    // Clone property
+    function cloneProperty(propertyId) {
+        // Set modal content and form action
+        const modal = document.getElementById('cloneConfirmationModal');
+        const form = document.getElementById('cloneConfirmationForm');
+        
+        // Store propertyId for use in form submission
+        form.dataset.propertyId = propertyId;
+        
+        // Show the modal
+        const cloneModal = new bootstrap.Modal(modal);
+        cloneModal.show();
+    }
+    
+    // Handle clone confirmation form submission
+    document.addEventListener('DOMContentLoaded', function() {
+        const cloneForm = document.getElementById('cloneConfirmationForm');
+        if (cloneForm) {
+            cloneForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const propertyId = this.dataset.propertyId;
+                
+                fetch(`/property/clone/${propertyId}/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': getCookie('csrftoken'),
+                        'Content-Type': 'application/json',
+                    },
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        location.reload();
+                    } else {
+                        // Show error in error modal
+                        document.getElementById('errorModalBody').innerText = 'Error cloning property: ' + data.message;
+                        const errorModal = new bootstrap.Modal(document.getElementById('errorModal'));
+                        errorModal.show();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    document.getElementById('errorModalBody').innerText = 'Error cloning property';
+                    const errorModal = new bootstrap.Modal(document.getElementById('errorModal'));
+                    errorModal.show();
+                });
+                
+                // Close the confirmation modal
+                const cloneModal = bootstrap.Modal.getInstance(document.getElementById('cloneConfirmationModal'));
+                if (cloneModal) cloneModal.hide();
+            });
+        }
+    });
+
+
+    // CSRF token helper
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+</script>
+
+<script>
+    function showToastMessage(message, level) {
+        let container = document.querySelector('.toast-messages-container');
+        if (!container) {
+            container = document.createElement('div');
+            container.className = 'toast-messages-container';
+            container.style.cssText = 'position: fixed; top: 30px; left: 50%; transform: translateX(-50%); z-index: 1055;';
+            document.body.appendChild(container);
+        }
+
+        const toast = document.createElement('div');
+        toast.className = `toast-message ${level}`;
+        toast.innerHTML = `${message} <span class="toast-close" onclick="this.parentElement.style.display='none';">&times;</span>`;
+        
+        container.appendChild(toast);
+
+        setTimeout(() => {
+            toast.style.display = 'none';
+        }, 4000);
+    }
+</script>
+
+<script>
+    function showCopySuccess() {
+        const copySuccess = document.getElementById('copySuccess');
+        copySuccess.style.display = 'block';
+        copySuccess.classList.add('show');
+    }
+
+    function hideCopySuccess() {
+        const copySuccess = document.getElementById('copySuccess');
+        copySuccess.classList.remove('show');
+        copySuccess.style.display = 'none';
+    }
+
+    function copyLinkToClipboard() {
+        const urlInput = document.getElementById('shareUrl');
+        const url = urlInput.value;
+
+        if (navigator.clipboard && window.isSecureContext) {
+            // Modern async clipboard API, works in secure contexts (HTTPS)
+            navigator.clipboard.writeText(url).then(function() {
+                showCopySuccess();
+            }, function(err) {
+                console.error('Async: Could not copy text: ', err);
+            });
+        } else {
+            // Fallback for insecure contexts (HTTP) or older browsers
+            urlInput.select();
+            try {
+                document.execCommand('copy');
+                showCopySuccess();
+            } catch (err) {
+                console.error('Fallback: Oops, unable to copy', err);
+            }
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // Hide copy success message when share modal is closed
+        const shareModal = document.getElementById('shareItineraryModal');
+        if (shareModal) {
+            shareModal.addEventListener('hidden.bs.modal', hideCopySuccess);
+        }
+    });
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // Load deferred images after page load to improve initial load time
+        setTimeout(function() {
+            document.querySelectorAll('.listing-image-container').forEach(function(container) {
+                const deferredDiv = container.querySelector('.deferred-images');
+                if (deferredDiv) {
+                    const status = deferredDiv.dataset.status;
+                    const statusClass = deferredDiv.dataset.statusClass;
+                    const spans = deferredDiv.querySelectorAll('span');
+                    
+                    const fragment = document.createDocumentFragment();
+                    
+                    spans.forEach(function(span) {
+                        const div = document.createElement('div');
+                        div.className = 'listing-image';
+                        div.style.backgroundImage = "url('" + span.dataset.url + "')";
+                        
+                        const badge = document.createElement('div');
+                        badge.className = "status-badge " + statusClass;
+                        badge.textContent = status;
+                        
+                        div.appendChild(badge);
+                        fragment.appendChild(div);
+                    });
+                    
+                    const firstNavBtn = container.querySelector('.image-nav');
+                    if (firstNavBtn) {
+                        container.insertBefore(fragment, firstNavBtn);
+                    } else {
+                        container.appendChild(fragment);
+                    }
+                    
+                    deferredDiv.remove();
+                }
+            });
+        }, 1000);
+    });
+</script>
+
+
+{% endblock extra_script %}

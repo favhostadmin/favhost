@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 from django.core.exceptions import ValidationError
 from .models import *
 from property.models import Property
+from accounts.utils import get_visible_user_ids
 
 
 def generate_time_choices():
@@ -88,6 +89,34 @@ class BookingForm(forms.ModelForm):
                 'placeholder': 'Enter phone number',
                 'type': 'tel'
             }),
+            'street_address': forms.TextInput(attrs={
+                'class': 'form-input',
+                'placeholder': 'Street address'
+            }),
+            'city': forms.TextInput(attrs={
+                'class': 'form-input',
+                'placeholder': 'City'
+            }),
+            'zip': forms.TextInput(attrs={
+                'class': 'form-input',
+                'placeholder': 'Zip'
+            }),
+            'country': forms.TextInput(attrs={
+                'class': 'form-input',
+                'placeholder': 'Country'
+            }),
+            'state': forms.TextInput(attrs={
+                'class': 'form-input',
+                'placeholder': 'State'
+            }),
+            'nationality': forms.TextInput(attrs={
+                'class': 'form-input',
+                'placeholder': 'Nationality'
+            }),
+            'vehicle_information': forms.TextInput(attrs={
+                'class': 'form-input',
+                'placeholder': 'Vehicle information'
+            }),
             'guest_count': forms.TextInput(attrs={
                 'class': 'form-input', 
                 'placeholder': 'Number of guests',
@@ -110,6 +139,10 @@ class BookingForm(forms.ModelForm):
                 'rows': 4, 
                 'placeholder': 'Enter any special requests or notes...'
             }),
+            'purpose_of_stay': forms.TextInput(attrs={
+                'class': 'form-input',
+                'placeholder': 'Purpose of stay'
+            }),
             'property': PropertySelectWidget(attrs={
                 'class': 'form-control property-select'
             }),
@@ -126,7 +159,7 @@ class BookingForm(forms.ModelForm):
         self.fields['channel'].empty_label = "Select a channel"
 
         if user:
-            queryset = Property.objects.filter(created_by=user)
+            queryset = Property.objects.filter(created_by__in=get_visible_user_ids(user), status='Active')
             self.fields['property'].queryset = queryset
             self.fields['property'].widget.choices = [(p.id, p.title) for p in queryset]
         else:

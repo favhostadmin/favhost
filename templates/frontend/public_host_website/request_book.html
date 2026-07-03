@@ -1,5 +1,6 @@
 {% extends 'frontend/base/base.html' %}
 {% load static %}
+{% load currency_tags %}
 
 {% block extra_head %}
 <link href="{% static 'css/property/details.css' %}" rel="stylesheet">
@@ -120,6 +121,17 @@
             transform: translateY(calc(-100% - 8px));
         }
     }
+
+    input[type="number"]::-webkit-inner-spin-button,
+    input[type="number"]::-webkit-outer-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+
+    input[type="number"] {
+        -moz-appearance: textfield;
+        appearance: textfield;
+    }
 </style>
 
 {% endblock extra_head %}
@@ -127,13 +139,16 @@
 {% block header %}{% endblock header %}
 
 {% block content %}
+<div style="position:fixed;top:14px;right:14px;z-index:1050;">
+  {% include 'frontend/public_host_website/_currency_switcher.html' %}
+</div>
 <div class="rb-wrapper">
     <div class="rb-mobile-header" id="rbMobileHeader">
         <div class="banner-head">
           <div class="created-with">
             <small>Created with</small>
             <!-- <strong>FavHost</strong> -->
-              <img src="{% static 'img/login/favhost.png' %}" alt="Logo" style="height: 30px;" />
+              <img src="{% static 'img/header/favhost.png' %}" alt="Logo" style="height: 30px;" />
           </div>
         </div>
 
@@ -142,7 +157,7 @@
             <span class="rb-title-text" style="flex:1;">Request to book</span>
             <div class="rb-phone" style="background:#595959; color:#fff; border-color:#595959;">
                 <span style="width:35px; height:35px; border-radius:50%; background:#777; display:inline-flex; align-items:center; justify-content:center;">
-                <img src="{{ host.profile_picture.url|default:'/static/img/public_host_website/person.png' }}" alt="{{ host.get_full_name }}" style="width:35px; height:35px; border-radius:50%; object-fit:cover;">
+                <img src="{{ host.profile_picture_url|default:'/static/img/public_host_website/person.png' }}" alt="{{ host.get_full_name }}" style="width:35px; height:35px; border-radius:50%; object-fit:cover;">
 
                 </span>
 
@@ -179,7 +194,7 @@
                         <div class="phone-control">
                             <input
                                 id="phoneInput"
-                                type="tel"
+                                type="number"
                                 name="phone"
                                 class="rb-input"
                                 aria-label="Phone number"
@@ -239,20 +254,20 @@
                         </label>
                         <div class="rb-upload-filename" id="attachments_name" aria-live="polite"></div>
                     </div>
-                    {% comment %}
                     <div class="rb-field">
-                        <label>Captcha</label>
-                        <label class="rb-captcha">
-                            <input type="checkbox" style="width: 20px; height: 20px;" name="captcha_ack" aria-label="I am not a robot" required>
-                            <span>I'm not a robot</span>
-                            <span class="rb-captcha-badge" aria-hidden="true">S</span>
-                            <span class="rb-captcha-logo" aria-hidden="true">reCAP</span>
-                        </label>
+                        <label for="rb-captcha-input">Captcha verification <span style="color:#e11d48;">*</span></label>
+                        <div class="rb-captcha">
+                            <div class="rb-captcha-box">
+                                <canvas id="rb-captcha-canvas" width="300" height="60" aria-label="Captcha image"></canvas>
+                                <button type="button" id="rb-captcha-refresh" class="rb-captcha-refresh" title="Get a new code" aria-label="Get a new captcha code">&#x21bb;</button>
+                            </div>
+                            <input id="rb-captcha-input" class="rb-input rb-captcha-answer" type="text" autocomplete="off" spellcheck="false" maxlength="6" placeholder="Type the code shown" aria-label="Enter the captcha code">
+                        </div>
+                        <div class="rb-captcha-status" id="rb-captcha-status" aria-live="polite"></div>
                     </div>
-                    {% endcomment %}
                 </div>
                 <div class="rb-consent">
-                    By sending the request you agree to the <a href="#">cancellation, other policies and property rules</a>
+                    By sending the request you agree to the <a href="#">cancellation policy and house rules</a>
                 </div>
                 <div class="rb-sticky-bar">
                     <button type="submit" form="rb-form" class="rb-submit">Agree and Send booking Request</button>
@@ -270,7 +285,7 @@
                 <div>
                     <div class="rb-summary-title" style="font-size:19px;">{{ property.title }}</div>
                     <div class="rb-summary-meta" style="margin-bottom:6px;">{{ property.city }}, {{ property.state }}</div>
-                    <div class="rb-summary-meta" style="font-weight:600; color:#111;">${{ property.price_per_night|floatformat:0 }} night&nbsp; |&nbsp; {{ property.guest }} Guests (max)&nbsp; |&nbsp; {{ property.minimum_booking }} nights (min)</div>
+                    <div class="rb-summary-meta" style="font-weight:600; color:#111;">{% money property.price_per_night %} night&nbsp; |&nbsp; {{ property.guest }} Guests (max)&nbsp; |&nbsp; {{ property.minimum_booking }} nights (min)</div>
                 </div>
             </div>
 
@@ -296,24 +311,24 @@
                 </div>
                 <div class="rb-summary-costs">
                     <div class="rb-cost-row">
-                        <span id="cost-stay-label">${{ property.price_per_night|floatformat:2 }} x 0 nights</span>
-                        <strong id="cost-stay-total">$0.00</strong>
+                        <span id="cost-stay-label">{% money property.price_per_night %} x 0 nights</span>
+                        <strong id="cost-stay-total">{{ currency_symbol }}0.00</strong>
                     </div>
                     <div class="rb-cost-row">
                         <span>Cleaning fee</span>
-                        <strong>${{ property.cleaning_fee|default:0|floatformat:2 }}</strong>
+                        <strong>{% money property.cleaning_fee %}</strong>
                     </div>
                     <div class="rb-cost-row">
                         <span>Application fee</span>
-                        <strong>${{ property.application_fees|default:0|floatformat:2 }}</strong>
+                        <strong>{% money property.application_fees %}</strong>
                     </div>
                     <div class="rb-cost-row">
                         <span>Refundable deposit</span>
-                        <strong>${{ property.refundable_deposit|default:0|floatformat:2 }}</strong>
+                        <strong>{% money property.refundable_deposit %}</strong>
                     </div>
                     <div class="rb-cost-row" style="border-top:1px solid var(--border); padding-top:10px; margin-top:6px; font-weight:800;">
                         <span>Total due before check-in</span>
-                        <span id="cost-total-due">$0.00</span>
+                        <span id="cost-total-due">{{ currency_symbol }}0.00</span>
                     </div>
                     <div class="rb-footnote" style="margin-top:12px; display:flex; gap:6px; align-items:flex-start;">
                         <span style="font-size:14px;">ⓘ</span>
@@ -577,10 +592,10 @@
             if (adultInput) adultInput.value = guestsVal;
 
             // Financial calculations
-            const pNight = parseFloat("{{ property.price_per_night|default:0 }}");
-            const cFee = parseFloat("{{ property.cleaning_fee|default:0 }}");
-            const aFee = parseFloat("{{ property.application_fees|default:0 }}");
-            const dFee = parseFloat("{{ property.refundable_deposit|default:0 }}");
+            const pNight = parseFloat("{% money_raw property.price_per_night %}");
+            const cFee = parseFloat("{% money_raw property.cleaning_fee %}");
+            const aFee = parseFloat("{% money_raw property.application_fees %}");
+            const dFee = parseFloat("{% money_raw property.refundable_deposit %}");
 
             const stayTotal = pNight * nights;
             const totalDue = stayTotal + cFee + aFee + dFee;
@@ -589,9 +604,99 @@
             const stayTotalEl = document.getElementById('cost-stay-total');
             const totalDueEl = document.getElementById('cost-total-due');
 
-            if (stayLabel) stayLabel.textContent = `$${pNight.toFixed(2)} x ${nights} night${nights !== 1 ? 's' : ''}`;
-            if (stayTotalEl) stayTotalEl.textContent = `$${stayTotal.toFixed(2)}`;
-            if (totalDueEl) totalDueEl.textContent = `$${totalDue.toFixed(2)}`;
+            if (stayLabel) stayLabel.textContent = `{{ currency_symbol }}${pNight.toFixed(2)} x ${nights} night${nights !== 1 ? 's' : ''}`;
+            if (stayTotalEl) stayTotalEl.textContent = `{{ currency_symbol }}${stayTotal.toFixed(2)}`;
+            if (totalDueEl) totalDueEl.textContent = `{{ currency_symbol }}${totalDue.toFixed(2)}`;
+        }
+
+        // ---- Captcha (self-contained canvas challenge) ----
+        const captchaCanvas = document.getElementById('rb-captcha-canvas');
+        const captchaInput = document.getElementById('rb-captcha-input');
+        const captchaRefresh = document.getElementById('rb-captcha-refresh');
+        const captchaStatus = document.getElementById('rb-captcha-status');
+        const rbSubmitBtn = document.querySelector('button[type="submit"][form="rb-form"]');
+        let captchaCode = '';
+
+        function rnd(min, max) {
+            return Math.floor(Math.random() * (max - min + 1)) + min;
+        }
+
+        function generateCaptchaCode() {
+            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // omit confusing 0/O/1/I
+            let code = '';
+            for (let i = 0; i < 5; i++) {
+                code += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return code;
+        }
+
+        function drawCaptcha() {
+            if (!captchaCanvas) return;
+            const ctx = captchaCanvas.getContext('2d');
+            const w = captchaCanvas.width, h = captchaCanvas.height;
+            ctx.clearRect(0, 0, w, h);
+            ctx.fillStyle = '#f2f3f5';
+            ctx.fillRect(0, 0, w, h);
+
+            // interference lines
+            for (let i = 0; i < 5; i++) {
+                ctx.strokeStyle = `rgba(${rnd(80,180)},${rnd(80,180)},${rnd(80,180)},0.5)`;
+                ctx.beginPath();
+                ctx.moveTo(rnd(0, w), rnd(0, h));
+                ctx.lineTo(rnd(0, w), rnd(0, h));
+                ctx.stroke();
+            }
+            // noise dots
+            for (let i = 0; i < 30; i++) {
+                ctx.fillStyle = `rgba(${rnd(80,180)},${rnd(80,180)},${rnd(80,180)},0.6)`;
+                ctx.beginPath();
+                ctx.arc(rnd(0, w), rnd(0, h), 1, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            // characters
+            const startX = 20;
+            const step = (w - 34) / captchaCode.length;
+            for (let i = 0; i < captchaCode.length; i++) {
+                ctx.save();
+                ctx.translate(startX + i * step, h / 2 + rnd(-4, 4));
+                ctx.rotate((rnd(-25, 25) * Math.PI) / 180);
+                ctx.font = `bold ${rnd(26, 32)}px Georgia, serif`;
+                ctx.fillStyle = `rgb(${rnd(20,90)},${rnd(20,90)},${rnd(60,120)})`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(captchaCode[i], 0, 0);
+                ctx.restore();
+            }
+        }
+
+        function isCaptchaValid() {
+            return !!captchaInput && captchaInput.value.trim().toUpperCase() === captchaCode;
+        }
+
+        function updateSubmitState() {
+            const ok = isCaptchaValid();
+            if (rbSubmitBtn) rbSubmitBtn.disabled = !ok;
+            if (!captchaStatus) return;
+            if (captchaInput && captchaInput.value.trim()) {
+                captchaStatus.textContent = ok ? 'Verified ✓' : 'Code does not match';
+                captchaStatus.className = 'rb-captcha-status ' + (ok ? 'is-ok' : 'is-err');
+            } else {
+                captchaStatus.textContent = '';
+                captchaStatus.className = 'rb-captcha-status';
+            }
+        }
+
+        function refreshCaptcha() {
+            captchaCode = generateCaptchaCode();
+            drawCaptcha();
+            if (captchaInput) captchaInput.value = '';
+            updateSubmitState();
+        }
+
+        if (captchaCanvas) {
+            if (captchaInput) captchaInput.addEventListener('input', updateSubmitState);
+            if (captchaRefresh) captchaRefresh.addEventListener('click', refreshCaptcha);
+            refreshCaptcha(); // initial draw; leaves the submit button disabled
         }
 
         const form = document.getElementById('rb-form');
@@ -602,9 +707,9 @@
                 e.preventDefault();
 
                 // Captcha validation check
-                const captchaCheck = form.querySelector('input[name="captcha_ack"]');
-                if (captchaCheck && !captchaCheck.checked) {
-                    showAlertModal("Please verify the captcha checkbox.");
+                if (!isCaptchaValid()) {
+                    showAlertModal("Please enter the captcha code correctly.");
+                    if (captchaInput) captchaInput.focus();
                     return;
                 }
 
@@ -675,6 +780,7 @@
                         form.reset();
                         if (guestPhotoChip) guestPhotoChip.clear();
                         if (attachmentChips) attachmentChips.clear();
+                        refreshCaptcha(); // new code + re-disable submit until re-verified
                     } else {
                         showAlertModal("Error: " + (data.error || "Something went wrong"));
                         submitBtn.disabled = false;
@@ -686,9 +792,9 @@
                     showAlertModal("An error occurred while sending your request.");
                 })
                 .finally(() => {
-                    // Re-enable the button and reset text regardless of outcome
-                    submitBtn.disabled = false;
+                    // Restore label; re-enable only if the captcha is still valid
                     submitBtn.textContent = 'Agree and Send booking Request';
+                    updateSubmitState();
                 });
             });
             modal.addEventListener('click', function(e) {

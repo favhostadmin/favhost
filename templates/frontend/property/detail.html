@@ -1,5 +1,6 @@
 {% extends 'frontend/base/base.html' %}
 {% load static %}
+{% load currency_tags %}
 
 {% block extra_head %}
 <link href="{% static 'css/property/details.css' %}" rel="stylesheet">
@@ -138,6 +139,50 @@
         align-self: flex-start; /* Aligns the item to the start of the flex container */
         height: fit-content;
     }
+
+    .detail-summary-card {
+        display: none;
+        margin-top: 14px;
+        padding-top: 14px;
+        border-top: 1px solid #e5e7eb;
+    }
+
+    .detail-summary-header {
+        font-size: 16px;
+        font-weight: 700;
+        color: #111827;
+        margin-bottom: 12px;
+    }
+
+    .detail-summary-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 12px;
+        font-size: 14px;
+        line-height: 1.35;
+        margin-bottom: 8px;
+    }
+
+    .detail-summary-label {
+        color: #6b7280;
+    }
+
+    .detail-summary-value {
+        color: #111827;
+        font-weight: 700;
+        text-align: right;
+        white-space: nowrap;
+    }
+
+    .detail-summary-total {
+        margin-top: 10px;
+        padding-top: 12px;
+        border-top: 1px solid #e5e7eb;
+        font-size: 16px;
+        font-weight: 700;
+    }
+
     .amenities-bottom-divider {
         display: none;
     }
@@ -288,7 +333,7 @@
     }
 
     .property-detail-content{
-        padding: 0rem 17%;
+        padding: 0rem 10%;
     }
 
     /* Mobile/Tab property meta row (match reference design) */
@@ -977,13 +1022,56 @@
             margin: 20px 0 !important;
         }
     }
+    .property-detail-scroll.embed-scroll {
+        max-height: calc(100vh - 60px) !important;
+        overflow-y: auto !important;
+    }
+    body.embed-body {
+        overflow: hidden;
+    }
+    body.embed-body .main-content-body {
+        max-height: 100vh !important;
+        overflow: hidden !important;
+    }
+    @media (max-width: 1024px) {
+        .action-buttons.embed-actions {
+            display: flex !important;
+        }
+    }
+    .embed-close-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        padding: 0;
+        background: transparent;
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+        color: #374151;
+        cursor: pointer;
+        flex-shrink: 0;
+        transition: background-color 0.15s ease, border-color 0.15s ease;
+    }
+    .embed-close-btn:hover {
+        background: #f3f4f6;
+        border-color: #9ca3af;
+    }
 </style>
 {% endblock extra_head %}
+
+{% block body_class %}{% if request.GET.embed %}embed-body{% endif %}{% endblock %}
+
+{% block header %}
+  {% if not request.GET.embed %}
+    {% include 'frontend/base/header.html' %}
+  {% endif %}
+{% endblock header %}
 
 {% block content %}
     <!-- Action Buttons -->
     <div class="container-fluid p-0">
-        <div class="action-buttons">
+        <div class="action-buttons{% if request.GET.embed %} embed-actions{% endif %}">
             <div class="left-section">
                 <img src="{% static 'img/property/hotel_room_white.png' %}">
 
@@ -1002,6 +1090,7 @@
                 <div class="btn-divider"></div>
                 <a href="javascript:void(0);" onclick="deleteProperty('{{ property.id }}')" class="btn-cancel" style="color: #FF0000;">Delete</a>
             </div> -->
+            <div style="display:flex;align-items:center;gap:8px;margin-left:auto;">
             <button class="new-action-btn-header dropdown-toggle" type="button" data-bs-toggle="dropdown"
                     id="actionDropdown"
                     aria-expanded="false" data-bs-auto-close="outside"
@@ -1101,26 +1190,27 @@
                     </li>
                     {% endif %}
 
-                    <li>
-                        <a class="dropdown-item" href="#" >
-                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                                <path d="M10.125 5.875C11.025 4.975 12.475 4.975 13.375 5.875C14.275 6.775 14.275 8.225 13.375 9.125L11.75 10.75" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                                <path d="M5.875 10.125C4.975 11.025 3.525 11.025 2.625 10.125C1.725 9.225 1.725 7.775 2.625 6.875L4.25 5.25" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                                <path d="M5.25 10.75L10.75 5.25" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                            </svg>
-                            Copy Guest Link
-                        </a>
-                    </li>
 
                 </ul>
+            {% if request.GET.embed %}
+            <button type="button" class="embed-close-btn" onclick="window.parent.bootstrap.Modal.getInstance(window.parent.document.getElementById('propertyPreviewModal')).hide()" aria-label="Close">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                    <path d="M.293.293a1 1 0 011.414 0L8 6.586 14.293.293a1 1 0 111.414 1.414L9.414 8l6.293 6.293a1 1 0 01-1.414 1.414L8 9.414l-6.293 6.293a1 1 0 01-1.414-1.414L6.586 8 .293 1.707a1 1 0 010-1.414z"/>
+                </svg>
+            </button>
+            {% endif %}
+            </div>
         </div>
 
-        <div class="property-detail-scroll" style="max-height: calc(100vh - 165px); overflow: auto; overflow-x: hidden;">
+        <div class="property-detail-scroll{% if request.GET.embed %} embed-scroll{% endif %}" style="max-height: calc(100vh - 121px); overflow: auto; overflow-x: hidden;">
             <div class="property-detail-content">
                 <div class="row property-header">
                     <!-- Title and Status Row -->
                     <div class="col-lg-8 col-md-8 col-sm-12 desktop-title">
                         <span style="font-size: 24px; font-weight: 500">{{ property.title }}</span>
+                        {% if property.nick_name %}
+                        <span style="font-size: 14px; color: #6b7280; margin-left: 8px;">({{ property.nick_name }})</span>
+                        {% endif %}
                     </div>
                     <div class="col-lg-4 col-md-4 col-sm-12 desktop-status" style="text-align: end;">
                         {% if property.status == 'Active' %}
@@ -1133,14 +1223,14 @@
                     </div>
                     <div class="col-12 mobile-title-price">
                         <div class="d-flex justify-content-between align-items-start">
-                            <p class="mb-0 fw-semibold mobile-title-text">{{ property.title }}</p>
+                            <p class="mb-0 fw-semibold mobile-title-text">{{ property.title }}{% if property.nick_name %} <span style="font-weight:400;color:#6b7280;">({{ property.nick_name }})</span>{% endif %}</p>
                             <div class="text-end d-flex align-items-center">
                                 <div class="mobile-price-actions">
                                     <div class="mobile-price-row">
-                                        <p class="mb-0 fw-bold mobile-price-text">${{property.price_per_night|floatformat:2}} night</p>
+                                        <p class="mb-0 fw-bold mobile-price-text">{% money property.price_per_night %} night</p>
                                     </div>
 
-                                    {% if property.cleaning_fee > 0 or property.refundable_deposit > 0 or property.application_fees > 0 %}
+                                    {% if property.cleaning_fee > 0 or property.refundable_deposit > 0 or property.application_fees > 0 or property.taxes > 0 %}
                                     <div class="mobile-fee-row">
                                         <a href="#" id="openOtherFeesModalMobile" class="mobile-fee-link">Other fees</a>
                                     </div>
@@ -1292,14 +1382,16 @@
                             </span>
 
                             {% for amenity in property.amenities.all %}
-                                {% if amenity.name == "Pet Friendly" %}
+                                {% with an=amenity.name|lower %}
+                                {% if an == "pet friendly" or an == "breakfast" or an == "wifi" or an == "wi-fi" or an == "internet" or an == "free parking" or an == "parking" %}
                                 <div class="cred-divider"></div>
 
                                 <span class="property-text">
-                                    <img src="{{ amenity.icon.url }}" alt="Pet Friendly">
-                                    Pet Friendly
+                                    {% if amenity.icon %}<img src="{{ amenity.icon.url }}" alt="{{ amenity.name }}">{% endif %}
+                                    {{ amenity.name }}
                                 </span>
                                 {% endif %}
+                                {% endwith %}
                             {% endfor %}
                         </div>
                     </div>
@@ -1413,8 +1505,8 @@
                         </div>
                         <div class="gallery-col thumbnails">
                             {% for image in images|slice:"1:5" %}
-                            <div class="thumb-item" style="cursor: pointer;">
-                                <img src="{{ image.image.url }}" alt="{{ property.title }} image {{ forloop.counter }}" onclick="openGalleryModal({{ forloop.counter }})">
+                            <div class="thumb-item" style="cursor: pointer;" data-index="{{ forloop.counter }}">
+                                <img src="{{ image.image.url }}" alt="{{ property.title }} image {{ forloop.counter }}" onclick="openGalleryModal(parseInt(this.parentElement.dataset.index))">
                                 {% if forloop.last %}
                                 <div class="gallery-overlay-btns">
                                     <button 
@@ -1470,12 +1562,14 @@
                             <span class="mobile-meta-label">{{ property.minimum_booking }} nights (min)</span>
                         </span>
                         {% for amenity in property.amenities.all %}
-                            {% if amenity.name == "Pet Friendly" %}
+                            {% with an=amenity.name|lower %}
+                            {% if an == "pet friendly" or an == "breakfast" or an == "wifi" or an == "wi-fi" or an == "internet" or an == "free parking" or an == "parking" %}
                             <span class="property-text mobile-meta-item">
-                                <img class="mobile-meta-icon" src="{{ amenity.icon.url }}" alt="Pet Friendly">
-                                <span class="mobile-meta-label">Pet friendly</span>
+                                {% if amenity.icon %}<img class="mobile-meta-icon" src="{{ amenity.icon.url }}" alt="{{ amenity.name }}">{% endif %}
+                                <span class="mobile-meta-label">{{ amenity.name }}</span>
                             </span>
                             {% endif %}
+                            {% endwith %}
                         {% endfor %}
                     </div>
                 </div>
@@ -1662,13 +1756,37 @@
                         {% endif %}
 
 
-                        <!-- Policies Section -->
-                        {% if property.rules %}
+                        <!-- House Rules Section -->
+                        {% if property.house_rules %}
                         <hr class="policies-top-divider {% if check_in_docs or check_out_docs %}show-on-mobile{% endif %}">
-                        <div class="policies-section section-policies">
-                            <h2 style="font-size: 22px;">Cancellation, other Policies and rules</h2>
+                        <div class="policies-section section-policies section-house-rules">
+                            <h2 style="font-size: 22px;">House Rules</h2>
                             <div class="policies-text">
-                                <p class="rules-text" data-full="{{ property.rules|linebreaksbr }}"></p>
+                                <p class="rules-text" data-full="{{ property.house_rules|linebreaksbr }}"></p>
+                            </div>
+                            <button class="show-more-btn">Show more</button>
+                        </div>
+                        {% endif %}
+
+                        <!-- Cancellation Policy Section -->
+                        {% if property.cancellation_policy %}
+                        <hr class="policies-top-divider">
+                        <div class="policies-section section-policies section-cancellation-policy">
+                            <h2 style="font-size: 22px;">Cancellation Policy</h2>
+                            <div class="policies-text">
+                                <p class="rules-text" data-full="{{ property.cancellation_policy|linebreaksbr }}"></p>
+                            </div>
+                            <button class="show-more-btn">Show more</button>
+                        </div>
+                        {% endif %}
+
+                        <!-- Rental Contract Terms and Conditions Section -->
+                        {% if property.rental_contract_terms %}
+                        <hr class="policies-top-divider">
+                        <div class="policies-section section-policies section-rental-contract">
+                            <h2 style="font-size: 22px;">Rental Contract Terms and Conditions</h2>
+                            <div class="policies-text">
+                                <p class="rules-text" data-full="{{ property.rental_contract_terms|linebreaksbr }}"></p>
                             </div>
                             <button class="show-more-btn">Show more</button>
                         </div>
@@ -1678,8 +1796,8 @@
                     <!-- Booking Card -->
                     <div class="booking-card">
 <div class="booking-card-header">
-                            <h3 class="fw-bold text-center me-2 booking-card-price">${{property.price_per_night|floatformat:2}}<small class="text-muted fw-normal"> night</small></h3>
-                            {% if property.cleaning_fee > 0 or property.refundable_deposit > 0 or property.application_fees > 0 %}
+                            <h3 class="fw-bold text-center me-2 booking-card-price">{% money property.price_per_night %}<small class="text-muted fw-normal"> night</small></h3>
+                            {% if property.cleaning_fee > 0 or property.refundable_deposit > 0 or property.application_fees > 0 or property.taxes > 0 %}
                             <a href="#" id="openOtherFeesModal" class="booking-card-fee-link">*Other Fee</a>
                             {% endif %}
                         </div>
@@ -1717,6 +1835,39 @@
                             <option value="{{ forloop.counter }}" {% if forloop.last %}selected{% endif %}>{{ forloop.counter }} guest{% if forloop.counter > 1 %}s{% endif %}</option>
                             {% endfor %}
                         </select>
+
+                        <div id="detail-summary-section" class="detail-summary-card">
+                            <div class="detail-summary-header">Payment Summary</div>
+                            <div class="detail-summary-item">
+                                <span class="detail-summary-label">Daily rate</span>
+                                <span class="detail-summary-value" id="detail-summary-daily-rate">{% money property.price_per_night %}</span>
+                            </div>
+                            <div class="detail-summary-item">
+                                <span class="detail-summary-label" id="detail-summary-price-calc">{% money property.price_per_night %} x 0 nights</span>
+                                <span class="detail-summary-value" id="detail-summary-subtotal">{{ currency_symbol }}0.00</span>
+                            </div>
+                            <div class="detail-summary-item">
+                                <span class="detail-summary-label">Cleaning fee:</span>
+                                <span class="detail-summary-value" id="detail-summary-cleaning-fee">{% money property.cleaning_fee %}</span>
+                            </div>
+                            <div class="detail-summary-item">
+                                <span class="detail-summary-label">Refundable deposit:</span>
+                                <span class="detail-summary-value" id="detail-summary-refundable-deposit">{% money property.refundable_deposit %}</span>
+                            </div>
+                            <div class="detail-summary-item">
+                                <span class="detail-summary-label">Application fee:</span>
+                                <span class="detail-summary-value" id="detail-summary-application-fee">{% money property.application_fees %}</span>
+                            </div>
+                            <div class="detail-summary-item">
+                                <span class="detail-summary-label">Taxes:</span>
+                                <span class="detail-summary-value" id="detail-summary-taxes">{% money property.taxes %}</span>
+                            </div>
+                            <div class="detail-summary-item detail-summary-total">
+                                <span class="detail-summary-label">Total price:</span>
+                                <span class="detail-summary-value" id="detail-summary-total">{{ currency_symbol }}0.00</span>
+                            </div>
+                        </div>
+
                         <button class="reserve-btn" id="create-reservation-btn" style="display: none;">Create Reservation</button>
                         <button class="reserve-btn" id="create-availability-btn" {% if property.status != 'Active' %}disabled{% endif %}>Check Availability</button>
                         <div id="availability-status" class="availability-text" style="display: none;"></div>
@@ -1726,7 +1877,7 @@
                     </div>
                 </div>
             </div>
-            {% include 'frontend/base/footer.html' %}
+            {% if not request.GET.embed %}{% include 'frontend/base/footer.html' %}{% endif %}
 
 
         </div>
@@ -1909,19 +2060,25 @@
                     {% if property.cleaning_fee > 0 %}
                     <tr>
                         <td>Cleaning Fee</td>
-                        <td class="text-end fw-bold">${{ property.cleaning_fee|floatformat:2 }}</td>
+                        <td class="text-end fw-bold">{% money property.cleaning_fee %}</td>
                     </tr>
                     {% endif %}
                     {% if property.refundable_deposit > 0 %}
                     <tr>
                         <td>Refundable Deposit</td>
-                        <td class="text-end fw-bold">${{ property.refundable_deposit|floatformat:2 }}</td>
+                        <td class="text-end fw-bold">{% money property.refundable_deposit %}</td>
                     </tr>
                     {% endif %}
                     {% if property.application_fees > 0 %}
                     <tr>
                         <td>Application Fee</td>
-                        <td class="text-end fw-bold">${{ property.application_fees|floatformat:2 }}</td>
+                        <td class="text-end fw-bold">{% money property.application_fees %}</td>
+                    </tr>
+                    {% endif %}
+                    {% if property.taxes > 0 %}
+                    <tr>
+                        <td>Taxes</td>
+                        <td class="text-end fw-bold">{% money property.taxes %}</td>
                     </tr>
                     {% endif %}
                 </tbody>
@@ -1952,32 +2109,33 @@
 
 <script>
     function setupShowMore(containerSelector, maxLength = 400) {
-        const container = document.querySelector(containerSelector);
-        if (!container) return;
+        const containers = document.querySelectorAll(containerSelector);
+        containers.forEach(function(container) {
+            const textElement = container.querySelector('p');
+            const btn = container.querySelector('.show-more-btn');
+            if (!textElement || !btn) return;
 
-        const textElement = container.querySelector('p');
-        const btn = container.querySelector('.show-more-btn');
-        if (!textElement || !btn) return;
+            const fullText = textElement.getAttribute("data-full") || "";
 
-        const fullText = textElement.getAttribute("data-full") || "";
+            if (fullText.length > maxLength) {
+                const shortText = fullText.substring(0, maxLength) + "...";
+                textElement.innerHTML = shortText;
 
-        if (fullText.length > maxLength) {
-            const shortText = fullText.substring(0, maxLength) + "...";
-            textElement.innerHTML = shortText;
-
-            btn.addEventListener("click", function () {
-                const isShort = textElement.innerHTML.endsWith("...");
-                textElement.innerHTML = isShort ? fullText : shortText;
-                btn.textContent = isShort ? "Show less" : "Show more";
-            });
-        } else {
-            textElement.innerHTML = fullText;
-            btn.style.display = 'none';
-        }
+                btn.addEventListener("click", function () {
+                    const isShort = textElement.innerHTML.endsWith("...");
+                    textElement.innerHTML = isShort ? fullText : shortText;
+                    btn.textContent = isShort ? "Show less" : "Show more";
+                });
+            } else {
+                textElement.innerHTML = fullText;
+                btn.style.display = 'none';
+            }
+        });
     }
 </script>
+<script id="galleryImagesData" type="application/json">[{% for img in images %}"{{ img.image.url }}"{% if not forloop.last %},{% endif %}{% endfor %}]</script>
 <script>
-    let galleryImages = [{% for img in images %}"{{ img.image.url }}"{% if not forloop.last %},{% endif %}{% endfor %}];
+    let galleryImages = JSON.parse(document.getElementById('galleryImagesData').textContent);
     let currentIndex = 0;
 
     function updateImageCounter() {
@@ -2035,7 +2193,9 @@
         setupShowMore('.property-description');
 
         // Setup for "Policies"
-        setupShowMore('.policies-section');
+        setupShowMore('.section-house-rules');
+        setupShowMore('.section-cancellation-policy');
+        setupShowMore('.section-rental-contract');
 
         const amenitiesBtn = document.getElementById("toggle-amenities");
         const hiddenItems = document.querySelectorAll(".hidden-amenity");
@@ -2108,31 +2268,27 @@
         }
     }
 
-    function setupHoverModal(triggerId, modalId) {
+    function setupClickModal(triggerId, modalId) {
         const trigger = document.getElementById(triggerId);
         const modal = document.getElementById(modalId);
-        let modalTimeout;
 
         if (trigger && modal) {
-            trigger.addEventListener('mouseenter', function() {
-                clearTimeout(modalTimeout);
+            trigger.addEventListener('click', function(e) {
+                e.preventDefault();
                 openModal(modalId);
             });
 
-            function hideModal() {
-                modalTimeout = setTimeout(() => {
+            modal.addEventListener('click', function(e) {
+                // If user clicks directly on the modal background (not the content), close it
+                if (e.target === modal) {
                     closeModal(modalId);
-                }, 200);
-            }
-
-            trigger.addEventListener('mouseleave', hideModal);
-            modal.addEventListener('mouseenter', () => clearTimeout(modalTimeout));
-            modal.addEventListener('mouseleave', hideModal);
+                }
+            });
         }
     }
 
-    setupHoverModal('openCheckInDocsModal', 'checkInDocsModal');
-    setupHoverModal('openCheckOutDocsModal', 'checkOutDocsModal');
+    setupClickModal('openCheckInDocsModal', 'checkInDocsModal');
+    setupClickModal('openCheckOutDocsModal', 'checkOutDocsModal');
 
     // --- Other Fees Popover Logic ---
     const otherFeesLinks = [
@@ -2200,6 +2356,20 @@
         const desktopCheckinDisplay = document.getElementById('detail-checkin-display');
         const desktopCheckoutDisplay = document.getElementById('detail-checkout-display');
         const desktopRangePicker = document.getElementById('detail-date-range-picker');
+        const detailSummarySection = document.getElementById('detail-summary-section');
+        const detailSummaryDailyRate = document.getElementById('detail-summary-daily-rate');
+        const detailSummaryPriceCalc = document.getElementById('detail-summary-price-calc');
+        const detailSummarySubtotal = document.getElementById('detail-summary-subtotal');
+        const detailSummaryCleaningFee = document.getElementById('detail-summary-cleaning-fee');
+        const detailSummaryRefundableDeposit = document.getElementById('detail-summary-refundable-deposit');
+        const detailSummaryApplicationFee = document.getElementById('detail-summary-application-fee');
+        const detailSummaryTaxes = document.getElementById('detail-summary-taxes');
+        const detailSummaryTotal = document.getElementById('detail-summary-total');
+        const propertyPricePerNight = parseFloat("{% money_raw property.price_per_night %}") || 0;
+        const propertyCleaningFee = parseFloat("{% money_raw property.cleaning_fee %}") || 0;
+        const propertyRefundableDeposit = parseFloat("{% money_raw property.refundable_deposit %}") || 0;
+        const propertyApplicationFee = parseFloat("{% money_raw property.application_fees %}") || 0;
+        const propertyTaxes = parseFloat("{% money_raw property.taxes %}") || 0;
 
         function formatLocalIso(dateObj) {
             const y = dateObj.getFullYear();
@@ -2219,6 +2389,26 @@
             if (!base) return '';
             base.setDate(base.getDate() + days);
             return formatLocalIso(base);
+        }
+
+        function isValidIsoDate(value) {
+            return /^\d{4}-\d{2}-\d{2}$/.test(value || '');
+        }
+
+        const incomingParams = new URLSearchParams(window.location.search);
+        const incomingCheckIn = incomingParams.get('check_in') || '';
+        const incomingCheckOut = incomingParams.get('check_out') || '';
+        const incomingGuests = incomingParams.get('guests') || '';
+        const hasPrefilledReservation = isValidIsoDate(incomingCheckIn) && isValidIsoDate(incomingCheckOut) && incomingGuests;
+
+        if (isValidIsoDate(incomingCheckIn) && checkinEl) {
+            checkinEl.value = incomingCheckIn;
+        }
+        if (isValidIsoDate(incomingCheckOut) && checkoutEl) {
+            checkoutEl.value = incomingCheckOut;
+        }
+        if (incomingGuests && guestsInput && guestsInput.querySelector(`option[value="${incomingGuests}"]`)) {
+            guestsInput.value = incomingGuests;
         }
 
         // Set minimum date to today for both date pickers
@@ -2281,6 +2471,8 @@
             });
         }
 
+        updateDesktopDateDisplay();
+
         function formatDateDisplay(dateString) {
             if (!dateString) return '';
             const [year, month, day] = dateString.split('-').map(Number);
@@ -2294,15 +2486,68 @@
             desktopCheckoutDisplay.textContent = checkoutEl.value ? formatDateDisplay(checkoutEl.value) : 'Check-out';
         }
 
+        function updateDetailSummary() {
+            if (!detailSummarySection || !checkinEl || !checkoutEl) return;
+
+            const checkinDateStr = checkinEl.value || '';
+            const checkoutDateStr = checkoutEl.value || '';
+            if (!checkinDateStr || !checkoutDateStr) {
+                detailSummarySection.style.display = 'none';
+                return;
+            }
+
+            const checkinDate = parseIsoDate(checkinDateStr);
+            const checkoutDate = parseIsoDate(checkoutDateStr);
+            if (!checkinDate || !checkoutDate || checkoutDate <= checkinDate) {
+                detailSummarySection.style.display = 'none';
+                return;
+            }
+
+            const nights = Math.ceil((checkoutDate - checkinDate) / (1000 * 60 * 60 * 24));
+            const subtotal = propertyPricePerNight * nights;
+            const total = subtotal + propertyCleaningFee + propertyRefundableDeposit + propertyApplicationFee + propertyTaxes;
+
+            detailSummarySection.style.display = 'block';
+            if (detailSummaryDailyRate) {
+                detailSummaryDailyRate.textContent = `{{ currency_symbol }}${propertyPricePerNight.toFixed(2)}`;
+            }
+            if (detailSummaryPriceCalc) {
+                detailSummaryPriceCalc.textContent = `{{ currency_symbol }}${propertyPricePerNight.toFixed(2)} x ${nights} night${nights !== 1 ? 's' : ''}`;
+            }
+            if (detailSummarySubtotal) {
+                detailSummarySubtotal.textContent = `{{ currency_symbol }}${subtotal.toFixed(2)}`;
+            }
+            if (detailSummaryCleaningFee) {
+                detailSummaryCleaningFee.textContent = `{{ currency_symbol }}${propertyCleaningFee.toFixed(2)}`;
+            }
+            if (detailSummaryRefundableDeposit) {
+                detailSummaryRefundableDeposit.textContent = `{{ currency_symbol }}${propertyRefundableDeposit.toFixed(2)}`;
+            }
+            if (detailSummaryApplicationFee) {
+                detailSummaryApplicationFee.textContent = `{{ currency_symbol }}${propertyApplicationFee.toFixed(2)}`;
+            }
+            if (detailSummaryTaxes) {
+                detailSummaryTaxes.textContent = `{{ currency_symbol }}${propertyTaxes.toFixed(2)}`;
+            }
+            if (detailSummaryTotal) {
+                detailSummaryTotal.textContent = `{{ currency_symbol }}${total.toFixed(2)}`;
+            }
+        }
+
         if (checkinEl) {
             checkinEl.addEventListener('input', updateDesktopDateDisplay);
             checkinEl.addEventListener('change', updateDesktopDateDisplay);
+            checkinEl.addEventListener('input', updateDetailSummary);
+            checkinEl.addEventListener('change', updateDetailSummary);
         }
         if (checkoutEl) {
             checkoutEl.addEventListener('input', updateDesktopDateDisplay);
             checkoutEl.addEventListener('change', updateDesktopDateDisplay);
+            checkoutEl.addEventListener('input', updateDetailSummary);
+            checkoutEl.addEventListener('change', updateDetailSummary);
         }
         updateDesktopDateDisplay();
+        updateDetailSummary();
 
         // Desktop date range picker
         if (desktopRangePicker && desktopDateTrigger && checkinEl && checkoutEl) {
@@ -2430,6 +2675,7 @@
                         checkinEl.dispatchEvent(new Event('change'));
                         checkoutEl.dispatchEvent(new Event('input'));
                         checkoutEl.dispatchEvent(new Event('change'));
+                        updateDetailSummary();
                         renderRangePicker();
                         if (startDate && endDate) closePicker();
                     });
@@ -2508,6 +2754,15 @@
         // When the "Check Availability" button is clicked, perform the check.
         if (availabilityBtn) availabilityBtn.addEventListener('click', performCheck);
 
+        if (hasPrefilledReservation) {
+            statusDiv.style.display = 'block';
+            statusDiv.textContent = 'Checking availability...';
+            statusDiv.className = 'availability-text';
+            if (availabilityBtn) availabilityBtn.style.display = 'none';
+            if (reservationBtn) reservationBtn.style.display = 'none';
+            window.setTimeout(performCheck, 0);
+        }
+
         function checkAvailability(checkin, checkout, guests) {
             const url = `/property/${propertyId}/check-availability/?check_in=${checkin}&check_out=${checkout}&guests=${guests}`;
 
@@ -2552,13 +2807,43 @@
                     check_out: checkoutEl.value,
                     guests: guests
                 });
-                window.location.href = `${bookingUrl}?${queryParams.toString()}`;
+                const targetUrl = `${bookingUrl}?${queryParams.toString()}`;
+                if (window.self !== window.top) {
+                    window.parent.postMessage({ type: 'preview-navigate', url: targetUrl }, '*');
+                } else {
+                    window.location.href = targetUrl;
+                }
             } else {
                 showValidationModal('Could not retrieve reservation details. Please select dates and guests again.');
                 resetAvailabilityState();
             }
         });
     });
+</script>
+
+<script>
+(function () {
+    if (window.self === window.top) return; // not inside preview iframe
+
+    document.addEventListener('click', function (e) {
+        const item = e.target.closest('.dropdown-item');
+        if (!item) return;
+
+        const href = item.getAttribute('href');
+        let targetUrl;
+
+        if (href && href !== '#' && !href.startsWith('javascript:')) {
+            targetUrl = href;
+        } else {
+            // onclick-only items (delete, toggle status, copy link) — go to the detail page
+            targetUrl = window.location.pathname + window.location.search;
+        }
+
+        e.preventDefault();
+        e.stopPropagation();
+        window.parent.postMessage({ type: 'preview-navigate', url: targetUrl }, '*');
+    }, true);
+})();
 </script>
 
 {% endblock extra_script %}

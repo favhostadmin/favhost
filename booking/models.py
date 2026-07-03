@@ -27,6 +27,13 @@ class Booking(models.Model):
     email = models.EmailField(null=True, blank=True)
     country_code = models.CharField(max_length=10, null=True, blank=True)
     phone = models.CharField(max_length=20,null=True, blank=True)
+    street_address = models.CharField(max_length=255, null=True, blank=True)
+    city = models.CharField(max_length=100, null=True, blank=True)
+    zip = models.CharField(max_length=20, null=True, blank=True)
+    country = models.CharField(max_length=100, null=True, blank=True)
+    state = models.CharField(max_length=100, null=True, blank=True)
+    nationality = models.CharField(max_length=100, null=True, blank=True)
+    vehicle_information = models.CharField(max_length=255, null=True, blank=True)
     guest_count = models.PositiveIntegerField()
     # booking_channel = models.CharField(max_length=100, choices=BOOKING_CHANNELS, default='personal_website')
     channel = models.ForeignKey(BookingChannel, on_delete=models.SET_NULL, null=True, blank=True)
@@ -35,6 +42,7 @@ class Booking(models.Model):
     check_in_date = models.DateField(null=True, blank=True)
     check_out_date = models.DateField(null=True, blank=True)
     notes = models.TextField(blank=True, null=True)
+    purpose_of_stay = models.CharField(max_length=255, null=True, blank=True)
 
     property = models.ForeignKey('property.Property', on_delete=models.CASCADE)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='confirmed')
@@ -104,10 +112,64 @@ class Payment(models.Model):
     expected_payment_date = models.DateTimeField(null=True, blank=True)
     payment_date = models.DateTimeField(null=True, blank=True)
     is_paid = models.BooleanField(default=False)
+    notes = models.TextField(null=True, blank=True)
 
     def __str__(self):
         return f"Payment of {self.amount} for Booking {self.booking.id}"
 
+
+class PaymentAttachment(models.Model):
+    payment = models.ForeignKey(Payment, on_delete=models.CASCADE, related_name='attachments')
+    file = models.FileField(upload_to='payment_attachments/')
+    name = models.CharField(max_length=255)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.name} for Payment {self.payment.id}"
+
+
+
+class Expense(models.Model):
+    """A host-recorded business expense, used by the Accounting page.
+
+    Like every other monetary value on the platform, ``amount`` is stored in the
+    canonical USD base (see accounts/currency.py); views convert the host-entered
+    display-currency figure to USD on save and the templates render it back with
+    the {% money %} tag. ``property`` is optional so an expense can be tied to a
+    specific listing or kept as a business-wide cost.
+    """
+    CATEGORY_CHOICES = (
+        ('Mortgage', 'Mortgage'),
+        ('Salaries', 'Salaries'),
+        ('Supplies', 'Supplies'),
+        ('Utilities', 'Utilities'),
+        ('Repairs and maintenance', 'Repairs and maintenance'),
+        ('Marketing', 'Marketing'),
+        ('Tax', 'Tax'),
+        ('Insurance', 'Insurance'),
+        ('Legal expenses', 'Legal expenses'),
+        ('Cleaning fees', 'Cleaning fees'),
+        ('Other expenses', 'Other expenses'),
+    )
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    created_by = models.ForeignKey('accounts.MyUser', on_delete=models.CASCADE, related_name='expenses')
+    property = models.ForeignKey('property.Property', on_delete=models.SET_NULL, null=True, blank=True, related_name='expenses')
+    category = models.CharField(max_length=100, choices=CATEGORY_CHOICES, default='Other expenses')
+    amount = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name='Amount (USD)')
+    date = models.DateField()
+    note = models.TextField(null=True, blank=True)
+    attachment = models.FileField(upload_to='expense_attachments/', null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Expense"
+        verbose_name_plural = "Expenses"
+        ordering = ['-date', '-created_at']
+
+    def __str__(self):
+        return f"{self.category} - {self.amount} ({self.date})"
 
 
 class Enquiry(models.Model):

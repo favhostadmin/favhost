@@ -18,17 +18,24 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
+from django.views.generic import TemplateView
 from .views import *
 
 urlpatterns = [
     path('admin/', admin.site.urls),
 
+    # BILLING URLS
+    path('', include(('billing.urls', 'billing'), namespace='billing')),
+
     # WEBSITE URLS
+    path('sitemap.xml', TemplateView.as_view(template_name='sitemap.xml', content_type='application/xml'), name='sitemap'),
+    path('robots.txt', TemplateView.as_view(template_name='robots.txt', content_type='text/plain'), name='robots'),
+
     path('', WebsiteIndexView.as_view(), name='index'),
-    path('blogs/', WebsiteBlogView.as_view(), name='blog'),
-    path('blog/<slug:slug>/', WebsiteBlogDetailsView.as_view(), name='blog-details'),
+    path('resources/', WebsiteBlogView.as_view(), name='blog'),
+    path('resources/<slug:slug>/', WebsiteBlogDetailsView.as_view(), name='blog-details'),
     path('contact/', WebsiteContactView.as_view(), name='contact'),
-    path('terms/', WebsiteTermsView.as_view(), name='terms'),
+    path('terms-and-conditions/', WebsiteTermsView.as_view(), name='terms'),
     path('privacy-policy/', WebsitePrivacyView.as_view(), name='privacy'),
 
     # BOOKING PORTAL URLS
@@ -36,12 +43,21 @@ urlpatterns = [
     path('accounts/', include('accounts.urls')),
 
     path('dashboard/',HostDashboardAPIView.as_view(), name='dashboard'),
+    path('revenue/',RevenueByListingView.as_view(), name='revenue-by-listing'),
+    path('accounting/', AccountingView.as_view(), name='accounting'),
+    path('accounting/expense/add/', add_expense, name='accounting-expense-add'),
+    path('accounting/expense/<uuid:pk>/edit/', edit_expense, name='accounting-expense-edit'),
+    path('accounting/expense/<uuid:pk>/delete/', delete_expense, name='accounting-expense-delete'),
     path('property/', include(('property.urls', 'property'), namespace='property')),
     path('booking/', include(('booking.urls', 'booking'), namespace='booking')),
     path('tasks/', include(('tasks.urls', 'tasks'), namespace='tasks')),
+    path('frontdesk/', include(('frontdesk.urls', 'frontdesk'), namespace='frontdesk')),
     path('global/', include(('global.urls', 'global'), namespace='global')),
+    path('print/', include(('printpanel.urls', 'printpanel'), namespace='printpanel')),
     path('calendar-grid-view/',CalenderAPIView.as_view(),name="calendar-grid-view"),
     path('calendar-list-view/',CalendarListView.as_view(),name="calendar-list-view"),
+
+    path('calendar/',CalenderAPIView.as_view(),name="calendar"),
     path('manage/<uuid:property_id>/', channel_integration, name='channel_integration'),
     path('properties/<uuid:property_id>/channels/toggle-status/<int:channel_id>/', toggle_channel_status, name='toggle_channel_status'),
     path('properties/<uuid:property_id>/channels/delete/<int:channel_id>/', delete_channel, name='delete_channel'),

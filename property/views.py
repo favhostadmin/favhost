@@ -1,4 +1,6 @@
+from django.conf import settings
 from django.shortcuts import render, redirect, get_object_or_404
+import requests as http_requests
 from django.views.generic import CreateView, UpdateView, DeleteView, ListView, DetailView
 from django.contrib import messages
 from django.urls import reverse_lazy
@@ -20,6 +22,28 @@ from django.db import transaction
 from django.db.models import Q
 from django.core.files import File
 from django.contrib.auth.mixins import LoginRequiredMixin
+from accounts.utils import get_visible_user_ids, get_effective_user
+from accounts import currency
+
+# Property money fields are stored in USD but entered/shown in the host's currency.
+PROPERTY_PRICE_FIELDS = ('price_per_night', 'cleaning_fee', 'application_fees', 'refundable_deposit')
+
+
+def _property_prices_to_usd(instance, code):
+    """Convert a property instance's entered (display-currency) prices to USD."""
+    for f in PROPERTY_PRICE_FIELDS:
+        val = getattr(instance, f, None)
+        if val is not None:
+            setattr(instance, f, currency.to_usd(val, code))
+
+
+def _property_prices_to_display(initial, obj, code):
+    """Fill `initial` with the object's stored USD prices converted to display currency."""
+    for f in PROPERTY_PRICE_FIELDS:
+        val = getattr(obj, f, None) if obj is not None else initial.get(f)
+        if val is not None:
+            initial[f] = currency.convert(val, code)
+    return initial
 
 
 
@@ -45,6 +69,8 @@ class PropertyCreateView(LoginRequiredMixin, CreateView):
                 original_property = get_object_or_404(Property, pk=clone_from_id)
                 initial = model_to_dict(original_property, exclude=['id', 'slug', 'amenities'])
                 initial['title'] = f"{original_property.title} (copy)"
+                # Cloned prices are USD; show them in the host's display currency.
+                _property_prices_to_display(initial, None, self.request.user.currency)
             except Property.DoesNotExist:
                 pass
         return initial
@@ -53,6 +79,7 @@ class PropertyCreateView(LoginRequiredMixin, CreateView):
         context = super().get_context_data(**kwargs)
         context['amenities'] = Amenities.objects.all()
         context['is_edit'] = False
+        context['google_maps_api_key'] = settings.GOOGLE_MAPS_API_KEY
         clone_from_id = self.request.GET.get('clone_from')
         context['is_clone'] = False
         context['selected_amenities'] = []
@@ -64,11 +91,22 @@ class PropertyCreateView(LoginRequiredMixin, CreateView):
             context['existing_check_in_docs'] = all_docs.filter(document_type='check_in')
             context['existing_check_out_docs'] = all_docs.filter(document_type='check_out')
             context['is_clone'] = True
+        step2_fields = [
+            'street_address', 'city', 'zip', 'country', 'state',
+            'price_per_night', 'application_fees', 'cleaning_fee',
+            'refundable_deposit', 'taxes', 'other_fees',
+            'check_in_time', 'check_out_time', 'minimum_booking',
+        ]
+        form = context.get('form')
+        context['has_step2_errors'] = bool(form and any(f in form.errors for f in step2_fields))
         return context
-    
+
     def form_valid(self, form):
-        # Assign the current user to the created_by field
-        form.instance.created_by = self.request.user
+        # Assign the effective user (host if co-host) to the created_by field
+        form.instance.created_by = get_effective_user(self.request.user)
+
+        # Prices are entered in the host's display currency; store them as USD.
+        _property_prices_to_usd(form.instance, self.request.user.currency)
 
         # Use transaction to ensure all operations succeed or none do
         with transaction.atomic():
@@ -131,15 +169,24 @@ class PropertyCreateView(LoginRequiredMixin, CreateView):
     def handle_file_uploads(self):
         """Handle property images and documents upload"""
         try:
-            # Handle property images
+            # Cover photo becomes the primary image; if absent, first other photo is primary
+            cover_photo = self.request.FILES.get('cover_photo')
+            if cover_photo:
+                PropertyImage.objects.create(
+                    property=self.object,
+                    image=cover_photo,
+                    is_primary=True
+                )
+
+            # Handle other property images
             images = self.request.FILES.getlist('property_images')
             print(f"Received {len(images)} images")  # Debug
-            
+
             for i, image in enumerate(images):
                 PropertyImage.objects.create(
                     property=self.object,
                     image=image,
-                    is_primary=(i == 0)  # First image is primary
+                    is_primary=(cover_photo is None and i == 0)  # First only if no cover photo
                 )
                 print(f"Created image: {image.name}")  # Debug
             
@@ -189,12 +236,17 @@ class PropertyEditView(LoginRequiredMixin, UpdateView):
     def get_success_url(self):
         # return reverse_lazy('property:property-list')
         return reverse_lazy('property:property-detail', kwargs={'slug': self.object.slug})
-    
-    
+
+    def get_initial(self):
+        # Show stored USD prices in the host's display currency for editing.
+        initial = super().get_initial()
+        return _property_prices_to_display(initial, self.object, self.request.user.currency)
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['amenities'] = Amenities.objects.all()
         context['is_edit'] = True
+        context['google_maps_api_key'] = settings.GOOGLE_MAPS_API_KEY
         context['existing_images'] = self.object.images.all()
         all_docs = self.object.documents.all()
         context['existing_check_in_docs'] = all_docs.filter(document_type='check_in')
@@ -219,10 +271,11 @@ class PropertyEditView(LoginRequiredMixin, UpdateView):
             for key, file in self.request.FILES.items():
                 print(f"{key}: {file.name} ({file.content_type}, {file.size} bytes)")
 
+            # Prices are entered in the host's display currency; store them as USD.
+            _property_prices_to_usd(form.instance, self.request.user.currency)
 
-            
             response = super().form_valid(form)
-            
+
             # Handle amenities
             amenity_ids = self.request.POST.getlist('amenities')
             self.object.amenities.set(amenity_ids if amenity_ids else [])
@@ -289,6 +342,9 @@ class PropertyDeleteView(LoginRequiredMixin,DeleteView):
     model = Property
     success_url = reverse_lazy('property:property-list')
 
+    def get_queryset(self):
+        return Property.objects.filter(created_by__in=get_visible_user_ids(self.request.user))
+
     def post(self, request, *args, **kwargs):
         self.object = self.get_object()
         today = timezone.now().date()
@@ -315,7 +371,7 @@ class PropertyListView(LoginRequiredMixin, ListView):
     
     def get_queryset(self):
         # queryset = Property.objects.prefetch_related('images', 'amenities').all()
-        queryset = Property.objects.filter(created_by=self.request.user).prefetch_related('images').all()
+        queryset = Property.objects.filter(created_by__in=get_visible_user_ids(self.request.user)).prefetch_related('images').all()
         
         # Search functionality
         search_query = self.request.GET.get('search', '').strip()
@@ -389,8 +445,37 @@ class PropertyListView(LoginRequiredMixin, ListView):
         context['check_in'] = check_in
         context['check_out'] = check_out
         context['guests'] = self.request.GET.get('guests', '')
-        context['total_listing'] = Property.objects.filter(created_by=self.request.user).count()
+        context['total_listing'] = Property.objects.filter(created_by__in=get_visible_user_ids(self.request.user)).count()
         context['is_profile_complete'] = self.request.user.is_profile_complete()
+
+        # Only relevant when the user hasn't searched with specific dates yet.
+        if not (check_in and check_out):
+            today = self.request.user.get_local_date()
+            upcoming_bookings = Booking.objects.filter(
+                property__in=properties_on_page,
+                status='confirmed',
+                check_out_date__gte=today,
+            ).order_by('property_id', 'check_in_date')
+
+            bookings_by_property = {}
+            for booking in upcoming_bookings:
+                bookings_by_property.setdefault(booking.property_id, []).append(booking)
+
+            next_available_by_property = {}
+            for property_id, bookings in bookings_by_property.items():
+                # Merge overlapping/back-to-back bookings starting from the nearest one
+                # so the badge reflects when the property is next fully free.
+                chain_end = bookings[0].check_out_date
+                for booking in bookings[1:]:
+                    if booking.check_in_date <= chain_end:
+                        chain_end = max(chain_end, booking.check_out_date)
+                    else:
+                        break
+                next_available_by_property[property_id] = chain_end
+
+            for prop in properties_on_page:
+                prop.next_available_date = next_available_by_property.get(prop.id)
+
         return context
 
 class PropertyDetailView(LoginRequiredMixin, DetailView):
@@ -438,7 +523,7 @@ class PropertyToggleStatusView(View):
     success_url = reverse_lazy('property:property-list')
 
     def post(self, request, pk, *args, **kwargs):
-        property_obj = get_object_or_404(Property, pk=pk)
+        property_obj = get_object_or_404(Property, pk=pk, created_by__in=get_visible_user_ids(request.user))
         referer_url = request.META.get('HTTP_REFERER', self.success_url)
         new_status = "Inactive" if property_obj.status == "Active" else "Active"
 
@@ -522,7 +607,7 @@ class AvailablePropertiesAjaxView(LoginRequiredMixin, View):
         guests_str = request.GET.get('guests')
         booking_id_to_exclude = request.GET.get('booking_id')
 
-        all_properties = Property.objects.filter(created_by=request.user, status='Active')
+        all_properties = Property.objects.filter(created_by__in=get_visible_user_ids(request.user), status='Active')
         properties_data = []
 
         # If dates and guests are provided, check availability
@@ -699,7 +784,7 @@ def ajax_unblock_dates(request):
             block = get_object_or_404(PropertyBlockDate, id=pk)
             
             # Ensure the user has permission to delete this block
-            if block.property.created_by != request.user:
+            if block.property.created_by_id not in get_visible_user_ids(request.user):
                 return JsonResponse({'success': False, 'error': 'Permission denied'})
                 
             block.delete()
@@ -738,7 +823,7 @@ class ListingPageView(ListView):
             queryset = Property.objects.filter(created_by__short_code=short_code, status='Active')
         elif self.request.user.is_authenticated:
             # Authenticated user viewing their own listings
-            queryset = Property.objects.filter(created_by=self.request.user, status='Active')
+            queryset = Property.objects.filter(created_by__in=get_visible_user_ids(self.request.user), status='Active')
         else:
             return Property.objects.none()
 
@@ -789,9 +874,28 @@ class ListingPageView(ListView):
         else:
             raise Http404("Host or properties not found.")
 
+        # Public pages: guests can pick a currency; default to the host's currency.
+        context.update(currency.display_context(currency.resolve_display_currency(
+            self.request.COOKIES.get('guest_currency'),
+            getattr(context['host'], 'currency', None),
+        )))
+
         context['check_in'] = self.request.GET.get('check_in', '')
         context['check_out'] = self.request.GET.get('check_out', '')
         context['guests_count'] = self.request.GET.get('guests', '1')
+
+        num_nights = 0
+        check_in_str = self.request.GET.get('check_in', '')
+        check_out_str = self.request.GET.get('check_out', '')
+        if check_in_str and check_out_str:
+            try:
+                ci = datetime.strptime(check_in_str, '%Y-%m-%d').date()
+                co = datetime.strptime(check_out_str, '%Y-%m-%d').date()
+                if co > ci:
+                    num_nights = (co - ci).days
+            except (ValueError, TypeError):
+                pass
+        context['num_nights'] = num_nights
 
         return context
 
@@ -811,7 +915,7 @@ class ListingDetailView(DetailView):
         # Graceful fallback for /property/listing_details/ (no identifier provided).
         queryset = queryset or self.get_queryset()
         if self.request.user.is_authenticated:
-            own_property = queryset.filter(created_by=self.request.user).first()
+            own_property = queryset.filter(created_by__in=get_visible_user_ids(self.request.user)).first()
             if own_property:
                 return own_property
 
@@ -827,6 +931,11 @@ class ListingDetailView(DetailView):
         context['images'] = self.object.images.all()
         context['amenities'] = self.object.amenities.all().order_by('name')
         context['short_code']= self.kwargs.get('short_code')  if self.kwargs.get('short_code') else None
+        # Public pages: guests can pick a currency; default to the host's currency.
+        context.update(currency.display_context(currency.resolve_display_currency(
+            self.request.COOKIES.get('guest_currency'),
+            getattr(context['host'], 'currency', None),
+        )))
         return context
 
 
@@ -843,7 +952,7 @@ class RequestBokPageView(DetailView):
         # Graceful fallback for /property/listing/ (no identifier provided).
         queryset = queryset or self.get_queryset()
         if self.request.user.is_authenticated:
-            own_property = queryset.filter(created_by=self.request.user).first()
+            own_property = queryset.filter(created_by__in=get_visible_user_ids(self.request.user)).first()
             if own_property:
                 return own_property
 
@@ -856,4 +965,73 @@ class RequestBokPageView(DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['host'] = self.object.created_by
+        # Public pages: guests can pick a currency; default to the host's currency.
+        context.update(currency.display_context(currency.resolve_display_currency(
+            self.request.COOKIES.get('guest_currency'),
+            getattr(context['host'], 'currency', None),
+        )))
         return context
+
+
+# ── Google Places proxy views (keep API key server-side) ──────────────────────
+
+def places_autocomplete_proxy(request):
+    """Return address predictions for a given query string."""
+    q = request.GET.get('q', '').strip()
+    api_key = settings.GOOGLE_MAPS_API_KEY
+    if not q or not api_key:
+        return JsonResponse({'predictions': []})
+    try:
+        resp = http_requests.get(
+            'https://maps.googleapis.com/maps/api/place/autocomplete/json',
+            params={'input': q, 'types': 'address', 'key': api_key},
+            timeout=5,
+        )
+        data = resp.json()
+        return JsonResponse({'predictions': data.get('predictions', [])})
+    except Exception:
+        return JsonResponse({'predictions': []})
+
+
+def place_details_proxy(request):
+    """Return full address components for a given place_id."""
+    place_id = request.GET.get('place_id', '').strip()
+    api_key = settings.GOOGLE_MAPS_API_KEY
+    if not place_id or not api_key:
+        return JsonResponse({'result': {}})
+    try:
+        resp = http_requests.get(
+            'https://maps.googleapis.com/maps/api/place/details/json',
+            params={
+                'place_id': place_id,
+                'fields': 'address_components,formatted_address,geometry',
+                'key': api_key,
+            },
+            timeout=5,
+        )
+        data = resp.json()
+        return JsonResponse({'result': data.get('result', {})})
+    except Exception:
+        return JsonResponse({'result': {}})
+
+
+def geocode_proxy(request):
+    """Geocode a free-form address string → lat, lng."""
+    address = request.GET.get('address', '').strip()
+    api_key = settings.GOOGLE_MAPS_API_KEY
+    if not address or not api_key:
+        return JsonResponse({'lat': None, 'lng': None})
+    try:
+        resp = http_requests.get(
+            'https://maps.googleapis.com/maps/api/geocode/json',
+            params={'address': address, 'key': api_key},
+            timeout=5,
+        )
+        data = resp.json()
+        results = data.get('results', [])
+        if results:
+            loc = results[0]['geometry']['location']
+            return JsonResponse({'lat': loc['lat'], 'lng': loc['lng']})
+        return JsonResponse({'lat': None, 'lng': None})
+    except Exception:
+        return JsonResponse({'lat': None, 'lng': None})

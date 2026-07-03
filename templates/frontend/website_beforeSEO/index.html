@@ -1,0 +1,1972 @@
+﻿{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Favhost - Manage Short-term rentals</title>
+    <link rel="icon" type="image/favhost" href="{% static 'website/img/fev.png' %}">
+    <!-- libraries CSS -->
+    <link rel="stylesheet" href="{% static 'website/icon/flaticon_charitics.css' %}">
+    <link rel="stylesheet" href="{% static 'website/vendor/bootstrap/bootstrap.min.css' %}">
+    <link rel="stylesheet" href="{% static 'website/vendor/splide/splide.min.css' %}">
+    <link rel="stylesheet" href="{% static 'website/vendor/swiper/swiper-bundle.min.css' %}">
+    <link rel="stylesheet" href="{% static 'website/vendor/slim-select/slimselect.css' %}">
+    <link rel="stylesheet" href="{% static 'website/vendor/animate-wow/animate.min.css' %}">
+    <link rel="stylesheet" href="{% static 'website/vendor/flatpickr/flatpickr.min.css' %}">
+
+    <!-- custom CSS -->
+    <link rel="stylesheet" href="{% static 'website/css/style.css' %}">
+
+    <style>
+        .ul-service-descr {
+            position: relative;
+        }
+
+
+        #features-section .ul-bs-row {
+            align-items: stretch;
+        }
+
+        #features-section .col {
+            display: flex;
+        }
+
+        #features-section .ul-service--inner {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            height: 100%;
+        }
+
+        .pricing-text-box {
+            border: 3px solid #EB5310;
+            border-radius: 30px;
+            padding: clamp(24px, 3vw, 48px);
+            width: 100%;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .pricing-label {
+            font-size: 2.1rem;
+            font-weight: 700;
+            margin: 0 0 2px 0;
+            color: var(--ul-black);
+        }
+
+        .pricing-text-box .pricing-title {
+            font-size: clamp(2rem, 3.2vw, 2.8rem);
+            font-weight: 400;
+            line-height: 1.25;
+            margin: 0 0 2px 0;
+            color: var(--ul-black);
+        }
+
+        .pricing-price-row {
+            margin: 0 0 2px 0;
+        }
+
+        .pricing-text-box .pricing-price {
+            font-size: clamp(2.2rem, 3.8vw, 3rem);
+            font-weight: 800;
+            color: var(--ul-black);
+            letter-spacing: -0.5px;
+        }
+
+        .pricing-checklist {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .pricing-checklist li {
+            font-size: 1.45rem;
+            font-weight: 600;
+            color: var(--ul-black);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .pricing-checklist li::before {
+            content: "✓";
+            color: #555;
+            font-weight: 700;
+            font-size: 1.45rem;
+            flex-shrink: 0;
+        }
+
+        .pricing-checklist-row {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            gap: 16px;
+            margin-top: 10px;
+        }
+
+        .pricing-btn-inline {
+            flex-shrink: 0;
+            align-self: flex-end;
+            font-size: 1.1rem;
+            height: auto;
+            padding: 0.75rem 2.5rem 0.75rem 0.75rem;
+        }
+
+        /* ── Hero banner slideshow: override zoom for slides ── */
+        .hero-slideshow .hero-slide {
+            transition: opacity 1.8s ease-in-out, transform 0.8s ease !important;
+        }
+
+        .ul-banner-img .img-wrapper.zoom-container:hover .hero-slideshow .hero-slide.active {
+            transform: scale(1.05);
+        }
+
+        .ul-banner-img .img-wrapper.zoom-container:hover .hero-slideshow .hero-slide:not(.active) {
+            transform: none;
+        }
+
+        /* ── Hero banner slideshow ── */
+        .hero-slideshow {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+
+        .hero-slideshow .hero-slide {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            opacity: 0;
+            transition: opacity 1.8s ease-in-out;
+        }
+
+        .hero-slideshow .hero-slide.active {
+            opacity: 1;
+            position: relative;
+        }
+
+        /* ── Pricing section: dynamic mobile text ── */
+        @media (max-width: 991px) {
+            .pricing-text-box {
+                border-radius: 20px;
+                padding: clamp(16px, 5vw, 28px);
+                gap: 4px;
+            }
+
+            .pricing-label {
+                font-size: clamp(1.1rem, 5vw, 1.6rem);
+            }
+
+            .pricing-text-box .pricing-title {
+                font-size: clamp(1.3rem, 6vw, 2rem);
+            }
+
+            .pricing-text-box .pricing-price {
+                font-size: clamp(1.4rem, 7vw, 2.2rem);
+            }
+
+            .pricing-checklist li {
+                font-size: clamp(0.9rem, 4vw, 1.2rem);
+            }
+
+            .pricing-checklist li::before {
+                font-size: clamp(0.9rem, 4vw, 1.2rem);
+            }
+
+            .pricing-checklist-row {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 12px;
+            }
+
+            .pricing-btn-inline {
+                font-size: clamp(0.85rem, 4vw, 1rem);
+                padding: 0.6rem 1.5rem 0.6rem 0.6rem;
+                align-self: stretch;
+                text-align: center;
+                justify-content: center;
+            }
+        }
+
+        /* ── Landing page header: transparent at top, dark on scroll ── */
+        .ul-header-bottom.to-be-sticky {
+            position: fixed !important;
+            top: 0;
+            width: 100%;
+            background: transparent !important;
+            box-shadow: none !important;
+            transition: background 0.3s ease, backdrop-filter 0.3s ease;
+        }
+
+        .ul-header-bottom.to-be-sticky.scrolled {
+            background: rgba(30, 37, 47, 0.9) !important;
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+        }
+
+        .ul-header-bottom.to-be-sticky.scrolled .ul-header-nav a,
+        .ul-header-bottom.to-be-sticky.scrolled .ul-header-nav a:not([href]):not([class]) {
+            color: #fff !important;
+        }
+
+        .ul-header-bottom.to-be-sticky.scrolled .ul-header-actions button {
+            color: #fff !important;
+        }
+
+        /* ── Mobile header: login icon button ── */
+        @media (max-width: 991px) {
+            .btn-mobile-login-icon {
+                background: none;
+                border: none;
+                padding: 4px 6px;
+                cursor: pointer;
+                font-size: 20px;
+                line-height: 1;
+                color: inherit;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+            }
+
+            .btn-mobile-login-icon i {
+                display: inline-flex;
+            }
+
+            .ul-header-bottom.to-be-sticky.scrolled .btn-mobile-login-icon {
+                color: #fff !important;
+            }
+        }
+
+        /* ── Mobile sidebar: dark glass matching header ── */
+        @media (max-width: 991px) {
+            .ul-sidebar {
+                background: rgba(17, 24, 39, 0.88) !important;
+                backdrop-filter: blur(12px) !important;
+                -webkit-backdrop-filter: blur(12px) !important;
+                border-left: 1px solid rgba(255, 255, 255, 0.12) !important;
+            }
+
+            .ul-sidebar-header {
+                border-bottom-color: rgba(255, 255, 255, 0.15) !important;
+            }
+
+
+            .ul-sidebar-closer,
+            .ul-sidebar-closer i,
+            .ul-sidebar-closer:focus {
+                color: #fff !important;
+            }
+
+            .ul-sidebar-closer:hover {
+                color: rgba(255, 255, 255, 0.7) !important;
+            }
+
+            /* nav links moved into sidebar by JS */
+            .ul-sidebar-header-nav-wrapper a,
+            .ul-sidebar-header-nav-wrapper a:not([href]):not([class]),
+            .ul-sidebar .ul-header-nav a,
+            .ul-sidebar .ul-header-nav a:not([href]):not([class]) {
+                color: #fff !important;
+                display: block;
+                padding: 10px 0;
+                font-size: 16px;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.35);
+            }
+
+            .ul-sidebar-header-nav-wrapper a:hover,
+            .ul-sidebar .ul-header-nav a:hover {
+                color: rgba(255, 255, 255, 0.7) !important;
+            }
+
+            .ul-sidebar-header-nav-wrapper nav,
+            .ul-sidebar .ul-header-nav {
+                display: flex !important;
+                flex-direction: column !important;
+                gap: 0 !important;
+                /* padding: 8px 0 !important; */
+                padding: 0 !important;
+                border-top: 1px solid rgba(255, 255, 255, 0.35) !important;
+            }
+
+            .ul-sidebar-footer-title {
+                color: #fff !important;
+            }
+
+            .ul-sidebar-footer-social a {
+                color: #fff !important;
+                border-color: rgba(255, 255, 255, 0.4) !important;
+            }
+
+            .ul-sidebar-footer-social a:hover {
+                background-color: rgba(255, 255, 255, 0.2) !important;
+                border-color: rgba(255, 255, 255, 0.6) !important;
+            }
+
+            .ul-sidebar-footer-social i {
+                color: #fff !important;
+            }
+
+            .ul-sidebar,
+            .ul-sidebar span,
+            .ul-sidebar p,
+            .ul-sidebar i {
+                color: #fff !important;
+            }
+        }
+
+        /* Dynamic scroll offset — value set by JS below */
+        section[id],
+        h2[id] {
+            scroll-margin-top: var(--header-h, 0px);
+        }
+
+        #about {
+            scroll-margin-top: calc(var(--header-h, 0px) + 30px);
+        }
+
+        @media (max-width: 991px) {
+
+            #pricing,
+            #cstories {
+                scroll-margin-top: calc(var(--header-h, 0px) - 30px);
+            }
+        }
+    </style>
+
+</head>
+
+<body>
+    <div class="preloader" id="preloader">
+        <div class="loader"></div>
+    </div>
+
+    <!-- SIDEBAR SECTION START -->
+    <div class="ul-sidebar">
+        <!-- header -->
+        <div class="ul-sidebar-header">
+            <div class="ul-sidebar-header-logo">
+                <a href="{% url 'index' %}">
+                    <img src="{% static 'img/login/favhost_new_logo.png' %}" alt="logo" class="logo"
+                        style="height:48px;width:auto;">
+                </a>
+            </div>
+            <!-- sidebar closer -->
+            <button class="ul-sidebar-closer"><i class="flaticon-close"></i></button>
+        </div>
+
+        <div class="ul-sidebar-header-nav-wrapper d-block d-lg-none"></div>
+
+
+        <!-- sidebar footer -->
+        <div class="ul-sidebar-footer">
+            <span class="ul-sidebar-footer-title">Follow us</span>
+
+            <div class="ul-sidebar-footer-social">
+                <a href="https://www.facebook.com/profile.php?id=61590927320511" target="_blank"><i
+                        class="flaticon-facebook"></i></a>
+                <!-- <a href="#"><i class="flaticon-twitter"></i></a> -->
+                <a href="https://www.instagram.com/favhost/" target="_blank"><i class="flaticon-instagram"></i></a>
+                <a href="https://www.youtube.com/@favhost" target="_blank"><i class="flaticon-youtube"></i></a>
+            </div>
+        </div>
+    </div>
+    <!-- SIDEBAR SECTION END -->
+
+    <!-- SEARCH MODAL SECTION START -->
+    <div class="ul-search-form-wrapper flex-grow-1 flex-shrink-0">
+        <button class="ul-search-closer"><i class="flaticon-close"></i></button>
+
+        <form action="#" class="ul-search-form">
+            <div class="ul-search-form-right">
+                <input type="search" name="search" id="ul-search" placeholder="Search Here">
+                <button type="submit"><span class="icon"><i class="flaticon-search"></i></span></button>
+            </div>
+        </form>
+    </div>
+    <!-- SEARCH MODAL SECTION END -->
+
+    <!-- HEADER SECTION START -->
+    <header class="ul-header">
+        <div class="ul-header-bottom to-be-sticky">
+            <div class="ul-header-bottom-wrapper ul-header-container">
+                <!-- <div class="logo-container"> -->
+                <a href="{% url 'index' %}" class="d-inline-block"><img
+                        src="{% static 'img/login/favhost_new_logo.png' %}" alt="logo" class="logo"
+                        style="height:48px;width:auto;"></a>
+                <!-- </div> -->
+
+                <!-- header nav -->
+                <div class="ul-header-nav-wrapper">
+                    <div class="to-go-to-sidebar-in-mobile">
+                        <nav class="ul-header-nav">
+
+                            <a href="#feature">Features</a>
+                            <a href="#watchdemo">Watch Demo</a>
+                            <a href="#pricing">Pricing</a>
+
+                            <a href="#about">About us</a>
+
+                            <a href="#cstories">Customer stories</a>
+
+                            <a href="#faq">FAQ</a>
+
+                            <a href="#resources">Resources</a>
+
+
+
+                            <a href="{% url 'contact' %}">Contact us</a>
+                        </nav>
+                    </div>
+                </div>
+
+                <!-- actions -->
+                <div class="ul-header-actions">
+                    <!--                    <button class="ul-header-search-opener"><i class="flaticon-search"></i></button>-->
+                    <!-- desktop: login button -->
+                    <button onclick="window.location.href='{% url 'accounts:login' %}';"
+                        class="btn-login d-none d-lg-inline-flex">Log In</button>
+                    <!-- mobile: login icon + signup button -->
+                    <button onclick="window.location.href='{% url 'accounts:login' %}';"
+                        class="btn-mobile-login-icon d-lg-none" aria-label="Login"><svg
+                            xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+                            <polyline points="10 17 15 12 10 7" />
+                            <line x1="15" y1="12" x2="3" y2="12" />
+                        </svg></button>
+                    <button onclick="window.location.href='{% url 'contact' %}';" class="btn-login d-lg-none">Sign
+                        Up</button>
+                    <a href="{% url 'contact' %}" class="ul-btn d-sm-inline-flex d-none"><i
+                            class="flaticon-fast-forward-double-right-arrows-symbol"></i> Get started</a>
+                    <button class="ul-header-sidebar-opener d-lg-none d-inline-flex"><i
+                            class="flaticon-menu"></i></button>
+                </div>
+            </div>
+        </div>
+    </header>
+    <!-- HEADER SECTION END -->
+
+
+    <main class="overflow-hidden">
+        <!-- BANNER SECTION START -->
+        <section class="ul-banner">
+            <div class="ul-banner-container">
+                <div class="row gy-4 row-cols-lg-2 row-cols-1 align-items-center flex-column-reverse flex-lg-row">
+                    <!-- banner text -->
+                    <div class="col">
+                        <div class="ul-banner-txt">
+                            <div class="wow animate__fadeInUp">
+                                <!--                                <span class="ul-banner-sub-title ul-section-sub-title">Change The World Together</span>-->
+                                <h1 class="ul-banner-title"> Manage Short-term rentals<br>
+                                    <!-- No double bookings<br> -->
+                                    0% Commission <br>
+                                    Unlimited listings @$9.99/month</h1>
+                                <p class="ul-banner-descr"> One powerful platform to manage your <br>
+                                    short-term rental business effortlessly.<br>
+                                    Increase Occupancy, maximize profits</p>
+                                <div class="ul-banner-btns">
+                                    <a href="#" class="ul-btn"><i
+                                            class="flaticon-fast-forward-double-right-arrows-symbol"></i> Get Started
+                                        free for 90 days</a>
+
+                                    <div class="ul-banner-stat">
+                                        <!--
+                                        <div class="imgs">
+                                            <img src=/img/user-1.png" alt="Person">
+                                            <img src=/img/user-3.png" alt="Person">
+                                            <img src=/img/user-2.png" alt="Person">
+                                            <span class="number">2.M</span>
+                                        </div>
+-->
+                                        <div class="partner-logos" data-aos="slide-up" data-delay="450">
+                                            <!--        <img src=/img/expedia.png" alt="Expedia">-->
+                                            <img src="{% static 'website/img/airbnb.png' %}" alt="Airbnb">
+                                            <img src="{% static 'website/img/vrbo.png' %}" alt="Vrbo">
+                                            <img src="{% static 'website/img/booking.png' %}" alt="Booking">
+                                        </div>
+                                        <!--                                        <span class="txt">Active donors</span>-->
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!--                            <img src=/img/vector-img.png" alt="Vector" class="ul-banner-txt-vector">-->
+                        </div>
+                    </div>
+
+                    <!-- img -->
+                    <div class="col align-self-start">
+                        <div class="ul-banner-img">
+                            <div class="img-wrapper zoom-container overflow-hidden">
+                                <div class="hero-slideshow">
+                                    <img src="{% static 'website/img/herobanner.jpg' %}" alt="Banner Image"
+                                        class="hero-slide active">
+                                    <img src="{% static 'website/img/herobanner1.jpg' %}" alt="Banner Image"
+                                        class="hero-slide">
+                                    <img src="{% static 'website/img/herobanner2.jpg' %}" alt="Banner Image"
+                                        class="hero-slide">
+                                    <img src="{% static 'website/img/herobanner3.jpg' %}" alt="Banner Image"
+                                        class="hero-slide">
+                                    <img src="{% static 'website/img/herobanner4.jpg' %}" alt="Banner Image"
+                                        class="hero-slide">
+                                    <img src="{% static 'website/img/herobanner5.jpg' %}" alt="Banner Image"
+                                        class="hero-slide">
+                                    <img src="{% static 'website/img/herobanner6.jpg' %}" alt="Banner Image"
+                                        class="hero-slide">
+                                    <img src="{% static 'website/img/herobanner7.jpg' %}" alt="Banner Image"
+                                        class="hero-slide">
+                                    <img src="{% static 'website/img/herobanner8.jpg' %}" alt="Banner Image"
+                                        class="hero-slide">
+                                    <img src="{% static 'website/img/herobanner9.jpg' %}" alt="Banner Image"
+                                        class="hero-slide">
+                                    <img src="{% static 'website/img/herobanner10.jpg' %}" alt="Banner Image"
+                                        class="hero-slide">
+                                </div>
+                            </div>
+                            <div class="ul-banner-img-vectors">
+                                <img src="{% static 'website/img/banner-img-vector-1.png' %}" alt="vector"
+                                    class="vector-1 wow animate__fadeInRight">
+                                <img src="{% static 'website/img/banner-img-vector-2.png' %}" alt="vector"
+                                    class="vector-2 wow animate__fadeInDown">
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </section>
+        <!-- BANNER SECTION END -->
+
+        <!-- SERVICES SECTION START -->
+        <section id="features-section" class="ul-section-spacing overflow-hidden">
+            <div class="ul-container">
+                <div class="row row-cols-md-3 row-cols-2 row-cols-xxs-1 ul-bs-row">
+                    <div class="col-md-12">
+                        <h2 id="feature" class="mb-4 wow animate__fadeInUp" data-aos="slide-up" data-delay="450">
+                            Key Features of Our Channel Manager Application
+                        </h2>
+                        <h4 class="mb-3 wow animate__fadeInUp">Everything you need to manage your property effortlessly
+                        </h4>
+                        <p class="ul-service-descr">Boost direct revenue and streamline hotel operations with an
+                            all-in-one property management tool.</p>
+                        <p class="ul-service-descr">Key features include a real-time Channel Manager to sync rates and
+                            inventory across OTAs instantly, preventing overbookings. Build your brand with a
+                            commission-free Direct Booking Website featuring an integrated booking engine.</p>
+                        <p class="ul-service-descr">Simplify daily property workflows by choosing an application that
+                            allows you to seamlessly manage tasks and automate housekeeping schedules.</p>
+                        <p class="ul-service-descr">Optimize your hospitality business, increase occupancy, avoid double
+                            bookings and improve guest satisfaction today.</p>
+                    </div>
+                    <!-- single slide -->
+                    <!--
+                    <div class="col">
+                        <div class="ul-service ul-service--inner wow animate__fadeInUp">
+                            <div class="ul-service-img zoom-container overflow-hidden">
+                                <img src=/img/service-1.jpg" alt="Service Image">
+                            </div>
+                            <div class="ul-service-txt">
+                                <h3 class="ul-service-title"><a href="service-details.html">Multi Calendar</a></h3>
+                                <p class="ul-service-descr">Multi-Calendar acts as your single source of truth, consolidating reservations from Airbnb, Booking.com, Vrbo, and your direct booking site into one intuitive, real-time interface.</p>
+                            
+                            </div>
+                        </div>
+                    </div>
+-->
+
+                    <!-- single slide -->
+                    <div class="col">
+                        <div class="ul-service ul-service--inner wow animate__fadeInUp">
+                            <div class="ul-service-img zoom-container overflow-hidden">
+                                <img src="{% static 'website/img/service-2.jpg' %}" alt="Service Image">
+                            </div>
+                            <div class="ul-service-txt">
+                                <h3 class="ul-service-title"><a href="service-details.html">Channel Manager</a></h3>
+                                <p class="ul-service-descr">Our integrated Channel Manager acts as your central command
+                                    center, synchronizing your availability and rates across multiple OTAs like Airbnb,
+                                    VRBO, Booking.com, and more in real time.</p>
+                                <p class="ul-service-descr">Zero Double-Bookings: Instant two-way synchronization means
+                                    that when a guest books on one platform, your calendar closes on all others
+                                    automatically.</p>
+                                <p class="ul-service-descr">Boosted Visibility: Easily list on more channels without
+                                    increasing your workload, so you reach more guests and maximize occupancy
+                                    effortlessly.</p>
+                                <!--                                <a href="service-details.html" class="ul-service-btn"><i class="flaticon-up-right-arrow"></i> View Details</a>-->
+                            </div>
+                        </div>
+                    </div>
+
+
+
+
+
+                    <!-- single slide -->
+                    <div class="col">
+                        <div class="ul-service ul-service--inner wow animate__fadeInUp">
+                            <div class="ul-service-img zoom-container overflow-hidden">
+                                <img src="{% static 'website/img/service-5.jpg' %}" alt="Service Image">
+                            </div>
+                            <div class="ul-service-txt">
+                                <h3 class="ul-service-title"><a href="service-details.html">Reservations</a></h3>
+                                <p class="ul-service-descr">Manage stress-free the short-term rental repetitive tasks
+                                    for maintenance and cleaning. Track cleaning schedules and STR maintenance in a
+                                    single consolidated calendar.</p>
+                                <p class="ul-service-descr">Instantly confirm new bookings, send automated guest
+                                    communications, and view upcoming check-ins and check-outs at a glance.</p>
+                                <p class="ul-service-descr">Assign tasks to your team, set reminders, and keep every
+                                    reservation running smoothly from booking to checkout.</p>
+                                <!--                                <a href="service-details.html" class="ul-service-btn"><i class="flaticon-up-right-arrow"></i> View Details</a>-->
+                            </div>
+                        </div>
+                    </div>
+
+
+                    <!---------------->
+
+
+                    <!-- single slide -->
+                    <div class="col">
+                        <div class="ul-service ul-service--inner wow animate__fadeInUp">
+                            <div class="ul-service-img zoom-container overflow-hidden">
+                                <img src="{% static 'website/img/service-3.jpg' %}" alt="Service Image">
+                            </div>
+                            <div class="ul-service-txt">
+                                <h3 class="ul-service-title"><a href="service-details.html">Direct booking website</a>
+                                </h3>
+                                <p class="ul-service-descr">Favhost is designed specifically for short-term rental
+                                    owners who want to maximize their ROI and own their guest relationships directly.
+                                </p>
+                                <p class="ul-service-descr">Commission-Free Bookings: Keep 100% of your nightly rate. No
+                                    more host fees or guest service fees eating into your margins.</p>
+                                <p class="ul-service-descr">Live Availability Sync: Your direct booking site is
+                                    integrated directly with your channel calendar, so you never have to worry about
+                                    manual updates or double bookings.</p>
+                                <!--                                <a href="service-details.html" class="ul-service-btn"><i class="flaticon-up-right-arrow"></i> View Details</a>-->
+                            </div>
+                        </div>
+                    </div>
+
+
+
+                    <!--------------------------->
+
+
+                    <!-- single slide -->
+                    <div class="col">
+                        <div class="ul-service ul-service--inner wow animate__fadeInUp">
+                            <div class="ul-service-img zoom-container overflow-hidden">
+                                <img src="{% static 'website/img/service-4.jpg' %}" alt="Service Image">
+                            </div>
+                            <div class="ul-service-txt">
+                                <h3 class="ul-service-title"><a href="service-details.html">Listings & Reservations</a>
+                                </h3>
+                                <p class="ul-service-descr">Favhost is designed specifically for short-term rental
+                                    owners who want to maximize their ROI and build direct guest relationships.</p>
+                                <p class="ul-service-descr">Property Profiles: Build high-converting listings with
+                                    high-resolution galleries, YouTube video sync, detailed amenity lists, and custom
+                                    house rules to maximize occupancy.</p>
+                                <p class="ul-service-descr">Reservations: Create and manage bookings, block dates for
+                                    maintenance, or view guest check-in and check-out statuses at a glance — all from
+                                    one place.</p>
+
+                                <!--                                <a href="service-details.html" class="ul-service-btn"><i class="flaticon-up-right-arrow"></i> View Details</a>-->
+                            </div>
+                        </div>
+                    </div>
+
+
+
+                    <!-- single slide -->
+                    <div class="col">
+                        <div class="ul-service ul-service--inner wow animate__fadeInUp">
+                            <div class="ul-service-img zoom-container overflow-hidden">
+                                <img src="{% static 'website/img/service-6.jpg' %}" alt="Service Image">
+                            </div>
+                            <div class="ul-service-txt">
+                                <h3 class="ul-service-title"><a href="service-details.html">Manage Tasks</a></h3>
+                                <p class="ul-service-descr">Our integrated task management suite automates your team's
+                                    workflow from the moment a booking is confirmed, giving you a real-time view of
+                                    every job status across all your properties.</p>
+                                <p class="ul-service-descr">Expense &amp; Receipt Tracking: Snap a photo of a
+                                    maintenance receipt or log a utility bill on the go. Categorize expenses by property
+                                    to see exactly where your capital is going.</p>
+                                <p class="ul-service-descr">ROI &amp; Performance Analytics: Track key metrics like
+                                    revenue for each listing, expenses, and net profit to make smarter decisions and
+                                    grow your business.</p>
+                                <!--                                <a href="service-details.html" class="ul-service-btn"><i class="flaticon-up-right-arrow"></i> View Details</a>-->
+                            </div>
+                        </div>
+                    </div>
+
+
+                    <!---------------last-post---------->
+                    <div class="col">
+                        <div class="ul-service ul-service--inner wow animate__fadeInUp">
+                            <div class="ul-service-img zoom-container overflow-hidden">
+                                <img src="{% static 'website/img/service-1.jpg' %}" alt="Service Image">
+                            </div>
+                            <div class="ul-service-txt">
+                                <h3 class="ul-service-title"><a href="service-details.html">Housekeeping</a></h3>
+                                <p class="ul-service-descr">Transform your property's turnaround efficiency with
+                                    real-time housekeeping updates instantly synced to your listings across all booking
+                                    channels.</p>
+                                <p class="ul-service-descr">Ensure every room meets your highest standards before
+                                    arrival, driving seamless check-ins and five-star reviews. Assign cleans
+                                    automatically after each checkout and track completion in real time.</p>
+                                <p class="ul-service-descr">Maximize staff productivity and elevate the guest experience
+                                    with a fully integrated housekeeping management solution built for short-term rental
+                                    hosts.</p>
+                                <!--                                <a href="service-details.html" class="ul-service-btn"><i class="flaticon-up-right-arrow"></i> View Details</a>-->
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </section>
+        <!-- ══ How it works ══ -->
+        <section class="section-demo wow animate__fadeInUp" id="watchdemo" data-aos="slide-up" data-delay="450"
+            style="">
+            <div class="ul-container px-4">
+                <div class="row">
+                    <div class="col-md-12">
+                        <h2 class="mb-4" data-aos="slide-up" data-delay="450">How it works</h2>
+                        <div class="row row-cols-md-3 row-cols-1 ul-bs-row mb-4 align-items-stretch">
+                            <div class="col">
+                                <div class="ul-service ul-service--inner wow animate__fadeInUp">
+                                    <div class="ul-service-txt">
+                                        <h3 class="ul-service-title"><i
+                                                class="flaticon-box ul-service-title-icon"></i>Property Management</h3>
+                                        <p class="ul-service-descr">Optimize your property management with Favhost, the
+                                            ultimate hospitality software for real-time channel management for the
+                                            short-term rental business.</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col">
+                                <div class="ul-service ul-service--inner wow animate__fadeInUp">
+                                    <div class="ul-service-txt">
+                                        <h3 class="ul-service-title"><i
+                                                class="flaticon-relationship ul-service-title-icon"></i>Multi-Channel
+                                            Sync</h3>
+                                        <p class="ul-service-descr">Our cloud-based channel manager syncs your rates and
+                                            availability across Booking.com, Expedia, Airbnb and many more instantly.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col">
+                                <div class="ul-service ul-service--inner wow animate__fadeInUp">
+                                    <div class="ul-service-txt">
+                                        <h3 class="ul-service-title"><i
+                                                class="flaticon-checked ul-service-title-icon"></i>Boost Revenue</h3>
+                                        <p class="ul-service-descr">Eliminate double bookings, maximize profits and
+                                            occupancies, streamline operations and boost your short-term rental and
+                                            homestay business revenue effortlessly.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-12">
+                        <div class="demo-card" data-anim="zoom-in">
+                            <div class="ratio ratio-16x9">
+                                <video id="demoVideo" src="{% static 'website/img/videoo.mp4' %}" playsinline
+                                    preload="metadata"></video>
+                            </div>
+                            <div class="demo-overlay" id="demoOverlay">
+                                <div class="demo-play-btn" id="playBtn">
+                                    <div class="demo-play-icon">
+                                        <i class="flaticon-play"></i>
+                                    </div>
+                                    <span>Watch Demo</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+
+        <section class="section-pricing ul-about wow animate__fadeInUp" id="pricing">
+            <div class="ul-container px-4">
+                <div class="row g-5 align-items-stretch">
+
+                    <div class="col-lg-6 animate__animated animate__fadeInLeft d-flex" data-anim="fade-right">
+                        <div class="pricing-text-box">
+                            <p class="pricing-label">Pricing</p>
+                            <h2 class="pricing-title">
+                                Unlimited listings,
+                            </h2>
+                            <h2 class="pricing-title">
+                                Simplified pricing
+                            </h2>
+                            <div class="pricing-price-row">
+                                <span class="pricing-price">USD 9.99/ month</span>
+                            </div>
+                            <div class="pricing-checklist-row">
+                                <ul class="pricing-checklist">
+                                    <li>Flat Monthly Fee</li>
+                                    <li>Try free for 90 days</li>
+                                    <li>No hidden fees</li>
+                                    <li>0% commission</li>
+                                </ul>
+                                <a href="#" class="ul-btn pricing-btn-inline"><i
+                                        class="flaticon-fast-forward-double-right-arrows-symbol"></i> Get started</a>
+                            </div>
+                        </div>
+                        <!--
+                    <button class="btn-black px-4 py-2" style="min-width:420px;font-size:1rem; padding: 0.75rem 2rem !important; border-radius: 10px;">
+                        Sign up
+                    </button>
+-->
+                    </div>
+
+                    <div class="col-lg-6 d-flex animate__animated animate__fadeInRight" data-delay="200">
+                        <div class="pricing-img zoom-container overflow-hidden" style="width: 100%;">
+                            <img src="{% static 'website/img/about-3.jpg' %}" alt="Pricing illustration"
+                                onerror="this.src='https://placehold.co/600x600?text=Pricing+Illustration'">
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </section>
+
+        <!-- ABOUT SECTION START -->
+
+
+
+        <!-- DONTATIONS SECTION START -->
+        <section class="ul-donations ul-section-spacing overflow-hidden wow animate__fadeInUp">
+
+
+
+            <!-- WHY JOIN SECTION START -->
+            <section class="ul-why-join ul-section-spacing">
+                <div class="ul-why-join-wrapper ul-section-spacing wow animate__fadeInUp">
+                    <div class="ul-container">
+                        <div class="row row-cols-md-2 row-cols-1 gy-4 align-items-center">
+                            <div class="col">
+                                <div class="ul-why-join-img zoom-container">
+                                    <img src="{% static 'website/img/aboutt4.jpg' %}" alt="Image">
+                                </div>
+                            </div>
+
+                            <!-- txt -->
+                            <div class="col">
+                                <div class="ul-why-join-txt wow animate__fadeInUp">
+                                    <!--
+                                <span class="ul-section-sub-title">Join us</span>
+                                <h2 class="ul-section-title">Why We Need You Become a Volunteer</h2>
+-->
+                                    <h2 id="about" class="mb-4 wow animate__fadeInUp" data-aos="slide-up"
+                                        data-delay="450">About us
+                                        and our Team</h2>
+
+                                    <p class="ul-section-descr">Favhost was born from a simple observation: the
+                                        hospitality industry is moving faster than ever, but the tools shouldn't make
+                                        your life harder.</p>
+
+                                    <p>We are a team of developers, former hoteliers, and tech enthusiasts dedicated to
+                                        building the most intuitive channel manager web application and the OTA
+                                        management tool on the market.</p>
+
+                                    <p>There are plenty of vacation rental management tools out there. But we aren’t
+                                        just a piece of software; we’re your partner in growth. Our Vacation rental
+                                        management tool prioritize reliability, simplicity, Booking automation to
+                                        increase occupancy.</p>
+
+                                    <div class="ul-accordion">
+                                        <div class="ul-single-accordion-item open">
+                                            <div class="ul-single-accordion-item__header">
+                                                <div class="left">
+                                                    <h3 class="ul-single-accordion-item__title">Our team</h3>
+                                                </div>
+                                                <span class="icon"><i class="flaticon-next"></i></span>
+                                            </div>
+
+                                            <div class="ul-single-accordion-item__body">
+                                                <p>We met hosts and BNB owners across the globe analyze their
+                                                    requirements and problems and decided to build a simplified easy to
+                                                    use affordable platform for Short-term rental industry.</p><br>
+
+                                                <p>From our engineering labs to our customer success desk, we are
+                                                    focused on one goal: Simple solution to maximize your rental
+                                                    revenue.</p><br>
+
+                                                <p>Our platform build for speed and security for real-time API
+                                                    integrations, 99.9% uptime, and a "mobile-friendly" user experience
+                                                    to keep your business running 24/7.</p><br>
+
+                                                <p>Our support team don't just solve technical tickets; we provide
+                                                    strategic advice to help you navigate the complexities of the STR
+                                                    market.</p>
+                                            </div>
+                                        </div>
+
+                                        <!--
+                                    <div class="ul-single-accordion-item">
+                                        <div class="ul-single-accordion-item__header">
+                                            <div class="left">
+                                                <h3 class="ul-single-accordion-item__title">Why Join Us as a Volunteer?</h3>
+                                            </div>
+                                            <span class="icon"><i class="flaticon-next"></i></span>
+                                        </div>
+
+                                        <div class="ul-single-accordion-item__body">
+                                            <p>Aonsectetur adipiscing elit Aenean scelerisque augue vitae consequat Juisque eget congue velit in cursus leo sodales the turpis euismod quis sapien euismod quis sapien the. E-learning is suitable for students, professionals, and anyone interested.</p>
+                                        </div>
+                                    </div>
+-->
+
+                                        <!--
+                                    <div class="ul-single-accordion-item">
+                                        <div class="ul-single-accordion-item__header">
+                                            <div class="left">
+                                                <h3 class="ul-single-accordion-item__title">Be Part of a Community</h3>
+                                            </div>
+                                            <span class="icon"><i class="flaticon-next"></i></span>
+                                        </div>
+
+                                        <div class="ul-single-accordion-item__body">
+                                            <p>Aonsectetur adipiscing elit Aenean scelerisque augue vitae consequat Juisque eget congue velit in cursus leo sodales the turpis euismod quis sapien euismod quis sapien the. E-learning is suitable for students, professionals, and anyone interested.</p>
+                                        </div>
+                                    </div>
+-->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            <!-- WHY JOIN SECTION END -->
+
+
+
+
+            <!-- TESTIMONIAL SECTION START -->
+            <section class="ul-testimonial-2 ul-section-spacing wow animate__fadeInUp" id="cstories" style="">
+                <div class="ul-container ">
+                    <div class="ul-section-heading">
+                        <div>
+
+                            <h2 class="ul-section-title wow animate__fadeInUp">What People Say About us</h2>
+                        </div>
+                        <!--                    <a href="#" class="ul-btn"><i class="flaticon-fast-forward-double-right-arrows-symbol"></i> All Testimonials</a>-->
+                    </div>
+
+                    <div class="row ul-testimonial-2-row gy-4">
+                        <!-- card -->
+                        <div class="col-md-4">
+                            <div class="ul-testimonial-2-overview">
+                                <span class="rating">4.9</span>
+                                <div class="ul-testimonial-2-overview-stars">
+                                    <i class="flaticon-star"></i>
+                                    <i class="flaticon-star"></i>
+                                    <i class="flaticon-star"></i>
+                                    <i class="flaticon-star"></i>
+                                    <i class="flaticon-star-1"></i>
+                                </div>
+                                <!--                            <span class="ul-testimonial-2-overview-title">5 Start Rating</span>-->
+                                <p class="ul-testimonial-2-overview-descr">"After moving 20+ listings over from
+                                    spreadsheets, the two-way API sync is incredibly stable; Solid platform with a great
+                                    feature set, especially the direct booking engine."</p>
+                                <div class="ul-testimonial-2-overview-reviewers">
+                                    <img src="{% static 'website/img/img3.jpg' %}" alt="Reviewer">
+                                    <img src="{% static 'website/img/img4.jpg' %}" alt="Reviewer">
+                                    <img src="{% static 'website/img/img5.jpg' %}" alt="Reviewer">
+                                    <img src="{% static 'website/img/img6.jpg' %}" alt="Reviewer">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- txt -->
+                        <div class="col-md-8">
+                            <div class="ul-testimonial-2-slider swiper">
+                                <div class="swiper-wrapper">
+                                    <!-- single slide -->
+                                    <div class="swiper-slide">
+                                        <div class="ul-review ul-review-2">
+                                            <span class="icon"><i class="flaticon-quote-1"></i></span>
+                                            <p class="ul-review-descr">Running 14 properties used to feel impossible
+                                                until I found FavHost. This Airbnb channel manager software syncs my
+                                                calendars in real time, so double bookings are a thing of the past.
+
+
+                                                The built-in task management tools keep my cleaning team on schedule,
+                                                and my new direct booking website gives me a serious edge over
+                                                competitors.
+
+
+                                                For the price, it's the most affordable vacation rental management
+                                                software I've tested, and my profit margins have grown nearly 25% since
+                                                signing up last year.</p>
+                                            <p class="ul-review-descr">The built-in task management tools keep my
+                                                cleaning team on schedule,
+                                                and my new direct booking website gives me a serious edge over
+                                                competitors.
+
+
+                                                For the price, it's the most affordable vacation rental management
+                                                software I've tested, and my profit margins have grown nearly 25% since
+                                                signing up last year.</p>
+                                            <div class="ul-review-bottom">
+                                                <div class="ul-review-reviewer">
+                                                    <div class="reviewer-image"><img
+                                                            src="{% static 'website/img/img3.jpg' %}"
+                                                            alt="reviewer image"></div>
+                                                    <div>
+                                                        <h3 class="reviewer-name">Manish</h3>
+                                                        <!--                                                    <span class="reviewer-role">Web Designer</span>-->
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- single slide -->
+                                    <div class="swiper-slide">
+                                        <div class="ul-review ul-review-2">
+                                            <span class="icon"><i class="flaticon-quote-1"></i></span>
+                                            <p class="ul-review-descr">FavHost is hands down the best property
+                                                management software I've used for my Airbnb business.
+
+
+                                                This channel manager syncs all my listings instantly, completely
+                                                eliminating double bookings during peak season.
+
+
+                                                I love how the platform handles task automation for turnovers, and the
+                                                direct booking site has already paid for itself twice over. For such an
+                                                affordable monthly cost, my revenue has climbed steadily and my STR
+                                                profitability is finally where I always wanted it to be.</p>
+                                            <p class="ul-review-descr">I love how the platform handles task automation
+                                                for turnovers, and the
+                                                direct booking site has already paid for itself twice over. For such an
+                                                affordable monthly cost, my revenue has climbed steadily and my STR
+                                                profitability is finally where I always wanted it to be.</p>
+                                            <div class="ul-review-bottom">
+                                                <div class="ul-review-reviewer">
+                                                    <div class="reviewer-image"><img
+                                                            src="{% static 'website/img/img4.jpg' %}"
+                                                            alt="reviewer image"></div>
+                                                    <div>
+                                                        <h3 class="reviewer-name">Denzel and Emma</h3>
+                                                        <!--                                                    <span class="reviewer-role">Web Designer</span>-->
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="swiper-slide">
+                                        <div class="ul-review ul-review-2">
+                                            <span class="icon"><i class="flaticon-quote-1"></i></span>
+                                            <p class="ul-review-descr">I evaluated five short term rental software
+                                                platforms before choosing FavHost, and the difference is night and day.
+
+
+                                                The OTA sync is instant, the dashboard is genuinely easy to use, and the
+                                                automated checkin and checkout instructions saves me hours every week.
+
+
+                                                The built-in direct booking website helped me cut Airbnb fees, boosting
+                                                profitability fast. </p>
+                                            <p class="ul-review-descr">
+                                                As a vacation rental channel manager, it's the best
+                                                value on the market, and my revenue growth has been steady every single
+                                                month since I onboarded.
+                                                The built-in direct booking website helped me cut Airbnb fees, boosting
+                                                profitability fast. As a vacation rental channel manager, it's the best
+                                                value on the market, and my revenue growth has been steady every single
+                                                month since I onboarded.</p>
+                                            <div class="ul-review-bottom">
+                                                <div class="ul-review-reviewer">
+                                                    <div class="reviewer-image"><img
+                                                            src="{% static 'website/img/img5.jpg' %}"
+                                                            alt="reviewer image"></div>
+                                                    <div>
+                                                        <h3 class="reviewer-name">Yiran</h3>
+                                                        <!--                                                    <span class="reviewer-role">Web Designer</span>-->
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="swiper-slide">
+                                        <div class="ul-review ul-review-2">
+                                            <span class="icon"><i class="flaticon-quote-1"></i></span>
+                                            <p class="ul-review-descr">FavHost has completely transformed how I run my
+                                                short term rental business. The OTA sync is seamless across Airbnb,
+                                                Vrbo, and Booking.com, and I haven't had a single double booking since I
+                                                switched.
+
+
+                                            </p>
+                                            <p class="ul-review-descr">
+                                                As a vacation rental channel manager, it's incredibly easy to use, and
+                                                the direct booking website it built for me has already brought in
+                                                commission-free reservations. My revenue is up 32% this quarter and the
+                                                affordable pricing makes it a no-brainer for any STR host serious about
+                                                profitability.
+                                            </p>
+                                            <div class="ul-review-bottom">
+                                                <div class="ul-review-reviewer">
+                                                    <div class="reviewer-image"><img
+                                                            src="{% static 'website/img/img6.jpg' %}"
+                                                            alt="reviewer image"></div>
+                                                    <div>
+                                                        <h3 class="reviewer-name">Madison</h3>
+                                                        <!--                                                    <span class="reviewer-role">Web Designer</span>-->
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+
+                                </div>
+
+                                <div class="ul-testimonial-2-slider-nav">
+                                    <button class="prev"><i class="flaticon-back"></i></button>
+                                    <button class="next"><i class="flaticon-next"></i></button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </section>
+            <!-- TESTIMONIAL SECTION END -->
+
+            <!-- FAQ SECTION START -->
+            <style>
+                .faq-section {
+                    background: var(--white, #fff);
+                    padding: 70px 0 24px;
+                }
+
+                .faq-container {
+                    width: 100%;
+                    max-width: 960px;
+                    margin: 0 auto;
+                    padding: 0 24px;
+                }
+
+                .faq-head {
+                    text-align: center;
+                    margin-bottom: 48px;
+                }
+
+                .faq-head__eyebrow {
+                    display: inline-block;
+                    font-size: 13px;
+                    font-weight: 700;
+                    letter-spacing: 0.14em;
+                    text-transform: uppercase;
+                    color: #EB5310;
+                    background: #FFF4ED;
+                    padding: 7px 16px;
+                    border-radius: 50px;
+                    margin-bottom: 18px;
+                }
+
+                .faq-head h2.faq-title {
+                    font-size: clamp(30px, 4vw, 46px);
+                    font-weight: 800;
+                    margin-bottom: 14px;
+                    color: #1E252F;
+                }
+
+                .faq-head h2.faq-title .faq-accent {
+                    color: #EB5310;
+                }
+
+                .faq-head .faq-subtitle {
+                    font-size: 17px;
+                    color: #6B7280;
+                    max-width: 580px;
+                    margin: 0 auto;
+                }
+
+                .faq-search {
+                    position: relative;
+                    max-width: 520px;
+                    margin: 32px auto 0;
+                }
+
+                .faq-search input {
+                    width: 100%;
+                    padding: 15px 22px 15px 50px;
+                    font-size: 15px;
+                    border: 1.5px solid #E8EAED;
+                    border-radius: 50px;
+                    background: #fff;
+                    color: #1E252F;
+                    outline: none;
+                    transition: border-color .25s ease, box-shadow .25s ease;
+                }
+
+                .faq-search input::placeholder {
+                    color: #6B7280;
+                }
+
+                .faq-search input:focus {
+                    border-color: #EB5310;
+                    box-shadow: 0 0 0 4px rgba(235, 83, 16, 0.10);
+                }
+
+                .faq-search svg {
+                    position: absolute;
+                    left: 18px;
+                    top: 50%;
+                    transform: translateY(-50%);
+                    width: 18px;
+                    height: 18px;
+                    color: #6B7280;
+                    pointer-events: none;
+                    transition: color .25s ease;
+                }
+
+                .faq-search input:focus~svg {
+                    color: #EB5310;
+                }
+
+                .faq-list {
+                    display: grid;
+                    gap: 12px;
+                }
+
+                details.faq-item {
+                    background: #fff;
+                    border: 1.5px solid #E8EAED;
+                    border-radius: 14px;
+                    overflow: hidden;
+                    transition: border-color .25s ease, box-shadow .25s ease;
+                }
+
+                details.faq-item:hover {
+                    border-color: #D2D5DA;
+                }
+
+                details.faq-item[open] {
+                    border-color: #EB5310;
+                    box-shadow: 0 8px 24px rgba(30, 37, 47, 0.06);
+                }
+
+                details.faq-item summary {
+                    list-style: none;
+                    cursor: pointer;
+                    padding: 22px 24px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    gap: 16px;
+                    font-weight: 600;
+                    font-size: 16px;
+                    color: #1E252F;
+                    transition: color .2s ease;
+                }
+
+                details.faq-item summary::-webkit-details-marker {
+                    display: none;
+                }
+
+                details.faq-item summary:hover {
+                    color: #EB5310;
+                }
+
+                details.faq-item[open] summary {
+                    color: #1E252F;
+                    padding-bottom: 14px;
+                }
+
+                details.faq-item summary h3 {
+                    margin: 0;
+                    font-size: inherit;
+                    font-weight: inherit;
+                    color: inherit;
+                    line-height: 1.4;
+                }
+
+                .faq-toggle {
+                    position: relative;
+                    flex-shrink: 0;
+                    width: 30px;
+                    height: 30px;
+                    border-radius: 50%;
+                    background: #F4F5F7;
+                    border: 1px solid #E8EAED;
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                    transition: all .3s ease;
+                }
+
+                .faq-toggle::before,
+                .faq-toggle::after {
+                    content: "";
+                    position: absolute;
+                    background: #EB5310;
+                    border-radius: 2px;
+                    transition: transform .3s ease, background .3s ease;
+                }
+
+                .faq-toggle::before {
+                    width: 11px;
+                    height: 2px;
+                }
+
+                .faq-toggle::after {
+                    width: 2px;
+                    height: 11px;
+                }
+
+                details.faq-item:hover .faq-toggle {
+                    border-color: #EB5310;
+                    background: #FFF4ED;
+                }
+
+                details.faq-item[open] .faq-toggle {
+                    background: linear-gradient(90deg, #EB5310 0%, #FAA019 100%);
+                    border-color: transparent;
+                }
+
+                details.faq-item[open] .faq-toggle::before,
+                details.faq-item[open] .faq-toggle::after {
+                    background: #fff;
+                }
+
+                details.faq-item[open] .faq-toggle::after {
+                    transform: scaleY(0);
+                }
+
+                .faq-answer {
+                    padding: 18px 24px 24px;
+                    color: #374151;
+                    font-size: 15px;
+                    line-height: 1.75;
+                    border-top: 1px solid #E8EAED;
+                    animation: faqSlide .3s ease;
+                }
+
+                @keyframes faqSlide {
+                    from {
+                        opacity: 0;
+                        transform: translateY(-4px);
+                    }
+
+                    to {
+                        opacity: 1;
+                        transform: translateY(0);
+                    }
+                }
+
+                .faq-answer p:first-child {
+                    margin-top: 0;
+                }
+
+                .faq-answer p:last-child {
+                    margin-bottom: 0;
+                }
+
+                .faq-answer strong {
+                    color: #1E252F;
+                    font-weight: 700;
+                }
+
+                details.faq-item.is-hidden {
+                    display: none;
+                }
+
+                .faq-no-results {
+                    display: none;
+                    text-align: center;
+                    padding: 50px 20px;
+                    background: #FAFAFA;
+                    border-radius: 14px;
+                    color: #6B7280;
+                }
+
+                .faq-no-results h3 {
+                    color: #1E252F;
+                    font-size: 18px;
+                    margin-bottom: 6px;
+                }
+
+                .faq-no-results.show {
+                    display: block;
+                }
+
+                @media (max-width: 640px) {
+                    .faq-section {
+                        padding: 50px 0 40px;
+                    }
+
+                    .faq-head {
+                        margin-bottom: 36px;
+                    }
+
+                    details.faq-item summary {
+                        padding: 18px 20px;
+                        font-size: 15px;
+                    }
+
+                    .faq-answer {
+                        padding: 14px 20px 20px;
+                    }
+                }
+            </style>
+
+            <section class="faq-section wow animate__fadeInUp" aria-labelledby="faq">
+                <div class="faq-container">
+
+                    <div class="faq-head">
+                        <h2 id="faq" class="faq-title wow animate__fadeInUp">Frequently asked <span
+                                class="faq-accent">questions</span></h2>
+                        <p class="faq-subtitle wow animate__fadeInUp">Everything you need to know about Favhost - from
+                            connecting your first OTA to running a commission-free direct booking site.</p>
+
+                        <div class="faq-search" role="search">
+                            <label for="faq-search-input-home" style="position:absolute;left:-9999px;">Search
+                                FAQ</label>
+                            <input type="search" id="faq-search-input-home" placeholder="Search for a question..."
+                                autocomplete="off">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+                                stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <circle cx="11" cy="11" r="8" />
+                                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                            </svg>
+                        </div>
+                    </div>
+
+                    <div class="faq-list wow animate__fadeInUp" id="faq-list-home">
+
+                        <details class="faq-item" data-keywords="favhost what how work channel manager overview">
+                            <summary>
+                                <h3>What is Favhost and how does it work?</h3>
+                                <span class="faq-toggle" aria-hidden="true"></span>
+                            </summary>
+                            <div class="faq-answer">
+                                <p>Favhost is a cloud-based <strong>channel manager</strong> built for short-term rental
+                                    hosts and property managers. It synchronizes your availability, rates, and
+                                    reservations in real time across multiple OTAs such as <strong>Airbnb, Vrbo, and
+                                        Booking.com</strong> from a single dashboard.</p>
+                                <p>That means no more juggling separate calendars, no more double bookings, and no more
+                                    late-night manual rate updates - one change in Favhost updates every channel within
+                                    seconds.</p>
+                            </div>
+                        </details>
+
+                        <details class="faq-item"
+                            data-keywords="airbnb vrbo booking expedia integrations channels OTA supported">
+                            <summary>
+                                <h3>Which booking channels and OTAs does Favhost integrate with?</h3>
+                                <span class="faq-toggle" aria-hidden="true"></span>
+                            </summary>
+                            <div class="faq-answer">
+                                <p>Favhost connects with every major short-term rental platform, including
+                                    <strong>Airbnb, Vrbo, Booking.com, Expedia, Agoda, Hotels.com, Tripadvisor,</strong>
+                                    plus direct booking engines and several regional OTAs.
+                                </p>
+                                <p>New channel integrations are added regularly based on customer demand - if a channel
+                                    you use isn't yet supported, <a href="contact.html">let us know</a>.</p>
+                            </div>
+                        </details>
+
+                        <details class="faq-item" data-keywords="direct booking website commission-free branded site">
+                            <summary>
+                                <h3>Is there any direct booking website?</h3>
+                                <span class="faq-toggle" aria-hidden="true"></span>
+                            </summary>
+                            <div class="faq-answer">
+                                <p>Yes. Every Favhost account includes a built-in, <strong>branded direct booking
+                                        website</strong> where guests can browse your listings, check live availability,
+                                    and reserve <strong>commission-free</strong>.</p>
+                                <p>Payments are processed through integrated <strong>Stripe or PayPal</strong>, and the
+                                    site automatically stays in sync with every connected OTA channel - so a booking on
+                                    your direct site instantly blocks the dates everywhere else.</p>
+                            </div>
+                        </details>
+
+                        <details class="faq-item"
+                            data-keywords="pricing cost monthly per property commission fees plans">
+                            <summary>
+                                <h3>How does Favhost pricing work?</h3>
+                                <span class="faq-toggle" aria-hidden="true"></span>
+                            </summary>
+                            <div class="faq-answer">
+                                <p>Favhost uses simple <strong>per-property monthly pricing</strong>, with automatic
+                                    volume discounts as your portfolio grows. There are <strong>no commission
+                                        fees</strong> on bookings, no setup costs, and no long-term contracts.</p>
+                                <p>You can upgrade, downgrade, or cancel at any time. See our <a
+                                        href="index.html#pricing">pricing page</a> for the latest tier details.</p>
+                            </div>
+                        </details>
+
+                        <details class="faq-item" data-keywords="free trial credit card signup">
+                            <summary>
+                                <h3>Do I need credit card info for the free trial?</h3>
+                                <span class="faq-toggle" aria-hidden="true"></span>
+                            </summary>
+                            <div class="faq-answer">
+                                <p><strong>No</strong> - the Favhost 14-day free trial requires <strong>no credit
+                                        card</strong>. You can sign up with just an email address, connect your
+                                    channels, and explore every feature with zero risk.</p>
+                                <p>You only enter payment details if and when you choose to continue past the trial
+                                    period. There's no auto-charge surprise at the end.</p>
+                            </div>
+                        </details>
+
+                        <details class="faq-item" data-keywords="cancel subscription refund stop billing">
+                            <summary>
+                                <h3>How do I cancel my subscription?</h3>
+                                <span class="faq-toggle" aria-hidden="true"></span>
+                            </summary>
+                            <div class="faq-answer">
+                                <p>You can cancel anytime directly from your account settings - <strong>no phone calls
+                                        or retention scripts</strong>. Your account stays active until the end of your
+                                    current billing cycle.</p>
+                                <p>Your data, listings, and reservation history remain exportable for <strong>30 days
+                                        after cancellation</strong>, so you never lose access to your records.</p>
+                            </div>
+                        </details>
+
+                        <details class="faq-item"
+                            data-keywords="reports analytics insights revenue performance dashboard">
+                            <summary>
+                                <h3>What kind of reports and analytics are included?</h3>
+                                <span class="faq-toggle" aria-hidden="true"></span>
+                            </summary>
+                            <div class="faq-answer">
+                                <p>Every plan includes a real-time analytics dashboard covering <strong>occupancy, ADR,
+                                        RevPAR, channel mix, booking pace, and revenue by listing</strong>.</p>
+                                <p>Reports can be exported to CSV or scheduled via email to owners and stakeholders, so
+                                    everyone stays informed without logging in.</p>
+                            </div>
+                        </details>
+
+                        <details class="faq-item" data-keywords="support customer service help chat email phone 24/7">
+                            <summary>
+                                <h3>What kind of customer support does Favhost offer?</h3>
+                                <span class="faq-toggle" aria-hidden="true"></span>
+                            </summary>
+                            <div class="faq-answer">
+                                <p>All paid plans include <strong>24/7 live chat and email support</strong>. Pro and
+                                    Enterprise plans also include priority phone support and a dedicated account
+                                    manager.</p>
+                                <p>Our average first-response time is <strong>under 5 minutes</strong> during business
+                                    hours, and most tickets are fully resolved within the same day.</p>
+                            </div>
+                        </details>
+
+                    </div>
+
+                    <div class="faq-no-results" id="faq-no-results-home">
+                        <h3>No questions match your search</h3>
+                        <p>Try a different keyword, or <a href="contact.html">reach out to our team directly</a>.</p>
+                    </div>
+
+                </div>
+            </section>
+            <script>
+                (function () {
+                    'use strict';
+                    var searchInput = document.getElementById('faq-search-input-home');
+                    var noResults = document.getElementById('faq-no-results-home');
+                    var items = document.querySelectorAll('#faq-list-home .faq-item');
+                    function applyFilter() {
+                        var query = (searchInput.value || '').toLowerCase().trim();
+                        var visibleCount = 0;
+                        items.forEach(function (item) {
+                            var text = (item.textContent + ' ' + (item.getAttribute('data-keywords') || '')).toLowerCase();
+                            var show = !query || text.indexOf(query) !== -1;
+                            item.classList.toggle('is-hidden', !show);
+                            if (show) visibleCount++;
+                        });
+                        noResults.classList.toggle('show', visibleCount === 0);
+                    }
+                    if (searchInput) {
+                        var debounceTimer;
+                        searchInput.addEventListener('input', function () {
+                            clearTimeout(debounceTimer);
+                            debounceTimer = setTimeout(applyFilter, 120);
+                        });
+                    }
+                })();
+            </script>
+            <!-- FAQ SECTION END -->
+
+        </section>
+
+
+        <!-- LATEST INSIGHTS SECTION START -->
+        <section id="resources" style="padding: 24px 0 clamp(40px, 4vw, 72px);">
+
+            <div class="ul-container wow animate__fadeInUp">
+
+                <!-- section header -->
+                <!-- <div class="d-flex align-items-center justify-content-between flex-wrap" style="margin-bottom:24px;">
+                    <h2 class="faq-title wow animate__fadeInUp" style="margin-bottom:0;">Resources</h2>
+                    <a href="{% url 'blog' %}" class="ul-btn"><i
+                            class="flaticon-fast-forward-double-right-arrows-symbol"></i> View All Resources</a>
+                </div> -->
+                <div class="d-flex align-items-center justify-content-between flex-wrap" style="margin-bottom:24px;">
+                    <h2 class="faq-title wow animate__fadeInUp" style="margin-bottom:0;">Resources</h2>
+                    <a href="{% url 'blog' %}" style="font-size:1.05rem;font-weight:700;"><i></i> View all resources</a>
+                </div>
+                <!-- blog cards grid -->
+                <div class="row row-cols-md-3 row-cols-1 ul-bs-row">
+
+                    <!-- blog card 1 -->
+                    <div class="col">
+                        <div class="ul-blog ul-blog-2"
+                            style="cursor:pointer;border-radius:16px;overflow:hidden;height:100%;display:flex;flex-direction:column;"
+                            onclick="window.location.href='{% url 'blog-details' 'the-secret-to-scaling-your-rental-business' %}'">
+                            <div class="ul-blog-img" style="border-radius:16px 16px 0 0;overflow:hidden;">
+                                <img src="{% static 'website/img/blog-1.jpg' %}"
+                                    alt="The Secret to Scaling Your Rental Business">
+                            </div>
+                            <div class="ul-blog-txt" style="flex:1;display:flex;flex-direction:column;padding:20px;">
+                                <span
+                                    style="font-size:11px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:#EB5310;margin-bottom:6px;display:block;">Channel
+                                    Management</span>
+                                <a href="{% url 'blog-details' 'the-secret-to-scaling-your-rental-business' %}"
+                                    class="ul-blog-title" style="display:block;margin-bottom:8px;">The Secret to Scaling
+                                    Your Rental Business</a>
+                                <p style="color:#6B7280;font-size:14px;line-height:1.55;margin-bottom:14px;flex:1;">
+                                    Managing a single short-term rental is a hobby. Managing five or more across
+                                    multiple platforms is a high-stakes balancing act. Learn how high-performing hosts
+                                    scale without the chaos.</p>
+                                <a href="{% url 'blog-details' 'the-secret-to-scaling-your-rental-business' %}"
+                                    class="ul-blog-btn">Read More <span class="icon"><i
+                                            class="flaticon-next"></i></span></a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- blog card 2 -->
+                    <div class="col">
+                        <div class="ul-blog ul-blog-2"
+                            style="cursor:pointer;border-radius:16px;overflow:hidden;height:100%;display:flex;flex-direction:column;"
+                            onclick="window.location.href='{% url 'blog-details' 'how-to-increase-your-visibility-and-ranking-on-airbnb' %}'">
+                            <div class="ul-blog-img" style="border-radius:16px 16px 0 0;overflow:hidden;">
+                                <img src="{% static 'website/img/blog-2.jpg' %}"
+                                    alt="How to Increase Your Visibility and Ranking on Airbnb">
+                            </div>
+                            <div class="ul-blog-txt" style="flex:1;display:flex;flex-direction:column;padding:20px;">
+                                <span
+                                    style="font-size:11px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:#EB5310;margin-bottom:6px;display:block;">Platform
+                                    Growth</span>
+                                <a href="{% url 'blog-details' 'how-to-increase-your-visibility-and-ranking-on-airbnb' %}"
+                                    class="ul-blog-title" style="display:block;margin-bottom:8px;">How to Increase Your
+                                    Visibility and Ranking on Airbnb</a>
+                                <p style="color:#6B7280;font-size:14px;line-height:1.55;margin-bottom:14px;flex:1;">Many
+                                    hosts start by manually updating their calendars — a habit that quickly becomes a
+                                    liability as your portfolio grows. Discover the strategies top-ranked hosts use to
+                                    stay ahead.</p>
+                                <a href="{% url 'blog-details' 'how-to-increase-your-visibility-and-ranking-on-airbnb' %}"
+                                    class="ul-blog-btn">Read More <span class="icon"><i
+                                            class="flaticon-next"></i></span></a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- blog card 3 -->
+                    <div class="col">
+                        <div class="ul-blog ul-blog-2"
+                            style="cursor:pointer;border-radius:16px;overflow:hidden;height:100%;display:flex;flex-direction:column;"
+                            onclick="window.location.href='{% url 'blog-details' 'how-to-run-homestay-business-tips-and-tricks' %}'">
+                            <div class="ul-blog-img" style="border-radius:16px 16px 0 0;overflow:hidden;">
+                                <img src="{% static 'website/img/blog-3.jpg' %}" alt="How to Run a Homestay Business">
+                            </div>
+                            <div class="ul-blog-txt" style="flex:1;display:flex;flex-direction:column;padding:20px;">
+                                <span
+                                    style="font-size:11px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:#EB5310;margin-bottom:6px;display:block;">Host
+                                    Operations</span>
+                                <a href="{% url 'blog-details' 'how-to-run-homestay-business-tips-and-tricks' %}"
+                                    class="ul-blog-title" style="display:block;margin-bottom:8px;">How to Run a Homestay
+                                    Business: Tips &amp; Tricks</a>
+                                <p style="color:#6B7280;font-size:14px;line-height:1.55;margin-bottom:14px;flex:1;">The
+                                    most successful hosts provide a high-tech experience that feels effortlessly human.
+                                    Guests in 2026 expect seamlessness — here is how to deliver it without burning out.
+                                </p>
+                                <a href="{% url 'blog-details' 'how-to-run-homestay-business-tips-and-tricks' %}"
+                                    class="ul-blog-btn">Read More <span class="icon"><i
+                                            class="flaticon-next"></i></span></a>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+                <!-- blog cards grid end -->
+
+            </div>
+        </section>
+        <!-- LATEST INSIGHTS SECTION END -->
+
+
+    </main>
+
+
+    <!-- FOOTER SECTION START -->
+    <footer class="ul-footer wow animate__fadeInUp">
+        <!-- COMMENTED OUT: footer top contact bar
+        <div class="ul-footer-top">
+            <div class="ul-footer-container">
+                <div class="ul-footer-top-contact-infos">
+                    single info
+                    <div class="ul-footer-top-contact-info">
+                        icon
+                        <div class="ul-footer-top-contact-info-icon">
+                            <div class="ul-footer-top-contact-info-icon-inner">
+                                <i class="flaticon-pin"></i>
+                            </div>
+                        </div>
+                        txt
+                        <div class="ul-footer-top-contact-info-txt">
+                            <span class="ul-footer-top-contact-info-label">Address</span>
+                            <h5 class="ul-footer-top-contact-info-address">4648 Rocky Road Philadelphia PA, 1920</h5>
+                        </div>
+                    </div>
+
+                    single info
+                    <div class="ul-footer-top-contact-info">
+                        icon
+                        <div class="ul-footer-top-contact-info-icon">
+                            <div class="ul-footer-top-contact-info-icon-inner">
+                                <i class="flaticon-email"></i>
+                            </div>
+                        </div>
+                        txt
+                        <div class="ul-footer-top-contact-info-txt">
+                            <span class="ul-footer-top-contact-info-label">Send Email</span>
+                            <h5 class="ul-footer-top-contact-info-address"><a
+                                    href="mailto:info@exmple.com">info@exmple.com</a></h5>
+                        </div>
+                    </div>
+
+                    single info
+                    <div class="ul-footer-top-contact-info">
+                        icon
+                        <div class="ul-footer-top-contact-info-icon">
+                            <div class="ul-footer-top-contact-info-icon-inner">
+                                <i class="flaticon-telephone-call-1"></i>
+                            </div>
+                        </div>
+                        txt
+                        <div class="ul-footer-top-contact-info-txt">
+                            <span class="ul-footer-top-contact-info-label">Call Us</span>
+                            <h5 class="ul-footer-top-contact-info-address"><a href="tel:88012365499">+88 0123 654 99</a>
+                            </h5>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        END COMMENTED OUT -->
+
+        <div class="ul-footer-middle">
+            <div class="ul-footer-container">
+                <div class="ul-footer-middle-wrapper wow animate__fadeInUp">
+                    <div class="ul-footer-about">
+                        <a href="{% url 'index' %}"><img src="{% static 'img/login/favhost_new_logo.png' %}" alt="logo"
+                                class="logo"></a>
+                        <p class="ul-footer-about-txt">Centralizes property management by synchronizing availability,
+                            reservations across multiple channels like Airbnb and Vrbo via real-time integrations.</p>
+                        <div class="ul-footer-socials">
+                            <a href="https://www.facebook.com/profile.php?id=61590927320511" target="_blank"><i
+                                    class="flaticon-facebook"></i></a>
+                            <!-- <a href="#"><i class="flaticon-twitter"></i></a> -->
+                            <a href="https://www.instagram.com/favhost/" target="_blank"><i
+                                    class="flaticon-instagram"></i></a>
+                            <a href="https://www.youtube.com/@favhost" target="_blank"><i
+                                    class="flaticon-youtube"></i></a>
+                        </div>
+                    </div>
+
+                    <div class="ul-footer-widget">
+                        <h3 class="ul-footer-widget-title">Quick Links</h3>
+
+                        <div class="ul-footer-widget-links">
+                            <a href="#feature">Features</a>
+                            <a href="#watchdemo">Watch Demo</a>
+                            <a href="#pricing">Pricing</a>
+                            <a href="#about">About us</a>
+                            <a href="#cstories">Customer stories</a>
+                            <a href="#faq">FAQ</a>
+                            <a href="#resources">Resources</a>
+                            <a href="{% url 'contact' %}">Contact Us</a>
+                        </div>
+                    </div>
+
+                    <div class="ul-footer-widget ul-footer-recent-posts">
+                        <h3 class="ul-footer-widget-title">Resources</h3>
+
+                        <div class="ul-blog-sidebar-posts">
+                            <!-- single post -->
+                            <div class="ul-blog-sidebar-post ul-footer-post">
+                                <div class="img">
+                                    <img src="{% static 'website/img/blog-2.jpg' %}" alt="Post Image">
+                                </div>
+
+                                <div class="txt">
+                                    <span class="date">
+                                        <span class="icon"><i class="flaticon-calendar"></i></span>
+                                        <span>April 5, 2026</span>
+                                    </span>
+
+                                    <h4 class="title"><a
+                                            href="{% url 'blog-details' 'the-risks-of-manual-management' %}">The Risks
+                                            of Manual Management</a></h4>
+                                </div>
+                            </div>
+
+                            <!-- single post -->
+                            <div class="ul-blog-sidebar-post ul-footer-post">
+                                <div class="img">
+                                    <img src="{% static 'website/img/blog-1.jpg' %}" alt="Post Image">
+                                </div>
+
+                                <div class="txt">
+                                    <span class="date">
+                                        <span class="icon"><i class="flaticon-calendar"></i></span>
+                                        <span>April 7, 2026</span>
+                                    </span>
+
+                                    <h4 class="title"><a
+                                            href="{% url 'blog-details' 'the-secret-to-scaling-your-rental-business' %}">The
+                                            Secret to Scaling Your Rental Business</a></h4>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="ul-footer-widget ul-nwsltr-widget">
+                        <h3 class="ul-footer-widget-title">Contact Us</h3>
+                        <div class="ul-footer-widget-links ul-footer-contact-links">
+                            <a href="mailto:support@favhost.com"><i class="flaticon-mail"></i> support@favhost.com</a>
+                            <a href="tel:123-456-7890"><i class="flaticon-telephone-call"></i> 123-456-7890</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- footer bottom -->
+        <div class="ul-footer-bottom">
+            <div class="ul-footer-container">
+                <div class="ul-footer-bottom-wrapper">
+                    <p class="copyright-txt">&copy;
+                        <span id="footer-copyright-year"></span> Favhost.LLC.All rights reserved.
+                    </p>
+                    <div class="ul-footer-bottom-nav"><a href="{% url 'terms' %}">Terms & Conditions</a> <a
+                            href="{% url 'privacy' %}">Privacy Policy</a></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- vector -->
+        <div class="ul-footer-vectors">
+            <img src="{% static 'website/img/footer-vector-img.png' %}" alt="Footer Image" class="ul-footer-vector-1">
+        </div>
+    </footer>
+    <!-- FOOTER SECTION END -->
+
+    <!-- libraries JS -->
+    <script src="{% static 'website/vendor/bootstrap/bootstrap.bundle.min.js' %}"></script>
+    <script src="{% static 'website/vendor/splide/splide.min.js' %}"></script>
+    <script src="{% static 'website/vendor/splide/splide-extension-auto-scroll.min.js' %}"></script>
+    <script src="{% static 'website/vendor/swiper/swiper-bundle.min.js' %}"></script>
+    <script src="{% static 'website/vendor/slim-select/slimselect.min.js' %}"></script>
+    <script src="{% static 'website/vendor/animate-wow/wow.min.js' %}"></script>
+    <script src="{% static 'website/vendor/splittype/index.min.js' %}"></script>
+    <script src="{% static 'website/vendor/mixitup/mixitup.min.js' %}"></script>
+    <script src="{% static 'website/vendor/fslightbox/fslightbox.js' %}"></script>
+    <script src="{% static 'website/vendor/flatpickr/flatpickr.js' %}"></script>
+
+    <!-- custom JS -->
+    <script src="{% static 'website/js/main.js' %}"></script>
+    <script src="{% static 'website/js/tab.js' %}"></script>
+    <script src="{% static 'website/js/accordion.js' %}"></script>
+    <script src="{% static 'website/js/progressbar.js' %}"></script>
+    <script src="{% static 'website/js/donate-form.js' %}"></script>
+    <script>
+
+        const video = document.getElementById('demoVideo');
+        const overlay = document.getElementById('demoOverlay');
+        const playBtn = document.getElementById('playBtn');
+
+        if (playBtn) {
+            playBtn.addEventListener('click', () => {
+                overlay.style.display = 'none';
+                video.play();
+            });
+            video.addEventListener('click', () => {
+                if (!video.paused) { video.pause(); overlay.style.display = 'flex'; }
+            });
+            video.addEventListener('ended', () => {
+                overlay.style.display = 'flex';
+                video.currentTime = 0;
+            });
+        }
+    </script>
+
+
+    <script>
+        (function () {
+            var header = document.querySelector('.ul-header-bottom.to-be-sticky');
+            if (!header) return;
+            window.addEventListener('scroll', function () {
+                if (window.scrollY > 50) {
+                    header.classList.add('scrolled');
+                } else {
+                    header.classList.remove('scrolled');
+                }
+            }, { passive: true });
+        })();
+    </script>
+
+    <script>
+        (function () {
+            var header = document.querySelector('.ul-header-bottom.to-be-sticky');
+            if (!header) return;
+            function setScrollMargin() {
+                document.documentElement.style.setProperty('--header-h', header.offsetHeight + 'px');
+            }
+            setScrollMargin();
+            window.addEventListener('resize', setScrollMargin, { passive: true });
+        })();
+    </script>
+
+    <script>
+        (function () {
+            var slides = document.querySelectorAll('.hero-slideshow .hero-slide');
+            if (!slides.length) return;
+            var current = 0;
+            setInterval(function () {
+                slides[current].classList.remove('active');
+                current = (current + 1) % slides.length;
+                slides[current].classList.add('active');
+            }, 3200);
+        })();
+    </script>
+
+</body>
+
+</html>

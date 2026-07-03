@@ -1,0 +1,700 @@
+{% extends 'frontend/base/base.html' %}
+{% load static %}
+{% load frontdesk_extras %}
+{% block extra_head %}
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FavHost · Frontdesk</title>
+<link href="{% static 'css/frontdesk/index.css' %}" rel="stylesheet">
+{% endblock extra_head %}
+
+{% block content %}
+<div class="fd-page">
+
+<!-- ══════════ ICON SPRITE ══════════ -->
+<svg width="0" height="0" class="fd-icon-defs" aria-hidden="true">
+  <symbol id="ic-roof" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M3.2 11.5L12 4.2l8.8 7.3"/><path d="M17.5 8V5h2.2"/></symbol>
+  <symbol id="ic-bell" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></symbol>
+  <symbol id="ic-grid" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></symbol>
+  <symbol id="ic-cal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15" rx="2.2"/><path d="M3.5 9.2h17"/><path d="M8 3.2v3.4"/><path d="M16 3.2v3.4"/></symbol>
+  <symbol id="ic-users" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.1"/><path d="M3.4 19a5.6 5.6 0 0 1 11.2 0"/><path d="M16.2 5.4a3 3 0 0 1 0 5.8"/><path d="M16 13.4a5.6 5.6 0 0 1 4.6 5.6"/></symbol>
+  <symbol id="ic-listings" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6h11"/><path d="M9 12h11"/><path d="M9 18h11"/><circle cx="4.5" cy="6" r="1.1"/><circle cx="4.5" cy="12" r="1.1"/><circle cx="4.5" cy="18" r="1.1"/></symbol>
+  <symbol id="ic-task" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="5" width="14" height="16" rx="2.2"/><path d="M9 5V4.2A1.2 1.2 0 0 1 10.2 3h3.6A1.2 1.2 0 0 1 15 4.2V5"/><path d="M8.8 13.2l2 2 4.2-4.2"/></symbol>
+  <symbol id="ic-mail" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="6" width="17" height="12" rx="2.2"/><path d="M4.2 7.2l7.8 5.6 7.8-5.6"/></symbol>
+  <symbol id="ic-refresh" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 0 1 13.7-5.6"/><path d="M18 3.5V8h-4.5"/><path d="M20 12a8 8 0 0 1-13.7 5.6"/><path d="M6 20.5V16h4.5"/></symbol>
+  <symbol id="ic-chevl" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></symbol>
+  <symbol id="ic-chevr" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></symbol>
+  <symbol id="ic-chevd" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9.5l6 6 6-6"/></symbol>
+  <symbol id="ic-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M5 12h14"/></symbol>
+  <symbol id="ic-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="6.4"/><path d="M20 20l-4.2-4.2"/></symbol>
+  <symbol id="ic-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13"/><path d="M13 6l6 6-6 6"/></symbol>
+  <symbol id="ic-ext" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6"/><path d="M20 4l-8.5 8.5"/><path d="M18.5 13.5V18a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7.5a2 2 0 0 1 2-2h4.5"/></symbol>
+  <symbol id="ic-bed" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18v-6.2A2 2 0 0 1 5 9.8h14a2 2 0 0 1 2 2V18"/><path d="M3 14.2h18"/><path d="M7 9.8V8a1.2 1.2 0 0 1 1.2-1.2h3.3V9.8"/><path d="M3 18v2"/><path d="M21 18v2"/></symbol>
+  <symbol id="ic-user" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.2"/><path d="M5 20a7 7 0 0 1 14 0"/></symbol>
+  <symbol id="ic-paw" viewBox="0 0 24 24" fill="currentColor"><circle cx="6" cy="11" r="1.7"/><circle cx="10" cy="7.6" r="1.7"/><circle cx="14" cy="7.6" r="1.7"/><circle cx="18" cy="11" r="1.7"/><path d="M12 12.6c2.5 0 4.4 1.5 4.4 3.5S14.5 19.6 12 19.6 7.6 18.1 7.6 16.1 9.5 12.6 12 12.6z"/></symbol>
+  <symbol id="ic-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></symbol>
+  <symbol id="ic-list" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h12"/><path d="M8 12h12"/><path d="M8 18h12"/><path d="M4 6h.01"/><path d="M4 12h.01"/><path d="M4 18h.01"/></symbol>
+  <symbol id="ic-dots" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="19" cy="12" r="1.7"/></symbol>
+  <symbol id="ic-home" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></symbol>
+  <symbol id="ic-checkin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></symbol>
+  <symbol id="ic-checkout" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></symbol>
+</svg>
+
+<!-- ══════════ PAGE BODY ══════════ -->
+<div class="fd-body">
+  <div class="fd-wrap">
+
+    <!-- Page header + date nav -->
+    <div class="fd-page-header">
+      <div class="fd-ph-left">
+        <img src="{% static 'img/header/bell.png' %}" alt="Frontdesk">
+        <span class="fd-ph-title">Frontdesk</span>
+      </div>
+      <div class="fd-ph-right">
+        <div class="date-nav">
+          <button class="date-nav-btn" id="btn-prev-day" aria-label="Previous day">
+            <svg width="15" height="15"><use href="#ic-chevl"/></svg>
+          </button>
+          <span class="date-display" id="date-display">{{ day_name }}, {{ day_num }} {{ month_name }}</span>
+          <button class="date-nav-btn" id="btn-next-day" aria-label="Next day">
+            <svg width="15" height="15"><use href="#ic-chevr"/></svg>
+          </button>
+          <input type="date" id="date-picker" class="date-picker-input" value="{{ date_iso }}">
+        </div>
+      </div>
+    </div>
+
+    <!-- KPI Strip -->
+    <section class="kpi-strip">
+
+      <div class="date-card">
+        <input type="date" class="dc-date-overlay" id="dc-date-overlay" value="{{ date_iso }}" aria-label="Pick a date">
+        <div class="dc-dow" id="dc-dow">{{ day_name|upper }}</div>
+        <div class="dc-date">
+          <span class="dc-num" id="dc-num">{{ day_num }}</span>
+          <span class="dc-mon" id="dc-mon">{{ month_name }}</span>
+        </div>
+        <div class="dc-year" id="dc-year">{% now "Y" %}</div>
+      </div>
+
+      <div class="metrics-card">
+        <div class="occ-ring">
+          <svg width="92" height="92" viewBox="0 0 108 108" aria-hidden="true">
+            <circle cx="54" cy="54" r="44" fill="none" stroke="#ECEDEF" stroke-width="10"/>
+            <circle id="occ-arc" cx="54" cy="54" r="44" fill="none" stroke="#1FAE5A" stroke-width="10"
+                    stroke-linecap="round"
+                    stroke-dasharray="0 276.46"/>
+          </svg>
+          <div class="occ-inner">
+            <b id="occ-pct">{{ occupancy_pct }}%</b>
+            <small>Occupancy</small>
+          </div>
+        </div>
+
+        <div class="kpi-grid">
+          <div class="kpi"><span class="kpi-val green" id="kpi-revpar">${{ revpar }}</span><span class="kpi-label">RevPAR</span></div>
+          <div class="kpi"><span class="kpi-val" id="kpi-inhouse">{{ total_inhouse }}</span><span class="kpi-label">In house</span></div>
+          <div class="kpi"><span class="kpi-val green" id="kpi-checkins">{{ total_checkin }}</span><span class="kpi-label">Check-ins</span></div>
+          <div class="kpi"><span class="kpi-val amber" id="kpi-checkouts">{{ total_checkout }}</span><span class="kpi-label">Check-outs</span></div>
+          <div class="kpi"><span class="kpi-val red" id="kpi-cancel">{{ total_cancellations }}</span><span class="kpi-label">Cancellations</span></div>
+          <div class="kpi"><span class="kpi-val" id="kpi-vacant">{{ total_vacant }}/{{ total_active }}</span><span class="kpi-label">Vacant</span></div>
+          <div class="kpi"><span class="kpi-val purple" id="kpi-booked">{{ total_booked_today }}</span><span class="kpi-label">Booked today</span></div>
+          <div class="kpi"><span class="kpi-val amber" id="kpi-tasks">{{ total_tasks }}</span><span class="kpi-label">Tasks</span></div>
+          <div class="kpi"><span class="kpi-val" id="kpi-payments">${{ total_payments_amount }}</span><span class="kpi-label">Payments</span></div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- Three-column section -->
+    <section class="columns">
+
+      <div class="col-card">
+        <div class="col-head">
+          <span class="col-title-pill pill-green">Check-ins <span class="count" id="ci-count">{{ total_checkin }}</span></span>
+          <label class="col-search" for="ci-search">
+            <svg><use href="#ic-search"/></svg>
+            <input type="search" id="ci-search" placeholder="Search guest…" autocomplete="off">
+          </label>
+          <a class="view-all" href="{% url 'calendar' %}?view=list&filter=in&month={{ target_date|date:"m" }}&year={{ target_date|date:"Y" }}">All <svg><use href="#ic-arrow"/></svg></a>
+        </div>
+        <ul class="guest-list" id="checkin-list">
+          {% for b in checkins %}
+          <li class="guest-item" data-name="{{ b.first_name }} {{ b.last_name }}" data-prop="{{ b.property.title }}" data-booking-id="{{ b.id }}">
+            <div class="g-thumb">
+              {% if b.property.get_primary_image_url %}
+              <img src="{{ b.property.get_primary_image_url }}" alt="{{ b.property.title }}" loading="lazy">
+              {% else %}
+              <svg><use href="#ic-bed"/></svg>
+              {% endif %}
+            </div>
+            <div class="g-info">
+              <div class="g-prop">{{ b.property.title|truncatechars:32 }}</div>
+              <div class="g-name">{{ b.first_name }} {{ b.last_name }}</div>
+              <div class="g-contact">{{ b.email }}</div>
+              {% if b.check_in_time %}
+              <div class="g-time"><svg><use href="#ic-clock"/></svg>{{ b.check_in_time }}</div>
+              {% endif %}
+            </div>
+            <a class="g-ext" href="#" aria-label="Open reservation" onclick="event.preventDefault();var li=this.closest('.guest-item');if(li)openReservationPanel(event,li.dataset.bookingId);"><svg><use href="#ic-ext"/></svg></a>
+          </li>
+          {% empty %}
+          <li>
+            <div class="empty-state">
+              <svg><use href="#ic-users"/></svg>
+              <p>No check-ins today</p>
+            </div>
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+
+      <div class="col-card">
+        <div class="col-head">
+          <span class="col-title-pill pill-red">Check-outs <span class="count" id="co-count">{{ total_checkout }}</span></span>
+          <label class="col-search" for="co-search">
+            <svg><use href="#ic-search"/></svg>
+            <input type="search" id="co-search" placeholder="Search guest…" autocomplete="off">
+          </label>
+          <a class="view-all" href="{% url 'calendar' %}?view=list&filter=out&month={{ target_date|date:"m" }}&year={{ target_date|date:"Y" }}">All <svg><use href="#ic-arrow"/></svg></a>
+        </div>
+        <ul class="guest-list" id="checkout-list">
+          {% for b in checkouts %}
+          <li class="guest-item" data-name="{{ b.first_name }} {{ b.last_name }}" data-prop="{{ b.property.title }}" data-booking-id="{{ b.id }}">
+            <div class="g-thumb">
+              {% if b.property.get_primary_image_url %}
+              <img src="{{ b.property.get_primary_image_url }}" alt="{{ b.property.title }}" loading="lazy">
+              {% else %}
+              <svg><use href="#ic-bed"/></svg>
+              {% endif %}
+            </div>
+            <div class="g-info">
+              <div class="g-prop">{{ b.property.title|truncatechars:32 }}</div>
+              <div class="g-name">{{ b.first_name }} {{ b.last_name }}</div>
+              <div class="g-contact">{{ b.email }}</div>
+              {% if b.check_out_time %}
+              <div class="g-time"><svg><use href="#ic-clock"/></svg>{{ b.check_out_time }}</div>
+              {% endif %}
+            </div>
+            <a class="g-ext" href="#" aria-label="Open reservation" onclick="event.preventDefault();var li=this.closest('.guest-item');if(li)openReservationPanel(event,li.dataset.bookingId);"><svg><use href="#ic-ext"/></svg></a>
+          </li>
+          {% empty %}
+          <li>
+            <div class="empty-state">
+              <svg><use href="#ic-users"/></svg>
+              <p>No check-outs today</p>
+            </div>
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+
+      <div class="col-card col-hk">
+        <div class="col-head">
+          <span class="col-title-pill pill-purple">Housekeeping</span>
+          <div class="col-tools">
+            <button class="tool-btn active" aria-label="List view"><svg><use href="#ic-list"/></svg></button>
+          </div>
+        </div>
+        <ul class="hk-list" id="hk-list">
+          {% for h in housekeeping %}
+          <li class="hk-item">
+            <div class="hk-thumb-wrap">
+              <div class="hk-thumb">
+                {% if h.image_url %}
+                <img src="{{ h.image_url }}" alt="{{ h.title }}" loading="lazy">
+                {% else %}
+                <svg><use href="#ic-bed"/></svg>
+                {% endif %}
+              </div>
+              <span class="avail-badge {% if h.available %}ok{% else %}no{% endif %}">
+                {% if h.available %}Available{% else %}Not available{% endif %}
+              </span>
+            </div>
+            <div class="hk-info">
+              <div class="hk-title">{{ h.title }}</div>
+              <div class="hk-meta">
+                <span class="hk-meta-item"><svg><use href="#ic-user"/></svg>{{ h.guest_max }} guests</span>
+                {% if h.bed_type %}<span class="hk-meta-item"><svg><use href="#ic-bed"/></svg>{{ h.bed_type }}</span>{% endif %}
+                {% if h.pet_friendly %}<span class="hk-meta-item"><svg><use href="#ic-paw"/></svg>Pet friendly</span>{% endif %}
+                {% if h.has_checkin %}<span class="hk-flag checkin"><svg><use href="#ic-checkin"/></svg>Check-in</span>{% endif %}
+                {% if h.has_checkout %}<span class="hk-flag checkout"><svg><use href="#ic-checkout"/></svg>Check-out</span>{% endif %}
+              </div>
+              <div class="hk-price">
+                <span class="hk-price-val">${{ h.price }}</span>
+                <span class="hk-price-unit">/ night</span>
+              </div>
+            </div>
+            <div class="hk-status-col">
+              {% with h.status as st %}
+              <div class="hk-status-dd" data-property-id="{{ h.id }}">
+                <button class="hk-status-btn" type="button" aria-haspopup="listbox">
+                  <span class="hk-status-btn-left">
+                    <span class="hk-status-dot hk-dot-{{ st|slugify }}"></span>
+                    <span class="hk-status-label">{{ st }}</span>
+                  </span>
+                  <svg class="hk-status-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9.5l6 6 6-6"/></svg>
+                </button>
+                <div class="hk-status-menu" role="listbox">
+                  <div class="hk-status-opt{% if st == 'Dirty' %} selected{% endif %}" data-value="Dirty">
+                    <span class="hk-status-opt-dot hk-dot-dirty"></span>
+                    <div class="hk-status-opt-info"><span class="hk-status-opt-label">Dirty</span><span class="hk-status-opt-desc">Needs cleaning</span></div>
+                  </div>
+                  <div class="hk-status-opt{% if st == 'In-Progress' %} selected{% endif %}" data-value="In-Progress">
+                    <span class="hk-status-opt-dot hk-dot-in-progress"></span>
+                    <div class="hk-status-opt-info"><span class="hk-status-opt-label">In-Progress</span><span class="hk-status-opt-desc">Currently being cleaned</span></div>
+                  </div>
+                  <div class="hk-status-opt{% if st == 'Clean-Uninspected' %} selected{% endif %}" data-value="Clean-Uninspected">
+                    <span class="hk-status-opt-dot hk-dot-clean-uninspected"></span>
+                    <div class="hk-status-opt-info"><span class="hk-status-opt-label">Clean-Uninspected</span><span class="hk-status-opt-desc">Cleaned, not verified</span></div>
+                  </div>
+                  <div class="hk-status-opt{% if st == 'Clean-Inspected' %} selected{% endif %}" data-value="Clean-Inspected">
+                    <span class="hk-status-opt-dot hk-dot-clean-inspected"></span>
+                    <div class="hk-status-opt-info"><span class="hk-status-opt-label">Clean-Inspected</span><span class="hk-status-opt-desc">Verified clean</span></div>
+                  </div>
+                  <div class="hk-status-opt{% if st == 'Clean-Ready' %} selected{% endif %}" data-value="Clean-Ready">
+                    <span class="hk-status-opt-dot hk-dot-clean-ready"></span>
+                    <div class="hk-status-opt-info"><span class="hk-status-opt-label">Clean-Ready</span><span class="hk-status-opt-desc">Ready for guest</span></div>
+                  </div>
+                  <div class="hk-status-opt{% if st == 'Out-of-Service' %} selected{% endif %}" data-value="Out-of-Service">
+                    <span class="hk-status-opt-dot hk-dot-out-of-service"></span>
+                    <div class="hk-status-opt-info"><span class="hk-status-opt-label">Out-of-Service</span><span class="hk-status-opt-desc">Unavailable</span></div>
+                  </div>
+                </div>
+              </div>
+              {% endwith %}
+            </div>
+          </li>
+          {% empty %}
+          <li>
+            <div class="empty-state">
+              <svg><use href="#ic-home"/></svg>
+              <p>No active properties</p>
+            </div>
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+
+    </section>
+  </div>
+</div>
+
+<div class="task-modal-overlay" id="reservationModalOverlay" onclick="closeReservationPanel(event)">
+  <div class="reservation-modal" id="reservationModal" onclick="event.stopPropagation()">
+    <div class="reservation-modal-header">
+      <button class="reservation-modal-close" onclick="closeReservationPanel()">&times;</button>
+    </div>
+    <div class="reservation-modal-body" id="reservationModalContent">
+      <div class="fd-center-box">
+        <div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% include 'frontend/base/footer.html' %}
+</div><!-- .fd-page -->
+{% endblock content %}
+
+{% block extra_script %}
+<script>
+(function(){
+  'use strict';
+
+  const API = {
+    summary:      '{% url "frontdesk:api-summary" %}',
+    checkins:     '{% url "frontdesk:api-checkins" %}',
+    checkouts:    '{% url "frontdesk:api-checkouts" %}',
+    housekeeping: '{% url "frontdesk:api-housekeeping" %}',
+  };
+
+  let currentDate = new Date('{{ date_iso }}');
+  let isLoading = false;
+
+  const btnPrev    = document.getElementById('btn-prev-day');
+  const btnNext    = document.getElementById('btn-next-day');
+  const btnToday   = document.getElementById('btn-today');   // optional
+  const btnRefresh = document.getElementById('btn-refresh'); // optional
+  const dateDisp   = document.getElementById('date-display');
+  const datePicker = document.getElementById('date-picker');
+
+  function fmtISO(d){ return d.toISOString().slice(0,10); }
+  function fmtLabel(d){
+    const days  = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    const months= ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    return `${days[d.getDay()]}, ${d.getDate()} ${months[d.getMonth()]}`;
+  }
+  function fmtDow(d){
+    const days=['SUN','MON','TUE','WED','THU','FRI','SAT'];
+    return days[d.getDay()];
+  }
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+  function escHTML(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+  function updateDonut(pct){
+    const CIRC = 2 * Math.PI * 44;
+    const fill = (pct / 100) * CIRC;
+    const arc  = document.getElementById('occ-arc');
+    if(!arc) return;
+    const color = pct >= 80 ? '#E5484D' : pct >= 50 ? '#F59E0B' : '#1FAE5A';
+    arc.style.stroke = color;
+    arc.setAttribute('stroke-dasharray', `${fill.toFixed(2)} ${(CIRC - fill).toFixed(2)}`);
+  }
+
+  function applyStatusDD(){
+    document.querySelectorAll('.hk-status-dd').forEach(dd => {
+      const btn  = dd.querySelector('.hk-status-btn');
+      const menu = dd.querySelector('.hk-status-menu');
+      if(!btn || menu.dataset.bound) return;
+      menu.dataset.bound = '1';
+
+      btn.addEventListener('click', function(e){
+        e.stopPropagation();
+        const isOpen = dd.classList.contains('open');
+        document.querySelectorAll('.hk-status-dd.open').forEach(o => o.classList.remove('open'));
+        if(!isOpen) dd.classList.add('open');
+      });
+
+      menu.querySelectorAll('.hk-status-opt').forEach(opt => {
+        opt.addEventListener('click', function(e){
+          e.stopPropagation();
+          const val = this.dataset.value;
+          const propertyId = dd.dataset.propertyId;
+          menu.querySelectorAll('.hk-status-opt').forEach(o => o.classList.remove('selected'));
+          this.classList.add('selected');
+          dd.querySelector('.hk-status-dot').outerHTML = statusDot(val);
+          dd.querySelector('.hk-status-label').textContent = val;
+          dd.classList.remove('open');
+          fetch(API.housekeeping, {
+            method: 'POST',
+            headers: {'Content-Type':'application/json','X-CSRFToken': getCookie('csrftoken')},
+            body: JSON.stringify({property_id: propertyId, status: val})
+          });
+        });
+      });
+    });
+
+    document.addEventListener('click', function(){
+      document.querySelectorAll('.hk-status-dd.open').forEach(o => o.classList.remove('open'));
+    }, {capture:true, once:false});
+  }
+
+  function renderGuest(b, timeKey){
+    const img = b.image_url
+      ? `<img src="${escHTML(b.image_url)}" alt="" loading="lazy">`
+      : `<svg><use href="#ic-bed"/></svg>`;
+    const time = b[timeKey] ? `<div class="g-time"><svg><use href="#ic-clock"/></svg>${escHTML(b[timeKey])}</div>` : '';
+    return `
+      <li class="guest-item" data-name="${escHTML(b.guest_name)}" data-prop="${escHTML(b.property_title)}" data-booking-id="${escHTML(b.id)}">
+        <div class="g-thumb">${img}</div>
+        <div class="g-info">
+          <div class="g-prop">${escHTML(b.property_title.substring(0,32))}</div>
+          <div class="g-name">${escHTML(b.guest_name)}</div>
+          <div class="g-contact">${escHTML(b.email)}</div>
+          ${time}
+        </div>
+        <a class="g-ext" href="#" aria-label="Open reservation" onclick="event.preventDefault();var li=this.closest('.guest-item');if(li)openReservationPanel(event,li.dataset.bookingId);"><svg><use href="#ic-ext"/></svg></a>
+      </li>`;
+  }
+
+  function emptyState(icon, msg){
+    return `<li><div class="empty-state"><svg><use href="#${icon}"/></svg><p>${msg}</p></div></li>`;
+  }
+
+  const HK_STATUS = [
+    { value:'Dirty',             slug:'dirty',              desc:'Needs cleaning' },
+    { value:'In-Progress',       slug:'in-progress',        desc:'Currently being cleaned' },
+    { value:'Clean-Uninspected', slug:'clean-uninspected',  desc:'Cleaned, not verified' },
+    { value:'Clean-Inspected',   slug:'clean-inspected',    desc:'Verified clean' },
+    { value:'Clean-Ready',       slug:'clean-ready',        desc:'Ready for guest' },
+    { value:'Out-of-Service',    slug:'out-of-service',     desc:'Unavailable' },
+  ];
+
+  function getCookie(name){
+    const v = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
+    return v ? v.pop() : '';
+  }
+
+  function statusSlug(val){
+    const s = HK_STATUS.find(x => x.value === val);
+    return s ? s.slug : 'out-of-service';
+  }
+
+  function statusDot(val){
+    return `<span class="hk-status-dot hk-dot-${statusSlug(val)}"></span>`;
+  }
+
+  function buildStatusDD(current, propertyId){
+    const opts = HK_STATUS.map(s => `
+      <div class="hk-status-opt${s.value===current?' selected':''}" data-value="${s.value}">
+        <span class="hk-status-opt-dot hk-dot-${s.slug}"></span>
+        <div class="hk-status-opt-info">
+          <span class="hk-status-opt-label">${s.value}</span>
+          <span class="hk-status-opt-desc">${s.desc}</span>
+        </div>
+      </div>`).join('');
+    return `
+      <div class="hk-status-dd" data-property-id="${escHTML(propertyId)}">
+        <button class="hk-status-btn" type="button">
+          <span class="hk-status-btn-left">
+            ${statusDot(current)}
+            <span class="hk-status-label">${current}</span>
+          </span>
+          <svg class="hk-status-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9.5l6 6 6-6"/></svg>
+        </button>
+        <div class="hk-status-menu">${opts}</div>
+      </div>`;
+  }
+  function renderHKItem(h){
+    const img = h.image_url
+      ? `<img src="${escHTML(h.image_url)}" alt="" loading="lazy">`
+      : `<svg><use href="#ic-bed"/></svg>`;
+    const availClass = h.available ? 'ok' : 'no';
+    const availText  = h.available ? 'Available' : 'Not available';
+    const petBadge   = h.pet_friendly ? `<span class="hk-meta-item"><svg><use href="#ic-paw"/></svg>Pet friendly</span>` : '';
+    const bedBadge   = h.bed_type ? `<span class="hk-meta-item"><svg><use href="#ic-bed"/></svg>${escHTML(h.bed_type)}</span>` : '';
+    const checkinBadge  = h.has_checkin  ? `<span class="hk-flag checkin"><svg><use href="#ic-checkin"/></svg>Check-in</span>` : '';
+    const checkoutBadge = h.has_checkout ? `<span class="hk-flag checkout"><svg><use href="#ic-checkout"/></svg>Check-out</span>` : '';
+    const opts = buildStatusDD(h.status, h.id);
+    return `
+      <li class="hk-item">
+        <div class="hk-thumb-wrap">
+          <div class="hk-thumb">${img}</div>
+          <span class="avail-badge ${availClass}">${availText}</span>
+        </div>
+        <div class="hk-info">
+          <div class="hk-title">${escHTML(h.title)}</div>
+          <div class="hk-meta">
+            <span class="hk-meta-item"><svg><use href="#ic-user"/></svg>${escHTML(String(h.guest_max))} guests</span>
+            ${bedBadge}${petBadge}${checkinBadge}${checkoutBadge}
+          </div>
+          <div class="hk-price">
+            <span class="hk-price-val">$${h.price.toFixed(2)}</span>
+            <span class="hk-price-unit">/ night</span>
+          </div>
+        </div>
+        <div class="hk-status-col">${opts}</div>
+      </li>`;
+  }
+
+  async function loadAll(dateISO){
+    isLoading = true;
+    if(btnRefresh) btnRefresh.classList.add('spinning');
+
+    try {
+      const qs = `?date=${dateISO}`;
+      const [sum, ci, co, hk] = await Promise.all([
+        fetch(API.summary      + qs).then(r => r.json()),
+        fetch(API.checkins     + qs).then(r => r.json()),
+        fetch(API.checkouts    + qs).then(r => r.json()),
+        fetch(API.housekeeping + qs).then(r => r.json()),
+      ]);
+
+      document.getElementById('occ-pct').textContent         = sum.occupancy_pct + '%';
+      document.getElementById('kpi-revpar').textContent      = '$' + sum.revpar;
+      document.getElementById('kpi-inhouse').textContent     = sum.total_inhouse;
+      document.getElementById('kpi-checkins').textContent    = sum.total_checkin;
+      document.getElementById('kpi-checkouts').textContent   = sum.total_checkout;
+      document.getElementById('kpi-cancel').textContent      = sum.total_cancellations;
+      document.getElementById('kpi-vacant').textContent      = sum.total_vacant + '/' + sum.total_active;
+      document.getElementById('kpi-booked').textContent      = sum.total_booked_today;
+      document.getElementById('kpi-tasks').textContent       = sum.total_tasks;
+      document.getElementById('kpi-payments').textContent    = '$' + sum.total_payments_amount;
+      var eb = document.getElementById('nav-enquiries-badge'); if(eb) eb.textContent = sum.total_inquiries;
+      document.getElementById('ci-count').textContent        = sum.total_checkin;
+      document.getElementById('co-count').textContent        = sum.total_checkout;
+      updateDonut(sum.occupancy_pct);
+
+      document.getElementById('dc-dow').textContent = sum.day_name.toUpperCase();
+      document.getElementById('dc-num').textContent = sum.day_num;
+      document.getElementById('dc-mon').textContent = sum.month_name;
+
+      const ciList = document.getElementById('checkin-list');
+      ciList.innerHTML = ci.data.length
+        ? ci.data.map(b => renderGuest(b, 'check_in_time')).join('')
+        : emptyState('ic-users','No check-ins on this date');
+
+      const coList = document.getElementById('checkout-list');
+      coList.innerHTML = co.data.length
+        ? co.data.map(b => renderGuest(b, 'check_out_time')).join('')
+        : emptyState('ic-users','No check-outs on this date');
+
+      const hkList = document.getElementById('hk-list');
+      hkList.innerHTML = hk.data.length
+        ? hk.data.map(renderHKItem).join('')
+        : emptyState('ic-home','No active properties');
+
+      applyStatusDD();
+      attachSearch();
+
+    } catch(err) {
+      console.error('Frontdesk fetch error:', err);
+    } finally {
+      isLoading = false;
+      if(btnRefresh) btnRefresh.classList.remove('spinning');
+    }
+  }
+
+  function setDate(d){
+    currentDate = d;
+    const iso = fmtISO(d);
+    dateDisp.textContent = fmtLabel(d);
+    datePicker.value = iso;
+    if(dcDateOverlay) dcDateOverlay.value = iso;
+    window.history.replaceState(null,'', '?date=' + iso);
+    loadAll(iso);
+  }
+
+  btnPrev.addEventListener('click', () => {
+    const d = new Date(currentDate); d.setDate(d.getDate()-1); setDate(d);
+  });
+  btnNext.addEventListener('click', () => {
+    const d = new Date(currentDate); d.setDate(d.getDate()+1); setDate(d);
+  });
+  if(btnToday)   btnToday.addEventListener('click', () => setDate(new Date()));
+  if(btnRefresh) btnRefresh.addEventListener('click', () => loadAll(fmtISO(currentDate)));
+
+  datePicker.addEventListener('change', function(){
+    if(this.value){ setDate(new Date(this.value + 'T12:00:00')); }
+  });
+  document.querySelector('.date-display') && (dateDisp.style.cursor='pointer');
+  dateDisp.addEventListener('click', () => datePicker.showPicker && datePicker.showPicker());
+
+  var dcDateOverlay = document.getElementById('dc-date-overlay');
+  if(dcDateOverlay) dcDateOverlay.addEventListener('change', function(){
+    if(this.value){ setDate(new Date(this.value + 'T12:00:00')); }
+  });
+
+  function attachSearch(){
+    function filterList(inputId, listId){
+      const inp = document.getElementById(inputId);
+      if(!inp) return;
+      inp.addEventListener('input', function(){
+        const q = this.value.toLowerCase();
+        document.querySelectorAll(`#${listId} .guest-item`).forEach(li => {
+          const name = (li.dataset.name||'').toLowerCase();
+          const prop = (li.dataset.prop||'').toLowerCase();
+          li.style.display = (name.includes(q) || prop.includes(q)) ? '' : 'none';
+        });
+      });
+    }
+    filterList('ci-search','checkin-list');
+    filterList('co-search','checkout-list');
+  }
+
+  updateDonut(parseFloat('{{ occupancy_pct }}') || 0);
+  applyStatusDD();
+  attachSearch();
+
+  setInterval(() => loadAll(fmtISO(currentDate)), 5 * 60 * 1000);
+
+  /* ── Reservation Modal ── */
+  window.openReservationPanel = function(event, bookingId) {
+    if (event) event.stopPropagation();
+    const overlay = document.getElementById('reservationModalOverlay');
+    const contentDiv = document.getElementById('reservationModalContent');
+    overlay.classList.add('open');
+    contentDiv.innerHTML = '<div class="fd-center-box"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></div>';
+    const fetchUrl = '/booking/payment-details/' + bookingId + '/?partial=true';
+    fetch(fetchUrl)
+      .then(function(r) { if (!r.ok) throw new Error('Network error'); return r.text(); })
+      .then(function(html) {
+        contentDiv.innerHTML = html;
+        contentDiv.querySelectorAll('.contact-info').forEach(function(el) { el.removeAttribute('style'); });
+        initSidebarInteractions(contentDiv);
+      })
+      .catch(function(e) {
+        contentDiv.innerHTML = '<div class="fd-error-text fd-error-text--compact"><p>Failed to load.</p><p class="fd-error-detail">' + e.message + '</p></div>';
+      });
+  }
+
+  window.closeReservationPanel = function(event) {
+    if (event && event.target !== event.currentTarget) return;
+    document.getElementById('reservationModalOverlay').classList.remove('open');
+  };
+
+  function initSidebarInteractions(container) {
+    const sidebarRoot = container || document.getElementById('reservationSidebar');
+    const sidebarContent = container ? container : document.getElementById('sidebarContent');
+    if (!sidebarRoot || !sidebarContent) return;
+    const isModal = !!container;
+
+    function closeDropdown(element) {
+      const dropdownMenu = element.closest('.dropdown-menu');
+      if (!dropdownMenu) return;
+      const dropdownToggle = dropdownMenu.previousElementSibling;
+      if (!dropdownToggle) return;
+      const instance = bootstrap.Dropdown.getInstance(dropdownToggle);
+      if (instance) instance.hide();
+      else {
+        dropdownToggle.classList.remove('show');
+        dropdownMenu.classList.remove('show');
+      }
+    }
+
+    // 1. Attachment Modal
+    const attachmentModal = sidebarContent.querySelector('#attachmentModal');
+    const openAttachmentBtn = sidebarContent.querySelector('#openAttachmentModal');
+    if (attachmentModal && openAttachmentBtn) {
+      const closeBtn = attachmentModal.querySelector('.close-btn');
+      openAttachmentBtn.onclick = function(e) { e.preventDefault(); attachmentModal.style.display = 'flex'; };
+      if (closeBtn) closeBtn.onclick = function() { attachmentModal.style.display = 'none'; };
+      window.addEventListener('click', function(e) { if (e.target == attachmentModal) attachmentModal.style.display = 'none'; });
+    }
+
+    // 2. Email Guest Modal
+    const emailModal = sidebarContent.querySelector('#emailGuestModal');
+    const emailBtns = sidebarRoot.querySelectorAll('.email-guest-btn');
+    if (emailModal && emailBtns.length > 0) {
+      const placeholder = emailModal.querySelector('#email-modal-content-placeholder');
+      emailBtns.forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+          e.preventDefault();
+          closeDropdown(this);
+          const bookingId = this.dataset.bookingId;
+          const url = '/booking/render-email-form/?booking_id=' + bookingId;
+          placeholder.innerHTML = '<div class="fd-loading-text">Loading...</div>';
+          emailModal.style.display = 'flex';
+          fetch(url).then(function(r) { return r.text(); }).then(function(html) {
+            placeholder.innerHTML = html;
+            const closeEmailBtn = emailModal.querySelector('.btn-cancel-email');
+            if (closeEmailBtn) closeEmailBtn.addEventListener('click', function() { emailModal.style.display = 'none'; });
+          }).catch(function() {
+            placeholder.innerHTML = '<div class="fd-error-text">Failed to load email form.</div>';
+          });
+        });
+      });
+    }
+
+    // 3. Guest Receipt button
+    const receiptBtns = sidebarRoot.querySelectorAll('.guest-receipt-btn');
+    if (receiptBtns.length > 0) {
+      const receiptModal = document.getElementById('guestReceiptModal');
+      if (receiptModal) {
+        receiptBtns.forEach(function(btn) {
+          btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const receiptUrl = this.dataset.receiptUrl;
+            const placeholder = document.getElementById('guest-receipt-content-placeholder');
+            if (receiptUrl && placeholder) {
+              placeholder.innerHTML = '<div class="fd-loading-text">Loading receipt...</div>';
+              receiptModal.style.display = 'block';
+              fetch(receiptUrl).then(function(r) { return r.text(); }).then(function(html) {
+                placeholder.innerHTML = html;
+              }).catch(function() {
+                placeholder.innerHTML = '<div class="fd-error-text">Failed to load receipt.</div>';
+              });
+            }
+            const closeReceiptBtn = receiptModal.querySelector('.close-receipt-modal');
+            if (closeReceiptBtn) closeReceiptBtn.onclick = function() { receiptModal.style.display = 'none'; };
+          });
+        });
+      }
+    }
+  }
+
+})();
+</script>
+{% endblock extra_script %}

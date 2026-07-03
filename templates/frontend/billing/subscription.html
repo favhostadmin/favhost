@@ -1,0 +1,234 @@
+{% extends 'frontend/base/base.html' %}
+{% load static %}
+
+{% block extra_head %}
+<link href="{% static 'css/billing/subscription.css' %}" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+    <!-- Page header -->
+    <div class="billing-header">
+        <div class="billing-header-title">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round">
+                <rect x="2" y="5" width="20" height="14" rx="2"></rect>
+                <path d="M2 10h20"></path>
+                <path d="M6 15h4"></path>
+            </svg>
+            Subscription &amp; Billing
+        </div>
+        {% if plan %}
+        <form method="post" action="{% url 'billing:customer_portal' %}" style="margin:0;">
+            {% csrf_token %}
+            <button type="submit"
+                style="background:#fff; color:#374151; border:1px solid #d1d5db; border-radius:6px; padding:5px 14px; font-size:12px; font-weight:500; cursor:pointer;">
+                Manage on Stripe ↗
+            </button>
+        </form>
+        {% endif %}
+    </div>
+<div class="container-fluid p-2">
+
+    <!-- Stripe error -->
+    {% if stripe_error %}
+    <div
+        style="background:#fff5f5; border:1px solid #fecaca; border-radius:6px; padding:10px 14px; margin-bottom:14px; font-size:13px; color:#b91c1c;">
+        ⚠️ Could not load Stripe data: {{ stripe_error }}
+    </div>
+    {% endif %}
+
+    {% if user.is_subscription_free %}
+    <!-- Free Subscription Active -->
+    <div class="billing-card">
+        <div class="empty-state">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#166534" stroke-width="1.5"
+              style="margin-bottom:12px;">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" stroke-linecap="round"></path>
+              <polyline points="22 4 12 14.01 9 11.01"></polyline>
+            </svg>
+            <div class="empty-state-title" style="color: #166534;">Free Premium Access Active</div>
+            <div class="empty-state-sub" style="margin-bottom:0;">You have free access to all premium features of FavHost (granted by the administrator).</div>
+        </div>
+    </div>
+
+    {% elif not sc or not plan %}
+    <!-- No subscription -->
+    <div class="billing-card">
+        <div class="empty-state">
+            <img src="{% static 'img/common/Sandy_Tech-30_Single-01.jpg' %}" alt="No active subscription"
+                 width="220" style="max-width:60%; height:auto; margin-bottom:8px;">
+            <div class="empty-state-title">No active subscription</div>
+            <div class="empty-state-sub" style="margin-bottom:18px;">Upgrade to FavHost Premium to unlock all features.
+            </div>
+            <a href="{% url 'billing:pricing' %}"
+                style="display:inline-block; background:#111827; color:white; text-decoration:none; border-radius:6px; padding:8px 22px; font-size:13px; font-weight:600;">
+                View Plans
+            </a>
+        </div>
+    </div>
+
+    {% else %}
+
+    <!-- Plan + Payment cards -->
+    <div class="row g-3 mb-3">
+
+        <!-- Current Plan -->
+        <div class="col-12 col-md-6">
+            <div class="billing-card h-100">
+                <div class="billing-card-label">Current Plan</div>
+                <div class="d-flex align-items-start justify-content-between mb-3">
+                    <div>
+                        <div class="plan-name">{{ plan.name }}</div>
+                        <div class="plan-amount">
+                            {{ plan.amount_display }}<span class="plan-interval"> /{{ plan.interval_label }}</span>
+                        </div>
+                        <div style="font-size:11px;color:#888;margin-top:2px;">Billed in {{ plan.currency|default:'USD' }} — your card is charged this exact amount.</div>
+                    </div>
+                    {% if plan.status == 'active' and not plan.cancel_at_period_end %}
+                    <span class="status-badge-active">Active</span>
+                    {% elif plan.cancel_at_period_end %}
+                    <span class="status-badge-cancel">Cancels soon</span>
+                    {% elif plan.status == 'past_due' %}
+                    <span class="status-badge-pastdue">Past Due</span>
+                    {% else %}
+                    <span class="status-badge-canceled">{{ plan.status|title }}</span>
+                    {% endif %}
+                </div>
+
+                <div style="border-top:1px solid #f3f4f6; padding-top:10px; margin-bottom:4px;">
+                    <div class="plan-meta-row">
+                        <span class="plan-meta-label">Billing cycle</span>
+                        <span class="plan-meta-value">{{ plan.interval_label }}</span>
+                    </div>
+                    <div class="plan-meta-row">
+                        <span class="plan-meta-label">Period</span>
+                        <span class="plan-meta-value">{{ plan.period_start|date:"M d" }} – {{ plan.period_end|date:"M d, Y" }}</span>
+                    </div>
+                    {% if plan.cancel_at_period_end %}
+                    <div class="plan-meta-row">
+                        <span class="plan-meta-label" style="color:#92400e;">Cancels on</span>
+                        <span class="plan-meta-value" style="color:#92400e;">{{ plan.period_end|date:"M d, Y" }}</span>
+                    </div>
+                    {% elif plan.status == 'canceled' %}
+                    <div class="plan-meta-row">
+                        <span class="plan-meta-label" style="color:#92400e;">Cancelled on</span>
+                        <span class="plan-meta-value" style="color:#92400e;">{{ plan.period_end|date:"M d, Y" }}</span>
+                    </div>
+                    {% else %}
+                    <div class="plan-meta-row">
+                        <span class="plan-meta-label">Next billing</span>
+                        <span class="plan-meta-value">{{ plan.period_end|date:"M d, Y" }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+
+                {% if plan.status == 'canceled' %}
+                <form method="post" action="{% url 'billing:create_checkout_session' %}" style="margin:0;">
+                    {% csrf_token %}
+                    <input type="hidden" name="prefer_checkout" value="1">
+                    <button type="submit" class="btn-billing-dark">Resubscribe</button>
+                </form>
+                {% else %}
+                <form method="post" action="{% url 'billing:customer_portal' %}" style="margin:0;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn-billing-dark">Manage / Cancel Subscription</button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Payment Method -->
+        <div class="col-12 col-md-6">
+            <div class="billing-card h-100">
+                <div class="billing-card-label">Payment Method</div>
+                {% if payment_method and payment_method.card %}
+                <div class="card-visual">
+                    <div class="card-visual-brand">{{ payment_method.card.brand|title }}</div>
+                    <div class="card-visual-number">•••• •••• •••• {{ payment_method.card.last4 }}</div>
+                    <div class="card-visual-expiry">Expires {{ payment_method.card.exp_month }}/{{ payment_method.card.exp_year }}</div>
+                </div>
+                <form method="post" action="{% url 'billing:customer_portal' %}" style="margin:0;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn-billing-outline">Update Card</button>
+                </form>
+                {% else %}
+                <div class="empty-state" style="padding:24px 0;">
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="1.2">
+                        <rect x="2" y="5" width="20" height="14" rx="2"></rect>
+                        <path d="M2 10h20"></path>
+                    </svg>
+                    <div class="empty-state-title" style="margin-bottom:4px;">No card on file</div>
+                    <form method="post" action="{% url 'billing:customer_portal' %}" style="margin-top:12px;">
+                        {% csrf_token %}
+                        <button type="submit"
+                            style="background:#1d74b2; color:white; border:none; border-radius:6px; padding:8px 18px; font-size:13px; font-weight:600; cursor:pointer;">
+                            Add Payment Method
+                        </button>
+                    </form>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Transaction History -->
+    <div class="billing-card">
+        <div class="billing-card-label">Transaction History</div>
+        {% if invoices %}
+        <div style="overflow-x:auto;">
+            <table class="billing-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Invoice #</th>
+                        <th>Description</th>
+                        <th style="text-align:right;">Amount</th>
+                        <th style="text-align:center;">Status</th>
+                        <th style="text-align:center;">Receipt</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for inv in invoices %}
+                    <tr>
+                        <td style="white-space:nowrap; color:#6b7280;">{{ inv.date|date:"M d, Y" }}</td>
+                        <td style="font-family:monospace; font-size:11px; color:#9ca3af;">{{ inv.number }}</td>
+                        <td>{{ inv.description }}</td>
+                        <td style="text-align:right; font-weight:600; color:#111827; white-space:nowrap;">
+                            {{ inv.amount_display }}
+                        </td>
+                        <td style="text-align:center;">
+                            {% if inv.status == 'paid' %}<span class="inv-paid">Paid</span>
+                            {% elif inv.status == 'open' %}<span class="inv-open">Open</span>
+                            {% elif inv.status == 'void' %}<span class="inv-void">Void</span>
+                            {% else %}<span class="inv-void">{{ inv.status|title }}</span>{% endif %}
+                        </td>
+                        <td style="text-align:center;">
+                            {% if inv.pdf_url %}
+                            <a href="{{ inv.pdf_url }}" target="_blank" rel="noopener" class="inv-link">PDF ↓</a>
+                            {% elif inv.hosted_url %}
+                            <a href="{{ inv.hosted_url }}" target="_blank" rel="noopener" class="inv-link">View</a>
+                            {% else %}
+                            <span style="color:#d1d5db;">—</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
+                <path d="M9 12h6M9 16h4M4 6h16v14a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6z"></path>
+                <path d="M4 6l2-3h12l2 3"></path>
+            </svg>
+            <div class="empty-state-title">No transactions yet</div>
+            <div class="empty-state-sub">Your invoice history will appear here after your first payment.</div>
+        </div>
+        {% endif %}
+    </div>
+
+    {% endif %}
+</div>
+{% endblock %}

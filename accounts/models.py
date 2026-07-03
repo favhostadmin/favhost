@@ -74,6 +74,18 @@ class MyUser(AbstractBaseUser):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    # === NEW FIELDS ADDED BELOW (custom additions beyond original HR code) ===
+    linkedin_url = models.URLField(max_length=1000, null=True, blank=True)
+    twitter_url = models.URLField(max_length=1000, null=True, blank=True)
+    language = models.CharField(max_length=100, default='English', null=True, blank=True)
+    is_subscription_free = models.BooleanField(default=False, help_text="If enabled, user gets free access without requiring subscription payment")
+    # Set True after the one-time "trial ending in 7 days" email is sent,
+    # so a trial user only ever receives that reminder once.
+    trial_ending_email_sent = models.BooleanField(default=False)
+    # Free-trial length (days) captured at signup from PlatformSetting, so that
+    # changing the platform-wide trial length later only affects NEW accounts.
+    trial_days = models.PositiveIntegerField(default=90, help_text="This account's free-trial length in days (set at signup).")
+
     objects = MyUserManager()
 
     USERNAME_FIELD = 'username'
@@ -98,6 +110,16 @@ class MyUser(AbstractBaseUser):
                 if not MyUser.objects.filter(short_code=code).exists():
                     self.short_code = code
                     break
+
+        # On first save (new signup), capture the current platform-wide trial
+        # length so later changes to the setting don't affect this account.
+        if self._state.adding:
+            try:
+                from billing.models import PlatformSetting
+                self.trial_days = PlatformSetting.load().free_trial_days
+            except Exception:
+                pass  # keep the field default (90) if settings aren't ready
+
         super().save(*args, **kwargs)
 
     def get_local_date(self):
@@ -158,3 +180,42 @@ class MyUser(AbstractBaseUser):
         if self.short_code:
             return reverse('public_profile', kwargs={'short_code': self.short_code})
         return None
+
+    @property
+    def profile_picture_url(self):
+        """Safely return profile picture URL, or None if file missing."""
+        try:
+            if self.profile_picture and self.profile_picture.name:
+                return self.profile_picture.url
+        except (ValueError, FileNotFoundError):
+            pass
+        return None
+
+
+class CoHost(models.Model):
+    host = models.ForeignKey(MyUser, on_delete=models.CASCADE, related_name='host_cohosts')
+    co_host = models.ForeignKey(MyUser, on_delete=models.CASCADE, related_name='co_host_relationships')
+    display_password = models.CharField(max_length=255, null=True, blank=True, help_text="Plain text password for UI display only")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('host', 'co_host')
+
+    def __str__(self):
+        return f"{self.co_host.get_full_name() or self.co_host.email} (co-host of {self.host.get_full_name() or self.host.email})"
+
+
+class UserDocument(models.Model):
+    DOCUMENT_TYPES = [
+        ('govt_id', 'Government ID'),
+        ('permission', 'Local Authority Permission'),
+    ]
+    user = models.ForeignKey(MyUser, on_delete=models.CASCADE, related_name='documents')
+    document = models.FileField(upload_to='user_documents/')
+    doc_type = models.CharField(max_length=50, choices=DOCUMENT_TYPES)
+    name = models.CharField(max_length=255, null=True, blank=True)
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.user.username} - {self.get_doc_type_display()} - {self.name or self.document.name}"
+

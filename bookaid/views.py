@@ -2,17 +2,20 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views import View
 from django.views.generic import TemplateView
 from django.views.generic.list import ListView
+from django.views.decorators.cache import never_cache
+from django.utils.decorators import method_decorator
 from django.db.models import Q
 from django.db.models import Prefetch
 from django.db.models.functions import Concat
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 import datetime
+import calendar
 from collections import defaultdict
 
-from booking.models import Booking, BookingChannel, Payment, Enquiry
+from booking.models import Booking, BookingChannel, Payment, Enquiry, Expense
 from property.models import Property, PropertyChannel, PropertyBlockDate
 from tasks.models import Task
-from django.db.models import Sum
+from django.db.models import Sum, Count
 from django.utils import timezone
 from django.db.models.functions import ExtractYear, ExtractMonth
 from django.utils.safestring import mark_safe
@@ -25,6 +28,8 @@ from django.core.mail import send_mail, EmailMessage
 from django.conf import settings
 from django.views.decorators.http import require_POST
 from .utils import calculateTotalPayment
+from accounts.utils import get_visible_user_ids
+from accounts.models import CoHost
 from django.contrib.staticfiles.storage import staticfiles_storage
 
 class HostDashboardAPIView(LoginRequiredMixin, TemplateView):
@@ -35,18 +40,18 @@ class HostDashboardAPIView(LoginRequiredMixin, TemplateView):
         selected_type = self.request.GET.get('type', '') 
         # print('selected_type==>',selected_type)
         context['selected_type'] = selected_type
-        context['active_listings_count'] = Property.objects.filter(created_by=self.request.user, status='Active').count()
+        context['active_listings_count'] = Property.objects.filter(created_by__in=get_visible_user_ids(self.request.user), status='Active').count()
 
         total_revenue_agg = Payment.objects.filter(
-            booking__property__created_by=self.request.user,
+            booking__property__created_by__in=get_visible_user_ids(self.request.user),
             is_paid=True
         ).exclude(
             type__in=['Refundable deposit', 'Refundable to guest']
         ).aggregate(total=Sum('amount'))
         context['total_revenue'] = total_revenue_agg['total'] or 0
 
-        context['pending_tasks_count'] = Task.objects.filter(created_by=self.request.user, completed=False).count()
-        context['new_enquiry_list'] = Enquiry.objects.filter(property__created_by=self.request.user, is_archive=False, is_booked=False)[:6]
+        context['pending_tasks_count'] = Task.objects.filter(created_by__in=get_visible_user_ids(self.request.user), completed=False).count()
+        context['new_enquiry_list'] = Enquiry.objects.filter(property__created_by__in=get_visible_user_ids(self.request.user), is_archive=False, is_booked=False)[:6]
 
         today = self.request.user.get_local_date()
 
@@ -56,20 +61,20 @@ class HostDashboardAPIView(LoginRequiredMixin, TemplateView):
             target_date = today
 
         active_bookings = Booking.objects.filter(
-            property__created_by=self.request.user, 
+            property__created_by__in=get_visible_user_ids(self.request.user), 
             property__status='Active'
         ).exclude(status='cancelled')
 
         total_checkin = active_bookings.filter(check_in_date=target_date).count()
         total_checkout = active_bookings.filter(check_out_date=target_date).count()
         total_tasks = Task.objects.filter(
-            created_by=self.request.user,
+            created_by__in=get_visible_user_ids(self.request.user),
             date=target_date,
             completed=False
         ).count()
         
         total_payment = Payment.objects.filter(
-            booking__property__created_by=self.request.user,
+            booking__property__created_by__in=get_visible_user_ids(self.request.user),
             expected_payment_date__date=target_date,
             is_paid=False
         ).exclude(
@@ -84,7 +89,7 @@ class HostDashboardAPIView(LoginRequiredMixin, TemplateView):
 
         # Determine which properties are manually blocked on this date
         blocked_property_ids = set(PropertyBlockDate.objects.filter(
-            property__created_by=self.request.user,
+            property__created_by__in=get_visible_user_ids(self.request.user),
             property__status='Active',
             is_active=True,
             start_date__lte=target_date,
@@ -93,7 +98,7 @@ class HostDashboardAPIView(LoginRequiredMixin, TemplateView):
 
         total_inhouse = len(inhouse_property_ids)
         total_occupied = len(inhouse_property_ids | blocked_property_ids)
-        total_active_count = Property.objects.filter(created_by=self.request.user, status='Active').count()
+        total_active_count = Property.objects.filter(created_by__in=get_visible_user_ids(self.request.user), status='Active').count()
         total_vacant = total_active_count - total_occupied
 
 
@@ -104,16 +109,40 @@ class HostDashboardAPIView(LoginRequiredMixin, TemplateView):
         context['total_inhouse'] = total_inhouse
         context['total_vacant'] = total_vacant
 
-        # --- Earning monthly for a year ---
+        seven_days_ago = today - datetime.timedelta(days=7)
+        context['recent_bookings'] = Booking.objects.filter(
+            property__created_by__in=get_visible_user_ids(self.request.user),
+            created_at__date__gte=seven_days_ago,
+            created_at__date__lte=today
+        ).exclude(status='cancelled').order_by('-created_at')
+
         current_year = timezone.now().year
 
         # 1) Determine selected year (query param ?year=YYYY, fallback to current year)
         selected_year_str = self.request.GET.get("year")
-
         try:
             selected_year = int(selected_year_str) if selected_year_str else current_year
         except ValueError:
             selected_year = current_year
+
+        gross_qs = Booking.objects.filter(
+            property__created_by__in=get_visible_user_ids(self.request.user),
+            check_in_date__year=selected_year
+        )
+        context['gross_bookings_amount'] = gross_qs.aggregate(total=Sum('price'))['total'] or 0
+        context['gross_bookings_count'] = gross_qs.aggregate(count=Count('id'))['count'] or 0
+        channel_data = gross_qs.values('channel__name').annotate(
+            count=Count('id'),
+            total=Sum('price')
+        ).order_by('-count')
+        context['channel_labels'] = [c['channel__name'] or 'Direct' for c in channel_data]
+        context['channel_counts'] = [c['count'] for c in channel_data]
+        context['channel_amounts'] = [float(c['total'] or 0) for c in channel_data]
+        context['channel_labels_json'] = mark_safe(json.dumps([c['channel__name'] or 'Direct' for c in channel_data]))
+        context['channel_counts_json'] = mark_safe(json.dumps([c['count'] for c in channel_data]))
+        context['channel_amounts_json'] = mark_safe(json.dumps([float(c['total'] or 0) for c in channel_data]))
+
+        # --- Earning monthly for a year ---
         
         # print( 'current_year==>',current_year)
         # print( 'selected_year==>',selected_year)
@@ -123,7 +152,7 @@ class HostDashboardAPIView(LoginRequiredMixin, TemplateView):
         qs = (
             Payment.objects
             .filter(
-                booking__property__created_by=self.request.user,
+                booking__property__created_by__in=get_visible_user_ids(self.request.user),
                 is_paid=True,
             )
             .exclude(type__in=['Refundable deposit', 'Refundable to guest'])
@@ -201,15 +230,13 @@ class HostDashboardAPIView(LoginRequiredMixin, TemplateView):
         # print("monthly_average==>",monthly_average)
         
 
-        # 6) Years for dropdown (optional, unchanged from before)
-        total_years = (
+        # 6) Years for dropdown — use values_list + set for SQLite compatibility
+        total_years = sorted(set(
             Booking.objects
-            .filter(property__created_by=self.request.user)
+            .filter(property__created_by__in=get_visible_user_ids(self.request.user))
             .exclude(status='cancelled')
-            .order_by('check_in_date__year')
             .values_list('check_in_date__year', flat=True)
-            .distinct('check_in_date__year')
-        )
+        ))
 
         context['current_year'] = current_year
         context['selected_year'] = selected_year
@@ -244,7 +271,7 @@ class HostDashboardAPIView(LoginRequiredMixin, TemplateView):
             .filter(
                 Q(check_in_date__year=upcoming_year, check_in_date__month=upcoming_month) |
                 Q(check_out_date__year=upcoming_year, check_out_date__month=upcoming_month),
-                property__created_by=self.request.user
+                property__created_by__in=get_visible_user_ids(self.request.user)
             )
             .exclude(status='cancelled')
             .select_related('property', 'channel')
@@ -254,8 +281,8 @@ class HostDashboardAPIView(LoginRequiredMixin, TemplateView):
         tasks = (
             Task.objects
             .filter(
-                created_by=self.request.user,
-                property__created_by=self.request.user,
+                created_by__in=get_visible_user_ids(self.request.user),
+                property__created_by__in=get_visible_user_ids(self.request.user),
                 date__gte=today,
                 date__year=upcoming_year,
                 date__month=upcoming_month,
@@ -438,6 +465,471 @@ class HostDashboardAPIView(LoginRequiredMixin, TemplateView):
         return context
 
 
+class RevenueByListingView(LoginRequiredMixin, TemplateView):
+    """Per-listing revenue analytics for a selected year.
+
+    Mirrors the design at revenue-dashboard.html but is wired to live data.
+    All monetary figures are stored/aggregated in USD (the platform base) and
+    rendered in the viewer's display currency via the {% money %} tag.
+
+    Revenue is attributed on an *accrual / per-night* basis: each non-cancelled
+    booking's net price (price minus the refundable deposit for manual bookings,
+    matching the calendar logic) is spread evenly across its nights, and each
+    night is counted in the month it falls in. This keeps Days booked,
+    Occupancy %, Average Daily rate and Revenue internally consistent.
+    """
+    template_name = 'frontend/revenue/revenue_by_listing.html'
+
+    MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
+    # Donut / channel colour palette (cycled when there are many channels).
+    PALETTE = ['#ef4444', '#3b82f6', '#facc15', '#22c55e', '#f59e0b',
+               '#b91c1c', '#ec4899', '#8b5cf6', '#06b6d4', '#14b8a6',
+               '#a855f7', '#cbd5e1']
+
+    def dispatch(self, request, *args, **kwargs):
+        # Co-hosts do not have access to the accountant (revenue) section.
+        if request.user.is_authenticated and CoHost.objects.filter(co_host=request.user).exists():
+            messages.error(request, 'Revenue is not available for co-hosts.')
+            return redirect('dashboard')
+        return super().dispatch(request, *args, **kwargs)
+
+    def get(self, request, *args, **kwargs):
+        """Serve a file export when ?export=xlsx|csv, otherwise the HTML page."""
+        export = request.GET.get('export')
+        if export == 'xlsx':
+            return self._export_xlsx(request)
+        if export == 'csv':
+            return self._export_csv(request)
+        return super().get(request, *args, **kwargs)
+
+    def _export_csv(self, request):
+        """Build a clean, Excel-ready CSV from the same computed report.
+
+        Money is converted to the viewer's display currency and written as
+        plain numbers (no symbol/grouping) so spreadsheets treat them as
+        numeric. A UTF-8 BOM is prepended so symbols render correctly in Excel.
+        """
+        import csv
+        import io
+        import re
+        from accounts import currency as cur
+
+        context = self.get_context_data()
+        code = (getattr(request.user, 'currency', None) or cur.BASE_CURRENCY).upper()
+        symbol = cur.symbol_for(code)
+        months = list(context.get('month_labels', self.MONTH_LABELS))
+        sel = context.get('selected_property')
+        year = context.get('selected_year')
+        listing_title = sel['title'] if sel else 'All listings'
+
+        try:
+            generated = timezone.localtime(timezone.now()).strftime('%Y-%m-%d %H:%M')
+        except Exception:
+            generated = timezone.now().strftime('%Y-%m-%d %H:%M')
+
+        buf = io.StringIO()
+        buf.write('﻿')  # UTF-8 BOM so Excel renders ₹/€/₨ etc. correctly
+        writer = csv.writer(buf)
+
+        # --- Metadata header ---
+        writer.writerow(['FavHost - Revenue by Listing'])
+        writer.writerow(['Listing', listing_title])
+        writer.writerow(['Year', year])
+        writer.writerow(['Currency', f'{code} ({symbol})'])
+        writer.writerow(['Generated', generated])
+        writer.writerow([])
+
+        def cell(value, fmt):
+            # Money -> numeric in display currency; pct/int pass through as-is.
+            return cur.money_raw(value, code) if fmt == 'money' else value
+
+        def section(title, first_header, rows, empty_message=None):
+            writer.writerow([title])
+            writer.writerow([first_header] + months + ['Overall'])
+            if rows:
+                for r in rows:
+                    label = r['label'].replace(' $', '')
+                    writer.writerow(
+                        [label]
+                        + [cell(v, r['fmt']) for v in r['values']]
+                        + [cell(r['overall'], r['fmt'])]
+                    )
+            elif empty_message:
+                writer.writerow([empty_message])
+            writer.writerow([])
+
+        if sel and context.get('has_data'):
+            section('Monthly Performance', 'Metric', context['table_rows'])
+            section('Number of bookings by Channel', 'Channel',
+                    context['bookings_channel_rows'], f'No bookings for {year}.')
+            section(f'Revenue by Channel ({code})', 'Channel',
+                    context['revenue_channel_rows'], f'No channel revenue for {year}.')
+        else:
+            writer.writerow(['No data available for this selection.'])
+
+        safe = re.sub(r'[^A-Za-z0-9._-]+', '_', listing_title).strip('_') or 'listing'
+        filename = f'revenue_{safe}_{year}.csv'
+
+        response = HttpResponse(buf.getvalue(), content_type='text/csv; charset=utf-8')
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        return response
+
+    def _export_xlsx(self, request):
+        """Build a styled, Excel-native .xlsx so column widths/number formats
+        are preserved — labels like 'Average Daily rate' show in full, and
+        money is written as real numbers in the viewer's display currency.
+        """
+        import io
+        import re
+        from openpyxl import Workbook
+        from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+        from openpyxl.utils import get_column_letter
+        from accounts import currency as cur
+
+        context = self.get_context_data()
+        code = (getattr(request.user, 'currency', None) or cur.BASE_CURRENCY).upper()
+        symbol = cur.symbol_for(code)
+        months = list(context.get('month_labels', self.MONTH_LABELS))
+        sel = context.get('selected_property')
+        year = context.get('selected_year')
+        listing_title = sel['title'] if sel else 'All listings'
+        try:
+            generated = timezone.localtime(timezone.now()).strftime('%Y-%m-%d %H:%M')
+        except Exception:
+            generated = timezone.now().strftime('%Y-%m-%d %H:%M')
+
+        ncols = 1 + 12 + 1  # Metric/Channel + 12 months + Overall
+
+        # --- Styles (mirror the updated on-screen palette: brand orange
+        #     accents, charcoal section bands, warm-orange overall cells) ---
+        title_font = Font(bold=True, size=14, color='EB5310')
+        meta_label_font = Font(bold=True, color='6B7280')
+        section_font = Font(bold=True, color='FFFFFF')
+        section_fill = PatternFill('solid', fgColor='313131')
+        header_font = Font(bold=True, color='1A1A1A')
+        header_fill = PatternFill('solid', fgColor='FAF7F5')
+        overall_fill = PatternFill('solid', fgColor='FFF3EC')
+        overall_font = Font(bold=True, color='C2410C')
+        metric_font = Font(bold=True, color='1A1A1A')
+        metric_fill = PatternFill('solid', fgColor='FAF7F5')
+        empty_font = Font(italic=True, color='6B7280')
+        thin = Side(style='thin', color='E5E7EB')
+        border = Border(left=thin, right=thin, top=thin, bottom=thin)
+        MONEY_FMT = '#,##0.00'
+
+        wb = Workbook()
+        ws = wb.active
+        ws.title = 'Revenue'
+
+        r = 1
+        ws.cell(r, 1, 'FavHost - Revenue by Listing').font = title_font
+        r += 1
+        for label, val in [('Listing', listing_title), ('Year', year),
+                           ('Currency', f'{code} ({symbol})'), ('Generated', generated)]:
+            ws.cell(r, 1, label).font = meta_label_font
+            ws.cell(r, 2, val)
+            r += 1
+        r += 1  # spacer
+
+        def write_section(title, first_header, rows, empty_message=None):
+            nonlocal r
+            ws.merge_cells(start_row=r, start_column=1, end_row=r, end_column=ncols)
+            tc = ws.cell(r, 1, title)
+            tc.font = section_font
+            tc.fill = section_fill
+            tc.alignment = Alignment(horizontal='center')
+            r += 1
+            for i, h in enumerate([first_header] + months + ['Overall'], start=1):
+                hc = ws.cell(r, i, h)
+                hc.font = overall_font if h == 'Overall' else header_font
+                hc.fill = overall_fill if h == 'Overall' else header_fill
+                hc.border = border
+                hc.alignment = Alignment(horizontal='left' if i == 1 else 'center')
+            r += 1
+            if rows:
+                for row in rows:
+                    lc = ws.cell(r, 1, row['label'].replace(' $', ''))
+                    lc.font = metric_font
+                    lc.fill = metric_fill
+                    lc.border = border
+                    for i, v in enumerate(list(row['values']) + [row['overall']], start=2):
+                        cell = ws.cell(r, i)
+                        if row['fmt'] == 'money':
+                            cell.value = float(cur.money_raw(v, code))
+                            cell.number_format = MONEY_FMT
+                        elif row['fmt'] == 'pct':
+                            cell.value = float(v)
+                            cell.number_format = '0.00'
+                        else:
+                            cell.value = v
+                        cell.border = border
+                        cell.alignment = Alignment(horizontal='right')
+                        if i == ncols:
+                            cell.fill = overall_fill
+                            cell.font = overall_font
+                    r += 1
+            elif empty_message:
+                ws.merge_cells(start_row=r, start_column=1, end_row=r, end_column=ncols)
+                ws.cell(r, 1, empty_message).font = empty_font
+                r += 1
+            r += 1  # spacer after section
+
+        if sel and context.get('has_data'):
+            write_section('Monthly Performance', 'Metric', context['table_rows'])
+            write_section('Number of bookings by Channel', 'Channel',
+                          context['bookings_channel_rows'], f'No bookings for {year}.')
+            write_section(f'Revenue by Channel ({code})', 'Channel',
+                          context['revenue_channel_rows'], f'No channel revenue for {year}.')
+        else:
+            ws.cell(r, 1, 'No data available for this selection.').font = empty_font
+
+        # Column widths: wide first column so labels show in full; months even.
+        ws.column_dimensions['A'].width = 22
+        for i in range(2, ncols):
+            ws.column_dimensions[get_column_letter(i)].width = 11
+        ws.column_dimensions[get_column_letter(ncols)].width = 12  # Overall
+
+        buf = io.BytesIO()
+        wb.save(buf)
+        buf.seek(0)
+
+        safe = re.sub(r'[^A-Za-z0-9._-]+', '_', listing_title).strip('_') or 'listing'
+        filename = f'revenue_{safe}_{year}.xlsx'
+        response = HttpResponse(
+            buf.getvalue(),
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        )
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        return response
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        user_ids = get_visible_user_ids(self.request.user)
+        current_year = timezone.now().year
+
+        # ---- Listings for the sidebar (all of the viewer's properties) ----
+        properties = list(
+            Property.objects.filter(created_by__in=user_ids).order_by('title')
+        )
+        listings = [{
+            'id': str(p.id),
+            'title': p.title,
+            'image': p.get_primary_image_url(),
+        } for p in properties]
+
+        # ---- Resolve the selected listing ----
+        listing_id = self.request.GET.get('listing')
+        selected = None
+        if listing_id:
+            selected = next((p for p in properties if str(p.id) == str(listing_id)), None)
+        if selected is None and properties:
+            selected = properties[0]
+
+        # ---- Years available for the dropdown (from this listing's bookings) ----
+        # Include both check-in and check-out years so a stay that spans a year
+        # boundary (e.g. checks in Dec, out in Jan) makes the later year
+        # selectable — otherwise the revenue that spills into it is unreachable.
+        if selected is not None:
+            year_rows = (
+                Booking.objects
+                .filter(property=selected)
+                .exclude(status='cancelled')
+                .values_list('check_in_date__year', 'check_out_date__year')
+            )
+            years = sorted({
+                y for pair in year_rows for y in pair if y
+            })
+        else:
+            years = []
+        if current_year not in years:
+            years = sorted(set(years) | {current_year})
+
+        try:
+            selected_year = int(self.request.GET.get('year') or current_year)
+        except (TypeError, ValueError):
+            selected_year = current_year
+        if selected_year not in years:
+            selected_year = current_year
+
+        _yidx = years.index(selected_year) if selected_year in years else -1
+        context.update({
+            'listings': listings,
+            'selected_property': {'id': str(selected.id), 'title': selected.title} if selected else None,
+            'total_years': years,
+            'selected_year': selected_year,
+            'year_prev': years[_yidx - 1] if _yidx > 0 else None,
+            'year_next': years[_yidx + 1] if 0 <= _yidx < len(years) - 1 else None,
+            'current_year': current_year,
+            'month_labels': self.MONTH_LABELS,
+        })
+
+        # ---- No listings yet: render an empty shell ----
+        if selected is None:
+            context.update({
+                'has_data': False,
+                'table_rows': [],
+                'bookings_channel_rows': [],
+                'revenue_channel_rows': [],
+                'bar_cols': [],
+                'donut_segments': [],
+                'donut_gradient': 'conic-gradient(#e5e7eb 0% 100%)',
+            })
+            return context
+
+        # ---- Monthly accumulators (index 0 = Jan .. 11 = Dec) ----
+        days_in_month = [calendar.monthrange(selected_year, m)[1] for m in range(1, 13)]
+        inquiries = [0] * 12
+        checkins = [0] * 12
+        checkouts = [0] * 12
+        cancellations = [0] * 12
+        tasks_arr = [0] * 12
+        days_booked = [0] * 12
+        revenue = [0.0] * 12
+        bookings_by_channel = defaultdict(lambda: [0] * 12)
+        revenue_by_channel = defaultdict(lambda: [0.0] * 12)
+
+        refundable = float(selected.refundable_deposit or 0)
+
+        bookings = Booking.objects.filter(property=selected).select_related('channel')
+        for b in bookings:
+            ci, co = b.check_in_date, b.check_out_date
+            channel_name = b.channel.name if b.channel else 'Direct'
+            cancelled = b.status == 'cancelled'
+
+            # Count-based rows keyed on check-in / check-out month.
+            if ci and ci.year == selected_year:
+                if cancelled:
+                    cancellations[ci.month - 1] += 1
+                else:
+                    checkins[ci.month - 1] += 1
+                    bookings_by_channel[channel_name][ci.month - 1] += 1
+            if co and co.year == selected_year and not cancelled:
+                checkouts[co.month - 1] += 1
+
+            # Revenue / nights attribution (non-cancelled stays only).
+            if cancelled or not ci or not co or co <= ci:
+                continue
+            net_price = float(b.price or 0)
+            if not b.external_uid and refundable:
+                net_price = max(net_price - refundable, 0.0)
+            total_nights = (co - ci).days
+            per_night = net_price / total_nights if total_nights else 0.0
+
+            night = ci
+            while night < co:
+                if night.year == selected_year:
+                    m = night.month - 1
+                    days_booked[m] += 1
+                    revenue[m] += per_night
+                    revenue_by_channel[channel_name][m] += per_night
+                night += datetime.timedelta(days=1)
+
+        # Inquiries by requested check-in month.
+        for ci in Enquiry.objects.filter(
+            property=selected, check_in_date__year=selected_year
+        ).values_list('check_in_date', flat=True):
+            if ci:
+                inquiries[ci.month - 1] += 1
+
+        # Tasks scheduled in the year.
+        for d in Task.objects.filter(
+            property=selected, date__year=selected_year
+        ).values_list('date', flat=True):
+            if d:
+                tasks_arr[d.month - 1] += 1
+
+        # ---- Derived rows: occupancy + average daily rate ----
+        occupancy = [
+            round(days_booked[m] / days_in_month[m] * 100, 2) if days_in_month[m] else 0
+            for m in range(12)
+        ]
+        adr = [
+            (revenue[m] / days_booked[m]) if days_booked[m] else 0.0
+            for m in range(12)
+        ]
+
+        total_days = sum(days_in_month)
+        total_booked = sum(days_booked)
+        total_revenue = sum(revenue)
+        overall_occ = round(total_booked / total_days * 100, 2) if total_days else 0
+        overall_adr = (total_revenue / total_booked) if total_booked else 0.0
+
+        def fmt_pct(values):
+            return ["%.2f" % v for v in values]
+
+        context['table_rows'] = [
+            {'label': 'Days in the month', 'values': days_in_month, 'overall': total_days, 'fmt': 'int'},
+            {'label': 'Of Inquiries', 'values': inquiries, 'overall': sum(inquiries), 'fmt': 'int'},
+            {'label': 'Checkins', 'values': checkins, 'overall': sum(checkins), 'fmt': 'int'},
+            {'label': 'Checkouts', 'values': checkouts, 'overall': sum(checkouts), 'fmt': 'int'},
+            {'label': 'Cancellations', 'values': cancellations, 'overall': sum(cancellations), 'fmt': 'int'},
+            {'label': 'Tasks', 'values': tasks_arr, 'overall': sum(tasks_arr), 'fmt': 'int'},
+            {'label': 'Days booked', 'values': days_booked, 'overall': total_booked, 'fmt': 'int'},
+            {'label': 'Occupancy %', 'values': fmt_pct(occupancy), 'overall': "%.2f" % overall_occ, 'fmt': 'pct'},
+            {'label': 'Average Daily rate', 'values': adr, 'overall': overall_adr, 'fmt': 'money'},
+            {'label': 'Revenue $', 'values': revenue, 'overall': total_revenue, 'fmt': 'money'},
+        ]
+
+        # ---- Channel breakdown tables ----
+        channel_names = sorted(set(bookings_by_channel) | set(revenue_by_channel))
+        context['bookings_channel_rows'] = [{
+            'label': name,
+            'values': bookings_by_channel.get(name, [0] * 12),
+            'overall': sum(bookings_by_channel.get(name, [0] * 12)),
+            'fmt': 'int',
+        } for name in channel_names]
+        context['revenue_channel_rows'] = [{
+            'label': name,
+            'values': revenue_by_channel.get(name, [0.0] * 12),
+            'overall': sum(revenue_by_channel.get(name, [0.0] * 12)),
+            'fmt': 'money',
+        } for name in channel_names]
+
+        # ---- Bar chart: revenue by month (heights relative to peak month) ----
+        max_rev = max(revenue) if revenue else 0
+        context['bar_cols'] = [{
+            'label': self.MONTH_LABELS[m],
+            'value': revenue[m],
+            'height': round(revenue[m] / max_rev * 100, 1) if max_rev > 0 else 0,
+            'highlight': max_rev > 0 and revenue[m] == max_rev,
+        } for m in range(12)]
+
+        # ---- Donut: revenue share by channel for the year ----
+        channel_year = sorted(
+            ((name, sum(revenue_by_channel.get(name, [0.0] * 12))) for name in channel_names),
+            key=lambda x: -x[1],
+        )
+        channel_year = [(n, a) for n, a in channel_year if a > 0]
+        total_channel_rev = sum(a for _, a in channel_year)
+        segments = []
+        cum = 0.0
+        for i, (name, amount) in enumerate(channel_year):
+            pct = (amount / total_channel_rev * 100) if total_channel_rev else 0
+            color = self.PALETTE[i % len(self.PALETTE)]
+            segments.append({
+                'name': name,
+                'amount': amount,
+                'pct': round(pct, 1),
+                'color': color,
+                'start': round(cum, 3),
+                'end': round(cum + pct, 3),
+            })
+            cum += pct
+        if segments:
+            stops = ", ".join(f"{s['color']} {s['start']}% {s['end']}%" for s in segments)
+            donut_gradient = f"conic-gradient({stops})"
+        else:
+            donut_gradient = "conic-gradient(#e5e7eb 0% 100%)"
+
+        context['donut_segments'] = segments
+        context['donut_gradient'] = donut_gradient
+        context['has_data'] = True
+        return context
+
+
+@method_decorator(never_cache, name='dispatch')
 class CalenderAPIView(LoginRequiredMixin,ListView):
     model = Booking
     template_name = 'frontend/calender/calender.html'
@@ -450,7 +942,7 @@ class CalenderAPIView(LoginRequiredMixin,ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        properties = Property.objects.filter(created_by=self.request.user, status='Active' )
+        properties = Property.objects.filter(created_by__in=get_visible_user_ids(self.request.user), status='Active' )
 
         rooms_list = []
         for prop in properties:
@@ -483,10 +975,10 @@ class CalenderAPIView(LoginRequiredMixin,ListView):
             return JsonResponse({'error': 'Invalid date format. Use YYYY-MM-DD.'}, status=400)
 
         bookings_qs = Booking.objects.filter(
-            property__created_by=request.user,
+            property__created_by__in=get_visible_user_ids(request.user),
             check_in_date__lte=end_date,
             check_out_date__gte=start_date
-        ).exclude(status='cancelled').select_related('property', 'channel').prefetch_related('images', 'payments')
+        ).select_related('property', 'channel').prefetch_related('images', 'payments')
 
         bookings_list = []
         for b in bookings_qs:
@@ -535,13 +1027,16 @@ class CalenderAPIView(LoginRequiredMixin,ListView):
                     'bookingId': b.booking_id or 'N/A',
                     'paymentDates': payment_dates,
                     'paymentsInfo': payments_info,
+                    'check_in_time': (b.check_in_time or b.property.check_in_time).strftime('%H:%M') if (b.check_in_time or b.property.check_in_time) else None,
+                    'check_out_time': (b.check_out_time or b.property.check_out_time).strftime('%H:%M') if (b.check_out_time or b.property.check_out_time) else None,
                 })
 
         # Fetch blocked dates
         blocked_dates_qs = PropertyBlockDate.objects.filter(
-            property__created_by=request.user,
+            property__created_by__in=get_visible_user_ids(request.user),
             start_date__lte=end_date,
-            end_date__gte=start_date
+            end_date__gte=start_date,
+            is_active=True
         ).select_related('property')
 
         for block in blocked_dates_qs:
@@ -557,10 +1052,9 @@ class CalenderAPIView(LoginRequiredMixin,ListView):
 
         # Fetch tasks for the date range organized by date and property
         tasks_qs = Task.objects.filter(
-            property__created_by=request.user,
+            created_by__in=get_visible_user_ids(request.user),
             date__lte=end_date,
             date__gte=start_date,
-            completed=False
         ).select_related('property').order_by('date', 'time')
 
         tasks_list = []
@@ -586,9 +1080,40 @@ class CalenderAPIView(LoginRequiredMixin,ListView):
                 }.get(task.task_type, '#6b7280')
             })
 
+        # Fetch enquiries for the date range
+        enquiries_qs = Enquiry.objects.filter(
+            property__created_by__in=get_visible_user_ids(request.user),
+            check_in_date__lte=end_date,
+            check_out_date__gte=start_date,
+            is_archive=False
+        ).select_related('property')
+
+        enquiries_list = []
+        for eq in enquiries_qs:
+            enquiries_list.append({
+                'id': f"enquiry-{eq.id}",
+                'propertyId': str(eq.property.id),
+                'start_date': eq.check_in_date.isoformat(),
+                'end_date': eq.check_out_date.isoformat(),
+                'startDateStr': eq.check_in_date.isoformat(),
+                'endDateStr': eq.check_out_date.isoformat(),
+                'guestName': f"{eq.first_name or ''} {eq.last_name or ''}".strip() or "Enquiry Guest",
+                'guestAvatar': staticfiles_storage.url('img/common/default_user_icon_1.png'),
+                'color': '#f59e0b',
+                'type': 'enquiry',
+                'phone': eq.phone or '',
+                'email': eq.email or '',
+                'adults': eq.adults,
+                'children': eq.children,
+                'pets': eq.pets,
+                'notes': eq.notes_for_host or '',
+                'unique_id': str(eq.unique_id),
+            })
+
         return JsonResponse({
             'bookings': bookings_list,
-            'tasks': tasks_list
+            'tasks': tasks_list,
+            'enquiries': enquiries_list
         })
 
 # views.py
@@ -610,7 +1135,7 @@ class CalendarListView(LoginRequiredMixin, ListView):
         # base queryset in case you still use object_list in template
         return (
             Booking.objects
-            .filter(property__created_by=self.request.user)
+            .filter(property__created_by__in=get_visible_user_ids(self.request.user))
             .exclude(status='cancelled')
             .select_related('property', 'channel')
             .prefetch_related('images', 'payments')
@@ -627,7 +1152,7 @@ class CalendarListView(LoginRequiredMixin, ListView):
             bookings = (
                 Booking.objects
                 .filter(
-                    Q(property__created_by=request.user),
+                    Q(property__created_by__in=get_visible_user_ids(request.user)),
                     Q(check_in_date__year=year, check_in_date__month=month) |
                     Q(check_out_date__year=year, check_out_date__month=month)
                 )
@@ -644,8 +1169,8 @@ class CalendarListView(LoginRequiredMixin, ListView):
             tasks = (
                 Task.objects
                 .filter(
-                    created_by=request.user,
-                    property__created_by=request.user,
+                    created_by__in=get_visible_user_ids(request.user),
+                    property__created_by__in=get_visible_user_ids(request.user),
                     date__year=year,
                     date__month=month,
                 )
@@ -700,6 +1225,7 @@ class CalendarListView(LoginRequiredMixin, ListView):
                 if b.check_out_date and b.check_out_date.year == year and b.check_out_date.month == month:
                     code, label = status_for(b.check_out_date)
                     events.append({
+                        "id": str(b.id),
                         "date": b.check_out_date.isoformat(),
                         "group": "Checkout",
                         "title": "Check Out",
@@ -719,6 +1245,7 @@ class CalendarListView(LoginRequiredMixin, ListView):
                 if b.check_in_date and b.check_in_date.year == year and b.check_in_date.month == month:
                     code, label = status_for(b.check_in_date)
                     events.append({
+                        "id": str(b.id),
                         "date": b.check_in_date.isoformat(),
                         "group": "Checkin",
                         "title": "Check In",
@@ -743,6 +1270,7 @@ class CalendarListView(LoginRequiredMixin, ListView):
                     if p.is_paid:
                         code, label = "paid", "Paid"
                     events.append({
+                        "id": str(b.id),
                         "date": pay_date.isoformat(),
                         "group": "Payment",
                         "title": "Payment",
@@ -781,6 +1309,7 @@ class CalendarListView(LoginRequiredMixin, ListView):
                     t_prop_image = ""
 
                 events.append({
+                    "id": t.id,
                     "date": t.date.isoformat(),
                     "time": t.time.isoformat() if t.time else None,
                     "group": "Task",
@@ -798,6 +1327,69 @@ class CalendarListView(LoginRequiredMixin, ListView):
                     "status_label": "Completed" if t.completed else label,
                 })
 
+            # Enquiry events
+            enquiries = Enquiry.objects.filter(
+                property__created_by__in=get_visible_user_ids(request.user),
+                check_in_date__year=year,
+                check_in_date__month=month,
+                is_booked=False,
+            ).select_related('property')
+            for e in enquiries:
+                guest_name = f"{e.first_name or ''} {e.last_name or ''}".strip() or "Guest"
+                stay_str = ""
+                if e.check_in_date and e.check_out_date:
+                    nights = (e.check_out_date - e.check_in_date).days
+                    stay_str = f"{e.check_in_date:%b %d, %Y}—{e.check_out_date:%b %d, %Y} ({nights} nights)"
+                events.append({
+                    "id": str(e.unique_id),
+                    "date": e.check_in_date.isoformat(),
+                    "group": "Enquiry",
+                    "title": "New Enquiry",
+                    "property": e.property.title,
+                    "location": e.property.city,
+                    "guest_name": guest_name,
+                    "guest_email": e.email or "",
+                    "guest_phone": format_guest_phone(e.country_code, e.phone),
+                    "stay": stay_str,
+                    "avatar": "",
+                    "property_image": "",
+                    "status_code": "upcoming",
+                    "status_label": "Pending",
+                    "guests": f"{e.adults} adult{'' if e.adults == 1 else 's'}{', ' + str(e.children) + ' child' + ('' if e.children == 1 else 'ren') if e.children else ''}",
+                    "notes": e.notes_for_host or "",
+                })
+
+            # Blocked date events
+            blocked_dates = PropertyBlockDate.objects.filter(
+                property__created_by__in=get_visible_user_ids(request.user),
+                start_date__year=year,
+                start_date__month=month,
+                is_active=True,
+            ).select_related('property')
+            for bd in blocked_dates:
+                stay_str = ""
+                if bd.start_date and bd.end_date:
+                    if bd.start_date == bd.end_date:
+                        stay_str = f"{bd.start_date:%b %d, %Y}"
+                    else:
+                        stay_str = f"{bd.start_date:%b %d, %Y}—{bd.end_date:%b %d, %Y}"
+                events.append({
+                    "id": f"blocked-{bd.id}",
+                    "date": bd.start_date.isoformat(),
+                    "group": "Blocked",
+                    "title": bd.reason or "Blocked",
+                    "property": bd.property.title,
+                    "location": bd.property.city,
+                    "guest_name": "",
+                    "guest_email": "",
+                    "guest_phone": "",
+                    "stay": stay_str,
+                    "avatar": "",
+                    "property_image": "",
+                    "status_code": "blocked",
+                    "status_label": "Unavailable",
+                })
+
             events.sort(key=lambda e: e["date"])
             return JsonResponse({"events": events})
 
@@ -805,7 +1397,7 @@ class CalendarListView(LoginRequiredMixin, ListView):
 
 @login_required
 def channel_integration(request, property_id):
-    property_obj = get_object_or_404(Property, pk=property_id, created_by=request.user)
+    property_obj = get_object_or_404(Property, pk=property_id, created_by__in=get_visible_user_ids(request.user))
 
     if request.method == 'POST':
         # --- Handle updates for existing channels ---
@@ -887,7 +1479,7 @@ def toggle_channel_status(request, property_id, channel_id):
     if request.method == 'POST':
         try:
             # Ensure the channel belongs to the user and property
-            channel = get_object_or_404(PropertyChannel, pk=channel_id, property_id=property_id, property__created_by=request.user)
+            channel = get_object_or_404(PropertyChannel, pk=channel_id, property_id=property_id, property__created_by__in=get_visible_user_ids(request.user))
             
             # Flip the boolean status
             channel.is_connected = not channel.is_connected
@@ -952,7 +1544,7 @@ class ManualSyncAPIView(LoginRequiredMixin, View):
         
         # Filter for connected channels on properties owned by the current user
         channels = PropertyChannel.objects.filter(
-            property__created_by=request.user, 
+            property__created_by__in=get_visible_user_ids(request.user), 
             is_connected=True
         )
         count = channels.count()
@@ -969,7 +1561,7 @@ def delete_channel(request, property_id, channel_id):
     if request.method == 'POST':
         try:
             # Ensure the channel belongs to the user and property
-            channel = get_object_or_404(PropertyChannel, pk=channel_id, property_id=property_id, property__created_by=request.user)
+            channel = get_object_or_404(PropertyChannel, pk=channel_id, property_id=property_id, property__created_by__in=get_visible_user_ids(request.user))
             channel_name = channel.channel_type.name
             channel.delete()
             
@@ -1013,3 +1605,585 @@ class WebsiteTermsView(TemplateView):
 
 class WebsitePrivacyView(TemplateView):
     template_name = 'frontend/website/privacy-policy.html'
+
+
+# --------------------------------------------------------------------------- #
+# Accounting & expense tracking
+# --------------------------------------------------------------------------- #
+class AccountingView(LoginRequiredMixin, TemplateView):
+    """Accounting & expense tracking — income, expenses and profit for a year.
+
+    Income is intentionally computed the SAME way as the rest of the platform
+    (Dashboard): the sum of *paid* Payments, by the month of their expected
+    payment date, excluding refundable-deposit / refund types. This keeps the
+    Accounting figures consistent with the Dashboard and Revenue cards.
+
+    Expenses come from the Expense model (host-recorded). Everything is stored
+    in USD (the canonical base) and rendered in the viewer's display currency
+    via the {% money %} tag. Profit = income - expenses, per month.
+    """
+    template_name = 'frontend/accounting/accounting.html'
+
+    MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
+    # Payment types that are not real income (mirrors Dashboard / Revenue).
+    EXCLUDED_PAYMENT_TYPES = ['Refundable deposit', 'Refundable to guest']
+
+    def dispatch(self, request, *args, **kwargs):
+        # Co-hosts do not have access to the accountant (accounting) section.
+        if request.user.is_authenticated and CoHost.objects.filter(co_host=request.user).exists():
+            messages.error(request, 'Accounting is not available for co-hosts.')
+            return redirect('dashboard')
+        return super().dispatch(request, *args, **kwargs)
+
+    def get(self, request, *args, **kwargs):
+        export = request.GET.get('export')
+        if export == 'xlsx':
+            return self._export_xlsx(request)
+        if export == 'csv':
+            return self._export_csv(request)
+        if request.GET.get('report'):
+            return self._render_report(request)
+        return super().get(request, *args, **kwargs)
+
+    def _resolve_year(self, user_ids):
+        current_year = timezone.now().year
+        # Years drawn from both booking activity and recorded expenses.
+        booking_years = set(
+            Payment.objects
+            .filter(booking__property__created_by__in=user_ids, is_paid=True)
+            .exclude(type__in=self.EXCLUDED_PAYMENT_TYPES)
+            .values_list('expected_payment_date__year', flat=True)
+        )
+        expense_years = set(
+            Expense.objects.filter(created_by__in=user_ids)
+            .values_list('date__year', flat=True)
+        )
+        years = sorted(y for y in (booking_years | expense_years) if y)
+        if current_year not in years:
+            years = sorted(set(years) | {current_year})
+
+        try:
+            selected_year = int(self.request.GET.get('year') or current_year)
+        except (TypeError, ValueError):
+            selected_year = current_year
+        if selected_year not in years:
+            selected_year = current_year
+        return current_year, selected_year, years
+
+    def _build_report(self, user_ids, selected_year):
+        """Return the computed income/expense/profit structure for a year."""
+        properties = list(
+            Property.objects.filter(created_by__in=user_ids).order_by('title')
+        )
+        prop_index = {p.id: i for i, p in enumerate(properties)}
+
+        # ---- Income: paid payments by property, by expected-payment month ----
+        income_by_prop = [[0.0] * 12 for _ in properties]
+        payments = (
+            Payment.objects
+            .filter(
+                booking__property__created_by__in=user_ids,
+                is_paid=True,
+                expected_payment_date__year=selected_year,
+            )
+            .exclude(type__in=self.EXCLUDED_PAYMENT_TYPES)
+            .values_list('booking__property_id', 'expected_payment_date__month', 'amount')
+        )
+        for prop_id, month, amount in payments:
+            idx = prop_index.get(prop_id)
+            if idx is None or not month:
+                continue
+            income_by_prop[idx][month - 1] += float(amount or 0)
+
+        income_total = [sum(col) for col in zip(*income_by_prop)] if properties else [0.0] * 12
+        num_props = len(properties) or 1
+        # RevPAR (Revenue Per Available Room, hotel standard): revenue divided by
+        # available room-nights, i.e. each property counts as one available unit
+        # per night. RevPAR = revenue / (available units × nights in the period).
+        days_in_month = [calendar.monthrange(selected_year, m)[1] for m in range(1, 13)]
+        revpar = [
+            round(income_total[m] / (num_props * days_in_month[m]), 2)
+            if days_in_month[m] else 0.0
+            for m in range(12)
+        ]
+        total_nights = num_props * sum(days_in_month)
+
+        income_rows = [{
+            'label': p.title,
+            'values': income_by_prop[i],
+            'overall': sum(income_by_prop[i]),
+        } for i, p in enumerate(properties)]
+
+        # ---- Expenses: by category, by month ----
+        categories = [c[0] for c in Expense.CATEGORY_CHOICES]
+        expense_by_cat = {c: [0.0] * 12 for c in categories}
+        for category, month, amount in (
+            Expense.objects
+            .filter(created_by__in=user_ids, date__year=selected_year)
+            .values_list('category', 'date__month', 'amount')
+        ):
+            if not month:
+                continue
+            bucket = expense_by_cat.setdefault(category, [0.0] * 12)
+            bucket[month - 1] += float(amount or 0)
+
+        expense_rows = [{
+            'label': c,
+            'values': expense_by_cat[c],
+            'overall': sum(expense_by_cat[c]),
+        } for c in categories]
+        expense_total = [sum(expense_by_cat[c][m] for c in categories) for m in range(12)]
+
+        # ---- Profit = income - expenses ----
+        net_profit = [income_total[m] - expense_total[m] for m in range(12)]
+
+        # ---- Profit-by-month bar chart (heights relative to peak magnitude) ----
+        # The single highest-profit month is highlighted blue (mirrors the
+        # Revenue page's peak-month styling); loss months render red.
+        peak = max((abs(v) for v in net_profit), default=0)
+        max_profit = max(net_profit) if net_profit else 0
+        bar_cols = [{
+            'label': self.MONTH_LABELS[m],
+            'value': net_profit[m],
+            'height': round(abs(net_profit[m]) / peak * 100, 1) if peak > 0 else 0,
+            'negative': net_profit[m] < 0,
+            'highlight': max_profit > 0 and net_profit[m] == max_profit,
+        } for m in range(12)]
+
+        return {
+            'properties': properties,
+            'income_rows': income_rows,
+            'income_total': income_total,
+            'income_overall': sum(income_total),
+            'revpar': revpar,
+            'revpar_overall': round(sum(income_total) / total_nights, 2) if total_nights else 0.0,
+            'expense_rows': expense_rows,
+            'expense_total': expense_total,
+            'expense_overall': sum(expense_total),
+            'net_profit': net_profit,
+            'net_profit_overall': sum(net_profit),
+            'bar_cols': bar_cols,
+        }
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        user_ids = get_visible_user_ids(self.request.user)
+        current_year, selected_year, years = self._resolve_year(user_ids)
+
+        report = self._build_report(user_ids, selected_year)
+
+        # ---- Sidebar: recent expenses for the selected year ----
+        recent_expenses = (
+            Expense.objects
+            .filter(created_by__in=user_ids, date__year=selected_year)
+            .select_related('property')
+        )
+
+        _yidx = years.index(selected_year) if selected_year in years else -1
+        context.update(report)
+        context.update({
+            'month_labels': self.MONTH_LABELS,
+            'current_year': current_year,
+            'selected_year': selected_year,
+            'total_years': years,
+            'year_prev': years[_yidx - 1] if _yidx > 0 else None,
+            'year_next': years[_yidx + 1] if 0 <= _yidx < len(years) - 1 else None,
+            'recent_expenses': recent_expenses,
+            'expense_categories': [c[0] for c in Expense.CATEGORY_CHOICES],
+            'listings': [{'id': str(p.id), 'title': p.title} for p in report['properties']],
+            'has_listings': bool(report['properties']),
+        })
+        return context
+
+    # Image extensions that can be embedded inline in the printable report;
+    # anything else (PDF, docx, …) is shown as a "see attached file" note.
+    _IMAGE_EXTS = ('.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.svg')
+
+    def _render_report(self, request):
+        """Render the full, printable detailed expense report for a year.
+
+        This is the "Detailed expense report" option behind the Print button:
+        a branded document with a KPI summary, an expense breakdown by category,
+        a monthly income/expense/profit summary, a fully itemized expense list
+        (every field captured on the Add Expense form) and a receipts appendix
+        that embeds each expense's uploaded attachment image.
+        """
+        from accounts import currency as cur
+
+        user_ids = get_visible_user_ids(request.user)
+        current_year, selected_year, years = self._resolve_year(user_ids)
+        report = self._build_report(user_ids, selected_year)
+
+        # ---- Itemized expenses (oldest → newest reads naturally in a report) ----
+        expenses = list(
+            Expense.objects
+            .filter(created_by__in=user_ids, date__year=selected_year)
+            .select_related('property')
+            .order_by('date', 'created_at')
+        )
+
+        items = []
+        receipts = []
+        for e in expenses:
+            has_image = False
+            att = e.attachment
+            if att and att.name:
+                has_image = att.name.lower().endswith(self._IMAGE_EXTS)
+            receipt_no = None
+            if att and att.name:
+                receipt_no = len(receipts) + 1
+                receipts.append({
+                    'no': receipt_no,
+                    'expense': e,
+                    'is_image': has_image,
+                    'filename': att.name.rsplit('/', 1)[-1],
+                    'url': att.url,
+                })
+            items.append({'expense': e, 'receipt_no': receipt_no})
+
+        # ---- Expense breakdown by category (non-zero, largest first, with %) ----
+        expense_overall = report['expense_overall'] or 0
+        category_breakdown = sorted(
+            ({
+                'label': row['label'],
+                'amount': row['overall'],
+                'pct': round(row['overall'] / expense_overall * 100, 1) if expense_overall else 0,
+            } for row in report['expense_rows'] if row['overall']),
+            key=lambda r: r['amount'], reverse=True,
+        )
+
+        # ---- Monthly income / expense / profit summary rows ----
+        monthly_summary = [{
+            'month': self.MONTH_LABELS[m],
+            'income': report['income_total'][m],
+            'expense': report['expense_total'][m],
+            'profit': report['net_profit'][m],
+        } for m in range(12)]
+
+        code = (getattr(request.user, 'currency', None) or cur.BASE_CURRENCY).upper()
+
+        context = {
+            'selected_year': selected_year,
+            'month_labels': self.MONTH_LABELS,
+            'account_name': request.user.get_full_name() or request.user.email,
+            'generated_at': timezone.localtime(),
+            'display_currency': code,
+            'currency_symbol': cur.symbol_for(code),
+            'income_overall': report['income_overall'],
+            'expense_overall': report['expense_overall'],
+            'net_profit_overall': report['net_profit_overall'],
+            'expense_count': len(expenses),
+            'property_count': len(report['properties']),
+            'category_breakdown': category_breakdown,
+            'monthly_summary': monthly_summary,
+            'items': items,
+            'receipts': receipts,
+        }
+        return render(request, 'frontend/accounting/expense_report.html', context)
+
+    def _export_csv(self, request):
+        """Plain CSV of the income / expenses / profit ledger (Excel-ready).
+
+        Money is converted to the viewer's display currency and written as bare
+        numbers so spreadsheets treat them as numeric; a UTF-8 BOM is prepended
+        so currency symbols render correctly in Excel. Mirrors the Revenue CSV.
+        """
+        import csv
+        import io
+        from accounts import currency as cur
+
+        user_ids = get_visible_user_ids(request.user)
+        _, selected_year, _ = self._resolve_year(user_ids)
+        report = self._build_report(user_ids, selected_year)
+        code = (getattr(request.user, 'currency', None) or cur.BASE_CURRENCY).upper()
+        symbol = cur.symbol_for(code)
+        months = list(self.MONTH_LABELS)
+        try:
+            generated = timezone.localtime(timezone.now()).strftime('%Y-%m-%d %H:%M')
+        except Exception:
+            generated = timezone.now().strftime('%Y-%m-%d %H:%M')
+
+        buf = io.StringIO()
+        buf.write('﻿')  # UTF-8 BOM so Excel renders ₹/€/₨ etc. correctly
+        writer = csv.writer(buf)
+
+        writer.writerow(['FavHost - Accounting & Expense Tracking'])
+        writer.writerow(['Year', selected_year])
+        writer.writerow(['Currency', f'{code} ({symbol})'])
+        writer.writerow(['Generated', generated])
+        writer.writerow([])
+
+        def money(value):
+            return cur.money_raw(value, code)
+
+        def section(title, first_header, rows):
+            writer.writerow([title])
+            writer.writerow([first_header] + months + ['Overall'])
+            for label, values, overall in rows:
+                writer.writerow([label] + [money(v) for v in values] + [money(overall)])
+            writer.writerow([])
+
+        income_rows = [(row['label'], row['values'], row['overall']) for row in report['income_rows']]
+        income_rows.append(('Total', report['income_total'], report['income_overall']))
+        income_rows.append(('RevPAR', report['revpar'], report['revpar_overall']))
+        section('Income', 'Property', income_rows)
+
+        expense_rows = [(row['label'], row['values'], row['overall']) for row in report['expense_rows']]
+        expense_rows.append(('Total', report['expense_total'], report['expense_overall']))
+        section('Expenses', 'Category', expense_rows)
+
+        section('Profit', 'Metric',
+                [('Net Profit', report['net_profit'], report['net_profit_overall'])])
+
+        response = HttpResponse(buf.getvalue(), content_type='text/csv; charset=utf-8')
+        response['Content-Disposition'] = f'attachment; filename="accounting_{selected_year}.csv"'
+        return response
+
+    def _export_xlsx(self, request):
+        """Styled .xlsx of the income / expenses / profit ledger for the year."""
+        import io
+        from openpyxl import Workbook
+        from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+        from openpyxl.utils import get_column_letter
+        from accounts import currency as cur
+
+        user_ids = get_visible_user_ids(request.user)
+        _, selected_year, _ = self._resolve_year(user_ids)
+        report = self._build_report(user_ids, selected_year)
+        code = (getattr(request.user, 'currency', None) or cur.BASE_CURRENCY).upper()
+        symbol = cur.symbol_for(code)
+        months = self.MONTH_LABELS
+        ncols = 1 + 12 + 1
+
+        # Palette mirrors the on-screen page: brand orange accents,
+        # charcoal section bands, warm-orange overall/total cells.
+        title_font = Font(bold=True, size=14, color='EB5310')
+        meta_label_font = Font(bold=True, color='6B7280')
+        section_font = Font(bold=True, color='FFFFFF')
+        section_fill = PatternFill('solid', fgColor='313131')
+        header_font = Font(bold=True, color='1A1A1A')
+        header_fill = PatternFill('solid', fgColor='FAF7F5')
+        overall_fill = PatternFill('solid', fgColor='FFF3EC')
+        overall_font = Font(bold=True, color='C2410C')
+        label_font = Font(bold=True, color='1A1A1A')
+        label_fill = PatternFill('solid', fgColor='FAF7F5')
+        total_font = Font(bold=True, color='C2410C')
+        total_fill = PatternFill('solid', fgColor='FFF3EC')
+        MONEY_FMT = '#,##0.00'
+        thin = Side(style='thin', color='E5E7EB')
+        border = Border(left=thin, right=thin, top=thin, bottom=thin)
+
+        wb = Workbook()
+        ws = wb.active
+        ws.title = 'Accounting'
+
+        r = 1
+        ws.cell(r, 1, 'FavHost - Accounting & Expense Tracking').font = title_font
+        r += 1
+        try:
+            generated = timezone.localtime(timezone.now()).strftime('%Y-%m-%d %H:%M')
+        except Exception:
+            generated = timezone.now().strftime('%Y-%m-%d %H:%M')
+        for label, val in [('Year', selected_year), ('Currency', f'{code} ({symbol})'), ('Generated', generated)]:
+            ws.cell(r, 1, label).font = meta_label_font
+            ws.cell(r, 2, val)
+            r += 1
+        r += 1
+
+        def money_cell(row_i, col_i, usd):
+            c = ws.cell(row_i, col_i)
+            c.value = float(cur.money_raw(usd, code))
+            c.number_format = MONEY_FMT
+            c.border = border
+            c.alignment = Alignment(horizontal='right')
+            return c
+
+        def section_header(title):
+            nonlocal r
+            ws.merge_cells(start_row=r, start_column=1, end_row=r, end_column=ncols)
+            tc = ws.cell(r, 1, title)
+            tc.font = section_font
+            tc.fill = section_fill
+            tc.alignment = Alignment(horizontal='center')
+            r += 1
+            for i, h in enumerate(['' ] + months + ['Overall'], start=1):
+                hc = ws.cell(r, i, h)
+                hc.font = overall_font if h == 'Overall' else header_font
+                hc.fill = overall_fill if h == 'Overall' else header_fill
+                hc.border = border
+                hc.alignment = Alignment(horizontal='left' if i == 1 else 'center')
+            r += 1
+
+        def data_row(label, values, overall, bold=False):
+            nonlocal r
+            lc = ws.cell(r, 1, label)
+            lc.font = total_font if bold else label_font
+            lc.fill = total_fill if bold else label_fill
+            lc.border = border
+            for i, v in enumerate(list(values), start=2):
+                cell = money_cell(r, i, v)
+                if bold:
+                    cell.fill = total_fill
+                    cell.font = total_font
+            oc = money_cell(r, ncols, overall)
+            oc.fill = total_fill if bold else overall_fill
+            oc.font = total_font if bold else overall_font
+            r += 1
+
+        section_header('Income')
+        for row in report['income_rows']:
+            data_row(row['label'], row['values'], row['overall'])
+        data_row('Total', report['income_total'], report['income_overall'], bold=True)
+        data_row('RevPAR', report['revpar'], report['revpar_overall'])
+        r += 1
+
+        section_header('Expenses')
+        for row in report['expense_rows']:
+            data_row(row['label'], row['values'], row['overall'])
+        data_row('Total', report['expense_total'], report['expense_overall'], bold=True)
+        r += 1
+
+        section_header('Profit')
+        data_row('Net Profit', report['net_profit'], report['net_profit_overall'], bold=True)
+
+        ws.column_dimensions['A'].width = 24
+        for i in range(2, ncols):
+            ws.column_dimensions[get_column_letter(i)].width = 11
+        ws.column_dimensions[get_column_letter(ncols)].width = 12
+
+        buf = io.BytesIO()
+        wb.save(buf)
+        buf.seek(0)
+        response = HttpResponse(
+            buf.getvalue(),
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        )
+        response['Content-Disposition'] = f'attachment; filename="accounting_{selected_year}.xlsx"'
+        return response
+
+
+def _parse_expense_amount_to_usd(request, raw_amount):
+    """Convert a host-entered amount (display currency) to the USD base."""
+    from accounts import currency as cur
+    code = (getattr(request.user, 'currency', None) or cur.BASE_CURRENCY).upper()
+    return cur.to_usd(raw_amount or 0, code)
+
+
+def _redirect_to_accounting(request):
+    """Return to the accounting page, preserving the selected year."""
+    year = request.POST.get('year') or request.GET.get('year')
+    url = '/accounting/'
+    if year:
+        url = f'{url}?year={year}'
+    return redirect(url)
+
+
+def _cohost_blocked(request):
+    """Redirect co-hosts away from accountant actions; returns None otherwise."""
+    if request.user.is_authenticated and CoHost.objects.filter(co_host=request.user).exists():
+        messages.error(request, 'Accounting is not available for co-hosts.')
+        return redirect('dashboard')
+    return None
+
+
+def _redirect_after_add_expense(request):
+    """Return the user to the right place after adding an expense.
+
+    Co-hosts add expenses from the shared modal in the header (they cannot open
+    /accounting/), so they go back to the page they came from. Hosts return to
+    the Accounting page (preserving the year), exactly as before.
+    """
+    if CoHost.objects.filter(co_host=request.user).exists():
+        referer = request.META.get('HTTP_REFERER')
+        return redirect(referer) if referer else redirect('dashboard')
+    return _redirect_to_accounting(request)
+
+
+@login_required
+@require_POST
+def add_expense(request):
+    # Note: co-hosts ARE allowed to add expenses (but not to view the
+    # Accounting/Revenue pages, which are guarded separately).
+    user_ids = get_visible_user_ids(request.user)
+    category = request.POST.get('category') or 'Other expenses'
+    date_str = request.POST.get('date')
+    note = request.POST.get('note') or ''
+    property_id = request.POST.get('property')
+
+    if not date_str:
+        messages.error(request, 'Please provide a date for the expense.')
+        return _redirect_after_add_expense(request)
+
+    try:
+        amount_usd = _parse_expense_amount_to_usd(request, request.POST.get('amount'))
+    except Exception:
+        messages.error(request, 'Please enter a valid amount.')
+        return _redirect_after_add_expense(request)
+
+    prop = None
+    if property_id:
+        prop = Property.objects.filter(id=property_id, created_by__in=user_ids).first()
+
+    Expense.objects.create(
+        created_by=request.user,
+        property=prop,
+        category=category,
+        amount=amount_usd,
+        date=date_str,
+        note=note,
+        attachment=request.FILES.get('attachment'),
+    )
+    messages.success(request, 'Expense added successfully.')
+    return _redirect_after_add_expense(request)
+
+
+@login_required
+@require_POST
+def edit_expense(request, pk):
+    blocked = _cohost_blocked(request)
+    if blocked:
+        return blocked
+    user_ids = get_visible_user_ids(request.user)
+    expense = get_object_or_404(Expense, pk=pk, created_by__in=user_ids)
+
+    expense.category = request.POST.get('category') or expense.category
+    date_str = request.POST.get('date')
+    if date_str:
+        expense.date = date_str
+    expense.note = request.POST.get('note') or ''
+
+    amount_raw = request.POST.get('amount')
+    if amount_raw not in (None, ''):
+        try:
+            expense.amount = _parse_expense_amount_to_usd(request, amount_raw)
+        except Exception:
+            messages.error(request, 'Please enter a valid amount.')
+            return _redirect_to_accounting(request)
+
+    property_id = request.POST.get('property')
+    if property_id:
+        expense.property = Property.objects.filter(id=property_id, created_by__in=user_ids).first()
+    else:
+        expense.property = None
+
+    if request.FILES.get('attachment'):
+        expense.attachment = request.FILES['attachment']
+
+    expense.save()
+    messages.success(request, 'Expense updated successfully.')
+    return _redirect_to_accounting(request)
+
+
+@login_required
+@require_POST
+def delete_expense(request, pk):
+    blocked = _cohost_blocked(request)
+    if blocked:
+        return blocked
+    user_ids = get_visible_user_ids(request.user)
+    expense = get_object_or_404(Expense, pk=pk, created_by__in=user_ids)
+    expense.delete()
+    messages.success(request, 'Expense deleted successfully.')
+    return _redirect_to_accounting(request)
