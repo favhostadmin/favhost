@@ -299,7 +299,7 @@ JAZZMIN_SETTINGS = {
 }
 
 LOGIN_URL = 'login'
-LOGIN_REDIRECT_URL = 'dashboard'
+LOGIN_REDIRECT_URL = 'frontdesk:index'
 LOGOUT_REDIRECT_URL = 'login'
 
 # Base URL for generating absolute URLs in emails
