@@ -193,41 +193,23 @@ class HostDashboardAPIView(LoginRequiredMixin, TemplateView):
         # total_earnings = sum(monthly_earnings)
         # monthly_average = total_earnings / 12
 
-        # Calculate total earnings up to today using the formula:
-        # (Total revenue / (TODAY - Jan 1, YYYY)) * 30
-        total_earnings = 0
+        # Monthly average of earnings elapsed so far:
+        # - past year: plain average over all 12 months
+        # - future year: nothing has elapsed yet
+        # - current year: (revenue up to and including the current month /
+        #   days elapsed since Jan 1) * 30, so numerator and denominator
+        #   always cover the same period
         year_start = datetime.date(selected_year, 1, 1)
         today_date = today
 
-        # print("year_start==>",year_start)
-        # print("today_date==>",today_date)
-
-
-        for month in range(1, 13):
-            # Determine the last day of this month
-            if month == 12:
-                month_end = datetime.date(selected_year, 12, 31)
-            else:
-                month_end = datetime.date(selected_year, month + 1, 1) - datetime.timedelta(days=1)
-            
-            # Only include this month if it has fully or partially elapsed up to today
-            if month_end <= today_date:
-                total_earnings += monthly_earnings[month - 1]
-
-        # Calculate days elapsed from Jan 1 to today
-        days_elapsed = (today_date - year_start).days
-
-        # print("days_elapsed==>",days_elapsed)
-
-        if days_elapsed == 0:
-            days_elapsed = 1  # Avoid division by zero on Jan 1
-
-        # print("total_earnings==>",total_earnings)
-
-        # Apply formula: (total_earnings / days_elapsed) * 30
-        monthly_average = (total_earnings / days_elapsed) * 30 if days_elapsed > 0 else 0
-
-        # print("monthly_average==>",monthly_average)
+        if selected_year < today_date.year:
+            monthly_average = sum(monthly_earnings) / 12
+        elif selected_year > today_date.year:
+            monthly_average = 0
+        else:
+            total_earnings = sum(monthly_earnings[:today_date.month])
+            days_elapsed = (today_date - year_start).days + 1  # include today
+            monthly_average = (total_earnings / days_elapsed) * 30
         
 
         # 6) Years for dropdown — use values_list + set for SQLite compatibility

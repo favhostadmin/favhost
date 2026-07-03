@@ -617,8 +617,18 @@
         console.log(monthlyEarnings);
         
 
-        // Current month index (0=Jan, 11=Dec)
-        const currentMonth = new Date().getMonth();
+        // Current month index (0=Jan, 11=Dec) relative to the selected year:
+        // past year -> all months elapsed, future year -> all months upcoming
+        const selectedYear = parseInt("{{ selected_year }}");
+        const now = new Date();
+        let currentMonth;
+        if (selectedYear < now.getFullYear()) {
+            currentMonth = 12;
+        } else if (selectedYear > now.getFullYear()) {
+            currentMonth = -1;
+        } else {
+            currentMonth = now.getMonth();
+        }
 
         const maxValue = Math.max(...monthlyEarnings);
         const chart = document.getElementById("earnings-chart");
