@@ -71,7 +71,7 @@
         <div class="divider"></div>
 
         <!-- Event Type Filter (Checkboxes) -->
-        <div class="dropdown" style="margin-left: 4px; flex: 0 0 auto; width: 130px;">
+        <div class="dropdown calendar-filter-dropdown" style="margin-left: 4px; flex: 0 0 auto; width: 130px;">
           <button class="btn btn-outline-secondary dropdown-toggle btn-sm fw-semibold" type="button"
             id="calendarTypeFilterBtn" data-bs-toggle="dropdown" aria-expanded="false"
             style="border-radius: 6px; border: 1px solid #d1d5db; padding: 4px 10px; font-size: 13px; background: #fff; color: #374151; width: 100%; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: inline-block;">
@@ -919,6 +919,8 @@
           renderProperties(propertiesToRender);
           renderActiveView();
         } else {
+          const shouldProceed = togglePropertyPreview(event, property.id);
+          if (!shouldProceed) return;
           if (detailUrl && detailUrl !== '#') window.open(detailUrl, '_blank', 'noopener,noreferrer');
         }
       });
@@ -979,11 +981,49 @@
     tooltip.style.top = `${top}px`;
   }
 
+  let previewOpenPropertyId = null;
+
   function hidePropertyPreview() {
     const tooltip = document.getElementById('propertyHoverTooltip');
     if (!tooltip) return;
     tooltip.style.display = 'none';
+    previewOpenPropertyId = null;
   }
+
+  function isNoHoverDevice() {
+    return window.matchMedia('(hover: none)').matches;
+  }
+
+  // Touch devices have no hover state, so the property preview card needs a
+  // tap-to-toggle fallback. Returns true when the caller's default action
+  // (e.g. row-click navigation) should still proceed, false when this tap
+  // was consumed just to open the preview.
+  function togglePropertyPreview(event, propertyId) {
+    if (event.target.closest('.property-actions')) return true;
+    if (!isNoHoverDevice()) return true;
+    if (activePropertyDropdown) return false;
+    event.stopPropagation();
+
+    const tooltip = document.getElementById('propertyHoverTooltip');
+    const alreadyOpen = tooltip && tooltip.style.display === 'block' && previewOpenPropertyId === String(propertyId);
+    if (alreadyOpen) {
+      hidePropertyPreview();
+      return true;
+    }
+
+    event.preventDefault();
+    showPropertyPreview(event, propertyId);
+    previewOpenPropertyId = String(propertyId);
+    return false;
+  }
+
+  document.addEventListener('click', function (event) {
+    if (!previewOpenPropertyId) return;
+    const tooltip = document.getElementById('propertyHoverTooltip');
+    if (tooltip && tooltip.contains(event.target)) return;
+    if (event.target.closest('.property-row') || event.target.closest('.week-sidebar-col')) return;
+    hidePropertyPreview();
+  });
 
 
 
@@ -1027,8 +1067,6 @@
       payment: "{% static 'img/task/type/payment.svg' %}",
       other: "{% static 'img/task/type/others.svg' %}"
     };
-    const labelCharLimit = 5;
-    const shortSpanMaxNights = 3;
     const todayDateKey = toISODateString(today);
     const todayColIndex = allDates.findIndex(d => toISODateString(d) === todayDateKey);
     const selectedColIndex = (hasManualDateSelection && selectedDateKey && selectedDateKey !== todayDateKey)
@@ -1078,12 +1116,10 @@
         const carryStartClass = b.startsBeforeView ? 'carry-start' : '';
         const carryEndClass = b.endsAfterView ? 'carry-end' : '';
         const nights = Math.max(1, daysBetweenISO(b.startDateStr, b.endDateStr) - 1);
-        const showFullLabel = nights > shortSpanMaxNights;
         const guestName = b.guestName || '';
-        const shortName = guestName.length > labelCharLimit
-          ? `${guestName.slice(0, labelCharLimit)}...`
-          : guestName;
-        const labelText = showFullLabel ? guestName : shortName;
+        // Always render the full name — the bar truncates it with an
+        // ellipsis via CSS to fit whatever width the bar actually has.
+        const labelText = guestName;
         const shouldShowLabel = nights > 1;
         const channelLogoUrl = getChannelLogo(b.channelName, b.channelIcon);
         const channelLogoTimeline = channelLogoUrl && !isBlocked
@@ -1095,7 +1131,7 @@
              <div class="avatar-group">
                  ${channelLogoTimeline}
              </div>
-             <div>
+             <div class="segment-name-wrap">
               ${shouldShowLabel ? `<span class="segment-guest-name">${labelText}</span>` : ''}
               </div>
           </div>
@@ -1105,7 +1141,7 @@
           content = `
             <div class="segment-content">
               <img class="blocked-icon" src="${blockedIconUrl}" alt="Blocked" />
-              <span style="color: #fff; font-size: 18px; font-weight: 500; margin-left:3px;">${blockedLabel}</span>
+              <span class="blocked-label-text">${blockedLabel}</span>
             </div>
           `;
         }
@@ -1142,14 +1178,13 @@
             const carryStartClass = b.startsBeforeView ? 'carry-start' : '';
             const carryEndClass = b.endsAfterView ? 'carry-end' : '';
             const guestName = b.guestName || '';
-            const shortName = guestName.length > labelCharLimit ? `${guestName.slice(0, labelCharLimit)}...` : guestName;
-            const labelText = nights > shortSpanMaxNights ? guestName : shortName;
+            const labelText = guestName;
             const shouldShowLabel = nights > 1;
             const channelLogoUrl = getChannelLogo(b.channelName, b.channelIcon);
             const channelLogoTimeline = channelLogoUrl && !isBlocked
               ? `<div class="channel-logo-circle" style="border-color:${bgColor};background-color:${bgColor}"><img src="${channelLogoUrl}" alt="${b.channelName || ''}" /></div>`
               : '';
-            const content = `<div class="segment-content"><div class="avatar-group">${channelLogoTimeline}</div><div>${shouldShowLabel ? `<span class="segment-guest-name">${labelText}</span>` : ''}</div></div>`;
+            const content = `<div class="segment-content"><div class="avatar-group">${channelLogoTimeline}</div><div class="segment-name-wrap">${shouldShowLabel ? `<span class="segment-guest-name">${labelText}</span>` : ''}</div></div>`;
             return `<div class="booking-span-block ${carryStartClass} ${carryEndClass}" ${onClick} onmouseenter="showGlobalTooltip(event, '${b.id}')" onmouseleave="hideGlobalTooltip()" style="--start:${b.startIndex}; --len:${Math.max(1, b.length)}; background-color:${bgColor}; cursor:pointer;">${content}</div>`;
           }).join('')
           : spanOverlays;
@@ -3053,7 +3088,9 @@
       const detailHref = property.slug ? `/property/detail/${property.slug}/` : (property.detail_url || property.url || '#');
       return `
               <div style="display:flex;min-width:max-content;border-bottom:1px solid #e5e7eb;">
-                <div class="week-sidebar-col" style="display:flex;align-items:center;gap:0;padding:8px 10px;border-right:1px solid #e5e7eb;background:#fafafa;position:sticky;left:0;z-index:2;">
+                <div class="week-sidebar-col" style="display:flex;align-items:center;gap:0;padding:8px 10px;border-right:1px solid #e5e7eb;background:#fafafa;position:sticky;left:0;z-index:2;"
+                     onmouseenter="showPropertyPreview(event, '${property.id}')" onmouseleave="hidePropertyPreview()"
+                     onclick="togglePropertyPreview(event, '${property.id}')">
                   <img src="${propImg}" alt="" style="width:32px;height:32px;border-radius:50%;object-fit:cover;flex-shrink:0;" onerror="this.onerror=null;this.src='{% static "img/common/default_user_icon_1.png" %}';">
                   <span class="week-property-name-text">${propName}</span>
                   <div class="property-actions">

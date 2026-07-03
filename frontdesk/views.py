@@ -42,10 +42,12 @@ def _fd_data(request, target_date):
         property__status='Active'
     ).exclude(status='cancelled')
 
-    # In-house for target_date
+    # In-house for target_date. check_out_date is exclusive here: a guest
+    # checking out today has already left, so that property is not in-house
+    # for today even though it was occupied through last night.
     inhouse_property_ids = set(active_bookings.filter(
         check_in_date__lte=target_date,
-        check_out_date__gte=target_date
+        check_out_date__gt=target_date
     ).values_list('property_id', flat=True))
 
     blocked_property_ids = set(PropertyBlockDate.objects.filter(
@@ -61,19 +63,22 @@ def _fd_data(request, target_date):
     total_vacant = total_active - total_occupied
     occupancy_pct = round((total_occupied / total_active * 100), 2) if total_active > 0 else 0
 
-    paid_payments = Payment.objects.filter(
-        booking__property__created_by__in=user_ids,
-        is_paid=True,
-        payment_date__date=target_date
-    ).exclude(type__in=['Refundable deposit', 'Refundable to guest'])
-    total_revenue = paid_payments.aggregate(total=Sum('amount'))['total'] or 0
-    revpar = round(total_revenue / total_active, 2) if total_active > 0 else 0
+    # RevPAR = room revenue earned for target_date's night / total available rooms.
+    # A booking earns a night's revenue for every date from check_in_date up to
+    # (but excluding) check_out_date — the checkout date itself isn't a paid night.
+    revenue_bookings = active_bookings.filter(
+        check_in_date__lte=target_date,
+        check_out_date__gt=target_date
+    )
+    room_revenue = revenue_bookings.aggregate(total=Sum('price_per_night'))['total'] or 0
+    revpar = round(room_revenue / total_active, 2) if total_active > 0 else 0
 
     total_checkin = active_bookings.filter(check_in_date=target_date).count()
     total_checkout = active_bookings.filter(check_out_date=target_date).count()
 
     total_cancellations = Booking.objects.filter(
         property__created_by__in=user_ids,
+        property__status='Active',
         status='cancelled',
         check_in_date__lte=target_date,
         check_out_date__gte=target_date
@@ -122,9 +127,11 @@ def _fd_data(request, target_date):
             property=prop, check_in_date=target_date
         ).exists()
 
-        if is_occupied and has_checkout:
+        if has_checkout:
+            # Guest is leaving today (whether or not a new guest arrives
+            # later the same day) — the unit is available today either way.
             suggested_status = 'Dirty'
-            available = False
+            available = True
         elif is_occupied:
             suggested_status = 'In-Progress'
             available = False
@@ -145,6 +152,8 @@ def _fd_data(request, target_date):
             'title': prop.title,
             'status': status,
             'available': available,
+            'has_checkin': has_checkin,
+            'has_checkout': has_checkout,
             'price': float(prop.price_per_night or 0),
             'guest_max': prop.guest,
             'bed_type': prop.bed_type,
@@ -275,9 +284,11 @@ class HousekeepingAPI(LoginRequiredMixin, View):
             property__status='Active'
         ).exclude(status='cancelled')
 
+        # check_out_date is exclusive: a guest checking out today has
+        # already left, so the property is not in-house today.
         inhouse_property_ids = set(active_bookings.filter(
             check_in_date__lte=target_date,
-            check_out_date__gte=target_date
+            check_out_date__gt=target_date
         ).values_list('property_id', flat=True))
 
         blocked_property_ids = set(PropertyBlockDate.objects.filter(
@@ -304,9 +315,9 @@ class HousekeepingAPI(LoginRequiredMixin, View):
                 property=prop, check_in_date=target_date
             ).exists()
 
-            if is_occupied and has_checkout:
+            if has_checkout:
                 suggested_status = 'Dirty'
-                available = False
+                available = True
             elif is_occupied:
                 suggested_status = 'In-Progress'
                 available = False
@@ -327,6 +338,8 @@ class HousekeepingAPI(LoginRequiredMixin, View):
                 'title': prop.title,
                 'status': status,
                 'available': available,
+                'has_checkin': has_checkin,
+                'has_checkout': has_checkout,
                 'price': float(prop.price_per_night or 0),
                 'guest_max': prop.guest,
                 'bed_type': prop.bed_type,

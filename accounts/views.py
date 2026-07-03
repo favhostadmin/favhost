@@ -112,7 +112,7 @@ def firebase_auth_view(request):
     user.backend = 'accounts.backends.EmailOrUsernameBackend'
     auth_login(request, user)
 
-    return JsonResponse({'success': True, 'redirect': str(reverse_lazy('dashboard'))})
+    return JsonResponse({'success': True, 'redirect': str(reverse_lazy('frontdesk:index'))})
 
 
 @csrf_exempt
@@ -175,7 +175,7 @@ def google_auth_view(request):
     user.backend = 'accounts.backends.EmailOrUsernameBackend'
     auth_login(request, user)
 
-    return JsonResponse({'success': True, 'redirect': str(reverse_lazy('dashboard'))})
+    return JsonResponse({'success': True, 'redirect': str(reverse_lazy('frontdesk:index'))})
 
 
 # ─────────────────────────────────────────────
@@ -211,7 +211,7 @@ class CustomLoginView(LoginView):
         next_url = self.request.GET.get('next') or self.request.POST.get('next')
         if next_url:
             return next_url
-        return reverse_lazy('dashboard')
+        return reverse_lazy('frontdesk:index')
 
     def form_invalid(self, form):
         for error in form.non_field_errors():
@@ -508,7 +508,7 @@ def verify_otp_view(request):
             user.backend = 'django.contrib.auth.backends.ModelBackend'
             auth_login(request, user)
             messages.success(request, f'Welcome to FavHost, {user.first_name}!')
-            return redirect('dashboard')
+            return redirect('frontdesk:index')
 
         except Exception as e:
             messages.error(request, 'Account creation failed. Please try again.')

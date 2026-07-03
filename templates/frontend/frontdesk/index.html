@@ -12,7 +12,7 @@
 <div class="fd-page">
 
 <!-- ══════════ ICON SPRITE ══════════ -->
-<svg width="0" height="0" style="position:absolute;overflow:hidden" aria-hidden="true">
+<svg width="0" height="0" class="fd-icon-defs" aria-hidden="true">
   <symbol id="ic-roof" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M3.2 11.5L12 4.2l8.8 7.3"/><path d="M17.5 8V5h2.2"/></symbol>
   <symbol id="ic-bell" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></symbol>
   <symbol id="ic-grid" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></symbol>
@@ -36,6 +36,8 @@
   <symbol id="ic-list" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h12"/><path d="M8 12h12"/><path d="M8 18h12"/><path d="M4 6h.01"/><path d="M4 12h.01"/><path d="M4 18h.01"/></symbol>
   <symbol id="ic-dots" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="19" cy="12" r="1.7"/></symbol>
   <symbol id="ic-home" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></symbol>
+  <symbol id="ic-checkin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></symbol>
+  <symbol id="ic-checkout" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></symbol>
 </svg>
 
 <!-- ══════════ PAGE BODY ══════════ -->
@@ -45,7 +47,7 @@
     <!-- Page header + date nav -->
     <div class="fd-page-header">
       <div class="fd-ph-left">
-        <svg><use href="#ic-home"/></svg>
+        <img src="{% static 'img/header/bell.png' %}" alt="Frontdesk">
         <span class="fd-ph-title">Frontdesk</span>
       </div>
       <div class="fd-ph-right">
@@ -66,8 +68,7 @@
     <section class="kpi-strip">
 
       <div class="date-card">
-        <button class="dc-cal-btn" aria-label="Pick a date"><svg><use href="#ic-cal"/></svg></button>
-        <input type="date" class="dc-date-overlay" id="dc-date-overlay" value="{{ date_iso }}">
+        <input type="date" class="dc-date-overlay" id="dc-date-overlay" value="{{ date_iso }}" aria-label="Pick a date">
         <div class="dc-dow" id="dc-dow">{{ day_name|upper }}</div>
         <div class="dc-date">
           <span class="dc-num" id="dc-num">{{ day_num }}</span>
@@ -82,8 +83,7 @@
             <circle cx="54" cy="54" r="44" fill="none" stroke="#ECEDEF" stroke-width="10"/>
             <circle id="occ-arc" cx="54" cy="54" r="44" fill="none" stroke="#1FAE5A" stroke-width="10"
                     stroke-linecap="round"
-                    stroke-dasharray="0 276.46"
-                    style="transition:stroke-dasharray .5s ease"/>
+                    stroke-dasharray="0 276.46"/>
           </svg>
           <div class="occ-inner">
             <b id="occ-pct">{{ occupancy_pct }}%</b>
@@ -217,6 +217,8 @@
                 <span class="hk-meta-item"><svg><use href="#ic-user"/></svg>{{ h.guest_max }} guests</span>
                 {% if h.bed_type %}<span class="hk-meta-item"><svg><use href="#ic-bed"/></svg>{{ h.bed_type }}</span>{% endif %}
                 {% if h.pet_friendly %}<span class="hk-meta-item"><svg><use href="#ic-paw"/></svg>Pet friendly</span>{% endif %}
+                {% if h.has_checkin %}<span class="hk-flag checkin"><svg><use href="#ic-checkin"/></svg>Check-in</span>{% endif %}
+                {% if h.has_checkout %}<span class="hk-flag checkout"><svg><use href="#ic-checkout"/></svg>Check-out</span>{% endif %}
               </div>
               <div class="hk-price">
                 <span class="hk-price-val">${{ h.price }}</span>
@@ -228,34 +230,34 @@
               <div class="hk-status-dd" data-property-id="{{ h.id }}">
                 <button class="hk-status-btn" type="button" aria-haspopup="listbox">
                   <span class="hk-status-btn-left">
-                    <span class="hk-status-dot" style="background:{% if st == 'Dirty' %}#E5484D{% elif st == 'In-Progress' %}#F97316{% elif st == 'Clean-Uninspected' %}#EAB308{% elif st == 'Clean-Inspected' %}#84CC16{% elif st == 'Clean-Ready' %}#1FAE5A{% elif st == 'Out-of-Service' %}#9AA1AC{% else %}#9AA1AC{% endif %};"></span>
+                    <span class="hk-status-dot hk-dot-{{ st|slugify }}"></span>
                     <span class="hk-status-label">{{ st }}</span>
                   </span>
                   <svg class="hk-status-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9.5l6 6 6-6"/></svg>
                 </button>
                 <div class="hk-status-menu" role="listbox">
                   <div class="hk-status-opt{% if st == 'Dirty' %} selected{% endif %}" data-value="Dirty">
-                    <span class="hk-status-opt-dot" style="background:#E5484D"></span>
+                    <span class="hk-status-opt-dot hk-dot-dirty"></span>
                     <div class="hk-status-opt-info"><span class="hk-status-opt-label">Dirty</span><span class="hk-status-opt-desc">Needs cleaning</span></div>
                   </div>
                   <div class="hk-status-opt{% if st == 'In-Progress' %} selected{% endif %}" data-value="In-Progress">
-                    <span class="hk-status-opt-dot" style="background:#F97316"></span>
+                    <span class="hk-status-opt-dot hk-dot-in-progress"></span>
                     <div class="hk-status-opt-info"><span class="hk-status-opt-label">In-Progress</span><span class="hk-status-opt-desc">Currently being cleaned</span></div>
                   </div>
                   <div class="hk-status-opt{% if st == 'Clean-Uninspected' %} selected{% endif %}" data-value="Clean-Uninspected">
-                    <span class="hk-status-opt-dot" style="background:#EAB308"></span>
+                    <span class="hk-status-opt-dot hk-dot-clean-uninspected"></span>
                     <div class="hk-status-opt-info"><span class="hk-status-opt-label">Clean-Uninspected</span><span class="hk-status-opt-desc">Cleaned, not verified</span></div>
                   </div>
                   <div class="hk-status-opt{% if st == 'Clean-Inspected' %} selected{% endif %}" data-value="Clean-Inspected">
-                    <span class="hk-status-opt-dot" style="background:#84CC16"></span>
+                    <span class="hk-status-opt-dot hk-dot-clean-inspected"></span>
                     <div class="hk-status-opt-info"><span class="hk-status-opt-label">Clean-Inspected</span><span class="hk-status-opt-desc">Verified clean</span></div>
                   </div>
                   <div class="hk-status-opt{% if st == 'Clean-Ready' %} selected{% endif %}" data-value="Clean-Ready">
-                    <span class="hk-status-opt-dot" style="background:#1FAE5A"></span>
+                    <span class="hk-status-opt-dot hk-dot-clean-ready"></span>
                     <div class="hk-status-opt-info"><span class="hk-status-opt-label">Clean-Ready</span><span class="hk-status-opt-desc">Ready for guest</span></div>
                   </div>
                   <div class="hk-status-opt{% if st == 'Out-of-Service' %} selected{% endif %}" data-value="Out-of-Service">
-                    <span class="hk-status-opt-dot" style="background:#9AA1AC"></span>
+                    <span class="hk-status-opt-dot hk-dot-out-of-service"></span>
                     <div class="hk-status-opt-info"><span class="hk-status-opt-label">Out-of-Service</span><span class="hk-status-opt-desc">Unavailable</span></div>
                   </div>
                 </div>
@@ -284,7 +286,7 @@
       <button class="reservation-modal-close" onclick="closeReservationPanel()">&times;</button>
     </div>
     <div class="reservation-modal-body" id="reservationModalContent">
-      <div style="display:flex;justify-content:center;align-items:center;height:200px;">
+      <div class="fd-center-box">
         <div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div>
       </div>
     </div>
@@ -402,12 +404,12 @@
   }
 
   const HK_STATUS = [
-    { value:'Dirty',             color:'#E5484D', desc:'Needs cleaning' },
-    { value:'In-Progress',       color:'#F97316', desc:'Currently being cleaned' },
-    { value:'Clean-Uninspected', color:'#EAB308', desc:'Cleaned, not verified' },
-    { value:'Clean-Inspected',   color:'#84CC16', desc:'Verified clean' },
-    { value:'Clean-Ready',       color:'#1FAE5A', desc:'Ready for guest' },
-    { value:'Out-of-Service',    color:'#9AA1AC', desc:'Unavailable' },
+    { value:'Dirty',             slug:'dirty',              desc:'Needs cleaning' },
+    { value:'In-Progress',       slug:'in-progress',        desc:'Currently being cleaned' },
+    { value:'Clean-Uninspected', slug:'clean-uninspected',  desc:'Cleaned, not verified' },
+    { value:'Clean-Inspected',   slug:'clean-inspected',    desc:'Verified clean' },
+    { value:'Clean-Ready',       slug:'clean-ready',        desc:'Ready for guest' },
+    { value:'Out-of-Service',    slug:'out-of-service',     desc:'Unavailable' },
   ];
 
   function getCookie(name){
@@ -415,23 +417,26 @@
     return v ? v.pop() : '';
   }
 
-  function statusDot(val){
+  function statusSlug(val){
     const s = HK_STATUS.find(x => x.value === val);
-    const color = s ? s.color : '#9AA1AC';
-    return `<span class="hk-status-dot" style="background:${color}"></span>`;
+    return s ? s.slug : 'out-of-service';
   }
 
-  function buildStatusDD(current){
+  function statusDot(val){
+    return `<span class="hk-status-dot hk-dot-${statusSlug(val)}"></span>`;
+  }
+
+  function buildStatusDD(current, propertyId){
     const opts = HK_STATUS.map(s => `
       <div class="hk-status-opt${s.value===current?' selected':''}" data-value="${s.value}">
-        <span class="hk-status-opt-dot" style="background:${s.color}"></span>
+        <span class="hk-status-opt-dot hk-dot-${s.slug}"></span>
         <div class="hk-status-opt-info">
           <span class="hk-status-opt-label">${s.value}</span>
           <span class="hk-status-opt-desc">${s.desc}</span>
         </div>
       </div>`).join('');
     return `
-      <div class="hk-status-dd" data-property-id="${escHTML(h.id)}">
+      <div class="hk-status-dd" data-property-id="${escHTML(propertyId)}">
         <button class="hk-status-btn" type="button">
           <span class="hk-status-btn-left">
             ${statusDot(current)}
@@ -450,7 +455,9 @@
     const availText  = h.available ? 'Available' : 'Not available';
     const petBadge   = h.pet_friendly ? `<span class="hk-meta-item"><svg><use href="#ic-paw"/></svg>Pet friendly</span>` : '';
     const bedBadge   = h.bed_type ? `<span class="hk-meta-item"><svg><use href="#ic-bed"/></svg>${escHTML(h.bed_type)}</span>` : '';
-    const opts = buildStatusDD(h.status);
+    const checkinBadge  = h.has_checkin  ? `<span class="hk-flag checkin"><svg><use href="#ic-checkin"/></svg>Check-in</span>` : '';
+    const checkoutBadge = h.has_checkout ? `<span class="hk-flag checkout"><svg><use href="#ic-checkout"/></svg>Check-out</span>` : '';
+    const opts = buildStatusDD(h.status, h.id);
     return `
       <li class="hk-item">
         <div class="hk-thumb-wrap">
@@ -461,7 +468,7 @@
           <div class="hk-title">${escHTML(h.title)}</div>
           <div class="hk-meta">
             <span class="hk-meta-item"><svg><use href="#ic-user"/></svg>${escHTML(String(h.guest_max))} guests</span>
-            ${bedBadge}${petBadge}
+            ${bedBadge}${petBadge}${checkinBadge}${checkoutBadge}
           </div>
           <div class="hk-price">
             <span class="hk-price-val">$${h.price.toFixed(2)}</span>
@@ -589,7 +596,7 @@
     const overlay = document.getElementById('reservationModalOverlay');
     const contentDiv = document.getElementById('reservationModalContent');
     overlay.classList.add('open');
-    contentDiv.innerHTML = '<div style="display:flex;justify-content:center;align-items:center;height:200px;"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></div>';
+    contentDiv.innerHTML = '<div class="fd-center-box"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></div>';
     const fetchUrl = '/booking/payment-details/' + bookingId + '/?partial=true';
     fetch(fetchUrl)
       .then(function(r) { if (!r.ok) throw new Error('Network error'); return r.text(); })
@@ -599,7 +606,7 @@
         initSidebarInteractions(contentDiv);
       })
       .catch(function(e) {
-        contentDiv.innerHTML = '<div style="padding:20px;text-align:center;color:red;"><p>Failed to load.</p><p style="font-size:12px;">' + e.message + '</p></div>';
+        contentDiv.innerHTML = '<div class="fd-error-text fd-error-text--compact"><p>Failed to load.</p><p class="fd-error-detail">' + e.message + '</p></div>';
       });
   }
 
@@ -648,14 +655,14 @@
           closeDropdown(this);
           const bookingId = this.dataset.bookingId;
           const url = '/booking/render-email-form/?booking_id=' + bookingId;
-          placeholder.innerHTML = '<div style="text-align: center; padding: 40px;">Loading...</div>';
+          placeholder.innerHTML = '<div class="fd-loading-text">Loading...</div>';
           emailModal.style.display = 'flex';
           fetch(url).then(function(r) { return r.text(); }).then(function(html) {
             placeholder.innerHTML = html;
             const closeEmailBtn = emailModal.querySelector('.btn-cancel-email');
             if (closeEmailBtn) closeEmailBtn.addEventListener('click', function() { emailModal.style.display = 'none'; });
           }).catch(function() {
-            placeholder.innerHTML = '<div style="text-align:center;padding:40px;color:red;">Failed to load email form.</div>';
+            placeholder.innerHTML = '<div class="fd-error-text">Failed to load email form.</div>';
           });
         });
       });
@@ -672,12 +679,12 @@
             const receiptUrl = this.dataset.receiptUrl;
             const placeholder = document.getElementById('guest-receipt-content-placeholder');
             if (receiptUrl && placeholder) {
-              placeholder.innerHTML = '<div style="text-align:center;padding:40px;">Loading receipt...</div>';
+              placeholder.innerHTML = '<div class="fd-loading-text">Loading receipt...</div>';
               receiptModal.style.display = 'block';
               fetch(receiptUrl).then(function(r) { return r.text(); }).then(function(html) {
                 placeholder.innerHTML = html;
               }).catch(function() {
-                placeholder.innerHTML = '<div style="text-align:center;padding:40px;color:red;">Failed to load receipt.</div>';
+                placeholder.innerHTML = '<div class="fd-error-text">Failed to load receipt.</div>';
               });
             }
             const closeReceiptBtn = receiptModal.querySelector('.close-receipt-modal');
