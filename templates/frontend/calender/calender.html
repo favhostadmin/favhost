@@ -1266,7 +1266,6 @@
             class="${cellClasses} ${(hasManualDateSelection && selectedDateKey === dateStr && dateStr !== todayDateKey) ? 'user-selected-date-column' : ''}"
             data-date="${dateStr}"
             data-property="${property.id}"
-            onclick="selectDate('${dateStr}', ${property.id})"
             style="position: relative;"
           >
             ${blinkingDot}
@@ -2629,6 +2628,12 @@
 
   /* --- Unified Calendar View Router --- */
   function renderActiveView() {
+    // The property preview card is `position:fixed` and lives outside
+    // .properties-column, so switching views (which can hide/replace the
+    // sidebar and swap in new content underneath) doesn't auto-dismiss it.
+    // Always clear it before rendering the new view so it can't linger on
+    // top of the next view's content (e.g. task icons).
+    hidePropertyPreview();
     const timelinePane = document.getElementById('datesPane');
     const gridPane = document.getElementById('gridCalendarPane');
     const listPane = document.getElementById('listViewPane');

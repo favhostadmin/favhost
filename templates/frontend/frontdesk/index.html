@@ -343,7 +343,30 @@
     arc.setAttribute('stroke-dasharray', `${fill.toFixed(2)} ${(CIRC - fill).toFixed(2)}`);
   }
 
+  function closeAllStatusDD(){
+    document.querySelectorAll('.hk-status-dd.open').forEach(o => o.classList.remove('open'));
+  }
+
+  function positionStatusMenu(btn, menu){
+    const r = btn.getBoundingClientRect();
+    const menuWidth = menu.offsetWidth || 200;
+    const menuHeight = menu.offsetHeight || 0;
+    let left = r.right - menuWidth;
+    if(left < 8) left = 8;
+    if(left + menuWidth > window.innerWidth - 8) left = window.innerWidth - 8 - menuWidth;
+    let top = r.bottom + 6;
+    if(top + menuHeight > window.innerHeight - 8) top = Math.max(8, r.top - menuHeight - 6);
+    menu.style.top = top + 'px';
+    menu.style.left = left + 'px';
+  }
+
   function applyStatusDD(){
+    const hkList = document.getElementById('hk-list');
+    if(hkList && !hkList.dataset.scrollCloseBound){
+      hkList.dataset.scrollCloseBound = '1';
+      hkList.addEventListener('scroll', closeAllStatusDD);
+    }
+
     document.querySelectorAll('.hk-status-dd').forEach(dd => {
       const btn  = dd.querySelector('.hk-status-btn');
       const menu = dd.querySelector('.hk-status-menu');
@@ -353,8 +376,11 @@
       btn.addEventListener('click', function(e){
         e.stopPropagation();
         const isOpen = dd.classList.contains('open');
-        document.querySelectorAll('.hk-status-dd.open').forEach(o => o.classList.remove('open'));
-        if(!isOpen) dd.classList.add('open');
+        closeAllStatusDD();
+        if(!isOpen){
+          dd.classList.add('open');
+          positionStatusMenu(btn, menu);
+        }
       });
 
       menu.querySelectorAll('.hk-status-opt').forEach(opt => {
@@ -370,16 +396,16 @@
           fetch(API.housekeeping, {
             method: 'POST',
             headers: {'Content-Type':'application/json','X-CSRFToken': getCookie('csrftoken')},
-            body: JSON.stringify({property_id: propertyId, status: val})
+            body: JSON.stringify({property_id: propertyId, status: val, date: fmtISO(currentDate)})
           });
         });
       });
     });
 
-    document.addEventListener('click', function(){
-      document.querySelectorAll('.hk-status-dd.open').forEach(o => o.classList.remove('open'));
-    }, {capture:true, once:false});
+    document.addEventListener('click', closeAllStatusDD, {capture:true, once:false});
   }
+
+  window.addEventListener('resize', closeAllStatusDD);
 
   function renderGuest(b, timeKey){
     const img = b.image_url

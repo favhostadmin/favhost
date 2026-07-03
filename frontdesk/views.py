@@ -114,7 +114,7 @@ def _fd_data(request, target_date):
     properties = active_properties.prefetch_related('images').order_by('title')
     saved_statuses = {
         hs.property_id: hs.status
-        for hs in HousekeepingStatus.objects.filter(property__in=properties)
+        for hs in HousekeepingStatus.objects.filter(property__in=properties, date=target_date)
     }
     housekeeping = []
     for prop in properties:
@@ -301,7 +301,7 @@ class HousekeepingAPI(LoginRequiredMixin, View):
 
         saved_statuses = {
             hs.property_id: hs.status
-            for hs in HousekeepingStatus.objects.filter(property__in=active_properties)
+            for hs in HousekeepingStatus.objects.filter(property__in=active_properties, date=target_date)
         }
 
         data = []
@@ -355,12 +355,21 @@ class HousekeepingAPI(LoginRequiredMixin, View):
             body = json.loads(request.body)
             property_id = body.get('property_id')
             status = body.get('status')
+            date_str = body.get('date')
         except (json.JSONDecodeError, AttributeError):
             return JsonResponse({'error': 'Invalid JSON'}, status=400)
 
         valid_statuses = [s[0] for s in HousekeepingStatus.STATUS_CHOICES]
         if status not in valid_statuses:
             return JsonResponse({'error': 'Invalid status'}, status=400)
+
+        if date_str:
+            try:
+                target_date = datetime.datetime.strptime(date_str, '%Y-%m-%d').date()
+            except ValueError:
+                return JsonResponse({'error': 'Invalid date'}, status=400)
+        else:
+            target_date = request.user.get_local_date()
 
         try:
             prop = Property.objects.get(id=property_id, created_by__in=user_ids)
@@ -369,6 +378,7 @@ class HousekeepingAPI(LoginRequiredMixin, View):
 
         HousekeepingStatus.objects.update_or_create(
             property=prop,
+            date=target_date,
             defaults={'status': status}
         )
         return JsonResponse({'ok': True})
