@@ -8,6 +8,7 @@ from django.utils.html import strip_tags
 from django.conf import settings
 from django.db import transaction
 from django.contrib.staticfiles import finders
+from django.urls import reverse
 from .models import Enquiry
 
 @receiver(post_save, sender=Enquiry)
@@ -22,6 +23,7 @@ def send_enquiry_notification_to_host(sender, instance, created, **kwargs):
             'enquiry': instance,
             'logo_url': 'cid:logo',
             'property_image_url': 'cid:property_image',
+            'login_url': settings.BASE_URL.rstrip('/') + reverse('login'),
         }
         
         # Render the HTML template
