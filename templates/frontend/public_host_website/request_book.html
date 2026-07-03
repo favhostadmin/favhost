@@ -254,17 +254,17 @@
                         </label>
                         <div class="rb-upload-filename" id="attachments_name" aria-live="polite"></div>
                     </div>
-                    {% comment %}
                     <div class="rb-field">
-                        <label>Captcha</label>
-                        <label class="rb-captcha">
-                            <input type="checkbox" style="width: 20px; height: 20px;" name="captcha_ack" aria-label="I am not a robot" required>
-                            <span>I'm not a robot</span>
-                            <span class="rb-captcha-badge" aria-hidden="true">S</span>
-                            <span class="rb-captcha-logo" aria-hidden="true">reCAP</span>
-                        </label>
+                        <label for="rb-captcha-input">Captcha verification <span style="color:#e11d48;">*</span></label>
+                        <div class="rb-captcha">
+                            <div class="rb-captcha-box">
+                                <canvas id="rb-captcha-canvas" width="300" height="60" aria-label="Captcha image"></canvas>
+                                <button type="button" id="rb-captcha-refresh" class="rb-captcha-refresh" title="Get a new code" aria-label="Get a new captcha code">&#x21bb;</button>
+                            </div>
+                            <input id="rb-captcha-input" class="rb-input rb-captcha-answer" type="text" autocomplete="off" spellcheck="false" maxlength="6" placeholder="Type the code shown" aria-label="Enter the captcha code">
+                        </div>
+                        <div class="rb-captcha-status" id="rb-captcha-status" aria-live="polite"></div>
                     </div>
-                    {% endcomment %}
                 </div>
                 <div class="rb-consent">
                     By sending the request you agree to the <a href="#">cancellation policy and house rules</a>
@@ -609,6 +609,96 @@
             if (totalDueEl) totalDueEl.textContent = `{{ currency_symbol }}${totalDue.toFixed(2)}`;
         }
 
+        // ---- Captcha (self-contained canvas challenge) ----
+        const captchaCanvas = document.getElementById('rb-captcha-canvas');
+        const captchaInput = document.getElementById('rb-captcha-input');
+        const captchaRefresh = document.getElementById('rb-captcha-refresh');
+        const captchaStatus = document.getElementById('rb-captcha-status');
+        const rbSubmitBtn = document.querySelector('button[type="submit"][form="rb-form"]');
+        let captchaCode = '';
+
+        function rnd(min, max) {
+            return Math.floor(Math.random() * (max - min + 1)) + min;
+        }
+
+        function generateCaptchaCode() {
+            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // omit confusing 0/O/1/I
+            let code = '';
+            for (let i = 0; i < 5; i++) {
+                code += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return code;
+        }
+
+        function drawCaptcha() {
+            if (!captchaCanvas) return;
+            const ctx = captchaCanvas.getContext('2d');
+            const w = captchaCanvas.width, h = captchaCanvas.height;
+            ctx.clearRect(0, 0, w, h);
+            ctx.fillStyle = '#f2f3f5';
+            ctx.fillRect(0, 0, w, h);
+
+            // interference lines
+            for (let i = 0; i < 5; i++) {
+                ctx.strokeStyle = `rgba(${rnd(80,180)},${rnd(80,180)},${rnd(80,180)},0.5)`;
+                ctx.beginPath();
+                ctx.moveTo(rnd(0, w), rnd(0, h));
+                ctx.lineTo(rnd(0, w), rnd(0, h));
+                ctx.stroke();
+            }
+            // noise dots
+            for (let i = 0; i < 30; i++) {
+                ctx.fillStyle = `rgba(${rnd(80,180)},${rnd(80,180)},${rnd(80,180)},0.6)`;
+                ctx.beginPath();
+                ctx.arc(rnd(0, w), rnd(0, h), 1, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            // characters
+            const startX = 20;
+            const step = (w - 34) / captchaCode.length;
+            for (let i = 0; i < captchaCode.length; i++) {
+                ctx.save();
+                ctx.translate(startX + i * step, h / 2 + rnd(-4, 4));
+                ctx.rotate((rnd(-25, 25) * Math.PI) / 180);
+                ctx.font = `bold ${rnd(26, 32)}px Georgia, serif`;
+                ctx.fillStyle = `rgb(${rnd(20,90)},${rnd(20,90)},${rnd(60,120)})`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(captchaCode[i], 0, 0);
+                ctx.restore();
+            }
+        }
+
+        function isCaptchaValid() {
+            return !!captchaInput && captchaInput.value.trim().toUpperCase() === captchaCode;
+        }
+
+        function updateSubmitState() {
+            const ok = isCaptchaValid();
+            if (rbSubmitBtn) rbSubmitBtn.disabled = !ok;
+            if (!captchaStatus) return;
+            if (captchaInput && captchaInput.value.trim()) {
+                captchaStatus.textContent = ok ? 'Verified ✓' : 'Code does not match';
+                captchaStatus.className = 'rb-captcha-status ' + (ok ? 'is-ok' : 'is-err');
+            } else {
+                captchaStatus.textContent = '';
+                captchaStatus.className = 'rb-captcha-status';
+            }
+        }
+
+        function refreshCaptcha() {
+            captchaCode = generateCaptchaCode();
+            drawCaptcha();
+            if (captchaInput) captchaInput.value = '';
+            updateSubmitState();
+        }
+
+        if (captchaCanvas) {
+            if (captchaInput) captchaInput.addEventListener('input', updateSubmitState);
+            if (captchaRefresh) captchaRefresh.addEventListener('click', refreshCaptcha);
+            refreshCaptcha(); // initial draw; leaves the submit button disabled
+        }
+
         const form = document.getElementById('rb-form');
         const modal = document.getElementById('rb-success-modal');
 
@@ -617,9 +707,9 @@
                 e.preventDefault();
 
                 // Captcha validation check
-                const captchaCheck = form.querySelector('input[name="captcha_ack"]');
-                if (captchaCheck && !captchaCheck.checked) {
-                    showAlertModal("Please verify the captcha checkbox.");
+                if (!isCaptchaValid()) {
+                    showAlertModal("Please enter the captcha code correctly.");
+                    if (captchaInput) captchaInput.focus();
                     return;
                 }
 
@@ -690,6 +780,7 @@
                         form.reset();
                         if (guestPhotoChip) guestPhotoChip.clear();
                         if (attachmentChips) attachmentChips.clear();
+                        refreshCaptcha(); // new code + re-disable submit until re-verified
                     } else {
                         showAlertModal("Error: " + (data.error || "Something went wrong"));
                         submitBtn.disabled = false;
@@ -701,9 +792,9 @@
                     showAlertModal("An error occurred while sending your request.");
                 })
                 .finally(() => {
-                    // Re-enable the button and reset text regardless of outcome
-                    submitBtn.disabled = false;
+                    // Restore label; re-enable only if the captcha is still valid
                     submitBtn.textContent = 'Agree and Send booking Request';
+                    updateSubmitState();
                 });
             });
             modal.addEventListener('click', function(e) {
