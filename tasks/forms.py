@@ -17,10 +17,10 @@ class TaskForm(forms.ModelForm):
             'title': forms.TextInput(attrs={
                 'id': 'taskTitle',
                 'placeholder': 'Enter task title',
+                'maxlength': '100',
             }),
             'details': forms.Textarea(attrs={
-                'placeholder': 'Briefly describe the task in 100 characters',
-                'maxlength': '100',
+                'placeholder': 'Briefly describe the task',
                 'id': 'taskDetails',
                 'rows': 3,
             }),
@@ -64,6 +64,7 @@ class TaskForm(forms.ModelForm):
 
         # Make fields not required by the model as optional in the form
         self.fields['title'].required = False
+        self.fields['title'].max_length = 100
         self.fields['repeat_till'].required = False
         self.fields['other_explanation'].required = False
         self.fields['email'].required = False
