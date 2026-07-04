@@ -1195,10 +1195,10 @@
                 </button>
                 <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="newDropdown"
                     style="transform: translate(0px, 39px) !important;">
-                    {% if booking_status == 'past' or booking_status == 'current' or booking_status == 'upcoming' %}
+                    {% if booking_status == 'past' or booking_status == 'current' or booking_status == 'upcoming' or booking.status == 'no_show' %}
                     <!-- Email Guest -->
                     <li>
-                        <a class="dropdown-item email-guest-btn" href="#" data-booking-id="{{ booking.id }}">
+                        <a class="dropdown-item email-guest-btn" href="#" data-booking-id="{{ booking.id }}" data-guest-email="{{ booking.email }}">
                             <svg width="16" height="16" viewBox="0 0 16 16" fill="none"
                                 xmlns="http://www.w3.org/2000/svg">
                                 <path
@@ -1226,7 +1226,7 @@
                     </li>
                     {% endif %}
 
-                    {% if time_delta or booking_status == 'past' %}
+                    {% if time_delta or booking_status == 'past' or no_show_receipt %}
                     <!-- Guest Receipt -->
                     <li>
                         <a class="dropdown-item guest-receipt-btn" href="#" data-receipt-url="{% url 'booking:guest-receipt' pk=booking.id %}">
@@ -1599,7 +1599,7 @@
                         <div class="documents-section">
                             <h3>Documents</h3>
                             <div class="documents-grid">
-                                {% if time_delta or booking_status == 'past' %}
+                                {% if time_delta or booking_status == 'past' or no_show_receipt %}
                                 <a href="#" class="doc-card guest-receipt-btn"
                                    data-receipt-url="{% url 'booking:guest-receipt' pk=booking.id %}">
                                     <div class="doc-card-preview">
@@ -1803,6 +1803,22 @@
             button.addEventListener('click', function (e) {
                 e.preventDefault();
                 closeDropdown(this);
+                const guestEmail = this.dataset.guestEmail;
+                if (guestEmail) {
+                    // Open the mail app via a hidden iframe so the page itself
+                    // never enters a stuck loading/navigation state.
+                    const frame = document.createElement('iframe');
+                    frame.style.display = 'none';
+                    document.body.appendChild(frame);
+                    try {
+                        frame.contentWindow.location.href = `mailto:${guestEmail}`;
+                    } catch (err) {
+                        window.location.href = `mailto:${guestEmail}`;
+                    }
+                    setTimeout(() => frame.remove(), 2000);
+                }
+
+                /* --- Old in-app email compose modal (kept for later reuse) ---
                 const bookingId = this.dataset.bookingId;
                 const url = `{% url 'booking:render-email-form' %}?booking_id=${bookingId}`;
 
@@ -1825,6 +1841,7 @@
                         emailModalPlaceholder.innerHTML = '<p style="text-align: center; padding: 40px; color: red;">Error loading email form. Please try again.</p>';
                         console.error('Error fetching email form:', error);
                     });
+                */
             });
         });
 

@@ -66,24 +66,6 @@
         white-space: nowrap;
       }
     }
-    .listing-footer {
-      padding: 24px 16px 32px;
-      text-align: center;
-      color: #6b7280;
-      font-size: 14px;
-    }
-
-    /* Listing page footer: show only copyright from shared footer include */
-    .footer .footer-left nav,
-    .footer .footer-right {
-      display: none !important;
-    }
-
-    .footer .footer-content,
-    .footer .footer-left {
-      justify-content: flex-start !important;
-      width: 100%;
-    }
     .info-modal {
       position: fixed;
       inset: 0;
@@ -194,51 +176,13 @@
 
         <div class="mobile-header-actions">
           {% include 'frontend/public_host_website/_currency_switcher.html' %}
-          {% if not is_cohost %}
-          {% if host.profile_picture_url %}
-            <img class="hero-avatar host-avatar-trigger" src="{{ host.profile_picture_url }}" alt="Host avatar">
-          {% else %}
-            <img
-              class="hero-avatar host-avatar-trigger"
-              src="https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?auto=format&fit=crop&w=300&q=80"
-              alt="Host avatar"
-            >
-          {% endif %}
-          {% endif %}
           <a class="hero-icon-link share-page-link mobile-share-icon" href="#" id="mobileSharePageLink" aria-label="Share">
             <img src="{% static 'img/public_host_website/share_new.png' %}" alt="Share icon">
           </a>
         </div>
 
         <div class="top-nav-right">
-          {% if not is_cohost %}
-          {% if host.profile_picture_url %}
-            <img class="hero-avatar host-avatar-trigger" src="{{ host.profile_picture_url }}" alt="Host avatar">
-          {% else %}
-            <img
-              class="hero-avatar host-avatar-trigger"
-              src="https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?auto=format&fit=crop&w=300&q=80"
-              alt="Host avatar"
-            >
-          {% endif %}
-          <div class="hero-phone-wrap">
-            <img class="hero-phone-icon" src="{% static 'img/public_host_website/phone.png' %}" alt="Phone icon">
-            <span class="hero-phone" >{{ host.phone|default:'NA' }}</span>
-          </div>
-          {% endif %}
-
-          <div class="hero-actions " aria-label="Social links">
-            {% if not is_cohost %}
-            <a class="hero-icon-link" href="{{ host.facebook_url|default:'#' }}" aria-label="Facebook">
-              <img src="{% static 'img/public_host_website/facebooks.png' %}" alt="Facebook icon">
-            </a>
-            <a class="hero-icon-link" href="{{ host.youtube_url|default:'#' }}" aria-label="YouTube">
-              <img src="{% static 'img/public_host_website/youtube.png' %}" alt="YouTube icon">
-            </a>
-            <a class="hero-icon-link" href="{{ host.instagram_url|default:'#' }}" aria-label="Instagram">
-              <img src="{% static 'img/public_host_website/instagram.png' %}" alt="Instagram icon">
-            </a>
-            {% endif %}
+          <div class="hero-actions" aria-label="Social links">
             <a class="hero-icon-link share-page-link me-2" href="#" id="sharePageLink" aria-label="Share">
               <img src="{% static 'img/public_host_website/share_new.png' %}" alt="Share icon">
             </a>
@@ -332,7 +276,24 @@
             </div>
           </a>
         {% empty %}
-          <p>No listings available for this host.</p>
+          <div class="empty-state">
+            <div class="empty-state-icon">
+              <svg viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="60" cy="60" r="54" fill="#f3f4f6"/>
+                <path d="M38 72 L38 52 L60 36 L82 52 L82 72 Z" stroke="#9ca3af" stroke-width="3" stroke-linejoin="round" fill="#e5e7eb"/>
+                <rect x="50" y="58" width="20" height="20" rx="2" fill="#d1d5db" stroke="#9ca3af" stroke-width="2"/>
+                <circle cx="84" cy="78" r="14" fill="#fff" stroke="#e5e7eb" stroke-width="2"/>
+                <path d="M79 78 L83 82 L89 74" stroke="#9ca3af" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            {% if check_in or check_out or guests_count and guests_count != '1' %}
+              <h3 class="empty-state-title">No available listings</h3>
+              <p class="empty-state-text">No properties match your search criteria.<br>Try different dates or fewer guests.</p>
+            {% else %}
+              <h3 class="empty-state-title">No listings yet</h3>
+              <p class="empty-state-text">This host hasn't published any properties yet.<br>Check back soon.</p>
+            {% endif %}
+          </div>
         {% endfor %}
       </section>
 
