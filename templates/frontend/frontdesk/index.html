@@ -34,35 +34,45 @@
   <symbol id="ic-paw" viewBox="0 0 24 24" fill="currentColor"><circle cx="6" cy="11" r="1.7"/><circle cx="10" cy="7.6" r="1.7"/><circle cx="14" cy="7.6" r="1.7"/><circle cx="18" cy="11" r="1.7"/><path d="M12 12.6c2.5 0 4.4 1.5 4.4 3.5S14.5 19.6 12 19.6 7.6 18.1 7.6 16.1 9.5 12.6 12 12.6z"/></symbol>
   <symbol id="ic-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></symbol>
   <symbol id="ic-list" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h12"/><path d="M8 12h12"/><path d="M8 18h12"/><path d="M4 6h.01"/><path d="M4 12h.01"/><path d="M4 18h.01"/></symbol>
+  <symbol id="ic-report" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="6.5 9 6.5 3.5 17.5 3.5 17.5 9"/><path d="M6.5 17H4.8A1.8 1.8 0 0 1 3 15.2v-4.4A1.8 1.8 0 0 1 4.8 9h14.4A1.8 1.8 0 0 1 21 10.8v4.4a1.8 1.8 0 0 1-1.8 1.8h-1.7"/><rect x="6.5" y="13.2" width="11" height="7.3"/></symbol>
   <symbol id="ic-dots" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="19" cy="12" r="1.7"/></symbol>
   <symbol id="ic-home" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></symbol>
   <symbol id="ic-checkin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></symbol>
   <symbol id="ic-checkout" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></symbol>
 </svg>
 
-<!-- ══════════ PAGE BODY ══════════ -->
-<div class="fd-body">
-  <div class="fd-wrap">
-
-    <!-- Page header + date nav -->
-    <div class="fd-page-header">
-      <div class="fd-ph-left">
-        <img src="{% static 'img/header/bell.png' %}" alt="Frontdesk">
-        <span class="fd-ph-title">Frontdesk</span>
-      </div>
-      <div class="fd-ph-right">
-        <div class="date-nav">
-          <button class="date-nav-btn" id="btn-prev-day" aria-label="Previous day">
-            <svg width="15" height="15"><use href="#ic-chevl"/></svg>
-          </button>
-          <span class="date-display" id="date-display">{{ day_name }}, {{ day_num }} {{ month_name }}</span>
-          <button class="date-nav-btn" id="btn-next-day" aria-label="Next day">
-            <svg width="15" height="15"><use href="#ic-chevr"/></svg>
-          </button>
-          <input type="date" id="date-picker" class="date-picker-input" value="{{ date_iso }}">
-        </div>
-      </div>
+<!-- ══════════ PAGE HEADER ══════════ -->
+<div class="fd-page-header">
+  <div class="fd-ph-inner">
+    <div class="fd-ph-left">
+      <img src="{% static 'img/header/bell.png' %}" alt="Frontdesk">
+      <span class="fd-ph-title">Frontdesk</span>
     </div>
+    <div class="fd-ph-right">
+      <div class="date-nav">
+        <button class="date-nav-btn" id="btn-prev-day" aria-label="Previous day">
+          <svg width="15" height="15"><use href="#ic-chevl"/></svg>
+        </button>
+        <span class="date-display" id="date-display">{{ day_name }}, {{ day_num }} {{ month_name }}</span>
+        <button class="date-nav-btn" id="btn-next-day" aria-label="Next day">
+          <svg width="15" height="15"><use href="#ic-chevr"/></svg>
+        </button>
+        <input type="date" id="date-picker" class="date-picker-input" value="{{ date_iso }}">
+      </div>
+      <button class="fd-ph-refresh" id="btn-today" aria-label="Go to today" title="Go to today">
+        <img src="{% static 'img/calender/today_icon.svg' %}" alt="" width="16" height="16">
+      </button>
+      <button class="fd-ph-refresh" id="btn-refresh" aria-label="Refresh" title="Refresh">
+        <svg width="17" height="17"><use href="#ic-refresh"/></svg>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ PAGE BODY (scrolls independently below the fixed header, mirrors host/dashboard.html's .main) ══════════ -->
+<div class="fd-body">
+
+  <div class="fd-wrap">
 
     <!-- KPI Strip -->
     <section class="kpi-strip">
@@ -74,7 +84,7 @@
           <span class="dc-num" id="dc-num">{{ day_num }}</span>
           <span class="dc-mon" id="dc-mon">{{ month_name }}</span>
         </div>
-        <div class="dc-year" id="dc-year">{% now "Y" %}</div>
+        <div class="dc-year" id="dc-year">{{ target_date|date:"Y" }}</div>
       </div>
 
       <div class="metrics-card">
@@ -190,10 +200,23 @@
       </div>
 
       <div class="col-card col-hk">
+        <div class="hk-print-header" aria-hidden="true">
+          <img src="{% static 'img/login/favhost_new_logo.png' %}" alt="FavHost" class="hk-print-logo">
+          <div class="hk-print-titles">
+            <span class="hk-print-title">Housekeeping Report</span>
+            <span class="hk-print-meta" id="hkPrintMeta"></span>
+          </div>
+        </div>
         <div class="col-head">
           <span class="col-title-pill pill-purple">Housekeeping</span>
           <div class="col-tools">
-            <button class="tool-btn active" aria-label="List view"><svg><use href="#ic-list"/></svg></button>
+            <div class="col-search-collapse" id="hkSearchCollapse">
+              <input type="search" id="hk-search" class="col-search-input" placeholder="Search listing…" autocomplete="off">
+              <button class="tool-btn" id="hk-search-btn" type="button" aria-label="Search listings" title="Search listings"><svg><use href="#ic-search"/></svg></button>
+            </div>
+            <button class="tool-btn active" id="hk-view-list" type="button" aria-label="List view" title="List view"><svg><use href="#ic-list"/></svg></button>
+            <button class="tool-btn" id="hk-view-grid" type="button" aria-label="Grid view" title="Grid view"><svg><use href="#ic-grid"/></svg></button>
+            <button class="tool-btn" id="hk-report-btn" type="button" aria-label="Print report" title="Print report"><svg><use href="#ic-report"/></svg></button>
           </div>
         </div>
         <ul class="hk-list" id="hk-list">
@@ -217,9 +240,13 @@
                 <span class="hk-meta-item"><svg><use href="#ic-user"/></svg>{{ h.guest_max }} guests</span>
                 {% if h.bed_type %}<span class="hk-meta-item"><svg><use href="#ic-bed"/></svg>{{ h.bed_type }}</span>{% endif %}
                 {% if h.pet_friendly %}<span class="hk-meta-item"><svg><use href="#ic-paw"/></svg>Pet friendly</span>{% endif %}
-                {% if h.has_checkin %}<span class="hk-flag checkin"><svg><use href="#ic-checkin"/></svg>Check-in</span>{% endif %}
-                {% if h.has_checkout %}<span class="hk-flag checkout"><svg><use href="#ic-checkout"/></svg>Check-out</span>{% endif %}
               </div>
+              {% if h.has_checkin or h.has_checkout %}
+              <div class="hk-flags">
+                {% if h.has_checkout %}<span class="hk-flag checkout"><svg><use href="#ic-checkout"/></svg>Check-out</span>{% endif %}
+                {% if h.has_checkin %}<span class="hk-flag checkin"><svg><use href="#ic-checkin"/></svg>Check-in</span>{% endif %}
+              </div>
+              {% endif %}
               <div class="hk-price">
                 <span class="hk-price-val">${{ h.price }}</span>
                 <span class="hk-price-unit">/ night</span>
@@ -278,6 +305,8 @@
 
     </section>
   </div>
+
+  {% include 'frontend/base/footer.html' %}
 </div>
 
 <div class="task-modal-overlay" id="reservationModalOverlay" onclick="closeReservationPanel(event)">
@@ -293,7 +322,15 @@
   </div>
 </div>
 
-{% include 'frontend/base/footer.html' %}
+<!-- Guest Receipt Modal (used by reservation sidebar actions) -->
+<div id="guestReceiptModal" class="modal" style="display: none;">
+  <div class="modal-content" style="width: 90%; max-width: 960px; padding: 0;">
+    <div class="modal-body" style="padding: 0;">
+      <div id="guest-receipt-content-placeholder">Loading...</div>
+    </div>
+  </div>
+</div>
+
 </div><!-- .fd-page -->
 {% endblock content %}
 
@@ -314,8 +351,8 @@
 
   const btnPrev    = document.getElementById('btn-prev-day');
   const btnNext    = document.getElementById('btn-next-day');
-  const btnToday   = document.getElementById('btn-today');   // optional
-  const btnRefresh = document.getElementById('btn-refresh'); // optional
+  const btnToday   = document.getElementById('btn-today');
+  const btnRefresh = document.getElementById('btn-refresh');
   const dateDisp   = document.getElementById('date-display');
   const datePicker = document.getElementById('date-picker');
 
@@ -343,7 +380,30 @@
     arc.setAttribute('stroke-dasharray', `${fill.toFixed(2)} ${(CIRC - fill).toFixed(2)}`);
   }
 
+  function closeAllStatusDD(){
+    document.querySelectorAll('.hk-status-dd.open').forEach(o => o.classList.remove('open'));
+  }
+
+  function positionStatusMenu(btn, menu){
+    const r = btn.getBoundingClientRect();
+    const menuWidth = menu.offsetWidth || 200;
+    const menuHeight = menu.offsetHeight || 0;
+    let left = r.right - menuWidth;
+    if(left < 8) left = 8;
+    if(left + menuWidth > window.innerWidth - 8) left = window.innerWidth - 8 - menuWidth;
+    let top = r.bottom + 6;
+    if(top + menuHeight > window.innerHeight - 8) top = Math.max(8, r.top - menuHeight - 6);
+    menu.style.top = top + 'px';
+    menu.style.left = left + 'px';
+  }
+
   function applyStatusDD(){
+    const hkList = document.getElementById('hk-list');
+    if(hkList && !hkList.dataset.scrollCloseBound){
+      hkList.dataset.scrollCloseBound = '1';
+      hkList.addEventListener('scroll', closeAllStatusDD);
+    }
+
     document.querySelectorAll('.hk-status-dd').forEach(dd => {
       const btn  = dd.querySelector('.hk-status-btn');
       const menu = dd.querySelector('.hk-status-menu');
@@ -353,8 +413,11 @@
       btn.addEventListener('click', function(e){
         e.stopPropagation();
         const isOpen = dd.classList.contains('open');
-        document.querySelectorAll('.hk-status-dd.open').forEach(o => o.classList.remove('open'));
-        if(!isOpen) dd.classList.add('open');
+        closeAllStatusDD();
+        if(!isOpen){
+          dd.classList.add('open');
+          positionStatusMenu(btn, menu);
+        }
       });
 
       menu.querySelectorAll('.hk-status-opt').forEach(opt => {
@@ -370,16 +433,16 @@
           fetch(API.housekeeping, {
             method: 'POST',
             headers: {'Content-Type':'application/json','X-CSRFToken': getCookie('csrftoken')},
-            body: JSON.stringify({property_id: propertyId, status: val})
+            body: JSON.stringify({property_id: propertyId, status: val, date: fmtISO(currentDate)})
           });
         });
       });
     });
 
-    document.addEventListener('click', function(){
-      document.querySelectorAll('.hk-status-dd.open').forEach(o => o.classList.remove('open'));
-    }, {capture:true, once:false});
+    document.addEventListener('click', closeAllStatusDD, {capture:true, once:false});
   }
+
+  window.addEventListener('resize', closeAllStatusDD);
 
   function renderGuest(b, timeKey){
     const img = b.image_url
@@ -468,8 +531,9 @@
           <div class="hk-title">${escHTML(h.title)}</div>
           <div class="hk-meta">
             <span class="hk-meta-item"><svg><use href="#ic-user"/></svg>${escHTML(String(h.guest_max))} guests</span>
-            ${bedBadge}${petBadge}${checkinBadge}${checkoutBadge}
+            ${bedBadge}${petBadge}
           </div>
+          ${(checkinBadge || checkoutBadge) ? `<div class="hk-flags">${checkoutBadge}${checkinBadge}</div>` : ''}
           <div class="hk-price">
             <span class="hk-price-val">$${h.price.toFixed(2)}</span>
             <span class="hk-price-unit">/ night</span>
@@ -502,7 +566,6 @@
       document.getElementById('kpi-booked').textContent      = sum.total_booked_today;
       document.getElementById('kpi-tasks').textContent       = sum.total_tasks;
       document.getElementById('kpi-payments').textContent    = '$' + sum.total_payments_amount;
-      var eb = document.getElementById('nav-enquiries-badge'); if(eb) eb.textContent = sum.total_inquiries;
       document.getElementById('ci-count').textContent        = sum.total_checkin;
       document.getElementById('co-count').textContent        = sum.total_checkout;
       updateDonut(sum.occupancy_pct);
@@ -510,6 +573,7 @@
       document.getElementById('dc-dow').textContent = sum.day_name.toUpperCase();
       document.getElementById('dc-num').textContent = sum.day_num;
       document.getElementById('dc-mon').textContent = sum.month_name;
+      document.getElementById('dc-year').textContent = dateISO.slice(0,4);
 
       const ciList = document.getElementById('checkin-list');
       ciList.innerHTML = ci.data.length
@@ -582,7 +646,87 @@
     }
     filterList('ci-search','checkin-list');
     filterList('co-search','checkout-list');
+
+    const hkInp = document.getElementById('hk-search');
+    if(hkInp){
+      hkInp.addEventListener('input', function(){
+        const q = this.value.toLowerCase();
+        document.querySelectorAll('#hk-list .hk-item').forEach(li => {
+          const title = (li.querySelector('.hk-title')?.textContent || '').toLowerCase();
+          li.style.display = title.includes(q) ? '' : 'none';
+        });
+      });
+    }
   }
+
+  function stampHKPrintMeta(){
+    const el = document.getElementById('hkPrintMeta');
+    if(!el) return;
+    el.textContent = dateDisp.textContent + ' · Generated: ' + new Date().toLocaleString();
+  }
+
+  const hkReportBtn = document.getElementById('hk-report-btn');
+  if(hkReportBtn){
+    hkReportBtn.addEventListener('click', function(){
+      stampHKPrintMeta();
+      document.body.classList.add('printing-hk');
+      window.print();
+    });
+  }
+  window.addEventListener('afterprint', function(){
+    document.body.classList.remove('printing-hk');
+  });
+
+  /* ── Housekeeping corner search (icon expands to input) ── */
+  (function(){
+    const collapse = document.getElementById('hkSearchCollapse');
+    const searchBtn = document.getElementById('hk-search-btn');
+    const searchInp = document.getElementById('hk-search');
+    if(!collapse || !searchBtn || !searchInp) return;
+
+    function openSearch(){
+      collapse.classList.add('open');
+      searchBtn.classList.add('search-open');
+      searchInp.focus();
+    }
+    function closeSearch(){
+      collapse.classList.remove('open');
+      searchBtn.classList.remove('search-open');
+      searchInp.value = '';
+      searchInp.dispatchEvent(new Event('input'));
+    }
+    searchBtn.addEventListener('click', function(e){
+      e.stopPropagation();
+      collapse.classList.contains('open') && !searchInp.value ? closeSearch() : openSearch();
+    });
+    searchInp.addEventListener('keydown', function(e){
+      if(e.key === 'Escape') closeSearch();
+    });
+    document.addEventListener('click', function(e){
+      if(!collapse.classList.contains('open')) return;
+      if(collapse.contains(e.target)) return;
+      if(!searchInp.value) closeSearch();
+    });
+  })();
+
+  /* ── Housekeeping list / grid view toggle ── */
+  (function(){
+    const listBtn = document.getElementById('hk-view-list');
+    const gridBtn = document.getElementById('hk-view-grid');
+    const list = document.getElementById('hk-list');
+    if(!listBtn || !gridBtn || !list) return;
+
+    listBtn.addEventListener('click', function(){
+      list.classList.remove('hk-list--grid');
+      listBtn.classList.add('active');
+      gridBtn.classList.remove('active');
+    });
+    gridBtn.addEventListener('click', function(){
+      list.classList.add('hk-list--grid');
+      gridBtn.classList.add('active');
+      listBtn.classList.remove('active');
+    });
+  })();
 
   updateDonut(parseFloat('{{ occupancy_pct }}') || 0);
   applyStatusDD();
