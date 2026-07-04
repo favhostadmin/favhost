@@ -203,7 +203,6 @@ class TaskEditView(LoginRequiredMixin, View):
             disabled_fields_map = {
                 'property': task.property.id,
                 'date': task.date.strftime('%Y-%m-%d') if task.date else '',
-                'time': task.time.strftime('%H:%M:%S') if task.time else '',
                 'repeat': task.repeat,
                 'task_type': task.task_type,
             }

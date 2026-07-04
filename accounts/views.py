@@ -24,6 +24,7 @@ from django.views.decorators.http import require_POST, require_http_methods
 from django.contrib.staticfiles import finders
 from .models import MyUser, UserDocument, CoHost
 from .utils import get_effective_user
+from shared.models import CountryAndState
 
 logger = logging.getLogger(__name__)
 
@@ -1045,6 +1046,7 @@ def profile_edit_view(request):
         'govt_id_count': govt_id_docs.count(),
         'phone_code': phone_code,
         'phone_number': phone_number,
+        'countries': CountryAndState.objects.order_by('country_name').values_list('country_name', flat=True).distinct(),
     }
     return render(request, 'frontend/auth/profile_edit.html', context)
 

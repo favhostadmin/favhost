@@ -53,6 +53,7 @@ urlpatterns = [
     path('tasks/', include(('tasks.urls', 'tasks'), namespace='tasks')),
     path('frontdesk/', include(('frontdesk.urls', 'frontdesk'), namespace='frontdesk')),
     path('global/', include(('global.urls', 'global'), namespace='global')),
+    path('shared/', include(('shared.urls', 'shared'), namespace='shared')),
     path('print/', include(('printpanel.urls', 'printpanel'), namespace='printpanel')),
     path('calendar-grid-view/',CalenderAPIView.as_view(),name="calendar-grid-view"),
     path('calendar-list-view/',CalendarListView.as_view(),name="calendar-list-view"),

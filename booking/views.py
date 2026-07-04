@@ -5,6 +5,7 @@ from django.core.files import File
 from django.views.generic import ListView, View
 from .models import *
 from property.models import Property, PropertyBlockDate
+from shared.models import CountryAndState
 from django.urls import reverse_lazy
 from django.db import transaction
 from django.contrib import messages
@@ -236,6 +237,7 @@ class BookingCreateView(LoginRequiredMixin, View):
             'enquiry_id': enquiry_id,
             'enquiry_images': enquiry_images,
             'enquiry_documents': enquiry_documents,
+            'countries': CountryAndState.objects.order_by('country_name').values_list('country_name', flat=True).distinct(),
         }
 
         return render(request, self.template_name, context)
@@ -257,6 +259,7 @@ class BookingCreateView(LoginRequiredMixin, View):
                     'enquiry_id': enquiry_id,
                     'enquiry_images': EnquiryImage.objects.filter(enquiry__unique_id=enquiry_id) if enquiry_id else None,
                     'enquiry_documents': EnquiryDocument.objects.filter(enquiry__unique_id=enquiry_id) if enquiry_id else None,
+                    'countries': CountryAndState.objects.order_by('country_name').values_list('country_name', flat=True).distinct(),
                 }
                 return render(request, self.template_name, context)
 
@@ -272,6 +275,7 @@ class BookingCreateView(LoginRequiredMixin, View):
                         'enquiry_id': enquiry_id,
                         'enquiry_images': EnquiryImage.objects.filter(enquiry__unique_id=enquiry_id) if enquiry_id else None,
                         'enquiry_documents': EnquiryDocument.objects.filter(enquiry__unique_id=enquiry_id) if enquiry_id else None,
+                        'countries': CountryAndState.objects.order_by('country_name').values_list('country_name', flat=True).distinct(),
                     }
                     return render(request, self.template_name, context)
 
@@ -386,7 +390,10 @@ class BookingCreateView(LoginRequiredMixin, View):
         except Exception as e:
             print('Error==>',e.args[0])
             messages.error(request, f"An error occurred: {e}")
-            return render(request, self.template_name, {'channels': BookingChannel.objects.all()})
+            return render(request, self.template_name, {
+                'channels': BookingChannel.objects.all(),
+                'countries': CountryAndState.objects.order_by('country_name').values_list('country_name', flat=True).distinct(),
+            })
 
 
 class BookingUpdateView(LoginRequiredMixin, View):
