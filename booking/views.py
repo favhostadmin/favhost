@@ -5,6 +5,7 @@ from django.core.files import File
 from django.views.generic import ListView, View
 from .models import *
 from property.models import Property, PropertyBlockDate
+from shared.models import CountryAndState
 from django.urls import reverse_lazy
 from django.db import transaction
 from django.contrib import messages
@@ -65,6 +66,9 @@ class BookingListView(LoginRequiredMixin, ListView):
         elif status_filter == 'cancelled':
             bookings = base_qs.filter(status='cancelled')
             bookings = bookings.order_by('-created_at')
+        elif status_filter == 'no_show':
+            bookings = base_qs.filter(status='no_show')
+            bookings = bookings.order_by('-check_in_date')
         else:  # 'all'
             bookings = base_qs
             bookings = bookings.order_by('-check_in_date')
@@ -102,10 +106,17 @@ class BookingListView(LoginRequiredMixin, ListView):
 
             relevant_info = ''
             time_delta = False
+            no_show_receipt = False
             urgency = 'green'
             if booking.status == 'cancelled':
                 relevant_info = 'Cancelled'
                 urgency = 'red'
+            elif booking.status == 'no_show':
+                relevant_info = 'No Show'
+                urgency = 'amber'
+                # No show receipt is available only from the checkout date onwards
+                if booking.check_out_date and booking.check_out_date <= now:
+                    no_show_receipt = True
             elif status_filter == 'upcoming':
                 if booking.check_in_date:
                     delta = booking.check_in_date - now
@@ -149,6 +160,7 @@ class BookingListView(LoginRequiredMixin, ListView):
                 'due_status': 'Paid', # Placeholder
                 'checkout_info': relevant_info,
                 'time_delta': time_delta,
+                'no_show_receipt': no_show_receipt,
                 'urgency': urgency,
                 'email': booking.email,
                 'phone': booking.phone,
@@ -169,6 +181,7 @@ class BookingListView(LoginRequiredMixin, ListView):
             'current': base_qs.filter(check_in_date__lte=now, check_out_date__gte=now, status='confirmed').count(),
             'upcoming': base_qs.filter(check_in_date__gt=now, status='confirmed').count(),
             'cancelled': base_qs.filter(status='cancelled').count(),
+            'no_show': base_qs.filter(status='no_show').count(),
             'status_filter': status_filter,
             'search_query': search_query,
             'current_property': current_property,
@@ -229,6 +242,7 @@ class BookingCreateView(LoginRequiredMixin, View):
             'enquiry_id': enquiry_id,
             'enquiry_images': enquiry_images,
             'enquiry_documents': enquiry_documents,
+            'countries': CountryAndState.objects.order_by('country_name').values_list('country_name', flat=True).distinct(),
         }
 
         return render(request, self.template_name, context)
@@ -250,6 +264,7 @@ class BookingCreateView(LoginRequiredMixin, View):
                     'enquiry_id': enquiry_id,
                     'enquiry_images': EnquiryImage.objects.filter(enquiry__unique_id=enquiry_id) if enquiry_id else None,
                     'enquiry_documents': EnquiryDocument.objects.filter(enquiry__unique_id=enquiry_id) if enquiry_id else None,
+                    'countries': CountryAndState.objects.order_by('country_name').values_list('country_name', flat=True).distinct(),
                 }
                 return render(request, self.template_name, context)
 
@@ -265,6 +280,7 @@ class BookingCreateView(LoginRequiredMixin, View):
                         'enquiry_id': enquiry_id,
                         'enquiry_images': EnquiryImage.objects.filter(enquiry__unique_id=enquiry_id) if enquiry_id else None,
                         'enquiry_documents': EnquiryDocument.objects.filter(enquiry__unique_id=enquiry_id) if enquiry_id else None,
+                        'countries': CountryAndState.objects.order_by('country_name').values_list('country_name', flat=True).distinct(),
                     }
                     return render(request, self.template_name, context)
 
@@ -379,7 +395,10 @@ class BookingCreateView(LoginRequiredMixin, View):
         except Exception as e:
             print('Error==>',e.args[0])
             messages.error(request, f"An error occurred: {e}")
-            return render(request, self.template_name, {'channels': BookingChannel.objects.all()})
+            return render(request, self.template_name, {
+                'channels': BookingChannel.objects.all(),
+                'countries': CountryAndState.objects.order_by('country_name').values_list('country_name', flat=True).distinct(),
+            })
 
 
 class BookingUpdateView(LoginRequiredMixin, View):
@@ -601,6 +620,9 @@ def payment_details(request, pk):
 
     delta = (booking.check_out_date - now) if booking.check_out_date else None
 
+    # No show receipt is available only from the checkout date onwards
+    no_show_receipt = booking.status == 'no_show' and booking.check_out_date and booking.check_out_date <= now
+
 
     context = {
         'booking': booking,
@@ -609,7 +631,8 @@ def payment_details(request, pk):
         'subtotal': subtotal,
         'total_price': total_price,
         'monthly_payment': monthly_payment,
-        'time_delta': True if (delta and delta.days == 0) else False,
+        'time_delta': True if (delta is not None and delta.days == 0) else False,
+        'no_show_receipt': no_show_receipt,
     }
     context['booking_status'] = booking_status
 
@@ -782,6 +805,23 @@ class CancelBookingView(LoginRequiredMixin, View):
                 booking.payments.all().delete()
             messages.success(request, "Booking cancelled successfully.")
             return JsonResponse({'success': True, 'message': 'Booking cancelled successfully.'})
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+class MarkNoShowView(LoginRequiredMixin, View):
+    def post(self, request, *args, **kwargs):
+        booking_id = kwargs.get('pk')
+        booking = get_object_or_404(Booking, pk=booking_id, property__created_by__in=get_visible_user_ids(request.user))
+
+        # Unlike cancellation, payments are kept as the money is not refunded
+        try:
+            with transaction.atomic():
+                booking.status = 'no_show'
+                booking.updated_at = timezone.now()
+                booking.save()
+            messages.success(request, "Booking marked as no show successfully.")
+            return JsonResponse({'success': True, 'message': 'Booking marked as no show successfully.'})
         except Exception as e:
             return JsonResponse({'success': False, 'error': str(e)}, status=500)
 

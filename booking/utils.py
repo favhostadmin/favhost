@@ -209,14 +209,37 @@ def sync_property_channel(self, channel_id):
         
         if booking_qs.exists():
             booking = booking_qs.first()
-            # Check if dates changed
             synced_booking_uids.append(uid)
             dates_changed = (booking.check_in_date != start_date) or (booking.check_out_date != end_date)
-            
+
+            # If the channel moved this booking's dates, make sure the new
+            # range doesn't now clash with a *different* confirmed booking
+            # for this property before applying it — otherwise we'd silently
+            # create two overlapping reservations for the same listing.
+            if dates_changed:
+                conflicting_booking = Booking.objects.filter(
+                    property=channel.property,
+                    status='confirmed',
+                    check_in_date__lt=end_date,
+                    check_out_date__gt=start_date
+                ).exclude(pk=booking.pk).exists()
+
+                if conflicting_booking:
+                    logger.warning(
+                        f"Skipped date update for booking {booking.id} ({uid}): "
+                        f"new dates {start_date}–{end_date} overlap with another "
+                        f"confirmed booking for {channel.property}. Keeping existing dates."
+                    )
+                    booking.status = 'confirmed'
+                    booking.notes = notes
+                    booking.last_synced_at = timezone.now()
+                    booking.save()
+                    continue
+
             # Update fields
             # booking.first_name = guest_first_name
             # booking.last_name = guest_last_name
-            # Do not overwrite first_name, last_name, phone, email, or notes 
+            # Do not overwrite first_name, last_name, phone, email, or notes
             # to ensure that manual changes made by the admin are preserved.
             booking.check_in_date = start_date
             booking.check_out_date = end_date
@@ -224,7 +247,7 @@ def sync_property_channel(self, channel_id):
             booking.notes = notes
             booking.last_synced_at = timezone.now()
             booking.save()
-            
+
             if dates_changed:
                 logger.info(f"Booking {booking.id} dates updated via iCal. Regenerating payments.")
                 booking.payments.all().delete()

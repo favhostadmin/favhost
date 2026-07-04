@@ -2,6 +2,8 @@
 {% load static %}
 {% load currency_tags %}
 
+{% block body_class %}ld-page{% endblock %}
+
 {% block extra_head %}
 <link href="{% static 'css/property/details.css' %}" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.19/css/intlTelInput.css" />
@@ -118,7 +120,9 @@
                 <div class="ld-top">
                     <div class="ld-brand">
                         <span>Created with</span>
-                        <img src="{% static 'img/header/favhost.png' %}" alt="FavHost" style="height:35px;">
+                        <a href="{% url 'index' %}" target="_blank" rel="noopener noreferrer">
+                            <img src="{% static 'img/header/favhost.png' %}" alt="FavHost" style="height:35px;">
+                        </a>
                     </div>
                     <div style="margin-left:auto;">
                         {% include 'frontend/public_host_website/_currency_switcher.html' %}
@@ -610,11 +614,9 @@
                     </div>
                 </div>
             </div>
-            {% include 'frontend/base/footer.html' %}
-
-
         </div>
     </div>
+    {% include 'frontend/base/footer.html' %}
 
     <!-- Mobile Sticky CTA -->
     <div class="mobile-cta-bar d-lg-none d-md-none">
@@ -820,7 +822,7 @@
 </script>
 
 <script>
-    function setupShowMore(containerSelector, maxLength = 400) {
+    function setupShowMore(containerSelector, maxLines = 4) {
         const containers = document.querySelectorAll(containerSelector);
         containers.forEach(function(container) {
             const textElement = container.querySelector('p');
@@ -828,18 +830,19 @@
             if (!textElement || !btn) return;
 
             const fullText = textElement.getAttribute("data-full") || "";
+            const clampStyle = 'display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:' + maxLines + ';overflow:hidden;';
 
-            if (fullText.length > maxLength) {
-                const shortText = fullText.substring(0, maxLength) + "...";
-                textElement.innerHTML = shortText;
+            textElement.innerHTML = fullText;
+            textElement.style.cssText = clampStyle;
 
+            if (textElement.scrollHeight > textElement.clientHeight + 1) {
                 btn.addEventListener("click", function () {
-                    const isShort = textElement.innerHTML.endsWith("...");
-                    textElement.innerHTML = isShort ? fullText : shortText;
-                    btn.textContent = isShort ? "Show less" : "Show more";
+                    const isClamped = textElement.style.cssText !== "";
+                    textElement.style.cssText = isClamped ? "" : clampStyle;
+                    btn.textContent = isClamped ? "Show less" : "Show more";
                 });
             } else {
-                textElement.innerHTML = fullText;
+                textElement.style.cssText = "";
                 btn.style.display = 'none';
             }
         });

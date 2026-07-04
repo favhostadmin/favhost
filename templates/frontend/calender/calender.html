@@ -105,10 +105,10 @@
               data-bs-toggle="dropdown" aria-expanded="false"
               style="border: 1px solid #d1d5db; border-radius: 6px; background: #fff; color: #374151; font-size: 13px; padding: 4px 10px;">Timeline</button>
             <ul class="dropdown-menu" aria-labelledby="viewDropdownBtn">
+              <li><a class="dropdown-item active" href="#" data-view="timeline">Timeline</a></li>
               <li><a class="dropdown-item" href="#" data-view="month">Month</a></li>
               <li><a class="dropdown-item" href="#" data-view="week">Week</a></li>
               <li><a class="dropdown-item" href="#" data-view="day">Day</a></li>
-              <li><a class="dropdown-item active" href="#" data-view="timeline">Timeline</a></li>
               <li><a class="dropdown-item" href="#" data-view="list">List View</a></li>
             </ul>
           </div>
@@ -120,10 +120,10 @@
             <div class="mobile-menu-section">
               <div class="mobile-menu-label">View</div>
               <div class="mobile-menu-view-options">
+                <button class="mobile-view-btn active" data-view="timeline">Timeline</button>
                 <button class="mobile-view-btn" data-view="month">Month</button>
                 <button class="mobile-view-btn" data-view="week">Week</button>
                 <button class="mobile-view-btn" data-view="day">Day</button>
-                <button class="mobile-view-btn active" data-view="timeline">Timeline</button>
                 <button class="mobile-view-btn" data-view="list">List</button>
               </div>
             </div>
@@ -205,11 +205,11 @@
       </div>
       <!-- Grid Calendar Pane for Month/Week/Day Views -->
       <div id="gridCalendarPane"
-        style="display: none; flex: 1; height: 100%; min-height: 0; overflow-y: auto; padding: 16px; background-color: #fafafa; position: relative; box-sizing: border-box;">
+        style="display: none; flex: 1; height: 100%; min-height: 0; overflow-y: auto; padding: 16px; background-color: #fafafa; position: relative; z-index: 1; box-sizing: border-box;">
       </div>
       <!-- List View Pane -->
       <div id="listViewPane" class="list-view-pane"
-        style="display: none; flex: 1; height: 100%; min-height: 0; overflow-y: auto; background-color: #f5f6f8; position: relative; box-sizing: border-box;">
+        style="display: none; flex: 1; height: 100%; min-height: 0; overflow-y: auto; background-color: #f5f6f8; position: relative; z-index: 1; box-sizing: border-box;">
         <div id="listViewContent">
           <div class="list-loading">Loading events…</div>
         </div>
@@ -1266,7 +1266,6 @@
             class="${cellClasses} ${(hasManualDateSelection && selectedDateKey === dateStr && dateStr !== todayDateKey) ? 'user-selected-date-column' : ''}"
             data-date="${dateStr}"
             data-property="${property.id}"
-            onclick="selectDate('${dateStr}', ${property.id})"
             style="position: relative;"
           >
             ${blinkingDot}
@@ -1990,12 +1989,28 @@
     // 2. Email Guest Modal
     const emailModal = sidebarContent.querySelector('#emailGuestModal');
     const emailBtns = sidebarRoot.querySelectorAll('.email-guest-btn');
-    if (emailModal && emailBtns.length > 0) {
-      const placeholder = emailModal.querySelector('#email-modal-content-placeholder');
+    if (emailBtns.length > 0) {
       emailBtns.forEach(btn => {
         btn.addEventListener('click', function (e) {
           e.preventDefault();
           closeDropdown(this);
+          const guestEmail = this.dataset.guestEmail;
+          if (guestEmail) {
+            // Open the mail app via a hidden iframe so the page itself never
+            // enters a stuck loading/navigation state.
+            const frame = document.createElement('iframe');
+            frame.style.display = 'none';
+            document.body.appendChild(frame);
+            try {
+              frame.contentWindow.location.href = `mailto:${guestEmail}`;
+            } catch (err) {
+              window.location.href = `mailto:${guestEmail}`;
+            }
+            setTimeout(() => frame.remove(), 2000);
+          }
+
+          /* --- Old in-app email compose modal (kept for later reuse) ---
+          const placeholder = emailModal.querySelector('#email-modal-content-placeholder');
           const bookingId = this.dataset.bookingId;
           const url = `{% url 'booking:render-email-form' %}?booking_id=${bookingId}`;
           placeholder.innerHTML = '<div style="text-align: center; padding: 40px;">Loading...</div>';
@@ -2005,9 +2020,10 @@
             const closeEmailBtn = emailModal.querySelector('.btn-cancel-email');
             if (closeEmailBtn) closeEmailBtn.onclick = () => emailModal.style.display = 'none';
           });
+          window.addEventListener('click', (e) => { if (e.target == emailModal) emailModal.style.display = 'none'; });
+          */
         });
       });
-      window.addEventListener('click', (e) => { if (e.target == emailModal) emailModal.style.display = 'none'; });
     }
 
     // 3. Guest Receipt Modal
@@ -2140,6 +2156,44 @@
         };
       }
       window.addEventListener('click', (e) => { if (e.target == cancelModal) cancelModal.style.display = 'none'; });
+    }
+
+    // 4b. No Show
+    const noShowModal = sidebarContent.querySelector('#noShowModal');
+    const noShowBtns = sidebarRoot.querySelectorAll('.mark-no-show-btn');
+    if (noShowModal && noShowBtns.length > 0) {
+      const closeNoShowBtn = noShowModal.querySelector('#closeNoShowModal');
+      const btnNoShowModalClose = noShowModal.querySelector('#btnNoShowModalClose');
+      const confirmNoShowBtn = noShowModal.querySelector('#confirmNoShowBtn');
+      let noShowUrl = '';
+
+      const closeNoShowFunc = () => noShowModal.style.display = 'none';
+      if (closeNoShowBtn) closeNoShowBtn.onclick = closeNoShowFunc;
+      if (btnNoShowModalClose) btnNoShowModalClose.onclick = closeNoShowFunc;
+
+      noShowBtns.forEach(btn => {
+        btn.addEventListener('click', function (e) {
+          e.preventDefault();
+          closeDropdown(this);
+          noShowUrl = this.dataset.url || this.href;
+          noShowModal.style.display = 'flex';
+        });
+      });
+
+      if (confirmNoShowBtn) {
+        confirmNoShowBtn.onclick = function () {
+          if (!noShowUrl) return;
+          this.disabled = true; this.innerText = 'Marking...';
+          fetch(noShowUrl, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': '{{ csrf_token }}', 'Content-Type': 'application/json' }
+          }).then(r => r.json()).then(data => {
+            if (data.success) { window.location.reload(); }
+            else { alert('Failed: ' + data.error); closeNoShowFunc(); this.disabled = false; this.innerText = 'Yes, No Show'; }
+          }).catch(e => { console.error(e); closeNoShowFunc(); this.disabled = false; this.innerText = 'Yes, No Show'; });
+        };
+      }
+      window.addEventListener('click', (e) => { if (e.target == noShowModal) noShowModal.style.display = 'none'; });
     }
 
     // 5. Payment Checkboxes
@@ -2629,12 +2683,20 @@
 
   /* --- Unified Calendar View Router --- */
   function renderActiveView() {
+    // The property preview card is `position:fixed` and lives outside
+    // .properties-column, so switching views (which can hide/replace the
+    // sidebar and swap in new content underneath) doesn't auto-dismiss it.
+    // Always clear it before rendering the new view so it can't linger on
+    // top of the next view's content (e.g. task icons).
+    hidePropertyPreview();
     const timelinePane = document.getElementById('datesPane');
     const gridPane = document.getElementById('gridCalendarPane');
     const listPane = document.getElementById('listViewPane');
     const propsColumn = document.querySelector('.properties-column');
     const legend = document.getElementById('calColorLegend');
     if (!timelinePane || !gridPane) return;
+
+    document.body.classList.toggle('cal-view-timeline', currentViewMode === 'timeline');
 
     if (currentViewMode === 'timeline') {
       if (legend) legend.style.display = 'none';
@@ -3088,10 +3150,10 @@
       const detailHref = property.slug ? `/property/detail/${property.slug}/` : (property.detail_url || property.url || '#');
       return `
               <div style="display:flex;min-width:max-content;border-bottom:1px solid #e5e7eb;">
-                <div class="week-sidebar-col" style="display:flex;align-items:center;gap:0;padding:8px 10px;border-right:1px solid #e5e7eb;background:#fafafa;position:sticky;left:0;z-index:2;"
+                <div class="week-sidebar-col" style="display:flex;align-items:center;gap:0;padding:8px 10px;border-right:1px solid #e5e7eb;background:#fafafa;position:sticky;left:0;z-index:200;"
                      onmouseenter="showPropertyPreview(event, '${property.id}')" onmouseleave="hidePropertyPreview()"
                      onclick="togglePropertyPreview(event, '${property.id}')">
-                  <img src="${propImg}" alt="" style="width:32px;height:32px;border-radius:50%;object-fit:cover;flex-shrink:0;" onerror="this.onerror=null;this.src='{% static "img/common/default_user_icon_1.png" %}';">
+                  <img src="${propImg}" alt="" style="width:32px;height:32px;border-radius:50%;object-fit:cover;flex-shrink:0;" onerror="this.onerror=null;this.src='{% static 'img/common/default_user_icon_1.png' %}';">
                   <span class="week-property-name-text">${propName}</span>
                   <div class="property-actions">
                     <div class="dropdown dropend">
@@ -3865,19 +3927,27 @@
     const menuRect = menuEl.getBoundingClientRect();
     const viewportGap = 8;
 
-    let left = toggleRect.right + 8;
-    let top = toggleRect.bottom - menuRect.height;
+    const headerNav = document.querySelector('.header-nav');
+    const minTop = (headerNav ? headerNav.getBoundingClientRect().bottom : 0) + viewportGap;
 
+    let left = toggleRect.right + 8;
     if (left + menuRect.width > window.innerWidth - viewportGap) {
       left = Math.max(viewportGap, toggleRect.left - menuRect.width - 8);
     }
 
-    if (top < viewportGap) {
-      top = viewportGap;
+    // Prefer opening upward (bottom-aligned with the button) when there's room;
+    // otherwise flip downward so it doesn't get clamped under the page header.
+    const spaceAbove = toggleRect.bottom - minTop;
+    let top = spaceAbove >= menuRect.height
+      ? toggleRect.bottom - menuRect.height
+      : toggleRect.top;
+
+    if (top < minTop) {
+      top = minTop;
     }
 
     if (top + menuRect.height > window.innerHeight - viewportGap) {
-      top = Math.max(viewportGap, window.innerHeight - menuRect.height - viewportGap);
+      top = Math.max(minTop, window.innerHeight - menuRect.height - viewportGap);
     }
 
     menuEl.style.setProperty('left', `${left}px`, 'important');

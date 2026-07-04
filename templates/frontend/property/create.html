@@ -4,6 +4,62 @@
 {% block extra_head %}
     <link href="{% static 'css/property/create.css' %}" rel="stylesheet">
     <style>
+        .searchable-select-wrap { position: relative; }
+        .searchable-select-wrap select { display: none; }
+        .searchable-select-wrap input[type="text"] { padding-right: 32px; }
+        .searchable-select-clear {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 18px;
+            height: 18px;
+            border: none;
+            background: none;
+            padding: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: #9ca3af;
+            font-size: 16px;
+            line-height: 1;
+        }
+        .searchable-select-clear:hover { color: #374151; }
+        .searchable-select-clear.show { display: flex; }
+        .searchable-select-dropdown {
+            position: absolute;
+            top: calc(100% + 2px);
+            left: 0;
+            right: 0;
+            z-index: 50;
+            background: #fff;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            box-shadow: 0 8px 28px rgba(0,0,0,.18);
+            margin: 0;
+            padding: 4px 0;
+            list-style: none;
+            display: none;
+            max-height: 240px;
+            overflow-y: auto;
+            font-size: 14px;
+        }
+        .searchable-select-dropdown.open { display: block; }
+        .searchable-select-dropdown li {
+            padding: 8px 14px;
+            cursor: pointer;
+            color: #374151;
+        }
+        .searchable-select-dropdown li:hover,
+        .searchable-select-dropdown li.active {
+            background: #eff6ff;
+        }
+        .searchable-select-dropdown li.no-results {
+            color: #9ca3af;
+            cursor: default;
+        }
+        .searchable-select-dropdown li.no-results:hover { background: transparent; }
         #addr-ac-dropdown {
             position: fixed;
             z-index: 999999;
@@ -77,17 +133,19 @@
             if (zipEl) zipEl.value = (comp.postal_code || {}).long_name || '';
 
             var countryEl = document.getElementById('country');
+            var desiredState = comp.administrative_area_level_1 ? comp.administrative_area_level_1.long_name : '';
             if (countryEl && comp.country) {
                 var cn = comp.country.long_name.toLowerCase();
                 var opt = Array.from(countryEl.options).find(function(o) {
                     return o.value.toLowerCase() === cn;
                 });
                 if (opt) countryEl.value = opt.value;
+                countryEl.dispatchEvent(new Event('sync-display'));
             }
 
-            var stateEl = document.getElementById('state');
-            if (stateEl && comp.administrative_area_level_1)
-                stateEl.value = comp.administrative_area_level_1.long_name;
+            if (typeof window.populateStatesForCountry === 'function') {
+                window.populateStatesForCountry(countryEl ? countryEl.value : '', desiredState);
+            }
 
             var geo = (result.geometry || {}).location;
             if (geo) {
@@ -512,8 +570,16 @@
                                 </div>
                                 <input type="file" id="cover-file-input" name="cover_photo" accept="image/*" style="display:none;">
                                 <div class="error-message" id="cover-error-message"></div>
-                                <div class="doc-preview-container" id="cover-preview-container">
-                                    <div class="preview-grid" id="cover-preview-grid"></div>
+                                <div class="doc-preview-container" id="cover-preview-container" {% if existing_cover_image %}style="display:block;"{% endif %}>
+                                    <div class="preview-grid" id="cover-preview-grid">
+                                        {% if existing_cover_image %}
+                                        <div class="preview-item">
+                                            <a href="{{ existing_cover_image.image.url }}" target="_blank">
+                                                <img src="{{ existing_cover_image.image.url }}" alt="Current cover photo" class="preview-doc">
+                                            </a>
+                                        </div>
+                                        {% endif %}
+                                    </div>
                                 </div>
                             </div>
                             <div class="col-lg-6 col-12 ps-0 form-group">
@@ -594,7 +660,7 @@
                                 <label class="form-label">Minimum Booking nights<span class="required">*</span></label>
                                 <div class="form-group" style="margin-bottom:0;">
                                     {{ form.minimum_booking }}
-                                    <span class="inputbox_content">nights</span>
+                                    <!-- <span class="inputbox_content">nights</span> -->
                                 </div>
                             </div>
                         </div>
@@ -698,196 +764,28 @@
                         <div class="row m-0 p-0">
                             <div class="col-lg-6 col-12 ps-0 form-group">
                                 <label class="form-label">Country<span class="required">*</span></label>
-                                <div class="select-wrap">
-                                    <select name="country" class="form-input country" id="country" data-selected="{{ form.instance.country|default:'' }}">
+                                <div class="searchable-select-wrap">
+                                    <input type="text" class="form-input" id="country-search-input" placeholder="Search country..." autocomplete="off">
+                                    <button type="button" class="searchable-select-clear" id="country-search-clear" aria-label="Clear country">&times;</button>
+                                    <ul class="searchable-select-dropdown" id="country-search-dropdown"></ul>
+                                    <select name="country" id="country" style="display:none;" data-selected="{{ form.instance.country|default:'' }}">
                                         <option value="">Select Country</option>
-                                        <option value="Afghanistan" data-country-code="AF">Afghanistan</option>
-                                        <option value="Albania" data-country-code="AL">Albania</option>
-                                        <option value="Algeria" data-country-code="DZ">Algeria</option>
-                                        <option value="Andorra" data-country-code="AD">Andorra</option>
-                                        <option value="Angola" data-country-code="AO">Angola</option>
-                                        <option value="Antigua and Barbuda" data-country-code="AG">Antigua and Barbuda</option>
-                                        <option value="Argentina" data-country-code="AR">Argentina</option>
-                                        <option value="Armenia" data-country-code="AM">Armenia</option>
-                                        <option value="Australia" data-country-code="AU">Australia</option>
-                                        <option value="Austria" data-country-code="AT">Austria</option>
-                                        <option value="Azerbaijan" data-country-code="AZ">Azerbaijan</option>
-                                        <option value="Bahamas" data-country-code="BS">Bahamas</option>
-                                        <option value="Bahrain" data-country-code="BH">Bahrain</option>
-                                        <option value="Bangladesh" data-country-code="BD">Bangladesh</option>
-                                        <option value="Barbados" data-country-code="BB">Barbados</option>
-                                        <option value="Belarus" data-country-code="BY">Belarus</option>
-                                        <option value="Belgium" data-country-code="BE">Belgium</option>
-                                        <option value="Belize" data-country-code="BZ">Belize</option>
-                                        <option value="Benin" data-country-code="BJ">Benin</option>
-                                        <option value="Bhutan" data-country-code="BT">Bhutan</option>
-                                        <option value="Bolivia" data-country-code="BO">Bolivia</option>
-                                        <option value="Bosnia and Herzegovina" data-country-code="BA">Bosnia and Herzegovina</option>
-                                        <option value="Botswana" data-country-code="BW">Botswana</option>
-                                        <option value="Brazil" data-country-code="BR">Brazil</option>
-                                        <option value="Brunei" data-country-code="BN">Brunei</option>
-                                        <option value="Bulgaria" data-country-code="BG">Bulgaria</option>
-                                        <option value="Burkina Faso" data-country-code="BF">Burkina Faso</option>
-                                        <option value="Burundi" data-country-code="BI">Burundi</option>
-                                        <option value="Cambodia" data-country-code="KH">Cambodia</option>
-                                        <option value="Cameroon" data-country-code="CM">Cameroon</option>
-                                        <option value="Canada" data-country-code="CA">Canada</option>
-                                        <option value="Cape Verde" data-country-code="CV">Cape Verde</option>
-                                        <option value="Central African Republic" data-country-code="CF">Central African Republic</option>
-                                        <option value="Chad" data-country-code="TD">Chad</option>
-                                        <option value="Chile" data-country-code="CL">Chile</option>
-                                        <option value="China" data-country-code="CN">China</option>
-                                        <option value="Colombia" data-country-code="CO">Colombia</option>
-                                        <option value="Comoros" data-country-code="KM">Comoros</option>
-                                        <option value="Congo" data-country-code="CG">Congo</option>
-                                        <option value="Costa Rica" data-country-code="CR">Costa Rica</option>
-                                        <option value="Croatia" data-country-code="HR">Croatia</option>
-                                        <option value="Cuba" data-country-code="CU">Cuba</option>
-                                        <option value="Cyprus" data-country-code="CY">Cyprus</option>
-                                        <option value="Czech Republic" data-country-code="CZ">Czech Republic</option>
-                                        <option value="Denmark" data-country-code="DK">Denmark</option>
-                                        <option value="Djibouti" data-country-code="DJ">Djibouti</option>
-                                        <option value="Dominica" data-country-code="DM">Dominica</option>
-                                        <option value="Dominican Republic" data-country-code="DO">Dominican Republic</option>
-                                        <option value="Ecuador" data-country-code="EC">Ecuador</option>
-                                        <option value="Egypt" data-country-code="EG">Egypt</option>
-                                        <option value="El Salvador" data-country-code="SV">El Salvador</option>
-                                        <option value="Equatorial Guinea" data-country-code="GQ">Equatorial Guinea</option>
-                                        <option value="Eritrea" data-country-code="ER">Eritrea</option>
-                                        <option value="Estonia" data-country-code="EE">Estonia</option>
-                                        <option value="Eswatini" data-country-code="SZ">Eswatini</option>
-                                        <option value="Ethiopia" data-country-code="ET">Ethiopia</option>
-                                        <option value="Fiji" data-country-code="FJ">Fiji</option>
-                                        <option value="Finland" data-country-code="FI">Finland</option>
-                                        <option value="France" data-country-code="FR">France</option>
-                                        <option value="Gabon" data-country-code="GA">Gabon</option>
-                                        <option value="Gambia" data-country-code="GM">Gambia</option>
-                                        <option value="Georgia" data-country-code="GE">Georgia</option>
-                                        <option value="Germany" data-country-code="DE">Germany</option>
-                                        <option value="Ghana" data-country-code="GH">Ghana</option>
-                                        <option value="Greece" data-country-code="GR">Greece</option>
-                                        <option value="Greenland" data-country-code="GL">Greenland</option>
-                                        <option value="Guatemala" data-country-code="GT">Guatemala</option>
-                                        <option value="Guinea" data-country-code="GN">Guinea</option>
-                                        <option value="Guinea-Bissau" data-country-code="GW">Guinea-Bissau</option>
-                                        <option value="Guyana" data-country-code="GY">Guyana</option>
-                                        <option value="Haiti" data-country-code="HT">Haiti</option>
-                                        <option value="Honduras" data-country-code="HN">Honduras</option>
-                                        <option value="Hong Kong" data-country-code="HK">Hong Kong</option>
-                                        <option value="Hungary" data-country-code="HU">Hungary</option>
-                                        <option value="Iceland" data-country-code="IS">Iceland</option>
-                                        <option value="India" data-country-code="IN">India</option>
-                                        <option value="Indonesia" data-country-code="ID">Indonesia</option>
-                                        <option value="Iran" data-country-code="IR">Iran</option>
-                                        <option value="Iraq" data-country-code="IQ">Iraq</option>
-                                        <option value="Ireland" data-country-code="IE">Ireland</option>
-                                        <option value="Israel" data-country-code="IL">Israel</option>
-                                        <option value="Italy" data-country-code="IT">Italy</option>
-                                        <option value="Ivory Coast" data-country-code="CI">Ivory Coast</option>
-                                        <option value="Jamaica" data-country-code="JM">Jamaica</option>
-                                        <option value="Japan" data-country-code="JP">Japan</option>
-                                        <option value="Jordan" data-country-code="JO">Jordan</option>
-                                        <option value="Kazakhstan" data-country-code="KZ">Kazakhstan</option>
-                                        <option value="Kenya" data-country-code="KE">Kenya</option>
-                                        <option value="Kosovo" data-country-code="XK">Kosovo</option>
-                                        <option value="Kuwait" data-country-code="KW">Kuwait</option>
-                                        <option value="Kyrgyzstan" data-country-code="KG">Kyrgyzstan</option>
-                                        <option value="Laos" data-country-code="LA">Laos</option>
-                                        <option value="Latvia" data-country-code="LV">Latvia</option>
-                                        <option value="Lebanon" data-country-code="LB">Lebanon</option>
-                                        <option value="Lesotho" data-country-code="LS">Lesotho</option>
-                                        <option value="Liberia" data-country-code="LR">Liberia</option>
-                                        <option value="Libya" data-country-code="LY">Libya</option>
-                                        <option value="Liechtenstein" data-country-code="LI">Liechtenstein</option>
-                                        <option value="Lithuania" data-country-code="LT">Lithuania</option>
-                                        <option value="Luxembourg" data-country-code="LU">Luxembourg</option>
-                                        <option value="Madagascar" data-country-code="MG">Madagascar</option>
-                                        <option value="Malawi" data-country-code="MW">Malawi</option>
-                                        <option value="Malaysia" data-country-code="MY">Malaysia</option>
-                                        <option value="Maldives" data-country-code="MV">Maldives</option>
-                                        <option value="Mali" data-country-code="ML">Mali</option>
-                                        <option value="Malta" data-country-code="MT">Malta</option>
-                                        <option value="Mauritania" data-country-code="MR">Mauritania</option>
-                                        <option value="Mauritius" data-country-code="MU">Mauritius</option>
-                                        <option value="Mexico" data-country-code="MX">Mexico</option>
-                                        <option value="Moldova" data-country-code="MD">Moldova</option>
-                                        <option value="Monaco" data-country-code="MC">Monaco</option>
-                                        <option value="Mongolia" data-country-code="MN">Mongolia</option>
-                                        <option value="Montenegro" data-country-code="ME">Montenegro</option>
-                                        <option value="Morocco" data-country-code="MA">Morocco</option>
-                                        <option value="Mozambique" data-country-code="MZ">Mozambique</option>
-                                        <option value="Myanmar" data-country-code="MM">Myanmar</option>
-                                        <option value="Namibia" data-country-code="NA">Namibia</option>
-                                        <option value="Nepal" data-country-code="NP">Nepal</option>
-                                        <option value="Netherlands" data-country-code="NL">Netherlands</option>
-                                        <option value="New Zealand" data-country-code="NZ">New Zealand</option>
-                                        <option value="Nicaragua" data-country-code="NI">Nicaragua</option>
-                                        <option value="Niger" data-country-code="NE">Niger</option>
-                                        <option value="Nigeria" data-country-code="NG">Nigeria</option>
-                                        <option value="North Korea" data-country-code="KP">North Korea</option>
-                                        <option value="North Macedonia" data-country-code="MK">North Macedonia</option>
-                                        <option value="Norway" data-country-code="NO">Norway</option>
-                                        <option value="Oman" data-country-code="OM">Oman</option>
-                                        <option value="Pakistan" data-country-code="PK">Pakistan</option>
-                                        <option value="Palestine" data-country-code="PS">Palestine</option>
-                                        <option value="Panama" data-country-code="PA">Panama</option>
-                                        <option value="Paraguay" data-country-code="PY">Paraguay</option>
-                                        <option value="Peru" data-country-code="PE">Peru</option>
-                                        <option value="Philippines" data-country-code="PH">Philippines</option>
-                                        <option value="Poland" data-country-code="PL">Poland</option>
-                                        <option value="Portugal" data-country-code="PT">Portugal</option>
-                                        <option value="Qatar" data-country-code="QA">Qatar</option>
-                                        <option value="Romania" data-country-code="RO">Romania</option>
-                                        <option value="Russia" data-country-code="RU">Russia</option>
-                                        <option value="Rwanda" data-country-code="RW">Rwanda</option>
-                                        <option value="San Marino" data-country-code="SM">San Marino</option>
-                                        <option value="Saudi Arabia" data-country-code="SA">Saudi Arabia</option>
-                                        <option value="Senegal" data-country-code="SN">Senegal</option>
-                                        <option value="Serbia" data-country-code="RS">Serbia</option>
-                                        <option value="Seychelles" data-country-code="SC">Seychelles</option>
-                                        <option value="Sierra Leone" data-country-code="SL">Sierra Leone</option>
-                                        <option value="Singapore" data-country-code="SG">Singapore</option>
-                                        <option value="Slovakia" data-country-code="SK">Slovakia</option>
-                                        <option value="Slovenia" data-country-code="SI">Slovenia</option>
-                                        <option value="Somalia" data-country-code="SO">Somalia</option>
-                                        <option value="South Africa" data-country-code="ZA">South Africa</option>
-                                        <option value="South Korea" data-country-code="KR">South Korea</option>
-                                        <option value="South Sudan" data-country-code="SS">South Sudan</option>
-                                        <option value="Spain" data-country-code="ES">Spain</option>
-                                        <option value="Sri Lanka" data-country-code="LK">Sri Lanka</option>
-                                        <option value="Sudan" data-country-code="SD">Sudan</option>
-                                        <option value="Suriname" data-country-code="SR">Suriname</option>
-                                        <option value="Sweden" data-country-code="SE">Sweden</option>
-                                        <option value="Switzerland" data-country-code="CH">Switzerland</option>
-                                        <option value="Syria" data-country-code="SY">Syria</option>
-                                        <option value="Taiwan" data-country-code="TW">Taiwan</option>
-                                        <option value="Tajikistan" data-country-code="TJ">Tajikistan</option>
-                                        <option value="Tanzania" data-country-code="TZ">Tanzania</option>
-                                        <option value="Thailand" data-country-code="TH">Thailand</option>
-                                        <option value="Togo" data-country-code="TG">Togo</option>
-                                        <option value="Trinidad and Tobago" data-country-code="TT">Trinidad and Tobago</option>
-                                        <option value="Tunisia" data-country-code="TN">Tunisia</option>
-                                        <option value="Turkey" data-country-code="TR">Turkey</option>
-                                        <option value="Turkmenistan" data-country-code="TM">Turkmenistan</option>
-                                        <option value="Uganda" data-country-code="UG">Uganda</option>
-                                        <option value="Ukraine" data-country-code="UA">Ukraine</option>
-                                        <option value="United Arab Emirates" data-country-code="AE">United Arab Emirates</option>
-                                        <option value="United Kingdom" data-country-code="GB">United Kingdom</option>
-                                        <option value="United States" data-country-code="US">United States</option>
-                                        <option value="Uruguay" data-country-code="UY">Uruguay</option>
-                                        <option value="Uzbekistan" data-country-code="UZ">Uzbekistan</option>
-                                        <option value="Vatican City" data-country-code="VA">Vatican City</option>
-                                        <option value="Venezuela" data-country-code="VE">Venezuela</option>
-                                        <option value="Vietnam" data-country-code="VN">Vietnam</option>
-                                        <option value="Yemen" data-country-code="YE">Yemen</option>
-                                        <option value="Zambia" data-country-code="ZM">Zambia</option>
-                                        <option value="Zimbabwe" data-country-code="ZW">Zimbabwe</option>
+                                        {% for country_name in countries %}
+                                        <option value="{{ country_name }}">{{ country_name }}</option>
+                                        {% endfor %}
                                     </select>
                                 </div>
                             </div>
                             <div class="col-lg-6 col-12 ps-0 form-group">
                                 <label class="form-label">State<span class="required">*</span></label>
-                                <input type="text" name="state" class="form-input" id="state" placeholder="Enter state" value="{{ form.state.value|default:form.state.initial|default:'' }}">
+                                <div class="searchable-select-wrap">
+                                    <input type="text" class="form-input" id="state-search-input" placeholder="Search state..." autocomplete="off">
+                                    <button type="button" class="searchable-select-clear" id="state-search-clear" aria-label="Clear state">&times;</button>
+                                    <ul class="searchable-select-dropdown" id="state-search-dropdown"></ul>
+                                    <select name="state" id="state" style="display:none;" data-selected="{{ form.state.value|default:form.state.initial|default:'' }}">
+                                        <option value="">Select State</option>
+                                    </select>
+                                </div>
                             </div>
                         </div>
 
@@ -1210,12 +1108,177 @@
 
 <script>
     var countrySelect = document.getElementById('country') || document.querySelector('select[name="country"]');
-    var stateInput = document.getElementById('state') || document.querySelector('input[name="state"]');
+    var stateSelect = document.getElementById('state') || document.querySelector('select[name="state"]');
+
+    /* ─── Lightweight searchable combobox (search bar lives in the field itself) ─── */
+    function setupSearchableSelect(inputEl, dropdownEl, selectEl, clearBtn) {
+        if (!inputEl || !dropdownEl || !selectEl) return;
+        let activeIndex = -1;
+
+        function getOptions() {
+            return Array.from(selectEl.options).filter(function(o) { return o.value !== ''; });
+        }
+
+        function renderList(filterText) {
+            const term = (filterText || '').trim().toLowerCase();
+            const matches = getOptions().filter(function(o) {
+                return o.textContent.toLowerCase().indexOf(term) !== -1;
+            });
+            dropdownEl.innerHTML = '';
+            activeIndex = -1;
+            if (matches.length === 0) {
+                const li = document.createElement('li');
+                li.className = 'no-results';
+                li.textContent = 'No results found';
+                dropdownEl.appendChild(li);
+                return;
+            }
+            matches.forEach(function(o) {
+                const li = document.createElement('li');
+                li.textContent = o.textContent;
+                li.dataset.value = o.value;
+                li.addEventListener('mousedown', function(e) {
+                    e.preventDefault();
+                    selectValue(o.value, o.textContent);
+                });
+                dropdownEl.appendChild(li);
+            });
+        }
+
+        function updateClearBtn() {
+            if (clearBtn) clearBtn.classList.toggle('show', !!selectEl.value);
+        }
+
+        function selectValue(value, text) {
+            selectEl.value = value;
+            inputEl.value = text;
+            closeDropdown();
+            updateClearBtn();
+            selectEl.dispatchEvent(new Event('change'));
+        }
+
+        function closeDropdown() {
+            dropdownEl.classList.remove('open');
+        }
+
+        function selectSelectedText() {
+            const opt = selectEl.options[selectEl.selectedIndex];
+            return opt ? opt.textContent : '';
+        }
+
+        inputEl.addEventListener('focus', function() {
+            inputEl.value = '';
+            renderList('');
+            dropdownEl.classList.add('open');
+        });
+
+        inputEl.addEventListener('input', function() {
+            renderList(inputEl.value);
+            dropdownEl.classList.add('open');
+        });
+
+        inputEl.addEventListener('keydown', function(e) {
+            const items = Array.from(dropdownEl.querySelectorAll('li:not(.no-results)'));
+            if (!items.length) return;
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                activeIndex = Math.min(activeIndex + 1, items.length - 1);
+                items.forEach(function(li, i) { li.classList.toggle('active', i === activeIndex); });
+                items[activeIndex].scrollIntoView({ block: 'nearest' });
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                activeIndex = Math.max(activeIndex - 1, 0);
+                items.forEach(function(li, i) { li.classList.toggle('active', i === activeIndex); });
+                items[activeIndex].scrollIntoView({ block: 'nearest' });
+            } else if (e.key === 'Enter') {
+                e.preventDefault();
+                if (activeIndex >= 0 && items[activeIndex]) {
+                    selectValue(items[activeIndex].dataset.value, items[activeIndex].textContent);
+                }
+            } else if (e.key === 'Escape') {
+                closeDropdown();
+            }
+        });
+
+        inputEl.addEventListener('blur', function() {
+            // Delay so a mousedown on an option can register first.
+            setTimeout(function() {
+                closeDropdown();
+                inputEl.value = selectSelectedText();
+            }, 150);
+        });
+
+        if (clearBtn) {
+            clearBtn.addEventListener('mousedown', function(e) {
+                e.preventDefault();
+                selectValue('', '');
+                inputEl.focus();
+                renderList('');
+                dropdownEl.classList.add('open');
+            });
+        }
+
+        // Keep the visible input in sync whenever the underlying select changes programmatically.
+        selectEl.addEventListener('sync-display', function() {
+            inputEl.value = selectSelectedText();
+            updateClearBtn();
+        });
+
+        updateClearBtn();
+    }
+
+    function syncSearchInput(selectEl) {
+        selectEl.dispatchEvent(new Event('sync-display'));
+    }
+
+    var countrySearchInput = document.getElementById('country-search-input');
+    var countrySearchDropdown = document.getElementById('country-search-dropdown');
+    var countrySearchClear = document.getElementById('country-search-clear');
+    var stateSearchInput = document.getElementById('state-search-input');
+    var stateSearchDropdown = document.getElementById('state-search-dropdown');
+    var stateSearchClear = document.getElementById('state-search-clear');
+
+    setupSearchableSelect(countrySearchInput, countrySearchDropdown, countrySelect, countrySearchClear);
+    setupSearchableSelect(stateSearchInput, stateSearchDropdown, stateSelect, stateSearchClear);
+
+    function populateStates(countryName, selectedState) {
+        if (!stateSelect) return;
+        stateSelect.innerHTML = '<option value="">Select State</option>';
+        if (!countryName) { syncSearchInput(stateSelect); return; }
+        fetch('/shared/api/states/' + encodeURIComponent(countryName) + '/')
+            .then(function(res) { return res.json(); })
+            .then(function(states) {
+                states.forEach(function(name) {
+                    var opt = document.createElement('option');
+                    opt.value = name;
+                    opt.textContent = name;
+                    stateSelect.appendChild(opt);
+                });
+                if (selectedState) {
+                    var match = Array.from(stateSelect.options).find(function(o) {
+                        return o.value.toLowerCase() === selectedState.toLowerCase();
+                    });
+                    stateSelect.value = match ? match.value : '';
+                }
+                syncSearchInput(stateSelect);
+            })
+            .catch(function() {});
+    }
+    window.populateStatesForCountry = populateStates;
 
     function loadCountries() {
         if (!countrySelect) return;
         const selectedCountry = countrySelect.getAttribute('data-selected');
         if (selectedCountry) countrySelect.value = selectedCountry;
+        syncSearchInput(countrySelect);
+        const selectedState = stateSelect ? stateSelect.getAttribute('data-selected') : '';
+        populateStates(countrySelect.value, selectedState);
+    }
+
+    if (countrySelect) {
+        countrySelect.addEventListener('change', function() {
+            populateStates(countrySelect.value, '');
+        });
     }
 
     document.addEventListener('DOMContentLoaded', function() {
@@ -1699,6 +1762,8 @@
     function getFieldControl(group) {
         const fileInput = group.querySelector('input[type="file"]');
         if (fileInput) return group.querySelector('.upload-area') || fileInput;
+        const searchableInput = group.querySelector('.searchable-select-wrap input[type="text"]');
+        if (searchableInput) return searchableInput;
         return group.querySelector('select') ||
             group.querySelector('input[type="text"], input[type="number"], input[type="email"], input[type="tel"], textarea');
     }
@@ -1783,25 +1848,26 @@
                 return;
             }
 
-            const countrySelect = document.getElementById('country') || document.querySelector('select[name="country"]');
-            const stateSelect = document.getElementById('state') || document.querySelector('select[name="state"]');
-            const stateInput = document.getElementById('state-input-fallback');
-            const stateValue = stateInput ? stateInput.value.trim() : (stateSelect ? stateSelect.value : '');
+            const countrySelectEl = document.getElementById('country') || document.querySelector('select[name="country"]');
+            const stateSelectEl = document.getElementById('state') || document.querySelector('select[name="state"]');
+            const stateValue = stateSelectEl ? stateSelectEl.value : '';
 
-            if (countrySelect && !countrySelect.value) {
+            if (countrySelectEl && !countrySelectEl.value) {
                 event.preventDefault(); hideLoader();
                 showToastMessage('Please select a country.', 'error');
                 goToStep(2);
-                countrySelect.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                focusField(countrySelect);
+                const countryInput = document.getElementById('country-search-input') || countrySelectEl;
+                countryInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                focusField(countryInput);
                 return;
             }
             if (!stateValue) {
                 event.preventDefault(); hideLoader();
                 showToastMessage('Please select a state.', 'error');
                 goToStep(2);
-                (stateInput || stateSelect).scrollIntoView({ behavior: 'smooth', block: 'center' });
-                focusField(stateInput || stateSelect);
+                const stateInputEl = document.getElementById('state-search-input') || stateSelectEl;
+                stateInputEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                focusField(stateInputEl);
                 return;
             }
 
