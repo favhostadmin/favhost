@@ -193,41 +193,23 @@ class HostDashboardAPIView(LoginRequiredMixin, TemplateView):
         # total_earnings = sum(monthly_earnings)
         # monthly_average = total_earnings / 12
 
-        # Calculate total earnings up to today using the formula:
-        # (Total revenue / (TODAY - Jan 1, YYYY)) * 30
-        total_earnings = 0
+        # Monthly average of earnings elapsed so far:
+        # - past year: plain average over all 12 months
+        # - future year: nothing has elapsed yet
+        # - current year: (revenue up to and including the current month /
+        #   days elapsed since Jan 1) * 30, so numerator and denominator
+        #   always cover the same period
         year_start = datetime.date(selected_year, 1, 1)
         today_date = today
 
-        # print("year_start==>",year_start)
-        # print("today_date==>",today_date)
-
-
-        for month in range(1, 13):
-            # Determine the last day of this month
-            if month == 12:
-                month_end = datetime.date(selected_year, 12, 31)
-            else:
-                month_end = datetime.date(selected_year, month + 1, 1) - datetime.timedelta(days=1)
-            
-            # Only include this month if it has fully or partially elapsed up to today
-            if month_end <= today_date:
-                total_earnings += monthly_earnings[month - 1]
-
-        # Calculate days elapsed from Jan 1 to today
-        days_elapsed = (today_date - year_start).days
-
-        # print("days_elapsed==>",days_elapsed)
-
-        if days_elapsed == 0:
-            days_elapsed = 1  # Avoid division by zero on Jan 1
-
-        # print("total_earnings==>",total_earnings)
-
-        # Apply formula: (total_earnings / days_elapsed) * 30
-        monthly_average = (total_earnings / days_elapsed) * 30 if days_elapsed > 0 else 0
-
-        # print("monthly_average==>",monthly_average)
+        if selected_year < today_date.year:
+            monthly_average = sum(monthly_earnings) / 12
+        elif selected_year > today_date.year:
+            monthly_average = 0
+        else:
+            total_earnings = sum(monthly_earnings[:today_date.month])
+            days_elapsed = (today_date - year_start).days + 1  # include today
+            monthly_average = (total_earnings / days_elapsed) * 30
         
 
         # 6) Years for dropdown — use values_list + set for SQLite compatibility
@@ -1643,6 +1625,8 @@ class AccountingView(LoginRequiredMixin, TemplateView):
             return self._export_xlsx(request)
         if export == 'csv':
             return self._export_csv(request)
+        if request.GET.get('report'):
+            return self._render_report(request)
         return super().get(request, *args, **kwargs)
 
     def _resolve_year(self, user_ids):
@@ -1697,7 +1681,16 @@ class AccountingView(LoginRequiredMixin, TemplateView):
 
         income_total = [sum(col) for col in zip(*income_by_prop)] if properties else [0.0] * 12
         num_props = len(properties) or 1
-        revpar = [round(income_total[m] / num_props, 2) for m in range(12)]
+        # RevPAR (Revenue Per Available Room, hotel standard): revenue divided by
+        # available room-nights, i.e. each property counts as one available unit
+        # per night. RevPAR = revenue / (available units × nights in the period).
+        days_in_month = [calendar.monthrange(selected_year, m)[1] for m in range(1, 13)]
+        revpar = [
+            round(income_total[m] / (num_props * days_in_month[m]), 2)
+            if days_in_month[m] else 0.0
+            for m in range(12)
+        ]
+        total_nights = num_props * sum(days_in_month)
 
         income_rows = [{
             'label': p.title,
@@ -1729,16 +1722,17 @@ class AccountingView(LoginRequiredMixin, TemplateView):
         net_profit = [income_total[m] - expense_total[m] for m in range(12)]
 
         # ---- Profit-by-month bar chart (heights relative to peak magnitude) ----
-        # The single highest-profit month is highlighted blue (mirrors the
-        # Revenue page's peak-month styling); loss months render red.
+        # The current calendar month is highlighted orange (only when viewing
+        # the current year); loss months render red.
         peak = max((abs(v) for v in net_profit), default=0)
-        max_profit = max(net_profit) if net_profit else 0
+        now = timezone.now()
+        current_month_idx = now.month - 1 if now.year == selected_year else None
         bar_cols = [{
             'label': self.MONTH_LABELS[m],
             'value': net_profit[m],
             'height': round(abs(net_profit[m]) / peak * 100, 1) if peak > 0 else 0,
             'negative': net_profit[m] < 0,
-            'highlight': max_profit > 0 and net_profit[m] == max_profit,
+            'highlight': m == current_month_idx,
         } for m in range(12)]
 
         return {
@@ -1747,7 +1741,7 @@ class AccountingView(LoginRequiredMixin, TemplateView):
             'income_total': income_total,
             'income_overall': sum(income_total),
             'revpar': revpar,
-            'revpar_overall': round(sum(income_total) / num_props, 2),
+            'revpar_overall': round(sum(income_total) / total_nights, 2) if total_nights else 0.0,
             'expense_rows': expense_rows,
             'expense_total': expense_total,
             'expense_overall': sum(expense_total),
@@ -1785,6 +1779,92 @@ class AccountingView(LoginRequiredMixin, TemplateView):
             'has_listings': bool(report['properties']),
         })
         return context
+
+    # Image extensions that can be embedded inline in the printable report;
+    # anything else (PDF, docx, …) is shown as a "see attached file" note.
+    _IMAGE_EXTS = ('.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.svg')
+
+    def _render_report(self, request):
+        """Render the full, printable detailed expense report for a year.
+
+        This is the "Detailed expense report" option behind the Print button:
+        a branded document with a KPI summary, an expense breakdown by category,
+        a monthly income/expense/profit summary, a fully itemized expense list
+        (every field captured on the Add Expense form) and a receipts appendix
+        that embeds each expense's uploaded attachment image.
+        """
+        from accounts import currency as cur
+
+        user_ids = get_visible_user_ids(request.user)
+        current_year, selected_year, years = self._resolve_year(user_ids)
+        report = self._build_report(user_ids, selected_year)
+
+        # ---- Itemized expenses (oldest → newest reads naturally in a report) ----
+        expenses = list(
+            Expense.objects
+            .filter(created_by__in=user_ids, date__year=selected_year)
+            .select_related('property')
+            .order_by('date', 'created_at')
+        )
+
+        items = []
+        receipts = []
+        for e in expenses:
+            has_image = False
+            att = e.attachment
+            if att and att.name:
+                has_image = att.name.lower().endswith(self._IMAGE_EXTS)
+            receipt_no = None
+            if att and att.name:
+                receipt_no = len(receipts) + 1
+                receipts.append({
+                    'no': receipt_no,
+                    'expense': e,
+                    'is_image': has_image,
+                    'filename': att.name.rsplit('/', 1)[-1],
+                    'url': att.url,
+                })
+            items.append({'expense': e, 'receipt_no': receipt_no})
+
+        # ---- Expense breakdown by category (non-zero, largest first, with %) ----
+        expense_overall = report['expense_overall'] or 0
+        category_breakdown = sorted(
+            ({
+                'label': row['label'],
+                'amount': row['overall'],
+                'pct': round(row['overall'] / expense_overall * 100, 1) if expense_overall else 0,
+            } for row in report['expense_rows'] if row['overall']),
+            key=lambda r: r['amount'], reverse=True,
+        )
+
+        # ---- Monthly income / expense / profit summary rows ----
+        monthly_summary = [{
+            'month': self.MONTH_LABELS[m],
+            'income': report['income_total'][m],
+            'expense': report['expense_total'][m],
+            'profit': report['net_profit'][m],
+        } for m in range(12)]
+
+        code = (getattr(request.user, 'currency', None) or cur.BASE_CURRENCY).upper()
+
+        context = {
+            'selected_year': selected_year,
+            'month_labels': self.MONTH_LABELS,
+            'account_name': request.user.get_full_name() or request.user.email,
+            'generated_at': timezone.localtime(),
+            'display_currency': code,
+            'currency_symbol': cur.symbol_for(code),
+            'income_overall': report['income_overall'],
+            'expense_overall': report['expense_overall'],
+            'net_profit_overall': report['net_profit_overall'],
+            'expense_count': len(expenses),
+            'property_count': len(report['properties']),
+            'category_breakdown': category_breakdown,
+            'monthly_summary': monthly_summary,
+            'items': items,
+            'receipts': receipts,
+        }
+        return render(request, 'frontend/accounting/expense_report.html', context)
 
     def _export_csv(self, request):
         """Plain CSV of the income / expenses / profit ledger (Excel-ready).

@@ -51,8 +51,6 @@ class TaskForm(forms.ModelForm):
             self.fields['property'].required = False
             self.fields['date'].widget.attrs['disabled'] = True
             self.fields['date'].required = False
-            self.fields['time'].widget.attrs['disabled'] = True
-            self.fields['time'].required = False
             self.fields['repeat'].widget.attrs['disabled'] = True
             self.fields['repeat'].required = False
             self.fields['task_type'].widget.attrs['disabled'] = True
@@ -88,7 +86,7 @@ class TaskForm(forms.ModelForm):
         # We need to restore them from the original instance.
         if self.instance and self.instance.pk:
             # These are the fields disabled in the template.
-            disabled_fields = ['property', 'date', 'time', 'repeat', 'repeat_till', 'task_type']
+            disabled_fields = ['property', 'date', 'repeat', 'repeat_till', 'task_type']
             for field_name in disabled_fields:
                 if field_name not in self.cleaned_data:
                     # If the field is disabled, it won't be in the POST data.

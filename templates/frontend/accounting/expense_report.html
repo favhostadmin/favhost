@@ -1,0 +1,431 @@
+{% load static currency_tags %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Expense Report · {{ selected_year }} · FavHost</title>
+  <style>
+    :root {
+      --ink: #1f2937;
+      --muted: #6b7280;
+      --line: #e5e7eb;
+      --accent: #e8590c;
+      --head: #313131;
+      --income: #0f766e;
+      --expense: #b91c1c;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: #f3f4f6;
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .report {
+      max-width: 900px;
+      margin: 24px auto;
+      background: #fff;
+      padding: 28px 32px 40px;
+      box-shadow: 0 2px 18px rgba(0, 0, 0, .08);
+    }
+
+    /* ---- Screen-only toolbar ---- */
+    .report-toolbar {
+      max-width: 900px;
+      margin: 20px auto 0;
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+    .report-toolbar button {
+      border: none;
+      border-radius: 6px;
+      padding: 9px 18px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .btn-print { background: var(--accent); color: #fff; }
+    .btn-close { background: #e5e7eb; color: #374151; }
+
+    /* ---- Branded header ---- */
+    .rep-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      background: var(--head);
+      color: #fff;
+      padding: 14px 20px;
+      border-radius: 8px;
+    }
+    .rep-header img { height: 34px; width: auto; }
+    .rep-header .rep-title { text-align: right; }
+    .rep-header .rep-title h1 {
+      margin: 0;
+      font-size: 18px;
+      letter-spacing: .3px;
+    }
+    .rep-header .rep-title span {
+      font-size: 11px;
+      color: #d1d5db;
+    }
+
+    .rep-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px 26px;
+      margin: 16px 2px 0;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .rep-meta b { color: var(--ink); font-weight: 600; }
+
+    h2.section-title {
+      font-size: 14px;
+      margin: 28px 0 10px;
+      padding-bottom: 6px;
+      border-bottom: 2px solid var(--accent);
+      color: var(--head);
+    }
+
+    /* ---- KPI cards ---- */
+    .kpis {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-top: 18px;
+    }
+    .kpi {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px 14px;
+    }
+    .kpi .k-label {
+      font-size: 10.5px;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      color: var(--muted);
+    }
+    .kpi .k-value {
+      font-size: 18px;
+      font-weight: 700;
+      margin-top: 4px;
+    }
+    .kpi.income .k-value { color: var(--income); }
+    .kpi.expense .k-value { color: var(--expense); }
+    .kpi.profit .k-value.neg { color: var(--expense); }
+    .kpi.profit .k-value.pos { color: var(--income); }
+
+    /* ---- Tables ---- */
+    table.rep {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+    table.rep th, table.rep td {
+      padding: 7px 9px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+    table.rep thead th {
+      background: #f9fafb;
+      font-size: 10.5px;
+      text-transform: uppercase;
+      letter-spacing: .4px;
+      color: var(--muted);
+      border-bottom: 1.5px solid #d1d5db;
+    }
+    table.rep td.num, table.rep th.num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+    table.rep tr.total td {
+      font-weight: 700;
+      border-top: 1.5px solid #d1d5db;
+      background: #fafafa;
+    }
+    .neg { color: var(--expense); }
+    .pos { color: var(--income); }
+
+    /* category bar */
+    .cat-bar-wrap { background: #f1f2f4; border-radius: 4px; height: 8px; width: 100%; overflow: hidden; }
+    .cat-bar { height: 8px; background: var(--accent); border-radius: 4px; }
+
+    .note-cell { color: #4b5563; max-width: 220px; }
+    .muted { color: var(--muted); }
+    .rcpt-ref { color: var(--accent); font-weight: 600; white-space: nowrap; }
+
+    /* ---- Receipts appendix ---- */
+    .receipts {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+      margin-top: 14px;
+    }
+    .receipt {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+    .receipt .r-cap {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 8px 10px;
+      background: #f9fafb;
+      border-bottom: 1px solid var(--line);
+      font-size: 11.5px;
+    }
+    .receipt .r-cap b { color: var(--head); }
+    .receipt .r-body { padding: 10px; text-align: center; }
+    .receipt .r-body img {
+      max-width: 100%;
+      max-height: 260px;
+      height: auto;
+      border-radius: 4px;
+    }
+    .receipt .r-file {
+      padding: 18px 10px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .empty {
+      padding: 26px;
+      text-align: center;
+      color: var(--muted);
+      border: 1px dashed var(--line);
+      border-radius: 8px;
+      margin-top: 14px;
+    }
+
+    .rep-footer {
+      margin-top: 34px;
+      padding-top: 12px;
+      border-top: 1px solid var(--line);
+      font-size: 10.5px;
+      color: var(--muted);
+      display: flex;
+      justify-content: space-between;
+    }
+
+    /* ===================== PRINT ===================== */
+    @media print {
+      @page { size: A4 portrait; margin: 12mm; }
+      * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+      html, body { background: #fff; font-size: 11px; }
+      .report-toolbar { display: none !important; }
+      .report {
+        max-width: none;
+        margin: 0;
+        padding: 0;
+        box-shadow: none;
+      }
+      h2.section-title { page-break-after: avoid; }
+      table.rep tr, .kpi, .receipt { page-break-inside: avoid; }
+      .receipts-section { page-break-before: always; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="report-toolbar">
+    <button type="button" class="btn-print" onclick="window.print()">🖨 Print / Save as PDF</button>
+    <button type="button" class="btn-close" onclick="window.close()">Close</button>
+  </div>
+
+  <div class="report">
+
+    <!-- Branded header -->
+    <div class="rep-header">
+      <img src="{% static 'img/login/favhost_new_logo.png' %}" alt="FavHost">
+      <div class="rep-title">
+        <h1>Expense Report</h1>
+        <span>Accounting &amp; Expense Tracking · {{ selected_year }}</span>
+      </div>
+    </div>
+
+    <div class="rep-meta">
+      <span>Account: <b>{{ account_name }}</b></span>
+      <span>Year: <b>{{ selected_year }}</b></span>
+      <span>Currency: <b>{{ display_currency }} ({{ currency_symbol }})</b></span>
+      <span>Listings: <b>{{ property_count }}</b></span>
+      <span>Expenses recorded: <b>{{ expense_count }}</b></span>
+      <span>Generated: <b>{{ generated_at|date:'d M Y, H:i' }}</b></span>
+    </div>
+
+    <!-- KPI summary -->
+    <div class="kpis">
+      <div class="kpi income">
+        <div class="k-label">Total Income</div>
+        <div class="k-value">{% money income_overall %}</div>
+      </div>
+      <div class="kpi expense">
+        <div class="k-label">Total Expenses</div>
+        <div class="k-value">{% money expense_overall %}</div>
+      </div>
+      <div class="kpi profit">
+        <div class="k-label">Net Profit</div>
+        <div class="k-value {% if net_profit_overall < 0 %}neg{% else %}pos{% endif %}">{% money net_profit_overall %}</div>
+      </div>
+      <div class="kpi">
+        <div class="k-label">Expense Entries</div>
+        <div class="k-value">{{ expense_count }}</div>
+      </div>
+    </div>
+
+    <!-- Expense breakdown by category -->
+    <h2 class="section-title">Expenses by category</h2>
+    {% if category_breakdown %}
+    <table class="rep">
+      <thead>
+        <tr>
+          <th style="width:22%">Category</th>
+          <th class="num" style="width:18%">Amount</th>
+          <th class="num" style="width:12%">Share</th>
+          <th style="width:48%">Distribution</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in category_breakdown %}
+        <tr>
+          <td>{{ c.label }}</td>
+          <td class="num">{% money c.amount %}</td>
+          <td class="num">{{ c.pct }}%</td>
+          <td><div class="cat-bar-wrap"><div class="cat-bar" style="width:{{ c.pct }}%"></div></div></td>
+        </tr>
+        {% endfor %}
+        <tr class="total">
+          <td>Total</td>
+          <td class="num">{% money expense_overall %}</td>
+          <td class="num">100%</td>
+          <td></td>
+        </tr>
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty">No expenses recorded for {{ selected_year }}.</div>
+    {% endif %}
+
+    <!-- Monthly summary -->
+    <h2 class="section-title">Monthly summary</h2>
+    <table class="rep">
+      <thead>
+        <tr>
+          <th>Month</th>
+          <th class="num">Income</th>
+          <th class="num">Expenses</th>
+          <th class="num">Net Profit</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for m in monthly_summary %}
+        <tr>
+          <td>{{ m.month }}</td>
+          <td class="num">{% money m.income %}</td>
+          <td class="num">{% money m.expense %}</td>
+          <td class="num {% if m.profit < 0 %}neg{% elif m.profit > 0 %}pos{% endif %}">{% money m.profit %}</td>
+        </tr>
+        {% endfor %}
+        <tr class="total">
+          <td>Total</td>
+          <td class="num">{% money income_overall %}</td>
+          <td class="num">{% money expense_overall %}</td>
+          <td class="num {% if net_profit_overall < 0 %}neg{% else %}pos{% endif %}">{% money net_profit_overall %}</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- Itemized expenses -->
+    <h2 class="section-title">Itemized expenses</h2>
+    {% if items %}
+    <table class="rep">
+      <thead>
+        <tr>
+          <th style="width:4%">#</th>
+          <th style="width:12%">Date</th>
+          <th style="width:18%">Category</th>
+          <th style="width:20%">Listing</th>
+          <th>Note</th>
+          <th style="width:10%">Receipt</th>
+          <th class="num" style="width:14%">Amount</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for it in items %}
+        <tr>
+          <td class="muted">{{ forloop.counter }}</td>
+          <td>{{ it.expense.date|date:'d M Y' }}</td>
+          <td>{{ it.expense.category }}</td>
+          <td>{% if it.expense.property %}{{ it.expense.property.title }}{% else %}<span class="muted">Business-wide</span>{% endif %}</td>
+          <td class="note-cell">{{ it.expense.note|default:'—' }}</td>
+          <td>{% if it.receipt_no %}<span class="rcpt-ref">#{{ it.receipt_no }}</span>{% else %}<span class="muted">—</span>{% endif %}</td>
+          <td class="num">{% money it.expense.amount %}</td>
+        </tr>
+        {% endfor %}
+        <tr class="total">
+          <td colspan="6">Total expenses</td>
+          <td class="num">{% money expense_overall %}</td>
+        </tr>
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty">No expenses recorded for {{ selected_year }}.</div>
+    {% endif %}
+
+    <!-- Receipts appendix -->
+    {% if receipts %}
+    <div class="receipts-section">
+      <h2 class="section-title">Receipts &amp; attachments</h2>
+      <div class="receipts">
+        {% for r in receipts %}
+        <div class="receipt">
+          <div class="r-cap">
+            <span><b>Receipt #{{ r.no }}</b> · {{ r.expense.category }}</span>
+            <span>{{ r.expense.date|date:'d M Y' }} · {% money r.expense.amount %}</span>
+          </div>
+          <div class="r-body">
+            {% if r.is_image %}
+            <img src="{{ r.url }}" alt="Receipt #{{ r.no }}">
+            {% else %}
+            <div class="r-file">📎 Attached file: <b>{{ r.filename }}</b><br><span class="muted">(non-image attachment — open in the app to view)</span></div>
+            {% endif %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="rep-footer">
+      <span>FavHost · Expense Report · {{ selected_year }}</span>
+      <span>Generated {{ generated_at|date:'d M Y, H:i' }}</span>
+    </div>
+  </div>
+
+  <script>
+    // Auto-open the print dialog once images (receipts + logo) have loaded, so
+    // the PDF isn't generated with blank receipt frames.
+    (function () {
+      var imgs = Array.prototype.slice.call(document.images);
+      var pending = imgs.filter(function (i) { return !i.complete; });
+      if (pending.length === 0) { setTimeout(fire, 250); return; }
+      var left = pending.length;
+      var done = function () { if (--left <= 0) setTimeout(fire, 250); };
+      pending.forEach(function (i) { i.addEventListener('load', done); i.addEventListener('error', done); });
+      // Safety net in case an image never resolves.
+      setTimeout(fire, 3500);
+      var fired = false;
+      function fire() { if (fired) return; fired = true; window.print(); }
+    })();
+  </script>
+</body>
+</html>
