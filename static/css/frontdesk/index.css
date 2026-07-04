@@ -17,18 +17,44 @@
   .fd-page :focus-visible{outline:2px solid var(--brand);outline-offset:2px;border-radius:6px}
   .fd-icon-defs{position:absolute;overflow:hidden}
 
-  .fd-wrap{max-width:1400px;margin:0 auto;padding:0 24px;width:100%}
-  .fd-body{flex:1;padding:20px 0 60px}
+  .fd-wrap{max-width:1400px;margin:0 auto;padding:0 24px;width:100%;
+    display:flex;flex-direction:column;flex:1 0 auto}
+
+  /* The site-wide top nav (.custom-header, in header.html) normally uses
+     position:sticky, which only holds its place while ITS OWN nearest
+     scrolling ancestor scrolls. On this page nothing above .fd-body scrolls
+     any more (.fd-body scrolls itself, internally) — so pin the site header
+     down hard with position:fixed instead of relying on sticky having a
+     scroll context to react to. Scoped to pages containing .fd-page only. */
+  body:has(.fd-page) .custom-header{
+    position:fixed !important;top:0 !important;left:0;right:0;
+    z-index:99999 !important;
+  }
+
+  /* Mirrors host_dashboard.css's .header-nav + .main pattern: the header is
+     fixed just below the site nav, and the body is an independent fixed box
+     that fills the rest of the viewport and scrolls on its own. This keeps
+     the site header from ever being dragged into frontdesk's own scroll. */
+  .fd-body{
+    position:fixed;top:112px;left:0;right:0;bottom:0;
+    overflow-y:auto;overflow-x:hidden;
+    padding:20px 0 0;background:#fafafa;
+    display:flex;flex-direction:column;
+  }
+  .fd-body .footer{margin-top:24px;flex-shrink:0}
 
   .fd-page-header{
-    display:flex;align-items:center;justify-content:space-between;
-    background:var(--charcoal);border-radius:var(--r-card);
-    padding:14px 20px;margin-bottom:18px;gap:16px
+    position:fixed;top:58px;left:0;right:0;height:52px;z-index:999;
+    background:#E7E7E9;border-radius:0
   }
-  .fd-ph-left{display:flex;align-items:center;gap:10px;color:#fff}
+  .fd-ph-inner{
+    display:flex;align-items:center;justify-content:space-between;
+    max-width:1400px;margin:0 auto;height:100%;padding:0 24px;gap:16px
+  }
+  .fd-ph-left{display:flex;align-items:center;gap:10px;color:var(--charcoal)}
   .fd-ph-left svg{width:19px;height:19px;opacity:.9}
-  .fd-ph-left img{width:19px;height:19px;object-fit:contain;filter:brightness(0) invert(1);opacity:.9}
-  .fd-ph-title{font-size:15px;font-weight:700;color:#fff;letter-spacing:-.1px}
+  .fd-ph-left img{width:19px;height:19px;object-fit:contain;opacity:.9}
+  .fd-ph-title{font-size:15px;font-weight:700;color:var(--charcoal);letter-spacing:-.1px}
   .fd-ph-right{display:flex;align-items:center;gap:8px}
 
   .date-nav{display:flex;align-items:center;gap:6px;background:#fff;
@@ -44,13 +70,13 @@
   .date-picker-input{position:absolute;opacity:0;pointer-events:none;width:0;height:0}
 
   .fd-ph-refresh{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;
-    color:rgba(255,255,255,.75);transition:background .15s,color .15s,transform .4s}
+    color:var(--charcoal);transition:background .15s,color .15s,transform .4s}
   .fd-ph-refresh svg{width:17px;height:17px}
-  .fd-ph-refresh:hover{background:rgba(255,255,255,.12);color:#fff}
+  .fd-ph-refresh:hover{background:rgba(0,0,0,.06);color:var(--charcoal)}
   .fd-ph-refresh.spinning svg{animation:spin .7s linear infinite}
   @keyframes spin{to{transform:rotate(360deg)}}
 
-  .kpi-strip{display:grid;grid-template-columns:auto 1fr;gap:16px;margin-bottom:18px;align-items:stretch}
+  .kpi-strip{display:grid;grid-template-columns:auto 1fr;gap:16px;margin-bottom:18px;align-items:stretch;flex-shrink:0}
 
   .date-card{background:#fff;border:1px solid var(--line);border-radius:var(--r-card);
     padding:16px 20px;box-shadow:var(--shadow-sm);display:flex;flex-direction:column;
@@ -83,11 +109,11 @@
   .kpi-val.amber{color:var(--amber)}
   .kpi-val.purple{color:var(--purple)}
 
-  .columns{display:grid;grid-template-columns:1fr 1fr 1.5fr;gap:16px;align-items:start}
+  .columns{display:grid;grid-template-columns:1fr 1fr 1.5fr;gap:16px;align-items:stretch;flex:1;min-height:0}
 
   .col-card{background:#fff;border:1px solid var(--line);border-radius:var(--r-card);
-    box-shadow:var(--shadow);display:flex;flex-direction:column;overflow:hidden}
-  .col-head{display:flex;align-items:center;gap:8px;padding:14px 16px 12px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+    box-shadow:var(--shadow);display:flex;flex-direction:column;overflow:hidden;min-height:0}
+  .col-head{display:flex;align-items:center;gap:8px;padding:14px 16px 12px;border-bottom:1px solid var(--line);flex-wrap:wrap;flex-shrink:0}
   .col-title-pill{display:inline-flex;align-items:center;gap:7px;font-weight:700;font-size:13px;
     padding:5px 14px;border-radius:var(--r-pill);line-height:1}
   .col-title-pill .count{font-weight:800}
@@ -107,12 +133,24 @@
 
   .col-tools{display:flex;align-items:center;gap:2px;margin-left:auto}
   .tool-btn{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;
-    color:var(--muted);transition:background .15s,color .15s}
+    color:var(--muted);transition:background .15s,color .15s;flex-shrink:0}
   .tool-btn svg{width:15px;height:15px}
   .tool-btn:hover{background:#F0F0F2;color:var(--ink)}
   .tool-btn.active{background:var(--purple-soft);color:var(--purple-ink)}
 
-  .guest-list{list-style:none;overflow-y:auto;max-height:540px;padding:4px 0}
+  /* Corner search icon that expands into an input on click */
+  .col-search-collapse{display:flex;align-items:center}
+  .col-search-collapse .col-search-input{
+    width:0;min-width:0;opacity:0;padding:0;margin-right:0;border:0;background:none;outline:0;
+    font-size:12.5px;color:var(--ink);border-radius:9px;
+    transition:width .18s ease,opacity .15s ease,margin .18s ease,padding .18s ease
+  }
+  .col-search-collapse.open .col-search-input{
+    width:150px;opacity:1;margin-right:6px;padding:6px 10px;border:1px solid var(--line-2);background:#fff
+  }
+  .col-search-collapse .tool-btn.search-open{background:var(--purple-soft);color:var(--purple-ink)}
+
+  .guest-list{list-style:none;overflow-y:auto;flex:1;min-height:0;padding:4px 0}
   .guest-list::-webkit-scrollbar{width:5px}
   .guest-list::-webkit-scrollbar-thumb{background:#E2E3E6;border-radius:6px}
   .guest-list::-webkit-scrollbar-track{background:transparent}
@@ -141,7 +179,7 @@
   .g-ext svg{width:15px;height:15px}
   .g-ext:hover{background:var(--line);color:var(--brand)}
 
-  .hk-list{list-style:none;overflow-y:auto;max-height:600px;padding:4px 0}
+  .hk-list{list-style:none;overflow-y:auto;flex:1;min-height:0;padding:4px 0}
   .hk-list::-webkit-scrollbar{width:5px}
   .hk-list::-webkit-scrollbar-thumb{background:#E2E3E6;border-radius:6px}
   .hk-list{scrollbar-width:thin;scrollbar-color:#E2E3E6 transparent}
@@ -150,6 +188,23 @@
     padding:12px 16px;border-bottom:1px solid var(--line);transition:background .12s}
   .hk-item:last-child{border-bottom:0}
   .hk-item:hover{background:#FAFAFA}
+
+  /* Grid (card) view — toggled via #hk-view-grid */
+  .hk-list.hk-list--grid{
+    display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px;
+    padding:14px 16px;max-height:none
+  }
+  .hk-list--grid .hk-item{
+    display:flex;flex-direction:column;align-items:stretch;gap:10px;
+    border:1px solid var(--line) !important;border-radius:12px;padding:12px;background:#fff
+  }
+  .hk-list--grid .hk-item:hover{background:#FAFAFA}
+  .hk-list--grid .hk-thumb-wrap{width:100%}
+  .hk-list--grid .hk-thumb{width:100%;height:120px}
+  .hk-list--grid .hk-status-col{width:100%}
+  .hk-list--grid .hk-status-dd{display:block;width:100%}
+  .hk-list--grid .hk-status-btn{width:100%}
+  .hk-list--grid .hk-title{max-width:100%}
 
   .hk-thumb-wrap{display:flex;flex-direction:column;align-items:flex-start;gap:5px}
   .hk-thumb{width:64px;height:56px;border-radius:10px;overflow:hidden;
@@ -167,6 +222,7 @@
     color:var(--ink-soft);font-size:11.5px}
   .hk-meta-item{display:inline-flex;align-items:center;gap:4px}
   .hk-meta-item svg{width:13px;height:13px;color:var(--muted)}
+  .hk-flags{display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin-top:5px}
   .hk-flag{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;
     padding:2px 8px;border-radius:var(--r-pill)}
   .hk-flag svg{width:12px;height:12px}
@@ -177,19 +233,19 @@
   .hk-price-unit{font-size:11.5px;color:var(--muted)}
 
   .hk-status-dd{position:relative;display:inline-block}
-  .hk-status-btn{display:inline-flex;align-items:center;gap:7px;
-    border:1px solid var(--line-2);border-radius:10px;
-    padding:6px 10px 6px 10px;background:#fff;transition:border-color .15s,box-shadow .15s;
-    cursor:pointer;white-space:nowrap;min-width:170px;justify-content:space-between}
+  .hk-status-btn{display:inline-flex;align-items:center;gap:5px;
+    border:1px solid var(--line-2);border-radius:8px;
+    padding:4px 8px 4px 8px;background:#fff;transition:border-color .15s,box-shadow .15s;
+    cursor:pointer;white-space:nowrap;min-width:140px;justify-content:space-between}
   .hk-status-btn:hover{border-color:#C8CACD;box-shadow:0 1px 4px rgba(0,0,0,.07)}
-  .hk-status-btn-left{display:flex;align-items:center;gap:7px}
-  .hk-status-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;display:inline-block;background:#9AA1AC}
-  .hk-status-label{font-size:12px;font-weight:600;color:var(--ink-soft)}
-  .hk-status-chevron{width:14px;height:14px;color:var(--muted);transition:transform .2s;flex-shrink:0}
+  .hk-status-btn-left{display:flex;align-items:center;gap:5px}
+  .hk-status-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;display:inline-block;background:#9AA1AC}
+  .hk-status-label{font-size:11px;font-weight:600;color:var(--ink-soft)}
+  .hk-status-chevron{width:12px;height:12px;color:var(--muted);transition:transform .2s;flex-shrink:0}
   .hk-status-dd.open .hk-status-chevron{transform:rotate(180deg)}
-  .hk-status-menu{position:absolute;right:0;top:calc(100% + 6px);min-width:200px;
+  .hk-status-menu{position:fixed;min-width:200px;
     background:#fff;border:1px solid var(--line);border-radius:12px;
-    box-shadow:0 8px 24px rgba(0,0,0,.12);z-index:200;overflow:hidden;
+    box-shadow:0 8px 24px rgba(0,0,0,.12);z-index:2000;overflow:hidden;
     display:none;flex-direction:column;padding:4px}
   .hk-status-dd.open .hk-status-menu{display:flex}
   .hk-status-opt{display:flex;align-items:center;gap:10px;padding:8px 12px;
@@ -335,7 +391,12 @@
 
   /* ── Mobile responsiveness additions ── */
   @media (max-width:900px){
-    .fd-page-header{flex-wrap:wrap}
+    /* .custom-header is forced position:fixed above (all breakpoints), so it
+       no longer reserves its 58px in normal flow — compensate here now that
+       .fd-page-header drops back into flow on mobile. */
+    .fd-page-header{position:static;top:auto;left:auto;right:auto;height:auto;margin-top:58px}
+    .fd-body{position:static;top:auto;right:auto;bottom:auto;overflow:visible;padding-top:20px}
+    .fd-ph-inner{flex-wrap:wrap;height:auto;padding:14px 20px}
     .fd-ph-right{width:100%;justify-content:flex-start}
     .date-nav{flex:1}
     .date-display{flex:1;min-width:0}
@@ -343,7 +404,7 @@
 
   @media (max-width:600px){
     .fd-wrap{padding:0 12px}
-    .fd-page-header{padding:12px 14px}
+    .fd-ph-inner{padding:12px 14px}
     .date-nav-btn{width:36px;height:36px}
     .fd-ph-refresh{width:36px;height:36px}
     .dc-date-overlay{width:32px;height:32px}
@@ -381,3 +442,45 @@
   .fd-error-text{text-align:center;padding:40px;color:#E5484D}
   .fd-error-text--compact{padding:20px}
   .fd-error-detail{font-size:12px}
+
+  /* Branded print header for the Housekeeping report — hidden on screen,
+     revealed only while body.printing-hk is active (see @media print below). */
+  .hk-print-header{display:none}
+  .hk-print-logo{height:30px;width:auto}
+  .hk-print-titles{display:flex;flex-direction:column;gap:2px}
+  .hk-print-title{font-size:15px;font-weight:700;color:#fff}
+  .hk-print-meta{font-size:11px;color:#e5e7eb}
+
+  /* ===========================================================
+     PRINT — Housekeeping report only. Triggered by #hk-report-btn,
+     which adds body.printing-hk before calling window.print().
+     Hides everything except the Housekeeping column.
+     =========================================================== */
+  @media print {
+    body.printing-hk * { -webkit-print-color-adjust:exact !important; print-color-adjust:exact !important }
+
+    body.printing-hk .hk-print-header{
+      display:flex !important;align-items:center;justify-content:space-between;gap:16px;
+      background:#313131;padding:10px 16px;margin-bottom:14px;border-radius:6px
+    }
+
+    body.printing-hk #loader-overlay,
+    body.printing-hk .custom-header,
+    body.printing-hk .toast-messages-container,
+    body.printing-hk .sw-overlay,
+    body.printing-hk .footer,
+    body.printing-hk .fd-page-header,
+    body.printing-hk .kpi-strip,
+    body.printing-hk .col-card:not(.col-hk),
+    body.printing-hk .col-hk .col-head,
+    body.printing-hk .task-modal-overlay { display:none !important }
+
+    body.printing-hk html, body.printing-hk body{ height:auto !important;overflow:visible !important;background:#fff !important }
+    body.printing-hk .main-content-body{ max-height:none !important;overflow:visible !important;display:block !important }
+    body.printing-hk .fd-body{ position:static !important;top:auto !important;bottom:auto !important;overflow:visible !important;padding:0 !important }
+    body.printing-hk .fd-wrap{ max-width:none !important;padding:0 !important }
+    body.printing-hk .columns{ display:block !important }
+    body.printing-hk .col-hk{ border:none !important;box-shadow:none !important;border-radius:0 !important }
+    body.printing-hk .hk-list{ max-height:none !important;overflow:visible !important }
+    body.printing-hk .hk-item{ break-inside:avoid;page-break-inside:avoid }
+  }

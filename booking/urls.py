@@ -19,6 +19,7 @@ urlpatterns = [
     path('guest-receipt/<uuid:pk>/', views.guest_receipt, name='guest-receipt'),
 
     path('cancel/<uuid:pk>/', views.CancelBookingView.as_view(), name='cancel-booking'),
+    path('no-show/<uuid:pk>/', views.MarkNoShowView.as_view(), name='mark-no-show'),
 
 
     # Enquiry API endpoint

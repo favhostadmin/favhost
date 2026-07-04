@@ -1195,10 +1195,10 @@
                 </button>
                 <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="newDropdown"
                     style="transform: translate(0px, 39px) !important;">
-                    {% if booking_status == 'past' or booking_status == 'current' or booking_status == 'upcoming' %}
+                    {% if booking_status == 'past' or booking_status == 'current' or booking_status == 'upcoming' or booking.status == 'no_show' %}
                     <!-- Email Guest -->
                     <li>
-                        <a class="dropdown-item email-guest-btn" href="#" data-booking-id="{{ booking.id }}">
+                        <a class="dropdown-item email-guest-btn" href="#" data-booking-id="{{ booking.id }}" data-guest-email="{{ booking.email }}">
                             <svg width="16" height="16" viewBox="0 0 16 16" fill="none"
                                 xmlns="http://www.w3.org/2000/svg">
                                 <path
@@ -1226,7 +1226,7 @@
                     </li>
                     {% endif %}
 
-                    {% if time_delta or booking_status == 'past' %}
+                    {% if time_delta or booking_status == 'past' or no_show_receipt %}
                     <!-- Guest Receipt -->
                     <li>
                         <a class="dropdown-item guest-receipt-btn" href="#" data-receipt-url="{% url 'booking:guest-receipt' pk=booking.id %}">
@@ -1234,6 +1234,23 @@
                                 <path d="M4 2h8v12l-4-2-4 2V2z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
                             </svg>
                             Guest Receipt
+                        </a>
+                    </li>
+                    {% endif %}
+
+                    {% if booking_status == 'past' or booking_status == 'current' %}
+                    <!-- No Show -->
+                    <li class="no-show-item">
+                        <a class="dropdown-item mark-no-show-btn"
+                            href="{% url 'booking:mark-no-show' pk=booking.id %}" data-booking-id="{{ booking.id }}" style="color: #d97706;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="8.5" cy="7" r="4"></circle>
+                                <line x1="18" y1="8" x2="23" y2="13"></line>
+                                <line x1="23" y1="8" x2="18" y2="13"></line>
+                            </svg>
+                            No Show
                         </a>
                     </li>
                     {% endif %}
@@ -1438,7 +1455,7 @@
                         </div>
                     </div>
 
-                    {% if booking.status == 'confirmed' %}
+                    {% if booking.status == 'confirmed' or booking.status == 'no_show' %}
                     <div class="booking-card">
                         <div class="payment-section row">
                             <div class="col-lg-6 col-md-12">
@@ -1582,18 +1599,25 @@
                         <div class="documents-section">
                             <h3>Documents</h3>
                             <div class="documents-grid">
-                                {% if time_delta or booking_status == 'past' %}
+                                {% if time_delta or booking_status == 'past' or no_show_receipt %}
                                 <a href="#" class="doc-card guest-receipt-btn"
                                    data-receipt-url="{% url 'booking:guest-receipt' pk=booking.id %}">
                                     <div class="doc-card-preview">
                                         <div class="doc-preview-inner">
-                                            <div class="doc-preview-line dark" style="width:55%;margin-bottom:6px;"></div>
-                                            <div class="doc-preview-line" style="width:90%;"></div>
-                                            <div class="doc-preview-line short"></div>
-                                            <div class="doc-preview-line" style="width:80%;"></div>
-                                            <div class="doc-preview-line short" style="margin-top:6px;"></div>
-                                            <div class="doc-preview-line" style="width:70%;"></div>
-                                            <div class="doc-preview-line" style="width:85%;"></div>
+                                            <svg width="62" height="78" viewBox="0 0 62 78" xmlns="http://www.w3.org/2000/svg" style="margin:auto;" aria-hidden="true">
+                                                <path d="M7 3a2 2 0 0 1 2-2h44a2 2 0 0 1 2 2v69l-6-4-6 4-6-4-6 4-6-4-6 4-6-4-6 4V3z" fill="#ffffff" stroke="#d1d5db" stroke-width="1.5"/>
+                                                <circle cx="31" cy="15" r="7" fill="#eff6ff" stroke="#3b82f6" stroke-width="1.3"/>
+                                                <text x="31" y="18.5" text-anchor="middle" font-family="Arial, sans-serif" font-size="9.5" font-weight="700" fill="#3b82f6">$</text>
+                                                <rect x="14" y="29" width="20" height="3" rx="1.5" fill="#d1d5db"/>
+                                                <rect x="40" y="29" width="8" height="3" rx="1.5" fill="#9ca3af"/>
+                                                <rect x="14" y="36" width="24" height="3" rx="1.5" fill="#d1d5db"/>
+                                                <rect x="40" y="36" width="8" height="3" rx="1.5" fill="#9ca3af"/>
+                                                <rect x="14" y="43" width="18" height="3" rx="1.5" fill="#d1d5db"/>
+                                                <rect x="40" y="43" width="8" height="3" rx="1.5" fill="#9ca3af"/>
+                                                <line x1="14" y1="52" x2="48" y2="52" stroke="#d1d5db" stroke-width="1.5" stroke-dasharray="3 2"/>
+                                                <rect x="14" y="57" width="14" height="3.5" rx="1.75" fill="#9ca3af"/>
+                                                <rect x="36" y="57" width="12" height="3.5" rx="1.75" fill="#3b82f6"/>
+                                            </svg>
                                         </div>
                                     </div>
                                     <div class="doc-card-label">
@@ -1707,6 +1731,23 @@
     </div>
 </div>
 
+<!-- No Show Confirmation Modal -->
+<div id="noShowModal" class="modal">
+    <div class="modal-content" style="max-width: 500px;">
+        <div class="modal-header">
+            <h2>Confirm No Show</h2>
+            <span class="close-btn" id="closeNoShowModal">&times;</span>
+        </div>
+        <div class="modal-body">
+            <p>Are you sure you want to mark this reservation as a no show? The guest did not check in and the payment will not be refunded.</p>
+        </div>
+        <div class="modal-footer" style="padding-top: 20px; display: flex; justify-content: flex-end; gap: 10px;">
+            <button type="button" class="btn btn-secondary" id="btnNoShowModalClose">Close</button>
+            <button type="button" id="confirmNoShowBtn" class="btn btn-warning">Yes, No Show</button>
+        </div>
+    </div>
+</div>
+
 <!-- Guest Receipt Modal -->
 <div id="guestReceiptModal" class="modal">
     <div class="modal-content" style="width: 90%; max-width: 960px; padding: 0;">
@@ -1762,6 +1803,22 @@
             button.addEventListener('click', function (e) {
                 e.preventDefault();
                 closeDropdown(this);
+                const guestEmail = this.dataset.guestEmail;
+                if (guestEmail) {
+                    // Open the mail app via a hidden iframe so the page itself
+                    // never enters a stuck loading/navigation state.
+                    const frame = document.createElement('iframe');
+                    frame.style.display = 'none';
+                    document.body.appendChild(frame);
+                    try {
+                        frame.contentWindow.location.href = `mailto:${guestEmail}`;
+                    } catch (err) {
+                        window.location.href = `mailto:${guestEmail}`;
+                    }
+                    setTimeout(() => frame.remove(), 2000);
+                }
+
+                /* --- Old in-app email compose modal (kept for later reuse) ---
                 const bookingId = this.dataset.bookingId;
                 const url = `{% url 'booking:render-email-form' %}?booking_id=${bookingId}`;
 
@@ -1784,6 +1841,7 @@
                         emailModalPlaceholder.innerHTML = '<p style="text-align: center; padding: 40px; color: red;">Error loading email form. Please try again.</p>';
                         console.error('Error fetching email form:', error);
                     });
+                */
             });
         });
 
@@ -1885,7 +1943,7 @@
         if (confirmCancelBtn) {
             confirmCancelBtn.addEventListener('click', function() {
                 if (!cancelUrl) return;
-                
+
                 // Show loading state
                 this.disabled = true;
                 this.innerText = 'Cancelling...';
@@ -1918,6 +1976,65 @@
             });
         }
 
+        // No Show Logic
+        const noShowModal = document.getElementById('noShowModal');
+        const closeNoShowBtn = document.getElementById('closeNoShowModal');
+        const btnNoShowModalClose = document.getElementById('btnNoShowModalClose');
+        const confirmNoShowBtn = document.getElementById('confirmNoShowBtn');
+        let noShowUrl = '';
+
+        function closeNoShowModalFunc() {
+            noShowModal.style.display = 'none';
+        }
+
+        if (closeNoShowBtn) closeNoShowBtn.onclick = closeNoShowModalFunc;
+        if (btnNoShowModalClose) btnNoShowModalClose.onclick = closeNoShowModalFunc;
+
+        document.querySelectorAll('.mark-no-show-btn').forEach(button => {
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                closeDropdown(this);
+                noShowUrl = this.dataset.url || this.href; // Use href as fallback
+                noShowModal.style.display = 'flex';
+            });
+        });
+
+        if (confirmNoShowBtn) {
+            confirmNoShowBtn.addEventListener('click', function() {
+                if (!noShowUrl) return;
+
+                // Show loading state
+                this.disabled = true;
+                this.innerText = 'Marking...';
+
+                fetch(noShowUrl, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': '{{ csrf_token }}',
+                        'Content-Type': 'application/json'
+                    },
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        window.location.reload();
+                    } else {
+                        alert('Failed to mark as no show: ' + (data.error || 'Unknown error'));
+                        closeNoShowModalFunc();
+                        this.disabled = false;
+                        this.innerText = 'Yes, No Show';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred while marking the reservation as no show.');
+                    closeNoShowModalFunc();
+                    this.disabled = false;
+                    this.innerText = 'Yes, No Show';
+                });
+            });
+        }
+
         // Unified window click handler for all modals
         window.onclick = function (event) {
             if (event.target == modal) {
@@ -1928,6 +2045,9 @@
             }
             if (event.target == cancelModal) {
                 cancelModal.style.display = 'none';
+            }
+            if (event.target == noShowModal) {
+                noShowModal.style.display = 'none';
             }
             if (event.target == guestReceiptModal) {
                 guestReceiptModal.style.display = 'none';

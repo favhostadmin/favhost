@@ -591,6 +591,17 @@
     background: #faf7f5;
   }
 
+  /* Clamp the listing-name column so long titles truncate with an ellipsis
+     instead of stretching the first column and pushing the months off-screen.
+     Full name stays available via the title tooltip on hover. */
+  .acc-rl {
+    display: block;
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
   table.acc-ledger tr.total td {
     background: #FFF3EC;
     font-weight: 700;
@@ -947,6 +958,14 @@
       word-break: break-word;
     }
 
+    /* Print the full listing name (no ellipsis clamp) so it wraps in the cell. */
+    .acc-rl {
+      max-width: none;
+      white-space: normal;
+      overflow: visible;
+      word-break: break-word;
+    }
+
     table.acc-ledger tr {
       break-inside: avoid;
       page-break-inside: avoid;
@@ -1175,7 +1194,7 @@
               <tbody>
                 {% for row in income_rows %}
                 <tr>
-                  <td class="row-label">{{ row.label }}</td>
+                  <td class="row-label"><span class="acc-rl" title="{{ row.label }}">{{ row.label }}</span></td>
                   {% for v in row.values %}<td class="numeric">{% money v %}</td>{% endfor %}
                   <td class="overall numeric">{% money row.overall %}</td>
                 </tr>
@@ -1213,7 +1232,7 @@
               <tbody>
                 {% for row in expense_rows %}
                 <tr>
-                  <td class="row-label">{{ row.label }}</td>
+                  <td class="row-label"><span class="acc-rl" title="{{ row.label }}">{{ row.label }}</span></td>
                   {% for v in row.values %}<td class="numeric">{% money v %}</td>{% endfor %}
                   <td class="overall numeric">{% money row.overall %}</td>
                 </tr>
