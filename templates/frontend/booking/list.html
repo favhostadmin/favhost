@@ -415,6 +415,21 @@
                             <span class="stat-card-label">Cancelled</span>
                         </span>
                     </a>
+
+                    <a class="stat-card {% if status_filter == 'no_show' %}active{% endif %}" href="{% url 'booking:booking-list' %}?status=no_show{% if current_property %}&property_id={{ current_property.id }}{% endif %}">
+                        <span class="stat-card-icon stat-icon-noshow">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="8.5" cy="7" r="4"></circle>
+                                <line x1="18" y1="8" x2="23" y2="13"></line>
+                                <line x1="23" y1="8" x2="18" y2="13"></line>
+                            </svg>
+                        </span>
+                        <span class="stat-card-info">
+                            <span class="stat-card-count">{{ no_show }}</span>
+                            <span class="stat-card-label">No Show</span>
+                        </span>
+                    </a>
                 </div>
                 <div class="reservation-list">
                     {% for booking in bookings %}
@@ -426,6 +441,8 @@
                             <span class="reservation-item__badge reservation-item__badge--{{ booking.urgency|default:'green' }} d-none d-md-inline-flex">
                                 {% if booking.checkout_info == 'Cancelled' %}
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>
+                                {% elif booking.checkout_info == 'No Show' %}
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="18" y1="8" x2="23" y2="13"></line><line x1="23" y1="8" x2="18" y2="13"></line></svg>
                                 {% else %}
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>
                                 {% endif %}
@@ -473,6 +490,8 @@
                                     <span class="reservation-item__badge reservation-item__badge--{{ booking.urgency|default:'green' }} d-md-none">
                                         {% if booking.checkout_info == 'Cancelled' %}
                                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>
+                                        {% elif booking.checkout_info == 'No Show' %}
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="18" y1="8" x2="23" y2="13"></line><line x1="23" y1="8" x2="18" y2="13"></line></svg>
                                         {% else %}
                                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>
                                         {% endif %}
@@ -533,6 +552,20 @@
                                         </a>
                                     </li>
                                     {% endif %}
+                                    {% endif %}
+
+                                    {% if status_filter == 'past' or status_filter == 'current' %}
+                                    <li class="no-show-item">
+                                        <a class="dropdown-item mark-no-show-btn" href="{% url 'booking:mark-no-show' pk=booking.id %}" data-booking-id="{{ booking.id }}" style="color: #d97706;">
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                                                <circle cx="8.5" cy="7" r="4"></circle>
+                                                <line x1="18" y1="8" x2="23" y2="13"></line>
+                                                <line x1="23" y1="8" x2="18" y2="13"></line>
+                                            </svg>
+                                            No Show
+                                        </a>
+                                    </li>
                                     {% endif %}
 
                                     {% if status_filter == 'upcoming' or status_filter == 'all' %}
@@ -626,6 +659,27 @@
         <form id="cancelForm" method="post" style="display:inline;">
           {% csrf_token %}
           <button type="button" id="confirmCancelBtn" class="btn btn-danger">Yes, Cancel</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- No Show Confirmation Modal -->
+<div class="modal fade" id="noShowModal" tabindex="-1" aria-labelledby="noShowModalLabel" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="noShowModalLabel">Confirm No Show</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        Are you sure you want to mark this reservation as a no show? The guest did not check in and the payment will not be refunded.
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        <form id="noShowForm" method="post" style="display:inline;">
+          {% csrf_token %}
+          <button type="button" id="confirmNoShowBtn" class="btn btn-warning">Yes, No Show</button>
         </form>
       </div>
     </div>
@@ -813,6 +867,42 @@ document.addEventListener('DOMContentLoaded', function() {
                 window.location.reload();
             } else {
                 alert('Failed to cancel reservation: ' + data.error);
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    });
+
+    let noShowUrl = '';
+
+    document.querySelectorAll('.mark-no-show-btn').forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            closeDropdown(this);
+            noShowUrl = this.href;
+            const noShowModal = new bootstrap.Modal(document.getElementById('noShowModal'));
+            noShowModal.show();
+        });
+    });
+
+    document.getElementById('confirmNoShowBtn').addEventListener('click', function() {
+        if (!noShowUrl) return;
+
+        fetch(noShowUrl, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json'
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            const noShowModal = bootstrap.Modal.getInstance(document.getElementById('noShowModal'));
+            noShowModal.hide();
+
+            if (data.success) {
+                window.location.reload();
+            } else {
+                alert('Failed to mark as no show: ' + data.error);
             }
         })
         .catch(error => console.error('Error:', error));
