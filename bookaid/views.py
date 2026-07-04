@@ -978,7 +978,7 @@ class CalenderAPIView(LoginRequiredMixin,ListView):
             property__created_by__in=get_visible_user_ids(request.user),
             check_in_date__lte=end_date,
             check_out_date__gte=start_date
-        ).select_related('property', 'channel').prefetch_related('images', 'payments')
+        ).exclude(status='cancelled').select_related('property', 'channel').prefetch_related('images', 'payments')
 
         bookings_list = []
         for b in bookings_qs:

@@ -3870,19 +3870,27 @@
     const menuRect = menuEl.getBoundingClientRect();
     const viewportGap = 8;
 
-    let left = toggleRect.right + 8;
-    let top = toggleRect.bottom - menuRect.height;
+    const headerNav = document.querySelector('.header-nav');
+    const minTop = (headerNav ? headerNav.getBoundingClientRect().bottom : 0) + viewportGap;
 
+    let left = toggleRect.right + 8;
     if (left + menuRect.width > window.innerWidth - viewportGap) {
       left = Math.max(viewportGap, toggleRect.left - menuRect.width - 8);
     }
 
-    if (top < viewportGap) {
-      top = viewportGap;
+    // Prefer opening upward (bottom-aligned with the button) when there's room;
+    // otherwise flip downward so it doesn't get clamped under the page header.
+    const spaceAbove = toggleRect.bottom - minTop;
+    let top = spaceAbove >= menuRect.height
+      ? toggleRect.bottom - menuRect.height
+      : toggleRect.top;
+
+    if (top < minTop) {
+      top = minTop;
     }
 
     if (top + menuRect.height > window.innerHeight - viewportGap) {
-      top = Math.max(viewportGap, window.innerHeight - menuRect.height - viewportGap);
+      top = Math.max(minTop, window.innerHeight - menuRect.height - viewportGap);
     }
 
     menuEl.style.setProperty('left', `${left}px`, 'important');
