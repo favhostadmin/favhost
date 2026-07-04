@@ -41,30 +41,36 @@
   <symbol id="ic-checkout" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></symbol>
 </svg>
 
-<!-- ══════════ PAGE BODY ══════════ -->
-<div class="fd-body">
-
-  <!-- Page header + date nav -->
-  <div class="fd-page-header">
-    <div class="fd-ph-inner">
-      <div class="fd-ph-left">
-        <img src="{% static 'img/header/bell.png' %}" alt="Frontdesk">
-        <span class="fd-ph-title">Frontdesk</span>
+<!-- ══════════ PAGE HEADER ══════════ -->
+<div class="fd-page-header">
+  <div class="fd-ph-inner">
+    <div class="fd-ph-left">
+      <img src="{% static 'img/header/bell.png' %}" alt="Frontdesk">
+      <span class="fd-ph-title">Frontdesk</span>
+    </div>
+    <div class="fd-ph-right">
+      <div class="date-nav">
+        <button class="date-nav-btn" id="btn-prev-day" aria-label="Previous day">
+          <svg width="15" height="15"><use href="#ic-chevl"/></svg>
+        </button>
+        <span class="date-display" id="date-display">{{ day_name }}, {{ day_num }} {{ month_name }}</span>
+        <button class="date-nav-btn" id="btn-next-day" aria-label="Next day">
+          <svg width="15" height="15"><use href="#ic-chevr"/></svg>
+        </button>
+        <input type="date" id="date-picker" class="date-picker-input" value="{{ date_iso }}">
       </div>
-      <div class="fd-ph-right">
-        <div class="date-nav">
-          <button class="date-nav-btn" id="btn-prev-day" aria-label="Previous day">
-            <svg width="15" height="15"><use href="#ic-chevl"/></svg>
-          </button>
-          <span class="date-display" id="date-display">{{ day_name }}, {{ day_num }} {{ month_name }}</span>
-          <button class="date-nav-btn" id="btn-next-day" aria-label="Next day">
-            <svg width="15" height="15"><use href="#ic-chevr"/></svg>
-          </button>
-          <input type="date" id="date-picker" class="date-picker-input" value="{{ date_iso }}">
-        </div>
-      </div>
+      <button class="fd-ph-refresh" id="btn-today" aria-label="Go to today" title="Go to today">
+        <svg width="16" height="16"><use href="#ic-cal"/></svg>
+      </button>
+      <button class="fd-ph-refresh" id="btn-refresh" aria-label="Refresh" title="Refresh">
+        <svg width="17" height="17"><use href="#ic-refresh"/></svg>
+      </button>
     </div>
   </div>
+</div>
+
+<!-- ══════════ PAGE BODY (scrolls independently below the fixed header, mirrors host/dashboard.html's .main) ══════════ -->
+<div class="fd-body">
 
   <div class="fd-wrap">
 
@@ -78,7 +84,7 @@
           <span class="dc-num" id="dc-num">{{ day_num }}</span>
           <span class="dc-mon" id="dc-mon">{{ month_name }}</span>
         </div>
-        <div class="dc-year" id="dc-year">{% now "Y" %}</div>
+        <div class="dc-year" id="dc-year">{{ target_date|date:"Y" }}</div>
       </div>
 
       <div class="metrics-card">
@@ -295,6 +301,8 @@
 
     </section>
   </div>
+
+  {% include 'frontend/base/footer.html' %}
 </div>
 
 <div class="task-modal-overlay" id="reservationModalOverlay" onclick="closeReservationPanel(event)">
@@ -310,7 +318,15 @@
   </div>
 </div>
 
-{% include 'frontend/base/footer.html' %}
+<!-- Guest Receipt Modal (used by reservation sidebar actions) -->
+<div id="guestReceiptModal" class="modal" style="display: none;">
+  <div class="modal-content" style="width: 90%; max-width: 960px; padding: 0;">
+    <div class="modal-body" style="padding: 0;">
+      <div id="guest-receipt-content-placeholder">Loading...</div>
+    </div>
+  </div>
+</div>
+
 </div><!-- .fd-page -->
 {% endblock content %}
 
@@ -331,8 +347,8 @@
 
   const btnPrev    = document.getElementById('btn-prev-day');
   const btnNext    = document.getElementById('btn-next-day');
-  const btnToday   = document.getElementById('btn-today');   // optional
-  const btnRefresh = document.getElementById('btn-refresh'); // optional
+  const btnToday   = document.getElementById('btn-today');
+  const btnRefresh = document.getElementById('btn-refresh');
   const dateDisp   = document.getElementById('date-display');
   const datePicker = document.getElementById('date-picker');
 
@@ -545,7 +561,6 @@
       document.getElementById('kpi-booked').textContent      = sum.total_booked_today;
       document.getElementById('kpi-tasks').textContent       = sum.total_tasks;
       document.getElementById('kpi-payments').textContent    = '$' + sum.total_payments_amount;
-      var eb = document.getElementById('nav-enquiries-badge'); if(eb) eb.textContent = sum.total_inquiries;
       document.getElementById('ci-count').textContent        = sum.total_checkin;
       document.getElementById('co-count').textContent        = sum.total_checkout;
       updateDonut(sum.occupancy_pct);
@@ -553,6 +568,7 @@
       document.getElementById('dc-dow').textContent = sum.day_name.toUpperCase();
       document.getElementById('dc-num').textContent = sum.day_num;
       document.getElementById('dc-mon').textContent = sum.month_name;
+      document.getElementById('dc-year').textContent = dateISO.slice(0,4);
 
       const ciList = document.getElementById('checkin-list');
       ciList.innerHTML = ci.data.length

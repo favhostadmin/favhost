@@ -10,8 +10,6 @@
     --r-card:14px;--r-pill:999px;
     --shadow-sm:0 1px 3px rgba(16,24,40,.06);
     --shadow:0 2px 8px rgba(16,24,40,.07),0 0 0 1px rgba(16,24,40,.04);
-    display:flex;flex-direction:column;min-height:calc(100vh - 60px);
-    width:100%;overflow-x:hidden;
   }
   .fd-page a{color:inherit;text-decoration:none}
   .fd-page button,.fd-page input,.fd-page select{font:inherit;color:inherit;cursor:pointer;background:none;border:0;padding:0}
@@ -20,7 +18,28 @@
   .fd-icon-defs{position:absolute;overflow:hidden}
 
   .fd-wrap{max-width:1400px;margin:0 auto;padding:0 24px;width:100%}
-  .fd-body{flex:1;padding:70px 0 60px}
+
+  /* The site-wide top nav (.custom-header, in header.html) normally uses
+     position:sticky, which only holds its place while ITS OWN nearest
+     scrolling ancestor scrolls. On this page nothing above .fd-body scrolls
+     any more (.fd-body scrolls itself, internally) — so pin the site header
+     down hard with position:fixed instead of relying on sticky having a
+     scroll context to react to. Scoped to pages containing .fd-page only. */
+  body:has(.fd-page) .custom-header{
+    position:fixed !important;top:0 !important;left:0;right:0;
+    z-index:99999 !important;
+  }
+
+  /* Mirrors host_dashboard.css's .header-nav + .main pattern: the header is
+     fixed just below the site nav, and the body is an independent fixed box
+     that fills the rest of the viewport and scrolls on its own. This keeps
+     the site header from ever being dragged into frontdesk's own scroll. */
+  .fd-body{
+    position:fixed;top:112px;left:0;right:0;bottom:0;
+    overflow-y:auto;overflow-x:hidden;
+    padding:20px 0 0;background:#fafafa;
+  }
+  .fd-body .footer{margin-top:24px}
 
   .fd-page-header{
     position:fixed;top:58px;left:0;right:0;height:52px;z-index:999;
@@ -49,9 +68,9 @@
   .date-picker-input{position:absolute;opacity:0;pointer-events:none;width:0;height:0}
 
   .fd-ph-refresh{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;
-    color:rgba(255,255,255,.75);transition:background .15s,color .15s,transform .4s}
+    color:var(--charcoal);transition:background .15s,color .15s,transform .4s}
   .fd-ph-refresh svg{width:17px;height:17px}
-  .fd-ph-refresh:hover{background:rgba(255,255,255,.12);color:#fff}
+  .fd-ph-refresh:hover{background:rgba(0,0,0,.06);color:var(--charcoal)}
   .fd-ph-refresh.spinning svg{animation:spin .7s linear infinite}
   @keyframes spin{to{transform:rotate(360deg)}}
 
@@ -369,8 +388,11 @@
 
   /* ── Mobile responsiveness additions ── */
   @media (max-width:900px){
-    .fd-page-header{position:static;top:auto;left:auto;right:auto;height:auto}
-    .fd-body{padding-top:20px}
+    /* .custom-header is forced position:fixed above (all breakpoints), so it
+       no longer reserves its 58px in normal flow — compensate here now that
+       .fd-page-header drops back into flow on mobile. */
+    .fd-page-header{position:static;top:auto;left:auto;right:auto;height:auto;margin-top:58px}
+    .fd-body{position:static;top:auto;right:auto;bottom:auto;overflow:visible;padding-top:20px}
     .fd-ph-inner{flex-wrap:wrap;height:auto;padding:14px 20px}
     .fd-ph-right{width:100%;justify-content:flex-start}
     .date-nav{flex:1}
@@ -452,7 +474,7 @@
 
     body.printing-hk html, body.printing-hk body{ height:auto !important;overflow:visible !important;background:#fff !important }
     body.printing-hk .main-content-body{ max-height:none !important;overflow:visible !important;display:block !important }
-    body.printing-hk .fd-body{ padding:0 !important }
+    body.printing-hk .fd-body{ position:static !important;top:auto !important;bottom:auto !important;overflow:visible !important;padding:0 !important }
     body.printing-hk .fd-wrap{ max-width:none !important;padding:0 !important }
     body.printing-hk .columns{ display:block !important }
     body.printing-hk .col-hk{ border:none !important;box-shadow:none !important;border-radius:0 !important }
