@@ -1109,10 +1109,15 @@
       if (editForm) {
         editForm.addEventListener('submit', function() {
           if (phoneInputField.value.trim().length > 0) {
-            phoneInputField.value = phoneInput.getNumber();
             const countryData = phoneInput.getSelectedCountryData();
-            if (countryData && countryData.dialCode && phoneCodeSelect) {
-              phoneCodeSelect.value = "+" + countryData.dialCode;
+            const dialCode = countryData && countryData.dialCode ? '+' + countryData.dialCode : '';
+            // Build "code number" with an explicit space (not getNumber()'s
+            // compact E.164 form) so the server's phone_code/phone_number
+            // split on re-render can unambiguously recover the dial code.
+            const nationalNumber = phoneInputField.value.replace(/[^0-9]/g, '');
+            phoneInputField.value = (dialCode + ' ' + nationalNumber).trim();
+            if (dialCode && phoneCodeSelect) {
+              phoneCodeSelect.value = dialCode;
             }
           }
         });
@@ -1490,19 +1495,26 @@
     }
 
     function updatePhoneAndFlag() {
+      // Only auto-derive the phone/WhatsApp country from the mailing address
+      // when there's no phone number saved yet — otherwise editing the
+      // address would silently overwrite an already-set phone's country code.
+      const hasExistingPhone = !!(phoneInputField && phoneInputField.value.trim());
+      const hasExistingWhatsapp = !!(whatsappInputField && whatsappInputField.value.trim());
+      if (hasExistingPhone && hasExistingWhatsapp) return;
+
       const country = countrySelect.value;
       const code = countryPhoneMap[country] || '';
-      if (code && phoneCodeSelect) {
+      if (code && phoneCodeSelect && !hasExistingPhone) {
         phoneCodeSelect.value = code;
       }
       if (country) {
         const countries = window.intlTelInputGlobals.getCountryData();
         const match = countries.find(c => c.name.toLowerCase().includes(country.toLowerCase()) || country.toLowerCase().includes(c.name.toLowerCase()));
         if (match) {
-          if (window.phoneInput) {
+          if (window.phoneInput && !hasExistingPhone) {
             window.phoneInput.setCountry(match.iso2);
           }
-          if (window.whatsappInput) {
+          if (window.whatsappInput && !hasExistingWhatsapp) {
             window.whatsappInput.setCountry(match.iso2);
           }
         }
