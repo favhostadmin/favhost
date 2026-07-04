@@ -128,22 +128,20 @@ def _fd_data(request, target_date):
         ).exists()
 
         if has_checkout:
-            # Guest is leaving today (whether or not a new guest arrives
-            # later the same day) — the unit is available today either way.
             suggested_status = 'Dirty'
-            available = True
         elif is_occupied:
             suggested_status = 'In-Progress'
-            available = False
         elif is_blocked:
             suggested_status = 'Out-of-Service'
-            available = False
         elif has_checkin:
             suggested_status = 'Clean-Ready'
-            available = True
         else:
             suggested_status = 'Clean-Inspected'
-            available = True
+
+        # A check-in today means the unit is occupied from today, so it's
+        # not available regardless of whether a checkout also happens that
+        # same day (same-day turnover) or the suggested cleaning status.
+        available = not (has_checkin or is_occupied or is_blocked)
 
         status = saved_statuses.get(prop.id, suggested_status)
 
@@ -317,19 +315,19 @@ class HousekeepingAPI(LoginRequiredMixin, View):
 
             if has_checkout:
                 suggested_status = 'Dirty'
-                available = True
             elif is_occupied:
                 suggested_status = 'In-Progress'
-                available = False
             elif is_blocked:
                 suggested_status = 'Out-of-Service'
-                available = False
             elif has_checkin:
                 suggested_status = 'Clean-Ready'
-                available = True
             else:
                 suggested_status = 'Clean-Inspected'
-                available = True
+
+            # A check-in today means the unit is occupied from today, so it's
+            # not available regardless of whether a checkout also happens that
+            # same day (same-day turnover) or the suggested cleaning status.
+            available = not (has_checkin or is_occupied or is_blocked)
 
             status = saved_statuses.get(prop.id, suggested_status)
 

@@ -60,7 +60,7 @@
         <input type="date" id="date-picker" class="date-picker-input" value="{{ date_iso }}">
       </div>
       <button class="fd-ph-refresh" id="btn-today" aria-label="Go to today" title="Go to today">
-        <svg width="16" height="16"><use href="#ic-cal"/></svg>
+        <img src="{% static 'img/calender/today_icon.svg' %}" alt="" width="16" height="16">
       </button>
       <button class="fd-ph-refresh" id="btn-refresh" aria-label="Refresh" title="Refresh">
         <svg width="17" height="17"><use href="#ic-refresh"/></svg>
@@ -240,9 +240,13 @@
                 <span class="hk-meta-item"><svg><use href="#ic-user"/></svg>{{ h.guest_max }} guests</span>
                 {% if h.bed_type %}<span class="hk-meta-item"><svg><use href="#ic-bed"/></svg>{{ h.bed_type }}</span>{% endif %}
                 {% if h.pet_friendly %}<span class="hk-meta-item"><svg><use href="#ic-paw"/></svg>Pet friendly</span>{% endif %}
-                {% if h.has_checkin %}<span class="hk-flag checkin"><svg><use href="#ic-checkin"/></svg>Check-in</span>{% endif %}
-                {% if h.has_checkout %}<span class="hk-flag checkout"><svg><use href="#ic-checkout"/></svg>Check-out</span>{% endif %}
               </div>
+              {% if h.has_checkin or h.has_checkout %}
+              <div class="hk-flags">
+                {% if h.has_checkout %}<span class="hk-flag checkout"><svg><use href="#ic-checkout"/></svg>Check-out</span>{% endif %}
+                {% if h.has_checkin %}<span class="hk-flag checkin"><svg><use href="#ic-checkin"/></svg>Check-in</span>{% endif %}
+              </div>
+              {% endif %}
               <div class="hk-price">
                 <span class="hk-price-val">${{ h.price }}</span>
                 <span class="hk-price-unit">/ night</span>
@@ -527,8 +531,9 @@
           <div class="hk-title">${escHTML(h.title)}</div>
           <div class="hk-meta">
             <span class="hk-meta-item"><svg><use href="#ic-user"/></svg>${escHTML(String(h.guest_max))} guests</span>
-            ${bedBadge}${petBadge}${checkinBadge}${checkoutBadge}
+            ${bedBadge}${petBadge}
           </div>
+          ${(checkinBadge || checkoutBadge) ? `<div class="hk-flags">${checkoutBadge}${checkinBadge}</div>` : ''}
           <div class="hk-price">
             <span class="hk-price-val">$${h.price.toFixed(2)}</span>
             <span class="hk-price-unit">/ night</span>
