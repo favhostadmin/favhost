@@ -40,7 +40,7 @@
             position: absolute;
             left: 0; right: 0; bottom: 0;
             height: 5px;
-            background: #22d3ee;
+            background: #eb5310;
         }
 
         #guest-receipt-root .host-info { display: flex; flex-direction: column; gap: 4px; font-size: 13px; }
@@ -73,35 +73,36 @@
             margin-top: 6px;
         }
         #guest-receipt-root .logo {
-            height: 28px;
+            height: 32px;
         }
 
         #guest-receipt-root .top-right-actions {
             display: inline-flex;
             align-items: center;
-            gap: 10px;
+            gap: 8px;
         }
         #guest-receipt-root .top-action-btn {
             background: transparent;
-            color: #e5e7eb;
+            color: #d1d5db;
             border: 1px solid #6b7280;
-            padding: 5px 12px;
-            border-radius: 6px;
-            font-size: 12px;
-            font-weight: 600;
+            width: 34px;
+            height: 34px;
+            padding: 0;
+            border-radius: 50%;
             cursor: pointer;
             display: inline-flex;
             align-items: center;
-            gap: 6px;
+            justify-content: center;
             text-decoration: none;
             font-family: inherit;
+            transition: background 0.15s, color 0.15s, border-color 0.15s;
         }
         #guest-receipt-root .top-action-btn:hover {
             background: #374151;
             color: #fff;
             border-color: #9ca3af;
         }
-        #guest-receipt-root .top-action-btn svg { width: 14px; height: 14px; flex: none; }
+        #guest-receipt-root .top-action-btn svg { width: 15px; height: 15px; flex: none; }
 
         #guest-receipt-root .top-right-actions .dropdown-menu {
             background: #fff;
@@ -351,14 +352,14 @@
 
         #guest-receipt-root .receipt-close-btn {
             position: absolute;
-            top: 8px;
-            right: 8px;
-            width: 22px;
-            height: 22px;
+            top: 10px;
+            right: 10px;
+            width: 30px;
+            height: 30px;
             border-radius: 50%;
-            border: none;
-            background: rgba(0,0,0,0.06);
-            color: #6b7280;
+            border: 1px solid #d1d5db;
+            background: transparent;
+            color: #9ca3af;
             display: inline-flex;
             align-items: center;
             justify-content: center;
@@ -368,12 +369,13 @@
             transition: background 0.15s;
         }
         #guest-receipt-root .receipt-close-btn:hover {
-            background: rgba(0,0,0,0.12);
+            background: #f3f4f6;
             color: #374151;
+            border-color: #9ca3af;
         }
         #guest-receipt-root .receipt-close-btn svg {
-            width: 12px;
-            height: 12px;
+            width: 14px;
+            height: 14px;
         }
 
         @media (max-width: 880px) {
@@ -404,8 +406,8 @@
                 font-size: 12px;
             }
             #guest-receipt-root .top-action-btn {
-                padding: 4px 10px;
-                font-size: 11px;
+                width: 32px;
+                height: 32px;
             }
         }
         @media (max-width: 480px) {
@@ -417,15 +419,62 @@
             #guest-receipt-root .total-row { font-size: 15px; }
         }
 
+        #guest-receipt-root.receipt-export .top-right-actions,
+        #guest-receipt-root.receipt-export .receipt-close-btn {
+            display: none !important;
+        }
+        #guest-receipt-root.receipt-export .confirmed {
+            padding: 4px 10px;
+            font-size: 10px;
+            gap: 5px;
+            margin-top: 12px;
+        }
+        #guest-receipt-root.receipt-export .confirmed .check {
+            width: 12px;
+            height: 12px;
+        }
+        #guest-receipt-root.receipt-export .confirmed .check svg {
+            width: 8px;
+            height: 8px;
+        }
+
         @media print {
             .custom-header, .custom-header * { visibility: hidden !important; }
             #guest-receipt-root, #guest-receipt-root * {
                 box-shadow: none !important;
                 text-shadow: none !important;
                 filter: none !important;
+                background: transparent !important;
+            }
+            #guest-receipt-root {
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+            #guest-receipt-root .top {
+                background: #1f2937 !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+                padding: 16px 24px 14px !important;
+            }
+            #guest-receipt-root .top::after {
+                background: #eb5310 !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+            #guest-receipt-root .card {
+                border: 1px solid #e5e7eb !important;
+                break-inside: avoid;
             }
             #guest-receipt-root .receipt-close-btn,
+            #guest-receipt-root .top-right-actions,
             #guest-receipt-root .top-action-btn { display: none !important; }
+            #guest-receipt-root .confirmed {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+            #guest-receipt-root .thanks {
+                text-align: right !important;
+            }
         }
     </style>
 {% if not is_modal %}
@@ -448,31 +497,23 @@
             </div>
 
             <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
-                <div class="dropdown top-right-actions">
-                    <button class="top-action-btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" data-bs-auto-close="outside">
-                        Action
+                <div class="top-right-actions">
+                    <button class="top-action-btn" id="downloadReceiptPdf" title="Download PDF">
+                        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M8 1V10M8 10L5 7M8 10L11 7M2 14H14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
                     </button>
-                    <ul class="dropdown-menu dropdown-menu-end">
-                        <li><a class="dropdown-item" href="#" id="downloadReceiptPdf">
-                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M8 1V10M8 10L5 7M8 10L11 7M2 14H14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                            </svg>
-                            Download PDF
-                        </a></li>
-                        <li><a class="dropdown-item email-guest-btn" href="#" data-booking-id="{{ booking.id }}">
-                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M3 4H13C13.5523 4 14 4.44772 14 5V11C14 11.5523 13.5523 12 13 12H3C2.44772 12 2 11.5523 2 11V5C2 4.44772 2.44772 4 3 4Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                                <path d="M14 5L8 8.5L2 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                            </svg>
-                            Email Guest
-                        </a></li>
-                        <li><a class="dropdown-item" href="#" id="printReceipt">
-                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M4 5V2H12V5M4 11H3C2.44772 11 2 10.5523 2 10V7C2 6.44772 2.44772 6 3 6H13C13.5523 6 14 6.44772 14 7V10C14 10.5523 13.5523 11 13 11H12M4 9H12V14H4V9Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                            </svg>
-                            Print
-                        </a></li>
-                    </ul>
+                    <button class="top-action-btn email-guest-btn" data-booking-id="{{ booking.id }}" title="Email Guest">
+                        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M3 4H13C13.5523 4 14 4.44772 14 5V11C14 11.5523 13.5523 12 13 12H3C2.44772 12 2 11.5523 2 11V5C2 4.44772 2.44772 4 3 4Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M14 5L8 8.5L2 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </button>
+                    <button class="top-action-btn" id="printReceipt" title="Print">
+                        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M4 5V2H12V5M4 11H3C2.44772 11 2 10.5523 2 10V7C2 6.44772 2.44772 6 3 6H13C13.5523 6 14 6.44772 14 7V10C14 10.5523 13.5523 11 13 11H12M4 9H12V14H4V9Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </button>
                 </div>
                 <div class="created-with">
                     <span>Created with</span>
@@ -500,15 +541,20 @@
                     </div>
                 </div>
 
+                {% with addr=booking.street_address|default:"" city=booking.city|default:"" state=booking.state|default:"" zipcode=booking.zip|default:"" country=booking.country|default:"" %}
+                {% if addr or city or state or zipcode or country %}
                 <div class="address">
-                    {{ booking.street_address }}<br/>
-                    {{ booking.city }}, {{ booking.state }} {{ booking.zip }}<br/>
-                    {{ booking.country }}
+                    {% if addr %}{{ addr }}<br/>{% endif %}
+                    {% if city or state or zipcode %}{{ city }}{% if city and state %}, {% endif %}{{ state }} {{ zipcode }}<br/>{% endif %}
+                    {% if country %}{{ country }}{% endif %}
                 </div>
+                {% endif %}
+                {% endwith %}
 
                 <div class="host-line">
-                    <span class="hosted-by">Hosted by <strong>{{ booking.property.created_by.get_full_name }}</strong></span>
+                    <span class="hosted-by">Hosted by <strong>{{ booking.property.created_by.get_full_name|default:"Host" }}</strong></span>
                     <br/>
+                    {% if booking.property.created_by.phone %}
                     <span class="contact">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                             <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z"/>
@@ -516,6 +562,8 @@
                         {{ booking.property.created_by.phone }}
                     </span>
                     <br/>
+                    {% endif %}
+                    {% if booking.property.created_by.email %}
                     <a href="mailto:{{ booking.property.created_by.email }}" class="contact">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                             <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
@@ -523,11 +571,12 @@
                         </svg>
                         {{ booking.property.created_by.email }}
                     </a>
+                    {% endif %}
                 </div>
 
                 <div class="divider"></div>
 
-                <div class="traveler">Traveler: <strong>{{ booking.first_name }} {{ booking.last_name }}</strong></div>
+                <div class="traveler">Traveler: <strong>{{ booking.first_name|default:"" }}{% if booking.first_name and booking.last_name %} {% endif %}{{ booking.last_name|default:"Guest" }}</strong></div>
             </section>
 
             <section class="card right-card" aria-label="Price and payment">

@@ -2142,6 +2142,44 @@
       window.addEventListener('click', (e) => { if (e.target == cancelModal) cancelModal.style.display = 'none'; });
     }
 
+    // 4b. No Show
+    const noShowModal = sidebarContent.querySelector('#noShowModal');
+    const noShowBtns = sidebarRoot.querySelectorAll('.mark-no-show-btn');
+    if (noShowModal && noShowBtns.length > 0) {
+      const closeNoShowBtn = noShowModal.querySelector('#closeNoShowModal');
+      const btnNoShowModalClose = noShowModal.querySelector('#btnNoShowModalClose');
+      const confirmNoShowBtn = noShowModal.querySelector('#confirmNoShowBtn');
+      let noShowUrl = '';
+
+      const closeNoShowFunc = () => noShowModal.style.display = 'none';
+      if (closeNoShowBtn) closeNoShowBtn.onclick = closeNoShowFunc;
+      if (btnNoShowModalClose) btnNoShowModalClose.onclick = closeNoShowFunc;
+
+      noShowBtns.forEach(btn => {
+        btn.addEventListener('click', function (e) {
+          e.preventDefault();
+          closeDropdown(this);
+          noShowUrl = this.dataset.url || this.href;
+          noShowModal.style.display = 'flex';
+        });
+      });
+
+      if (confirmNoShowBtn) {
+        confirmNoShowBtn.onclick = function () {
+          if (!noShowUrl) return;
+          this.disabled = true; this.innerText = 'Marking...';
+          fetch(noShowUrl, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': '{{ csrf_token }}', 'Content-Type': 'application/json' }
+          }).then(r => r.json()).then(data => {
+            if (data.success) { window.location.reload(); }
+            else { alert('Failed: ' + data.error); closeNoShowFunc(); this.disabled = false; this.innerText = 'Yes, No Show'; }
+          }).catch(e => { console.error(e); closeNoShowFunc(); this.disabled = false; this.innerText = 'Yes, No Show'; });
+        };
+      }
+      window.addEventListener('click', (e) => { if (e.target == noShowModal) noShowModal.style.display = 'none'; });
+    }
+
     // 5. Payment Checkboxes
     const selectAllCheckbox = sidebarContent.querySelector('#select-all-payments');
     if (selectAllCheckbox) {
