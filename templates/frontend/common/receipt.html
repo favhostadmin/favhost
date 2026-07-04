@@ -503,12 +503,6 @@
                             <path d="M8 1V10M8 10L5 7M8 10L11 7M2 14H14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
                         </svg>
                     </button>
-                    <button class="top-action-btn email-guest-btn" data-booking-id="{{ booking.id }}" title="Email Guest">
-                        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M3 4H13C13.5523 4 14 4.44772 14 5V11C14 11.5523 13.5523 12 13 12H3C2.44772 12 2 11.5523 2 11V5C2 4.44772 2.44772 4 3 4Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                            <path d="M14 5L8 8.5L2 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                        </svg>
-                    </button>
                     <button class="top-action-btn" id="printReceipt" title="Print">
                         <svg width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path d="M4 5V2H12V5M4 11H3C2.44772 11 2 10.5523 2 10V7C2 6.44772 2.44772 6 3 6H13C13.5523 6 14 6.44772 14 7V10C14 10.5523 13.5523 11 13 11H12M4 9H12V14H4V9Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
@@ -649,57 +643,16 @@
     </div>
 
     {% if not is_modal %}
-    <div id="emailGuestModal" class="modal" style="display: none; position: fixed; z-index: 1050; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.5); align-items: center; justify-content: center;">
-        <div class="modal-content" style="background-color: #fefefe; margin: auto; padding: 0; border: 1px solid #888; width: 80%; max-width: 800px; border-radius: 8px; position: relative; box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2),0 6px 20px 0 rgba(0,0,0,0.19);">
-            <div class="modal-body" style="padding: 0;">
-                <div id="email-modal-content-placeholder">Loading...</div>
-            </div>
-        </div>
-    </div>
-
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"></script>
 
     <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            const emailModal = document.getElementById('emailGuestModal');
-            const emailModalPlaceholder = document.getElementById('email-modal-content-placeholder');
             const downloadBtn = document.getElementById('downloadReceiptPdf');
             const printBtn = document.getElementById('printReceipt');
             const closeReceiptBtn = document.getElementById('closeReceiptBtn');
             const receiptRoot = document.getElementById('guest-receipt-root');
-
-            document.querySelectorAll('.email-guest-btn').forEach(function(button) {
-                button.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    const bookingId = this.dataset.bookingId;
-                    const url = '{% url "booking:render-email-form" %}?booking_id=' + bookingId;
-
-                    emailModalPlaceholder.innerHTML = '<div style="text-align: center; padding: 40px;">Loading...</div>';
-                    emailModal.style.display = 'flex';
-
-                    fetch(url)
-                        .then(function(response) { return response.text(); })
-                        .then(function(html) {
-                            emailModalPlaceholder.innerHTML = html;
-                            const closeEmailBtn = emailModal.querySelector('.btn-cancel-email');
-                            if (closeEmailBtn) {
-                                closeEmailBtn.onclick = function() { emailModal.style.display = 'none'; };
-                            }
-                        })
-                        .catch(function(error) {
-                            emailModalPlaceholder.innerHTML = '<p style="text-align: center; padding: 40px; color: red;">Error loading email form. Please try again.</p>';
-                            console.error('Error fetching email form:', error);
-                        });
-                });
-            });
-
-            window.onclick = function(event) {
-                if (event.target == emailModal) {
-                    emailModal.style.display = 'none';
-                }
-            };
 
             function triggerPrint(e) {
                 if (e) e.preventDefault();

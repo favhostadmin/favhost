@@ -508,9 +508,9 @@
                                     <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.7"></circle><circle cx="12" cy="12" r="1.7"></circle><circle cx="12" cy="19" r="1.7"></circle></svg>
                                 </button>
                                 <ul class="dropdown-menu dropdown-menu-end">
-                                    {% if status_filter == 'past' or status_filter == 'all' or status_filter == 'current' or status_filter == 'upcoming' %}
+                                    {% if status_filter == 'past' or status_filter == 'all' or status_filter == 'current' or status_filter == 'upcoming' or status_filter == 'no_show' %}
                                     <li>
-                                        <a class="dropdown-item email-guest-btn" href="#" data-booking-id="{{ booking.id }}">
+                                        <a class="dropdown-item email-guest-btn" href="#" data-booking-id="{{ booking.id }}" data-guest-email="{{ booking.email }}">
                                             <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
                                                 <path d="M3 4H13C13.5523 4 14 4.44772 14 5V11C14 11.5523 13.5523 12 13 12H3C2.44772 12 2 11.5523 2 11V5C2 4.44772 2.44772 4 3 4Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
                                                 <path d="M14 5L8 8.5L2 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
@@ -542,7 +542,7 @@
                                     {% endif %}
 
                                     {% if status_filter != 'cancelled' %}
-                                    {% if booking.time_delta or status_filter == 'past' %}
+                                    {% if booking.time_delta or status_filter == 'past' or booking.no_show_receipt %}
                                     <li>
                                         <a class="dropdown-item guest-receipt-btn" href="#" data-receipt-url="{% url 'booking:guest-receipt' pk=booking.id %}">
                                             <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
@@ -729,6 +729,22 @@ document.addEventListener('DOMContentLoaded', function() {
         button.addEventListener('click', function(e) {
             e.preventDefault();
             closeDropdown(this);
+            const guestEmail = this.dataset.guestEmail;
+            if (guestEmail) {
+                // Open the mail app via a hidden iframe so the page itself
+                // never enters a stuck loading/navigation state.
+                const frame = document.createElement('iframe');
+                frame.style.display = 'none';
+                document.body.appendChild(frame);
+                try {
+                    frame.contentWindow.location.href = `mailto:${guestEmail}`;
+                } catch (err) {
+                    window.location.href = `mailto:${guestEmail}`;
+                }
+                setTimeout(() => frame.remove(), 2000);
+            }
+
+            /* --- Old in-app email compose modal (kept for later reuse) ---
             const bookingId = this.dataset.bookingId;
             const url = `{% url 'booking:render-email-form' %}?booking_id=${bookingId}`;
 
@@ -748,6 +764,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     emailModalPlaceholder.innerHTML = '<p style="text-align: center; padding: 40px; color: red;">Error loading email form. Please try again.</p>';
                     console.error('Error fetching email form:', error);
                 });
+            */
         });
     });
 

@@ -105,6 +105,7 @@ class BookingListView(LoginRequiredMixin, ListView):
 
             relevant_info = ''
             time_delta = False
+            no_show_receipt = False
             urgency = 'green'
             if booking.status == 'cancelled':
                 relevant_info = 'Cancelled'
@@ -112,6 +113,9 @@ class BookingListView(LoginRequiredMixin, ListView):
             elif booking.status == 'no_show':
                 relevant_info = 'No Show'
                 urgency = 'amber'
+                # No show receipt is available only from the checkout date onwards
+                if booking.check_out_date and booking.check_out_date <= now:
+                    no_show_receipt = True
             elif status_filter == 'upcoming':
                 if booking.check_in_date:
                     delta = booking.check_in_date - now
@@ -155,6 +159,7 @@ class BookingListView(LoginRequiredMixin, ListView):
                 'due_status': 'Paid', # Placeholder
                 'checkout_info': relevant_info,
                 'time_delta': time_delta,
+                'no_show_receipt': no_show_receipt,
                 'urgency': urgency,
                 'email': booking.email,
                 'phone': booking.phone,
@@ -608,6 +613,9 @@ def payment_details(request, pk):
 
     delta = (booking.check_out_date - now) if booking.check_out_date else None
 
+    # No show receipt is available only from the checkout date onwards
+    no_show_receipt = booking.status == 'no_show' and booking.check_out_date and booking.check_out_date <= now
+
 
     context = {
         'booking': booking,
@@ -616,7 +624,8 @@ def payment_details(request, pk):
         'subtotal': subtotal,
         'total_price': total_price,
         'monthly_payment': monthly_payment,
-        'time_delta': True if (delta and delta.days == 0) else False,
+        'time_delta': True if (delta is not None and delta.days == 0) else False,
+        'no_show_receipt': no_show_receipt,
     }
     context['booking_status'] = booking_status
 
