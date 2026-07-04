@@ -5,383 +5,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>FavHost · Frontdesk</title>
-<style>
-  .fd-page{
-    --brand:#E6168A;--brand-2:#E5392B;
-    --ink:#23262B;--ink-soft:#565C66;--muted:#9AA1AC;
-    --line:#ECEDEF;--line-2:#E4E6E9;
-    --page:#F4F5F7;--card:#FFFFFF;--charcoal:#1E2028;
-    --green:#1FAE5A;--green-soft:#E1F7EB;--green-ink:#0E7A3D;
-    --red:#E5484D;--red-soft:#FDE7E3;--red-ink:#C23A2C;
-    --purple:#7C5CFC;--purple-soft:#ECE7FF;--purple-ink:#5B3FD6;
-    --amber:#F59E0B;--amber-soft:#FEF3C7;
-    --r-card:14px;--r-pill:999px;
-    --shadow-sm:0 1px 3px rgba(16,24,40,.06);
-    --shadow:0 2px 8px rgba(16,24,40,.07),0 0 0 1px rgba(16,24,40,.04);
-  }
-  .fd-page a{color:inherit;text-decoration:none}
-  .fd-page button,.fd-page input,.fd-page select{font:inherit;color:inherit;cursor:pointer;background:none;border:0;padding:0}
-  .fd-page svg{display:block;flex-shrink:0}
-  .fd-page :focus-visible{outline:2px solid var(--brand);outline-offset:2px;border-radius:6px}
-
-  .fd-wrap{max-width:1400px;margin:0 auto;padding:0 24px;width:100%}
-  .fd-body{flex:1;padding:20px 0 60px}
-
-  .fd-page-header{
-    display:flex;align-items:center;justify-content:space-between;
-    background:var(--charcoal);border-radius:var(--r-card);
-    padding:14px 20px;margin-bottom:18px;gap:16px
-  }
-  .fd-ph-left{display:flex;align-items:center;gap:10px;color:#fff}
-  .fd-ph-left svg{width:19px;height:19px;opacity:.9}
-  .fd-ph-title{font-size:15px;font-weight:700;color:#fff;letter-spacing:-.1px}
-  .fd-ph-right{display:flex;align-items:center;gap:8px}
-
-  .date-nav{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.1);
-    border:1px solid rgba(255,255,255,.15);border-radius:10px;padding:4px 6px}
-  .date-nav-btn{width:28px;height:28px;border-radius:7px;display:flex;align-items:center;justify-content:center;
-    color:rgba(255,255,255,.8);transition:background .15s,color .15s}
-  .date-nav-btn svg{width:15px;height:15px}
-  .date-nav-btn:hover{background:rgba(255,255,255,.15);color:#fff}
-  .date-display{color:#fff;font-size:13px;font-weight:600;padding:0 6px;min-width:130px;text-align:center}
-  .date-picker-btn{background:rgb(255, 255, 255);border:0;color:#fff;font-size:12px;font-weight:600;
-    padding:5px 12px;border-radius:7px;cursor:pointer;transition:background .15s}
-  .date-picker-btn:hover{background:rgb(255, 255, 255)}
-  .date-picker-input{position:absolute;opacity:0;pointer-events:none;width:0;height:0}
-
-  .fd-ph-refresh{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;
-    color:rgba(255,255,255,.75);transition:background .15s,color .15s,transform .4s}
-  .fd-ph-refresh svg{width:17px;height:17px}
-  .fd-ph-refresh:hover{background:rgba(255,255,255,.12);color:#fff}
-  .fd-ph-refresh.spinning svg{animation:spin .7s linear infinite}
-  @keyframes spin{to{transform:rotate(360deg)}}
-
-  .kpi-strip{display:grid;grid-template-columns:auto 1fr;gap:16px;margin-bottom:18px;align-items:stretch}
-
-  .date-card{background:#fff;border:1px solid var(--line);border-radius:var(--r-card);
-    padding:16px 20px;box-shadow:var(--shadow-sm);display:flex;flex-direction:column;
-    justify-content:center;min-width:154px;position:relative}
-  .dc-cal-btn{position:absolute;right:8px;top:8px;width:26px;height:26px;border-radius:7px;
-    display:flex;align-items:center;justify-content:center;color:var(--muted);
-    transition:background .15s,color .15s;pointer-events:none;z-index:1}
-  .dc-cal-btn svg{width:14px;height:14px}
-  .dc-cal-btn:hover{background:var(--line);color:var(--ink)}
-  .dc-date-overlay{position:absolute;right:8px;top:8px;width:26px;height:26px;
-    opacity:0;cursor:pointer;z-index:2}
-  .dc-dow{font-size:12px;font-weight:700;color:var(--muted);letter-spacing:.5px;text-transform:uppercase;margin-bottom:4px}
-  .dc-date{display:flex;align-items:baseline;gap:6px}
-  .dc-num{font-size:44px;font-weight:900;letter-spacing:-2px;line-height:1;color:var(--ink)}
-  .dc-mon{font-size:20px;font-weight:500;color:var(--ink-soft)}
-  .dc-year{font-size:13px;color:var(--muted);margin-top:4px}
-
-  .metrics-card{background:#fff;border:1px solid var(--line);border-radius:var(--r-card);
-    box-shadow:var(--shadow-sm);display:flex;align-items:center;gap:20px;padding:16px 24px}
-  .occ-ring{flex-shrink:0;position:relative;width:92px;height:92px}
-  .occ-ring svg{transform:rotate(-90deg)}
-  .occ-inner{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
-  .occ-inner b{font-size:15px;font-weight:800;letter-spacing:-.3px;color:var(--ink)}
-  .occ-inner small{font-size:10px;color:var(--muted);margin-top:1px;font-weight:600;letter-spacing:.2px;text-transform:uppercase}
-
-  .kpi-grid{flex:1;display:flex;gap:0}
-  .kpi{flex:1;text-align:center;padding:6px 8px;border-left:1px solid var(--line)}
-  .kpi:first-child{border-left:0}
-  .kpi-val{display:block;font-size:20px;font-weight:800;letter-spacing:-.5px;color:var(--ink);line-height:1.1}
-  .kpi-label{display:block;margin-top:4px;font-size:10.5px;color:var(--muted);font-weight:600;
-    letter-spacing:.2px;text-transform:uppercase;white-space:nowrap}
-  .kpi-val.green{color:var(--green)}
-  .kpi-val.red{color:var(--red)}
-  .kpi-val.amber{color:var(--amber)}
-  .kpi-val.purple{color:var(--purple)}
-
-  .columns{display:grid;grid-template-columns:1fr 1fr 1.5fr;gap:16px;align-items:start}
-
-  .col-card{background:#fff;border:1px solid var(--line);border-radius:var(--r-card);
-    box-shadow:var(--shadow);display:flex;flex-direction:column;overflow:hidden}
-  .col-head{display:flex;align-items:center;gap:8px;padding:14px 16px 12px;border-bottom:1px solid var(--line);flex-wrap:wrap}
-  .col-title-pill{display:inline-flex;align-items:center;gap:7px;font-weight:700;font-size:13px;
-    padding:5px 14px;border-radius:var(--r-pill);line-height:1}
-  .col-title-pill .count{font-weight:800}
-  .pill-green{background:var(--green-soft);color:var(--green-ink)}
-  .pill-red{background:var(--red-soft);color:var(--red-ink)}
-  .pill-purple{background:var(--purple-soft);color:var(--purple-ink)}
-
-  .col-search{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line-2);
-    border-radius:9px;padding:5px 10px;flex:1;min-width:80px;max-width:160px;color:var(--muted)}
-  .col-search svg{width:14px;height:14px}
-  .col-search input{border:0;outline:0;background:none;width:100%;font-size:12.5px;color:var(--ink)}
-
-  .view-all{display:inline-flex;align-items:center;gap:4px;margin-left:auto;font-size:12.5px;
-    font-weight:600;color:var(--muted);transition:color .15s;white-space:nowrap;flex-shrink:0}
-  .view-all svg{width:14px;height:14px}
-  .view-all:hover{color:var(--brand)}
-
-  .col-tools{display:flex;align-items:center;gap:2px;margin-left:auto}
-  .tool-btn{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;
-    color:var(--muted);transition:background .15s,color .15s}
-  .tool-btn svg{width:15px;height:15px}
-  .tool-btn:hover{background:#F0F0F2;color:var(--ink)}
-  .tool-btn.active{background:var(--purple-soft);color:var(--purple-ink)}
-
-  .guest-list{list-style:none;overflow-y:auto;max-height:540px;padding:4px 0}
-  .guest-list::-webkit-scrollbar{width:5px}
-  .guest-list::-webkit-scrollbar-thumb{background:#E2E3E6;border-radius:6px}
-  .guest-list::-webkit-scrollbar-track{background:transparent}
-  .guest-list{scrollbar-width:thin;scrollbar-color:#E2E3E6 transparent}
-
-  .guest-item{display:grid;grid-template-columns:auto 1fr auto;gap:12px;
-    align-items:start;padding:12px 16px;border-bottom:1px solid var(--line);transition:background .12s}
-  .guest-item:last-child{border-bottom:0}
-  .guest-item:hover{background:#FAFAFA}
-
-  .g-thumb{width:50px;height:50px;border-radius:10px;overflow:hidden;flex-shrink:0;
-    background:linear-gradient(135deg,#ECE3D6,#D9C4A8);
-    display:flex;align-items:center;justify-content:center;color:#9a7d5a}
-  .g-thumb img{width:100%;height:100%;object-fit:cover}
-  .g-thumb svg{width:42%;height:42%;opacity:.5}
-
-  .g-prop{font-size:11.5px;color:var(--muted);margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .g-name{font-size:14px;font-weight:700;color:var(--ink)}
-  .g-contact{font-size:12px;color:var(--ink-soft);margin-top:2px}
-  .g-time{display:inline-flex;align-items:center;gap:4px;margin-top:4px;font-size:11.5px;
-    color:var(--muted);background:var(--page);padding:2px 7px;border-radius:6px}
-  .g-time svg{width:12px;height:12px}
-
-  .g-ext{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;
-    color:var(--muted);transition:background .15s,color .15s}
-  .g-ext svg{width:15px;height:15px}
-  .g-ext:hover{background:var(--line);color:var(--brand)}
-
-  .hk-list{list-style:none;overflow-y:auto;max-height:600px;padding:4px 0}
-  .hk-list::-webkit-scrollbar{width:5px}
-  .hk-list::-webkit-scrollbar-thumb{background:#E2E3E6;border-radius:6px}
-  .hk-list{scrollbar-width:thin;scrollbar-color:#E2E3E6 transparent}
-
-  .hk-item{display:grid;grid-template-columns:auto 1fr auto;gap:14px;align-items:center;
-    padding:12px 16px;border-bottom:1px solid var(--line);transition:background .12s}
-  .hk-item:last-child{border-bottom:0}
-  .hk-item:hover{background:#FAFAFA}
-
-  .hk-thumb-wrap{display:flex;flex-direction:column;align-items:flex-start;gap:5px}
-  .hk-thumb{width:64px;height:56px;border-radius:10px;overflow:hidden;
-    background:linear-gradient(135deg,#ECE3D6,#D9C4A8);
-    display:flex;align-items:center;justify-content:center;color:#9a7d5a}
-  .hk-thumb img{width:100%;height:100%;object-fit:cover}
-  .hk-thumb svg{width:38%;height:38%;opacity:.45}
-  .avail-badge{font-size:10.5px;font-weight:700;display:inline-flex;align-items:center;gap:3px;padding:2px 0}
-  .avail-badge::before{content:"";width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0}
-  .avail-badge.ok{color:var(--green)}
-  .avail-badge.no{color:var(--red)}
-
-  .hk-title{font-size:13.5px;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:220px}
-  .hk-meta{display:flex;align-items:center;flex-wrap:wrap;gap:5px 10px;margin-top:5px;
-    color:var(--ink-soft);font-size:11.5px}
-  .hk-meta-item{display:inline-flex;align-items:center;gap:4px}
-  .hk-meta-item svg{width:13px;height:13px;color:var(--muted)}
-  .hk-price{display:flex;align-items:center;gap:6px;margin-top:7px}
-  .hk-price-val{font-size:14px;font-weight:800;color:var(--ink)}
-  .hk-price-unit{font-size:11.5px;color:var(--muted)}
-
-  .hk-status-dd{position:relative;display:inline-block}
-  .hk-status-btn{display:inline-flex;align-items:center;gap:7px;
-    border:1px solid var(--line-2);border-radius:10px;
-    padding:6px 10px 6px 10px;background:#fff;transition:border-color .15s,box-shadow .15s;
-    cursor:pointer;white-space:nowrap;min-width:170px;justify-content:space-between}
-  .hk-status-btn:hover{border-color:#C8CACD;box-shadow:0 1px 4px rgba(0,0,0,.07)}
-  .hk-status-btn-left{display:flex;align-items:center;gap:7px}
-  .hk-status-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;display:inline-block}
-  .hk-status-label{font-size:12px;font-weight:600;color:var(--ink-soft)}
-  .hk-status-chevron{width:14px;height:14px;color:var(--muted);transition:transform .2s;flex-shrink:0}
-  .hk-status-dd.open .hk-status-chevron{transform:rotate(180deg)}
-  .hk-status-menu{position:absolute;right:0;top:calc(100% + 6px);min-width:200px;
-    background:#fff;border:1px solid var(--line);border-radius:12px;
-    box-shadow:0 8px 24px rgba(0,0,0,.12);z-index:200;overflow:hidden;
-    display:none;flex-direction:column;padding:4px}
-  .hk-status-dd.open .hk-status-menu{display:flex}
-  .hk-status-opt{display:flex;align-items:center;gap:10px;padding:8px 12px;
-    border-radius:8px;cursor:pointer;transition:background .12s}
-  .hk-status-opt:hover{background:var(--page)}
-  .hk-status-opt.selected{background:var(--purple-soft)}
-  .hk-status-opt-dot{width:11px;height:11px;border-radius:50%;flex-shrink:0;display:inline-block}
-  .hk-status-opt-info{display:flex;flex-direction:column;gap:1px}
-  .hk-status-opt-label{font-size:12.5px;font-weight:600;color:var(--ink)}
-  .hk-status-opt-desc{font-size:11px;color:var(--muted)}
-
-  .empty-state{padding:40px 16px;text-align:center;color:var(--muted)}
-  .empty-state svg{width:36px;height:36px;margin:0 auto 10px;opacity:.4}
-  .empty-state p{font-size:13px;font-weight:500}
-  .skeleton{background:linear-gradient(90deg,#f0f0f0 25%,#e8e8e8 50%,#f0f0f0 75%);
-    background-size:200% 100%;animation:shimmer 1.4s infinite;border-radius:6px}
-  @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
-
-  .fab{position:fixed;right:24px;bottom:24px;width:52px;height:52px;border-radius:50%;
-    background:linear-gradient(135deg,#8A6BFF,#6B45E0);color:#fff;
-    display:flex;align-items:center;justify-content:center;
-    box-shadow:0 8px 20px rgba(108,69,224,.4);transition:transform .15s,box-shadow .15s;z-index:50}
-  .fab svg{width:22px;height:22px}
-  .fab:hover{transform:translateY(-2px);box-shadow:0 12px 28px rgba(108,69,224,.5)}
-  .fab.open{transform:translateY(-2px) rotate(45deg)}
-
-  .chat-popup{position:fixed;right:24px;bottom:88px;width:360px;max-height:520px;
-    background:#fff;border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,.18);
-    display:none;flex-direction:column;overflow:hidden;z-index:49;
-    animation:chatIn .25s ease}
-  .chat-popup.open{display:flex}
-  @keyframes chatIn{from{opacity:0;transform:translateY(12px) scale(.96)}to{opacity:1;transform:translateY(0) scale(1)}}
-
-  .chat-head{display:flex;align-items:center;gap:10px;padding:14px 16px;
-    background:var(--charcoal);color:#fff}
-  .chat-head svg{width:18px;height:18px;opacity:.85}
-  .chat-head-title{flex:1;font-size:14px;font-weight:700}
-  .chat-head-close{width:28px;height:28px;border-radius:7px;display:flex;align-items:center;
-    justify-content:center;color:rgba(255,255,255,.7);cursor:pointer;transition:background .15s}
-  .chat-head-close:hover{background:rgba(255,255,255,.12);color:#fff}
-
-  .chat-body{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px;min-height:240px}
-  .chat-msg{max-width:85%;padding:10px 14px;border-radius:12px;font-size:13px;line-height:1.5}
-  .chat-msg.bot{align-self:flex-start;background:#F0F0F2;color:var(--ink);
-    border-bottom-left-radius:4px}
-  .chat-msg.user{align-self:flex-end;background:var(--purple-soft);color:var(--purple-ink);
-    border-bottom-right-radius:4px}
-  .chat-msg.time{font-size:10.5px;color:var(--muted);text-align:center;padding:4px 0}
-
-  .chat-foot{display:flex;align-items:center;gap:8px;padding:10px 14px;border-top:1px solid var(--line)}
-  .chat-foot input{flex:1;border:1px solid var(--line-2);border-radius:9px;padding:9px 12px;
-    font-size:13px;outline:0;transition:border-color .15s;font-family:inherit}
-  .chat-foot input:focus{border-color:var(--purple)}
-  .chat-foot button{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;
-    justify-content:center;background:var(--purple);color:#fff;cursor:pointer;
-    transition:background .15s;border:0}
-  .chat-foot button:hover{background:var(--purple-ink)}
-  .chat-foot button svg{width:16px;height:16px}
-
-  @media (max-width:480px){
-    .chat-popup{right:12px;left:12px;width:auto;bottom:80px;max-height:60vh}
-  }
-
-  @media (max-width:1100px){
-    .columns{grid-template-columns:1fr 1fr}
-    .col-hk{grid-column:1/-1}
-    .hk-list{max-height:none}
-  }
-  @media (max-width:900px){
-    .kpi-strip{grid-template-columns:1fr}
-    .date-card{flex-direction:row;align-items:center;gap:16px;min-width:auto}
-    .metrics-card{flex-wrap:wrap}
-    .kpi-grid{display:grid;grid-template-columns:repeat(5,1fr)}
-  }
-  @media (max-width:720px){
-    .columns{grid-template-columns:1fr}
-    .col-hk{grid-column:auto}
-    .fd-wrap{padding:0 16px}
-    .kpi-grid{grid-template-columns:repeat(3,1fr)}
-  }
-  @media (max-width:480px){
-    .kpi-grid{grid-template-columns:repeat(3,1fr)}
-    .hk-item{grid-template-columns:auto 1fr}
-    .hk-status-col{grid-column:1/-1}
-  }
-  @media (prefers-reduced-motion:reduce){
-    .fd-page *{animation:none!important;transition:none!important}
-  }
-  .task-modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.55);
-    z-index: 16000;
-    display: none;
-    justify-content: center;
-    align-items: center;
-    backdrop-filter: blur(4px);
-  }
-  .task-modal-overlay.open {
-    display: flex;
-  }
-  .reservation-modal {
-    background: #ffffff;
-    border-radius: 16px;
-    width: 100%;
-    max-width: 1200px;
-    max-height: 90vh;
-    box-shadow: 0 25px 80px rgba(0, 0, 0, 0.3);
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    margin: 20px;
-    animation: taskModalIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-  .reservation-modal-header {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    padding: 6px 12px;
-    border: none;
-    flex-shrink: 0;
-    background: #fff;
-    min-height: 0;
-  }
-  .reservation-modal-close {
-    background: none;
-    border: none;
-    font-size: 22px;
-    color: #6b7280;
-    cursor: pointer;
-    padding: 0 4px;
-    line-height: 1;
-  }
-  .reservation-modal-close:hover {
-    color: #111827;
-  }
-  .reservation-modal-body {
-    overflow-y: auto;
-    padding: 0;
-    flex: 1;
-  }
-  .reservation-modal-body .action-buttons {
-    margin: 0;
-    border-radius: 0;
-  }
-  .reservation-modal-body .payment-partial-shell {
-    padding: 0;
-  }
-  .reservation-modal-body .reservation-row {
-    margin: 0 !important;
-    max-width: 1200px;
-    margin: 0 auto !important;
-    padding: 0 32px 24px !important;
-  }
-  .reservation-modal-body .details-col {
-    padding: 0 !important;
-  }
-  .reservation-modal-body .booking-card {
-    border: none !important;
-    border-bottom: 1px solid #f0f0f0 !important;
-    border-radius: 0 !important;
-    padding: 20px 24px !important;
-    margin: 0 !important;
-    box-shadow: none !important;
-    overflow: visible;
-  }
-  .reservation-modal-body .booking-card:first-child {
-    padding-top: 20px !important;
-  }
-  .reservation-modal-body .booking-card:last-child {
-    border-bottom: none !important;
-  }
-  @keyframes taskModalIn {
-    from { opacity: 0; transform: scale(0.92) translateY(20px); }
-    to { opacity: 1; transform: scale(1) translateY(0); }
-  }
-</style>
+<link href="{% static 'css/frontdesk/index.css' %}" rel="stylesheet">
 {% endblock extra_head %}
 
 {% block content %}
 <div class="fd-page">
 
 <!-- ══════════ ICON SPRITE ══════════ -->
-<svg width="0" height="0" style="position:absolute;overflow:hidden" aria-hidden="true">
+<svg width="0" height="0" class="fd-icon-defs" aria-hidden="true">
   <symbol id="ic-roof" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M3.2 11.5L12 4.2l8.8 7.3"/><path d="M17.5 8V5h2.2"/></symbol>
   <symbol id="ic-bell" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></symbol>
   <symbol id="ic-grid" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></symbol>
@@ -402,48 +33,58 @@
   <symbol id="ic-user" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.2"/><path d="M5 20a7 7 0 0 1 14 0"/></symbol>
   <symbol id="ic-paw" viewBox="0 0 24 24" fill="currentColor"><circle cx="6" cy="11" r="1.7"/><circle cx="10" cy="7.6" r="1.7"/><circle cx="14" cy="7.6" r="1.7"/><circle cx="18" cy="11" r="1.7"/><path d="M12 12.6c2.5 0 4.4 1.5 4.4 3.5S14.5 19.6 12 19.6 7.6 18.1 7.6 16.1 9.5 12.6 12 12.6z"/></symbol>
   <symbol id="ic-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></symbol>
-  <symbol id="ic-chat" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 11.4a8 8 0 0 1-11.9 7L4 20l1.6-4.4A8 8 0 1 1 20.5 11.4z"/><circle cx="9" cy="11.5" r="1" fill="currentColor" stroke="none"/><circle cx="12.5" cy="11.5" r="1" fill="currentColor" stroke="none"/><circle cx="16" cy="11.5" r="1" fill="currentColor" stroke="none"/></symbol>
   <symbol id="ic-list" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h12"/><path d="M8 12h12"/><path d="M8 18h12"/><path d="M4 6h.01"/><path d="M4 12h.01"/><path d="M4 18h.01"/></symbol>
+  <symbol id="ic-report" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="6.5 9 6.5 3.5 17.5 3.5 17.5 9"/><path d="M6.5 17H4.8A1.8 1.8 0 0 1 3 15.2v-4.4A1.8 1.8 0 0 1 4.8 9h14.4A1.8 1.8 0 0 1 21 10.8v4.4a1.8 1.8 0 0 1-1.8 1.8h-1.7"/><rect x="6.5" y="13.2" width="11" height="7.3"/></symbol>
   <symbol id="ic-dots" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="19" cy="12" r="1.7"/></symbol>
   <symbol id="ic-home" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></symbol>
+  <symbol id="ic-checkin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></symbol>
+  <symbol id="ic-checkout" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></symbol>
 </svg>
 
-<!-- ══════════ PAGE BODY ══════════ -->
-<div class="fd-body">
-  <div class="fd-wrap">
-
-    <!-- Page header + date nav -->
-    <div class="fd-page-header">
-      <div class="fd-ph-left">
-        <svg><use href="#ic-home"/></svg>
-        <span class="fd-ph-title">Frontdesk</span>
-      </div>
-      <div class="fd-ph-right">
-        <div class="date-nav">
-          <button class="date-nav-btn" id="btn-prev-day" aria-label="Previous day">
-            <svg width="15" height="15"><use href="#ic-chevl"/></svg>
-          </button>
-          <span class="date-display" id="date-display">{{ day_name }}, {{ day_num }} {{ month_name }}</span>
-          <button class="date-nav-btn" id="btn-next-day" aria-label="Next day">
-            <svg width="15" height="15"><use href="#ic-chevr"/></svg>
-          </button>
-          <input type="date" id="date-picker" class="date-picker-input" value="{{ date_iso }}">
-        </div>
-      </div>
+<!-- ══════════ PAGE HEADER ══════════ -->
+<div class="fd-page-header">
+  <div class="fd-ph-inner">
+    <div class="fd-ph-left">
+      <img src="{% static 'img/header/bell.png' %}" alt="Frontdesk">
+      <span class="fd-ph-title">Frontdesk</span>
     </div>
+    <div class="fd-ph-right">
+      <div class="date-nav">
+        <button class="date-nav-btn" id="btn-prev-day" aria-label="Previous day">
+          <svg width="15" height="15"><use href="#ic-chevl"/></svg>
+        </button>
+        <span class="date-display" id="date-display">{{ day_name }}, {{ day_num }} {{ month_name }}</span>
+        <button class="date-nav-btn" id="btn-next-day" aria-label="Next day">
+          <svg width="15" height="15"><use href="#ic-chevr"/></svg>
+        </button>
+        <input type="date" id="date-picker" class="date-picker-input" value="{{ date_iso }}">
+      </div>
+      <button class="fd-ph-refresh" id="btn-today" aria-label="Go to today" title="Go to today">
+        <img src="{% static 'img/calender/today_icon.svg' %}" alt="" width="16" height="16">
+      </button>
+      <button class="fd-ph-refresh" id="btn-refresh" aria-label="Refresh" title="Refresh">
+        <svg width="17" height="17"><use href="#ic-refresh"/></svg>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ PAGE BODY (scrolls independently below the fixed header, mirrors host/dashboard.html's .main) ══════════ -->
+<div class="fd-body">
+
+  <div class="fd-wrap">
 
     <!-- KPI Strip -->
     <section class="kpi-strip">
 
       <div class="date-card">
-        <button class="dc-cal-btn" aria-label="Pick a date"><svg><use href="#ic-cal"/></svg></button>
-        <input type="date" class="dc-date-overlay" id="dc-date-overlay" value="{{ date_iso }}">
+        <input type="date" class="dc-date-overlay" id="dc-date-overlay" value="{{ date_iso }}" aria-label="Pick a date">
         <div class="dc-dow" id="dc-dow">{{ day_name|upper }}</div>
         <div class="dc-date">
           <span class="dc-num" id="dc-num">{{ day_num }}</span>
           <span class="dc-mon" id="dc-mon">{{ month_name }}</span>
         </div>
-        <div class="dc-year" id="dc-year">{% now "Y" %}</div>
+        <div class="dc-year" id="dc-year">{{ target_date|date:"Y" }}</div>
       </div>
 
       <div class="metrics-card">
@@ -452,8 +93,7 @@
             <circle cx="54" cy="54" r="44" fill="none" stroke="#ECEDEF" stroke-width="10"/>
             <circle id="occ-arc" cx="54" cy="54" r="44" fill="none" stroke="#1FAE5A" stroke-width="10"
                     stroke-linecap="round"
-                    stroke-dasharray="0 276.46"
-                    style="transition:stroke-dasharray .5s ease"/>
+                    stroke-dasharray="0 276.46"/>
           </svg>
           <div class="occ-inner">
             <b id="occ-pct">{{ occupancy_pct }}%</b>
@@ -560,10 +200,23 @@
       </div>
 
       <div class="col-card col-hk">
+        <div class="hk-print-header" aria-hidden="true">
+          <img src="{% static 'img/login/favhost_new_logo.png' %}" alt="FavHost" class="hk-print-logo">
+          <div class="hk-print-titles">
+            <span class="hk-print-title">Housekeeping Report</span>
+            <span class="hk-print-meta" id="hkPrintMeta"></span>
+          </div>
+        </div>
         <div class="col-head">
           <span class="col-title-pill pill-purple">Housekeeping</span>
           <div class="col-tools">
-            <button class="tool-btn active" aria-label="List view"><svg><use href="#ic-list"/></svg></button>
+            <div class="col-search-collapse" id="hkSearchCollapse">
+              <input type="search" id="hk-search" class="col-search-input" placeholder="Search listing…" autocomplete="off">
+              <button class="tool-btn" id="hk-search-btn" type="button" aria-label="Search listings" title="Search listings"><svg><use href="#ic-search"/></svg></button>
+            </div>
+            <button class="tool-btn active" id="hk-view-list" type="button" aria-label="List view" title="List view"><svg><use href="#ic-list"/></svg></button>
+            <button class="tool-btn" id="hk-view-grid" type="button" aria-label="Grid view" title="Grid view"><svg><use href="#ic-grid"/></svg></button>
+            <button class="tool-btn" id="hk-report-btn" type="button" aria-label="Print report" title="Print report"><svg><use href="#ic-report"/></svg></button>
           </div>
         </div>
         <ul class="hk-list" id="hk-list">
@@ -588,6 +241,12 @@
                 {% if h.bed_type %}<span class="hk-meta-item"><svg><use href="#ic-bed"/></svg>{{ h.bed_type }}</span>{% endif %}
                 {% if h.pet_friendly %}<span class="hk-meta-item"><svg><use href="#ic-paw"/></svg>Pet friendly</span>{% endif %}
               </div>
+              {% if h.has_checkin or h.has_checkout %}
+              <div class="hk-flags">
+                {% if h.has_checkout %}<span class="hk-flag checkout"><svg><use href="#ic-checkout"/></svg>Check-out</span>{% endif %}
+                {% if h.has_checkin %}<span class="hk-flag checkin"><svg><use href="#ic-checkin"/></svg>Check-in</span>{% endif %}
+              </div>
+              {% endif %}
               <div class="hk-price">
                 <span class="hk-price-val">${{ h.price }}</span>
                 <span class="hk-price-unit">/ night</span>
@@ -598,34 +257,34 @@
               <div class="hk-status-dd" data-property-id="{{ h.id }}">
                 <button class="hk-status-btn" type="button" aria-haspopup="listbox">
                   <span class="hk-status-btn-left">
-                    <span class="hk-status-dot" style="background:{% if st == 'Dirty' %}#E5484D{% elif st == 'In-Progress' %}#F97316{% elif st == 'Clean-Uninspected' %}#EAB308{% elif st == 'Clean-Inspected' %}#84CC16{% elif st == 'Clean-Ready' %}#1FAE5A{% elif st == 'Out-of-Service' %}#9AA1AC{% else %}#9AA1AC{% endif %};"></span>
+                    <span class="hk-status-dot hk-dot-{{ st|slugify }}"></span>
                     <span class="hk-status-label">{{ st }}</span>
                   </span>
                   <svg class="hk-status-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9.5l6 6 6-6"/></svg>
                 </button>
                 <div class="hk-status-menu" role="listbox">
                   <div class="hk-status-opt{% if st == 'Dirty' %} selected{% endif %}" data-value="Dirty">
-                    <span class="hk-status-opt-dot" style="background:#E5484D"></span>
+                    <span class="hk-status-opt-dot hk-dot-dirty"></span>
                     <div class="hk-status-opt-info"><span class="hk-status-opt-label">Dirty</span><span class="hk-status-opt-desc">Needs cleaning</span></div>
                   </div>
                   <div class="hk-status-opt{% if st == 'In-Progress' %} selected{% endif %}" data-value="In-Progress">
-                    <span class="hk-status-opt-dot" style="background:#F97316"></span>
+                    <span class="hk-status-opt-dot hk-dot-in-progress"></span>
                     <div class="hk-status-opt-info"><span class="hk-status-opt-label">In-Progress</span><span class="hk-status-opt-desc">Currently being cleaned</span></div>
                   </div>
                   <div class="hk-status-opt{% if st == 'Clean-Uninspected' %} selected{% endif %}" data-value="Clean-Uninspected">
-                    <span class="hk-status-opt-dot" style="background:#EAB308"></span>
+                    <span class="hk-status-opt-dot hk-dot-clean-uninspected"></span>
                     <div class="hk-status-opt-info"><span class="hk-status-opt-label">Clean-Uninspected</span><span class="hk-status-opt-desc">Cleaned, not verified</span></div>
                   </div>
                   <div class="hk-status-opt{% if st == 'Clean-Inspected' %} selected{% endif %}" data-value="Clean-Inspected">
-                    <span class="hk-status-opt-dot" style="background:#84CC16"></span>
+                    <span class="hk-status-opt-dot hk-dot-clean-inspected"></span>
                     <div class="hk-status-opt-info"><span class="hk-status-opt-label">Clean-Inspected</span><span class="hk-status-opt-desc">Verified clean</span></div>
                   </div>
                   <div class="hk-status-opt{% if st == 'Clean-Ready' %} selected{% endif %}" data-value="Clean-Ready">
-                    <span class="hk-status-opt-dot" style="background:#1FAE5A"></span>
+                    <span class="hk-status-opt-dot hk-dot-clean-ready"></span>
                     <div class="hk-status-opt-info"><span class="hk-status-opt-label">Clean-Ready</span><span class="hk-status-opt-desc">Ready for guest</span></div>
                   </div>
                   <div class="hk-status-opt{% if st == 'Out-of-Service' %} selected{% endif %}" data-value="Out-of-Service">
-                    <span class="hk-status-opt-dot" style="background:#9AA1AC"></span>
+                    <span class="hk-status-opt-dot hk-dot-out-of-service"></span>
                     <div class="hk-status-opt-info"><span class="hk-status-opt-label">Out-of-Service</span><span class="hk-status-opt-desc">Unavailable</span></div>
                   </div>
                 </div>
@@ -646,6 +305,8 @@
 
     </section>
   </div>
+
+  {% include 'frontend/base/footer.html' %}
 </div>
 
 <div class="task-modal-overlay" id="reservationModalOverlay" onclick="closeReservationPanel(event)">
@@ -654,35 +315,22 @@
       <button class="reservation-modal-close" onclick="closeReservationPanel()">&times;</button>
     </div>
     <div class="reservation-modal-body" id="reservationModalContent">
-      <div style="display:flex;justify-content:center;align-items:center;height:200px;">
+      <div class="fd-center-box">
         <div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div>
       </div>
     </div>
   </div>
 </div>
 
-<!-- FAB -->
-<button class="fab" id="chat-fab" aria-label="Open chat support"><svg><use href="#ic-chat"/></svg></button>
-
-<!-- Chat popup -->
-<div class="chat-popup" id="chat-popup">
-  <div class="chat-head">
-    <svg><use href="#ic-chat"/></svg>
-    <span class="chat-head-title">Chat Support</span>
-    <button class="chat-head-close" id="chat-close" aria-label="Close chat">&times;</button>
-  </div>
-  <div class="chat-body" id="chat-body">
-    <div class="chat-msg time">Today</div>
-    <div class="chat-msg bot">Hi there! 👋 How can we help you today?</div>
-    <div class="chat-msg bot">Feel free to ask about reservations, bookings, or anything else.</div>
-  </div>
-  <div class="chat-foot">
-    <input type="text" id="chat-input" placeholder="Type a message…" disabled>
-    <button disabled><svg><use href="#ic-arrow"/></svg></button>
+<!-- Guest Receipt Modal (used by reservation sidebar actions) -->
+<div id="guestReceiptModal" class="modal" style="display: none;">
+  <div class="modal-content" style="width: 90%; max-width: 960px; padding: 0;">
+    <div class="modal-body" style="padding: 0;">
+      <div id="guest-receipt-content-placeholder">Loading...</div>
+    </div>
   </div>
 </div>
 
-{% include 'frontend/base/footer.html' %}
 </div><!-- .fd-page -->
 {% endblock content %}
 
@@ -703,8 +351,8 @@
 
   const btnPrev    = document.getElementById('btn-prev-day');
   const btnNext    = document.getElementById('btn-next-day');
-  const btnToday   = document.getElementById('btn-today');   // optional
-  const btnRefresh = document.getElementById('btn-refresh'); // optional
+  const btnToday   = document.getElementById('btn-today');
+  const btnRefresh = document.getElementById('btn-refresh');
   const dateDisp   = document.getElementById('date-display');
   const datePicker = document.getElementById('date-picker');
 
@@ -732,7 +380,30 @@
     arc.setAttribute('stroke-dasharray', `${fill.toFixed(2)} ${(CIRC - fill).toFixed(2)}`);
   }
 
+  function closeAllStatusDD(){
+    document.querySelectorAll('.hk-status-dd.open').forEach(o => o.classList.remove('open'));
+  }
+
+  function positionStatusMenu(btn, menu){
+    const r = btn.getBoundingClientRect();
+    const menuWidth = menu.offsetWidth || 200;
+    const menuHeight = menu.offsetHeight || 0;
+    let left = r.right - menuWidth;
+    if(left < 8) left = 8;
+    if(left + menuWidth > window.innerWidth - 8) left = window.innerWidth - 8 - menuWidth;
+    let top = r.bottom + 6;
+    if(top + menuHeight > window.innerHeight - 8) top = Math.max(8, r.top - menuHeight - 6);
+    menu.style.top = top + 'px';
+    menu.style.left = left + 'px';
+  }
+
   function applyStatusDD(){
+    const hkList = document.getElementById('hk-list');
+    if(hkList && !hkList.dataset.scrollCloseBound){
+      hkList.dataset.scrollCloseBound = '1';
+      hkList.addEventListener('scroll', closeAllStatusDD);
+    }
+
     document.querySelectorAll('.hk-status-dd').forEach(dd => {
       const btn  = dd.querySelector('.hk-status-btn');
       const menu = dd.querySelector('.hk-status-menu');
@@ -742,8 +413,11 @@
       btn.addEventListener('click', function(e){
         e.stopPropagation();
         const isOpen = dd.classList.contains('open');
-        document.querySelectorAll('.hk-status-dd.open').forEach(o => o.classList.remove('open'));
-        if(!isOpen) dd.classList.add('open');
+        closeAllStatusDD();
+        if(!isOpen){
+          dd.classList.add('open');
+          positionStatusMenu(btn, menu);
+        }
       });
 
       menu.querySelectorAll('.hk-status-opt').forEach(opt => {
@@ -759,16 +433,16 @@
           fetch(API.housekeeping, {
             method: 'POST',
             headers: {'Content-Type':'application/json','X-CSRFToken': getCookie('csrftoken')},
-            body: JSON.stringify({property_id: propertyId, status: val})
+            body: JSON.stringify({property_id: propertyId, status: val, date: fmtISO(currentDate)})
           });
         });
       });
     });
 
-    document.addEventListener('click', function(){
-      document.querySelectorAll('.hk-status-dd.open').forEach(o => o.classList.remove('open'));
-    }, {capture:true, once:false});
+    document.addEventListener('click', closeAllStatusDD, {capture:true, once:false});
   }
+
+  window.addEventListener('resize', closeAllStatusDD);
 
   function renderGuest(b, timeKey){
     const img = b.image_url
@@ -793,12 +467,12 @@
   }
 
   const HK_STATUS = [
-    { value:'Dirty',             color:'#E5484D', desc:'Needs cleaning' },
-    { value:'In-Progress',       color:'#F97316', desc:'Currently being cleaned' },
-    { value:'Clean-Uninspected', color:'#EAB308', desc:'Cleaned, not verified' },
-    { value:'Clean-Inspected',   color:'#84CC16', desc:'Verified clean' },
-    { value:'Clean-Ready',       color:'#1FAE5A', desc:'Ready for guest' },
-    { value:'Out-of-Service',    color:'#9AA1AC', desc:'Unavailable' },
+    { value:'Dirty',             slug:'dirty',              desc:'Needs cleaning' },
+    { value:'In-Progress',       slug:'in-progress',        desc:'Currently being cleaned' },
+    { value:'Clean-Uninspected', slug:'clean-uninspected',  desc:'Cleaned, not verified' },
+    { value:'Clean-Inspected',   slug:'clean-inspected',    desc:'Verified clean' },
+    { value:'Clean-Ready',       slug:'clean-ready',        desc:'Ready for guest' },
+    { value:'Out-of-Service',    slug:'out-of-service',     desc:'Unavailable' },
   ];
 
   function getCookie(name){
@@ -806,23 +480,26 @@
     return v ? v.pop() : '';
   }
 
-  function statusDot(val){
+  function statusSlug(val){
     const s = HK_STATUS.find(x => x.value === val);
-    const color = s ? s.color : '#9AA1AC';
-    return `<span class="hk-status-dot" style="background:${color}"></span>`;
+    return s ? s.slug : 'out-of-service';
   }
 
-  function buildStatusDD(current){
+  function statusDot(val){
+    return `<span class="hk-status-dot hk-dot-${statusSlug(val)}"></span>`;
+  }
+
+  function buildStatusDD(current, propertyId){
     const opts = HK_STATUS.map(s => `
       <div class="hk-status-opt${s.value===current?' selected':''}" data-value="${s.value}">
-        <span class="hk-status-opt-dot" style="background:${s.color}"></span>
+        <span class="hk-status-opt-dot hk-dot-${s.slug}"></span>
         <div class="hk-status-opt-info">
           <span class="hk-status-opt-label">${s.value}</span>
           <span class="hk-status-opt-desc">${s.desc}</span>
         </div>
       </div>`).join('');
     return `
-      <div class="hk-status-dd" data-property-id="${escHTML(h.id)}">
+      <div class="hk-status-dd" data-property-id="${escHTML(propertyId)}">
         <button class="hk-status-btn" type="button">
           <span class="hk-status-btn-left">
             ${statusDot(current)}
@@ -841,7 +518,9 @@
     const availText  = h.available ? 'Available' : 'Not available';
     const petBadge   = h.pet_friendly ? `<span class="hk-meta-item"><svg><use href="#ic-paw"/></svg>Pet friendly</span>` : '';
     const bedBadge   = h.bed_type ? `<span class="hk-meta-item"><svg><use href="#ic-bed"/></svg>${escHTML(h.bed_type)}</span>` : '';
-    const opts = buildStatusDD(h.status);
+    const checkinBadge  = h.has_checkin  ? `<span class="hk-flag checkin"><svg><use href="#ic-checkin"/></svg>Check-in</span>` : '';
+    const checkoutBadge = h.has_checkout ? `<span class="hk-flag checkout"><svg><use href="#ic-checkout"/></svg>Check-out</span>` : '';
+    const opts = buildStatusDD(h.status, h.id);
     return `
       <li class="hk-item">
         <div class="hk-thumb-wrap">
@@ -854,6 +533,7 @@
             <span class="hk-meta-item"><svg><use href="#ic-user"/></svg>${escHTML(String(h.guest_max))} guests</span>
             ${bedBadge}${petBadge}
           </div>
+          ${(checkinBadge || checkoutBadge) ? `<div class="hk-flags">${checkoutBadge}${checkinBadge}</div>` : ''}
           <div class="hk-price">
             <span class="hk-price-val">$${h.price.toFixed(2)}</span>
             <span class="hk-price-unit">/ night</span>
@@ -886,7 +566,6 @@
       document.getElementById('kpi-booked').textContent      = sum.total_booked_today;
       document.getElementById('kpi-tasks').textContent       = sum.total_tasks;
       document.getElementById('kpi-payments').textContent    = '$' + sum.total_payments_amount;
-      var eb = document.getElementById('nav-enquiries-badge'); if(eb) eb.textContent = sum.total_inquiries;
       document.getElementById('ci-count').textContent        = sum.total_checkin;
       document.getElementById('co-count').textContent        = sum.total_checkout;
       updateDonut(sum.occupancy_pct);
@@ -894,6 +573,7 @@
       document.getElementById('dc-dow').textContent = sum.day_name.toUpperCase();
       document.getElementById('dc-num').textContent = sum.day_num;
       document.getElementById('dc-mon').textContent = sum.month_name;
+      document.getElementById('dc-year').textContent = dateISO.slice(0,4);
 
       const ciList = document.getElementById('checkin-list');
       ciList.innerHTML = ci.data.length
@@ -966,7 +646,87 @@
     }
     filterList('ci-search','checkin-list');
     filterList('co-search','checkout-list');
+
+    const hkInp = document.getElementById('hk-search');
+    if(hkInp){
+      hkInp.addEventListener('input', function(){
+        const q = this.value.toLowerCase();
+        document.querySelectorAll('#hk-list .hk-item').forEach(li => {
+          const title = (li.querySelector('.hk-title')?.textContent || '').toLowerCase();
+          li.style.display = title.includes(q) ? '' : 'none';
+        });
+      });
+    }
   }
+
+  function stampHKPrintMeta(){
+    const el = document.getElementById('hkPrintMeta');
+    if(!el) return;
+    el.textContent = dateDisp.textContent + ' · Generated: ' + new Date().toLocaleString();
+  }
+
+  const hkReportBtn = document.getElementById('hk-report-btn');
+  if(hkReportBtn){
+    hkReportBtn.addEventListener('click', function(){
+      stampHKPrintMeta();
+      document.body.classList.add('printing-hk');
+      window.print();
+    });
+  }
+  window.addEventListener('afterprint', function(){
+    document.body.classList.remove('printing-hk');
+  });
+
+  /* ── Housekeeping corner search (icon expands to input) ── */
+  (function(){
+    const collapse = document.getElementById('hkSearchCollapse');
+    const searchBtn = document.getElementById('hk-search-btn');
+    const searchInp = document.getElementById('hk-search');
+    if(!collapse || !searchBtn || !searchInp) return;
+
+    function openSearch(){
+      collapse.classList.add('open');
+      searchBtn.classList.add('search-open');
+      searchInp.focus();
+    }
+    function closeSearch(){
+      collapse.classList.remove('open');
+      searchBtn.classList.remove('search-open');
+      searchInp.value = '';
+      searchInp.dispatchEvent(new Event('input'));
+    }
+    searchBtn.addEventListener('click', function(e){
+      e.stopPropagation();
+      collapse.classList.contains('open') && !searchInp.value ? closeSearch() : openSearch();
+    });
+    searchInp.addEventListener('keydown', function(e){
+      if(e.key === 'Escape') closeSearch();
+    });
+    document.addEventListener('click', function(e){
+      if(!collapse.classList.contains('open')) return;
+      if(collapse.contains(e.target)) return;
+      if(!searchInp.value) closeSearch();
+    });
+  })();
+
+  /* ── Housekeeping list / grid view toggle ── */
+  (function(){
+    const listBtn = document.getElementById('hk-view-list');
+    const gridBtn = document.getElementById('hk-view-grid');
+    const list = document.getElementById('hk-list');
+    if(!listBtn || !gridBtn || !list) return;
+
+    listBtn.addEventListener('click', function(){
+      list.classList.remove('hk-list--grid');
+      listBtn.classList.add('active');
+      gridBtn.classList.remove('active');
+    });
+    gridBtn.addEventListener('click', function(){
+      list.classList.add('hk-list--grid');
+      gridBtn.classList.add('active');
+      listBtn.classList.remove('active');
+    });
+  })();
 
   updateDonut(parseFloat('{{ occupancy_pct }}') || 0);
   applyStatusDD();
@@ -974,36 +734,13 @@
 
   setInterval(() => loadAll(fmtISO(currentDate)), 5 * 60 * 1000);
 
-  /* ── Chat popup toggle ── */
-  var fabBtn = document.getElementById('chat-fab');
-  var chatPopup = document.getElementById('chat-popup');
-  var chatClose = document.getElementById('chat-close');
-  if(fabBtn && chatPopup){
-    fabBtn.addEventListener('click', function(e){
-      e.stopPropagation();
-      var open = chatPopup.classList.toggle('open');
-      fabBtn.classList.toggle('open', open);
-    });
-    chatClose.addEventListener('click', function(e){
-      e.stopPropagation();
-      chatPopup.classList.remove('open');
-      fabBtn.classList.remove('open');
-    });
-    document.addEventListener('click', function(e){
-      if(chatPopup.classList.contains('open') && !chatPopup.contains(e.target) && e.target !== fabBtn && !fabBtn.contains(e.target)){
-        chatPopup.classList.remove('open');
-        fabBtn.classList.remove('open');
-      }
-    });
-  }
-
   /* ── Reservation Modal ── */
   window.openReservationPanel = function(event, bookingId) {
     if (event) event.stopPropagation();
     const overlay = document.getElementById('reservationModalOverlay');
     const contentDiv = document.getElementById('reservationModalContent');
     overlay.classList.add('open');
-    contentDiv.innerHTML = '<div style="display:flex;justify-content:center;align-items:center;height:200px;"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></div>';
+    contentDiv.innerHTML = '<div class="fd-center-box"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></div>';
     const fetchUrl = '/booking/payment-details/' + bookingId + '/?partial=true';
     fetch(fetchUrl)
       .then(function(r) { if (!r.ok) throw new Error('Network error'); return r.text(); })
@@ -1013,7 +750,7 @@
         initSidebarInteractions(contentDiv);
       })
       .catch(function(e) {
-        contentDiv.innerHTML = '<div style="padding:20px;text-align:center;color:red;"><p>Failed to load.</p><p style="font-size:12px;">' + e.message + '</p></div>';
+        contentDiv.innerHTML = '<div class="fd-error-text fd-error-text--compact"><p>Failed to load.</p><p class="fd-error-detail">' + e.message + '</p></div>';
       });
   }
 
@@ -1054,23 +791,40 @@
     // 2. Email Guest Modal
     const emailModal = sidebarContent.querySelector('#emailGuestModal');
     const emailBtns = sidebarRoot.querySelectorAll('.email-guest-btn');
-    if (emailModal && emailBtns.length > 0) {
-      const placeholder = emailModal.querySelector('#email-modal-content-placeholder');
+    if (emailBtns.length > 0) {
       emailBtns.forEach(function(btn) {
         btn.addEventListener('click', function(e) {
           e.preventDefault();
           closeDropdown(this);
+          const guestEmail = this.dataset.guestEmail;
+          if (guestEmail) {
+            // Open the mail app via a hidden iframe so the page itself never
+            // enters a stuck loading/navigation state.
+            const frame = document.createElement('iframe');
+            frame.style.display = 'none';
+            document.body.appendChild(frame);
+            try {
+              frame.contentWindow.location.href = 'mailto:' + guestEmail;
+            } catch (err) {
+              window.location.href = 'mailto:' + guestEmail;
+            }
+            setTimeout(function() { frame.remove(); }, 2000);
+          }
+
+          /* --- Old in-app email compose modal (kept for later reuse) ---
+          const placeholder = emailModal.querySelector('#email-modal-content-placeholder');
           const bookingId = this.dataset.bookingId;
           const url = '/booking/render-email-form/?booking_id=' + bookingId;
-          placeholder.innerHTML = '<div style="text-align: center; padding: 40px;">Loading...</div>';
+          placeholder.innerHTML = '<div class="fd-loading-text">Loading...</div>';
           emailModal.style.display = 'flex';
           fetch(url).then(function(r) { return r.text(); }).then(function(html) {
             placeholder.innerHTML = html;
             const closeEmailBtn = emailModal.querySelector('.btn-cancel-email');
             if (closeEmailBtn) closeEmailBtn.addEventListener('click', function() { emailModal.style.display = 'none'; });
           }).catch(function() {
-            placeholder.innerHTML = '<div style="text-align:center;padding:40px;color:red;">Failed to load email form.</div>';
+            placeholder.innerHTML = '<div class="fd-error-text">Failed to load email form.</div>';
           });
+          */
         });
       });
     }
@@ -1086,12 +840,12 @@
             const receiptUrl = this.dataset.receiptUrl;
             const placeholder = document.getElementById('guest-receipt-content-placeholder');
             if (receiptUrl && placeholder) {
-              placeholder.innerHTML = '<div style="text-align:center;padding:40px;">Loading receipt...</div>';
+              placeholder.innerHTML = '<div class="fd-loading-text">Loading receipt...</div>';
               receiptModal.style.display = 'block';
               fetch(receiptUrl).then(function(r) { return r.text(); }).then(function(html) {
                 placeholder.innerHTML = html;
               }).catch(function() {
-                placeholder.innerHTML = '<div style="text-align:center;padding:40px;color:red;">Failed to load receipt.</div>';
+                placeholder.innerHTML = '<div class="fd-error-text">Failed to load receipt.</div>';
               });
             }
             const closeReceiptBtn = receiptModal.querySelector('.close-receipt-modal');

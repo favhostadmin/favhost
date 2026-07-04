@@ -1,0 +1,486 @@
+.fd-page{
+    --brand:#E6168A;--brand-2:#E5392B;
+    --ink:#23262B;--ink-soft:#565C66;--muted:#9AA1AC;
+    --line:#ECEDEF;--line-2:#E4E6E9;
+    --page:#F4F5F7;--card:#FFFFFF;--charcoal:#313131;
+    --green:#1FAE5A;--green-soft:#E1F7EB;--green-ink:#0E7A3D;
+    --red:#E5484D;--red-soft:#FDE7E3;--red-ink:#C23A2C;
+    --purple:#7C5CFC;--purple-soft:#ECE7FF;--purple-ink:#5B3FD6;
+    --amber:#F59E0B;--amber-soft:#FEF3C7;
+    --r-card:14px;--r-pill:999px;
+    --shadow-sm:0 1px 3px rgba(16,24,40,.06);
+    --shadow:0 2px 8px rgba(16,24,40,.07),0 0 0 1px rgba(16,24,40,.04);
+  }
+  .fd-page a{color:inherit;text-decoration:none}
+  .fd-page button,.fd-page input,.fd-page select{font:inherit;color:inherit;cursor:pointer;background:none;border:0;padding:0}
+  .fd-page svg{display:block;flex-shrink:0}
+  .fd-page :focus-visible{outline:2px solid var(--brand);outline-offset:2px;border-radius:6px}
+  .fd-icon-defs{position:absolute;overflow:hidden}
+
+  .fd-wrap{max-width:1400px;margin:0 auto;padding:0 24px;width:100%;
+    display:flex;flex-direction:column;flex:1 0 auto}
+
+  /* The site-wide top nav (.custom-header, in header.html) normally uses
+     position:sticky, which only holds its place while ITS OWN nearest
+     scrolling ancestor scrolls. On this page nothing above .fd-body scrolls
+     any more (.fd-body scrolls itself, internally) — so pin the site header
+     down hard with position:fixed instead of relying on sticky having a
+     scroll context to react to. Scoped to pages containing .fd-page only. */
+  body:has(.fd-page) .custom-header{
+    position:fixed !important;top:0 !important;left:0;right:0;
+    z-index:99999 !important;
+  }
+
+  /* Mirrors host_dashboard.css's .header-nav + .main pattern: the header is
+     fixed just below the site nav, and the body is an independent fixed box
+     that fills the rest of the viewport and scrolls on its own. This keeps
+     the site header from ever being dragged into frontdesk's own scroll. */
+  .fd-body{
+    position:fixed;top:112px;left:0;right:0;bottom:0;
+    overflow-y:auto;overflow-x:hidden;
+    padding:20px 0 0;background:#fafafa;
+    display:flex;flex-direction:column;
+  }
+  .fd-body .footer{margin-top:24px;flex-shrink:0}
+
+  .fd-page-header{
+    position:fixed;top:58px;left:0;right:0;height:52px;z-index:999;
+    background:#E7E7E9;border-radius:0
+  }
+  .fd-ph-inner{
+    display:flex;align-items:center;justify-content:space-between;
+    max-width:1400px;margin:0 auto;height:100%;padding:0 24px;gap:16px
+  }
+  .fd-ph-left{display:flex;align-items:center;gap:10px;color:var(--charcoal)}
+  .fd-ph-left svg{width:19px;height:19px;opacity:.9}
+  .fd-ph-left img{width:19px;height:19px;object-fit:contain;opacity:.9}
+  .fd-ph-title{font-size:15px;font-weight:700;color:var(--charcoal);letter-spacing:-.1px}
+  .fd-ph-right{display:flex;align-items:center;gap:8px}
+
+  .date-nav{display:flex;align-items:center;gap:6px;background:#fff;
+    border:1px solid var(--line);border-radius:10px;padding:4px 6px}
+  .date-nav-btn{width:28px;height:28px;border-radius:7px;display:flex;align-items:center;justify-content:center;
+    color:var(--ink);transition:background .15s,color .15s}
+  .date-nav-btn svg{width:15px;height:15px}
+  .date-nav-btn:hover{background:var(--page);color:var(--ink)}
+  .date-display{color:var(--ink);font-size:13px;font-weight:600;padding:0 6px;min-width:130px;text-align:center}
+  .date-picker-btn{background:rgb(255, 255, 255);border:0;color:#fff;font-size:12px;font-weight:600;
+    padding:5px 12px;border-radius:7px;cursor:pointer;transition:background .15s}
+  .date-picker-btn:hover{background:rgb(255, 255, 255)}
+  .date-picker-input{position:absolute;opacity:0;pointer-events:none;width:0;height:0}
+
+  .fd-ph-refresh{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;
+    color:var(--charcoal);transition:background .15s,color .15s,transform .4s}
+  .fd-ph-refresh svg{width:17px;height:17px}
+  .fd-ph-refresh:hover{background:rgba(0,0,0,.06);color:var(--charcoal)}
+  .fd-ph-refresh.spinning svg{animation:spin .7s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  .kpi-strip{display:grid;grid-template-columns:auto 1fr;gap:16px;margin-bottom:18px;align-items:stretch;flex-shrink:0}
+
+  .date-card{background:#fff;border:1px solid var(--line);border-radius:var(--r-card);
+    padding:16px 20px;box-shadow:var(--shadow-sm);display:flex;flex-direction:column;
+    justify-content:center;min-width:154px;position:relative}
+  .dc-date-overlay{position:absolute;right:8px;top:8px;width:26px;height:26px;
+    opacity:0;cursor:pointer;z-index:2}
+  .dc-dow{font-size:12px;font-weight:700;color:var(--muted);letter-spacing:.5px;text-transform:uppercase;margin-bottom:4px}
+  .dc-date{display:flex;align-items:baseline;gap:6px}
+  .dc-num{font-size:44px;font-weight:900;letter-spacing:-2px;line-height:1;color:var(--ink)}
+  .dc-mon{font-size:20px;font-weight:500;color:var(--ink-soft)}
+  .dc-year{font-size:13px;color:var(--muted);margin-top:4px}
+
+  .metrics-card{background:#fff;border:1px solid var(--line);border-radius:var(--r-card);
+    box-shadow:var(--shadow-sm);display:flex;align-items:center;gap:20px;padding:16px 24px}
+  .occ-ring{flex-shrink:0;position:relative;width:92px;height:92px}
+  .occ-ring svg{transform:rotate(-90deg)}
+  .occ-inner{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+  .occ-inner b{font-size:15px;font-weight:800;letter-spacing:-.3px;color:var(--ink)}
+  .occ-inner small{font-size:10px;color:var(--muted);margin-top:1px;font-weight:600;letter-spacing:.2px;text-transform:uppercase}
+  #occ-arc{transition:stroke-dasharray .5s ease}
+
+  .kpi-grid{flex:1;display:flex;gap:0}
+  .kpi{flex:1;text-align:center;padding:6px 8px;border-left:1px solid var(--line)}
+  .kpi:first-child{border-left:0}
+  .kpi-val{display:block;font-size:20px;font-weight:800;letter-spacing:-.5px;color:var(--ink);line-height:1.1}
+  .kpi-label{display:block;margin-top:4px;font-size:10.5px;color:var(--muted);font-weight:600;
+    letter-spacing:.2px;text-transform:uppercase;white-space:nowrap}
+  .kpi-val.green{color:var(--green)}
+  .kpi-val.red{color:var(--red)}
+  .kpi-val.amber{color:var(--amber)}
+  .kpi-val.purple{color:var(--purple)}
+
+  .columns{display:grid;grid-template-columns:1fr 1fr 1.5fr;gap:16px;align-items:stretch;flex:1;min-height:0}
+
+  .col-card{background:#fff;border:1px solid var(--line);border-radius:var(--r-card);
+    box-shadow:var(--shadow);display:flex;flex-direction:column;overflow:hidden;min-height:0}
+  .col-head{display:flex;align-items:center;gap:8px;padding:14px 16px 12px;border-bottom:1px solid var(--line);flex-wrap:wrap;flex-shrink:0}
+  .col-title-pill{display:inline-flex;align-items:center;gap:7px;font-weight:700;font-size:13px;
+    padding:5px 14px;border-radius:var(--r-pill);line-height:1}
+  .col-title-pill .count{font-weight:800}
+  .pill-green{background:var(--green-soft);color:var(--green-ink)}
+  .pill-red{background:var(--red-soft);color:var(--red-ink)}
+  .pill-purple{background:var(--purple-soft);color:var(--purple-ink)}
+
+  .col-search{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line-2);
+    border-radius:9px;padding:5px 10px;flex:1;min-width:80px;max-width:160px;color:var(--muted)}
+  .col-search svg{width:14px;height:14px}
+  .col-search input{border:0;outline:0;background:none;width:100%;font-size:12.5px;color:var(--ink)}
+
+  .view-all{display:inline-flex;align-items:center;gap:4px;margin-left:auto;font-size:12.5px;
+    font-weight:600;color:var(--muted);transition:color .15s;white-space:nowrap;flex-shrink:0}
+  .view-all svg{width:14px;height:14px}
+  .view-all:hover{color:var(--brand)}
+
+  .col-tools{display:flex;align-items:center;gap:2px;margin-left:auto}
+  .tool-btn{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;
+    color:var(--muted);transition:background .15s,color .15s;flex-shrink:0}
+  .tool-btn svg{width:15px;height:15px}
+  .tool-btn:hover{background:#F0F0F2;color:var(--ink)}
+  .tool-btn.active{background:var(--purple-soft);color:var(--purple-ink)}
+
+  /* Corner search icon that expands into an input on click */
+  .col-search-collapse{display:flex;align-items:center}
+  .col-search-collapse .col-search-input{
+    width:0;min-width:0;opacity:0;padding:0;margin-right:0;border:0;background:none;outline:0;
+    font-size:12.5px;color:var(--ink);border-radius:9px;
+    transition:width .18s ease,opacity .15s ease,margin .18s ease,padding .18s ease
+  }
+  .col-search-collapse.open .col-search-input{
+    width:150px;opacity:1;margin-right:6px;padding:6px 10px;border:1px solid var(--line-2);background:#fff
+  }
+  .col-search-collapse .tool-btn.search-open{background:var(--purple-soft);color:var(--purple-ink)}
+
+  .guest-list{list-style:none;overflow-y:auto;flex:1;min-height:0;padding:4px 0}
+  .guest-list::-webkit-scrollbar{width:5px}
+  .guest-list::-webkit-scrollbar-thumb{background:#E2E3E6;border-radius:6px}
+  .guest-list::-webkit-scrollbar-track{background:transparent}
+  .guest-list{scrollbar-width:thin;scrollbar-color:#E2E3E6 transparent}
+
+  .guest-item{display:grid;grid-template-columns:auto 1fr auto;gap:12px;
+    align-items:start;padding:12px 16px;border-bottom:1px solid var(--line);transition:background .12s}
+  .guest-item:last-child{border-bottom:0}
+  .guest-item:hover{background:#FAFAFA}
+
+  .g-thumb{width:50px;height:50px;border-radius:10px;overflow:hidden;flex-shrink:0;
+    background:linear-gradient(135deg,#ECE3D6,#D9C4A8);
+    display:flex;align-items:center;justify-content:center;color:#9a7d5a}
+  .g-thumb img{width:100%;height:100%;object-fit:cover}
+  .g-thumb svg{width:42%;height:42%;opacity:.5}
+
+  .g-prop{font-size:11.5px;color:var(--muted);margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .g-name{font-size:14px;font-weight:700;color:var(--ink)}
+  .g-contact{font-size:12px;color:var(--ink-soft);margin-top:2px}
+  .g-time{display:inline-flex;align-items:center;gap:4px;margin-top:4px;font-size:11.5px;
+    color:var(--muted);background:var(--page);padding:2px 7px;border-radius:6px}
+  .g-time svg{width:12px;height:12px}
+
+  .g-ext{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;
+    color:var(--muted);transition:background .15s,color .15s}
+  .g-ext svg{width:15px;height:15px}
+  .g-ext:hover{background:var(--line);color:var(--brand)}
+
+  .hk-list{list-style:none;overflow-y:auto;flex:1;min-height:0;padding:4px 0}
+  .hk-list::-webkit-scrollbar{width:5px}
+  .hk-list::-webkit-scrollbar-thumb{background:#E2E3E6;border-radius:6px}
+  .hk-list{scrollbar-width:thin;scrollbar-color:#E2E3E6 transparent}
+
+  .hk-item{display:grid;grid-template-columns:auto 1fr auto;gap:14px;align-items:center;
+    padding:12px 16px;border-bottom:1px solid var(--line);transition:background .12s}
+  .hk-item:last-child{border-bottom:0}
+  .hk-item:hover{background:#FAFAFA}
+
+  /* Grid (card) view — toggled via #hk-view-grid */
+  .hk-list.hk-list--grid{
+    display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px;
+    padding:14px 16px;max-height:none
+  }
+  .hk-list--grid .hk-item{
+    display:flex;flex-direction:column;align-items:stretch;gap:10px;
+    border:1px solid var(--line) !important;border-radius:12px;padding:12px;background:#fff
+  }
+  .hk-list--grid .hk-item:hover{background:#FAFAFA}
+  .hk-list--grid .hk-thumb-wrap{width:100%}
+  .hk-list--grid .hk-thumb{width:100%;height:120px}
+  .hk-list--grid .hk-status-col{width:100%}
+  .hk-list--grid .hk-status-dd{display:block;width:100%}
+  .hk-list--grid .hk-status-btn{width:100%}
+  .hk-list--grid .hk-title{max-width:100%}
+
+  .hk-thumb-wrap{display:flex;flex-direction:column;align-items:flex-start;gap:5px}
+  .hk-thumb{width:64px;height:56px;border-radius:10px;overflow:hidden;
+    background:linear-gradient(135deg,#ECE3D6,#D9C4A8);
+    display:flex;align-items:center;justify-content:center;color:#9a7d5a}
+  .hk-thumb img{width:100%;height:100%;object-fit:cover}
+  .hk-thumb svg{width:38%;height:38%;opacity:.45}
+  .avail-badge{font-size:10.5px;font-weight:700;display:inline-flex;align-items:center;gap:3px;padding:2px 0}
+  .avail-badge::before{content:"";width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0}
+  .avail-badge.ok{color:var(--green)}
+  .avail-badge.no{color:var(--red)}
+
+  .hk-title{font-size:13.5px;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:220px}
+  .hk-meta{display:flex;align-items:center;flex-wrap:wrap;gap:5px 10px;margin-top:5px;
+    color:var(--ink-soft);font-size:11.5px}
+  .hk-meta-item{display:inline-flex;align-items:center;gap:4px}
+  .hk-meta-item svg{width:13px;height:13px;color:var(--muted)}
+  .hk-flags{display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin-top:5px}
+  .hk-flag{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;
+    padding:2px 8px;border-radius:var(--r-pill)}
+  .hk-flag svg{width:12px;height:12px}
+  .hk-flag.checkin{background:var(--green-soft);color:var(--green-ink)}
+  .hk-flag.checkout{background:var(--amber-soft);color:#92400E}
+  .hk-price{display:flex;align-items:center;gap:6px;margin-top:7px}
+  .hk-price-val{font-size:14px;font-weight:800;color:var(--ink)}
+  .hk-price-unit{font-size:11.5px;color:var(--muted)}
+
+  .hk-status-dd{position:relative;display:inline-block}
+  .hk-status-btn{display:inline-flex;align-items:center;gap:5px;
+    border:1px solid var(--line-2);border-radius:8px;
+    padding:4px 8px 4px 8px;background:#fff;transition:border-color .15s,box-shadow .15s;
+    cursor:pointer;white-space:nowrap;min-width:140px;justify-content:space-between}
+  .hk-status-btn:hover{border-color:#C8CACD;box-shadow:0 1px 4px rgba(0,0,0,.07)}
+  .hk-status-btn-left{display:flex;align-items:center;gap:5px}
+  .hk-status-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;display:inline-block;background:#9AA1AC}
+  .hk-status-label{font-size:11px;font-weight:600;color:var(--ink-soft)}
+  .hk-status-chevron{width:12px;height:12px;color:var(--muted);transition:transform .2s;flex-shrink:0}
+  .hk-status-dd.open .hk-status-chevron{transform:rotate(180deg)}
+  .hk-status-menu{position:fixed;min-width:200px;
+    background:#fff;border:1px solid var(--line);border-radius:12px;
+    box-shadow:0 8px 24px rgba(0,0,0,.12);z-index:2000;overflow:hidden;
+    display:none;flex-direction:column;padding:4px}
+  .hk-status-dd.open .hk-status-menu{display:flex}
+  .hk-status-opt{display:flex;align-items:center;gap:10px;padding:8px 12px;
+    border-radius:8px;cursor:pointer;transition:background .12s}
+  .hk-status-opt:hover{background:var(--page)}
+  .hk-status-opt.selected{background:var(--purple-soft)}
+  .hk-status-opt-dot{width:11px;height:11px;border-radius:50%;flex-shrink:0;display:inline-block}
+  .hk-status-opt-info{display:flex;flex-direction:column;gap:1px}
+  .hk-status-opt-label{font-size:12.5px;font-weight:600;color:var(--ink)}
+  .hk-status-opt-desc{font-size:11px;color:var(--muted)}
+
+  /* Housekeeping status colors — shared by the dropdown trigger dot and menu option dots */
+  .hk-dot-dirty{background:#E5484D}
+  .hk-dot-in-progress{background:#F97316}
+  .hk-dot-clean-uninspected{background:#EAB308}
+  .hk-dot-clean-inspected{background:#84CC16}
+  .hk-dot-clean-ready{background:#1FAE5A}
+  .hk-dot-out-of-service{background:#9AA1AC}
+
+  .empty-state{padding:40px 16px;text-align:center;color:var(--muted)}
+  .empty-state svg{width:36px;height:36px;margin:0 auto 10px;opacity:.4}
+  .empty-state p{font-size:13px;font-weight:500}
+  .skeleton{background:linear-gradient(90deg,#f0f0f0 25%,#e8e8e8 50%,#f0f0f0 75%);
+    background-size:200% 100%;animation:shimmer 1.4s infinite;border-radius:6px}
+  @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+  @media (max-width:1100px){
+    .columns{grid-template-columns:1fr 1fr}
+    .col-hk{grid-column:1/-1}
+    .hk-list{max-height:none}
+  }
+  @media (max-width:900px){
+    .kpi-strip{grid-template-columns:1fr}
+    .date-card{flex-direction:row;align-items:center;gap:16px;min-width:auto}
+    .metrics-card{flex-wrap:wrap}
+    .kpi-grid{display:grid;grid-template-columns:repeat(5,1fr)}
+  }
+  @media (max-width:720px){
+    .columns{grid-template-columns:1fr}
+    .col-hk{grid-column:auto}
+    .fd-wrap{padding:0 16px}
+    .kpi-grid{grid-template-columns:repeat(3,1fr)}
+  }
+  @media (max-width:480px){
+    .kpi-grid{grid-template-columns:repeat(3,1fr)}
+    .hk-item{grid-template-columns:auto 1fr}
+    .hk-status-col{grid-column:1/-1}
+  }
+  @media (prefers-reduced-motion:reduce){
+    .fd-page *{animation:none!important;transition:none!important}
+  }
+  .task-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.55);
+    z-index: 16000;
+    display: none;
+    justify-content: center;
+    align-items: center;
+    backdrop-filter: blur(4px);
+  }
+  .task-modal-overlay.open {
+    display: flex;
+  }
+  .reservation-modal {
+    background: #ffffff;
+    border-radius: 16px;
+    width: 100%;
+    max-width: 1200px;
+    max-height: 90vh;
+    box-shadow: 0 25px 80px rgba(0, 0, 0, 0.3);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    margin: 20px;
+    animation: taskModalIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .reservation-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding: 6px 12px;
+    border: none;
+    flex-shrink: 0;
+    background: #fff;
+    min-height: 0;
+  }
+  .reservation-modal-close {
+    background: none;
+    border: none;
+    font-size: 22px;
+    color: #6b7280;
+    cursor: pointer;
+    padding: 0 4px;
+    line-height: 1;
+  }
+  .reservation-modal-close:hover {
+    color: #111827;
+  }
+  .reservation-modal-body {
+    overflow-y: auto;
+    padding: 0;
+    flex: 1;
+  }
+  .reservation-modal-body .action-buttons {
+    margin: 0;
+    border-radius: 0;
+  }
+  .reservation-modal-body .payment-partial-shell {
+    padding: 0;
+  }
+  .reservation-modal-body .reservation-row {
+    margin: 0 !important;
+    max-width: 1200px;
+    margin: 0 auto !important;
+    padding: 0 32px 24px !important;
+  }
+  .reservation-modal-body .details-col {
+    padding: 0 !important;
+  }
+  .reservation-modal-body .booking-card {
+    border: none !important;
+    border-bottom: 1px solid #f0f0f0 !important;
+    border-radius: 0 !important;
+    padding: 20px 24px !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+    overflow: visible;
+  }
+  .reservation-modal-body .booking-card:first-child {
+    padding-top: 20px !important;
+  }
+  .reservation-modal-body .booking-card:last-child {
+    border-bottom: none !important;
+  }
+  @keyframes taskModalIn {
+    from { opacity: 0; transform: scale(0.92) translateY(20px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+  }
+
+  /* ── Mobile responsiveness additions ── */
+  @media (max-width:900px){
+    /* .custom-header is forced position:fixed above (all breakpoints), so it
+       no longer reserves its 58px in normal flow — compensate here now that
+       .fd-page-header drops back into flow on mobile. */
+    .fd-page-header{position:static;top:auto;left:auto;right:auto;height:auto;margin-top:58px}
+    .fd-body{position:static;top:auto;right:auto;bottom:auto;overflow:visible;padding-top:20px}
+    .fd-ph-inner{flex-wrap:wrap;height:auto;padding:14px 20px}
+    .fd-ph-right{width:100%;justify-content:flex-start}
+    .date-nav{flex:1}
+    .date-display{flex:1;min-width:0}
+  }
+
+  @media (max-width:600px){
+    .fd-wrap{padding:0 12px}
+    .fd-ph-inner{padding:12px 14px}
+    .date-nav-btn{width:36px;height:36px}
+    .fd-ph-refresh{width:36px;height:36px}
+    .dc-date-overlay{width:32px;height:32px}
+    .tool-btn{width:36px;height:36px}
+    .g-ext{width:36px;height:36px}
+    .date-card{padding:14px 16px}
+    .dc-num{font-size:36px}
+    .dc-mon{font-size:16px}
+    .metrics-card{padding:14px 16px;gap:14px}
+    .occ-ring{width:76px;height:76px}
+    .occ-ring svg{width:76px;height:76px}
+  }
+
+  @media (max-width:576px){
+    .reservation-modal{margin:12px;max-width:100%}
+    .reservation-modal-body .reservation-row{padding:0 16px 16px !important}
+    .reservation-modal-body .booking-card{padding:16px !important}
+    .reservation-modal-body .booking-card:first-child{padding-top:16px !important}
+  }
+
+  @media (max-width:480px){
+    .hk-status-btn{width:100%}
+  }
+
+  @media (max-width:400px){
+    .kpi-val{font-size:16px}
+    .kpi-label{font-size:9.5px}
+    .guest-item{gap:8px;padding:10px 12px}
+    .g-thumb{width:42px;height:42px}
+  }
+
+  /* Shared loading / error states for modal panels loaded via fetch */
+  .fd-center-box{display:flex;justify-content:center;align-items:center;height:200px}
+  .fd-loading-text{text-align:center;padding:40px}
+  .fd-error-text{text-align:center;padding:40px;color:#E5484D}
+  .fd-error-text--compact{padding:20px}
+  .fd-error-detail{font-size:12px}
+
+  /* Branded print header for the Housekeeping report — hidden on screen,
+     revealed only while body.printing-hk is active (see @media print below). */
+  .hk-print-header{display:none}
+  .hk-print-logo{height:30px;width:auto}
+  .hk-print-titles{display:flex;flex-direction:column;gap:2px}
+  .hk-print-title{font-size:15px;font-weight:700;color:#fff}
+  .hk-print-meta{font-size:11px;color:#e5e7eb}
+
+  /* ===========================================================
+     PRINT — Housekeeping report only. Triggered by #hk-report-btn,
+     which adds body.printing-hk before calling window.print().
+     Hides everything except the Housekeeping column.
+     =========================================================== */
+  @media print {
+    body.printing-hk * { -webkit-print-color-adjust:exact !important; print-color-adjust:exact !important }
+
+    body.printing-hk .hk-print-header{
+      display:flex !important;align-items:center;justify-content:space-between;gap:16px;
+      background:#313131;padding:10px 16px;margin-bottom:14px;border-radius:6px
+    }
+
+    body.printing-hk #loader-overlay,
+    body.printing-hk .custom-header,
+    body.printing-hk .toast-messages-container,
+    body.printing-hk .sw-overlay,
+    body.printing-hk .footer,
+    body.printing-hk .fd-page-header,
+    body.printing-hk .kpi-strip,
+    body.printing-hk .col-card:not(.col-hk),
+    body.printing-hk .col-hk .col-head,
+    body.printing-hk .task-modal-overlay { display:none !important }
+
+    body.printing-hk html, body.printing-hk body{ height:auto !important;overflow:visible !important;background:#fff !important }
+    body.printing-hk .main-content-body{ max-height:none !important;overflow:visible !important;display:block !important }
+    body.printing-hk .fd-body{ position:static !important;top:auto !important;bottom:auto !important;overflow:visible !important;padding:0 !important }
+    body.printing-hk .fd-wrap{ max-width:none !important;padding:0 !important }
+    body.printing-hk .columns{ display:block !important }
+    body.printing-hk .col-hk{ border:none !important;box-shadow:none !important;border-radius:0 !important }
+    body.printing-hk .hk-list{ max-height:none !important;overflow:visible !important }
+    body.printing-hk .hk-item{ break-inside:avoid;page-break-inside:avoid }
+  }
