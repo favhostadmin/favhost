@@ -647,12 +647,28 @@
     // 2. Email Guest Modal
     const emailModal = sidebarContent.querySelector('#emailGuestModal');
     const emailBtns = sidebarRoot.querySelectorAll('.email-guest-btn');
-    if (emailModal && emailBtns.length > 0) {
-      const placeholder = emailModal.querySelector('#email-modal-content-placeholder');
+    if (emailBtns.length > 0) {
       emailBtns.forEach(function(btn) {
         btn.addEventListener('click', function(e) {
           e.preventDefault();
           closeDropdown(this);
+          const guestEmail = this.dataset.guestEmail;
+          if (guestEmail) {
+            // Open the mail app via a hidden iframe so the page itself never
+            // enters a stuck loading/navigation state.
+            const frame = document.createElement('iframe');
+            frame.style.display = 'none';
+            document.body.appendChild(frame);
+            try {
+              frame.contentWindow.location.href = 'mailto:' + guestEmail;
+            } catch (err) {
+              window.location.href = 'mailto:' + guestEmail;
+            }
+            setTimeout(function() { frame.remove(); }, 2000);
+          }
+
+          /* --- Old in-app email compose modal (kept for later reuse) ---
+          const placeholder = emailModal.querySelector('#email-modal-content-placeholder');
           const bookingId = this.dataset.bookingId;
           const url = '/booking/render-email-form/?booking_id=' + bookingId;
           placeholder.innerHTML = '<div class="fd-loading-text">Loading...</div>';
@@ -664,6 +680,7 @@
           }).catch(function() {
             placeholder.innerHTML = '<div class="fd-error-text">Failed to load email form.</div>';
           });
+          */
         });
       });
     }

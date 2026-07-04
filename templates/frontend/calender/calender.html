@@ -1990,12 +1990,28 @@
     // 2. Email Guest Modal
     const emailModal = sidebarContent.querySelector('#emailGuestModal');
     const emailBtns = sidebarRoot.querySelectorAll('.email-guest-btn');
-    if (emailModal && emailBtns.length > 0) {
-      const placeholder = emailModal.querySelector('#email-modal-content-placeholder');
+    if (emailBtns.length > 0) {
       emailBtns.forEach(btn => {
         btn.addEventListener('click', function (e) {
           e.preventDefault();
           closeDropdown(this);
+          const guestEmail = this.dataset.guestEmail;
+          if (guestEmail) {
+            // Open the mail app via a hidden iframe so the page itself never
+            // enters a stuck loading/navigation state.
+            const frame = document.createElement('iframe');
+            frame.style.display = 'none';
+            document.body.appendChild(frame);
+            try {
+              frame.contentWindow.location.href = `mailto:${guestEmail}`;
+            } catch (err) {
+              window.location.href = `mailto:${guestEmail}`;
+            }
+            setTimeout(() => frame.remove(), 2000);
+          }
+
+          /* --- Old in-app email compose modal (kept for later reuse) ---
+          const placeholder = emailModal.querySelector('#email-modal-content-placeholder');
           const bookingId = this.dataset.bookingId;
           const url = `{% url 'booking:render-email-form' %}?booking_id=${bookingId}`;
           placeholder.innerHTML = '<div style="text-align: center; padding: 40px;">Loading...</div>';
@@ -2005,9 +2021,10 @@
             const closeEmailBtn = emailModal.querySelector('.btn-cancel-email');
             if (closeEmailBtn) closeEmailBtn.onclick = () => emailModal.style.display = 'none';
           });
+          window.addEventListener('click', (e) => { if (e.target == emailModal) emailModal.style.display = 'none'; });
+          */
         });
       });
-      window.addEventListener('click', (e) => { if (e.target == emailModal) emailModal.style.display = 'none'; });
     }
 
     // 3. Guest Receipt Modal
