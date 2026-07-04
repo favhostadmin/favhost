@@ -81,7 +81,11 @@
       background: #e7e7e9;
       font-weight: bold;
     }
-  </style>
+    /* Keyboard type-ahead / arrow highlight */
+    .custom-dropdown-option.active {
+      background: #fde3d5;
+    }
+</style>
 </head>
 
 <body>
@@ -324,7 +328,22 @@
               </div>
               <div class="form-group">
                 <label>State<span class="req">*</span></label>
-                <input type="text" name="state" value="{{ user.state|default:'' }}" placeholder="" required>
+                <!-- Dropdown of states for the selected country (populated by JS
+                     from static/data/countries_states.json). The text input is a
+                     fallback for countries that have no states in the dataset;
+                     only one of the two #state controls is enabled at a time so
+                     only that one is submitted. -->
+                <div class="select-wrap" id="stateSelectWrap">
+                  <select name="state" id="stateSelect" required>
+                    {% if user.state %}
+                    <option value="{{ user.state }}" selected>{{ user.state }}</option>
+                    {% else %}
+                    <option value="" selected>Select state</option>
+                    {% endif %}
+                  </select>
+                </div>
+                <input type="text" name="state" id="stateFallback" value="{{ user.state|default:'' }}"
+                  placeholder="Enter state" style="display:none;" disabled>
               </div>
             </div>
 
@@ -1101,6 +1120,7 @@
       
       const trigger = document.createElement('div');
       trigger.className = 'custom-dropdown-toggle';
+      trigger.setAttribute('tabindex', '0');
       trigger.innerHTML = `<span></span><span style="font-size: 10px; margin-left: 8px;">▼</span>`;
       selectWrap.appendChild(trigger);
 
@@ -1173,6 +1193,77 @@
         menu.classList.remove('open');
       });
 
+      // --- Keyboard type-ahead + arrow navigation (mirrors a native <select>) ---
+      // Typing jumps to the first matching option and scrolls it into view;
+      // Up/Down move the highlight, Enter confirms, Esc closes.
+      let typeBuffer = '';
+      let typeTimer = null;
+
+      function selectableOptions() {
+        return Array.from(menu.querySelectorAll('.custom-dropdown-option'))
+          .filter(o => o.dataset.value !== undefined);
+      }
+      function setActive(item) {
+        menu.querySelectorAll('.custom-dropdown-option.active')
+          .forEach(o => o.classList.remove('active'));
+        if (item) {
+          item.classList.add('active');
+          item.scrollIntoView({ block: 'nearest' });
+        }
+      }
+      function openMenu() {
+        if (!menu.classList.contains('open')) {
+          document.querySelectorAll('.custom-dropdown-menu').forEach(m => {
+            if (m !== menu) m.classList.remove('open');
+          });
+          menu.classList.add('open');
+        }
+      }
+
+      trigger.addEventListener('keydown', function(e) {
+        const opts = selectableOptions();
+        if (!opts.length) return;
+        const active = menu.querySelector('.custom-dropdown-option.active');
+        // Where to start navigating from: current highlight, else current value.
+        let idx = active ? opts.indexOf(active)
+          : opts.findIndex(o => o.dataset.value === selectElement.value);
+
+        if (e.key === 'ArrowDown') {
+          e.preventDefault();
+          openMenu();
+          setActive(opts[Math.min(idx + 1, opts.length - 1)] || opts[0]);
+        } else if (e.key === 'ArrowUp') {
+          e.preventDefault();
+          openMenu();
+          setActive(opts[Math.max(idx - 1, 0)] || opts[0]);
+        } else if (e.key === 'Enter' || e.key === ' ') {
+          if (menu.classList.contains('open')) {
+            e.preventDefault();
+            if (active) active.click();   // reuse the option's own commit+close
+            else menu.classList.remove('open');
+          } else {
+            e.preventDefault();
+            openMenu();
+            const sel = opts.find(o => o.dataset.value === selectElement.value);
+            setActive(sel || opts[0]);
+          }
+        } else if (e.key === 'Escape') {
+          menu.classList.remove('open');
+          setActive(null);
+        } else if (e.key.length === 1 && /\S/.test(e.key)) {
+          openMenu();
+          typeBuffer += e.key.toLowerCase();
+          clearTimeout(typeTimer);
+          typeTimer = setTimeout(() => { typeBuffer = ''; }, 700);
+          const match = opts.find(o => o.textContent.trim().toLowerCase().startsWith(typeBuffer))
+            || opts.find(o => o.textContent.trim().toLowerCase().includes(typeBuffer));
+          if (match) setActive(match);
+        }
+      });
+
+      // Clicking an option elsewhere clears the keyboard highlight.
+      menu.addEventListener('click', function() { setActive(null); });
+
       rebuild();
       selectElement.addEventListener('change', syncCustomDropdown);
       selectElement.style.display = 'none';
@@ -1186,6 +1277,106 @@
     const currencyCustomSelect = makeCustomDropdown(currencySelect);
     const countryCustomSelect = makeCustomDropdown(countrySelect);
     const langCustomSelect = makeCustomDropdown(langSelect);
+
+    // --- State dropdown: show states of the currently-selected country ---
+    // Data source: static/data/countries_states.json, an array of
+    //   { name, iso2, states: [{ name, iso2 }, ...] } keyed by country NAME
+    //   (which matches the country <select> option values).
+    const stateSelect = document.getElementById('stateSelect');
+    const stateFallback = document.getElementById('stateFallback');
+    const stateSelectWrap = document.getElementById('stateSelectWrap');
+    const stateCustomSelect = makeCustomDropdown(stateSelect);
+    const savedState = '{{ user.state|escapejs }}';
+    const countryStatesMap = {};
+
+    // Some country <option> labels differ from the names used in the dataset;
+    // map them so these countries still get their states (not the text fallback).
+    // (Macau / Vatican City are listed for completeness but have no sub-states
+    //  in the dataset, so they legitimately fall through to free-text entry.)
+    const COUNTRY_NAME_ALIASES = {
+      'Eswatini': 'Swaziland',
+      'Gambia': 'Gambia The',
+      'Hong Kong': 'Hong Kong S.A.R.',
+      'Ivory Coast': "Cote D'Ivoire (Ivory Coast)",
+      'Macau': 'Macau S.A.R.',
+      'North Macedonia': 'Macedonia',
+      'Palestine': 'Palestinian Territory Occupied',
+      'Republic of the Congo': 'Congo',
+      'Trinidad and Tobago': 'Trinidad And Tobago',
+      'Vatican City': 'Vatican City State (Holy See)',
+    };
+
+    // Enable exactly one #state control (the other is disabled so it isn't
+    // submitted): the dropdown when the country has states, else the text input.
+    function useStateDropdown(useDropdown) {
+      if (stateSelectWrap) stateSelectWrap.style.display = useDropdown ? '' : 'none';
+      if (stateSelect) { stateSelect.disabled = !useDropdown; stateSelect.required = useDropdown; }
+      if (stateFallback) {
+        stateFallback.style.display = useDropdown ? 'none' : '';
+        stateFallback.disabled = useDropdown;
+        stateFallback.required = !useDropdown;
+      }
+    }
+
+    function populateStates(countryName) {
+      const states = countryStatesMap[countryName] || [];
+      const current = (stateSelect.value || savedState || '').trim();
+
+      if (!states.length) {
+        // No state data for this country → fall back to free text entry.
+        useStateDropdown(false);
+        return;
+      }
+      useStateDropdown(true);
+
+      stateSelect.innerHTML = '';
+      const placeholder = document.createElement('option');
+      placeholder.value = '';
+      placeholder.textContent = 'Select state';
+      stateSelect.appendChild(placeholder);
+
+      let matched = false;
+      states.forEach(s => {
+        const opt = document.createElement('option');
+        opt.value = s.name;
+        opt.textContent = s.name;
+        if (s.name === current) { opt.selected = true; matched = true; }
+        stateSelect.appendChild(opt);
+      });
+      // Keep a previously-saved value that isn't in the official list so we
+      // never silently drop the user's existing state on first load.
+      if (!matched && current) {
+        const opt = document.createElement('option');
+        opt.value = current;
+        opt.textContent = current;
+        opt.selected = true;
+        stateSelect.appendChild(opt);
+      } else if (!matched) {
+        placeholder.selected = true;
+      }
+      if (stateCustomSelect) stateCustomSelect.rebuild();
+    }
+
+    // Load the dataset once, then populate for the current country.
+    fetch('{% static "data/countries_states.json" %}')
+      .then(r => r.json())
+      .then(data => {
+        data.forEach(c => { countryStatesMap[c.name] = c.states || []; });
+        // Register alias names so differently-spelled options resolve too.
+        Object.keys(COUNTRY_NAME_ALIASES).forEach(dropdownName => {
+          const datasetName = COUNTRY_NAME_ALIASES[dropdownName];
+          if (countryStatesMap[datasetName]) {
+            countryStatesMap[dropdownName] = countryStatesMap[datasetName];
+          }
+        });
+        populateStates(countrySelect.value);
+      })
+      .catch(() => { useStateDropdown(false); });
+
+    // Refresh states whenever the country changes.
+    countrySelect.addEventListener('change', function() {
+      populateStates(this.value);
+    });
 
     // Store all original country options
     const allCountryOptions = Array.from(countrySelect.options);
@@ -1230,6 +1421,9 @@
       if (countryCustomSelect) {
         countryCustomSelect.rebuild();
       }
+
+      // Refresh the state dropdown for the (possibly auto-selected) country
+      populateStates(countrySelect.value);
 
       // Update currency
       if (mapping.currency) {

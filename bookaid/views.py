@@ -1722,16 +1722,17 @@ class AccountingView(LoginRequiredMixin, TemplateView):
         net_profit = [income_total[m] - expense_total[m] for m in range(12)]
 
         # ---- Profit-by-month bar chart (heights relative to peak magnitude) ----
-        # The single highest-profit month is highlighted blue (mirrors the
-        # Revenue page's peak-month styling); loss months render red.
+        # The current calendar month is highlighted orange (only when viewing
+        # the current year); loss months render red.
         peak = max((abs(v) for v in net_profit), default=0)
-        max_profit = max(net_profit) if net_profit else 0
+        now = timezone.now()
+        current_month_idx = now.month - 1 if now.year == selected_year else None
         bar_cols = [{
             'label': self.MONTH_LABELS[m],
             'value': net_profit[m],
             'height': round(abs(net_profit[m]) / peak * 100, 1) if peak > 0 else 0,
             'negative': net_profit[m] < 0,
-            'highlight': max_profit > 0 and net_profit[m] == max_profit,
+            'highlight': m == current_month_idx,
         } for m in range(12)]
 
         return {
