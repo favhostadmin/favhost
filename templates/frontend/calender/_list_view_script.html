@@ -1,0 +1,225 @@
+  function renderListView() {
+    const c = document.getElementById('listViewContent');
+    if (!c) return;
+    c.innerHTML = '<div class="list-loading">Loading events\u2026</div>';
+
+    const month = currentDisplayDate.getMonth() + 1;
+    const year = currentDisplayDate.getFullYear();
+    const url = "{% url 'calendar-list-view' %}";
+
+    fetch(url + '?month=' + month + '&year=' + year, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+      .then(r => r.json()).then(data => {
+        const events = data.events || [];
+        if (!events.length) { c.innerHTML = '<div class="list-wrap"><div class="empty-state" style="display:block"><b>No events for this month</b></div></div>'; return; }
+
+        // helpers
+        const today = new Date(); const todayStr = today.toISOString().split('T')[0];
+        const fmt = (d, s) => d.toLocaleDateString('en-US', { month: s || 'short', day: 'numeric', year: 'numeric' });
+        const fmtShort = (d) => d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+        const money = n => '$' + Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        const esc = s => { let d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; };
+        const isToday = d => d === todayStr;
+
+        // icons
+        const icons = {
+          in: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>',
+          out: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>',
+          pay: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>',
+          enq: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
+          blk: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>',
+          task: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg>',
+          prop: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>',
+          mail: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>',
+          phone: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>',
+          chev: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>'
+        };
+
+        // compute stats and counts
+        let stats = { checkin: 0, checkout: 0, payments: 0, revenue: 0 };
+        let typeCounts = { All: 0, Checkin: 0, Checkout: 0, Payment: 0, Task: 0, Enquiry: 0, Blocked: 0 };
+        events.forEach(ev => {
+          typeCounts.All++;
+          const g = ev.group || '';
+          if (g === 'Checkin') { typeCounts.Checkin++; stats.checkin++; }
+          else if (g === 'Checkout') { typeCounts.Checkout++; stats.checkout++; }
+          else if (g === 'Payment') { typeCounts.Payment++; stats.payments++; if (ev.paid) stats.revenue += Number(ev.amount || 0); }
+          else if (g === 'Task') typeCounts.Task++;
+          else if (g === 'Enquiry') typeCounts.Enquiry++;
+          else if (g === 'Blocked') typeCounts.Blocked++;
+        });
+
+        // group events by date maintaining order
+        const dateGroups = {};
+        events.forEach(ev => {
+          if (!dateGroups[ev.date]) dateGroups[ev.date] = [];
+          dateGroups[ev.date].push(ev);
+        });
+        const dates = Object.keys(dateGroups).sort();
+
+        // render
+        let html = '<div class="list-wrap">';
+
+        // summary strip
+        html += '<div class="summary">' +
+
+          '</div>';
+
+        // filter bar
+        const pillOrder = ['All', 'Checkin', 'Checkout', 'Payment', 'Task', 'Enquiry', 'Blocked'];
+        const pillDots = { All: '#16151C', Checkin: '#059669', Checkout: '#D97706', Payment: '#2563EB', Task: '#6B7280', Enquiry: '#7C3AED', Blocked: '#DC2626' };
+        html += '<div class="filterbar" id="listFilterBar">' +
+          '<div class="search"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input type="text" id="listSearch" placeholder="Search guest, property\u2026"></div>' +
+          '<div class="pills" id="listPills">' +
+          pillOrder.map(t => '<button class="pill pill--' + (t === 'All' ? 'all' : t === 'Checkin' ? 'in' : t === 'Checkout' ? 'out' : t === 'Payment' ? 'pay' : t.toLowerCase()) + '" data-type="' + t + '" aria-pressed="' + (t === 'All' ? 'true' : 'false') + '"><span class="dot" style="color:' + pillDots[t] + '"></span>' + t + '<span class="cnt">' + typeCounts[t] + '</span></button>').join('') +
+          '</div>' +
+          '<span class="result-count"><b id="resultCount">' + events.length + '</b> event' + ((events.length !== 1) ? 's' : '') + '</span>' +
+          '</div>';
+
+        // timeline
+        html += '<div class="timeline" id="listTimeline">';
+        dates.forEach((iso, i) => {
+          const d = new Date(iso + 'T00:00:00');
+          const isLast = i === dates.length - 1;
+
+          // today marker
+          if (iso === todayStr) html += '<div class="marker" id="todayMarker"><div class="rail"><div class="marker__dot"></div><div class="marker__label"><span>Today</span><div class="marker__rule"></div></div></div></div>';
+
+          const weekday = d.toLocaleDateString('en-US', { weekday: 'short' });
+          const monthL = d.toLocaleDateString('en-US', { month: 'short' });
+          const dayNum = d.getDate();
+          const items = dateGroups[iso];
+
+          html += '<div class="day' + (isLast ? ' is-last' : '') + '" data-date="' + iso + '">' +
+            '<div class="rail"><div class="node"><div class="node__day">' + dayNum + '</div><div class="node__mon">' + monthL + '</div></div></div>' +
+            '<div class="day__main">' +
+            '<div class="day__head"><span class="day__weekday">' + weekday + '</span><span class="day__date">' + fmt(d, 'long') + '</span><span class="day__chip">' + items.length + ' event' + (items.length !== 1 ? 's' : '') + '</span></div>' +
+            '<div class="day__events">';
+
+          items.forEach(ev => {
+            const g = ev.group || '';
+            const eClass = g === 'Checkin' ? 'in' : g === 'Checkout' ? 'out' : g === 'Payment' ? 'pay' : g === 'Task' ? 'task' : g === 'Enquiry' ? 'enquiry' : g === 'Blocked' ? 'blocked' : 'pay';
+            let sub = '';
+            if (g === 'Checkin' || g === 'Checkout') sub = esc(ev.stay);
+            else if (g === 'Payment') sub = money(ev.amount) + (ev.paid ? ' <span class="badge badge--pay">Paid</span>' : ' <span class="badge badge--out">Due</span>');
+            else if (g === 'Task') sub = esc(ev.details || '');
+            else if (g === 'Enquiry') sub = (ev.guests ? esc(ev.guests) + ' \u00b7 ' : '') + esc(ev.stay);
+            else if (g === 'Blocked') sub = esc(ev.stay || '');
+
+            const guestName = g === 'Blocked' ? '\u2014' : esc(ev.guest_name || '\u2014');
+            const guestEmail = g === 'Blocked' ? '' : esc(ev.guest_email || '');
+            const guestPhone = g === 'Blocked' ? '' : esc(ev.guest_phone || ev.guest_id || '');
+            const propName = esc(ev.property || '');
+            const propLoc = esc(ev.location || '');
+            const hasAvatar = ev.avatar && ev.avatar.trim();
+            const hasPropImg = ev.property_image && ev.property_image.trim();
+            let typeIco = icons.pay;
+            if (g === 'Checkin') typeIco = icons.in;
+            else if (g === 'Checkout') typeIco = icons.out;
+            else if (g === 'Task') typeIco = icons.task;
+            else if (g === 'Enquiry') typeIco = icons.enq;
+            else if (g === 'Blocked') typeIco = icons.blk;
+
+            const badge = g === 'Checkin' ? '<span class="badge badge--in">Check-in</span>' :
+              g === 'Checkout' ? '<span class="badge badge--out">Check-out</span>' :
+                g === 'Payment' ? '<span class="badge badge--pay">Payment</span>' :
+                  g === 'Task' ? '<span class="badge badge--task">Task</span>' :
+                    g === 'Enquiry' ? '<span class="badge badge--enquiry">Enquiry</span>' :
+                      g === 'Blocked' ? '<span class="badge badge--blocked">Blocked</span>' :
+                        '';
+
+            html += '<div class="event event--' + eClass + '" data-type="' + g.toLowerCase() + '">' +
+              '<div class="event__body">' +
+              // type
+              '<div class="zone zone--type"><div class="ico">' + typeIco + '</div><div class="typecontent"><div class="type__label">' + esc(ev.title || g) + ' ' + badge + '</div>' + (sub ? '<div class="range">' + sub + '</div>' : '') + '</div></div>' +
+              // guest
+              '<div class="zone zone--guest">' +
+              '<div class="avatar avatar--guest">' + (hasAvatar ? '<img src="' + esc(ev.avatar) + '" style="width:100%;height:100%;border-radius:50%;object-fit:cover;" alt="">' : guestName.charAt(0).toUpperCase()) + '</div>' +
+              '<div class="guest__meta"><div class="guest__name">' + guestName + '</div>' +
+              (guestEmail ? '<div class="contact">' + icons.mail + '<span>' + guestEmail + '</span></div>' : '') +
+              (guestPhone ? '<div class="contact contact--mono">' + icons.phone + '<span>' + guestPhone + '</span></div>' : '') +
+              (!guestEmail && !guestPhone ? '<div class="contact contact--none">No contact</div>' : '') +
+              '</div>' +
+              '</div>' +
+              // property
+              '<div class="zone zone--prop">' +
+              '<div class="thumb thumb--r2">' + (hasPropImg ? '<img src="' + esc(ev.property_image) + '" style="width:100%;height:100%;object-fit:cover;" alt="">' : icons.prop) + '</div>' +
+              '<div class="prop__meta"><div class="prop__name">' + propName + '</div><div class="prop__loc">' + icons.prop + '<span>' + propLoc + '</span></div></div>' +
+              '</div>' +
+              // open
+
+              '</div>' +
+              '</div>';
+          });
+
+          html += '</div></div></div>';
+        });
+        html += '</div></div>';
+
+        c.innerHTML = html;
+
+        // ----- interactivity -----
+        const pills = document.querySelectorAll('#listPills .pill');
+        const cards = document.querySelectorAll('#listTimeline .event');
+        const daySections = document.querySelectorAll('#listTimeline .day');
+        const search = document.getElementById('listSearch');
+        const resultCount = document.getElementById('resultCount');
+
+        function filterEvents() {
+          const q = (search.value || '').toLowerCase().trim();
+          const active = document.querySelector('#listPills .pill[aria-pressed="true"]');
+          const activeType = active ? active.dataset.type : 'All';
+          let visible = 0;
+          cards.forEach(card => {
+            const t = card.dataset.type;
+            const matchesType = activeType === 'All' || activeType.toLowerCase() === t;
+            const text = card.textContent.toLowerCase();
+            const matchesSearch = !q || text.includes(q);
+            card.style.display = (matchesType && matchesSearch) ? '' : 'none';
+            if (matchesType && matchesSearch) visible++;
+          });
+          // hide empty days
+          daySections.forEach(day => {
+            const vis = Array.from(day.querySelectorAll('.event')).filter(el => el.style.display !== 'none').length;
+            day.style.display = vis ? 'grid' : 'none';
+          });
+          resultCount.textContent = visible;
+        }
+
+        pills.forEach(p => p.addEventListener('click', function () {
+          const wasPressed = this.getAttribute('aria-pressed') === 'true';
+          pills.forEach(pp => pp.setAttribute('aria-pressed', 'false'));
+          if (!wasPressed) this.setAttribute('aria-pressed', 'true');
+          else document.querySelector('#listPills .pill--all').setAttribute('aria-pressed', 'true');
+          filterEvents();
+        }));
+
+        search.addEventListener('input', filterEvents);
+
+        if (initialFilter) {
+          const filterMap = { in: 'Checkin', out: 'Checkout', pay: 'Payment' };
+          const targetType = filterMap[initialFilter.toLowerCase()] || initialFilter;
+          const targetPill = Array.from(pills).find(p => p.dataset.type === targetType);
+          if (targetPill) { targetPill.click(); }
+          initialFilter = null;
+        }
+      })
+      .catch(() => {
+        c.innerHTML = '<div class="list-wrap"><div class="empty-state" style="display:block"><b>Failed to load events.</b></div></div>';
+      });
+  }
+
+  /* --- Unified Calendar View Router --- */
+
+  function scrollToListToday() {
+    setTimeout(() => {
+      const container = document.getElementById('listViewPane');
+      const todayIso = toISODateString(new Date());
+      const section = container ? container.querySelector('#date-' + todayIso) : null;
+      if (section) section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 300);
+  }
+
+
+  function renderCurrentView() {
+    renderListView();
+  }

@@ -1,0 +1,189 @@
+{% load static %}
+  function renderMonthGrid(pane) {
+    const year = currentDisplayDate.getFullYear();
+    const month = currentDisplayDate.getMonth();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const paymentIconUrl = "{% static 'img/task/type/payment.svg' %}";
+
+    const { bookings: pBookings, enquiries: pEnquiries, tasks: pTasks } = getFilteredEventsForCalendar();
+    const spansList = [];
+    if (typeFilters.reservation) {
+      spansList.push(...pBookings.map(b => ({ ...b, isEnquiry: false })));
+      spansList.push(...pEnquiries.map(eq => ({ ...eq, isEnquiry: true })));
+    } else if (typeFilters.payment) {
+      spansList.push(...pBookings.map(b => ({ ...b, isEnquiry: false })));
+    }
+
+    const firstDay = new Date(year, month, 1);
+    const startDayOfWeek = firstDay.getDay();
+
+    const gridStart = new Date(firstDay);
+    gridStart.setDate(gridStart.getDate() - startDayOfWeek);
+
+    const gridWeeks = [];
+    let temp = new Date(gridStart);
+    for (let w = 0; w < 6; w++) {
+      const weekDates = [];
+      for (let d = 0; d < 7; d++) {
+        weekDates.push(new Date(temp));
+        temp.setDate(temp.getDate() + 1);
+      }
+      gridWeeks.push(weekDates);
+    }
+    if (gridWeeks.length === 6 && gridWeeks[5].every(d => d.getMonth() !== month)) {
+      gridWeeks.pop();
+    }
+
+    pane.style.display = 'flex';
+    pane.style.flexDirection = 'column';
+
+    let html = `
+      <div class="month-calendar-grid" style="flex: 1; min-height: 0;">
+        <div class="month-calendar-header-row">
+          <div class="month-calendar-header-cell">SUN</div>
+          <div class="month-calendar-header-cell">MON</div>
+          <div class="month-calendar-header-cell">TUE</div>
+          <div class="month-calendar-header-cell">WED</div>
+          <div class="month-calendar-header-cell">THU</div>
+          <div class="month-calendar-header-cell">FRI</div>
+          <div class="month-calendar-header-cell">SAT</div>
+        </div>
+        <div class="month-calendar-weeks-container">
+    `;
+
+    gridWeeks.forEach(weekDates => {
+      const weekStart = weekDates[0];
+      const weekEnd = weekDates[6];
+
+      let bgHtml = '';
+      weekDates.forEach(d => {
+        const isOtherMonth = d.getMonth() !== month;
+        const isToday = d.toDateString() === today.toDateString();
+        const dateStr = toISODateString(d);
+
+        bgHtml += `
+          <div class="month-calendar-day-cell ${isOtherMonth ? 'other-month' : ''} ${isToday ? 'today' : ''}" data-date="${dateStr}">
+            <span class="day-number">${d.getDate()}</span>
+          </div>
+        `;
+      });
+
+      let eventsHtml = '';
+      const weekSpans = [];
+      spansList.forEach(event => {
+        const evStart = new Date(event.startDateStr + 'T00:00:00');
+        const evEnd = new Date(event.endDateStr + 'T00:00:00');
+        evEnd.setDate(evEnd.getDate() - 1);
+
+        if (evStart <= weekEnd && evEnd >= weekStart) {
+          const carryStart = evStart < weekStart;
+          const carryEnd = evEnd > weekEnd;
+          const startCol = carryStart ? 0 : Math.round((evStart - weekStart) / (1000 * 60 * 60 * 24));
+          const endCol = carryEnd ? 6 : Math.round((evEnd - weekStart) / (1000 * 60 * 60 * 24));
+
+          weekSpans.push({
+            event,
+            startCol,
+            endCol,
+            carryStart,
+            carryEnd,
+            length: endCol - startCol + 1
+          });
+        }
+      });
+
+      // Fixed 2-band layout: row 1 = reservation, row 2 = separator, row 3 = task
+      const FIXED_GRID = '1fr 3px 1fr';
+
+      const bookingSpans = weekSpans.filter(span => !span.event.isEnquiry);
+      const enquirySpans = weekSpans.filter(span => span.event.isEnquiry);
+
+      const spanOffsets = (span) => {
+        const n = Math.max(span.endCol - span.startCol + 1, 2);
+        const mlPct = span.carryStart ? 0 : (100 / (2 * n));
+        const mrPct = span.carryEnd ? 0 : (100 / (2 * n));
+        return `margin-left:${mlPct.toFixed(2)}%;margin-right:${mrPct.toFixed(2)}%`;
+      };
+
+      bookingSpans.forEach(span => {
+        const ev = span.event;
+        const gridColStart = span.startCol + 1;
+        const gridColEnd = span.endCol + 2;
+        const onClick = ev.type === 'blocked'
+          ? `onclick="openUnblockModal(event, '${ev.id}')"`
+          : `onclick="openReservationPanel(event, '${ev.id}')"`;
+        const carryStartClass = span.carryStart ? 'carry-start' : '';
+        const carryEndClass = span.carryEnd ? 'carry-end' : '';
+        const labelName = ev.guestName || 'Blocked';
+        const labelText = span.carryStart ? `-- ${labelName}` : labelName;
+        const channelLogoUrl = getChannelLogo(ev.channelName, ev.channelIcon);
+        const channelColor = getChannelColor(ev.channelName) || ev.color || '#3b82f6';
+        const channelLogoHtml = channelLogoUrl && ev.type !== 'blocked'
+          ? `<div class="channel-logo-circle" style="border-color:${channelColor};background-color:${channelColor}"><img src="${channelLogoUrl}" alt="${ev.channelName || ''}" /></div>`
+          : '';
+        const style = ev.type === 'blocked' ? 'background-color:#9ca3af;' : `background-color:${channelColor};`;
+        eventsHtml += `<div class="grid-event-span ${carryStartClass} ${carryEndClass}" style="grid-column:${gridColStart}/${gridColEnd};grid-row:1;${style};${spanOffsets(span)}" ${onClick} onmouseenter="showMonthEventTooltip(event,'${ev.id}',false)" onmouseleave="hideGlobalTooltip()">${channelLogoHtml}<span class="event-title">${labelText}</span></div>`;
+      });
+
+      weekDates.forEach((d, colIdx) => {
+        const dateStr = toISODateString(d);
+        const dayTasksForBand = pTasks.filter(t => t.date === dateStr);
+        const bookingStartsHere = weekSpans.some(s => !s.carryStart && s.startCol === colIdx);
+
+        const bookingWithPayment = pBookings.find(b => b.paymentsInfo && b.paymentsInfo[dateStr]);
+        const hasPaymentCollision = bookingStartsHere && bookingWithPayment && typeFilters.payment;
+
+        // Payment collision: small black dot at bottom when payment date coincides with reservation start
+        if (hasPaymentCollision) {
+          eventsHtml += `<div style="grid-column:${colIdx + 1}/${colIdx + 2};grid-row:1/-1;align-self:end;justify-self:center;width:8px;height:8px;border-radius:50%;background:#000;z-index:130;cursor:pointer;pointer-events:auto;margin-bottom:4px;" onmouseenter="showPaymentTooltip(event,'${bookingWithPayment.id}','${dateStr}')" onmouseleave="handleIndicatorHoverLeave()"></div>`;
+        }
+
+        // Normal payment indicator (when no collision with reservation start)
+        if (!hasPaymentCollision && bookingWithPayment && typeFilters.payment && !(bookingStartsHere && dayTasksForBand.length > 0)) {
+          eventsHtml += `<div style="grid-column:${colIdx + 1}/${colIdx + 2};grid-row:1;align-self:center;justify-self:center;width:36px;height:36px;border-radius:50%;background:#3b82f6;border:2px solid #fff;display:flex;align-items:center;justify-content:center;z-index:120;cursor:pointer;pointer-events:auto;box-shadow:0 1px 3px rgba(0,0,0,0.25);" onclick="handlePaymentIndicatorClick(event,'${bookingWithPayment.id}','${dateStr}')" onmouseenter="showPaymentTooltip(event,'${bookingWithPayment.id}','${dateStr}')" onmouseleave="handleIndicatorHoverLeave()"><img src="${paymentIconUrl}" alt="payment" style="width:24px;height:24px;object-fit:contain;filter:brightness(0) invert(1);" /></div>`;
+        }
+
+        if (dayTasksForBand.length === 0) return;
+        const t0 = dayTasksForBand[0];
+
+        if (bookingStartsHere) {
+          eventsHtml += `<div style="position:static;grid-column:${colIdx + 1}/${colIdx + 2};grid-row:1/-1;align-self:end;justify-self:center;width:8px;height:8px;border-radius:50%;background:#ef4444;z-index:15;cursor:pointer;pointer-events:auto;animation:cell-blink 1.2s ease-in-out infinite;" onclick="openTaskDetailModal(event,'${t0.id}')"></div>`;
+          return;
+        }
+        const taskIconsMap = {
+          cleaning: "{% static 'img/task/type/cleaning.svg' %}",
+          maintenance: "{% static 'img/task/type/maintenance.svg' %}",
+          payment: "{% static 'img/task/type/payment.svg' %}",
+          other: "{% static 'img/task/type/others.svg' %}"
+        };
+        const taskIconUrl = taskIconsMap[t0.task_type] || taskIconsMap.other;
+        const taskColors = { cleaning: '#10b981', maintenance: '#f59e0b', payment: '#3b82f6', other: '#8b5cf6' };
+        const taskColor = taskColors[t0.task_type] || taskColors.other;
+        const paymentRing = t0.task_type === 'payment' ? 'box-shadow:0 0 0 2.5px #38bdf8,0 2px 6px rgba(0,0,0,0.15);width:30px;height:30px;' : '';
+        eventsHtml += `<div class="task-circle-bar" style="grid-column:${colIdx + 1}/${colIdx + 2};grid-row:1;background-color:${taskColor};${paymentRing}" onclick="openTaskDetailModal(event,'${t0.id}')">${t0.task_type === 'payment' ? `<div style="position:relative;display:flex;align-items:center;justify-content:center;width:100%;height:100%;"><img src="${taskIconUrl}" alt="" style="width:16px;height:16px;filter:brightness(0) invert(1);opacity:0.5;position:absolute;" /><span style="color:#fff;font-weight:900;font-size:14px;line-height:1;position:relative;z-index:1;">$</span></div>` : `<img src="${taskIconUrl}" alt="" />`}</div>`;
+      });
+
+      html += `
+        <div class="month-calendar-week">
+          <div class="month-calendar-week-bg">${bgHtml}</div>
+          <div class="month-calendar-events-layer" style="grid-template-rows: ${FIXED_GRID}; grid-auto-rows: unset;">
+            ${eventsHtml}
+          </div>
+        </div>
+      `;
+    });
+
+    html += `
+        </div>
+      </div>
+    `;
+
+    pane.innerHTML = html;
+  }
+
+  /* --- Week Grid View (unified: property label + 7-day data per row) --- */
+
+  function renderCurrentView() {
+    renderMonthGrid(document.getElementById('gridCalendarPane'));
+  }

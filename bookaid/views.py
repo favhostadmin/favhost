@@ -932,7 +932,7 @@ class RevenueByListingView(LoginRequiredMixin, TemplateView):
 @method_decorator(never_cache, name='dispatch')
 class CalenderAPIView(LoginRequiredMixin,ListView):
     model = Booking
-    template_name = 'frontend/calender/calender.html'
+    template_name = 'frontend/calender/calender_timeline.html'
 
     def get(self, request, *args, **kwargs):
         if request.headers.get('x-requested-with') == 'XMLHttpRequest':
@@ -1122,13 +1122,44 @@ from django.views.generic import ListView
 from django.http import JsonResponse
 from django.db.models import Prefetch
 
+class CalendarMonthView(CalenderAPIView):
+    template_name = 'frontend/calender/calender_month.html'
+
+
+class CalendarWeekView(CalenderAPIView):
+    template_name = 'frontend/calender/calender_week.html'
+
+
+class CalendarDayView(CalenderAPIView):
+    template_name = 'frontend/calender/calender_day.html'
+
+
 class CalendarListView(LoginRequiredMixin, ListView):
     model = Booking
-    template_name = 'frontend/calender/calender-list-view.html'
+    template_name = 'frontend/calender/calender_list.html'
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx['current_month'] = date.today()
+
+        properties = Property.objects.filter(created_by__in=get_visible_user_ids(self.request.user), status='Active')
+        rooms_list = []
+        for prop in properties:
+            rooms_list.append({
+                'id': str(prop.id),
+                'title': prop.title,
+                'image': prop.get_primary_image_url(),
+                'location': prop.location_display(),
+                'price_per_night': float(prop.price_per_night or 0),
+                'guest': prop.guest,
+                'minimum_nights': prop.minimum_booking,
+                'basePrice': float(prop.price_per_night),
+                'weekendMultiplier': 1.0,
+                'slug': prop.slug,
+                'detail_url': f"/property/detail/{prop.slug}/",
+            })
+        ctx['rooms_data'] = rooms_list
+        ctx['bookings_data'] = []
         return ctx
 
     def get_queryset(self):

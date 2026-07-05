@@ -1,0 +1,66 @@
+{% extends 'frontend/base/base.html' %}
+{% load static %}
+
+{% block extra_head %}
+<link href="{% static 'css/calender/grid.css' %}" rel="stylesheet">
+<link href="{% static 'css/host_dashboard.css' %}" rel="stylesheet">
+<link href="{% static 'css/task/listing.css' %}" rel="stylesheet">
+<link href="{% static 'css/booking/list.css' %}" rel="stylesheet">
+<link href="{% static 'css/calender/list.css' %}" rel="stylesheet">
+<link href="{% static 'css/calender/calendar-page.css' %}" rel="stylesheet">
+{% endblock extra_head %}
+
+{% block content %}
+<div class="container-fluid p-0">
+  {% include 'frontend/calender/_calendar_header.html' with active_view='list' active_view_label='List' %}
+
+  <!-- Calendar Content -->
+  <div class="calendar-container mt-3">
+    <div class="loading-indicator" id="loadingIndicator">Loading...</div>
+    <div class="calendar-wrapper">
+      <div class="properties-column" style="display:none;">
+        <div class="search-bar" style="position: relative;">
+          <div style="position: absolute; left: 20px; top: 50%; transform: translateY(-50%); pointer-events: none;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              style="color: black;">
+              <circle cx="11" cy="11" r="8"></circle>
+              <path d="m21 21-4.35-4.35"></path>
+            </svg>
+          </div>
+          <input type="text" id="propertySearchInput" class="search-input" placeholder="Search listings"
+            onkeyup="filterProperties()" style="padding-left: 35px;" />
+          <span id="clearSearchBtn" onclick="clearSearch()"
+            style="position: absolute; right: 25px; top: 50%; transform: translateY(-50%); cursor: pointer; display: none; color: #9ca3af; font-size: 18px; line-height: 1;">
+            &times;
+          </span>
+        </div>
+        <div id="propertiesList"></div>
+      </div>
+      <div id="listViewPane" class="list-view-pane"
+        style="display: block; flex: 1; height: 100%; min-height: 0; overflow-y: auto; background-color: #f5f6f8; position: relative; z-index: 1; box-sizing: border-box;">
+        <div id="listViewContent">
+          <div class="list-loading">Loading events…</div>
+        </div>
+      </div>
+      <div class="calendar-empty-state" id="calendarEmptyState">No data to display</div>
+    </div>
+  </div>
+  {% include 'frontend/base/footer.html' %}
+
+  {% include 'frontend/calender/_calendar_modals.html' %}
+</div>
+
+{% endblock content %}
+
+{% block extra_script %}
+<script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"></script>
+{{ rooms_data|json_script:"rooms-data" }}
+{{ bookings_data|json_script:"bookings-data" }}
+<script>
+  const currentViewMode = 'list';
+  {% include 'frontend/calender/_calendar_shared_script.html' %}
+
+  /* --- List view-specific rendering --- */
+  {% include 'frontend/calender/_list_view_script.html' %}
+</script>
+{% endblock extra_script %}

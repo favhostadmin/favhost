@@ -1,0 +1,425 @@
+{% load static %}
+  function getBookingSpan(propertyId, dates) {
+    const spans = [];
+    const viewStartStr = toISODateString(dates[0]);
+    const viewEndExclusiveStr = addDaysToISO(toISODateString(dates[dates.length - 1]), 1);
+    bookings.forEach(booking => {
+      if (booking.propertyId === propertyId) {
+        // Find overlap between booking and current view dates
+        const startIndex = dates.findIndex(date => {
+          const dateStr = toISODateString(date);
+          return dateStr >= booking.startDateStr && dateStr < booking.endDateStr;
+        });
+        const endIndex = dates.findLastIndex(date => {
+          const dateStr = toISODateString(date);
+          return dateStr >= booking.startDateStr && dateStr < booking.endDateStr;
+        });
+
+        if (startIndex !== -1 && endIndex !== -1) {
+          spans.push({
+            ...booking,
+            startIndex,
+            endIndex,
+            length: endIndex - startIndex + 1,
+            startsBeforeView: booking.startDateStr < viewStartStr,
+            endsAfterView: booking.endDateStr > viewEndExclusiveStr
+          });
+        }
+      }
+    });
+    return spans;
+  }
+
+  function getEnquirySpan(propertyId, dates) {
+    const spans = [];
+    const viewStartStr = toISODateString(dates[0]);
+    const viewEndExclusiveStr = addDaysToISO(toISODateString(dates[dates.length - 1]), 1);
+    enquiries.forEach(eq => {
+      if (eq.propertyId === propertyId) {
+        const startIndex = dates.findIndex(date => {
+          const dateStr = toISODateString(date);
+          return dateStr >= eq.startDateStr && dateStr < eq.endDateStr;
+        });
+        const endIndex = dates.findLastIndex(date => {
+          const dateStr = toISODateString(date);
+          return dateStr >= eq.startDateStr && dateStr < eq.endDateStr;
+        });
+        if (startIndex !== -1 && endIndex !== -1) {
+          spans.push({
+            ...eq,
+            startIndex,
+            endIndex,
+            length: endIndex - startIndex + 1,
+            startsBeforeView: eq.startDateStr < viewStartStr,
+            endsAfterView: eq.endDateStr > viewEndExclusiveStr
+          });
+        }
+      }
+    });
+    return spans;
+  }
+
+
+  function renderDatesHeader() {
+    syncTimelineDimensions();
+    const datesHeader = document.getElementById('datesHeader');
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    datesHeader.innerHTML = allDates.map(date => {
+      const dateKey = toISODateString(date);
+      const isToday = date.toDateString() === today.toDateString();
+      const isWeekend = date.getDay() === 0 || date.getDay() === 6;
+      const isUserSelected = hasManualDateSelection && selectedDateKey === dateKey && !isToday;
+      return `
+          <div class="date-column ${isWeekend ? 'weekend' : ''} ${isToday ? 'today-column today-date-column' : ''} ${isUserSelected ? 'user-selected-date-column' : ''}"
+               data-date="${dateKey}"
+               onclick="selectDateColumn('${dateKey}')"
+               onmouseenter="showDateInfoTooltip(event, '${dateKey}')"
+               onmouseleave="hideGlobalTooltip()">
+            <div class="date-number">${date.getDate()}</div>
+            <div class="date-day">${date.toLocaleDateString('en-US', { weekday: 'short' })}</div>
+          </div>
+        `;
+    }).join('');
+  }
+
+  function renderDatesGrid(propertiesToRender = filteredProperties) {
+    syncTimelineDimensions();
+    const datesGrid = document.getElementById('datesGrid');
+    const emptyState = document.getElementById('calendarEmptyState');
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const isMobile = window.innerWidth <= 768;
+    const paymentIconUrl = "{% static 'img/task/type/payment.svg' %}";
+    const blockedIconUrl = "{% static 'img/common/close_icon.png' %}";
+    const monthTaskColors = { cleaning: '#10b981', maintenance: '#f59e0b', payment: '#3b82f6', other: '#8b5cf6' };
+    const monthTaskIcons = {
+      cleaning: "{% static 'img/task/type/cleaning.svg' %}",
+      maintenance: "{% static 'img/task/type/maintenance.svg' %}",
+      payment: "{% static 'img/task/type/payment.svg' %}",
+      other: "{% static 'img/task/type/others.svg' %}"
+    };
+    const todayDateKey = toISODateString(today);
+    const todayColIndex = allDates.findIndex(d => toISODateString(d) === todayDateKey);
+    const selectedColIndex = (hasManualDateSelection && selectedDateKey && selectedDateKey !== todayDateKey)
+      ? allDates.findIndex(d => toISODateString(d) === selectedDateKey)
+      : -1;
+
+    if (selectedColIndex >= 0) {
+      datesGrid.classList.add('has-user-selected-column');
+      datesGrid.style.setProperty('--selected-column-index', String(selectedColIndex));
+    } else {
+      datesGrid.classList.remove('has-user-selected-column');
+      datesGrid.style.removeProperty('--selected-column-index');
+    }
+
+    if (todayColIndex >= 0) {
+      datesGrid.classList.add('has-today-column');
+      datesGrid.style.setProperty('--today-column-index', String(todayColIndex));
+    } else {
+      datesGrid.classList.remove('has-today-column');
+      datesGrid.style.removeProperty('--today-column-index');
+    }
+    const daysBetweenISO = (startISO, endISO) => {
+      const [sy, sm, sd] = startISO.split('-').map(Number);
+      const [ey, em, ed] = endISO.split('-').map(Number);
+      const start = Date.UTC(sy, sm - 1, sd);
+      const end = Date.UTC(ey, em - 1, ed);
+      return Math.round((end - start) / (1000 * 60 * 60 * 24));
+    };
+
+    let hasVisibleCalendarData = false;
+
+    datesGrid.innerHTML = propertiesToRender.map((property, rowIndex) => {
+      const spans = getBookingSpan(property.id, allDates);
+      if (spans.length > 0) {
+        hasVisibleCalendarData = true;
+      }
+
+
+      const spanOverlays = spans.map(b => {
+        const isBlocked = b.type === 'blocked';
+        const onClick = isBlocked ? `onclick="openUnblockModal(event, '${b.id}')"` : `onclick="openReservationPanel(event, '${b.id || 101}')"`;
+        const cursor = 'pointer';
+        const channelColor = getChannelColor(b.channelName) || b.color || '#3b82f6';
+        const bgColor = isBlocked ? '#9ca3af' : channelColor;
+        const spanStart = b.startIndex;
+        const spanLength = Math.max(1, b.length);
+        const carryStartClass = b.startsBeforeView ? 'carry-start' : '';
+        const carryEndClass = b.endsAfterView ? 'carry-end' : '';
+        const nights = Math.max(1, daysBetweenISO(b.startDateStr, b.endDateStr) - 1);
+        const guestName = b.guestName || '';
+        // Always render the full name — the bar truncates it with an
+        // ellipsis via CSS to fit whatever width the bar actually has.
+        const labelText = guestName;
+        const shouldShowLabel = nights > 1;
+        const channelLogoUrl = getChannelLogo(b.channelName, b.channelIcon);
+        const channelLogoTimeline = channelLogoUrl && !isBlocked
+          ? `<div class="channel-logo-circle" style="border-color:${bgColor};background-color:${bgColor}"><img src="${channelLogoUrl}" alt="${b.channelName || ''}" /></div>`
+          : '';
+
+        let content = `
+          <div class="segment-content">
+             <div class="avatar-group">
+                 ${channelLogoTimeline}
+             </div>
+             <div class="segment-name-wrap">
+              ${shouldShowLabel ? `<span class="segment-guest-name">${labelText}</span>` : ''}
+              </div>
+          </div>
+        `;
+        if (isBlocked) {
+          const blockedLabel = nights <= 3 ? 'Block...' : 'Blocked';
+          content = `
+            <div class="segment-content">
+              <img class="blocked-icon" src="${blockedIconUrl}" alt="Blocked" />
+              <span class="blocked-label-text">${blockedLabel}</span>
+            </div>
+          `;
+        }
+
+        return `
+          <div class="booking-span-block ${carryStartClass} ${carryEndClass}"
+               ${onClick}
+               onmouseenter="showGlobalTooltip(event, '${b.id}')"
+               onmouseleave="hideGlobalTooltip()"
+               style="--start:${spanStart}; --len:${spanLength}; background-color:${bgColor}; cursor:${cursor};">
+            ${content}
+          </div>
+        `;
+      }).join('');
+
+
+
+      // Filter spans by active filter types
+      const filteredSpanOverlays = (!typeFilters.reservation && !typeFilters.payment) || (!typeFilters.reservation && typeFilters.payment)
+        ? ''
+        : (!typeFilters.reservation || !typeFilters.payment)
+          ? spans.filter(b => {
+            const hasPay = b.paymentsInfo && Object.keys(b.paymentsInfo).length > 0;
+            if (typeFilters.reservation && typeFilters.payment) return true;
+            if (typeFilters.reservation) return !hasPay || b.type === 'blocked';
+            if (typeFilters.payment) return hasPay && b.type !== 'blocked';
+            return true;
+          }).map(b => {
+            const isBlocked = b.type === 'blocked';
+            const onClick = isBlocked ? `onclick="openUnblockModal(event, '${b.id}')"` : `onclick="openReservationPanel(event, '${b.id || 101}')"`;
+            const channelColor = getChannelColor(b.channelName) || b.color || '#3b82f6';
+            const bgColor = isBlocked ? '#9ca3af' : channelColor;
+            const nights = Math.max(1, daysBetweenISO(b.startDateStr, b.endDateStr) - 1);
+            const carryStartClass = b.startsBeforeView ? 'carry-start' : '';
+            const carryEndClass = b.endsAfterView ? 'carry-end' : '';
+            const guestName = b.guestName || '';
+            const labelText = guestName;
+            const shouldShowLabel = nights > 1;
+            const channelLogoUrl = getChannelLogo(b.channelName, b.channelIcon);
+            const channelLogoTimeline = channelLogoUrl && !isBlocked
+              ? `<div class="channel-logo-circle" style="border-color:${bgColor};background-color:${bgColor}"><img src="${channelLogoUrl}" alt="${b.channelName || ''}" /></div>`
+              : '';
+            const content = `<div class="segment-content"><div class="avatar-group">${channelLogoTimeline}</div><div class="segment-name-wrap">${shouldShowLabel ? `<span class="segment-guest-name">${labelText}</span>` : ''}</div></div>`;
+            return `<div class="booking-span-block ${carryStartClass} ${carryEndClass}" ${onClick} onmouseenter="showGlobalTooltip(event, '${b.id}')" onmouseleave="hideGlobalTooltip()" style="--start:${b.startIndex}; --len:${Math.max(1, b.length)}; background-color:${bgColor}; cursor:pointer;">${content}</div>`;
+          }).join('')
+          : spanOverlays;
+
+      const rowHtml = allDates.map((date, index) => {
+        const isWeekend = date.getDay() === 0 || date.getDay() === 6;
+        const isToday = toISODateString(date) === todayDateKey;
+        const isPast = date < today;
+        let cellClasses = 'date-cell';
+        if (isWeekend) cellClasses += ' weekend';
+        if (isToday) cellClasses += ' today-date-column';
+        if (isPast) cellClasses += ' past-date';
+
+        const dateStr = toISODateString(date);
+        const tasksForCell = getTasksForDateAndProperty(dateStr, property.id).filter(t => {
+          if (t.task_type === 'payment') {
+            return typeFilters.payment;
+          } else {
+            return typeFilters.task;
+          }
+        });
+
+        if (tasksForCell.length > 0) {
+          console.log(`📍 Cell ${dateStr} (property ${property.id}) has ${tasksForCell.length} task(s):`, tasksForCell.map(t => t.details));
+        }
+
+        const bookingWithPayment = typeFilters.payment ? bookings.find(x => x.propertyId == property.id && x.paymentsInfo && x.paymentsInfo[dateStr]) : null;
+        if (bookingWithPayment || tasksForCell.length > 0) {
+          hasVisibleCalendarData = true;
+        }
+
+        const isBookingStart = bookings.some(b =>
+          String(b.propertyId) === String(property.id) && b.startDateStr === dateStr
+        );
+
+        const collision = isBookingStart && (tasksForCell.length > 0 || bookingWithPayment);
+
+        let blinkingClick = '';
+        if (collision && tasksForCell.length > 0) {
+          const t0 = tasksForCell[0];
+          blinkingClick = "openTaskDetailModal(event, '" + t0.id + "')";
+        }
+        const blinkingDot = collision ? '<div class="cell-blinking-dot" style="cursor:pointer;" onclick="' + blinkingClick + '"></div>' : '';
+
+        const taskCircles = (!collision) ? tasksForCell.map((t, tIdx) => {
+          const tColor = monthTaskColors[t.task_type] || monthTaskColors.other;
+          const tIcon = monthTaskIcons[t.task_type] || monthTaskIcons.other;
+          const countBadge = tasksForCell.length > 1 && tIdx === 0
+            ? `<div class="month-task-count">${tasksForCell.length}</div>`
+            : '';
+          if (tIdx > 0 && tasksForCell.length > 1) return '';
+          return `<div class="month-task-circle above-bar"
+                      style="background-color:${tColor};"
+                      onclick="openTaskDetailModal(event, '${t.id}')"
+                      onmouseenter="showTaskTooltip(event, '${dateStr}', '${property.id}')"
+                      onmouseleave="handleIndicatorHoverLeave()">
+            <img src="${tIcon}" alt="" />
+            ${countBadge}
+          </div>`;
+        }).join('') : '';
+
+        const paymentBadge = (!collision && bookingWithPayment) ? `
+          <div class="payment-indicator"
+               onclick="handlePaymentIndicatorClick(event, '${bookingWithPayment.id}', '${dateStr}')"
+               onmouseenter="showPaymentTooltip(event, '${bookingWithPayment.id}', '${dateStr}')"
+               onmouseleave="handleIndicatorHoverLeave()">
+            <img src="${paymentIconUrl}" alt="payment" />
+          </div>
+        ` : '';
+
+        const paymentCollisionDot = (isBookingStart && bookingWithPayment) ? `
+          <div class="cell-payment-dot"
+               onmouseenter="showPaymentTooltip(event, '${bookingWithPayment.id}', '${dateStr}')"
+               onmouseleave="handleIndicatorHoverLeave()"></div>
+        ` : '';
+
+        return `
+          <div
+            class="${cellClasses} ${(hasManualDateSelection && selectedDateKey === dateStr && dateStr !== todayDateKey) ? 'user-selected-date-column' : ''}"
+            data-date="${dateStr}"
+            data-property="${property.id}"
+            style="position: relative;"
+          >
+            ${blinkingDot}
+            ${taskCircles}
+            ${paymentBadge}
+            ${paymentCollisionDot}
+          </div>
+        `;
+      }).join('');
+
+      return `<div class="date-row" style="position: relative;">
+        <div class="booking-row-layer">${filteredSpanOverlays}</div>
+        ${rowHtml}
+      </div>`;
+    }).join('');
+
+    if (emptyState) {
+      emptyState.style.display = hasVisibleCalendarData ? 'none' : 'flex';
+    }
+  }
+
+
+  function selectDateColumn(dateKey, isManual = true) {
+    selectedDateKey = dateKey;
+    hasManualDateSelection = !!isManual;
+    renderDatesHeader();
+    renderDatesGrid(filteredProperties);
+  }
+
+  function selectDate(dateString, propertyId) {
+    selectDateColumn(toDateOnlyString(dateString));
+  }
+
+  // --- Global Tooltip Logic ---
+
+  function scrollToToday() {
+    setTimeout(() => {
+      const container = document.getElementById('datesContainer');
+      const todayEl = container.querySelector('.today-column');
+      if (todayEl) {
+        todayEl.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+      }
+    }, 100);
+  }
+
+
+  function initTimelineScrollSync() {
+    // Sync scrolling
+    const propertiesList = document.getElementById('propertiesList');
+    const datesContainer = document.getElementById('datesContainer');
+    const datesHeaderScroll = document.getElementById('datesHeaderScroll');
+
+    let isSyncingProps = false;
+    let isSyncingDates = false;
+    let isSyncingHeader = false;
+    let isSyncingBody = false;
+
+    propertiesList.addEventListener('scroll', function () {
+      hidePropertyPreview();
+      if (!isSyncingProps) {
+        isSyncingDates = true;
+        datesContainer.scrollTop = this.scrollTop;
+      }
+      isSyncingProps = false;
+    });
+
+    datesContainer.addEventListener('scroll', function () {
+      if (!isSyncingDates) {
+        isSyncingProps = true;
+        propertiesList.scrollTop = this.scrollTop;
+      }
+      isSyncingDates = false;
+
+      if (!isSyncingBody) {
+        isSyncingHeader = true;
+        datesHeaderScroll.scrollLeft = this.scrollLeft;
+      }
+      isSyncingHeader = false;
+    });
+
+    datesHeaderScroll.addEventListener('scroll', function () {
+      if (!isSyncingHeader) {
+        isSyncingBody = true;
+        datesContainer.scrollLeft = this.scrollLeft;
+      }
+      isSyncingBody = false;
+    });
+
+    // Right pane should scroll calendar rows on wheel hover, but without showing a right vertical scrollbar.
+    datesContainer.addEventListener('wheel', function (event) {
+      // Allow browser/page zoom shortcuts (Ctrl/Cmd + wheel / trackpad pinch).
+      if (event.ctrlKey || event.metaKey) return;
+      if (Math.abs(event.deltaX) > Math.abs(event.deltaY)) return;
+      event.preventDefault();
+
+      let deltaY = event.deltaY;
+      if (event.deltaMode === 1) {
+        deltaY *= 16;
+      } else if (event.deltaMode === 2) {
+        deltaY *= propertiesList.clientHeight;
+      }
+
+      rightWheelDeltaY += deltaY;
+      if (rightWheelRaf) return;
+
+      rightWheelRaf = requestAnimationFrame(() => {
+        propertiesList.scrollTop += rightWheelDeltaY;
+        rightWheelDeltaY = 0;
+        rightWheelRaf = null;
+      });
+    }, { passive: false });
+
+    window.addEventListener('resize', function () {
+      if (timelineResizeTimer) clearTimeout(timelineResizeTimer);
+      timelineResizeTimer = setTimeout(() => {
+        syncTimelineDimensions();
+      }, 120);
+    });
+  }
+
+  function renderCurrentView() {
+    renderDatesHeader();
+    renderDatesGrid(filteredProperties);
+  }

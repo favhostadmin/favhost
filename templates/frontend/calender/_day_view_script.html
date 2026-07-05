@@ -1,0 +1,291 @@
+{% load static %}
+  function renderDaySchedule(pane) {
+    // Day view shows ALL listings, not just the active one
+    const pBookings = bookings.filter(b => {
+      if (typeFilters.reservation) return true;
+      if (typeFilters.payment) return b.paymentsInfo && Object.keys(b.paymentsInfo).length > 0;
+      return false;
+    });
+    const pEnquiries = typeFilters.reservation ? enquiries.slice() : [];
+    const pTasks = tasks.filter(t => {
+      if (t.task_type === 'payment') {
+        return typeFilters.payment;
+      } else {
+        return typeFilters.task;
+      }
+    });
+    const dateStr = selectedDateKey;
+
+    const dateObj = new Date(dateStr + 'T00:00:00');
+    const today = new Date();
+    const isToday = dateObj.toDateString() === today.toDateString();
+
+    const weekdays = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+    const weekdayStr = weekdays[dateObj.getDay()];
+    const dayNum = dateObj.getDate();
+
+    // --- Data ---
+    const checkIns = typeFilters.reservation ? pBookings.filter(b => b.start_date === dateStr) : [];
+    const checkOuts = typeFilters.reservation ? pBookings.filter(b => b.end_date === dateStr) : [];
+    const dayTasks = pTasks.filter(t => t.date === dateStr);
+    const dayEnquiries = pEnquiries.filter(eq => eq.start_date === dateStr);
+
+    const dayPaymentIconUrl = "{% static 'img/task/type/payment.svg' %}";
+
+    function bookingHasPayment(b) {
+      return b.paymentsInfo && b.paymentsInfo[dateStr] && typeFilters.payment;
+    }
+
+    // --- Build events list with time placement ---
+    // Each event: { startHour (float), endHour (float), title, sub, color, onClick, icon }
+    const HOUR_PX = 60; // 60px per hour, 1440px total
+    const events = [];
+
+    // Helper: parse "HH:MM" or fall back
+    function parseTime(str, fallback) {
+      if (!str) return fallback;
+      const m = String(str).match(/(\d{1,2}):(\d{2})/);
+      if (m) return parseInt(m[1], 10) + parseInt(m[2], 10) / 60;
+      return fallback;
+    }
+
+    // Bookings: check-ins show at 14:00 (2pm), check-outs at 11:00 (11am)
+    checkIns.forEach(b => {
+      const prop = properties.find(p => String(p.id) === String(b.propertyId));
+      const propName = prop ? prop.title : '';
+      events.push({
+        startHour: parseTime(b.check_in_time, 14),
+        endHour: parseTime(b.check_in_time, 14) + 1,
+        title: b.guestName || 'Guest',
+        badgeText: 'Check-in',
+        sub: `${propName}${propName && b.channelName ? ' · ' : ''}${b.channelName || ''}${b.bookingId ? ' · ' + b.bookingId : ''}`,
+        type: 'check-in',
+        color: '#2979ff',
+        background: 'rgba(41, 121, 255, 0.3)',
+        textColor: '#1565c0',
+        onClick: `openReservationPanel(event, '${b.id}')`,
+        bookingId: b.id,
+        hasPayment: bookingHasPayment(b)
+      });
+    });
+
+    checkOuts.forEach(b => {
+      const prop = properties.find(p => String(p.id) === String(b.propertyId));
+      const propName = prop ? prop.title : '';
+      events.push({
+        startHour: parseTime(b.check_out_time, 11),
+        endHour: parseTime(b.check_out_time, 11) + 1,
+        title: b.guestName || 'Guest',
+        badgeText: 'Check-out',
+        sub: `${propName}${propName && b.channelName ? ' · ' : ''}${b.channelName || ''}${b.bookingId ? ' · ' + b.bookingId : ''}`,
+        type: 'check-out',
+        color: '#5c6bc0',
+        background: 'rgba(92, 107, 192, 0.3)',
+        textColor: '#283593',
+        onClick: `openReservationPanel(event, '${b.id}')`,
+        bookingId: b.id,
+        hasPayment: bookingHasPayment(b)
+      });
+    });
+
+    // Payments: rendering as cards directly on the schedule
+    if (typeFilters.payment) {
+      const bookingsWithPayment = bookings.filter(b => b.paymentsInfo && b.paymentsInfo[dateStr]);
+      bookingsWithPayment.forEach(b => {
+        const payInfo = b.paymentsInfo[dateStr];
+        let hour = 12;
+        if (b.start_date === dateStr) {
+          hour = parseTime(b.check_in_time, 14);
+        } else if (b.end_date === dateStr) {
+          hour = parseTime(b.check_out_time, 11);
+        }
+        const prop = properties.find(p => String(p.id) === String(b.propertyId));
+        const propName = prop ? prop.title : '';
+        const isPaid = payInfo.is_paid;
+        events.push({
+          startHour: hour,
+          endHour: hour + 1,
+          title: `$${Number(payInfo.amount).toFixed(2)}`,
+          badgeText: 'Payment',
+          sub: `${propName ? propName + ' · ' : ''}${payInfo.type || 'Payment'} (${isPaid ? 'Paid' : 'Pending'})`,
+          type: 'payment',
+          color: isPaid ? '#10b981' : '#f59e0b',
+          background: isPaid ? 'rgba(16, 185, 129, 0.3)' : 'rgba(245, 158, 11, 0.3)',
+          textColor: isPaid ? '#065f46' : '#92400e',
+          onClick: `handlePaymentIndicatorClick(event,'${b.id}','${dateStr}')`,
+          bookingId: b.id,
+          hasPayment: false
+        });
+      });
+    }
+
+    dayTasks.forEach(t => {
+      const prop = properties.find(p => String(p.id) === String(t.propertyId));
+      const propName = prop ? prop.title : '';
+      const sh = parseTime(t.time, 9);
+      const eh = parseTime(t.end_time, sh + 1);
+      const taskColorsMap = {
+        cleaning: { color: '#10b981', background: 'rgba(16, 185, 129, 0.3)', text: '#065f46' },
+        maintenance: { color: '#ef4444', background: 'rgba(239, 68, 68, 0.3)', text: '#c62828' },
+        payment: { color: '#3b82f6', background: 'rgba(59, 130, 246, 0.3)', text: '#1d4ed8' },
+        other: { color: '#8b5cf6', background: 'rgba(139, 92, 246, 0.3)', text: '#5b21b6' }
+      };
+      const activeType = t.task_type || 'other';
+      const styleTheme = taskColorsMap[activeType] || taskColorsMap.other;
+
+      events.push({
+        startHour: sh,
+        endHour: eh,
+        title: t.details || 'Task',
+        badgeText: activeType.charAt(0).toUpperCase() + activeType.slice(1),
+        sub: `${propName ? propName + ' · ' : ''}${activeType.charAt(0).toUpperCase() + activeType.slice(1)} · ${t.assigned_to || 'Unassigned'}`,
+        type: 'task',
+        color: styleTheme.color,
+        background: styleTheme.background,
+        textColor: styleTheme.text,
+        onClick: `openTaskDetailModal(event, '${t.id}')`
+      });
+    });
+
+    dayEnquiries.forEach(eq => {
+      const prop = properties.find(p => String(p.id) === String(eq.propertyId));
+      const propName = prop ? prop.title : '';
+      events.push({
+        startHour: 10,
+        endHour: 11,
+        title: eq.guestName || 'Inquirer',
+        badgeText: 'Enquiry',
+        sub: `${propName ? propName + ' · ' : ''}${eq.email}`,
+        type: 'enquiry',
+        color: '#8e24aa',
+        background: 'rgba(142, 36, 170, 0.3)',
+        textColor: '#4a148c',
+        onClick: `openEnquiryPanel(event, '${eq.id}')`
+      });
+    });
+
+    // --- Build time labels & hour lines ---
+    let timeLabelsHtml = '';
+    let hourLinesHtml = '';
+    for (let h = 0; h <= 24; h++) {
+      const top = h * HOUR_PX;
+      if (h > 0 && h < 24) {
+        const label = h < 12 ? `${h} AM` : h === 12 ? '12 PM' : `${h - 12} PM`;
+        timeLabelsHtml += `<div class="gcal-time-label" style="top:${top}px">${label}</div>`;
+      }
+      if (h < 24) {
+        hourLinesHtml += `<div class="gcal-hour-line major" style="top:${top}px"></div>`;
+        // 30-min line
+        hourLinesHtml += `<div class="gcal-hour-line" style="top:${top + 30}px"></div>`;
+      }
+    }
+
+    // --- Now-line ---
+    let nowLineHtml = '';
+    if (isToday) {
+      const now = new Date();
+      const nowTop = (now.getHours() + now.getMinutes() / 60) * HOUR_PX;
+      nowLineHtml = `<div class="gcal-now-line" style="top:${nowTop}px"><div class="gcal-now-dot"></div></div>`;
+    }
+
+    // --- Build event blocks ---
+    // Simple overlap handling: group by overlap then offset left
+    function computeColumns(evts) {
+      // Sort by start
+      const sorted = [...evts].sort((a, b) => a.startHour - b.startHour);
+      const cols = [];
+      sorted.forEach(ev => {
+        let placed = false;
+        for (let c = 0; c < cols.length; c++) {
+          const last = cols[c][cols[c].length - 1];
+          if (last.endHour <= ev.startHour) {
+            cols[c].push(ev);
+            ev._col = c;
+            placed = true;
+            break;
+          }
+        }
+        if (!placed) { ev._col = cols.length; cols.push([ev]); }
+      });
+      const numCols = cols.length || 1;
+      sorted.forEach(ev => { ev._numCols = numCols; });
+      return sorted;
+    }
+
+    const positionedEvents = computeColumns(events);
+
+    let eventBlocksHtml = '';
+    positionedEvents.forEach(ev => {
+      const topPx = ev.startHour * HOUR_PX;
+      const heightPx = Math.max((ev.endHour - ev.startHour) * HOUR_PX - 2, 28);
+      const numCols = ev._numCols || 1;
+      const col = ev._col || 0;
+      const widthPct = (100 / numCols);
+      const leftPct = col * widthPct;
+      const style = [
+        `top:${topPx}px`,
+        `height:${heightPx}px`,
+        `background:${ev.background || 'rgba(0,0,0,0.05)'}`,
+        `border-left: 4px solid ${ev.color || '#6b7280'}`,
+        `border-top: none`,
+        `border-right: none`,
+        `border-bottom: none`,
+        `border-radius: 6px`,
+        `padding: 6px 12px 6px 10px`,
+        `left:calc(${leftPct}% + 4px)`,
+        `width:calc(${widthPct}% - 8px)`
+      ].join(';');
+
+      eventBlocksHtml += `
+        <div class="gcal-event-block" style="${style}" onclick="${ev.onClick}">
+          <div class="gcal-event-title" style="color: ${ev.textColor || '#1f2937'}; display: flex; align-items: center; gap: 4px; flex-wrap: wrap;">
+            ${ev.badgeText ? `<span style="background: ${ev.color}; color: #fff; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 800; text-transform: uppercase; display: inline-flex; align-items: center; height: 16px; margin-right: 2px; line-height: 1;">${ev.badgeText}</span>` : ''}
+            <span style="line-height: 1.2;">${ev.title}</span>
+          </div>
+          ${ev.sub ? `<div class="gcal-event-sub" style="color: ${ev.textColor || '#4b5563'}e6; font-weight: 500; margin-top: 3px;">${ev.sub}</div>` : ''}
+        </div>
+      `;
+    });
+
+    // --- Render ---
+    pane.innerHTML = `
+      <div class="gcal-day-view">
+        <!-- Scrollable grid -->
+        <div class="gcal-day-scroll-area" id="gcalDayScrollArea">
+          <div class="gcal-day-grid" style="min-height:${24 * HOUR_PX}px">
+            <!-- Time gutter -->
+            <div class="gcal-time-gutter" style="height:${24 * HOUR_PX}px">
+              ${timeLabelsHtml}
+            </div>
+            <!-- Day column -->
+            <div class="gcal-day-col" style="height:${24 * HOUR_PX}px; position:relative;">
+              ${hourLinesHtml}
+              ${nowLineHtml}
+              ${eventBlocksHtml}
+              ${events.length === 0 ? `<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:14px;color:#9ca3af;font-style:italic;pointer-events:none;">No events scheduled</div>` : ''}
+            </div>
+          </div>
+        </div>
+
+    `;
+
+    // Scroll to 7 AM by default (or now-line if today)
+    requestAnimationFrame(() => {
+      const scrollArea = document.getElementById('gcalDayScrollArea');
+      if (!scrollArea) return;
+      if (isToday) {
+        const now = new Date();
+        const nowTop = (now.getHours() + now.getMinutes() / 60) * HOUR_PX;
+        scrollArea.scrollTop = Math.max(0, nowTop - scrollArea.clientHeight / 2);
+      } else {
+        scrollArea.scrollTop = 7 * HOUR_PX;
+      }
+    });
+  }
+
+  var _currentModalTaskId = null;
+
+
+  function renderCurrentView() {
+    renderDaySchedule(document.getElementById('gridCalendarPane'));
+  }

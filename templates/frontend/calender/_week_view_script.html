@@ -1,0 +1,194 @@
+{% load static %}
+  function renderWeekGrid(pane) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const paymentIconUrl = "{% static 'img/task/type/payment.svg' %}";
+
+    const pBookings = bookings.filter(b => {
+      if (typeFilters.reservation) return true;
+      if (typeFilters.payment) return b.paymentsInfo && Object.keys(b.paymentsInfo).length > 0;
+      return false;
+    });
+    const pEnquiries = typeFilters.reservation ? enquiries.slice() : [];
+    const pTasks = tasks.filter(t => {
+      if (t.task_type === 'payment') {
+        return typeFilters.payment;
+      } else {
+        return typeFilters.task;
+      }
+    });
+    const spansList = [];
+    if (typeFilters.reservation) {
+      spansList.push(...pBookings.map(b => ({ ...b, isEnquiry: false })));
+      spansList.push(...pEnquiries.map(eq => ({ ...eq, isEnquiry: true })));
+    } else if (typeFilters.payment) {
+      spansList.push(...pBookings.map(b => ({ ...b, isEnquiry: false })));
+    }
+
+    const weekDates = [];
+    const temp = new Date(selectedWeekStart);
+    temp.setHours(0, 0, 0, 0);
+    for (let d = 0; d < 7; d++) {
+      weekDates.push(new Date(temp));
+      temp.setDate(temp.getDate() + 1);
+    }
+
+    const weekStart = weekDates[0];
+    const weekEnd = weekDates[6];
+    const FIXED_GRID = '1fr 3px 1fr';
+    const taskIconsMap = {
+      cleaning: "{% static 'img/task/type/cleaning.svg' %}",
+      maintenance: "{% static 'img/task/type/maintenance.svg' %}",
+      payment: "{% static 'img/task/type/payment.svg' %}",
+      other: "{% static 'img/task/type/others.svg' %}"
+    };
+    const taskColors = { cleaning: '#10b981', maintenance: '#f59e0b', payment: '#3b82f6', other: '#8b5cf6' };
+    const dayNames = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+    const propsToRender = filteredProperties.length > 0 ? filteredProperties : properties;
+
+    const spanOffsets = (span) => {
+      const n = Math.max(span.endCol - span.startCol + 1, 2);
+      const mlPct = span.carryStart ? 0 : (100 / (2 * n));
+      const mrPct = span.carryEnd ? 0 : (100 / (2 * n));
+      return `margin-left:${mlPct.toFixed(2)}%;margin-right:${mrPct.toFixed(2)}%`;
+    };
+
+    let html = `
+      <div class="week-grid-scroll" style="display:flex;flex-direction:column;flex:1;min-height:0;">
+        <div style="display:flex;min-width:max-content;border:1px solid #1f2937;border-radius:12px 12px 0 0;overflow:hidden;background:#1f2937;color:#fff;font-weight:700;font-size:11px;text-transform:uppercase;user-select:none;">
+          <div class="week-sidebar-col" style="display:flex;align-items:center;padding:10px;background:#f9fafb;position:sticky;left:0;z-index:2;">
+            <div style="display:flex;align-items:center;gap:6px;width:100%;padding:8px 10px;border:1px solid #e5e7eb;border-radius:8px;background:#f9fafb;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:#9ca3af;flex-shrink:0;"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.35-4.35"></path></svg>
+              <input type="text" id="weekPropertySearchInput" placeholder="Search listings"
+                onkeyup="filterProperties()"
+                style="width:100%;border:none;font-size:13px;background:transparent;color:#1f2937;outline:none;box-sizing:border-box;" />
+            </div>
+          </div>
+          <div class="week-days-grid" style="flex:1;text-align:center;">
+            ${weekDates.map((d, i) => `<div style="padding:12px 4px;border-left:1px solid rgba(255,255,255,0.1);">${dayNames[d.getDay()]} ${d.getDate()}</div>`).join('')}
+          </div>
+        </div>
+        <div class="week-grid-body" style="flex:1;min-width:max-content;overflow-y:auto;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 12px 12px;background:#fff;">
+          ${propsToRender.map(property => {
+      const propImg = property.image || "{% static 'img/common/default_user_icon_1.png' %}";
+      const propName = property.title || 'Property';
+      const propertySpans = spansList.filter(s => String(s.propertyId) === String(property.id));
+      const propertyTasks = pTasks.filter(t => String(t.propertyId) === String(property.id));
+      const propertyBookings = pBookings.filter(b => String(b.propertyId) === String(property.id));
+
+      const weekSpans = [];
+      propertySpans.forEach(event => {
+        const evStart = new Date(event.startDateStr + 'T00:00:00');
+        const evEnd = new Date(event.endDateStr + 'T00:00:00');
+        evEnd.setDate(evEnd.getDate() - 1);
+        if (evStart <= weekEnd && evEnd >= weekStart) {
+          const carryStart = evStart < weekStart;
+          const carryEnd = evEnd > weekEnd;
+          const startCol = carryStart ? 0 : Math.round((evStart - weekStart) / (1000 * 60 * 60 * 24));
+          const endCol = carryEnd ? 6 : Math.round((evEnd - weekStart) / (1000 * 60 * 60 * 24));
+          weekSpans.push({ event, startCol, endCol, carryStart, carryEnd, length: endCol - startCol + 1 });
+        }
+      });
+
+      const bookingSpans = weekSpans.filter(s => !s.event.isEnquiry);
+      let rowHtml = '';
+
+      bookingSpans.forEach(span => {
+        const ev = span.event;
+        const gridColStart = span.startCol + 1;
+        const gridColEnd = span.endCol + 2;
+        const onClick = ev.type === 'blocked'
+          ? `onclick="openUnblockModal(event, '${ev.id}')"`
+          : `onclick="openReservationPanel(event, '${ev.id}')"`;
+        const carryStartClass = span.carryStart ? 'carry-start' : '';
+        const carryEndClass = span.carryEnd ? 'carry-end' : '';
+        const labelName = ev.guestName || 'Blocked';
+        const labelText = span.carryStart ? `-- ${labelName}` : labelName;
+        const channelLogoUrl = getChannelLogo(ev.channelName, ev.channelIcon);
+        const channelColor = getChannelColor(ev.channelName) || ev.color || '#3b82f6';
+        const channelLogoHtml = channelLogoUrl && ev.type !== 'blocked'
+          ? `<div class="channel-logo-circle" style="border-color:${channelColor};background-color:${channelColor}"><img src="${channelLogoUrl}" alt="${ev.channelName || ''}" /></div>`
+          : '';
+        const style = ev.type === 'blocked' ? 'background-color:#9ca3af;' : `background-color:${channelColor};`;
+        rowHtml += `<div class="grid-event-span ${carryStartClass} ${carryEndClass}" style="grid-column:${gridColStart}/${gridColEnd};grid-row:1;${style};${spanOffsets(span)}" ${onClick} onmouseenter="showMonthEventTooltip(event,'${ev.id}',false)" onmouseleave="hideGlobalTooltip()">${channelLogoHtml}<span class="event-title">${labelText}</span></div>`;
+      });
+
+      weekDates.forEach((d, colIdx) => {
+        const dateStr = toISODateString(d);
+        const dayTasks = propertyTasks.filter(t => t.date === dateStr);
+        const bookingStartsHere = weekSpans.some(s => !s.carryStart && s.startCol === colIdx);
+
+        const bookingWithPayment = propertyBookings.find(b => b.paymentsInfo && b.paymentsInfo[dateStr]);
+        const hasPaymentCollision = bookingStartsHere && bookingWithPayment && typeFilters.payment;
+
+        // Payment collision: small black dot at bottom when payment date coincides with reservation start
+        if (hasPaymentCollision) {
+          rowHtml += `<div style="grid-column:${colIdx + 1}/${colIdx + 2};grid-row:1/-1;align-self:end;justify-self:center;width:8px;height:8px;border-radius:50%;background:#000;z-index:130;cursor:pointer;pointer-events:auto;margin-bottom:4px;" onmouseenter="showPaymentTooltip(event,'${bookingWithPayment.id}','${dateStr}')" onmouseleave="handleIndicatorHoverLeave()"></div>`;
+        }
+
+        // Normal payment indicator (when no collision with reservation start)
+        if (!hasPaymentCollision && bookingWithPayment && typeFilters.payment && !(bookingStartsHere && dayTasks.length > 0)) {
+          rowHtml += `<div style="grid-column:${colIdx + 1}/${colIdx + 2};grid-row:1;align-self:center;justify-self:center;width:36px;height:36px;border-radius:50%;background:#3b82f6;border:2px solid #fff;display:flex;align-items:center;justify-content:center;z-index:120;cursor:pointer;pointer-events:auto;box-shadow:0 1px 3px rgba(0,0,0,0.25);" onclick="handlePaymentIndicatorClick(event,'${bookingWithPayment.id}','${dateStr}')" onmouseenter="showPaymentTooltip(event,'${bookingWithPayment.id}','${dateStr}')" onmouseleave="handleIndicatorHoverLeave()"><img src="${paymentIconUrl}" alt="payment" style="width:24px;height:24px;object-fit:contain;filter:brightness(0) invert(1);" /></div>`;
+        }
+
+        if (dayTasks.length === 0) return;
+        const t0 = dayTasks[0];
+
+        if (bookingStartsHere) {
+          rowHtml += `<div style="position:static;grid-column:${colIdx + 1}/${colIdx + 2};grid-row:1/-1;align-self:end;justify-self:center;width:8px;height:8px;border-radius:50%;background:#ef4444;z-index:15;cursor:pointer;pointer-events:auto;animation:cell-blink 1.2s ease-in-out infinite;" onclick="openTaskDetailModal(event,'${t0.id}')"></div>`;
+          return;
+        }
+        const taskIconUrl = taskIconsMap[t0.task_type] || taskIconsMap.other;
+        const taskColor = taskColors[t0.task_type] || taskColors.other;
+        const paymentRing = t0.task_type === 'payment' ? 'box-shadow:0 0 0 2.5px #38bdf8,0 2px 6px rgba(0,0,0,0.15);width:30px;height:30px;' : '';
+        rowHtml += `<div class="task-circle-bar" style="grid-column:${colIdx + 1}/${colIdx + 2};grid-row:1;background-color:${taskColor};${paymentRing}" onclick="openTaskDetailModal(event,'${t0.id}')">${t0.task_type === 'payment' ? `<div style="position:relative;display:flex;align-items:center;justify-content:center;width:100%;height:100%;"><img src="${taskIconUrl}" alt="" style="width:16px;height:16px;filter:brightness(0) invert(1);opacity:0.5;position:absolute;" /><span style="color:#fff;font-weight:900;font-size:14px;line-height:1;position:relative;z-index:1;">$</span></div>` : `<img src="${taskIconUrl}" alt="" />`}</div>`;
+      });
+
+      const detailHref = property.slug ? `/property/detail/${property.slug}/` : (property.detail_url || property.url || '#');
+      return `
+              <div style="display:flex;min-width:max-content;border-bottom:1px solid #e5e7eb;">
+                <div class="week-sidebar-col" style="display:flex;align-items:center;gap:0;padding:8px 10px;border-right:1px solid #e5e7eb;background:#fafafa;position:sticky;left:0;z-index:200;"
+                     onmouseenter="showPropertyPreview(event, '${property.id}')" onmouseleave="hidePropertyPreview()"
+                     onclick="togglePropertyPreview(event, '${property.id}')">
+                  <img src="${propImg}" alt="" style="width:32px;height:32px;border-radius:50%;object-fit:cover;flex-shrink:0;" onerror="this.onerror=null;this.src='{% static 'img/common/default_user_icon_1.png' %}';">
+                  <span class="week-property-name-text">${propName}</span>
+                  <div class="property-actions">
+                    <div class="dropdown dropend">
+                      <button class="btn btn-sm" type="button" data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false" style="padding:2px 6px;font-size:18px;line-height:1;border:none;background:none;color:#6b7280;cursor:pointer;">⋮</button>
+                      <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="{% url 'booking:booking-create' %}?property_id=${property.id}">Create a new Booking</a></li>
+                        <li><a class="dropdown-item" href="javascript:void(0)" onclick="openBlockCalendarModal('${property.id}')">Block Calendar</a></li>
+                        <li><a class="dropdown-item" href="/manage/${property.id}/">Channel integration</a></li>
+                        <li><a class="dropdown-item" href="{% url 'tasks:task-create' %}?property_id=${property.id}">Create Task</a></li>
+                        <li><a class="dropdown-item" href="#">Report</a></li>
+                        <li><a class="dropdown-item" href="${detailHref}" target="_blank" rel="noopener noreferrer">Listing Details</a></li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+                <div style="flex:1;min-height:58px;position:relative;">
+                  <div class="week-days-grid" style="height:100%;">
+                    ${weekDates.map((d, i) => {
+        const isToday = d.toDateString() === today.toDateString();
+        return `<div style="border-left:${i > 0 ? '1px solid #e5e7eb' : 'none'};${isToday ? 'background:rgba(22,163,74,0.08)' : ''};"></div>`;
+      }).join('')}
+                  </div>
+                  <div class="week-days-grid" style="position:absolute;top:14px;left:0;right:0;bottom:6px;grid-template-rows:${FIXED_GRID};pointer-events:none;">
+                    ${rowHtml}
+                  </div>
+                </div>
+              </div>
+            `;
+    }).join('')}
+        </div>
+      </div>
+    `;
+
+    pane.innerHTML = html;
+  }
+
+  /* --- Day Schedule View Renderer --- */
+
+  function renderCurrentView() {
+    renderWeekGrid(document.getElementById('gridCalendarPane'));
+  }

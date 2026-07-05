@@ -1,0 +1,2417 @@
+{% load static %}
+  const properties = JSON.parse(document.getElementById('rooms-data').textContent);
+  let bookings = JSON.parse(document.getElementById('bookings-data').textContent);
+  let enquiries = [];
+  let tasks = [];
+  let allDates = [];
+  let isLoading = false;
+  let filteredProperties = properties; // Track currently filtered properties
+  let hideTaskPanelTimeout = null; // Timeout for hiding task panel
+  let timelineResizeTimer = null;
+  let rightWheelRaf = null;
+  let rightWheelDeltaY = 0;
+  let selectedDateKey = null;
+  let hasManualDateSelection = false;
+  const MONTH_PICKER_YEAR_RANGE = 15;
+
+  // Channel brand colors — authoritative override for reservation bars
+  const CHANNEL_COLORS = {
+    'airbnb': '#ff5a5f',
+    'booking.com': '#003580',
+    'vrbo': '#328eee',
+    'google vacation rentals': '#4285f4',
+    'furnished finder': '#034499',
+    'expedia': '#000099',
+    'tripadvisor': '#34e0a1',
+    'agoda': '#af38b0',
+    'personal website': '#6b5b95',
+    'others': '#999999',
+  };
+  function getChannelColor(channelName) {
+    if (!channelName) return null;
+    const key = channelName.trim().toLowerCase();
+    return CHANNEL_COLORS[key] || null;
+  }
+
+  // Channel logo map — static logo files as fallback when channelIcon API field is empty
+  const CHANNEL_LOGOS = {
+    'airbnb': "{% static 'img/channel-logos/airbnb.png' %}?v=2",
+    'booking.com': "{% static 'img/channel-logos/booking-com.png' %}?v=2",
+    'vrbo': "{% static 'img/channel-logos/vrbo.png' %}?v=2",
+    'furnished finder': "{% static 'img/channel-logos/furnish-finder.png' %}?v=2",
+    'expedia': "{% static 'img/channel-logos/Expedia.png' %}?v=2",
+    'tripadvisor': "{% static 'img/channel-logos/tripadvisor.png' %}?v=2",
+    'agoda': "{% static 'img/channel-logos/Agoda_Logo_1.png' %}?v=2",
+    'google vacation rentals': "{% static 'img/channel-logos/google_rental.png' %}?v=2",
+  };
+  function getChannelLogo(channelName, channelIconFromApi) {
+    if (channelIconFromApi && channelIconFromApi.trim()) return channelIconFromApi;
+    if (!channelName) return '';
+    const key = channelName.trim().toLowerCase();
+    return CHANNEL_LOGOS[key] || '';
+  }
+
+  // Global currentDisplayDate for month display
+  let currentDisplayDate = new Date(); // Starts at today
+  let selectedWeekStart = null; // Sunday of current week
+  let activePropertyId = (properties && properties.length > 0) ? String(properties[0].id) : null;
+  let typeFilters = { reservation: true, task: true, payment: true };
+  let reservationPanelWasOpenBeforeReceipt = false;
+  let initialFilter = null;
+
+  function updateViewTitle() {
+    const el = document.getElementById('viewTitle');
+    if (!el) return;
+    const labels = { month: 'Month view', week: 'Week view', day: 'Day view', timeline: 'Timeline view', list: 'List view' };
+    el.textContent = 'Calendar - ' + (labels[currentViewMode] || 'Month view');
+  }
+
+  function toISODateString(date) {
+    return date.getFullYear() + '-' +
+      ('0' + (date.getMonth() + 1)).slice(-2) + '-' +
+      ('0' + date.getDate()).slice(-2);
+  }
+
+  function toDateOnlyString(dateStr) {
+    return dateStr.split('T')[0];
+  }
+
+  function addDaysToISO(dateStr, days) {
+    const [y, m, d] = dateStr.split('-').map(Number);
+    const dt = new Date(y, m - 1, d);
+    dt.setDate(dt.getDate() + days);
+    return toISODateString(dt);
+  }
+
+  // Get tasks for a specific date and property
+  function getTasksForDateAndProperty(dateStr, propertyId) {
+    console.log('🔍 getTasksForDateAndProperty - dateStr:', dateStr, ', propertyId:', propertyId);
+    const result = tasks.filter(t => {
+      const dateMatch = t.date === dateStr;
+      const propMatch = String(t.propertyId) === String(propertyId);
+      console.log(`  Task: date=${t.date} (match: ${dateMatch}), propId=${t.propertyId} (match: ${propMatch})`);
+      return dateMatch && propMatch;
+    });
+    console.log('  Result count:', result.length);
+    return result;
+  }
+
+  // Update month display function
+  function updateMonthDisplay() {
+    const monthDisplay = document.getElementById('monthDisplay');
+    if (currentViewMode === 'week' && selectedWeekStart) {
+      const start = new Date(selectedWeekStart);
+      const end = new Date(start);
+      end.setDate(end.getDate() + 6);
+      const fmt = (d) => d.getDate() + ' ' + d.toLocaleDateString('en-US', { month: 'long' });
+      monthDisplay.textContent = fmt(start) + ' - ' + fmt(end);
+    } else if (currentViewMode === 'day' && selectedDateKey) {
+      const d = new Date(selectedDateKey + 'T00:00:00');
+      const dayMonthYear = d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+      monthDisplay.textContent = dayMonthYear;
+    } else {
+      const options = { month: 'long', year: 'numeric' };
+      monthDisplay.textContent = currentDisplayDate.toLocaleDateString('en-US', options);
+    }
+  }
+
+  function populateYearPicker() {
+    const yearSelect = document.getElementById('yearPickerSelect');
+    if (!yearSelect) return;
+
+    const selectedYear = currentDisplayDate.getFullYear();
+    const startYear = selectedYear - MONTH_PICKER_YEAR_RANGE;
+    const endYear = selectedYear + MONTH_PICKER_YEAR_RANGE;
+
+    yearSelect.innerHTML = '';
+    for (let year = startYear; year <= endYear; year++) {
+      const option = document.createElement('option');
+      option.value = String(year);
+      option.textContent = String(year);
+      yearSelect.appendChild(option);
+    }
+    yearSelect.value = String(selectedYear);
+  }
+
+  function syncMonthYearPickerFromCurrentDate() {
+    const monthSelect = document.getElementById('monthPickerSelect');
+    const yearSelect = document.getElementById('yearPickerSelect');
+    if (!monthSelect || !yearSelect) return;
+
+    monthSelect.value = String(currentDisplayDate.getMonth());
+
+    const currentYear = String(currentDisplayDate.getFullYear());
+    if (!yearSelect.querySelector(`option[value="${currentYear}"]`)) {
+      populateYearPicker();
+    }
+    yearSelect.value = currentYear;
+  }
+
+  function openMonthYearPanel() {
+    populateYearPicker();
+    syncMonthYearPickerFromCurrentDate();
+    const panel = document.getElementById('monthYearPanel');
+    const monthDisplay = document.getElementById('monthDisplay');
+    if (!panel || !monthDisplay) return;
+    panel.hidden = false;
+    monthDisplay.setAttribute('aria-expanded', 'true');
+  }
+
+  function closeMonthYearPanel() {
+    const panel = document.getElementById('monthYearPanel');
+    const monthDisplay = document.getElementById('monthDisplay');
+    if (!panel || !monthDisplay) return;
+    panel.hidden = true;
+    monthDisplay.setAttribute('aria-expanded', 'false');
+  }
+
+  function toggleMonthYearPanel(event) {
+    if (event) event.stopPropagation();
+    const panel = document.getElementById('monthYearPanel');
+    if (!panel) return;
+    if (panel.hidden) {
+      openMonthYearPanel();
+    } else {
+      closeMonthYearPanel();
+    }
+  }
+
+  function applyMonthYearSelection() {
+    const monthSelect = document.getElementById('monthPickerSelect');
+    const yearSelect = document.getElementById('yearPickerSelect');
+    if (!monthSelect || !yearSelect) return;
+
+    const selectedMonth = Number(monthSelect.value);
+    const selectedYear = Number(yearSelect.value);
+    if (Number.isNaN(selectedMonth) || Number.isNaN(selectedYear)) return;
+
+    currentDisplayDate = new Date(selectedYear, selectedMonth, 1);
+    closeMonthYearPanel();
+    refreshView();
+  }
+
+  async function fetchBookings() {
+    isLoading = true;
+    showLoadingIndicator();
+
+    // Safety check just in case
+    if (allDates.length === 0) {
+      hideLoadingIndicator();
+      isLoading = false;
+      return;
+    }
+
+    const firstDate = allDates[0];
+    const lastDate = allDates[allDates.length - 1];
+
+    // Ensure we cover the full range of the view
+    const url = `?start_date=${toISODateString(firstDate)}&end_date=${toISODateString(lastDate)}&_=${Date.now()}`;
+
+    try {
+      const response = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+      const data = await response.json();
+      bookings = data.bookings;
+      tasks = data.tasks || [];
+      enquiries = data.enquiries || [];
+
+      console.log('✅ API Response received');
+      console.log('Fetched tasks:', tasks);
+      console.log('Tasks count:', tasks.length);
+
+      if (tasks.length > 0) {
+        console.log('📋 First task structure:', tasks[0]);
+        console.log('   - Keys:', Object.keys(tasks[0]));
+      } else {
+        console.warn('⚠️ No tasks returned from API');
+      }
+
+      // Process dates for JS
+      bookings.forEach(b => {
+        const startDateStr = toDateOnlyString(b.start_date);
+        const endDateStr = toDateOnlyString(b.end_date);
+        const [sy, sm, sd] = startDateStr.split('-').map(Number);
+        const [ey, em, ed] = endDateStr.split('-').map(Number);
+        b.startDate = new Date(sy, sm - 1, sd);
+        b.endDate = new Date(ey, em - 1, ed + 1);
+        b.startDateStr = startDateStr;
+        b.endDateStr = addDaysToISO(endDateStr, 1);
+      });
+
+      // Process dates for Enquiries
+      enquiries.forEach(eq => {
+        const startDateStr = toDateOnlyString(eq.start_date);
+        const endDateStr = toDateOnlyString(eq.end_date);
+        const [sy, sm, sd] = startDateStr.split('-').map(Number);
+        const [ey, em, ed] = endDateStr.split('-').map(Number);
+        eq.startDate = new Date(sy, sm - 1, sd);
+        eq.endDate = new Date(ey, em - 1, ed + 1);
+        eq.startDateStr = startDateStr;
+        eq.endDateStr = addDaysToISO(endDateStr, 1);
+      });
+
+      // Update the property sidebar count badges since counts depend on enquiries
+      renderProperties(filteredProperties);
+
+      renderCurrentView();
+    } catch (error) {
+      console.error('Error fetching bookings:', error);
+    } finally {
+      hideLoadingIndicator();
+      isLoading = false;
+    }
+  }
+
+
+  function generateDates() {
+    allDates = [];
+    const year = currentDisplayDate.getFullYear();
+    const month = currentDisplayDate.getMonth();
+
+    // specific to the requested month view: 1st to Last Day of month
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0); // 0th day of next month is last day of current
+
+    for (let d = new Date(firstDay); d <= lastDay; d.setDate(d.getDate() + 1)) {
+      allDates.push(new Date(d));
+    }
+  }
+
+  function isBooked(propertyId, date) {
+    const dateStr = toISODateString(date);
+    return bookings.find(
+      booking => booking.propertyId === propertyId &&
+        dateStr >= booking.startDateStr && dateStr < booking.endDateStr
+    );
+  }
+
+
+  function renderProperties(propertiesToRender = properties) {
+    const propertiesList = document.getElementById('propertiesList');
+    propertiesList.innerHTML = propertiesToRender.map(property => {
+      const detailHref = property.slug ? `/property/detail/${property.slug}/` : (property.detail_url || property.url || '#');
+      const isActive = String(property.id) === String(activePropertyId);
+      const activeClass = isActive ? 'active-property-row' : '';
+      return `
+        <div class="property-row ${activeClass}"
+             data-id="${property.id}"
+             data-detail="${detailHref}"
+             onmouseenter="showPropertyPreview(event, '${property.id}')"
+             onmouseleave="hidePropertyPreview()">
+          <div class="property-link" style="display:inline-flex;align-items:center;gap:10px;text-decoration:none;color:inherit;">
+            <div class="property-avatar"><img src="${property.image}" alt="${property.title}" style="width:40px;height:40px;border-radius:50%; object-fit:cover;" /></div>
+          </div>
+          <div class="property-info">
+             <div class="property-name">${property.title}</div>
+          </div>
+          <div class="property-actions">
+              <div class="dropdown dropend">
+                  <button class="btn btn-sm" type="button" data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false">
+                      ⋮
+                  </button>
+                  <ul class="dropdown-menu">
+                      <li><a class="dropdown-item" href="{% url 'booking:booking-create' %}?property_id=${property.id}">Create a new Booking</a></li>
+                      <li><a class="dropdown-item" href="javascript:void(0)" onclick="openBlockCalendarModal('${property.id}')">Block Calendar</a></li>
+                      <li><a class="dropdown-item" href="/manage/${property.id}/">Channel integration</a></li>
+                      <li><a class="dropdown-item" href="{% url 'tasks:task-create' %}?property_id=${property.id}">Create Task</a></li>
+                      <li><a class="dropdown-item" href="#">Report</a></li>
+                      <li><a class="dropdown-item" href="${detailHref}" target="_blank" rel="noopener noreferrer">Listing Details</a></li>
+                  </ul>
+              </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    propertiesToRender.forEach(property => {
+      const row = propertiesList.querySelector(`.property-row[data-id="${property.id}"]`);
+      if (!row) return;
+      const detailUrl = row.dataset.detail;
+
+      row.addEventListener('click', (event) => {
+        if (event.target.closest('.property-actions')) return;
+        if (currentViewMode !== 'timeline') {
+          event.preventDefault();
+          activePropertyId = String(property.id);
+          renderProperties(propertiesToRender);
+          renderCurrentView();
+        } else {
+          const shouldProceed = togglePropertyPreview(event, property.id);
+          if (!shouldProceed) return;
+          if (detailUrl && detailUrl !== '#') window.open(detailUrl, '_blank', 'noopener,noreferrer');
+        }
+      });
+    });
+  }
+
+  function formatPropertyPrice(priceValue) {
+    const priceNumber = Number(priceValue);
+    if (Number.isNaN(priceNumber)) return null;
+    return `$${priceNumber.toFixed(2)} night`;
+  }
+
+
+  function showPropertyPreview(event, propertyId) {
+    if (activePropertyDropdown) return;
+
+    const tooltip = document.getElementById('propertyHoverTooltip');
+    if (!tooltip) return;
+
+    const property = properties.find(p => String(p.id) === String(propertyId));
+    if (!property) return;
+
+    const title = property.title || 'Property';
+    const location = property.location_display || property.location || property.city || '';
+    const priceText = formatPropertyPrice(property.price_per_night ?? property.basePrice ?? property.price);
+    const guestCount = property.guest ?? property.guests;
+    const minNights = property.min_nights ?? property.minimum_nights ?? property.min_stay;
+
+    tooltip.innerHTML = `
+      <div class="property-preview-card">
+        <img src="${property.image || ''}" alt="${title}" class="property-preview-image">
+        <div class="property-preview-content">
+          <div class="property-preview-title">${title}</div>
+          ${location ? `<div class="property-preview-line">${location}</div>` : ''}
+          ${priceText ? `<div class="property-preview-line price-line">${priceText}</div>` : ''}
+          ${(guestCount || minNights) ? `<div class="property-preview-line meta-line">${guestCount ? `${guestCount} Guests (max)` : ''}${guestCount && minNights ? ' . ' : ''}${minNights ? `${minNights} nights (min)` : ''}</div>` : ''}
+        </div>
+      </div>
+    `;
+
+    tooltip.style.display = 'block';
+
+    const targetRect = event.currentTarget.getBoundingClientRect();
+    const tooltipRect = tooltip.getBoundingClientRect();
+    const gap = 10;
+    let left = targetRect.left + 8;
+    let top = targetRect.bottom + gap;
+
+    if (left + tooltipRect.width > window.innerWidth - 10) {
+      left = window.innerWidth - tooltipRect.width - 10;
+    }
+    if (left < 10) left = 10;
+    if (top < 10) top = 10;
+    if (top + tooltipRect.height > window.innerHeight - 10) {
+      top = Math.max(10, targetRect.top - tooltipRect.height - gap);
+    }
+
+    tooltip.style.left = `${left}px`;
+    tooltip.style.top = `${top}px`;
+  }
+
+  let previewOpenPropertyId = null;
+
+  function hidePropertyPreview() {
+    const tooltip = document.getElementById('propertyHoverTooltip');
+    if (!tooltip) return;
+    tooltip.style.display = 'none';
+    previewOpenPropertyId = null;
+  }
+
+  function isNoHoverDevice() {
+    return window.matchMedia('(hover: none)').matches;
+  }
+
+  // Touch devices have no hover state, so the property preview card needs a
+  // tap-to-toggle fallback. Returns true when the caller's default action
+  // (e.g. row-click navigation) should still proceed, false when this tap
+  // was consumed just to open the preview.
+  function togglePropertyPreview(event, propertyId) {
+    if (event.target.closest('.property-actions')) return true;
+    if (!isNoHoverDevice()) return true;
+    if (activePropertyDropdown) return false;
+    event.stopPropagation();
+
+    const tooltip = document.getElementById('propertyHoverTooltip');
+    const alreadyOpen = tooltip && tooltip.style.display === 'block' && previewOpenPropertyId === String(propertyId);
+    if (alreadyOpen) {
+      hidePropertyPreview();
+      return true;
+    }
+
+    event.preventDefault();
+    showPropertyPreview(event, propertyId);
+    previewOpenPropertyId = String(propertyId);
+    return false;
+  }
+
+  document.addEventListener('click', function (event) {
+    if (!previewOpenPropertyId) return;
+    const tooltip = document.getElementById('propertyHoverTooltip');
+    if (tooltip && tooltip.contains(event.target)) return;
+    if (event.target.closest('.property-row') || event.target.closest('.week-sidebar-col')) return;
+    hidePropertyPreview();
+  });
+
+
+
+
+  function filterProperties() {
+    const input = document.getElementById('weekPropertySearchInput') || document.getElementById('propertySearchInput');
+    if (!input) return;
+    const clearBtn = document.getElementById('clearSearchBtn');
+    const searchTerm = input.value.toLowerCase();
+    const cursorPos = input.selectionStart;
+    const isFocused = document.activeElement === input;
+
+    if (searchTerm.length > 0) {
+      if (clearBtn) clearBtn.style.display = 'block';
+    } else {
+      if (clearBtn) clearBtn.style.display = 'none';
+    }
+
+    // Update global filtered properties state
+    filteredProperties = properties.filter(p => p.title.toLowerCase().includes(searchTerm));
+    if (currentViewMode === 'week') {
+      const gridPane = document.getElementById('gridCalendarPane');
+      const body = gridPane.querySelector('.week-grid-body');
+      const scrollTop = body ? body.scrollTop : 0;
+      renderWeekGrid(gridPane);
+      // Restore search value, focus, and cursor position after re-render
+      const newInput = document.getElementById('weekPropertySearchInput');
+      if (newInput) {
+        newInput.value = searchTerm;
+        if (isFocused) {
+          newInput.focus();
+          newInput.setSelectionRange(cursorPos, cursorPos);
+        }
+      }
+      const newBody = gridPane.querySelector('.week-grid-body');
+      if (newBody) newBody.scrollTop = scrollTop;
+    } else {
+      renderProperties(filteredProperties);
+      renderCurrentView();
+    }
+  }
+
+  function clearSearch() {
+    const input = document.getElementById('propertySearchInput');
+    input.value = '';
+    filteredProperties = properties; // Reset to all properties
+    filterProperties();
+  }
+
+  function showLoadingIndicator() {
+    document.getElementById('loadingIndicator').style.display = 'block';
+  }
+
+  function hideLoadingIndicator() {
+    document.getElementById('loadingIndicator').style.display = 'none';
+  }
+
+
+  const fmtDate = d => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
+  function getTooltipContent(b) {
+    // Adjust end date for display (remove the +1 day added during parsing)
+    const displayEndDate = new Date(b.endDate);
+    displayEndDate.setDate(displayEndDate.getDate() - 1);
+
+    const nights = Math.ceil((displayEndDate - b.startDate) / (1000 * 60 * 60 * 24));
+    const guestCount = b.guest_count || b.guests || 1;
+    const channelLogo = b.channelIcon || "{% static 'img/not-found/no_channel.svg' %}";
+
+    if (b.type === 'blocked') {
+      return `
+            <h4>Blocked</h4>
+            <div class="info-row highlight">${fmtDate(b.startDate)} - ${fmtDate(displayEndDate)}</div>
+            <div class="info-row">${b.reason || ''}</div>
+         `;
+    }
+
+    return `
+        <div class="booking-tooltip-card">
+          <div class="booking-tooltip-avatar-wrap">
+            <img src="${b.guestAvatar}" alt="Guest" class="booking-tooltip-avatar">
+          </div>
+          <div class="booking-tooltip-info">
+            <div class="booking-tooltip-name">${b.guestName || 'Guest'}</div>
+            <div class="booking-tooltip-date">${fmtDate(b.startDate)} - ${fmtDate(displayEndDate)}</div>
+            <div class="booking-tooltip-meta">
+              <span class="booking-tooltip-meta-item">
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                   <path d="M21 12.79A9 9 0 1 1 11.21 3C11.5 3 11.64 3.35 11.43 3.56A7 7 0 0 0 20.44 12.57C20.65 12.36 21 12.5 21 12.79Z" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+                </svg>
+                ${nights} nights
+              </span>
+              
+            </div>
+            <div class="booking-tooltip-meta">
+              <span class="booking-tooltip-meta-item">
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M20 21V19C20 16.791 18.209 15 16 15H8C5.791 15 4 16.791 4 19V21" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+                  <circle cx="12" cy="7" r="4" stroke-width="1.8"></circle>
+                </svg>
+                ${guestCount} guests
+              </span>
+            </div>
+            <div class="booking-tooltip-line">Reservation #: <strong>${b.bookingId || '-'}</strong></div>
+            <div class="booking-tooltip-line booking-tooltip-channel">
+              <img src="${channelLogo}" alt="${b.channelName || 'Channel'}">
+              <strong>${b.channelName || 'N/A'}</strong>
+            </div>
+          </div>
+        </div>
+      `;
+  }
+
+  function isMobileOrTabletView() {
+    return window.matchMedia('(max-width: 991.98px)').matches;
+  }
+
+  function handleIndicatorHoverLeave() {
+    if (isMobileOrTabletView()) return;
+    hideGlobalTooltip();
+  }
+
+  function showPaymentTooltip(event, bookingId, dateStr) {
+    event.stopPropagation();
+    const b = bookings.find(x => x.id == bookingId);
+    if (!b || !b.paymentsInfo || !b.paymentsInfo[dateStr]) return;
+
+    const info = b.paymentsInfo[dateStr];
+    const tooltip = document.getElementById('globalTooltip');
+    setTooltipVariant(tooltip, 'payment');
+    tooltip.style.maxWidth = '';
+
+    const statusText = info.is_paid ? 'Paid' : 'Unpaid';
+
+    // Format dateStr
+    const [y, m, d] = dateStr.split('-');
+    const dateObj = new Date(y, m - 1, d);
+    const formattedDate = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
+    const displayEndDate = new Date(b.endDate);
+    displayEndDate.setDate(displayEndDate.getDate() - 1);
+    const nights = Math.ceil((displayEndDate - b.startDate) / (1000 * 60 * 60 * 24));
+
+    tooltip.innerHTML = `
+        <div class="payment-tooltip-card">
+          <div class="payment-tooltip-amount">$${Number(info.amount).toFixed(2)}, due on ${formattedDate}</div>
+          <div class="payment-tooltip-status">Status: ${statusText}</div>
+          <div class="payment-tooltip-meta">Guest name: ${b.guestName}</div>
+          <div class="payment-tooltip-dates">${fmtDate(b.startDate)} - ${fmtDate(displayEndDate)} (${nights} nights)</div>
+        </div>
+      `;
+
+
+    tooltip.style.width = 'auto';
+    tooltip.style.display = 'block';
+    tooltip.dataset.source = 'payment';
+    tooltip.dataset.bookingId = String(bookingId);
+    tooltip.dataset.dateStr = String(dateStr);
+    positionTooltip(event, tooltip);
+  }
+
+  function handlePaymentIndicatorClick(event, bookingId, dateStr) {
+    event.stopPropagation();
+    event.preventDefault();
+    openPaymentDetailModal(event, bookingId, dateStr);
+  }
+
+  function positionTooltip(event, tooltip) {
+    console.log('📍 positionTooltip called');
+    let target = event.target;
+    console.log('  Target element:', target);
+
+    // Try to position relative to the segment for stability, fallback to target (icon)
+    if (target.closest('.booking-segment')) {
+      target = target.closest('.booking-segment');
+      console.log('  Found closest booking-segment');
+    } else {
+      console.log('  No booking-segment found, using target');
+    }
+
+    const rect = target.getBoundingClientRect();
+    console.log('  Target rect:', { top: rect.top, left: rect.left, width: rect.width, height: rect.height });
+
+    const tooltipRect = tooltip.getBoundingClientRect();
+    console.log('  Tooltip rect:', { width: tooltipRect.width, height: tooltipRect.height });
+
+    // If tooltip hasn't rendered yet (width/height are 0), estimate based on content
+    let tooltipWidth = tooltipRect.width || 320;
+    let tooltipHeight = tooltipRect.height || 200;
+
+    console.log('  Using dimensions - width:', tooltipWidth, 'height:', tooltipHeight);
+
+    let top = rect.top - tooltipHeight - 10;
+    let left = rect.left + (rect.width / 2) - (tooltipWidth / 2);
+
+    if (top < 0) {
+      top = rect.bottom + 10;
+      console.log('  Tooltip would go off top, repositioning to bottom');
+    }
+
+    if (left < 10) left = 10;
+    if (left + tooltipWidth > window.innerWidth - 10) {
+      left = window.innerWidth - tooltipWidth - 10;
+    }
+
+    console.log('  Final position - top:', top, 'left:', left);
+    tooltip.style.top = `${top}px`;
+    tooltip.style.left = `${left}px`;
+
+    console.log('📍 positionTooltip complete');
+  }
+
+  function showGlobalTooltip(event, bookingId) {
+    const b = bookings.find(x => x.id == bookingId);
+    if (!b) return;
+
+    const tooltip = document.getElementById('globalTooltip');
+    setTooltipVariant(tooltip, b.type === 'blocked' ? 'default' : 'booking');
+    tooltip.innerHTML = getTooltipContent(b);
+    tooltip.style.width = '';
+    tooltip.style.maxWidth = '';
+    tooltip.style.display = 'block';
+
+    positionTooltip(event, tooltip);
+  }
+
+  function hideGlobalTooltip() {
+    console.log('🔴 hideGlobalTooltip called - hiding tooltip');
+    const tooltip = document.getElementById('globalTooltip');
+    if (tooltip) {
+      tooltip.style.display = 'none';
+      delete tooltip.dataset.source;
+      delete tooltip.dataset.bookingId;
+      delete tooltip.dataset.dateStr;
+      delete tooltip.dataset.taskDate;
+      delete tooltip.dataset.taskProperty;
+      tooltip.style.width = '';
+      tooltip.style.maxWidth = '';
+      setTooltipVariant(tooltip, 'default');
+      console.log('🔴 Tooltip hidden');
+    } else {
+      console.log('🔴 Tooltip element not found');
+    }
+  }
+
+  function setTooltipVariant(tooltip, variant = 'default') {
+    if (!tooltip) return;
+    tooltip.classList.remove('booking-tooltip-variant');
+    tooltip.classList.remove('task-tooltip-variant');
+    tooltip.classList.remove('payment-tooltip-variant');
+    tooltip.classList.remove('date-info-variant');
+    if (variant === 'booking') tooltip.classList.add('booking-tooltip-variant');
+    if (variant === 'task') tooltip.classList.add('task-tooltip-variant');
+    if (variant === 'payment') tooltip.classList.add('payment-tooltip-variant');
+    if (variant === 'date-info') tooltip.classList.add('date-info-variant');
+  }
+
+  function showTaskTooltip(event, dateStr, propertyId) {
+    // console.log('🟢🟢🟢 SHOWTOOLTIP START - dateStr:', dateStr, 'propertyId:', propertyId);
+    event.stopPropagation();
+    event.preventDefault();
+
+    // console.log('🟢 showTaskTooltip called - dateStr:', dateStr, 'propertyId:', propertyId, 'type:', typeof propertyId);
+    // console.log('🟢 All tasks array:', tasks);
+    // console.log('🟢 Total tasks count:', tasks.length);
+
+    // Debug individual tasks
+    // if (tasks.length > 0) {
+    //   console.log('🟢 First task sample:', tasks[0]);
+    //   console.log('🟢 First task propertyId:', tasks[0].propertyId, 'type:', typeof tasks[0].propertyId);
+    //   console.log('🟢 First task date:', tasks[0].date);
+    // }
+
+    const tasksArray = getTasksForDateAndProperty(dateStr, propertyId);
+    // console.log('🟢 Filtered tasksArray:', tasksArray);
+    // console.log('🟢 Filtered tasks count:', tasksArray.length);
+
+    if (!tasksArray || tasksArray.length === 0) {
+      // console.log('⚠️ No tasks found for this date and property');
+      // console.log('  Date string to match:', dateStr);
+      // console.log('  PropertyId to match:', propertyId, 'type:', typeof propertyId);
+      // console.log('  Available task dates:', tasks.map(t => t.date));
+      // console.log('  Available propertyIds:', tasks.map(t => ({ id: t.propertyId, type: typeof t.propertyId })));
+      return;
+    }
+
+    // console.log('✅ Found', tasksArray.length, 'tasks, rendering tooltip...');
+
+    const tooltip = document.getElementById('globalTooltip');
+    if (!tooltip) {
+      console.error('❌ globalTooltip element not found!');
+      return;
+    }
+
+    // console.log('✅ Tooltip element found');
+
+    const taskIcons = {
+      'cleaning': "{% static 'img/task/type/cleaning.svg' %}",
+      'maintenance': "{% static 'img/task/type/maintenance.svg' %}",
+      'payment': "{% static 'img/task/type/payment.svg' %}",
+      'other': "{% static 'img/task/type/others.svg' %}"
+    };
+
+    let content = `<div class="task-tooltip-list">`;
+
+    tasksArray.forEach((t, index) => {
+      const iconUrl = taskIcons[t.task_type] || taskIcons['other'];
+      const assignedTo = t.assigned_to || 'Not assigned';
+      const taskStatus = t.completed ? 'Done' : 'Pending';
+      const taskTitle = (t.details || '').trim() || 'Task details...';
+
+      content += `
+            <div class="task-tooltip-item">
+              <img src="${iconUrl}" class="task-tooltip-icon" alt="${t.task_type || 'task'}" />
+              <div class="task-tooltip-content">
+                <div class="task-tooltip-title">${taskTitle}</div>
+                <div class="task-tooltip-line">Assigned to : <b>${assignedTo}</b></div>
+                <div class="task-tooltip-line">Status: <b>${taskStatus}</b></div>
+              </div>
+            </div>
+          `;
+    });
+
+    content += `</div>`;
+
+
+    // console.log('🟢 Setting tooltip innerHTML');
+    setTooltipVariant(tooltip, 'task');
+    tooltip.innerHTML = content;
+    tooltip.dataset.source = 'task';
+    tooltip.dataset.taskDate = String(dateStr);
+    tooltip.dataset.taskProperty = String(propertyId);
+
+    // console.log('🟢 Setting tooltip width and maxWidth');
+    tooltip.style.width = '300px';
+    tooltip.style.maxWidth = '300px';
+
+    // console.log('🟢 Setting tooltip display to block');
+    tooltip.style.display = 'block';
+
+    // console.log('🟢 Tooltip should now be visible, calling positionTooltip...');
+    positionTooltip(event, tooltip);
+
+    // console.log('🟢🟢🟢 SHOWTOOLTIP END - Tooltip positioned and displayed');
+  }
+
+  function getDateStats(dateStr) {
+    var occupiedIds = {};
+    for (var i = 0; i < bookings.length; i++) {
+      var b = bookings[i];
+      if (dateStr >= b.startDateStr && dateStr < addDaysToISO(b.endDateStr, -1)) {
+        occupiedIds[b.propertyId] = true;
+      }
+    }
+    var total = properties.length;
+    var occupied = Object.keys(occupiedIds).length;
+    var available = total - occupied;
+    var occupancyPct = total > 0 ? Math.round((occupied / total) * 100) : 0;
+    return { bookingsCount: occupied, available: available, occupancyPct: occupancyPct };
+  }
+
+  function showDateInfoTooltip(event, dateStr) {
+    var stats = getDateStats(dateStr);
+    var tooltip = document.getElementById('globalTooltip');
+    setTooltipVariant(tooltip, 'date-info');
+    tooltip.innerHTML =
+      '<div class="date-info-item"><span class="date-info-label">Bookings: </span><span class="date-info-value">' + stats.bookingsCount + '</span></div>' +
+      '<div class="date-info-item"><span class="date-info-label">Available: </span><span class="date-info-value">' + stats.available + '</span></div>' +
+      '<div class="date-info-item"><span class="date-info-label">Occupancy: </span><span class="date-info-value">' + stats.occupancyPct + '%</span></div>';
+    tooltip.style.width = 'auto';
+    tooltip.style.maxWidth = '';
+    tooltip.style.display = 'block';
+    tooltip.dataset.source = 'date-info';
+    positionTooltip(event, tooltip);
+  }
+
+  function handleTaskIndicatorClick(event, dateStr, propertyId) {
+    event.stopPropagation();
+    event.preventDefault();
+
+    if (!isMobileOrTabletView()) return;
+
+    const tooltip = document.getElementById('globalTooltip');
+    if (!tooltip) return;
+
+    const isSameTaskTooltipOpen =
+      tooltip.style.display === 'block' &&
+      tooltip.dataset.source === 'task' &&
+      tooltip.dataset.taskDate === String(dateStr) &&
+      tooltip.dataset.taskProperty === String(propertyId);
+
+    if (isSameTaskTooltipOpen) {
+      hideGlobalTooltip();
+      return;
+    }
+
+    showTaskTooltip(event, dateStr, propertyId);
+  }
+
+  // --- Dynamic Reservation Detail Modal ---
+  function openReservationPanel(event, bookingId) {
+    if (event) event.stopPropagation();
+    hideGlobalTooltip();
+    const overlay = document.getElementById('reservationModalOverlay');
+    const contentDiv = document.getElementById('reservationModalContent');
+    overlay.classList.add('open');
+    contentDiv.innerHTML = `
+        <div style="display:flex;justify-content:center;align-items:center;height:200px;">
+            <div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div>
+        </div>`;
+
+    const fetchUrl = `/booking/payment-details/${bookingId}/?partial=true`;
+    fetch(fetchUrl)
+      .then(r => { if (!r.ok) throw new Error('Network error'); return r.text(); })
+      .then(html => {
+        contentDiv.innerHTML = html;
+        contentDiv.querySelectorAll('.contact-info').forEach(el => el.removeAttribute('style'));
+        initSidebarInteractions(contentDiv);
+      })
+      .catch(e => {
+        contentDiv.innerHTML = `<div style="padding:20px;text-align:center;color:red;"><p>Failed to load.</p><p style="font-size:12px;">${e.message}</p></div>`;
+      });
+  }
+
+  function closeReservationPanel(event) {
+    if (event && event.target !== event.currentTarget) return;
+    hideGlobalTooltip();
+    document.getElementById('reservationModalOverlay').classList.remove('open');
+  }
+
+  function hideReservationOverlayForReceipt() {
+    const sidebar = document.getElementById('reservationSidebar');
+    const backdrop = document.getElementById('overlayBackdrop');
+    if (!sidebar || !backdrop) return;
+    reservationPanelWasOpenBeforeReceipt = sidebar.classList.contains('open');
+    sidebar.classList.remove('open');
+    backdrop.classList.remove('open');
+    document.body.classList.remove('reservation-panel-open');
+  }
+
+  function restoreReservationOverlayAfterReceipt() {
+    if (!reservationPanelWasOpenBeforeReceipt) return;
+    const sidebar = document.getElementById('reservationSidebar');
+    const backdrop = document.getElementById('overlayBackdrop');
+    if (!sidebar || !backdrop) return;
+    sidebar.classList.add('open');
+    backdrop.classList.add('open');
+    document.body.classList.add('reservation-panel-open');
+    reservationPanelWasOpenBeforeReceipt = false;
+  }
+
+  // --- Block Calendar Modal Logic ---
+  function openBlockCalendarModal(propertyId) {
+    const property = properties.find(p => p.id == propertyId);
+    if (!property) return;
+
+    document.getElementById('bcPropertyTitle').textContent = property.title;
+    document.getElementById('bcPropertyImage').src = property.image;
+    document.getElementById('bcPropertyId').value = property.id;
+
+    // Reset inputs
+    const today = new Date().toISOString().split('T')[0];
+    const fromInput = document.getElementById('bcFromDate');
+    const toInput = document.getElementById('bcToDate');
+
+    fromInput.value = '';
+    toInput.value = '';
+    fromInput.setAttribute('min', today);
+    toInput.setAttribute('min', today);
+    document.getElementById('bcSuccessMessage').classList.remove('show');
+    document.getElementById('bcErrorMessage').style.display = 'none';
+
+    // Setup listeners
+    fromInput.onchange = function () {
+      toInput.setAttribute('min', this.value);
+      if (toInput.value && toInput.value < this.value) {
+        toInput.value = '';
+      }
+    };
+
+    document.getElementById('blockCalendarModal').style.display = 'flex';
+  }
+
+  function closeBlockCalendarModal() {
+    document.getElementById('blockCalendarModal').style.display = 'none';
+  }
+
+  function showErrorModal(message) {
+    document.getElementById('errorModalBody').innerText = message;
+    const errorModal = new bootstrap.Modal(document.getElementById('errorModal'));
+    errorModal.show();
+  }
+
+  function handleBlockSubmit() {
+    const propertyId = document.getElementById('bcPropertyId').value;
+    const fromDate = document.getElementById('bcFromDate').value;
+    const toDate = document.getElementById('bcToDate').value;
+    const errorMsg = document.getElementById('bcErrorMessage');
+
+    const showBcError = (msg) => {
+      errorMsg.innerText = msg;
+      errorMsg.style.display = 'block';
+      setTimeout(() => { errorMsg.style.display = 'none'; }, 3000);
+    };
+
+    if (!fromDate || !toDate) {
+      showBcError('Please select both From and To dates');
+      return;
+    }
+
+    if (new Date(toDate) < new Date(fromDate)) {
+      showBcError('To date must be after From date');
+      return;
+    }
+
+    // API Call
+    fetch("{% url 'property:ajax-block-dates' %}", {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': '{{ csrf_token }}'
+      },
+      body: JSON.stringify({
+        property_id: propertyId,
+        start_date: fromDate,
+        end_date: toDate
+      })
+    })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          errorMsg.style.display = 'none';
+          const successMsg = document.getElementById('bcSuccessMessage');
+          successMsg.classList.add('show');
+          setTimeout(() => {
+            successMsg.classList.remove('show');
+            closeBlockCalendarModal();
+            if (typeof refreshData === 'function') refreshData();
+          }, 2000);
+        } else {
+          showBcError('Error: ' + (data.error || 'Failed to block dates'));
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        showBcError('An error occurred while blocking dates.');
+      });
+  }
+
+  // --- Unblock Calendar Modal Logic ---
+  function openUnblockModal(event, bookingId) {
+    if (event) event.stopPropagation();
+    const booking = bookings.find(b => b.id == bookingId);
+    if (!booking) return;
+
+    document.getElementById('unblockBookingId').value = bookingId;
+
+    const options = { month: 'short', day: 'numeric', year: 'numeric' };
+
+    // Adjust end date for display (remove the +1 day added during parsing)
+    const displayEndDate = new Date(booking.endDate);
+    displayEndDate.setDate(displayEndDate.getDate() - 1);
+
+    const startStr = booking.startDate.toLocaleDateString('en-US', options);
+    const endStr = displayEndDate.toLocaleDateString('en-US', options);
+
+    document.getElementById('unblockDateRange').textContent = `${startStr} - ${endStr}`;
+    document.getElementById('unblockCalendarModal').style.display = 'flex';
+    document.getElementById('unblockErrorMessage').style.display = 'none';
+  }
+
+  function closeUnblockModal() {
+    document.getElementById('unblockCalendarModal').style.display = 'none';
+  }
+
+  function handleUnblockSubmit() {
+    const bookingId = document.getElementById('unblockBookingId').value;
+    const errorMsg = document.getElementById('unblockErrorMessage');
+
+    const showUnblockError = (msg) => {
+      errorMsg.innerText = msg;
+      errorMsg.style.display = 'block';
+      setTimeout(() => { errorMsg.style.display = 'none'; }, 3000);
+    };
+
+    fetch("{% url 'property:ajax-unblock-dates' %}", {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': '{{ csrf_token }}'
+      },
+      body: JSON.stringify({ booking_id: bookingId })
+    })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          closeUnblockModal();
+          if (typeof refreshData === 'function') refreshData();
+        } else {
+          showUnblockError('Error: ' + (data.error || 'Failed to unblock'));
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        showUnblockError('An error occurred while unblocking.');
+      });
+  }
+
+  function initSidebarInteractions(container) {
+    const sidebarRoot = container || document.getElementById('reservationSidebar');
+    const sidebarContent = container ? container : document.getElementById('sidebarContent');
+    if (!sidebarRoot || !sidebarContent) return;
+    const isModal = !!container;
+
+    function closeDropdown(element) {
+      const dropdownMenu = element.closest('.dropdown-menu');
+      if (!dropdownMenu) return;
+      const dropdownToggle = dropdownMenu.previousElementSibling;
+      if (!dropdownToggle) return;
+      const instance = bootstrap.Dropdown.getInstance(dropdownToggle);
+      if (instance) instance.hide();
+      else {
+        dropdownToggle.classList.remove('show');
+        dropdownMenu.classList.remove('show');
+      }
+    }
+
+    function syncSidebarHeaderActions() {
+      const actionButtons = sidebarContent.querySelector('.action-buttons');
+      if (!actionButtons) return;
+
+      if (isModal) {
+        return;
+      }
+
+      const headerActions = document.getElementById('sidebarHeaderActions');
+      if (!headerActions) return;
+      headerActions.innerHTML = '';
+
+      // Populate booking info from the partial's action-buttons
+      const createdInfo = document.getElementById('sidebarCreatedInfo');
+      const resNumber = document.getElementById('sidebarReservationNumber');
+      if (createdInfo) {
+        const bookInfo = actionButtons.querySelectorAll('.book-info');
+        if (bookInfo.length >= 1) createdInfo.textContent = bookInfo[0].textContent.trim();
+        if (bookInfo.length >= 2) resNumber.textContent = bookInfo[1].textContent.trim();
+      }
+
+      const dropdownContainer = actionButtons.querySelector('.dropdown');
+      if (!dropdownContainer) {
+        actionButtons.style.display = 'none';
+        return;
+      }
+
+      const editItem = dropdownContainer.querySelector('.dropdown-item[href*="booking-edit"]');
+      if (editItem) {
+        const editButton = document.createElement('a');
+        editButton.className = 'sidebar-edit-btn';
+        editButton.href = editItem.getAttribute('href');
+        editButton.setAttribute('aria-label', 'Edit reservation');
+        const editIcon = editItem.querySelector('svg');
+        if (editIcon) editButton.insertAdjacentHTML('beforeend', editIcon.outerHTML);
+        const editLabel = document.createElement('span');
+        editLabel.textContent = 'Edit';
+        editButton.appendChild(editLabel);
+        headerActions.appendChild(editButton);
+      }
+      headerActions.appendChild(dropdownContainer);
+      actionButtons.style.display = 'none';
+
+      // Ensure Guest Receipt still has the expected attributes after moving DOM node.
+      dropdownContainer.querySelectorAll('a[href]').forEach((anchor) => {
+        const label = (anchor.textContent || '').trim().toLowerCase();
+        if (label !== 'guest receipt') return;
+        anchor.classList.add('guest-receipt-btn');
+        if (!anchor.dataset.receiptUrl) anchor.dataset.receiptUrl = anchor.getAttribute('href');
+        anchor.setAttribute('href', '#');
+      });
+    }
+
+    syncSidebarHeaderActions();
+
+    // 1. Attachment Modal
+    const attachmentModal = sidebarContent.querySelector('#attachmentModal');
+    const openAttachmentBtn = sidebarContent.querySelector('#openAttachmentModal');
+    if (attachmentModal && openAttachmentBtn) {
+      const closeBtn = attachmentModal.querySelector('.close-btn');
+      openAttachmentBtn.onclick = (e) => { e.preventDefault(); attachmentModal.style.display = 'flex'; };
+      if (closeBtn) closeBtn.onclick = () => { attachmentModal.style.display = 'none'; };
+      window.addEventListener('click', (e) => { if (e.target == attachmentModal) attachmentModal.style.display = 'none'; });
+    }
+
+    // 2. Email Guest Modal
+    const emailModal = sidebarContent.querySelector('#emailGuestModal');
+    const emailBtns = sidebarRoot.querySelectorAll('.email-guest-btn');
+    if (emailModal && emailBtns.length > 0) {
+      const placeholder = emailModal.querySelector('#email-modal-content-placeholder');
+      emailBtns.forEach(btn => {
+        btn.addEventListener('click', function (e) {
+          e.preventDefault();
+          closeDropdown(this);
+          const bookingId = this.dataset.bookingId;
+          const url = `{% url 'booking:render-email-form' %}?booking_id=${bookingId}`;
+          placeholder.innerHTML = '<div style="text-align: center; padding: 40px;">Loading...</div>';
+          emailModal.style.display = 'flex';
+          fetch(url).then(r => r.text()).then(html => {
+            placeholder.innerHTML = html;
+            const closeEmailBtn = emailModal.querySelector('.btn-cancel-email');
+            if (closeEmailBtn) closeEmailBtn.onclick = () => emailModal.style.display = 'none';
+          });
+        });
+      });
+      window.addEventListener('click', (e) => { if (e.target == emailModal) emailModal.style.display = 'none'; });
+    }
+
+    // 3. Guest Receipt Modal
+    const guestReceiptModal = document.getElementById('guestReceiptModal');
+    const guestReceiptPlaceholder = document.getElementById('guest-receipt-content-placeholder');
+
+    function initGuestReceiptActions(scope) {
+      if (!scope) return;
+      const downloadBtn = scope.querySelector('#downloadReceiptPdf');
+      const printBtn = scope.querySelector('#printReceipt');
+      const closeBtn = scope.querySelector('#closeReceiptBtn');
+      const receiptRoot = scope.querySelector('#guest-receipt-root');
+
+      function triggerPrint(e) {
+        if (e) e.preventDefault();
+        if (receiptRoot) receiptRoot.classList.add('receipt-export');
+        window.print();
+      }
+
+      function triggerPdfDownload(e) {
+        if (e) e.preventDefault();
+        if (!receiptRoot || typeof html2pdf === 'undefined') return;
+
+        const options = {
+          margin: [0.5, 0.5, 0.5, 0.5],
+          filename: 'guest-receipt.pdf',
+          image: { type: 'jpeg', quality: 0.98 },
+          html2canvas: { scale: 2, useCORS: true },
+          jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+        };
+
+        receiptRoot.classList.add('receipt-export');
+        html2pdf().set(options).from(receiptRoot).save().finally(() => {
+          receiptRoot.classList.remove('receipt-export');
+        });
+      }
+
+      if (downloadBtn) downloadBtn.addEventListener('click', triggerPdfDownload);
+      if (printBtn) printBtn.addEventListener('click', triggerPrint);
+      if (closeBtn) {
+        closeBtn.addEventListener('click', function (e) {
+          e.preventDefault();
+          e.stopPropagation();
+          guestReceiptModal.style.display = 'none';
+          guestReceiptPlaceholder.innerHTML = '';
+          restoreReservationOverlayAfterReceipt();
+        });
+      }
+
+      if (!window.__bookaidReceiptAfterprintBound) {
+        window.__bookaidReceiptAfterprintBound = true;
+        window.addEventListener('afterprint', () => {
+          const root = document.querySelector('#guest-receipt-root');
+          if (root) root.classList.remove('receipt-export');
+        });
+      }
+    }
+
+    const guestReceiptBtns = sidebarRoot.querySelectorAll('.guest-receipt-btn');
+    if (guestReceiptModal && guestReceiptPlaceholder && guestReceiptBtns.length > 0) {
+      guestReceiptBtns.forEach(btn => {
+        btn.addEventListener('click', function (e) {
+          e.preventDefault();
+          closeDropdown(this);
+          hideReservationOverlayForReceipt();
+          let url = this.dataset.receiptUrl;
+          if (!url) return;
+          url += (url.includes('?') ? '&' : '?') + 'is_modal=true';
+          guestReceiptPlaceholder.innerHTML = '<div style="text-align: center; padding: 40px;">Loading...</div>';
+          guestReceiptModal.style.display = 'flex';
+
+          fetch(url)
+            .then(response => response.text())
+            .then(html => {
+              guestReceiptPlaceholder.innerHTML = html;
+              initGuestReceiptActions(guestReceiptPlaceholder);
+            })
+            .catch(error => {
+              guestReceiptPlaceholder.innerHTML = '<p style="text-align: center; padding: 40px; color: red;">Error loading guest receipt. Please try again.</p>';
+              console.error('Error fetching guest receipt:', error);
+            });
+        });
+      });
+
+      if (!window.__bookaidReceiptOutsideClickBound) {
+        window.__bookaidReceiptOutsideClickBound = true;
+        window.addEventListener('click', (e) => {
+          if (e.target == guestReceiptModal) {
+            guestReceiptModal.style.display = 'none';
+            guestReceiptPlaceholder.innerHTML = '';
+            restoreReservationOverlayAfterReceipt();
+          }
+        });
+      }
+    }
+
+    // 4. Cancel Reservation
+    const cancelModal = sidebarContent.querySelector('#cancelReservationModal');
+    const cancelBtns = sidebarRoot.querySelectorAll('.cancel-reservation-btn');
+    if (cancelModal && cancelBtns.length > 0) {
+      const closeCancelBtn = cancelModal.querySelector('#closeCancelModal');
+      const btnCancelModalClose = cancelModal.querySelector('#btnCancelModalClose');
+      const confirmCancelBtn = cancelModal.querySelector('#confirmCancelBtn');
+      let cancelUrl = '';
+
+      const closeFunc = () => cancelModal.style.display = 'none';
+      if (closeCancelBtn) closeCancelBtn.onclick = closeFunc;
+      if (btnCancelModalClose) btnCancelModalClose.onclick = closeFunc;
+
+      cancelBtns.forEach(btn => {
+        btn.addEventListener('click', function (e) {
+          e.preventDefault();
+          closeDropdown(this);
+          cancelUrl = this.dataset.url || this.href;
+          cancelModal.style.display = 'flex';
+        });
+      });
+
+      if (confirmCancelBtn) {
+        confirmCancelBtn.onclick = function () {
+          if (!cancelUrl) return;
+          this.disabled = true; this.innerText = 'Cancelling...';
+          fetch(cancelUrl, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': '{{ csrf_token }}', 'Content-Type': 'application/json' }
+          }).then(r => r.json()).then(data => {
+            if (data.success) { window.location.reload(); }
+            else { alert('Failed: ' + data.error); closeFunc(); this.disabled = false; this.innerText = 'Yes, Cancel'; }
+          }).catch(e => { console.error(e); closeFunc(); this.disabled = false; this.innerText = 'Yes, Cancel'; });
+        };
+      }
+      window.addEventListener('click', (e) => { if (e.target == cancelModal) cancelModal.style.display = 'none'; });
+    }
+
+    // 5. Payment Checkboxes
+    const selectAllCheckbox = sidebarContent.querySelector('#select-all-payments');
+    if (selectAllCheckbox) {
+      selectAllCheckbox.addEventListener('change', function () {
+        const isChecked = this.checked;
+        const fetches = [];
+        sidebarContent.querySelectorAll('.payment-checkbox:not(:disabled)').forEach(cb => {
+          if (cb.checked !== isChecked) {
+            cb.checked = isChecked;
+            const paymentId = cb.dataset.paymentId;
+            fetches.push(
+              fetch("{% url 'booking:update-payment-status' %}", {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+                body: JSON.stringify({ payment_id: paymentId, is_paid: isChecked })
+              })
+                .then(r => r.json())
+                .then(d => {
+                  if (d.success) {
+                    const row = document.getElementById(`payment-item-${paymentId}`);
+                    if (isChecked) row.classList.add('row-paid'); else row.classList.remove('row-paid');
+                  } else {
+                    cb.checked = !isChecked;
+                    throw new Error(d.error);
+                  }
+                })
+            );
+          }
+        });
+        if (fetches.length > 0) {
+          Promise.all(fetches).catch(() => alert('Some payments failed to update.'));
+        }
+      });
+      function updateSelectAllState() {
+        const checkboxes = sidebarContent.querySelectorAll('.payment-checkbox:not(:disabled)');
+        const checked = sidebarContent.querySelectorAll('.payment-checkbox:not(:disabled):checked');
+        selectAllCheckbox.checked = checkboxes.length > 0 && checkboxes.length === checked.length;
+        selectAllCheckbox.indeterminate = checked.length > 0 && checked.length < checkboxes.length;
+      }
+      sidebarContent.querySelectorAll('.payment-checkbox').forEach(cb => {
+        cb.addEventListener('change', updateSelectAllState);
+      });
+      updateSelectAllState();
+    }
+
+    sidebarContent.querySelectorAll('.payment-checkbox').forEach(checkbox => {
+      checkbox.addEventListener('change', function () {
+        const paymentId = this.dataset.paymentId;
+        const isPaid = this.checked;
+        fetch("{% url 'booking:update-payment-status' %}", {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+          body: JSON.stringify({ payment_id: paymentId, is_paid: isPaid })
+        }).then(r => r.json()).then(data => {
+          if (data.success) {
+            const row = document.getElementById(`payment-item-${paymentId}`);
+            if (isPaid) row.classList.add('row-paid'); else row.classList.remove('row-paid');
+          } else { this.checked = !isPaid; alert('Failed to update.'); }
+        }).catch(e => { console.error(e); this.checked = !isPaid; });
+      });
+    });
+
+    // 6. Payment Schedule Toggle
+    const expandBtn = sidebarContent.querySelector('#expand-payments');
+    const collapseBtn = sidebarContent.querySelector('#collapse-payments');
+    const paymentBody = sidebarContent.querySelector('#payment-body');
+    if (expandBtn && collapseBtn && paymentBody) {
+      collapseBtn.onclick = () => { paymentBody.style.display = 'none'; collapseBtn.style.display = 'none'; expandBtn.style.display = 'inline-block'; };
+      expandBtn.onclick = () => { paymentBody.style.display = 'block'; expandBtn.style.display = 'none'; collapseBtn.style.display = 'inline-block'; };
+    }
+
+    // 7. Payment Attachment Buttons
+    const existingAttachModal = document.getElementById('calPaymentAttachModal');
+    if (existingAttachModal) existingAttachModal.remove();
+
+    const attachModal = document.createElement('div');
+    attachModal.id = 'calPaymentAttachModal';
+    attachModal.style.cssText = 'display:none;position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.5);align-items:center;justify-content:center;';
+    attachModal.innerHTML = `
+      <div style="background:#fff;border-radius:8px;width:95%;max-width:500px;box-shadow:0 4px 24px rgba(0,0,0,0.18);display:flex;flex-direction:column;max-height:90vh;">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:16px 20px 12px;flex-shrink:0;">
+          <h2 style="margin:0;font-size:16px;font-weight:600;">Attachments &amp; Notes</h2>
+          <span id="calCloseAttachModal" style="cursor:pointer;font-size:20px;line-height:1;">&times;</span>
+        </div>
+        <div style="padding:0 20px 4px;overflow-y:auto;flex:1;">
+          <div style="margin-bottom:14px;">
+            <label style="display:block;font-size:13px;font-weight:500;margin-bottom:6px;">Add Attachment <span style="color:#6b7280;font-weight:400;">(max 2 MB)</span></label>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <label style="flex:1;display:flex;align-items:center;gap:8px;cursor:pointer;border:1px solid #d1d5db;border-radius:6px;padding:7px 12px;font-size:13px;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+                <span id="calAttachFileLabel">Choose file</span>
+                <input type="file" id="calAttachFile" accept=".pdf,.jpg,.jpeg,.png,.gif,.webp" style="display:none;">
+              </label>
+              <button type="button" id="calUploadAttachBtn" style="padding:7px 16px;border:none;border-radius:6px;background:#111827;color:#fff;font-size:13px;cursor:pointer;white-space:nowrap;">Upload</button>
+            </div>
+            <p id="calAttachError" style="color:#dc2626;font-size:12px;margin:5px 0 0;min-height:16px;"></p>
+          </div>
+          <div style="border-top:1px solid #e5e7eb;padding-top:12px;margin-bottom:14px;">
+            <p style="font-size:13px;font-weight:500;margin:0 0 8px;">Uploaded Attachments</p>
+            <div id="calAttachmentsList"></div>
+          </div>
+          <div style="border-top:1px solid #e5e7eb;padding-top:12px;margin-bottom:4px;">
+            <label style="display:block;font-size:13px;font-weight:500;margin-bottom:6px;">Notes</label>
+            <textarea id="calAttachNotes" rows="3" style="width:100%;border:1px solid #d1d5db;border-radius:6px;padding:8px 10px;font-size:13px;resize:vertical;box-sizing:border-box;" placeholder="Add a note for this payment…"></textarea>
+          </div>
+        </div>
+        <div style="padding:12px 20px;display:flex;justify-content:flex-end;gap:10px;border-top:1px solid #e5e7eb;flex-shrink:0;">
+          <button type="button" id="calSaveNotesBtn" style="padding:6px 16px;border:none;border-radius:6px;background:#111827;color:#fff;font-size:13px;cursor:pointer;">Save Notes</button>
+          <button type="button" id="calCancelAttachBtn" style="padding:6px 16px;border:1px solid #d1d5db;border-radius:6px;background:#fff;color:#374151;font-size:13px;cursor:pointer;">Close</button>
+        </div>
+      </div>`;
+    document.body.appendChild(attachModal);
+
+    const CSRF = '{{ csrf_token }}';
+    const calCloseBtn = attachModal.querySelector('#calCloseAttachModal');
+    const calCancelBtn = attachModal.querySelector('#calCancelAttachBtn');
+    const calFileInput = attachModal.querySelector('#calAttachFile');
+    const calFileLabel = attachModal.querySelector('#calAttachFileLabel');
+    const calNotes = attachModal.querySelector('#calAttachNotes');
+    const calError = attachModal.querySelector('#calAttachError');
+    const calAttachmentsList = attachModal.querySelector('#calAttachmentsList');
+    const calUploadBtn = attachModal.querySelector('#calUploadAttachBtn');
+    const calSaveNotesBtn = attachModal.querySelector('#calSaveNotesBtn');
+    let calActivePaymentId = null;
+
+    function calShowToast(msg, type) {
+      let container = document.querySelector('.toast-messages-container');
+      if (!container) {
+        container = document.createElement('div');
+        container.className = 'toast-messages-container';
+        container.style.cssText = 'position:fixed;top:30px;left:50%;transform:translateX(-50%);z-index:999999;';
+        document.body.appendChild(container);
+      }
+      const toast = document.createElement('div');
+      toast.className = `toast-message ${type}`;
+      toast.textContent = msg;
+      container.appendChild(toast);
+      setTimeout(() => toast.remove(), 4000);
+    }
+
+    function calMakeAttachRow(a) {
+      const div = document.createElement('div');
+      div.id = `cal-att-row-${a.id}`;
+      div.style.cssText = 'border-bottom:1px solid #f3f4f6;font-size:13px;';
+
+      const normal = document.createElement('div');
+      normal.style.cssText = 'display:flex;align-items:center;gap:8px;padding:6px 0;';
+      normal.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg><a href="${a.url}" target="_blank" rel="noopener" style="color:#111827;flex:1;word-break:break-all;">${a.name}</a><button type="button" class="cal-del-att-btn" style="background:none;border:none;cursor:pointer;padding:2px 4px;display:flex;align-items:center;color:#dc2626;font-size:12px;gap:4px;"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg></button>`;
+
+      const confirmRow = document.createElement('div');
+      confirmRow.style.cssText = 'display:none;align-items:center;gap:8px;padding:6px 10px;background:#fff5f5;border-radius:6px;';
+      confirmRow.innerHTML = `<span style="font-size:12px;color:#dc2626;flex:1;">Delete this attachment?</span><button type="button" class="cal-confirm-yes" style="padding:3px 12px;border:none;border-radius:5px;background:#dc2626;color:#fff;font-size:12px;cursor:pointer;">Delete</button><button type="button" class="cal-confirm-no" style="padding:3px 12px;border:1px solid #d1d5db;border-radius:5px;background:#fff;color:#374151;font-size:12px;cursor:pointer;">Cancel</button>`;
+
+      div.appendChild(normal);
+      div.appendChild(confirmRow);
+
+      normal.querySelector('.cal-del-att-btn').addEventListener('click', () => { normal.style.display = 'none'; confirmRow.style.display = 'flex'; });
+      confirmRow.querySelector('.cal-confirm-no').addEventListener('click', () => { confirmRow.style.display = 'none'; normal.style.display = 'flex'; });
+      confirmRow.querySelector('.cal-confirm-yes').addEventListener('click', () => {
+        fetch("{% url 'booking:delete-payment-attachment' %}", {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+          body: JSON.stringify({ attachment_id: a.id }),
+        }).then(r => r.json()).then(d => {
+          if (d.success) {
+            div.remove();
+            calUpdateIcon();
+            calShowToast('Attachment deleted.', 'success');
+            if (!calAttachmentsList.querySelector('[id^="cal-att-row-"]'))
+              calAttachmentsList.innerHTML = '<p style="font-size:13px;color:#6b7280;margin:0;">No attachments yet.</p>';
+          } else {
+            calShowToast(d.error || 'Delete failed.', 'error');
+            confirmRow.style.display = 'none'; normal.style.display = 'flex';
+          }
+        }).catch(() => { calShowToast('An error occurred.', 'error'); confirmRow.style.display = 'none'; normal.style.display = 'flex'; });
+      });
+      return div;
+    }
+
+    function calRenderAttachments(attachments) {
+      calAttachmentsList.innerHTML = '';
+      if (!attachments.length) { calAttachmentsList.innerHTML = '<p style="font-size:13px;color:#6b7280;margin:0;">No attachments yet.</p>'; return; }
+      attachments.forEach(a => calAttachmentsList.appendChild(calMakeAttachRow(a)));
+    }
+
+    function calUpdateIcon() {
+      const btn = sidebarContent.querySelector(`.payment-attach-btn[data-payment-id="${calActivePaymentId}"]`);
+      if (!btn) return;
+      const rows = calAttachmentsList.querySelectorAll('[id^="cal-att-row-"]');
+      const count = rows.length;
+      const svg = btn.querySelector('svg');
+      let badge = btn.querySelector('span');
+      if (count > 0) {
+        svg.querySelector('path').setAttribute('stroke', '#2563eb');
+        if (!badge) { badge = document.createElement('span'); badge.style.cssText = 'position:absolute;top:-6px;right:-8px;background:#2563eb;color:#fff;border-radius:999px;font-size:9px;min-width:14px;height:14px;display:flex;align-items:center;justify-content:center;padding:0 2px;line-height:1;'; btn.appendChild(badge); }
+        badge.textContent = count;
+      } else { svg.querySelector('path').setAttribute('stroke', '#9ca3af'); if (badge) badge.remove(); }
+      // Sync data-attachments so reopening the modal shows current state
+      const attachments = Array.from(rows).map(row => {
+        const link = row.querySelector('a');
+        const id = row.id.replace('cal-att-row-', '');
+        return { id: id, url: link.href, name: link.textContent };
+      });
+      btn.dataset.attachments = JSON.stringify(attachments);
+    }
+
+    const closeAttachModal = () => { attachModal.style.display = 'none'; };
+    calCloseBtn.onclick = closeAttachModal;
+    calCancelBtn.onclick = closeAttachModal;
+    attachModal.addEventListener('click', e => { if (e.target === attachModal) closeAttachModal(); });
+
+    calFileInput.addEventListener('change', function () {
+      if (this.files[0]) {
+        calFileLabel.textContent = this.files[0].name;
+        calError.textContent = this.files[0].size > 2 * 1024 * 1024 ? 'File must be 2 MB or smaller.' : '';
+      }
+    });
+
+    sidebarContent.querySelectorAll('.payment-attach-btn').forEach(btn => {
+      btn.addEventListener('click', function () {
+        calActivePaymentId = this.dataset.paymentId;
+        calNotes.value = this.dataset.notes || '';
+        calError.textContent = '';
+        calFileInput.value = '';
+        calFileLabel.textContent = 'Choose file';
+        const raw = this.dataset.attachments || '[]';
+        try { calRenderAttachments(JSON.parse(raw)); } catch { calRenderAttachments([]); }
+        attachModal.style.display = 'flex';
+      });
+    });
+
+    calUploadBtn.addEventListener('click', function () {
+      if (!calFileInput.files[0]) { calError.textContent = 'Please choose a file first.'; return; }
+      if (calFileInput.files[0].size > 2 * 1024 * 1024) { calError.textContent = 'File must be 2 MB or smaller.'; return; }
+      calError.textContent = '';
+      const fd = new FormData();
+      fd.append('payment_id', calActivePaymentId);
+      fd.append('attachment', calFileInput.files[0]);
+      fd.append('csrfmiddlewaretoken', CSRF);
+      calUploadBtn.disabled = true; calUploadBtn.textContent = 'Uploading…';
+      fetch("{% url 'booking:add-payment-attachment' %}", { method: 'POST', body: fd })
+        .then(r => r.json()).then(data => {
+          calUploadBtn.disabled = false; calUploadBtn.textContent = 'Upload';
+          if (data.success) {
+            calFileInput.value = ''; calFileLabel.textContent = 'Choose file';
+            const noMsg = calAttachmentsList.querySelector('p');
+            if (noMsg) noMsg.remove();
+            calAttachmentsList.appendChild(calMakeAttachRow(data.attachment));
+            calUpdateIcon();
+            calShowToast('Attachment uploaded.', 'success');
+          } else {
+            calError.textContent = data.error || 'Upload failed.';
+            calShowToast(data.error || 'Upload failed.', 'error');
+          }
+        }).catch(() => { calUploadBtn.disabled = false; calUploadBtn.textContent = 'Upload'; calError.textContent = 'An error occurred.'; calShowToast('An error occurred.', 'error'); });
+    });
+
+    calSaveNotesBtn.addEventListener('click', function () {
+      calSaveNotesBtn.disabled = true; calSaveNotesBtn.textContent = 'Saving…';
+      fetch("{% url 'booking:update-payment-notes' %}", {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+        body: JSON.stringify({ payment_id: calActivePaymentId, notes: calNotes.value }),
+      }).then(r => r.json()).then(data => {
+        calSaveNotesBtn.disabled = false; calSaveNotesBtn.textContent = 'Save Notes';
+        if (data.success) {
+          const btn = sidebarContent.querySelector(`.payment-attach-btn[data-payment-id="${calActivePaymentId}"]`);
+          if (btn) btn.dataset.notes = data.notes;
+          calShowToast('Notes saved.', 'success compact');
+        } else { calShowToast(data.error || 'Failed to save notes.', 'error'); }
+      }).catch(() => { calSaveNotesBtn.disabled = false; calSaveNotesBtn.textContent = 'Save Notes'; calShowToast('An error occurred.', 'error'); });
+    });
+  }
+
+  /* --- List View --- */
+
+  function getFilteredEventsForCalendar() {
+    // If no property is selected, show all properties' data
+    let pBookings = activePropertyId
+      ? bookings.filter(b => String(b.propertyId) === String(activePropertyId))
+      : bookings.slice();
+    let pEnquiries = activePropertyId
+      ? enquiries.filter(eq => String(eq.propertyId) === String(activePropertyId))
+      : enquiries.slice();
+    let pTasks = activePropertyId
+      ? tasks.filter(t => String(t.propertyId) === String(activePropertyId))
+      : tasks.slice();
+
+    // Keep bookings if payments are checked, even if reservation is unchecked
+    if (!typeFilters.reservation && !typeFilters.payment) {
+      pBookings = [];
+      pEnquiries = [];
+    } else if (!typeFilters.reservation) {
+      pEnquiries = [];
+    }
+
+    // Filter tasks: payment tasks depend on typeFilters.payment, others on typeFilters.task
+    pTasks = pTasks.filter(t => {
+      if (t.task_type === 'payment') {
+        return typeFilters.payment;
+      } else {
+        return typeFilters.task;
+      }
+    });
+
+    return {
+      bookings: pBookings,
+      enquiries: pEnquiries,
+      tasks: pTasks
+    };
+  }
+
+  function getEventCountForProperty(propertyId) {
+    const startOfMonth = new Date(currentDisplayDate.getFullYear(), currentDisplayDate.getMonth(), 1);
+    const endOfMonth = new Date(currentDisplayDate.getFullYear(), currentDisplayDate.getMonth() + 1, 0);
+
+    const bCount = bookings.filter(b => {
+      if (b.type === 'blocked') return false;
+      if (String(b.propertyId) !== String(propertyId)) return false;
+      return b.startDate <= endOfMonth && b.endDate >= startOfMonth;
+    }).length;
+
+    const eqCount = enquiries.filter(eq => {
+      if (String(eq.propertyId) !== String(propertyId)) return false;
+      return eq.startDate <= endOfMonth && eq.endDate >= startOfMonth;
+    }).length;
+
+    const tCount = tasks.filter(t => {
+      if (String(t.propertyId) !== String(propertyId)) return false;
+      const [ty, tm, td] = t.date.split('-').map(Number);
+      const tDate = new Date(ty, tm - 1, td);
+      return tDate >= startOfMonth && tDate <= endOfMonth;
+    }).length;
+
+    return bCount + eqCount + tCount;
+  }
+
+  /* --- Month Grid View Renderer --- */
+
+  function openTaskDetailModal(event, taskId) {
+    if (event) event.stopPropagation();
+    hideGlobalTooltip();
+    const tId = taskId.replace('task-', '');
+    const t = tasks.find(x => x.id === taskId || x.id === tId || x.id === `task-${tId}`);
+    if (!t) return;
+    _currentModalTaskId = t.id.replace('task-', '');
+
+    const overlay = document.getElementById('taskModalOverlay');
+    const modal = document.getElementById('taskModal');
+    const topBar = document.getElementById('taskModalTopBar');
+    const badge = document.getElementById('taskModalBadge');
+    const icon = document.getElementById('taskModalIcon');
+    const typeLabel = document.getElementById('taskModalType');
+    const statusEl = document.getElementById('taskModalStatus');
+    const detailsEl = document.getElementById('taskModalDetails');
+    const detailsAccent = document.getElementById('taskModalDetailsAccent');
+    const propertyEl = document.getElementById('taskModalProperty');
+    const dateEl = document.getElementById('taskModalDate');
+    const assignedEl = document.getElementById('taskModalAssigned');
+    const phoneEl = document.getElementById('taskModalPhone');
+    const timeRow = document.getElementById('taskModalTimeRow');
+    const timeEl = document.getElementById('taskModalTime');
+    const closeBtn = document.getElementById('taskModalCloseBtn');
+    const toggleBtn = document.getElementById('taskModalToggleBtn');
+
+    const taskTypeColors = { 'cleaning': '#10b981', 'maintenance': '#f59e0b', 'payment': '#3b82f6', 'other': '#8b5cf6' };
+    const taskTypeDarkColors = { 'cleaning': '#047857', 'maintenance': '#d97706', 'payment': '#1d4ed8', 'other': '#6d28d9' };
+    const taskIcons = {
+      'cleaning': "{% static 'img/task/type/cleaning.svg' %}",
+      'maintenance': "{% static 'img/task/type/maintenance.svg' %}",
+      'payment': "{% static 'img/task/type/payment.svg' %}",
+      'other': "{% static 'img/task/type/others.svg' %}"
+    };
+
+    const type = t.task_type || 'other';
+    const color = taskTypeColors[type] || '#6b7280';
+    const darkColor = taskTypeDarkColors[type] || '#4b5563';
+    const iconUrl = taskIcons[type] || taskIcons['other'];
+    const prop = properties.find(p => String(p.id) === String(t.propertyId));
+    const propName = prop ? prop.title : '-';
+    const dateStr = t.date ? new Date(t.date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }) : '-';
+    const isCompleted = t.completed;
+
+    topBar.style.background = `linear-gradient(90deg, ${color}, ${darkColor})`;
+    modal.classList.toggle('payment-mode', type === 'payment');
+    badge.style.background = `linear-gradient(135deg, ${color}, ${darkColor})`;
+    icon.src = iconUrl;
+    icon.alt = type;
+    typeLabel.textContent = type;
+    statusEl.textContent = isCompleted ? 'Completed' : 'Pending';
+    statusEl.className = 'task-modal-status' + (isCompleted ? ' completed' : '');
+    detailsAccent.style.backgroundColor = color;
+    detailsEl.textContent = t.details || 'No details provided';
+    propertyEl.textContent = propName;
+    dateEl.textContent = dateStr;
+    assignedEl.textContent = t.assigned_to || 'Not assigned';
+    phoneEl.textContent = t.phone || '-';
+
+    closeBtn.style.background = `linear-gradient(135deg, ${color}, ${darkColor})`;
+
+    toggleBtn.textContent = isCompleted ? 'Mark Pending' : 'Mark Complete';
+    toggleBtn.style.background = `linear-gradient(135deg, ${color}, ${darkColor})`;
+
+    if (t.time || t.start_time) {
+      timeRow.style.display = 'flex';
+      const timeStr = t.time
+        ? new Date('2000-01-01T' + t.time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+        : (t.start_time ? t.start_time.substring(0, 5) + (t.end_time ? ' - ' + t.end_time.substring(0, 5) : '') : '');
+      timeEl.textContent = timeStr;
+    } else {
+      timeRow.style.display = 'none';
+    }
+
+    overlay.classList.add('open');
+  }
+
+  function closeTaskDetailModal(event) {
+    if (event && event.target !== event.currentTarget) return;
+    const overlay = document.getElementById('taskModalOverlay');
+    overlay.classList.remove('open');
+  }
+
+  function openPaymentDetailModal(event, bookingId, dateStr) {
+    if (event) event.stopPropagation();
+    hideGlobalTooltip();
+    const b = bookings.find(x => x.id == bookingId);
+    if (!b || !b.paymentsInfo || !b.paymentsInfo[dateStr]) return;
+
+    const info = b.paymentsInfo[dateStr];
+    const overlay = document.getElementById('paymentModalOverlay');
+    const modal = document.getElementById('paymentModal');
+
+    const displayEndDate = new Date(b.endDate);
+    displayEndDate.setDate(displayEndDate.getDate() - 1);
+    const nights = Math.ceil((displayEndDate - b.startDate) / (1000 * 60 * 60 * 24));
+    const [y, m, d] = dateStr.split('-');
+    const dateObj = new Date(y, m - 1, d);
+    const formattedDate = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    const statusText = info.is_paid ? 'Paid' : 'Unpaid';
+
+    document.getElementById('paymentModalStatus').textContent = statusText;
+    document.getElementById('paymentModalDetails').textContent = `${info.type || 'Payment'} of $${info.amount.toFixed(2)}`;
+    document.getElementById('paymentModalAmount').textContent = `$${info.amount.toFixed(2)}`;
+    document.getElementById('paymentModalDate').textContent = formattedDate;
+    document.getElementById('paymentModalGuest').textContent = b.guestName || '-';
+    document.getElementById('paymentModalBooking').textContent = b.bookingId || '-';
+    document.getElementById('paymentModalStay').textContent = `${fmtDate(b.startDate)} - ${fmtDate(displayEndDate)} (${nights} nights)`;
+
+    overlay.classList.add('open');
+  }
+
+  function closePaymentDetailModal(event) {
+    if (event && event.target !== event.currentTarget) return;
+    const overlay = document.getElementById('paymentModalOverlay');
+    overlay.classList.remove('open');
+  }
+
+  function toggleTaskCompletion() {
+    const taskId = _currentModalTaskId;
+    if (!taskId) return;
+    const t = tasks.find(x => x.id === taskId || x.id === 'task-' + taskId);
+    if (!t) return;
+    const newStatus = !t.completed;
+
+    fetch('/tasks/update-status/' + taskId + '/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': '{{ csrf_token }}'
+      },
+      body: JSON.stringify({ completed: newStatus })
+    })
+      .then(r => r.json())
+      .then(data => {
+        if (data.success) {
+          t.completed = newStatus;
+          closeTaskDetailModal();
+          renderCurrentView();
+        }
+      })
+      .catch(() => { });
+  }
+
+  document.addEventListener('keydown', function (event) {
+    if (event.key === 'Escape') {
+      const overlay = document.getElementById('taskModalOverlay');
+      if (overlay && overlay.classList.contains('open')) {
+        overlay.classList.remove('open');
+      }
+    }
+  });
+
+  /* --- Enquiry Side Panel Handler --- */
+  function openEnquiryPanel(event, enquiryId) {
+    if (event) event.stopPropagation();
+    hideGlobalTooltip();
+
+    const eq = enquiries.find(x => x.id === enquiryId);
+    if (!eq) return;
+
+    const sidebar = document.getElementById('reservationSidebar');
+    const backdrop = document.getElementById('overlayBackdrop');
+    const contentDiv = document.getElementById('sidebarContent');
+
+    const titleSpan = sidebar.querySelector('.sidebar-header-left span');
+    if (titleSpan) titleSpan.textContent = 'Enquiry details';
+
+    document.body.classList.add('reservation-panel-open');
+    sidebar.classList.add('open');
+    backdrop.classList.add('open');
+
+    const startObj = new Date(eq.start_date + 'T00:00:00');
+    const endObj = new Date(eq.end_date + 'T00:00:00');
+    const nights = Math.ceil((endObj - startObj) / (1000 * 60 * 60 * 24));
+
+    const formattedStart = startObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    const formattedEnd = endObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
+    contentDiv.innerHTML = `
+      <div style="padding: 24px;">
+        <div style="display: flex; gap: 20px; align-items: center; margin-bottom: 24px; background: #fff; padding: 16px; border-radius: 10px; border: 1px solid #e5e7eb;">
+          <img src="${eq.guestAvatar}" style="width: 64px; height: 64px; border-radius: 50%; object-fit: cover;" />
+          <div>
+            <h3 style="margin: 0; font-size: 20px; font-weight: 700; color: #111827;">${eq.guestName}</h3>
+            <p style="margin: 4px 0 0; font-size: 14px; color: #6b7280;">Enquiry Guest</p>
+          </div>
+        </div>
+        
+        <div class="row g-4">
+          <div class="col-md-6">
+            <div class="detail-group">
+              <div class="detail-label">Dates</div>
+              <div class="detail-value">${formattedStart} - ${formattedEnd} (${nights} nights)</div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="detail-group">
+              <div class="detail-label">Guests</div>
+              <div class="detail-value">${eq.adults} Adults ${eq.children ? `, ${eq.children} Children` : ''}</div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="detail-group">
+              <div class="detail-label">Email</div>
+              <div class="detail-value">${eq.email || '-'}</div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="detail-group">
+              <div class="detail-label">Phone</div>
+              <div class="detail-value">${eq.phone || '-'}</div>
+            </div>
+          </div>
+          <div class="col-12">
+            <div class="detail-group">
+              <div class="detail-label">Notes for Host</div>
+              <div class="detail-value" style="font-weight: 400; font-style: italic; background: #f9fafb; padding: 12px; border-radius: 6px; border: 1px solid #e5e7eb;">
+                ${eq.notes || 'No notes provided'}
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div style="margin-top: 32px; display: flex; gap: 12px;">
+          <a href="/booking/create/?enquiry_id=${eq.unique_id}" class="btn btn-primary" style="font-weight: 600; padding: 8px 16px; border-radius: 6px;">
+            Approve & Book
+          </a>
+          <button onclick="archiveEnquiry('${eq.unique_id}')" class="btn btn-outline-danger" style="font-weight: 600; padding: 8px 16px; border-radius: 6px;">
+            Archive Enquiry
+          </button>
+        </div>
+      </div>
+    `;
+  }
+
+  function archiveEnquiry(uniqueId) {
+    if (!confirm('Are you sure you want to archive this enquiry?')) return;
+    fetch(`/booking/enquiry/archive/${uniqueId}/`, {
+      method: 'POST',
+      headers: {
+        'X-CSRFToken': '{{ csrf_token }}',
+        'Content-Type': 'application/json'
+      }
+    })
+      .then(r => r.json())
+      .then(data => {
+        if (data.success) {
+          closeReservationPanel();
+          refreshData();
+        } else {
+          alert('Failed to archive: ' + (data.error || 'Unknown error'));
+        }
+      });
+  }
+
+  /* --- Enquiry Tooltip Display --- */
+  function showMonthEventTooltip(event, id, isEnquiry) {
+    if (!isEnquiry) {
+      showGlobalTooltip(event, id);
+      return;
+    }
+
+    const eq = enquiries.find(x => x.id == id);
+    if (!eq) return;
+
+    const tooltip = document.getElementById('globalTooltip');
+    setTooltipVariant(tooltip, 'booking');
+
+    const displayEndDate = new Date(eq.endDateStr + 'T00:00:00');
+    displayEndDate.setDate(displayEndDate.getDate() - 1);
+    const nights = Math.ceil((displayEndDate - eq.startDate) / (1000 * 60 * 60 * 24));
+
+    tooltip.innerHTML = `
+      <div class="booking-tooltip-card">
+        <div class="booking-tooltip-avatar-wrap">
+          <img src="${eq.guestAvatar}" alt="Guest" class="booking-tooltip-avatar">
+        </div>
+        <div class="booking-tooltip-info">
+          <div class="booking-tooltip-name">Enquiry: ${eq.guestName}</div>
+          <div class="booking-tooltip-date">${fmtDate(eq.startDate)} - ${fmtDate(displayEndDate)}</div>
+          <div class="booking-tooltip-meta">
+            <span class="booking-tooltip-meta-item">
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                 <path d="M21 12.79A9 9 0 1 1 11.21 3C11.5 3 11.64 3.35 11.43 3.56A7 7 0 0 0 20.44 12.57C20.65 12.36 21 12.5 21 12.79Z" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+              </svg>
+              ${nights} nights
+            </span>
+          </div>
+          <div class="booking-tooltip-meta">
+            <span class="booking-tooltip-meta-item">
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M20 21V19C20 16.791 18.209 15 16 15H8C5.791 15 4 16.791 4 19V21" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+                <circle cx="12" cy="7" r="4" stroke-width="1.8"></circle>
+              </svg>
+              ${eq.adults || 1} guests
+            </span>
+          </div>
+          <div class="booking-tooltip-line">Email: <strong>${eq.email || '-'}</strong></div>
+          <div class="booking-tooltip-line">Phone: <strong>${eq.phone || '-'}</strong></div>
+          <div class="booking-tooltip-line">Notes: <i>${eq.notes || 'None'}</i></div>
+        </div>
+      </div>
+    `;
+    tooltip.style.width = '';
+    tooltip.style.maxWidth = '';
+    tooltip.style.display = 'block';
+    positionTooltip(event, tooltip);
+  }
+
+
+  function refreshView() {
+    if (!selectedWeekStart) {
+      const today = new Date();
+      const dayOfWeek = today.getDay();
+      const sunday = new Date(today);
+      sunday.setDate(today.getDate() - dayOfWeek);
+      selectedWeekStart = sunday;
+    }
+    if (!selectedDateKey) {
+      selectedDateKey = toISODateString(new Date());
+    }
+
+    updateMonthDisplay();
+
+    if (currentViewMode === 'list') {
+      updateViewTitle();
+      renderCurrentView();
+      return;
+    }
+
+    generateDates();
+    syncTimelineDimensions();
+    renderProperties(filteredProperties);
+    updateViewTitle();
+    renderCurrentView();
+    fetchBookings();
+  }
+
+  function syncTimelineDimensions() {
+    const datesPane = document.getElementById('datesPane');
+    const datesContainer = document.getElementById('datesContainer');
+    if (!datesPane || !datesContainer || allDates.length === 0) return;
+
+    const isSmallPhone = window.innerWidth <= 576;
+    const isMobile = window.innerWidth <= 768;
+    const minCellWidth = isSmallPhone ? 46 : (isMobile ? 52 : 60);
+    const containerWidth = datesContainer.clientWidth || 0;
+    const autoCellWidth = containerWidth > 0 ? Math.floor(containerWidth / allDates.length) : minCellWidth;
+    const cellWidth = Math.max(minCellWidth, autoCellWidth);
+    const gridWidth = cellWidth * allDates.length;
+
+    datesPane.style.setProperty('--timeline-cell-width', `${cellWidth}px`);
+    datesPane.style.setProperty('--timeline-grid-width', `${gridWidth}px`);
+  }
+
+
+  function goToPrevMonth() {
+    if (currentViewMode === 'month' || currentViewMode === 'timeline' || currentViewMode === 'list') {
+      currentDisplayDate.setMonth(currentDisplayDate.getMonth() - 1, 1);
+      refreshView();
+    } else if (currentViewMode === 'week') {
+      const d = new Date(selectedWeekStart);
+      d.setDate(d.getDate() - 7);
+      selectedWeekStart = d;
+      currentDisplayDate = new Date(d);
+      refreshView();
+    } else if (currentViewMode === 'day') {
+      const [y, m, dayNum] = selectedDateKey.split('-').map(Number);
+      const d = new Date(y, m - 1, dayNum - 1);
+      selectedDateKey = toISODateString(d);
+      currentDisplayDate = new Date(d);
+      refreshView();
+    }
+  }
+
+  function goToNextMonth() {
+    if (currentViewMode === 'month' || currentViewMode === 'timeline' || currentViewMode === 'list') {
+      currentDisplayDate.setMonth(currentDisplayDate.getMonth() + 1, 1);
+      refreshView();
+    } else if (currentViewMode === 'week') {
+      const d = new Date(selectedWeekStart);
+      d.setDate(d.getDate() + 7);
+      selectedWeekStart = d;
+      currentDisplayDate = new Date(d);
+      refreshView();
+    } else if (currentViewMode === 'day') {
+      const [y, m, dayNum] = selectedDateKey.split('-').map(Number);
+      const d = new Date(y, m - 1, dayNum + 1);
+      selectedDateKey = toISODateString(d);
+      currentDisplayDate = new Date(d);
+      refreshView();
+    }
+  }
+
+  function goToToday() {
+    currentDisplayDate = new Date();
+    selectedDateKey = toISODateString(currentDisplayDate);
+
+    const today = new Date();
+    const dayOfWeek = today.getDay();
+    const sunday = new Date(today);
+    sunday.setDate(today.getDate() - dayOfWeek);
+    selectedWeekStart = sunday;
+
+    refreshView();
+    if (currentViewMode === 'timeline') {
+      scrollToToday();
+    } else if (currentViewMode === 'list') {
+      scrollToListToday();
+    }
+  }
+
+
+  function refreshData() {
+    if (currentViewMode === 'list') {
+      renderListView();
+    } else {
+      fetchBookings();
+    }
+  }
+
+  let activePropertyDropdown = null;
+
+  function positionFloatingPropertyDropdown(dropdownEl, menuEl) {
+    if (!dropdownEl || !menuEl) return;
+
+    const toggleBtn = dropdownEl.querySelector('[data-bs-toggle="dropdown"]');
+    if (!toggleBtn) return;
+
+    const toggleRect = toggleBtn.getBoundingClientRect();
+    const menuRect = menuEl.getBoundingClientRect();
+    const viewportGap = 8;
+
+    const headerNav = document.querySelector('.header-nav');
+    const minTop = (headerNav ? headerNav.getBoundingClientRect().bottom : 0) + viewportGap;
+
+    let left = toggleRect.right + 8;
+    if (left + menuRect.width > window.innerWidth - viewportGap) {
+      left = Math.max(viewportGap, toggleRect.left - menuRect.width - 8);
+    }
+
+    // Prefer opening upward (bottom-aligned with the button) when there's room;
+    // otherwise flip downward so it doesn't get clamped under the page header.
+    const spaceAbove = toggleRect.bottom - minTop;
+    let top = spaceAbove >= menuRect.height
+      ? toggleRect.bottom - menuRect.height
+      : toggleRect.top;
+
+    if (top < minTop) {
+      top = minTop;
+    }
+
+    if (top + menuRect.height > window.innerHeight - viewportGap) {
+      top = Math.max(minTop, window.innerHeight - menuRect.height - viewportGap);
+    }
+
+    menuEl.style.setProperty('left', `${left}px`, 'important');
+    menuEl.style.setProperty('top', `${top}px`, 'important');
+  }
+
+  function bindPropertyDropdownFloating() {
+    document.addEventListener('click', function (event) {
+      const toggleButton = event.target.closest('.property-actions [data-bs-toggle="dropdown"]');
+      if (!toggleButton) return;
+      hidePropertyPreview();
+    });
+
+    document.addEventListener('shown.bs.dropdown', function (event) {
+      const dropdownEl = event.target && event.target.classList && event.target.classList.contains('dropdown')
+        ? event.target
+        : event.target.closest('.dropdown');
+      if (!dropdownEl || !dropdownEl.closest('.property-actions')) return;
+
+      const menuEl = dropdownEl.querySelector('.dropdown-menu');
+      if (!menuEl) return;
+
+      menuEl.classList.add('floating-dropdown-menu');
+      activePropertyDropdown = { dropdownEl, menuEl };
+      hidePropertyPreview();
+      requestAnimationFrame(() => positionFloatingPropertyDropdown(dropdownEl, menuEl));
+    });
+
+    document.addEventListener('hidden.bs.dropdown', function (event) {
+      const dropdownEl = event.target && event.target.classList && event.target.classList.contains('dropdown')
+        ? event.target
+        : event.target.closest('.dropdown');
+      if (!dropdownEl || !dropdownEl.closest('.property-actions')) return;
+
+      const menuEl = dropdownEl.querySelector('.dropdown-menu');
+      if (!menuEl) return;
+
+      menuEl.classList.remove('floating-dropdown-menu');
+      menuEl.style.removeProperty('left');
+      menuEl.style.removeProperty('top');
+
+      if (activePropertyDropdown && activePropertyDropdown.menuEl === menuEl) {
+        activePropertyDropdown = null;
+      }
+    });
+
+    window.addEventListener('resize', function () {
+      if (!activePropertyDropdown) return;
+      positionFloatingPropertyDropdown(activePropertyDropdown.dropdownEl, activePropertyDropdown.menuEl);
+    });
+
+    document.addEventListener('scroll', function () {
+      if (!activePropertyDropdown) return;
+      positionFloatingPropertyDropdown(activePropertyDropdown.dropdownEl, activePropertyDropdown.menuEl);
+    }, true);
+  }
+
+
+  function showTasksInNavbar(dateStr, propertyId) {
+    console.log('showTasksInNavbar called with:', dateStr, propertyId);
+    console.log('Available tasks:', tasks);
+
+    // Clear any pending hide timeout
+    if (hideTaskPanelTimeout) clearTimeout(hideTaskPanelTimeout);
+
+    const tasksArray = tasks.filter(t => {
+      const match = t.date === dateStr && String(t.propertyId) === String(propertyId);
+      console.log(`Checking task - date: ${t.date} === ${dateStr}? ${t.date === dateStr}, propertyId: ${t.propertyId} === ${propertyId}? ${String(t.propertyId) === String(propertyId)}`);
+      return match;
+    });
+
+    console.log('Filtered tasks:', tasksArray);
+
+    const panel = document.getElementById('taskDetailsPanel');
+    const listDiv = document.getElementById('taskDetailsList');
+
+    if (!tasksArray || tasksArray.length === 0) {
+      listDiv.innerHTML = '<div style="font-size: 12px; color: #9ca3af; padding: 8px;">No tasks for this date</div>';
+      panel.classList.add('show');
+      return;
+    }
+
+    const taskTypeColors = { 'cleaning': '#10b981', 'maintenance': '#f59e0b', 'payment': '#3b82f6', 'other': '#8b5cf6' };
+
+    listDiv.innerHTML = tasksArray.map(t => {
+      const timeStr = t.time ? new Date(`2000-01-01T${t.time}`).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : 'No time';
+      const badgeBg = taskTypeColors[t.task_type] || '#6b7280';
+      const completedClass = t.completed ? 'style="text-decoration: line-through; opacity: 0.6;"' : '';
+
+      return `
+        <div class="task-item-nav" ${completedClass}>
+          <div class="task-badge" style="background-color: ${badgeBg}; color: white; text-transform: capitalize;">${t.task_type}</div>
+          <div class="task-info-nav">
+            <div>${t.details || 'Task'}</div>
+            <div style="font-size: 11px; color: #6b7280;">🕐 ${timeStr}</div>
+            ${t.assigned_to ? `<div style="font-size: 11px; color: #6b7280;">👤 ${t.assigned_to}</div>` : ''}
+          </div>
+          <div class="task-status">${t.completed ? '✓ Done' : '⏳ Pending'}</div>
+        </div>
+      `;
+    }).join('');
+
+    panel.classList.add('show');
+  }
+
+  // Hide tasks navbar panel with delay
+  function hideTasksFromNavbar() {
+    if (hideTaskPanelTimeout) clearTimeout(hideTaskPanelTimeout);
+    hideTaskPanelTimeout = setTimeout(() => {
+      const panel = document.getElementById('taskDetailsPanel');
+
+      if (panel) {
+        panel.classList.remove('show');
+      }
+    }, 300);
+  }
+
+  document.addEventListener('DOMContentLoaded', init);
+
+  window.addEventListener('pageshow', (event) => {
+    if (event.persisted) refreshData();
+  });
+
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) refreshData();
+  });
+
+  const mobileActionsToggle = document.getElementById('mobileActionsToggle');
+  const mobileActionsMenu = document.getElementById('mobileActionsMenu');
+  const mobilePrintBtn = document.getElementById('mobilePrintBtn');
+  const mobileRefreshBtn = document.getElementById('mobileRefreshBtn');
+
+  if (mobileActionsToggle && mobileActionsMenu) {
+    mobileActionsToggle.addEventListener('click', (event) => {
+      event.stopPropagation();
+      mobileActionsMenu.classList.toggle('open');
+    });
+
+    document.addEventListener('click', (event) => {
+      if (!mobileActionsMenu.contains(event.target) && event.target !== mobileActionsToggle) {
+        mobileActionsMenu.classList.remove('open');
+      }
+    });
+
+    // Mobile view switcher
+    mobileActionsMenu.querySelectorAll('.mobile-view-btn').forEach(btn => {
+      btn.addEventListener('click', function () {
+        const view = this.dataset.view;
+        const viewDropdownBtn = document.getElementById('viewDropdownBtn');
+        const desktopItem = viewDropdownBtn?.closest('.dropdown')?.querySelector(`[data-view="${view}"]`);
+        if (desktopItem) {
+          desktopItem.click();
+        } else {
+          currentViewMode = view;
+          const today = new Date();
+          const dayOfWeek = today.getDay();
+          const sunday = new Date(today);
+          sunday.setDate(today.getDate() - dayOfWeek);
+          if (currentViewMode === 'week') {
+            selectedWeekStart = sunday;
+            currentDisplayDate = new Date(sunday);
+          } else {
+            currentDisplayDate = new Date(today.getFullYear(), today.getMonth(), 1);
+            selectedWeekStart = sunday;
+            selectedDateKey = toISODateString(today);
+          }
+          refreshView();
+        }
+        mobileActionsMenu.querySelectorAll('.mobile-view-btn').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+        mobileActionsMenu.classList.remove('open');
+      });
+    });
+
+    // Mobile filter checkboxes
+    const syncMobileFilters = () => {
+      const resCb = document.getElementById('mobileFilterReservation');
+      const taskCb = document.getElementById('mobileFilterTask');
+      const payCb = document.getElementById('mobileFilterPayment');
+      const desktopResCb = document.getElementById('filterReservation');
+      const desktopTaskCb = document.getElementById('filterTask');
+      const desktopPayCb = document.getElementById('filterPayment');
+      if (resCb && desktopResCb) desktopResCb.checked = resCb.checked;
+      if (taskCb && desktopTaskCb) desktopTaskCb.checked = taskCb.checked;
+      if (payCb && desktopPayCb) desktopPayCb.checked = payCb.checked;
+      typeFilters.reservation = resCb.checked;
+      typeFilters.task = taskCb.checked;
+      typeFilters.payment = payCb.checked;
+      const allCb = document.getElementById('filterAll');
+      if (allCb) allCb.checked = resCb.checked && taskCb.checked && payCb.checked;
+      const filterBtn = document.getElementById('calendarTypeFilterBtn');
+      if (filterBtn) {
+        const labels = [];
+        if (resCb.checked) labels.push('Reservations');
+        if (taskCb.checked) labels.push('Tasks');
+        if (payCb.checked) labels.push('Payments');
+        filterBtn.textContent = labels.length === 3 ? 'Show: All' : 'Show: ' + (labels.join(', ') || 'None');
+      }
+      renderCurrentView();
+    };
+
+    document.querySelectorAll('#mobileFilterReservation, #mobileFilterTask, #mobileFilterPayment').forEach(cb => {
+      cb.addEventListener('change', syncMobileFilters);
+    });
+  }
+
+  if (mobilePrintBtn) {
+    mobilePrintBtn.addEventListener('click', () => {
+      const viewType = currentViewMode || 'month';
+      let startDate, endDate;
+      if (allDates.length > 0) {
+        startDate = toISODateString(allDates[0]);
+        endDate = toISODateString(allDates[allDates.length - 1]);
+      } else {
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = today.getMonth();
+        startDate = toISODateString(new Date(year, month, 1));
+        endDate = toISODateString(new Date(year, month + 1, 0));
+      }
+      window.location.href = `/print/?view=${viewType}&start_date=${startDate}&end_date=${endDate}`;
+    });
+  }
+
+  if (mobileRefreshBtn) {
+    mobileRefreshBtn.addEventListener('click', () => {
+      const desktopRefreshBtn = document.getElementById('refreshBtn');
+      if (desktopRefreshBtn) {
+        desktopRefreshBtn.click();
+      }
+    });
+  }
+
+  function init() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const monthParam = urlParams.get('month');
+    const yearParam = urlParams.get('year');
+    if (monthParam && yearParam) {
+      const m = parseInt(monthParam, 10) - 1, y = parseInt(yearParam, 10);
+      if (!isNaN(m) && !isNaN(y)) currentDisplayDate = new Date(y, m, 1);
+    } else {
+      currentDisplayDate = new Date();
+    }
+    initialFilter = urlParams.get('filter') || null;
+
+    // Bind type filter dropdown
+    // Bind type filter checkboxes
+    const typeFilter = document.getElementById('calendarTypeFilter');
+    if (typeFilter) {
+      function updateFilterState() {
+        const resCb = document.getElementById('filterReservation');
+        const taskCb = document.getElementById('filterTask');
+        const payCb = document.getElementById('filterPayment');
+        const allCb = document.getElementById('filterAll');
+        typeFilters.reservation = resCb.checked;
+        typeFilters.task = taskCb.checked;
+        typeFilters.payment = payCb.checked;
+        allCb.checked = resCb.checked && taskCb.checked && payCb.checked;
+        const filterBtn = document.getElementById('calendarTypeFilterBtn');
+        if (filterBtn) {
+          const labels = [];
+          if (resCb.checked) labels.push('Reservations');
+          if (taskCb.checked) labels.push('Tasks');
+          if (payCb.checked) labels.push('Payments');
+          filterBtn.textContent = labels.length === 3 ? 'Show: All' : 'Show: ' + (labels.join(', ') || 'None');
+        }
+        renderCurrentView();
+      }
+      document.getElementById('filterAll').addEventListener('change', function () {
+        const checked = this.checked;
+        document.querySelectorAll('.filter-type-cb').forEach(cb => cb.checked = checked);
+        updateFilterState();
+      });
+      document.querySelectorAll('.filter-type-cb').forEach(cb => {
+        cb.addEventListener('change', updateFilterState);
+      });
+    }
+
+    renderProperties();
+    refreshView();
+    bindPropertyDropdownFloating();
+
+    // Scroll to today initially (instant)
+    setTimeout(() => {
+      if (currentViewMode === 'timeline') {
+        const container = document.getElementById('datesContainer');
+        const todayEl = container.querySelector('.today-column');
+        if (todayEl) {
+          todayEl.scrollIntoView({ inline: 'center', block: 'nearest' });
+        }
+      }
+    }, 100);
+
+    // Event listeners
+    document.getElementById('prevBtn').addEventListener('click', goToPrevMonth);
+    document.getElementById('nextBtn').addEventListener('click', goToNextMonth);
+    document.getElementById('todayBtn').addEventListener('click', goToToday);
+    document.getElementById('refreshBtn').addEventListener('click', refreshData);
+    document.getElementById('printBtn').addEventListener('click', function () {
+      const viewType = currentViewMode || 'month';
+      let startDate, endDate;
+      if (allDates.length > 0) {
+        startDate = toISODateString(allDates[0]);
+        endDate = toISODateString(allDates[allDates.length - 1]);
+      } else {
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = today.getMonth();
+        const firstDay = new Date(year, month, 1);
+        const lastDay = new Date(year, month + 1, 0);
+        startDate = toISODateString(firstDay);
+        endDate = toISODateString(lastDay);
+      }
+      window.location.href = `/print/?view=${viewType}&start_date=${startDate}&end_date=${endDate}`;
+    });
+    document.getElementById('monthDisplay').addEventListener('click', toggleMonthYearPanel);
+    document.getElementById('monthYearApplyBtn').addEventListener('click', applyMonthYearSelection);
+    document.getElementById('monthYearPanel').addEventListener('click', function (event) {
+      event.stopPropagation();
+    });
+    document.addEventListener('click', function () {
+      closeMonthYearPanel();
+    });
+    document.addEventListener('click', function (event) {
+      if (!isMobileOrTabletView()) return;
+      if (event.target.closest('.payment-indicator') || event.target.closest('.task-indicator')) return;
+      hideGlobalTooltip();
+    });
+
+    if (typeof initTimelineScrollSync === 'function') initTimelineScrollSync();
+  }
+
+  // Show tasks in navbar panel on task icon hover

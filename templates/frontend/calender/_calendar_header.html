@@ -1,0 +1,156 @@
+{% load static %}
+  <div class="header-nav" style="padding: 8px 32px;">
+    <div class="row align-items-center justify-content-between w-100 g-0">
+      <div class="col-auto actions-col">
+        <div class="nav-left">
+          <div class="nav-title">
+            <img src="{% static 'img/calender/calendar_dashboard_icon.svg' %}">
+            <span id="viewTitle">Calendar - {{ active_view_label }} view</span>
+          </div>
+        </div>
+      </div>
+      <div class="col-auto calendar-header">
+        <button class="nav-button-header" id="prevBtn" aria-label="Previous month">
+          <img src="{% static 'img/calender/left_arrow.svg' %}">
+        </button>
+
+        <div class="month-picker-wrapper">
+          <button class="month-display month-display-btn" id="monthDisplay" type="button" aria-haspopup="dialog"
+            aria-expanded="false">
+            {{ current_month|date:"F Y" }}
+          </button>
+          <div class="month-year-panel" id="monthYearPanel" hidden>
+            <div class="month-year-controls">
+              <select class="month-year-select" id="monthPickerSelect">
+                <option value="0">January</option>
+                <option value="1">February</option>
+                <option value="2">March</option>
+                <option value="3">April</option>
+                <option value="4">May</option>
+                <option value="5">June</option>
+                <option value="6">July</option>
+                <option value="7">August</option>
+                <option value="8">September</option>
+                <option value="9">October</option>
+                <option value="10">November</option>
+                <option value="11">December</option>
+              </select>
+              <select class="month-year-select" id="yearPickerSelect"></select>
+            </div>
+            <div class="month-year-actions">
+              <button class="month-year-apply" id="monthYearApplyBtn" type="button">Show Calendar</button>
+            </div>
+          </div>
+        </div>
+
+        <button class="nav-button-header" id="nextBtn" aria-label="Next month">
+          <img src="{% static 'img/calender/right_arrow.svg' %}">
+        </button>
+
+        <div class="divider"></div>
+
+        <button class="nav-button-header today-btn tooltip-light" id="todayBtn" aria-label="Go to today"
+          data-tooltip="Return to current month">
+          <img src="{% static 'img/calender/today_icon.svg' %}">
+        </button>
+
+        <div class="divider"></div>
+
+        <!-- Event Type Filter (Checkboxes) -->
+        <div class="dropdown calendar-filter-dropdown" style="margin-left: 4px; flex: 0 0 auto; width: 130px;">
+          <button class="btn btn-outline-secondary dropdown-toggle btn-sm fw-semibold" type="button"
+            id="calendarTypeFilterBtn" data-bs-toggle="dropdown" aria-expanded="false"
+            style="border-radius: 6px; border: 1px solid #d1d5db; padding: 4px 10px; font-size: 13px; background: #fff; color: #374151; width: 100%; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: inline-block;">
+            Show: All
+          </button>
+          <ul class="dropdown-menu pt-2 pb-2" aria-labelledby="calendarTypeFilterBtn" id="calendarTypeFilter"
+            style="min-width: 170px;max-height:200px;overflow-y:auto;">
+            <li style="padding: 2px 16px;"><label
+                style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:500;user-select:none;"><input
+                  type="checkbox" id="filterAll" checked
+                  style="width:16px;height:16px;accent-color:#000000;cursor:pointer;"> All</label></li>
+            <li style="padding: 2px 16px;"><label
+                style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:500;user-select:none;"><input
+                  type="checkbox" id="filterReservation" checked class="filter-type-cb" data-type="reservation"
+                  style="width:16px;height:16px;accent-color:#000000;cursor:pointer;"> Reservations</label></li>
+            <li style="padding: 2px 16px;"><label
+                style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:500;user-select:none;"><input
+                  type="checkbox" id="filterTask" checked class="filter-type-cb" data-type="task"
+                  style="width:16px;height:16px;accent-color:#000000;cursor:pointer;"> Tasks</label></li>
+            <li style="padding: 2px 16px;"><label
+                style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:500;user-select:none;"><input
+                  type="checkbox" id="filterPayment" checked class="filter-type-cb" data-type="payment"
+                  style="width:16px;height:16px;accent-color:#000000;cursor:pointer;"> Payments</label></li>
+          </ul>
+        </div>
+
+        <!-- View Switcher (Month/Week/Day dropdown) -->
+        <div class="d-flex align-items-center" id="calendarViewSwitcher" style="gap: 4px;">
+          <div class="dropdown">
+            <button type="button" class="btn btn-light btn-sm px-2 fw-semibold dropdown-toggle" id="viewDropdownBtn"
+              data-bs-toggle="dropdown" aria-expanded="false"
+              style="border: 1px solid #d1d5db; border-radius: 6px; background: #fff; color: #374151; font-size: 13px; padding: 4px 10px;">{{ active_view_label }}</button>
+            <ul class="dropdown-menu" aria-labelledby="viewDropdownBtn">
+              <li><a class="dropdown-item{% if active_view == 'timeline' %} active{% endif %}" href="{% url 'calendar-grid-view' %}" data-view="timeline">Timeline</a></li>
+              <li><a class="dropdown-item{% if active_view == 'month' %} active{% endif %}" href="{% url 'calendar-month' %}" data-view="month">Month</a></li>
+              <li><a class="dropdown-item{% if active_view == 'week' %} active{% endif %}" href="{% url 'calendar-week' %}" data-view="week">Week</a></li>
+              <li><a class="dropdown-item{% if active_view == 'day' %} active{% endif %}" href="{% url 'calendar-day' %}" data-view="day">Day</a></li>
+              <li><a class="dropdown-item{% if active_view == 'list' %} active{% endif %}" href="{% url 'calendar-list-view' %}" data-view="list">List View</a></li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="mobile-actions">
+          <button class="mobile-actions-toggle" id="mobileActionsToggle" aria-label="Open actions">⋮</button>
+          <div class="mobile-actions-menu" id="mobileActionsMenu">
+            <div class="mobile-menu-section">
+              <div class="mobile-menu-label">View</div>
+              <div class="mobile-menu-view-options">
+                <button class="mobile-view-btn{% if active_view == 'timeline' %} active{% endif %}" data-view="timeline">Timeline</button>
+                <button class="mobile-view-btn{% if active_view == 'month' %} active{% endif %}" data-view="month">Month</button>
+                <button class="mobile-view-btn{% if active_view == 'week' %} active{% endif %}" data-view="week">Week</button>
+                <button class="mobile-view-btn{% if active_view == 'day' %} active{% endif %}" data-view="day">Day</button>
+                <button class="mobile-view-btn{% if active_view == 'list' %} active{% endif %}" data-view="list">List</button>
+              </div>
+            </div>
+            <div class="mobile-menu-divider"></div>
+            <div class="mobile-menu-section">
+              <div class="mobile-menu-label">Show</div>
+              <label class="mobile-menu-cb"><input type="checkbox" id="mobileFilterReservation" checked>
+                Reservations</label>
+              <label class="mobile-menu-cb"><input type="checkbox" id="mobileFilterTask" checked> Tasks</label>
+              <label class="mobile-menu-cb"><input type="checkbox" id="mobileFilterPayment" checked> Payments</label>
+            </div>
+            <div class="mobile-menu-divider"></div>
+            <div class="mobile-menu-bottom-row">
+              <button class="btn p-0 tooltip-light" id="mobilePrintBtn" style="border:none">
+                <img src="{% static 'img/calender/print_icon.svg' %}">
+              </button>
+              <button class="btn p-0 tooltip-light" id="mobileRefreshBtn" style="border:none">
+                <img src="{% static 'img/calender/refresh_icon.svg' %}">
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-auto actions-col">
+        <div class="d-flex">
+          <div></div>
+          <div class="header-actions-group">
+            <div class="dropdown">
+              <button class="btn p-0 tooltip-light" id="printBtn"
+                style="border:1px solid #1f2937;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;">
+                <img src="{% static 'img/calender/print_icon.svg' %}">
+              </button>
+            </div>
+            <button class="btn p-0 tooltip-light" id="refreshBtn"
+              style="border:1px solid #1f2937;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;">
+              <img src="{% static 'img/calender/refresh_icon.svg' %}">
+            </button>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
