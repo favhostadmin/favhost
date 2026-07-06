@@ -18,6 +18,7 @@ class Booking(models.Model):
     STATUS_CHOICES = (
         ('confirmed', 'Confirmed'),
         ('cancelled', 'Cancelled'),
+        ('no_show', 'No Show'),
     )
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)

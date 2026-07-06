@@ -834,13 +834,20 @@
             height: 14px;
             margin-right: 0;
         }
-        .show-more-btn,
         .gallery-btn{
             font-size: 11px;
             line-height: 1;
             padding: 6px 10px;
             border-radius: 4px;
             margin-top: 6px;
+        }
+        .show-more-btn{
+            font-size: 13px;
+            font-weight: 500;
+            line-height: 1;
+            padding: 9px 18px;
+            border-radius: 8px;
+            margin: 2px 0 8px;
         }
         .property-details > hr{
             margin: 30px 0 !important;
@@ -1883,7 +1890,7 @@
                         </div>
 
                         <button class="reserve-btn" id="create-reservation-btn" style="display: none;">Create Reservation</button>
-                        <button class="reserve-btn" id="create-availability-btn" {% if property.status != 'Active' %}disabled{% endif %}>Check Availability</button>
+                        <button class="reserve-btn" id="create-availability-btn" style="display: none;" {% if property.status != 'Active' %}disabled{% endif %}>Check Availability</button>
                         <div id="availability-status" class="availability-text" style="display: none;"></div>
                         {% if property.status != 'Active' %}
                             <div class="availability-text not-available" style="display: block;">This listing is currently inactive.</div>
@@ -2122,7 +2129,7 @@
 </script>
 
 <script>
-    function setupShowMore(containerSelector, maxLength = 400) {
+    function setupShowMore(containerSelector, maxLines = 4) {
         const containers = document.querySelectorAll(containerSelector);
         containers.forEach(function(container) {
             const textElement = container.querySelector('p');
@@ -2130,18 +2137,19 @@
             if (!textElement || !btn) return;
 
             const fullText = textElement.getAttribute("data-full") || "";
+            const clampStyle = 'display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:' + maxLines + ';overflow:hidden;';
 
-            if (fullText.length > maxLength) {
-                const shortText = fullText.substring(0, maxLength) + "...";
-                textElement.innerHTML = shortText;
+            textElement.innerHTML = fullText;
+            textElement.style.cssText = clampStyle;
 
+            if (textElement.scrollHeight > textElement.clientHeight + 1) {
                 btn.addEventListener("click", function () {
-                    const isShort = textElement.innerHTML.endsWith("...");
-                    textElement.innerHTML = isShort ? fullText : shortText;
-                    btn.textContent = isShort ? "Show less" : "Show more";
+                    const isClamped = textElement.style.cssText !== "";
+                    textElement.style.cssText = isClamped ? "" : clampStyle;
+                    btn.textContent = isClamped ? "Show less" : "Show more";
                 });
             } else {
-                textElement.innerHTML = fullText;
+                textElement.style.cssText = "";
                 btn.style.display = 'none';
             }
         });
@@ -2767,7 +2775,7 @@
         // Function to reset the UI to its initial state, prompting a new check.
         function resetAvailabilityState() {
             reservationBtn.style.display = 'none';
-            availabilityBtn.style.display = 'block';
+            if (availabilityBtn) availabilityBtn.style.display = 'none';
             statusDiv.style.display = 'none';
         }
 
@@ -2782,14 +2790,20 @@
             }
         }
 
-        // When date or guest count changes, reset the state.
-        if (checkinEl) checkinEl.addEventListener('change', resetAvailabilityState);
-        if (checkoutEl) checkoutEl.addEventListener('change', resetAvailabilityState);
-        if (guestsInput) guestsInput.addEventListener('change', resetAvailabilityState);
+        // Automatically check availability once check-in, check-out, and guests are all set.
+        function autoCheckAvailability() {
+            resetAvailabilityState();
+            const guestsValue = guestsInput.value;
+            if (checkinEl && checkoutEl && checkinEl.value.trim() && checkoutEl.value.trim() && guestsValue) {
+                const guests = parseInt(guestsValue, 10);
+                checkAvailability(checkinEl.value, checkoutEl.value, guests);
+            }
+        }
 
-
-        // When the "Check Availability" button is clicked, perform the check.
-        if (availabilityBtn) availabilityBtn.addEventListener('click', performCheck);
+        // When date or guest count changes, re-run the availability check automatically.
+        if (checkinEl) checkinEl.addEventListener('change', autoCheckAvailability);
+        if (checkoutEl) checkoutEl.addEventListener('change', autoCheckAvailability);
+        if (guestsInput) guestsInput.addEventListener('change', autoCheckAvailability);
 
         if (hasPrefilledReservation) {
             statusDiv.style.display = 'block';
@@ -2814,12 +2828,12 @@
                         statusDiv.textContent = 'Available';
                         statusDiv.className = 'availability-text available';
                         reservationBtn.style.display = 'block';
-                        availabilityBtn.style.display = 'none';
+                        if (availabilityBtn) availabilityBtn.style.display = 'none';
                     } else {
                         statusDiv.textContent = 'Not Available';
                         statusDiv.className = 'availability-text not-available';
                         reservationBtn.style.display = 'none';
-                        availabilityBtn.style.display = 'block';
+                        if (availabilityBtn) availabilityBtn.style.display = 'none';
                     }
                 })
                 .catch(error => {
