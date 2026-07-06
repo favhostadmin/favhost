@@ -71,10 +71,10 @@
         <div class="divider"></div>
 
         <!-- Event Type Filter (Checkboxes) -->
-        <div class="dropdown calendar-filter-dropdown" style="margin-left: 4px; flex: 0 0 auto; width: 130px;">
+        <div class="dropdown calendar-filter-dropdown" style="margin-left: 4px; flex: 0 0 auto; width: 112px;">
           <button class="btn btn-outline-secondary dropdown-toggle btn-sm fw-semibold" type="button"
             id="calendarTypeFilterBtn" data-bs-toggle="dropdown" aria-expanded="false"
-            style="border-radius: 6px; border: 1px solid #d1d5db; padding: 4px 10px; font-size: 13px; background: #fff; color: #374151; width: 100%; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: inline-block;">
+            style="border-radius: 20px; border: 1px solid #d0d0d0; padding: 4px 10px; font-size: 12px; background: #fff; color: #374151; width: 100%; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: inline-block;">
             Show: All
           </button>
           <ul class="dropdown-menu pt-2 pb-2" aria-labelledby="calendarTypeFilterBtn" id="calendarTypeFilter"
@@ -103,7 +103,7 @@
           <div class="dropdown">
             <button type="button" class="btn btn-light btn-sm px-2 fw-semibold dropdown-toggle" id="viewDropdownBtn"
               data-bs-toggle="dropdown" aria-expanded="false"
-              style="border: 1px solid #d1d5db; border-radius: 6px; background: #fff; color: #374151; font-size: 13px; padding: 4px 10px;">Timeline</button>
+              style="border: 1px solid #d0d0d0; border-radius: 20px; background: #fff; color: #374151; font-size: 12px; padding: 4px 10px;">Timeline</button>
             <ul class="dropdown-menu" aria-labelledby="viewDropdownBtn">
               <li><a class="dropdown-item active" href="#" data-view="timeline">Timeline</a></li>
               <li><a class="dropdown-item" href="#" data-view="month">Month</a></li>
@@ -155,18 +155,13 @@
         </div> -->
         <div class="d-flex">
           <div></div>
-          <div class="header-actions-group">
-            <div class="dropdown">
-              <button class="btn p-0 tooltip-light" id="printBtn"
-                style="border:1px solid #1f2937;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;">
-                <img src="{% static 'img/calender/print_icon.svg' %}">
-              </button>
-            </div>
-            <button class="btn p-0 tooltip-light" id="refreshBtn"
-              style="border:1px solid #1f2937;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;">
-              <img src="{% static 'img/calender/refresh_icon.svg' %}">
+          <div class="header-actions-group hdr-actions">
+            <button type="button" class="hdr-icon-btn tooltip-light" id="refreshBtn" aria-label="Refresh" title="Refresh">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
             </button>
-
+            <button type="button" class="hdr-icon-btn tooltip-light" id="printBtn" aria-label="Print" title="Print">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+            </button>
           </div>
         </div>
       </div>
@@ -4400,5 +4395,108 @@
       }
     });
   }
+</script>
+
+<script>
+  /* Custom month/year dropdowns — replace the native <select> popups (whose
+     blue OS highlight can't be styled) with menus that use the platform orange.
+     The native <select>s stay in the DOM (hidden) as the source of truth, so
+     populateYearPicker / sync / applyMonthYearSelection keep working unchanged. */
+  (function () {
+    function enhance(select) {
+      if (!select || select.dataset.clEnhanced) return;
+      select.dataset.clEnhanced = '1';
+
+      var wrap = document.createElement('div');
+      wrap.className = 'cl-cselect';
+      select.parentNode.insertBefore(wrap, select);
+      wrap.appendChild(select);
+      select.style.display = 'none';
+
+      var trigger = document.createElement('button');
+      trigger.type = 'button';
+      trigger.className = 'cl-cselect-trigger';
+      var label = document.createElement('span');
+      label.className = 'cl-cselect-label';
+      var caret = document.createElement('span');
+      caret.className = 'cl-cselect-caret';
+      caret.textContent = '▾';
+      trigger.appendChild(label);
+      trigger.appendChild(caret);
+      wrap.appendChild(trigger);
+
+      var menu = document.createElement('ul');
+      menu.className = 'cl-cselect-menu';
+      wrap.appendChild(menu);
+
+      function refreshLabel() {
+        var opt = select.options[select.selectedIndex];
+        label.textContent = opt ? opt.textContent : '';
+      }
+      function buildMenu() {
+        menu.innerHTML = '';
+        Array.prototype.forEach.call(select.options, function (opt) {
+          var li = document.createElement('li');
+          li.className = 'cl-cselect-option' + (opt.value === select.value ? ' selected' : '');
+          li.textContent = opt.textContent;
+          li.addEventListener('click', function (e) {
+            e.stopPropagation();
+            select.value = opt.value;
+            select.dispatchEvent(new Event('change', { bubbles: true }));
+            refreshLabel();
+            wrap.classList.remove('open');
+          });
+          menu.appendChild(li);
+        });
+      }
+      function openMenu() {
+        document.querySelectorAll('.cl-cselect.open').forEach(function (o) { o.classList.remove('open'); });
+        buildMenu();
+        wrap.classList.add('open');
+        var sel = menu.querySelector('.selected');
+        if (sel) sel.scrollIntoView({ block: 'nearest' });
+      }
+      trigger.addEventListener('click', function (e) {
+        e.stopPropagation();
+        if (wrap.classList.contains('open')) wrap.classList.remove('open');
+        else openMenu();
+      });
+
+      select._clRefresh = refreshLabel;
+      refreshLabel();
+    }
+
+    function init() {
+      var monthSel = document.getElementById('monthPickerSelect');
+      var yearSel = document.getElementById('yearPickerSelect');
+      enhance(monthSel);
+      enhance(yearSel);
+
+      var panel = document.getElementById('monthYearPanel');
+      if (!panel) return;
+
+      // The panel sets the selects' values programmatically when it opens;
+      // refresh the custom triggers whenever it becomes visible.
+      new MutationObserver(function () {
+        if (!panel.hidden) {
+          if (monthSel && monthSel._clRefresh) monthSel._clRefresh();
+          if (yearSel && yearSel._clRefresh) yearSel._clRefresh();
+        }
+      }).observe(panel, { attributes: true, attributeFilter: ['hidden'] });
+
+      // Clicking empty space inside the panel closes any open custom menu.
+      panel.addEventListener('click', function (e) {
+        if (!e.target.closest('.cl-cselect')) {
+          panel.querySelectorAll('.cl-cselect.open').forEach(function (o) { o.classList.remove('open'); });
+        }
+      });
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', init);
+    } else {
+      init();
+    }
+  })();
 </script>
 {% endblock extra_script %}
