@@ -152,10 +152,31 @@ def create_checkout_session(request):
 def checkout_success(request):
     """
     Stripe redirects here after a successful payment.
-    NOTE: This page is NOT proof of payment — the webhook is.
-    The webhook updates the database. This page just shows a message.
+
+    The webhook (checkout.session.completed) is the canonical source of truth,
+    but it may be delayed or — in local dev / a misconfigured endpoint — never
+    arrive, which would leave the paywall up even though payment succeeded. So
+    we ALSO activate synchronously here by re-fetching the Checkout Session from
+    Stripe (authenticated with our secret key) and confirming it was paid. This
+    is idempotent with the webhook: whichever runs first flips the account to
+    active, the other is a no-op.
+
     Suppress the subscription wall so the confirmation page is fully visible.
     """
+    session_id = request.GET.get('session_id')
+    if session_id:
+        try:
+            session = stripe.checkout.Session.retrieve(session_id)
+            # Trust only a genuinely paid/complete session, and only for the
+            # account that initiated it.
+            is_paid = getattr(session, 'payment_status', None) == 'paid' \
+                or getattr(session, 'status', None) == 'complete'
+            belongs_to_user = str(getattr(session, 'client_reference_id', '') or '') == str(request.user.id)
+            if is_paid and belongs_to_user:
+                _handle_checkout_completed(session)
+        except Exception as e:
+            logger.warning(f"Could not sync checkout session {session_id}: {e}")
+
     return render(request, 'frontend/billing/success.html', {'hide_subscription_wall': True})
 
 
