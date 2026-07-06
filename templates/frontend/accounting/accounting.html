@@ -591,6 +591,17 @@
     background: #faf7f5;
   }
 
+  /* Clamp the listing-name column so long titles truncate with an ellipsis
+     instead of stretching the first column and pushing the months off-screen.
+     Full name stays available via the title tooltip on hover. */
+  .acc-rl {
+    display: block;
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
   table.acc-ledger tr.total td {
     background: #FFF3EC;
     font-weight: 700;
@@ -947,6 +958,14 @@
       word-break: break-word;
     }
 
+    /* Print the full listing name (no ellipsis clamp) so it wraps in the cell. */
+    .acc-rl {
+      max-width: none;
+      white-space: normal;
+      overflow: visible;
+      word-break: break-word;
+    }
+
     table.acc-ledger tr {
       break-inside: avoid;
       page-break-inside: avoid;
@@ -1010,13 +1029,20 @@
           <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
         </svg>
       </button>
-      <button class="acc-icon-btn" id="accPrintBtn" aria-label="Print" title="Print">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <polyline points="6 9 6 2 18 2 18 9" />
-          <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
-          <rect x="6" y="14" width="12" height="8" />
-        </svg>
-      </button>
+      <div class="dropdown">
+        <button class="acc-icon-btn dropdown-toggle" id="accPrintBtn" type="button" data-bs-toggle="dropdown"
+          data-bs-display="static" aria-expanded="false" aria-label="Print" title="Print">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="6 9 6 2 18 2 18 9" />
+            <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+            <rect x="6" y="14" width="12" height="8" />
+          </svg>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end acc-download-menu">
+          <li><a class="dropdown-item" href="#" id="accPrintSummary">Summary (this page)</a></li>
+          <li><a class="dropdown-item" href="#" id="accPrintReport">Detailed expense report</a></li>
+        </ul>
+      </div>
       <div class="dropdown">
         <button class="acc-icon-btn dropdown-toggle" id="accDownloadBtn" type="button" data-bs-toggle="dropdown"
           data-bs-display="static" aria-expanded="false" aria-label="Download" title="Download">
@@ -1168,7 +1194,7 @@
               <tbody>
                 {% for row in income_rows %}
                 <tr>
-                  <td class="row-label">{{ row.label }}</td>
+                  <td class="row-label"><span class="acc-rl" title="{{ row.label }}">{{ row.label }}</span></td>
                   {% for v in row.values %}<td class="numeric">{% money v %}</td>{% endfor %}
                   <td class="overall numeric">{% money row.overall %}</td>
                 </tr>
@@ -1206,7 +1232,7 @@
               <tbody>
                 {% for row in expense_rows %}
                 <tr>
-                  <td class="row-label">{{ row.label }}</td>
+                  <td class="row-label"><span class="acc-rl" title="{{ row.label }}">{{ row.label }}</span></td>
                   {% for v in row.values %}<td class="numeric">{% money v %}</td>{% endfor %}
                   <td class="overall numeric">{% money row.overall %}</td>
                 </tr>
@@ -1384,8 +1410,18 @@
     // --- Header actions ---
     var refreshBtn = document.getElementById('accRefreshBtn');
     if (refreshBtn) refreshBtn.addEventListener('click', function () { window.location.reload(); });
-    var printBtn = document.getElementById('accPrintBtn');
-    if (printBtn) printBtn.addEventListener('click', function () { window.print(); });
+    // Print → Summary prints the on-screen ledger; Detailed report opens the
+    // full itemized/receipts document in a new tab (it auto-prints itself).
+    var printSummary = document.getElementById('accPrintSummary');
+    if (printSummary) printSummary.addEventListener('click', function (e) {
+      e.preventDefault();
+      window.print();
+    });
+    var printReport = document.getElementById('accPrintReport');
+    if (printReport) printReport.addEventListener('click', function (e) {
+      e.preventDefault();
+      window.open("{% url 'accounting' %}?report=1&year={{ selected_year }}", '_blank');
+    });
     // Download as Excel or CSV — loaded in a hidden iframe so the server's
     // attachment downloads without firing the page's beforeunload loader.
     document.querySelectorAll('.acc-export-link').forEach(function (link) {

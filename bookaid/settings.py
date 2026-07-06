@@ -30,6 +30,12 @@ SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-+m!dtn=()j@rs%01t#c^c&(s3l
 DEBUG = os.getenv('DEBUG', 'True') == 'True'
 
 ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '*').split(',')
+
+# The CountryAndState admin list (and other large tables) can have several
+# thousand rows selected at once via "select all across pages" bulk actions,
+# which POSTs one field per selected row. Django's default cap (1000) is too
+# low for that, so raise it well above our largest table's row count.
+DATA_UPLOAD_MAX_NUMBER_FIELDS = 20000
 CORS_ALLOW_ALL_ORIGINS = True
 SECURE_CROSS_ORIGIN_OPENER_POLICY = None
 CSRF_TRUSTED_ORIGINS = [
@@ -86,6 +92,7 @@ INSTALLED_APPS = [
     'billing',
     'printpanel',
     'frontdesk',
+    'shared',
 
 
 ]
@@ -299,7 +306,7 @@ JAZZMIN_SETTINGS = {
 }
 
 LOGIN_URL = 'login'
-LOGIN_REDIRECT_URL = 'dashboard'
+LOGIN_REDIRECT_URL = 'frontdesk:index'
 LOGOUT_REDIRECT_URL = 'login'
 
 # Base URL for generating absolute URLs in emails

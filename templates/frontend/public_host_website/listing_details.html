@@ -604,7 +604,7 @@
                         </div>
 
                         <button class="reserve-btn" id="create-reservation-btn" style="display: none;">Request to book</button>
-                        <button class="reserve-btn" id="create-availability-btn" {% if property.status != 'Active' %}disabled{% endif %}>
+                        <button class="reserve-btn" id="create-availability-btn" style="display: none;" {% if property.status != 'Active' %}disabled{% endif %}>
                             Check Availability
                         </button>
                         <div id="availability-status" class="availability-text" style="display: none;"></div>
@@ -688,7 +688,7 @@
                 </div>
 
                 <button class="reserve-btn" id="create-reservation-btn-mobile" style="display: none;">Request to book</button>
-                <button class="reserve-btn" id="create-availability-btn-mobile" {% if property.status != 'Active' %}disabled{% endif %}>Check Availability</button>
+                <button class="reserve-btn" id="create-availability-btn-mobile" style="display: none;" {% if property.status != 'Active' %}disabled{% endif %}>Check Availability</button>
                 <div id="availability-status-mobile" class="availability-text" style="display: none;"></div>
                 {% if property.status != 'Active' %}
                     <div class="availability-text not-available" style="display: block;">This listing is currently inactive.</div>
@@ -1623,7 +1623,7 @@
 
         function resetAvailabilityState(form) {
             if (form.reservationBtn) form.reservationBtn.style.display = 'none';
-            if (form.availabilityBtn) form.availabilityBtn.style.display = 'block';
+            if (form.availabilityBtn) form.availabilityBtn.style.display = 'none';
             if (form.statusDiv) form.statusDiv.style.display = 'none';
         }
 
@@ -1644,7 +1644,7 @@
                         form.statusDiv.textContent = 'Not Available';
                         form.statusDiv.className = 'availability-text not-available';
                         if (form.reservationBtn) form.reservationBtn.style.display = 'none';
-                        if (form.availabilityBtn) form.availabilityBtn.style.display = 'block';
+                        if (form.availabilityBtn) form.availabilityBtn.style.display = 'none';
                     }
                 })
                 .catch(error => {
@@ -1666,6 +1666,16 @@
                 checkAvailability(form.checkinEl.value, form.checkoutEl.value, guests, form);
             } else {
                 showValidationModal('Please select check-in, check-out dates, and number of guests first.');
+            }
+        }
+
+        // Automatically re-run the availability check once check-in, check-out, and guests are all set.
+        function autoCheckAvailability(form) {
+            resetAvailabilityState(form);
+            const guestsValue = form.guestsInput.value;
+            if (form.checkinEl && form.checkoutEl && form.checkinEl.value.trim() && form.checkoutEl.value.trim() && guestsValue) {
+                const guests = parseInt(guestsValue, 10);
+                checkAvailability(form.checkinEl.value, form.checkoutEl.value, guests, form);
             }
         }
 
@@ -1709,16 +1719,9 @@
         }
 
         forms.forEach((form) => {
-            form.checkinEl.addEventListener('change', () => resetAvailabilityState(form));
-            form.checkoutEl.addEventListener('change', () => resetAvailabilityState(form));
-            form.guestsInput.addEventListener('change', () => resetAvailabilityState(form));
-
-            if (form.availabilityBtn) {
-                form.availabilityBtn.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    performCheck(form);
-                });
-            }
+            form.checkinEl.addEventListener('change', () => autoCheckAvailability(form));
+            form.checkoutEl.addEventListener('change', () => autoCheckAvailability(form));
+            form.guestsInput.addEventListener('change', () => autoCheckAvailability(form));
 
             if (form.reservationBtn) {
                 form.reservationBtn.addEventListener('click', () => {

@@ -42,10 +42,12 @@ def _fd_data(request, target_date):
         property__status='Active'
     ).exclude(status='cancelled')
 
-    # In-house for target_date
+    # In-house for target_date. check_out_date is exclusive here: a guest
+    # checking out today has already left, so that property is not in-house
+    # for today even though it was occupied through last night.
     inhouse_property_ids = set(active_bookings.filter(
         check_in_date__lte=target_date,
-        check_out_date__gte=target_date
+        check_out_date__gt=target_date
     ).values_list('property_id', flat=True))
 
     blocked_property_ids = set(PropertyBlockDate.objects.filter(
@@ -61,19 +63,22 @@ def _fd_data(request, target_date):
     total_vacant = total_active - total_occupied
     occupancy_pct = round((total_occupied / total_active * 100), 2) if total_active > 0 else 0
 
-    paid_payments = Payment.objects.filter(
-        booking__property__created_by__in=user_ids,
-        is_paid=True,
-        payment_date__date=target_date
-    ).exclude(type__in=['Refundable deposit', 'Refundable to guest'])
-    total_revenue = paid_payments.aggregate(total=Sum('amount'))['total'] or 0
-    revpar = round(total_revenue / total_active, 2) if total_active > 0 else 0
+    # RevPAR = room revenue earned for target_date's night / total available rooms.
+    # A booking earns a night's revenue for every date from check_in_date up to
+    # (but excluding) check_out_date — the checkout date itself isn't a paid night.
+    revenue_bookings = active_bookings.filter(
+        check_in_date__lte=target_date,
+        check_out_date__gt=target_date
+    )
+    room_revenue = revenue_bookings.aggregate(total=Sum('price_per_night'))['total'] or 0
+    revpar = round(room_revenue / total_active, 2) if total_active > 0 else 0
 
     total_checkin = active_bookings.filter(check_in_date=target_date).count()
     total_checkout = active_bookings.filter(check_out_date=target_date).count()
 
     total_cancellations = Booking.objects.filter(
         property__created_by__in=user_ids,
+        property__status='Active',
         status='cancelled',
         check_in_date__lte=target_date,
         check_out_date__gte=target_date
@@ -109,7 +114,7 @@ def _fd_data(request, target_date):
     properties = active_properties.prefetch_related('images').order_by('title')
     saved_statuses = {
         hs.property_id: hs.status
-        for hs in HousekeepingStatus.objects.filter(property__in=properties)
+        for hs in HousekeepingStatus.objects.filter(property__in=properties, date=target_date)
     }
     housekeeping = []
     for prop in properties:
@@ -122,21 +127,21 @@ def _fd_data(request, target_date):
             property=prop, check_in_date=target_date
         ).exists()
 
-        if is_occupied and has_checkout:
+        if has_checkout:
             suggested_status = 'Dirty'
-            available = False
         elif is_occupied:
             suggested_status = 'In-Progress'
-            available = False
         elif is_blocked:
             suggested_status = 'Out-of-Service'
-            available = False
         elif has_checkin:
             suggested_status = 'Clean-Ready'
-            available = True
         else:
             suggested_status = 'Clean-Inspected'
-            available = True
+
+        # A check-in today means the unit is occupied from today, so it's
+        # not available regardless of whether a checkout also happens that
+        # same day (same-day turnover) or the suggested cleaning status.
+        available = not (has_checkin or is_occupied or is_blocked)
 
         status = saved_statuses.get(prop.id, suggested_status)
 
@@ -145,6 +150,8 @@ def _fd_data(request, target_date):
             'title': prop.title,
             'status': status,
             'available': available,
+            'has_checkin': has_checkin,
+            'has_checkout': has_checkout,
             'price': float(prop.price_per_night or 0),
             'guest_max': prop.guest,
             'bed_type': prop.bed_type,
@@ -275,9 +282,11 @@ class HousekeepingAPI(LoginRequiredMixin, View):
             property__status='Active'
         ).exclude(status='cancelled')
 
+        # check_out_date is exclusive: a guest checking out today has
+        # already left, so the property is not in-house today.
         inhouse_property_ids = set(active_bookings.filter(
             check_in_date__lte=target_date,
-            check_out_date__gte=target_date
+            check_out_date__gt=target_date
         ).values_list('property_id', flat=True))
 
         blocked_property_ids = set(PropertyBlockDate.objects.filter(
@@ -290,7 +299,7 @@ class HousekeepingAPI(LoginRequiredMixin, View):
 
         saved_statuses = {
             hs.property_id: hs.status
-            for hs in HousekeepingStatus.objects.filter(property__in=active_properties)
+            for hs in HousekeepingStatus.objects.filter(property__in=active_properties, date=target_date)
         }
 
         data = []
@@ -304,21 +313,21 @@ class HousekeepingAPI(LoginRequiredMixin, View):
                 property=prop, check_in_date=target_date
             ).exists()
 
-            if is_occupied and has_checkout:
+            if has_checkout:
                 suggested_status = 'Dirty'
-                available = False
             elif is_occupied:
                 suggested_status = 'In-Progress'
-                available = False
             elif is_blocked:
                 suggested_status = 'Out-of-Service'
-                available = False
             elif has_checkin:
                 suggested_status = 'Clean-Ready'
-                available = True
             else:
                 suggested_status = 'Clean-Inspected'
-                available = True
+
+            # A check-in today means the unit is occupied from today, so it's
+            # not available regardless of whether a checkout also happens that
+            # same day (same-day turnover) or the suggested cleaning status.
+            available = not (has_checkin or is_occupied or is_blocked)
 
             status = saved_statuses.get(prop.id, suggested_status)
 
@@ -327,6 +336,8 @@ class HousekeepingAPI(LoginRequiredMixin, View):
                 'title': prop.title,
                 'status': status,
                 'available': available,
+                'has_checkin': has_checkin,
+                'has_checkout': has_checkout,
                 'price': float(prop.price_per_night or 0),
                 'guest_max': prop.guest,
                 'bed_type': prop.bed_type,
@@ -342,12 +353,21 @@ class HousekeepingAPI(LoginRequiredMixin, View):
             body = json.loads(request.body)
             property_id = body.get('property_id')
             status = body.get('status')
+            date_str = body.get('date')
         except (json.JSONDecodeError, AttributeError):
             return JsonResponse({'error': 'Invalid JSON'}, status=400)
 
         valid_statuses = [s[0] for s in HousekeepingStatus.STATUS_CHOICES]
         if status not in valid_statuses:
             return JsonResponse({'error': 'Invalid status'}, status=400)
+
+        if date_str:
+            try:
+                target_date = datetime.datetime.strptime(date_str, '%Y-%m-%d').date()
+            except ValueError:
+                return JsonResponse({'error': 'Invalid date'}, status=400)
+        else:
+            target_date = request.user.get_local_date()
 
         try:
             prop = Property.objects.get(id=property_id, created_by__in=user_ids)
@@ -356,6 +376,7 @@ class HousekeepingAPI(LoginRequiredMixin, View):
 
         HousekeepingStatus.objects.update_or_create(
             property=prop,
+            date=target_date,
             defaults={'status': status}
         )
         return JsonResponse({'ok': True})

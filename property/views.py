@@ -13,6 +13,7 @@ from datetime import datetime, timedelta
 
 from booking.models import Booking
 from accounts.models import MyUser
+from shared.models import CountryAndState
 from .models import Property, PropertyImage, PropertyDocument, Amenities, PropertyBlockDate
 from icalendar import Calendar, Event
 from django.http import HttpResponse
@@ -80,6 +81,7 @@ class PropertyCreateView(LoginRequiredMixin, CreateView):
         context['amenities'] = Amenities.objects.all()
         context['is_edit'] = False
         context['google_maps_api_key'] = settings.GOOGLE_MAPS_API_KEY
+        context['countries'] = CountryAndState.objects.order_by('country_name').values_list('country_name', flat=True).distinct()
         clone_from_id = self.request.GET.get('clone_from')
         context['is_clone'] = False
         context['selected_amenities'] = []
@@ -87,6 +89,7 @@ class PropertyCreateView(LoginRequiredMixin, CreateView):
             original_property = get_object_or_404(Property, pk=clone_from_id)
             context['selected_amenities'] = list(original_property.amenities.values_list('id', flat=True))
             context['existing_images'] = original_property.images.all()
+            context['existing_cover_image'] = original_property.images.filter(is_primary=True).first()
             all_docs = original_property.documents.all()
             context['existing_check_in_docs'] = all_docs.filter(document_type='check_in')
             context['existing_check_out_docs'] = all_docs.filter(document_type='check_out')
@@ -247,7 +250,9 @@ class PropertyEditView(LoginRequiredMixin, UpdateView):
         context['amenities'] = Amenities.objects.all()
         context['is_edit'] = True
         context['google_maps_api_key'] = settings.GOOGLE_MAPS_API_KEY
+        context['countries'] = CountryAndState.objects.order_by('country_name').values_list('country_name', flat=True).distinct()
         context['existing_images'] = self.object.images.all()
+        context['existing_cover_image'] = self.object.images.filter(is_primary=True).first()
         all_docs = self.object.documents.all()
         context['existing_check_in_docs'] = all_docs.filter(document_type='check_in')
         context['existing_check_out_docs'] = all_docs.filter(document_type='check_out')
@@ -896,6 +901,35 @@ class ListingPageView(ListView):
             except (ValueError, TypeError):
                 pass
         context['num_nights'] = num_nights
+
+        # Only relevant when the guest hasn't searched with specific dates yet.
+        properties_on_page = context['object_list']
+        if not (check_in_str and check_out_str):
+            today = context['host'].get_local_date()
+            upcoming_bookings = Booking.objects.filter(
+                property__in=properties_on_page,
+                status='confirmed',
+                check_out_date__gte=today,
+            ).order_by('property_id', 'check_in_date')
+
+            bookings_by_property = {}
+            for booking in upcoming_bookings:
+                bookings_by_property.setdefault(booking.property_id, []).append(booking)
+
+            next_available_by_property = {}
+            for property_id, bookings in bookings_by_property.items():
+                # Merge overlapping/back-to-back bookings starting from the nearest one
+                # so the badge reflects when the property is next fully free.
+                chain_end = bookings[0].check_out_date
+                for booking in bookings[1:]:
+                    if booking.check_in_date <= chain_end:
+                        chain_end = max(chain_end, booking.check_out_date)
+                    else:
+                        break
+                next_available_by_property[property_id] = chain_end
+
+            for prop in properties_on_page:
+                prop.next_available_date = next_available_by_property.get(prop.id)
 
         return context
 
