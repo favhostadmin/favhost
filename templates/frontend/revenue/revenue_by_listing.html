@@ -253,20 +253,31 @@
   }
   .rev-table-card-body { padding: 16px 20px; }
   .rev-table-scroll { overflow-x: auto; }
-  table.rev-data-table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 1100px; }
+  table.rev-data-table { width: 100%; border-collapse: collapse; font-size: 12px; min-width: 0; table-layout: fixed; }
+  /* Fixed layout: the label column is pinned narrow and the 13 amount columns
+     (Jan–Dec + Overall) share the rest equally, so the whole grid always fits
+     the container width with no left-right scrolling. */
+  table.rev-data-table col.rev-col-label { width: 132px; }
   table.rev-data-table thead.section th {
     background: #313131; color: #fff; font-weight: 700;
-    text-align: center; padding: 8px 10px; border: 1px solid #313131; font-size: 13px; letter-spacing: 0.02em;
+    text-align: left; padding: 8px 10px; border: 1px solid #313131; font-size: 15px; letter-spacing: 0.02em;
   }
   table.rev-data-table th, table.rev-data-table td {
-    padding: 7px 10px; border: 1px solid #e5e7eb;
+    padding: 7px 6px; border: 1px solid #e5e7eb;
     text-align: left; color: #374151; white-space: nowrap;
   }
-  table.rev-data-table thead.months th { background: #faf7f5; font-weight: 600; color: #1a1a1a; }
+  table.rev-data-table thead.months th { background: #faf7f5; font-weight: 600; color: #1a1a1a; text-align: center; }
   table.rev-data-table thead.months th.overall { background: #FFF3EC; color: #C2410C; }
   table.rev-data-table tbody tr:hover td { background: #fafafa; }
   table.rev-data-table td.overall { background: #FFF3EC; font-weight: 700; color: #C2410C; }
-  table.rev-data-table td.first-col { color: #1a1a1a; font-weight: 600; background: #faf7f5; }
+  table.rev-data-table td.first-col {
+    color: #1a1a1a; font-weight: 600; background: #faf7f5;
+    overflow: hidden; text-overflow: ellipsis;
+  }
+  /* Right-align the amount columns (everything except the label column). */
+  table.rev-data-table td:not(.first-col) {
+    text-align: right; font-variant-numeric: tabular-nums;
+  }
 
   /* ---------- Responsive ---------- */
   @media (max-width: 1100px) {
@@ -473,6 +484,10 @@
         <div class="rev-table-card-body">
         <div class="rev-table-scroll">
           <table class="rev-data-table" id="revDataTable" aria-label="Revenue data for {{ selected_property.title }}">
+            <colgroup>
+              <col class="rev-col-label">
+              <col span="13" class="rev-col-num">
+            </colgroup>
             <thead class="section">
               <tr><th colspan="14">{{ selected_property.title }}</th></tr>
             </thead>
@@ -486,7 +501,7 @@
             <tbody>
               {% for row in table_rows %}
               <tr>
-                <td class="first-col">{{ row.label }}</td>
+                <td class="first-col" title="{{ row.label }}">{{ row.label }}</td>
                 {% for v in row.values %}
                 <td>{% if row.fmt == 'money' %}{% money v %}{% else %}{{ v }}{% endif %}</td>
                 {% endfor %}
@@ -501,7 +516,7 @@
             <tbody>
               {% for row in bookings_channel_rows %}
               <tr>
-                <td class="first-col">{{ row.label }}</td>
+                <td class="first-col" title="{{ row.label }}">{{ row.label }}</td>
                 {% for v in row.values %}<td>{{ v }}</td>{% endfor %}
                 <td class="overall">{{ row.overall }}</td>
               </tr>
@@ -516,7 +531,7 @@
             <tbody>
               {% for row in revenue_channel_rows %}
               <tr>
-                <td class="first-col">{{ row.label }}</td>
+                <td class="first-col" title="{{ row.label }}">{{ row.label }}</td>
                 {% for v in row.values %}<td>{% money v %}</td>{% endfor %}
                 <td class="overall">{% money row.overall %}</td>
               </tr>
