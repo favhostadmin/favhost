@@ -249,6 +249,16 @@ DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', EMAIL_HOST_USER)
 # Address used for Reply-To and the List-Unsubscribe mailto on outgoing emails.
 SUPPORT_EMAIL = os.getenv('SUPPORT_EMAIL', 'support@favhost.com')
 
+# --- Dedicated Zoho SMTP for the public contact form ---------------------- #
+# The default EMAIL_* account above (Namecheap/noreply) keeps sending every
+# other platform email. The contact form uses this separate Zoho account so
+# messages are delivered straight into the support@favhost.com inbox.
+SUPPORT_EMAIL_HOST = os.getenv('SUPPORT_EMAIL_HOST', 'smtp.zoho.com')
+SUPPORT_EMAIL_PORT = int(os.getenv('SUPPORT_EMAIL_PORT', 587))
+SUPPORT_EMAIL_USE_TLS = os.getenv('SUPPORT_EMAIL_USE_TLS', 'True') == 'True'
+SUPPORT_EMAIL_HOST_USER = os.getenv('SUPPORT_EMAIL_HOST_USER', SUPPORT_EMAIL)
+SUPPORT_EMAIL_HOST_PASSWORD = os.getenv('SUPPORT_EMAIL_HOST_PASSWORD')
+
 # --- Tutorials / YouTube channel ---
 # Set this to your real YouTube channel (or on-site tutorials page) URL.
 # Used by the "Watch tutorials" button in the welcome email.
