@@ -596,6 +596,39 @@ def check_property_availability(request, pk):
 
     return JsonResponse({'available': True})
 
+def get_property_unavailable_dates(request, pk):
+    """
+    Returns confirmed bookings + active blocked dates for a property over the
+    next 12 months, as a list of {start, end} ISO date ranges - used to cross
+    out unavailable days in the property detail page's calendar. `end` is
+    exclusive (the checkout/block-end day itself is not included), matching
+    the same convention used by check_property_availability/Enquiry.is_available.
+    """
+    property_obj = get_object_or_404(Property, pk=pk)
+    today = timezone.now().date()
+    window_end = today + timedelta(days=365)
+
+    ranges = []
+    bookings = Booking.objects.filter(
+        property=property_obj,
+        status='confirmed',
+        check_in_date__lt=window_end,
+        check_out_date__gt=today,
+    ).values('check_in_date', 'check_out_date')
+    for b in bookings:
+        ranges.append({'start': b['check_in_date'].isoformat(), 'end': b['check_out_date'].isoformat()})
+
+    blocks = PropertyBlockDate.objects.filter(
+        property=property_obj,
+        is_active=True,
+        start_date__lt=window_end,
+        end_date__gt=today,
+    ).values('start_date', 'end_date')
+    for blk in blocks:
+        ranges.append({'start': blk['start_date'].isoformat(), 'end': blk['end_date'].isoformat()})
+
+    return JsonResponse({'unavailable_ranges': ranges})
+
 class AvailablePropertiesAjaxView(LoginRequiredMixin, View):
     """
     Returns a list of available properties based on check-in, check-out,

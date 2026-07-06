@@ -1627,6 +1627,8 @@
 
   /* --- Month Grid View Renderer --- */
 
+  let _taskModalPaymentContext = null;
+
   function openTaskDetailModal(event, taskId) {
     if (event) event.stopPropagation();
     hideGlobalTooltip();
@@ -1634,6 +1636,18 @@
     const t = tasks.find(x => x.id === taskId || x.id === tId || x.id === `task-${tId}`);
     if (!t) return;
     _currentModalTaskId = t.id.replace('task-', '');
+
+    const taskModalNextBtn = document.getElementById('taskModalNextBtn');
+    const paymentBooking = bookings.find(b =>
+      String(b.propertyId) === String(t.propertyId) && b.paymentsInfo && t.date && b.paymentsInfo[t.date]
+    );
+    if (paymentBooking) {
+      _taskModalPaymentContext = { bookingId: paymentBooking.id, dateStr: t.date };
+      if (taskModalNextBtn) taskModalNextBtn.style.display = '';
+    } else {
+      _taskModalPaymentContext = null;
+      if (taskModalNextBtn) taskModalNextBtn.style.display = 'none';
+    }
 
     const overlay = document.getElementById('taskModalOverlay');
     const modal = document.getElementById('taskModal');
@@ -1708,6 +1722,13 @@
     if (event && event.target !== event.currentTarget) return;
     const overlay = document.getElementById('taskModalOverlay');
     overlay.classList.remove('open');
+  }
+
+  function goToPaymentFromTaskModal() {
+    if (!_taskModalPaymentContext) return;
+    const { bookingId, dateStr } = _taskModalPaymentContext;
+    closeTaskDetailModal();
+    openPaymentDetailModal(null, bookingId, dateStr);
   }
 
   function openPaymentDetailModal(event, bookingId, dateStr) {

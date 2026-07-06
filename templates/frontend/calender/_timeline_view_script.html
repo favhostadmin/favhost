@@ -255,12 +255,22 @@
 
         const collision = isBookingStart && (tasksForCell.length > 0 || bookingWithPayment);
 
+        // A collision (check-in + task and/or payment landing on the same cell) is always
+        // shown as a single red blinking dot - no separate black payment dot. If a task is
+        // present it takes priority (opens the task popup, which itself links onward to the
+        // payment via its "Payment ->" button); otherwise the dot opens the payment directly.
         let blinkingClick = '';
-        if (collision && tasksForCell.length > 0) {
-          const t0 = tasksForCell[0];
-          blinkingClick = "openTaskDetailModal(event, '" + t0.id + "')";
+        let blinkingHoverAttrs = '';
+        if (collision) {
+          if (tasksForCell.length > 0) {
+            const t0 = tasksForCell[0];
+            blinkingClick = "openTaskDetailModal(event, '" + t0.id + "')";
+          } else if (bookingWithPayment) {
+            blinkingClick = "handlePaymentIndicatorClick(event, '" + bookingWithPayment.id + "', '" + dateStr + "')";
+            blinkingHoverAttrs = ` onmouseenter="showPaymentTooltip(event, '${bookingWithPayment.id}', '${dateStr}')" onmouseleave="handleIndicatorHoverLeave()"`;
+          }
         }
-        const blinkingDot = collision ? '<div class="cell-blinking-dot" style="cursor:pointer;" onclick="' + blinkingClick + '"></div>' : '';
+        const blinkingDot = collision ? '<div class="cell-blinking-dot" style="cursor:pointer;" onclick="' + blinkingClick + '"' + blinkingHoverAttrs + '></div>' : '';
 
         const taskCircles = (!collision) ? tasksForCell.map((t, tIdx) => {
           const tColor = monthTaskColors[t.task_type] || monthTaskColors.other;
@@ -288,12 +298,6 @@
           </div>
         ` : '';
 
-        const paymentCollisionDot = (isBookingStart && bookingWithPayment) ? `
-          <div class="cell-payment-dot"
-               onmouseenter="showPaymentTooltip(event, '${bookingWithPayment.id}', '${dateStr}')"
-               onmouseleave="handleIndicatorHoverLeave()"></div>
-        ` : '';
-
         return `
           <div
             class="${cellClasses} ${(hasManualDateSelection && selectedDateKey === dateStr && dateStr !== todayDateKey) ? 'user-selected-date-column' : ''}"
@@ -304,7 +308,6 @@
             ${blinkingDot}
             ${taskCircles}
             ${paymentBadge}
-            ${paymentCollisionDot}
           </div>
         `;
       }).join('');

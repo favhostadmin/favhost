@@ -13,6 +13,7 @@ urlpatterns = [
     path('ajax/delete-document/', DeleteDocumentView.as_view(), name='delete-document'),
     path('toggle-status/<uuid:pk>/', PropertyToggleStatusView.as_view(), name='property-toggle-status'),
     path('<uuid:pk>/check-availability/', check_property_availability, name='property-check-availability'),
+    path('<uuid:pk>/unavailable-dates/', get_property_unavailable_dates, name='property-unavailable-dates'),
     path('ajax/get-available-properties/', AvailablePropertiesAjaxView.as_view(), name='ajax-get-available-properties'),
     path('ajax/block-dates/', BlockPropertyDateView.as_view(), name='ajax-block-dates'),
     path('ical/<uuid:pk>.ics', export_property_ical, name='ical-export'),

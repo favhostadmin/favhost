@@ -119,25 +119,29 @@
         const bookingStartsHere = weekSpans.some(s => !s.carryStart && s.startCol === colIdx);
 
         const bookingWithPayment = propertyBookings.find(b => b.paymentsInfo && b.paymentsInfo[dateStr]);
-        const hasPaymentCollision = bookingStartsHere && bookingWithPayment && typeFilters.payment;
+        const hasPayment = bookingWithPayment && typeFilters.payment;
 
-        // Payment collision: small black dot at bottom when payment date coincides with reservation start
-        if (hasPaymentCollision) {
-          rowHtml += `<div style="grid-column:${colIdx + 1}/${colIdx + 2};grid-row:1/-1;align-self:end;justify-self:center;width:8px;height:8px;border-radius:50%;background:#000;z-index:130;cursor:pointer;pointer-events:auto;margin-bottom:4px;" onmouseenter="showPaymentTooltip(event,'${bookingWithPayment.id}','${dateStr}')" onmouseleave="handleIndicatorHoverLeave()"></div>`;
+        // Check-in colliding with a task and/or payment on the same cell is shown as a single
+        // red blinking dot - never a separate black payment dot. A task takes priority for the
+        // click (opens the task popup, which itself links onward to the payment via its
+        // "Payment ->" button); with no task, the dot opens the payment directly.
+        if (bookingStartsHere && (dayTasks.length > 0 || hasPayment)) {
+          if (dayTasks.length > 0) {
+            const t0 = dayTasks[0];
+            rowHtml += `<div style="position:static;grid-column:${colIdx + 1}/${colIdx + 2};grid-row:1/-1;align-self:end;justify-self:center;width:8px;height:8px;border-radius:50%;background:#ef4444;z-index:15;cursor:pointer;pointer-events:auto;animation:cell-blink 1.2s ease-in-out infinite;" onclick="openTaskDetailModal(event,'${t0.id}')"></div>`;
+          } else {
+            rowHtml += `<div style="position:static;grid-column:${colIdx + 1}/${colIdx + 2};grid-row:1/-1;align-self:end;justify-self:center;width:8px;height:8px;border-radius:50%;background:#ef4444;z-index:15;cursor:pointer;pointer-events:auto;animation:cell-blink 1.2s ease-in-out infinite;" onclick="handlePaymentIndicatorClick(event,'${bookingWithPayment.id}','${dateStr}')" onmouseenter="showPaymentTooltip(event,'${bookingWithPayment.id}','${dateStr}')" onmouseleave="handleIndicatorHoverLeave()"></div>`;
+          }
+          return;
         }
 
-        // Normal payment indicator (when no collision with reservation start)
-        if (!hasPaymentCollision && bookingWithPayment && typeFilters.payment && !(bookingStartsHere && dayTasks.length > 0)) {
+        // Normal payment indicator (day has a payment but isn't also a check-in day)
+        if (hasPayment) {
           rowHtml += `<div style="grid-column:${colIdx + 1}/${colIdx + 2};grid-row:1;align-self:center;justify-self:center;width:36px;height:36px;border-radius:50%;background:#3b82f6;border:2px solid #fff;display:flex;align-items:center;justify-content:center;z-index:120;cursor:pointer;pointer-events:auto;box-shadow:0 1px 3px rgba(0,0,0,0.25);" onclick="handlePaymentIndicatorClick(event,'${bookingWithPayment.id}','${dateStr}')" onmouseenter="showPaymentTooltip(event,'${bookingWithPayment.id}','${dateStr}')" onmouseleave="handleIndicatorHoverLeave()"><img src="${paymentIconUrl}" alt="payment" style="width:24px;height:24px;object-fit:contain;filter:brightness(0) invert(1);" /></div>`;
         }
 
         if (dayTasks.length === 0) return;
         const t0 = dayTasks[0];
-
-        if (bookingStartsHere) {
-          rowHtml += `<div style="position:static;grid-column:${colIdx + 1}/${colIdx + 2};grid-row:1/-1;align-self:end;justify-self:center;width:8px;height:8px;border-radius:50%;background:#ef4444;z-index:15;cursor:pointer;pointer-events:auto;animation:cell-blink 1.2s ease-in-out infinite;" onclick="openTaskDetailModal(event,'${t0.id}')"></div>`;
-          return;
-        }
         const taskIconUrl = taskIconsMap[t0.task_type] || taskIconsMap.other;
         const taskColor = taskColors[t0.task_type] || taskColors.other;
         const paymentRing = t0.task_type === 'payment' ? 'box-shadow:0 0 0 2.5px #38bdf8,0 2px 6px rgba(0,0,0,0.15);width:30px;height:30px;' : '';

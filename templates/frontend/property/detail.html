@@ -522,6 +522,20 @@
         color: #d1d5db;
         cursor: not-allowed;
     }
+    .detail-date-range-picker .drp-day.unavailable {
+        position: relative;
+        color: #d1d5db;
+    }
+    .detail-date-range-picker .drp-day.unavailable::after {
+        content: '';
+        position: absolute;
+        left: 28%;
+        right: 28%;
+        top: 50%;
+        height: 0;
+        border-top: 1px solid #dc2626;
+        transform: rotate(-25deg);
+    }
     .detail-date-range-picker .drp-day.in-range {
         background: #d8d8d8;
         color: #111827;
@@ -2575,6 +2589,27 @@
                 return dateObj < minDate;
             }
 
+            // Unavailable dates (confirmed bookings + host-blocked dates) for this
+            // property, fetched once and used to cross out days in the calendar.
+            // `end` is exclusive - the checkout/block-end day itself stays selectable
+            // (same-day turnover), matching the check-availability endpoint's convention.
+            let unavailableRanges = [];
+
+            function isUnavailable(dateObj) {
+                return unavailableRanges.some(r => dateObj >= r.start && dateObj < r.end);
+            }
+
+            fetch(`/property/${propertyId}/unavailable-dates/`)
+                .then(response => response.json())
+                .then(data => {
+                    unavailableRanges = (data.unavailable_ranges || []).map(r => ({
+                        start: parseDateInput(r.start),
+                        end: parseDateInput(r.end)
+                    }));
+                    if (desktopRangePicker.classList.contains('open')) renderRangePicker();
+                })
+                .catch(error => console.error('Error fetching unavailable dates:', error));
+
             let startDate = parseDateInput(checkinEl.value);
             let endDate = parseDateInput(checkoutEl.value);
             let hoverDate = null;
@@ -2596,7 +2631,8 @@
                 const dayCells = cells.map(cell => {
                     if (!cell) return `<div class="drp-day blank"></div>`;
                     const iso = formatInput(cell);
-                    const disabled = isDisabled(cell);
+                    const unavailable = !isDisabled(cell) && isUnavailable(cell);
+                    const disabled = isDisabled(cell) || unavailable;
                     const previewStart = startDate && !endDate && hoverDate
                         ? (hoverDate < startDate ? hoverDate : startDate)
                         : null;
@@ -2607,6 +2643,7 @@
                     const inPreviewRange = previewStart && previewEnd && cell > previewStart && cell < previewEnd;
                     const classes = ['drp-day'];
                     if (disabled) classes.push('disabled');
+                    if (unavailable) classes.push('unavailable');
                     if (inRange) classes.push('in-range');
                     if (inPreviewRange) classes.push('in-range');
                     if (sameDay(cell, startDate)) classes.push('start');
