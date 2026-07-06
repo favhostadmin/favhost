@@ -812,7 +812,171 @@
     }
   }
 
-  @media (max-width: 768px) {
+  /* Phone-only statement view: hidden on desktop and in print. */
+  .acc-mobile-ledger { display: none; }
+
+  @media screen and (max-width: 768px) {
+    /* Swap the wide table for the phone statement view. */
+    .acc-table-wrap { display: none !important; }
+    .acc-mobile-ledger { display: block; }
+
+    /* Month selector — horizontally scrollable pill chips, pinned on top. */
+    .aml-months {
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+      padding: 2px 0 12px;
+      position: sticky;
+      top: 0;
+      background: #fff;
+      z-index: 3;
+    }
+    .aml-months::-webkit-scrollbar { display: none; }
+
+    .aml-chip {
+      flex: 0 0 auto;
+      border: 1px solid #e5e7eb;
+      background: #faf7f5;
+      color: #4b5563;
+      font-size: 13px;
+      font-weight: 600;
+      padding: 6px 13px;
+      border-radius: 999px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background .15s ease, color .15s ease, border-color .15s ease;
+    }
+    .aml-chip.active {
+      background: #EB5310;
+      border-color: #EB5310;
+      color: #fff;
+    }
+
+    /* KPI tiles — Income + Expenses side by side, Net Profit as a full hero. */
+    .aml-kpis {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin: 2px 0 4px;
+    }
+    .aml-kpi {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      padding: 12px 14px;
+      border: 1px solid #eef0f3;
+      border-left-width: 3px;
+      border-radius: 12px;
+      background: #fff;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+    }
+    .aml-kpi.income  { border-left-color: #059669; }
+    .aml-kpi.expense { border-left-color: #dc2626; }
+    .aml-kpi.profit  { border-left-color: #EB5310; grid-column: 1 / -1; }
+
+    .aml-kpi-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: #6b7280;
+    }
+    .aml-kpi-val {
+      font-size: 20px;
+      font-weight: 800;
+      color: #111827;
+      font-variant-numeric: tabular-nums;
+      line-height: 1.1;
+    }
+    .aml-kpi.profit .aml-kpi-val { font-size: 23px; }
+    .aml-kpi .neg { color: #dc2626; }
+
+    /* Sections + rows */
+    .aml-section { margin-top: 22px; }
+    .aml-section-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      font-size: 13px;
+      font-weight: 700;
+      color: #111827;
+      letter-spacing: 0.01em;
+      padding-bottom: 7px;
+      margin-bottom: 4px;
+      border-bottom: 2px solid #313131;
+    }
+    .aml-scope {
+      font-size: 12px;
+      font-weight: 600;
+      color: #EB5310;
+    }
+
+    .aml-list { display: flex; flex-direction: column; }
+    .aml-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding: 11px 2px;
+      border-bottom: 1px solid #f1f1f1;
+    }
+    .aml-item:last-child { border-bottom: none; }
+    .aml-item-name {
+      font-size: 14px;
+      color: #1a1a1a;
+      font-weight: 500;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .aml-item-val {
+      flex: 0 0 auto;
+      font-size: 14px;
+      font-weight: 700;
+      color: #111827;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+    .aml-item-val .neg { color: #dc2626; }
+
+    /* Total + subtotal + profit rows get emphasis */
+    .aml-total {
+      margin-top: 2px;
+      border-top: 2px solid #f1f1f1;
+      border-bottom: none;
+    }
+    .aml-total .aml-item-name { font-weight: 700; color: #C2410C; }
+    .aml-total .aml-item-val  { color: #C2410C; }
+
+    .aml-sub .aml-item-name,
+    .aml-sub .aml-item-val {
+      color: #6b7280;
+      font-weight: 600;
+      font-size: 13px;
+    }
+
+    .aml-profit-row .aml-item-name { font-weight: 700; }
+    .aml-profit-row .aml-item-val { font-size: 16px; }
+
+    .aml-empty {
+      padding: 14px 2px;
+      color: #9ca3af;
+      font-size: 13px;
+    }
+
+    /* Muted $0.00 values so rows with real amounts stand out. */
+    .aml-item-val .aml-v.is-zero { color: #b8bcc2; font-weight: 500; }
+    .aml-kpi-val .aml-v.is-zero { color: #9ca3af; }
+
+    /* Only the selected month's value shows; default to the yearly (all) value
+       so the view is correct even before JS runs. */
+    .acc-mobile-ledger .aml-v { display: none; }
+    .acc-mobile-ledger .aml-v[data-month="all"] { display: inline; }
+  }
+
+  @media screen and (max-width: 768px) {
     .acc-title-bar {
       display: flex;
       flex-wrap: wrap;
@@ -1385,6 +1549,114 @@
               </tbody>
             </table>
           </div>
+
+          <!-- ================= PHONE-ONLY STATEMENT VIEW =================
+               A 14-column table can't fit a phone, so instead of horizontal
+               scrolling we pivot to a month-filtered statement: pick a month
+               (or Year) and every KPI + listing/expense row shows that month's
+               value. All values are pre-rendered (hidden) and toggled by JS,
+               so the full dataset is available with no side-scrolling. -->
+          <div class="acc-mobile-ledger" id="accMobileLedger">
+            <div class="aml-months" role="tablist" aria-label="Select month">
+              <button type="button" class="aml-chip active" data-month="all">Year</button>
+              {% for m in month_labels %}
+              <button type="button" class="aml-chip" data-month="{{ forloop.counter0 }}">{{ m }}</button>
+              {% endfor %}
+            </div>
+
+            <div class="aml-kpis">
+              <div class="aml-kpi income">
+                <span class="aml-kpi-label">Income</span>
+                <span class="aml-kpi-val">
+                  {% for v in income_total %}<span class="aml-v" data-month="{{ forloop.counter0 }}">{% money v %}</span>{% endfor %}<span class="aml-v" data-month="all">{% money income_overall %}</span>
+                </span>
+              </div>
+              <div class="aml-kpi expense">
+                <span class="aml-kpi-label">Expenses</span>
+                <span class="aml-kpi-val">
+                  {% for v in expense_total %}<span class="aml-v" data-month="{{ forloop.counter0 }}">{% money v %}</span>{% endfor %}<span class="aml-v" data-month="all">{% money expense_overall %}</span>
+                </span>
+              </div>
+              <div class="aml-kpi profit">
+                <span class="aml-kpi-label">Net Profit</span>
+                <span class="aml-kpi-val">
+                  {% for v in net_profit %}<span class="aml-v {% if v < 0 %}neg{% endif %}" data-month="{{ forloop.counter0 }}">{% money v %}</span>{% endfor %}<span class="aml-v {% if net_profit_overall < 0 %}neg{% endif %}" data-month="all">{% money net_profit_overall %}</span>
+                </span>
+              </div>
+            </div>
+
+            <div class="aml-section">
+              <div class="aml-section-head">
+                <span>Income by listing</span>
+                <span class="aml-scope" data-scope>Year</span>
+              </div>
+              <div class="aml-list">
+                {% for row in income_rows %}
+                <div class="aml-item">
+                  <span class="aml-item-name" title="{{ row.label }}">{{ row.label }}</span>
+                  <span class="aml-item-val">
+                    {% for v in row.values %}<span class="aml-v" data-month="{{ forloop.counter0 }}">{% money v %}</span>{% endfor %}<span class="aml-v" data-month="all">{% money row.overall %}</span>
+                  </span>
+                </div>
+                {% empty %}
+                <div class="aml-empty">No listings for {{ selected_year }}.</div>
+                {% endfor %}
+                <div class="aml-item aml-total">
+                  <span class="aml-item-name">Total income</span>
+                  <span class="aml-item-val">
+                    {% for v in income_total %}<span class="aml-v" data-month="{{ forloop.counter0 }}">{% money v %}</span>{% endfor %}<span class="aml-v" data-month="all">{% money income_overall %}</span>
+                  </span>
+                </div>
+                <div class="aml-item aml-sub">
+                  <span class="aml-item-name">RevPAR</span>
+                  <span class="aml-item-val">
+                    {% for v in revpar %}<span class="aml-v" data-month="{{ forloop.counter0 }}">{% money v %}</span>{% endfor %}<span class="aml-v" data-month="all">{% money revpar_overall %}</span>
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div class="aml-section">
+              <div class="aml-section-head">
+                <span>Expenses</span>
+                <span class="aml-scope" data-scope>Year</span>
+              </div>
+              <div class="aml-list">
+                {% for row in expense_rows %}
+                <div class="aml-item">
+                  <span class="aml-item-name" title="{{ row.label }}">{{ row.label }}</span>
+                  <span class="aml-item-val">
+                    {% for v in row.values %}<span class="aml-v" data-month="{{ forloop.counter0 }}">{% money v %}</span>{% endfor %}<span class="aml-v" data-month="all">{% money row.overall %}</span>
+                  </span>
+                </div>
+                {% empty %}
+                <div class="aml-empty">No expenses for {{ selected_year }}.</div>
+                {% endfor %}
+                <div class="aml-item aml-total">
+                  <span class="aml-item-name">Total expenses</span>
+                  <span class="aml-item-val">
+                    {% for v in expense_total %}<span class="aml-v" data-month="{{ forloop.counter0 }}">{% money v %}</span>{% endfor %}<span class="aml-v" data-month="all">{% money expense_overall %}</span>
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div class="aml-section">
+              <div class="aml-section-head">
+                <span>Net profit</span>
+                <span class="aml-scope" data-scope>Year</span>
+              </div>
+              <div class="aml-list">
+                <div class="aml-item aml-profit-row">
+                  <span class="aml-item-name">Net profit</span>
+                  <span class="aml-item-val">
+                    {% for v in net_profit %}<span class="aml-v {% if v < 0 %}neg{% endif %}" data-month="{{ forloop.counter0 }}">{% money v %}</span>{% endfor %}<span class="aml-v {% if net_profit_overall < 0 %}neg{% endif %}" data-month="all">{% money net_profit_overall %}</span>
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- =============== END PHONE-ONLY STATEMENT VIEW =============== -->
         </div>
       </section>
 
@@ -1521,6 +1793,42 @@
       el.style.height = pct;                    // vertical bars (desktop)
       el.style.setProperty('--bar-size', pct);  // reused as width for horizontal bars (phone)
     });
+
+    // --- Phone statement view: month chip selector toggles which value shows ---
+    (function () {
+      var ledger = document.getElementById('accMobileLedger');
+      if (!ledger) return;
+      var chips = ledger.querySelectorAll('.aml-chip');
+      var values = ledger.querySelectorAll('.aml-v');
+      var scopes = ledger.querySelectorAll('[data-scope]');
+
+      function isZero(text) {
+        var n = parseFloat(text.replace(/[^0-9.\-]/g, ''));
+        return !n; // 0.00 or unparseable → treat as zero
+      }
+
+      function selectMonth(month, label) {
+        values.forEach(function (el) {
+          var show = el.getAttribute('data-month') === month;
+          el.style.display = show ? 'inline' : 'none';
+          // Mute $0.00 so rows with real amounts stand out (finance-app style).
+          if (show) el.classList.toggle('is-zero', isZero(el.textContent));
+        });
+        chips.forEach(function (c) {
+          c.classList.toggle('active', c.getAttribute('data-month') === month);
+        });
+        scopes.forEach(function (s) { s.textContent = label; });
+      }
+
+      chips.forEach(function (chip) {
+        chip.addEventListener('click', function () {
+          selectMonth(chip.getAttribute('data-month'), chip.textContent.trim());
+        });
+      });
+
+      // Default to the yearly total.
+      selectMonth('all', 'Year');
+    })();
 
     // --- Stamp the print header with the generation date/time (like Revenue) ---
     function accStampPrintDate() {

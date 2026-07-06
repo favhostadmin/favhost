@@ -289,7 +289,11 @@
     .rev-listing-list { max-height: none; }
     .rev-charts-row { grid-template-columns: 1fr; }
   }
-  @media (max-width: 720px) {
+
+  /* Phone-only statement view: hidden on desktop and in print. */
+  .rev-mobile-ledger { display: none; }
+
+  @media screen and (max-width: 720px) {
     .rev-page-header {
       display: flex; flex-wrap: wrap; justify-content: center;
       padding: 8px 16px;
@@ -302,10 +306,63 @@
     .rev-legend { max-width: 260px; margin: 4px auto 0; }
     .rev-card { padding: 18px; }
 
-    /* Phone: the fixed layout squeezes 13 amount columns into a tiny width and
-       the numbers overlap. Restore auto layout + a real min-width so the grid
-       keeps readable columns and scrolls horizontally inside its wrapper. */
-    table.rev-data-table { table-layout: auto; min-width: 900px; }
+    /* Swap the wide table for the phone statement view. */
+    .rev-table-scroll { display: none !important; }
+    .rev-mobile-ledger { display: block; }
+    .rev-table-card-body { padding: 16px; }
+
+    /* Month selector — horizontally scrollable pill chips, pinned on top. */
+    .rml-months {
+      display: flex; gap: 6px; overflow-x: auto;
+      -webkit-overflow-scrolling: touch; scrollbar-width: none;
+      padding: 2px 0 12px; position: sticky; top: 0; background: #fff; z-index: 3;
+    }
+    .rml-months::-webkit-scrollbar { display: none; }
+    .rml-chip {
+      flex: 0 0 auto; border: 1px solid #e5e7eb; background: #faf7f5;
+      color: #4b5563; font-size: 13px; font-weight: 600; padding: 6px 13px;
+      border-radius: 999px; cursor: pointer; white-space: nowrap;
+      transition: background .15s ease, color .15s ease, border-color .15s ease;
+    }
+    .rml-chip.active { background: #EB5310; border-color: #EB5310; color: #fff; }
+
+    /* Sections + rows */
+    .rml-section { margin-top: 22px; }
+    .rml-section:first-of-type { margin-top: 4px; }
+    .rml-section-head {
+      display: flex; justify-content: space-between; align-items: baseline;
+      font-size: 13px; font-weight: 700; color: #111827; letter-spacing: 0.01em;
+      padding-bottom: 7px; margin-bottom: 4px; border-bottom: 2px solid #313131;
+    }
+    .rml-section-head > span:first-child {
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+      padding-right: 10px;
+    }
+    .rml-scope { flex: 0 0 auto; font-size: 12px; font-weight: 600; color: #EB5310; }
+
+    .rml-list { display: flex; flex-direction: column; }
+    .rml-item {
+      display: flex; justify-content: space-between; align-items: center; gap: 12px;
+      padding: 11px 2px; border-bottom: 1px solid #f1f1f1;
+    }
+    .rml-item:last-child { border-bottom: none; }
+    .rml-item-name {
+      font-size: 14px; color: #1a1a1a; font-weight: 500;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .rml-item-val {
+      flex: 0 0 auto; font-size: 14px; font-weight: 700; color: #111827;
+      font-variant-numeric: tabular-nums; white-space: nowrap;
+    }
+    .rml-empty { padding: 14px 2px; color: #9ca3af; font-size: 13px; }
+
+    /* Muted zero values so rows with real amounts stand out. */
+    .rml-item-val .rml-v.is-zero { color: #b8bcc2; font-weight: 500; }
+
+    /* Only the selected month's value shows; default to the yearly (all) value
+       so the view is correct even before JS runs. */
+    .rev-mobile-ledger .rml-v { display: none; }
+    .rev-mobile-ledger .rml-v[data-month="all"] { display: inline; }
 
     /* Phone: turn the 12-column vertical bar chart into a stacked horizontal bar
        list so every month is visible without squeezing/scrolling. Each row is a
@@ -629,6 +686,76 @@
             </tbody>
           </table>
         </div>
+
+        <!-- ================= PHONE-ONLY STATEMENT VIEW =================
+             A 14-column table can't fit a phone, so instead of horizontal
+             scrolling we pivot to a month-filtered statement: pick a month
+             (or Year) and every row shows that month's value. All values are
+             pre-rendered (hidden) and toggled by JS — full data, no scroll. -->
+        <div class="rev-mobile-ledger" id="revMobileLedger">
+          <div class="rml-months" role="tablist" aria-label="Select month">
+            <button type="button" class="rml-chip active" data-month="all">Year</button>
+            {% for m in month_labels %}
+            <button type="button" class="rml-chip" data-month="{{ forloop.counter0 }}">{{ m }}</button>
+            {% endfor %}
+          </div>
+
+          <div class="rml-section">
+            <div class="rml-section-head">
+              <span>{{ selected_property.title }}</span>
+              <span class="rml-scope" data-scope>Year</span>
+            </div>
+            <div class="rml-list">
+              {% for row in table_rows %}
+              <div class="rml-item">
+                <span class="rml-item-name" title="{{ row.label }}">{{ row.label }}</span>
+                <span class="rml-item-val">
+                  {% for v in row.values %}<span class="rml-v" data-month="{{ forloop.counter0 }}">{% if row.fmt == 'money' %}{% money v %}{% else %}{{ v }}{% endif %}</span>{% endfor %}<span class="rml-v" data-month="all">{% if row.fmt == 'money' %}{% money row.overall %}{% else %}{{ row.overall }}{% endif %}</span>
+                </span>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+
+          <div class="rml-section">
+            <div class="rml-section-head">
+              <span>Bookings by channel</span>
+              <span class="rml-scope" data-scope>Year</span>
+            </div>
+            <div class="rml-list">
+              {% for row in bookings_channel_rows %}
+              <div class="rml-item">
+                <span class="rml-item-name" title="{{ row.label }}">{{ row.label }}</span>
+                <span class="rml-item-val">
+                  {% for v in row.values %}<span class="rml-v" data-month="{{ forloop.counter0 }}">{{ v }}</span>{% endfor %}<span class="rml-v" data-month="all">{{ row.overall }}</span>
+                </span>
+              </div>
+              {% empty %}
+              <div class="rml-empty">No bookings for {{ selected_year }}.</div>
+              {% endfor %}
+            </div>
+          </div>
+
+          <div class="rml-section">
+            <div class="rml-section-head">
+              <span>Revenue by channel</span>
+              <span class="rml-scope" data-scope>Year</span>
+            </div>
+            <div class="rml-list">
+              {% for row in revenue_channel_rows %}
+              <div class="rml-item">
+                <span class="rml-item-name" title="{{ row.label }}">{{ row.label }}</span>
+                <span class="rml-item-val">
+                  {% for v in row.values %}<span class="rml-v" data-month="{{ forloop.counter0 }}">{% money v %}</span>{% endfor %}<span class="rml-v" data-month="all">{% money row.overall %}</span>
+                </span>
+              </div>
+              {% empty %}
+              <div class="rml-empty">No channel revenue for {{ selected_year }}.</div>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+        <!-- =============== END PHONE-ONLY STATEMENT VIEW =============== -->
         </div>
       </section>
 
@@ -700,6 +827,40 @@
     document.querySelectorAll('.rev-legend-swatch[data-color]').forEach(function (el) {
       el.style.background = el.getAttribute('data-color');
     });
+
+    // --- Phone statement view: month chip selector toggles which value shows ---
+    (function () {
+      var ledger = document.getElementById('revMobileLedger');
+      if (!ledger) return;
+      var chips = ledger.querySelectorAll('.rml-chip');
+      var values = ledger.querySelectorAll('.rml-v');
+      var scopes = ledger.querySelectorAll('[data-scope]');
+
+      function isZero(text) {
+        var n = parseFloat(text.replace(/[^0-9.\-]/g, ''));
+        return !n; // 0 / 0.00 / unparseable → treat as zero
+      }
+
+      function selectMonth(month, label) {
+        values.forEach(function (el) {
+          var show = el.getAttribute('data-month') === month;
+          el.style.display = show ? 'inline' : 'none';
+          if (show) el.classList.toggle('is-zero', isZero(el.textContent));
+        });
+        chips.forEach(function (c) {
+          c.classList.toggle('active', c.getAttribute('data-month') === month);
+        });
+        scopes.forEach(function (s) { s.textContent = label; });
+      }
+
+      chips.forEach(function (chip) {
+        chip.addEventListener('click', function () {
+          selectMonth(chip.getAttribute('data-month'), chip.textContent.trim());
+        });
+      });
+
+      selectMonth('all', 'Year');
+    })();
 
     // --- Stamp the print header with the generation date/time ---
     function revStampPrintDate() {
