@@ -283,13 +283,33 @@
   }
 
   .booking-span-block.carry-start {
-    padding-left: 10px;
+    padding-left: 32px;
     border-top-left-radius: 0;
     border-bottom-left-radius: 0;
   }
 
+  /* A "carry-start" bar continues from a booking that began before the
+     currently displayed range (often a different month), so there's no
+     rounded left edge to hang the channel circle off of. Rather than hiding
+     it (which left long-running bookings with no channel indicator at all -
+     especially noticeable on mobile, where a narrower view means a much
+     larger share of visible bars are carry-overs), show a smaller version
+     tucked just inside the bar's visible left edge instead. */
   .booking-span-block.carry-start .channel-logo-circle {
-    display: none;
+    display: flex;
+    left: 4px;
+    width: 22px;
+    height: 22px;
+  }
+
+  .booking-span-block.carry-start .channel-logo-circle img {
+    width: 13px;
+    height: 13px;
+  }
+
+  .booking-span-block.carry-start .channel-logo-circle::after {
+    inset: 1.5px;
+    border-width: 1px;
   }
 
   .booking-span-block.carry-start {
@@ -2404,6 +2424,11 @@
     width: max(100%, var(--timeline-grid-width));
     min-width: 100%;
     border-bottom: 1px solid #e5e7eb;
+    /* grid.css (loaded on the same page for an unrelated, now-unused
+       widget) also defines .date-row with a fixed height: 50px. min-height
+       alone can't override that — it's a different property, so this must
+       set height explicitly to actually win the cascade. */
+    height: auto;
     min-height: 58px;
   }
 
@@ -2911,7 +2936,13 @@
       box-shadow: none;
       min-width: 0;
       padding: 0 8px 0 22px;
-      overflow: hidden;
+      /* Not hidden: the channel-logo-circle sits at a negative left offset
+         outside this box on purpose (see .booking-span-block
+         .channel-logo-circle below), and overflow:hidden here was clipping
+         it away entirely on every mobile-width bar. Guest-name truncation
+         is already handled by .segment-guest-name's own ellipsis, so
+         nothing relies on this element clipping its own overflow. */
+      overflow: visible;
     }
 
     .booking-span-block .channel-logo-circle {
@@ -3559,11 +3590,26 @@
   .grid-event-span.carry-start {
     border-top-left-radius: 0;
     border-bottom-left-radius: 0;
-    padding-left: 8px;
+    padding-left: 30px;
   }
 
+  /* See .booking-span-block.carry-start .channel-logo-circle for why this
+     shows a small tucked-in circle instead of hiding it. */
   .grid-event-span.carry-start .channel-logo-circle {
-    display: none;
+    display: flex;
+    left: 4px;
+    width: 22px;
+    height: 22px;
+  }
+
+  .grid-event-span.carry-start .channel-logo-circle img {
+    width: 13px;
+    height: 13px;
+  }
+
+  .grid-event-span.carry-start .channel-logo-circle::after {
+    inset: 1.5px;
+    border-width: 1px;
   }
 
   .grid-event-span.carry-end {

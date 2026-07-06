@@ -8,13 +8,46 @@ from django.utils import timezone
 from django.urls import reverse
 from xhtml2pdf import pisa
 from datetime import datetime, timedelta
-import calendar as cal_mod
 from accounts import currency
 
 from booking.models import Booking, Enquiry
 from property.models import Property, PropertyBlockDate
 from tasks.models import Task
 from accounts.utils import get_visible_user_ids
+
+CALENDAR_URL_NAMES = {
+    'month': 'calendar-month',
+    'week': 'calendar-week',
+    'day': 'calendar-day',
+    'timeline': 'calendar',
+    'list': 'calendar-list-view',
+}
+
+# Fixed span (in days, inclusive of the start date) used to derive end_date
+# for each view type, so the printed range always matches what that view
+# naturally shows instead of an arbitrary user-picked range.
+VIEW_RANGE_DAYS = {
+    'month': 30,
+    'week': 7,
+    'day': 1,
+    'timeline': 30,
+    'list': 30,
+}
+
+
+def _resolve_date_range(view_type, start_date_str, today):
+    """Resolve start/end date from a single start date, sized by view type."""
+    if start_date_str:
+        try:
+            start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+        except (ValueError, TypeError):
+            start_date = today
+    else:
+        start_date = today
+
+    days = VIEW_RANGE_DAYS.get(view_type, 30)
+    end_date = start_date + timedelta(days=days - 1)
+    return start_date, end_date
 
 
 class PrintPanelView(LoginRequiredMixin, View):
@@ -27,19 +60,7 @@ class PrintPanelView(LoginRequiredMixin, View):
 
         view_type = request.GET.get('view', 'month')
         start_date_str = request.GET.get('start_date')
-        end_date_str = request.GET.get('end_date')
-
-        if start_date_str and end_date_str:
-            try:
-                start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
-                end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
-            except (ValueError, TypeError):
-                start_date = today
-                end_date = today + timedelta(days=30)
-        else:
-            _, last_day = cal_mod.monthrange(today.year, today.month)
-            start_date = today.replace(day=1)
-            end_date = today.replace(day=last_day)
+        start_date, end_date = _resolve_date_range(view_type, start_date_str, today)
 
         properties = Property.objects.filter(
             created_by__in=get_visible_user_ids(user),
@@ -53,12 +74,16 @@ class PrintPanelView(LoginRequiredMixin, View):
             + '&show_header=1&show_summary=1'
         )
 
+        calendar_url_name = CALENDAR_URL_NAMES.get(view_type, 'calendar')
+        close_url = reverse(calendar_url_name) + f'?month={start_date.month}&year={start_date.year}'
+
         context = {
             'view_type': view_type,
             'start_date': start_date,
             'end_date': end_date,
             'properties': properties,
             'preview_url': preview_url,
+            'close_url': close_url,
             'user': user,
             'today': today,
         }
@@ -86,21 +111,10 @@ def _render_print_output(request, format_type='html'):
 
     view_type = request.GET.get('view', 'month')
     start_date_str = request.GET.get('start_date')
-    end_date_str = request.GET.get('end_date')
     show_header = request.GET.get('show_header', '1') == '1'
     show_summary = request.GET.get('show_summary', '1') == '1'
 
-    if start_date_str and end_date_str:
-        try:
-            start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
-            end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
-        except (ValueError, TypeError):
-            start_date = today
-            end_date = today + timedelta(days=30)
-    else:
-        _, last_day = cal_mod.monthrange(today.year, today.month)
-        start_date = today.replace(day=1)
-        end_date = today.replace(day=last_day)
+    start_date, end_date = _resolve_date_range(view_type, start_date_str, today)
 
     properties = Property.objects.filter(
         created_by__in=get_visible_user_ids(user),
@@ -173,6 +187,39 @@ def _render_print_output(request, format_type='html'):
             'days_data': days_data,
         })
 
+    # Day view: flatten bookings/tasks/payments for start_date across all
+    # properties into single lists, so the template can show one clean
+    # "no bookings/tasks/payments" message instead of repeating it once per
+    # property that has nothing that day.
+    day_view_bookings = []
+    day_view_tasks = []
+    day_view_payments = []
+    if view_type == 'day':
+        for b in bookings_qs:
+            if b.check_in_date <= start_date < b.check_out_date:
+                day_view_bookings.append({
+                    'property': b.property.title,
+                    'guest': f"{b.first_name or ''} {b.last_name or ''}".strip() or 'Guest',
+                    'check_in': b.check_in_date, 'check_out': b.check_out_date,
+                    'channel': b.channel.name if b.channel else 'Direct',
+                })
+            for p in b.payments.all():
+                if p.expected_payment_date and p.expected_payment_date.date() == start_date:
+                    day_view_payments.append({
+                        'property': b.property.title,
+                        'guest': f"{b.first_name or ''} {b.last_name or ''}".strip() or 'Guest',
+                        'type': p.type or 'Payment',
+                        'amount': p.amount,
+                        'is_paid': p.is_paid,
+                    })
+        for t in tasks_qs:
+            if t.date == start_date:
+                day_view_tasks.append({
+                    'property': t.property.title,
+                    'task_type': t.task_type or 'other',
+                    'details': t.details or '',
+                })
+
     all_events = []
     for b in bookings_qs:
         guest_name = f"{b.first_name or ''} {b.last_name or ''}".strip() or 'Guest'
@@ -202,17 +249,29 @@ def _render_print_output(request, format_type='html'):
 
     week_bands = {'reservations': [], 'payments': [], 'tasks': []}
     for b in bookings_qs:
-        has_pay = b.payments.exists()
+        guest_name = f"{b.first_name or ''} {b.last_name or ''}".strip() or 'Guest'
         nights = (min(b.check_out_date, end_date) - max(b.check_in_date, start_date)).days
-        week_bands['payments' if has_pay else 'reservations'].append({
+        week_bands['reservations'].append({
             'property': b.property.title,
-            'guest': f"{b.first_name or ''} {b.last_name or ''}".strip() or 'Guest',
+            'guest': guest_name,
             'check_in': b.check_in_date, 'check_out': b.check_out_date,
             'nights': max(1, nights), 'color': b.channel.color if b.channel else '#3b82f6',
         })
+        for p in b.payments.all():
+            due_date = p.expected_payment_date.date() if p.expected_payment_date else None
+            if due_date and start_date <= due_date <= end_date:
+                week_bands['payments'].append({
+                    'property': b.property.title,
+                    'guest': guest_name,
+                    'type': p.type or 'Payment',
+                    'due_date': due_date,
+                    'amount': p.amount,
+                    'is_paid': p.is_paid,
+                })
     for t in tasks_qs:
         week_bands['tasks'].append({
-            'property': t.property.title, 'details': t.details or t.task_type or '',
+            'property': t.property.title, 'details': t.details or '',
+            'task_type': t.task_type or 'other',
             'date': t.date, 'color': '#059669',
         })
 
@@ -226,6 +285,9 @@ def _render_print_output(request, format_type='html'):
         'date_list': date_list,
         'all_events': all_events,
         'week_bands': week_bands,
+        'day_view_bookings': day_view_bookings,
+        'day_view_tasks': day_view_tasks,
+        'day_view_payments': day_view_payments,
         'user': user,
         'today': today,
         'now': timezone.now(),

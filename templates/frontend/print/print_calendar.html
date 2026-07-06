@@ -179,21 +179,39 @@
     }
     .prop-month-table td {
       border: 1px solid #e2e8f0;
-      padding: 4px 5px;
-      font-size: 9px;
+      padding: 2px;
+      font-size: 8px;
       vertical-align: top;
       height: 44px;
+      overflow: hidden;
     }
+    .prop-month-table td .event {
+      font-size: 6.5px;
+      padding: 1px 3px;
+      margin-bottom: 1px;
+      border-radius: 3px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-weight: 500;
+      max-width: 100%;
+    }
+    .prop-month-table td .event.booking { background: #dbeafe; color: #1d4ed8; }
+    .prop-month-table td .event.task { background: #d1fae5; color: #047857; }
+    .prop-month-table td .event.payment { background: #e2e8f0; color: #334155; }
+    .prop-month-table td .event.enquiry { background: #fef3c7; color: #b45309; }
+    .prop-month-table td .event.blocked { background: #f3f4f6; color: #6b7280; font-style: italic; }
     .prop-month-table td.prop-name {
       font-weight: 600;
       color: #0f172a;
-      font-size: 9px;
-      width: 130px;
-      max-width: 130px;
+      font-size: 8px;
+      width: 62px;
+      max-width: 62px;
       overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      padding-left: 8px;
+      white-space: normal;
+      word-break: break-word;
+      line-height: 1.25;
+      padding-left: 4px;
     }
 
     /* ===== Week View ===== */
@@ -281,19 +299,22 @@
     }
     .timeline-table td {
       border: 1px solid #e2e8f0;
-      padding: 4px 6px;
-      font-size: 9px;
+      padding: 2px 3px;
+      font-size: 8px;
       vertical-align: middle;
+      overflow: hidden;
     }
     .timeline-table td.prop-name {
       font-weight: 600;
       color: #0f172a;
-      white-space: nowrap;
-      max-width: 140px;
+      white-space: normal;
+      word-break: break-word;
+      width: 62px;
+      max-width: 62px;
       overflow: hidden;
-      text-overflow: ellipsis;
-      font-size: 9px;
-      padding-left: 8px;
+      font-size: 8px;
+      line-height: 1.25;
+      padding-left: 4px;
     }
     .timeline-table .tl-event {
       display: inline-block;
@@ -382,6 +403,7 @@
 </head>
 <body>
 
+{% if show_header %}
 <!-- ===== Brand Header ===== -->
 <div class="brand-header">
   <img src="{{ brand_logo_src }}" alt="FavHost" class="brand-logo" onerror="this.style.display='none'">
@@ -395,6 +417,7 @@
     <span style="margin-top:3px;display:block;color:#94a3b8;">Generated {{ now|date:"M d, Y h:i A" }}</span>
   </div>
 </div>
+{% endif %}
 
 <!-- ===== Section Header ===== -->
 <div class="section-header">
@@ -402,6 +425,7 @@
   <span class="badge-view">{{ properties|length }} Properties &middot; {{ total_bookings }} Bookings &middot; {{ total_tasks }} Tasks</span>
 </div>
 
+{% if show_summary %}
 <!-- ===== Summary Row ===== -->
 <div class="summary-row">
   <div class="summary-card">
@@ -421,13 +445,14 @@
     <div class="value" style="font-size:13px;">{{ start_date|date:"M j" }} — {{ end_date|date:"M j, Y" }}</div>
   </div>
 </div>
+{% endif %}
 
 {% if view_type == 'month' %}
 <!-- ===================== MONTH VIEW ===================== -->
 <table class="prop-month-table">
   <thead>
     <tr>
-      <th style="text-align:left;padding-left:8px;width:130px;">Property</th>
+      <th style="text-align:left;padding-left:4px;width:62px;">Property</th>
       {% for d in date_list %}
       <th>{{ d|date:"j" }}<br><span style="font-weight:400;color:#94a3b8;">{{ d|date:"D" }}</span></th>
       {% endfor %}
@@ -494,21 +519,23 @@
   {% if week_bands.payments %}
   <table class="week-table">
     <thead>
-      <tr><th style="width:28%;">Property</th><th style="width:22%;">Guest</th><th style="width:25%;">Period</th><th style="width:25%;">Nights</th></tr>
+      <tr><th style="width:24%;">Property</th><th style="width:20%;">Guest</th><th style="width:18%;">Type</th><th style="width:16%;">Due Date</th><th style="width:12%;">Amount</th><th style="width:10%;">Status</th></tr>
     </thead>
     <tbody>
       {% for p in week_bands.payments %}
       <tr>
         <td><span class="guest">{{ p.property }}</span></td>
         <td><span class="detail">{{ p.guest }}</span></td>
-        <td><span class="detail">{{ p.check_in|date:"M d" }} — {{ p.check_out|date:"M d" }}</span></td>
-        <td style="text-align:center;"><span class="detail">{{ p.nights }}</span></td>
+        <td><span class="detail">{{ p.type }}</span></td>
+        <td><span class="detail">{{ p.due_date|date:"M d" }}</span></td>
+        <td><span class="detail">${{ p.amount|floatformat:2 }}</span></td>
+        <td><span class="detail">{% if p.is_paid %}Paid{% else %}Pending{% endif %}</span></td>
       </tr>
       {% endfor %}
     </tbody>
   </table>
   {% else %}
-  <div class="empty-state" style="padding:12px 0;">No payment bookings in this period.</div>
+  <div class="empty-state" style="padding:12px 0;">No payments due in this period.</div>
   {% endif %}
 </div>
 
@@ -525,7 +552,7 @@
         <td><span class="guest">{{ t.property }}</span></td>
         <td><span class="detail">{{ t.details|truncatechars:45 }}</span></td>
         <td><span class="detail">{{ t.date|date:"M d" }}</span></td>
-        <td><span class="detail">{{ t.details|truncatechars:15 }}</span></td>
+        <td><span class="detail">{{ t.task_type|title }}</span></td>
       </tr>
       {% endfor %}
     </tbody>
@@ -542,60 +569,42 @@
 </div>
 
 <div class="day-section-label">Bookings</div>
-{% for prop in property_data %}
-  {% for day in prop.days_data %}
-    {% if day.date == start_date %}
-      {% for b in day.bookings %}
-      <div class="day-schedule-item booking">
-        <div class="time">{{ prop.property.title|truncatechars:20 }}</div>
-        <div class="info">
-          <div class="title">{{ b.first_name }} {{ b.last_name }}</div>
-          <div class="sub">{{ b.check_in|date:"M d" }} — {{ b.check_out|date:"M d" }} · {{ b.channel.name|default:"Direct" }}</div>
-        </div>
-      </div>
-      {% empty %}
-      <div style="color:#94a3b8;font-size:10px;padding:4px 0 10px 0;">No bookings on this day.</div>
-      {% endfor %}
-    {% endif %}
-  {% endfor %}
+{% for b in day_view_bookings %}
+<div class="day-schedule-item booking">
+  <div class="time">{{ b.property|truncatechars:20 }}</div>
+  <div class="info">
+    <div class="title">{{ b.guest }}</div>
+    <div class="sub">{{ b.check_in|date:"M d" }} — {{ b.check_out|date:"M d" }} · {{ b.channel }}</div>
+  </div>
+</div>
+{% empty %}
+<div style="color:#94a3b8;font-size:10px;padding:4px 0 10px 0;">No bookings on this day.</div>
 {% endfor %}
 
 <div class="day-section-label">Tasks</div>
-{% for prop in property_data %}
-  {% for day in prop.days_data %}
-    {% if day.date == start_date %}
-      {% for t in day.tasks %}
-      <div class="day-schedule-item task">
-        <div class="time">{{ prop.property.title|truncatechars:20 }}</div>
-        <div class="info">
-          <div class="title">{{ t.task_type|title }}</div>
-          <div class="sub">{{ t.details|truncatechars:60 }}</div>
-        </div>
-      </div>
-      {% empty %}
-      <div style="color:#94a3b8;font-size:10px;padding:4px 0 10px 0;">No tasks on this day.</div>
-      {% endfor %}
-    {% endif %}
-  {% endfor %}
+{% for t in day_view_tasks %}
+<div class="day-schedule-item task">
+  <div class="time">{{ t.property|truncatechars:20 }}</div>
+  <div class="info">
+    <div class="title">{{ t.task_type|title }}</div>
+    <div class="sub">{{ t.details|truncatechars:60 }}</div>
+  </div>
+</div>
+{% empty %}
+<div style="color:#94a3b8;font-size:10px;padding:4px 0 10px 0;">No tasks on this day.</div>
 {% endfor %}
 
 <div class="day-section-label">Payments</div>
-{% for prop in property_data %}
-  {% for day in prop.days_data %}
-    {% if day.date == start_date %}
-      {% if day.total_payment > 0 %}
-      <div class="day-schedule-item payment">
-        <div class="time">{{ prop.property.title|truncatechars:20 }}</div>
-        <div class="info">
-          <div class="title">Payment Due</div>
-          <div class="sub">{% money day.total_payment %}</div>
-        </div>
-      </div>
-      {% else %}
-      <div style="color:#94a3b8;font-size:10px;padding:4px 0 10px 0;">No payments on this day.</div>
-      {% endif %}
-    {% endif %}
-  {% endfor %}
+{% for p in day_view_payments %}
+<div class="day-schedule-item payment">
+  <div class="time">{{ p.property|truncatechars:20 }}</div>
+  <div class="info">
+    <div class="title">{{ p.guest }} &middot; {{ p.type }}</div>
+    <div class="sub">${{ p.amount|floatformat:2 }} &middot; {% if p.is_paid %}Paid{% else %}Pending{% endif %}</div>
+  </div>
+</div>
+{% empty %}
+<div style="color:#94a3b8;font-size:10px;padding:4px 0 10px 0;">No payments on this day.</div>
 {% endfor %}
 
 {% elif view_type == 'timeline' %}
@@ -603,7 +612,7 @@
 <table class="timeline-table">
   <thead>
     <tr>
-      <th style="width:130px;text-align:left;padding-left:8px;">Property</th>
+      <th style="width:62px;text-align:left;padding-left:4px;">Property</th>
       {% for d in date_list %}
       <th>{{ d|date:"j" }}<br><span style="font-weight:400;color:#94a3b8;">{{ d|date:"D" }}</span></th>
       {% endfor %}

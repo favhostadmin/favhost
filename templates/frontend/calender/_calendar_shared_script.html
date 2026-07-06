@@ -96,6 +96,26 @@
     return result;
   }
 
+  // The print button should print exactly the date range the current view is
+  // actually showing - a single day for Day view, one week for Week view, and
+  // the full month for Month/Timeline/List (they all display a full month).
+  function computePrintDateRange() {
+    if (currentViewMode === 'day' && selectedDateKey) {
+      return { startDate: selectedDateKey, endDate: selectedDateKey };
+    }
+    if (currentViewMode === 'week' && selectedWeekStart) {
+      const weekEnd = new Date(selectedWeekStart);
+      weekEnd.setDate(weekEnd.getDate() + 6);
+      return { startDate: toISODateString(selectedWeekStart), endDate: toISODateString(weekEnd) };
+    }
+    const year = currentDisplayDate.getFullYear();
+    const month = currentDisplayDate.getMonth();
+    return {
+      startDate: toISODateString(new Date(year, month, 1)),
+      endDate: toISODateString(new Date(year, month + 1, 0)),
+    };
+  }
+
   // Update month display function
   function updateMonthDisplay() {
     const monthDisplay = document.getElementById('monthDisplay');
@@ -2311,19 +2331,8 @@
 
   if (mobilePrintBtn) {
     mobilePrintBtn.addEventListener('click', () => {
-      const viewType = currentViewMode || 'month';
-      let startDate, endDate;
-      if (allDates.length > 0) {
-        startDate = toISODateString(allDates[0]);
-        endDate = toISODateString(allDates[allDates.length - 1]);
-      } else {
-        const today = new Date();
-        const year = today.getFullYear();
-        const month = today.getMonth();
-        startDate = toISODateString(new Date(year, month, 1));
-        endDate = toISODateString(new Date(year, month + 1, 0));
-      }
-      window.location.href = `/print/?view=${viewType}&start_date=${startDate}&end_date=${endDate}`;
+      const { startDate, endDate } = computePrintDateRange();
+      window.location.href = `/print/?view=${currentViewMode}&start_date=${startDate}&end_date=${endDate}`;
     });
   }
 
@@ -2402,21 +2411,8 @@
     document.getElementById('todayBtn').addEventListener('click', goToToday);
     document.getElementById('refreshBtn').addEventListener('click', refreshData);
     document.getElementById('printBtn').addEventListener('click', function () {
-      const viewType = currentViewMode || 'month';
-      let startDate, endDate;
-      if (allDates.length > 0) {
-        startDate = toISODateString(allDates[0]);
-        endDate = toISODateString(allDates[allDates.length - 1]);
-      } else {
-        const today = new Date();
-        const year = today.getFullYear();
-        const month = today.getMonth();
-        const firstDay = new Date(year, month, 1);
-        const lastDay = new Date(year, month + 1, 0);
-        startDate = toISODateString(firstDay);
-        endDate = toISODateString(lastDay);
-      }
-      window.location.href = `/print/?view=${viewType}&start_date=${startDate}&end_date=${endDate}`;
+      const { startDate, endDate } = computePrintDateRange();
+      window.location.href = `/print/?view=${currentViewMode}&start_date=${startDate}&end_date=${endDate}`;
     });
     document.getElementById('monthDisplay').addEventListener('click', toggleMonthYearPanel);
     document.getElementById('monthYearApplyBtn').addEventListener('click', applyMonthYearSelection);

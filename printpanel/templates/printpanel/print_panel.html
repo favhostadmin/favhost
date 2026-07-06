@@ -111,13 +111,11 @@
       border-color: #3b82f6;
       box-shadow: 0 0 0 2px rgba(59,130,246,0.15);
     }
-    .form-group .date-range {
-      display: flex;
-      gap: 8px;
-      align-items: center;
+    .form-group .range-hint {
+      margin-top: 6px;
+      font-size: 11px;
+      color: #64748b;
     }
-    .form-group .date-range input { flex: 1; }
-    .form-group .date-range span { color: #94a3b8; font-size: 11px; }
 
     /* ===== Checkbox Toggle ===== */
     .toggle-row {
@@ -239,12 +237,9 @@
         </select>
       </div>
       <div class="form-group">
-        <label>Date Range</label>
-        <div class="date-range">
-          <input type="date" id="startDate" value="{{ start_date|date:'Y-m-d' }}">
-          <span>—</span>
-          <input type="date" id="endDate" value="{{ end_date|date:'Y-m-d' }}">
-        </div>
+        <label for="startDate">Date</label>
+        <input type="date" id="startDate" value="{{ start_date|date:'Y-m-d' }}">
+        <div class="range-hint" id="rangeHint"></div>
       </div>
     </div>
 
@@ -285,10 +280,10 @@
     <div class="preview-toolbar">
       <div class="title">Preview — <span id="previewTitle">{{ view_type|title }} View</span></div>
       <div class="actions">
-        <button class="btn btn-outline btn-sm" onclick="history.back()">
+        <a class="btn btn-outline btn-sm" href="{{ close_url }}">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           Close
-        </button>
+        </a>
       </div>
     </div>
     <div class="preview-frame" id="previewFrame">
@@ -304,15 +299,36 @@
   const previewTitle = document.getElementById('previewTitle');
   const viewType = document.getElementById('viewType');
   const startDate = document.getElementById('startDate');
-  const endDate = document.getElementById('endDate');
+  const rangeHint = document.getElementById('rangeHint');
   const showHeader = document.getElementById('showHeader');
   const showSummary = document.getElementById('showSummary');
+
+  // Fixed span (in days, inclusive of the start date) per view type. Keep
+  // in sync with VIEW_RANGE_DAYS in printpanel/views.py.
+  const VIEW_RANGE_DAYS = { month: 30, week: 7, day: 1, timeline: 30, list: 30 };
+
+  function computeEndDate() {
+    const days = VIEW_RANGE_DAYS[viewType.value] || 30;
+    const [y, m, d] = startDate.value.split('-').map(Number);
+    const end = new Date(y, m - 1, d);
+    end.setDate(end.getDate() + (days - 1));
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${end.getFullYear()}-${pad(end.getMonth() + 1)}-${pad(end.getDate())}`;
+  }
+
+  function updateRangeHint(endDateStr) {
+    if (!rangeHint) return;
+    const fmt = (s) => new Date(s + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    rangeHint.textContent = startDate.value === endDateStr
+      ? fmt(startDate.value)
+      : `${fmt(startDate.value)} — ${fmt(endDateStr)}`;
+  }
 
   function buildPreviewUrl() {
     const params = new URLSearchParams({
       view: viewType.value,
       start_date: startDate.value,
-      end_date: endDate.value,
+      end_date: computeEndDate(),
       show_header: showHeader.checked ? '1' : '0',
       show_summary: showSummary.checked ? '1' : '0',
     });
@@ -323,7 +339,7 @@
     const params = new URLSearchParams({
       view: viewType.value,
       start_date: startDate.value,
-      end_date: endDate.value,
+      end_date: computeEndDate(),
       show_header: showHeader.checked ? '1' : '0',
       show_summary: showSummary.checked ? '1' : '0',
     });
@@ -333,12 +349,15 @@
 
   function updatePreview() {
     previewFrame.classList.add('loading');
+    updateRangeHint(computeEndDate());
     const url = buildPreviewUrl();
     previewIframe.src = url;
     previewTitle.textContent = viewType.options[viewType.selectedIndex].text;
   }
 
   document.getElementById('updatePreviewBtn').addEventListener('click', updatePreview);
+  viewType.addEventListener('change', () => updateRangeHint(computeEndDate()));
+  startDate.addEventListener('change', () => updateRangeHint(computeEndDate()));
 
   document.getElementById('downloadPdfBtn').addEventListener('click', () => {
     window.open(buildPdfUrl(true), '_blank');
