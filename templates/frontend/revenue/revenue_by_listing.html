@@ -200,6 +200,9 @@
   }
   .rev-bar-value { font-size: 11px; color: #6b7280; font-weight: 500; white-space: nowrap; }
   .rev-bar-col.highlight .rev-bar-value { color: #111827; font-weight: 700; font-size: 12px; }
+  /* Desktop: track wrapper generates no box, so the vertical chart is unchanged.
+     On phone (see media query) it becomes a horizontal rail the bar fills. */
+  .rev-bar-track { display: contents; }
   .rev-bar {
     width: 100%; max-width: 26px; min-height: 2px;
     background: #d1d5db; border-radius: 3px 3px 0 0;
@@ -292,9 +295,94 @@
       padding: 8px 16px;
     }
     .rev-channel-body { grid-template-columns: 1fr; }
-    .rev-donut { margin: 0 auto; }
-    .rev-bar-chart { height: 180px; }
     .rev-page-title { font-size: 16px; }
+
+    /* Donut: shrink and centre so it fits comfortably on a phone. */
+    .rev-donut { margin: 0 auto; max-width: 170px; }
+    .rev-legend { max-width: 260px; margin: 4px auto 0; }
+    .rev-card { padding: 18px; }
+
+    /* Phone: the fixed layout squeezes 13 amount columns into a tiny width and
+       the numbers overlap. Restore auto layout + a real min-width so the grid
+       keeps readable columns and scrolls horizontally inside its wrapper. */
+    table.rev-data-table { table-layout: auto; min-width: 900px; }
+
+    /* Phone: turn the 12-column vertical bar chart into a stacked horizontal bar
+       list so every month is visible without squeezing/scrolling. Each row is a
+       3-track grid: [month]  [==== rail the bar fills ====]  [value]. */
+    .rev-bar-chart {
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;   /* override desktop align-items:end (was right-hugging) */
+      gap: 8px;
+      height: auto;
+      padding: 2px 2px 0;
+    }
+
+    .rev-bar-col {
+      display: grid;
+      grid-template-columns: 36px 1fr 66px;
+      align-items: center;
+      column-gap: 10px;
+      row-gap: 0;
+      height: auto;
+    }
+
+    .rev-bar-label {
+      grid-column: 1;
+      grid-row: 1;            /* keep month, rail and value on ONE row */
+      justify-self: start;
+      margin: 0;
+      padding: 0;
+      background: none;
+      font-size: 12px;
+      font-weight: 600;
+      color: #6b7280;
+    }
+
+    .rev-bar-col.highlight .rev-bar-label {
+      background: #EB5310;
+      color: #fff;
+      padding: 2px 7px;
+      border-radius: 5px;
+      justify-self: start;
+    }
+
+    .rev-bar-track {
+      display: block;
+      grid-column: 2;
+      grid-row: 1;
+      height: 11px;
+      background: #eef0f3;
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .rev-bar {
+      height: 100% !important;
+      width: var(--bar-size, 0%);
+      max-width: 100%;
+      min-height: 0;
+      min-width: 0;          /* zero months show a clean empty rail */
+      border-radius: 999px;
+      background: #cbd5e1;
+    }
+
+    .rev-bar-value {
+      grid-column: 3;
+      grid-row: 1;
+      justify-self: end;
+      text-align: right;
+      font-size: 12px;
+      font-weight: 600;
+      color: #6b7280;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .rev-bar-col.highlight .rev-bar-value {
+      color: #111827;
+      font-weight: 700;
+    }
   }
 
   /* ===========================================================
@@ -553,7 +641,9 @@
             {% for col in bar_cols %}
             <div class="rev-bar-col {% if col.highlight %}highlight{% endif %}">
               <span class="rev-bar-value">{% money col.value %}</span>
-              <div class="rev-bar" data-height="{{ col.height }}"></div>
+              <div class="rev-bar-track">
+                <div class="rev-bar" data-height="{{ col.height }}"></div>
+              </div>
               <span class="rev-bar-label">{{ col.label }}</span>
             </div>
             {% endfor %}
@@ -601,7 +691,9 @@
       if (url) el.style.backgroundImage = "url('" + url + "')";
     });
     document.querySelectorAll('.rev-bar[data-height]').forEach(function (el) {
-      el.style.height = (el.getAttribute('data-height') || 0) + '%';
+      var pct = (el.getAttribute('data-height') || 0) + '%';
+      el.style.height = pct;                    // vertical bars (desktop)
+      el.style.setProperty('--bar-size', pct);  // reused as width for horizontal bars (phone)
     });
     var donut = document.querySelector('.rev-donut[data-gradient]');
     if (donut) donut.style.background = donut.getAttribute('data-gradient');

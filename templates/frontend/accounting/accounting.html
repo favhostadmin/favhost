@@ -675,6 +675,13 @@
     font-size: 12px;
   }
 
+  /* Desktop: the track wrapper generates no box, so the bar behaves as a direct
+     child of the column and the vertical chart is unchanged. On phone (see the
+     mobile media query) the wrapper becomes a horizontal rail the bar fills. */
+  .acc-bar-track {
+    display: contents;
+  }
+
   .acc-bar {
     width: 100%;
     max-width: 26px;
@@ -832,6 +839,104 @@
 
     .acc-bar-chart {
       height: 200px;
+    }
+
+    /* Phone: the fixed layout squeezes 13 amount columns into a tiny width and
+       the numbers overlap. Restore auto layout + a real min-width so the grid
+       keeps readable columns and scrolls horizontally inside its wrapper. */
+    table.acc-ledger {
+      table-layout: auto;
+      min-width: 900px;
+    }
+
+    .acc-rl {
+      max-width: 160px;
+    }
+
+    /* Phone: turn the 12-column vertical chart into a stacked horizontal bar
+       list (the pattern analytics dashboards use for many categories) so every
+       month is visible without squeezing/scrolling. Each row is a 3-track grid:
+       [month]  [====== rail the bar fills ======]  [value]
+       — labels align in a neat left column, values in a neat right column, and
+       the rail flexes to fill the phone width edge-to-edge. */
+    .acc-chart-wrap {
+      padding: 2px 2px 0;
+    }
+
+    .acc-bar-chart {
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;   /* override desktop align-items:end (was right-hugging) */
+      gap: 8px;
+      height: auto;
+      padding-top: 2px;
+    }
+
+    .acc-bar-col {
+      display: grid;
+      grid-template-columns: 36px 1fr 66px;
+      align-items: center;
+      column-gap: 10px;
+      row-gap: 0;
+      height: auto;
+    }
+
+    .acc-bar-label {
+      grid-column: 1;
+      grid-row: 1;            /* keep month, rail and value on ONE row */
+      justify-self: start;
+      margin: 0;
+      padding: 0;
+      background: none;
+      font-size: 12px;
+      font-weight: 600;
+      color: #6b7280;
+    }
+
+    /* Current month: subtle orange chip on the label, matching the desktop cue. */
+    .acc-bar-col.highlight .acc-bar-label {
+      background: #EB5310;
+      color: #fff;
+      padding: 2px 7px;
+      border-radius: 5px;
+      justify-self: start;
+    }
+
+    /* The wrapper becomes the rounded rail; the bar fills part of it. */
+    .acc-bar-track {
+      display: block;
+      grid-column: 2;
+      grid-row: 1;
+      height: 11px;
+      background: #eef0f3;
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .acc-bar {
+      height: 100% !important;
+      width: var(--bar-size, 0%);
+      max-width: 100%;
+      min-height: 0;
+      min-width: 0;          /* zero months show a clean empty rail */
+      border-radius: 999px;
+      background: #cbd5e1;   /* neutral for flat/zero months */
+    }
+
+    .acc-bar-value {
+      grid-column: 3;
+      grid-row: 1;
+      justify-self: end;
+      text-align: right;
+      font-size: 12px;
+      font-weight: 600;
+      color: #6b7280;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .acc-bar-col.highlight .acc-bar-value {
+      color: #111827;
+      font-weight: 700;
     }
   }
 
@@ -1294,7 +1399,9 @@
               {% for col in bar_cols %}
               <div class="acc-bar-col {% if col.highlight %}highlight{% endif %}">
                 <span class="acc-bar-value">{% money col.value %}</span>
-                <div class="acc-bar {% if col.negative %}neg{% endif %}" data-height="{{ col.height }}"></div>
+                <div class="acc-bar-track">
+                  <div class="acc-bar {% if col.negative %}neg{% endif %}" data-height="{{ col.height }}"></div>
+                </div>
                 <span class="acc-bar-label">{{ col.label }}</span>
               </div>
               {% endfor %}
@@ -1410,7 +1517,9 @@
 
     // --- Apply bar heights from server-computed magnitudes ---
     document.querySelectorAll('.acc-bar[data-height]').forEach(function (el) {
-      el.style.height = (el.getAttribute('data-height') || 0) + '%';
+      var pct = (el.getAttribute('data-height') || 0) + '%';
+      el.style.height = pct;                    // vertical bars (desktop)
+      el.style.setProperty('--bar-size', pct);  // reused as width for horizontal bars (phone)
     });
 
     // --- Stamp the print header with the generation date/time (like Revenue) ---
