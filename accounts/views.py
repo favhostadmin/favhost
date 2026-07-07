@@ -1088,6 +1088,28 @@ def update_social_url(request):
     return JsonResponse({'status': 'success', 'platform': platform, 'url': url})
 
 
+EMAIL_PREF_FIELDS = {
+    'checkin': 'email_guest_checkin',
+    'checkout': 'email_guest_checkout',
+}
+
+
+@login_required
+@require_POST
+def update_email_preferences(request):
+    """Toggle a host's account-level guest-email master switch (check-in /
+    check-out). These gate automated instruction emails across all listings."""
+    pref = request.POST.get('pref', '').strip()
+    field = EMAIL_PREF_FIELDS.get(pref)
+    if not field:
+        return JsonResponse({'status': 'error', 'message': 'Invalid preference'}, status=400)
+    enabled = request.POST.get('enabled', '').strip().lower() in ('1', 'true', 'on', 'yes')
+    user = get_effective_user(request.user)
+    setattr(user, field, enabled)
+    user.save(update_fields=[field])
+    return JsonResponse({'status': 'success', 'pref': pref, 'enabled': enabled})
+
+
 # ─────────────────────────────────────────────
 # CO-HOST MANAGEMENT
 # ─────────────────────────────────────────────
