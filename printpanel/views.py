@@ -16,6 +16,18 @@ from property.models import Property, PropertyBlockDate
 from tasks.models import Task
 from accounts.utils import get_visible_user_ids
 
+# Deposits/fees aren't revenue due on a date - the main calendar excludes
+# these from payment displays too, so print output stays consistent with it.
+NON_REVENUE_PAYMENT_TYPES = {'Refundable deposit', 'Cleaning Fee', 'Application Fee', 'Refundable to guest'}
+
+
+def _payment_due_date(payment):
+    if payment.expected_payment_date:
+        return payment.expected_payment_date.date()
+    if payment.payment_date:
+        return payment.payment_date.date()
+    return None
+
 
 class PrintPanelView(LoginRequiredMixin, View):
     """Print panel editor with options sidebar and preview."""
@@ -150,10 +162,14 @@ def _render_print_output(request, format_type='html'):
             day_tasks = [t for t in prop_tasks if t.date == d]
             day_enquiries = [e for e in prop_enquiries if e.check_in_date <= d <= e.check_out_date]
             day_blocks = [bl for bl in prop_blocks if bl.start_date <= d <= bl.end_date]
+            day_payments = []
             total_payment = 0
-            for b in day_bookings:
+            for b in prop_bookings:
                 for p in b.payments.all():
-                    if p.expected_payment_date and p.expected_payment_date.date() == d and p.is_paid:
+                    if p.type in NON_REVENUE_PAYMENT_TYPES:
+                        continue
+                    if _payment_due_date(p) == d:
+                        day_payments.append({'booking': b, 'payment': p})
                         total_payment += float(p.amount)
             days_data.append({
                 'date': d,
@@ -161,6 +177,7 @@ def _render_print_output(request, format_type='html'):
                 'tasks': day_tasks,
                 'enquiries': day_enquiries,
                 'blocks': day_blocks,
+                'payments': day_payments,
                 'total_payment': total_payment,
             })
 
@@ -172,6 +189,34 @@ def _render_print_output(request, format_type='html'):
             'blocks': prop_blocks,
             'days_data': days_data,
         })
+
+    day_view_data = None
+    if view_type == 'day' and date_list:
+        single_day = date_list[0]
+        day_bookings, day_tasks, day_payments, day_enquiries = [], [], [], []
+        for prop in property_data:
+            day = next((d for d in prop['days_data'] if d['date'] == single_day), None)
+            if not day:
+                continue
+            for b in day['bookings']:
+                day_bookings.append({'property': prop['property'].title, 'booking': b})
+            for t in day['tasks']:
+                day_tasks.append({'property': prop['property'].title, 'task': t})
+            for pe in day['payments']:
+                b = pe['booking']
+                guest_name = f"{b.first_name or ''} {b.last_name or ''}".strip() or 'Guest'
+                day_payments.append({
+                    'property': prop['property'].title,
+                    'guest': guest_name,
+                    'amount': float(pe['payment'].amount),
+                    'is_paid': pe['payment'].is_paid,
+                })
+            for e in day['enquiries']:
+                day_enquiries.append({'property': prop['property'].title, 'enquiry': e})
+        day_view_data = {
+            'bookings': day_bookings, 'tasks': day_tasks,
+            'payments': day_payments, 'enquiries': day_enquiries,
+        }
 
     all_events = []
     for b in bookings_qs:
@@ -186,7 +231,9 @@ def _render_print_output(request, format_type='html'):
             'guest': guest_name, 'details': '', 'channel': '',
         })
         for p in b.payments.all():
-            pay_date = p.expected_payment_date.date() if p.expected_payment_date else None
+            if p.type in NON_REVENUE_PAYMENT_TYPES:
+                continue
+            pay_date = _payment_due_date(p)
             if pay_date:
                 all_events.append({
                     'date': pay_date, 'type': 'Payment', 'property': prop_title,
@@ -198,22 +245,42 @@ def _render_print_output(request, format_type='html'):
             'date': t.date, 'type': 'Task', 'property': prop_title,
             'guest': '', 'details': t.details or t.task_type or '', 'channel': '',
         })
+    for e in enquiries_qs:
+        guest_name = f"{e.first_name or ''} {e.last_name or ''}".strip() or 'Guest'
+        prop_title = e.property.title if e.property else ''
+        all_events.append({
+            'date': e.check_in_date, 'type': 'Enquiry', 'property': prop_title,
+            'guest': guest_name, 'details': f"{e.check_in_date} - {e.check_out_date}", 'channel': '',
+        })
     all_events.sort(key=lambda e: (e['date'] or today, e['type']))
 
     week_bands = {'reservations': [], 'payments': [], 'tasks': []}
     for b in bookings_qs:
-        has_pay = b.payments.exists()
         nights = (min(b.check_out_date, end_date) - max(b.check_in_date, start_date)).days
-        week_bands['payments' if has_pay else 'reservations'].append({
+        guest_name = f"{b.first_name or ''} {b.last_name or ''}".strip() or 'Guest'
+        week_bands['reservations'].append({
             'property': b.property.title,
-            'guest': f"{b.first_name or ''} {b.last_name or ''}".strip() or 'Guest',
+            'guest': guest_name,
             'check_in': b.check_in_date, 'check_out': b.check_out_date,
-            'nights': max(1, nights), 'color': b.channel.color if b.channel else '#3b82f6',
+            'nights': max(1, nights),
         })
+        for p in b.payments.all():
+            if p.type in NON_REVENUE_PAYMENT_TYPES:
+                continue
+            pay_date = _payment_due_date(p)
+            if not pay_date or pay_date < start_date or pay_date > end_date:
+                continue
+            week_bands['payments'].append({
+                'property': b.property.title,
+                'guest': guest_name,
+                'due_date': pay_date,
+                'amount': float(p.amount),
+                'is_paid': p.is_paid,
+            })
     for t in tasks_qs:
         week_bands['tasks'].append({
             'property': t.property.title, 'details': t.details or t.task_type or '',
-            'date': t.date, 'color': '#059669',
+            'date': t.date,
         })
 
     context = {
@@ -224,6 +291,7 @@ def _render_print_output(request, format_type='html'):
         'properties': properties,
         'property_data': property_data,
         'date_list': date_list,
+        'day_view_data': day_view_data,
         'all_events': all_events,
         'week_bands': week_bands,
         'user': user,
@@ -231,6 +299,7 @@ def _render_print_output(request, format_type='html'):
         'now': timezone.now(),
         'total_bookings': bookings_qs.count(),
         'total_tasks': tasks_qs.count(),
+        'total_enquiries': enquiries_qs.count(),
         'show_header': show_header,
         'show_summary': show_summary,
         'brand_logo_src': request.build_absolute_uri(static('img/header/favhost.png')),
