@@ -31,7 +31,9 @@
             <!-- Right: Refresh button -->
             <div class="col-6 col-md-auto text-md-end">
                 <div class="header-actions">
-                    <a href="#" class="btn refresh-btn">Refresh</a>
+                    <button type="button" class="hdr-icon-btn" aria-label="Refresh" title="Refresh" onclick="window.location.reload()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                    </button>
                     <!-- Subhankar don't active, wait for my response -->
                     <!-- <a href="{% url 'manual-sync' %}" class="btn refresh-btn">Refresh</a> -->
                     <!-- Subhankar don't active, wait for my response -->
@@ -518,36 +520,6 @@
             });
         }
 
-        // Refresh / Manual Sync functionality
-        const refreshBtn = document.querySelector('.refresh-btn');
-        if (refreshBtn) {
-            refreshBtn.addEventListener('click', function(e) {
-                e.preventDefault();
-                const btn = this;
-                
-                // Visual feedback: Disable button and show loading state
-                btn.innerText = 'Syncing...';
-                btn.style.opacity = '0.7';
-                btn.style.pointerEvents = 'none';
-
-                fetch('{% url "manual-sync" %}', {
-                    method: 'POST',
-                    headers: {
-                        'X-CSRFToken': '{{ csrf_token }}',
-                        'Content-Type': 'application/json'
-                    }
-                })
-                .then(response => response.json())
-                .then(data => {
-                    // Reload the page to display updated booking and block information
-                    window.location.reload();
-                })
-                .catch(error => {
-                    console.error('Error triggering sync:', error);
-                    window.location.reload();
-                });
-            });
-        }
 
         // Notification click
         document.querySelector('.notification').addEventListener('click', function() {

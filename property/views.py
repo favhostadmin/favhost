@@ -48,6 +48,26 @@ def _property_prices_to_display(initial, obj, code):
 
 
 
+def get_unavailable_date_ranges(property_obj):
+    """
+    Half-open [start, end) date ranges (ISO strings) that are unavailable for
+    booking on a property: confirmed reservations plus active host-blocked dates.
+    The end date itself is excluded since it's the turnover/checkout day.
+    """
+    ranges = []
+    for booking in Booking.objects.filter(property=property_obj, status='confirmed'):
+        ranges.append({
+            'start': booking.check_in_date.isoformat(),
+            'end': booking.check_out_date.isoformat(),
+        })
+    for block in PropertyBlockDate.objects.filter(property=property_obj, is_active=True):
+        ranges.append({
+            'start': block.start_date.isoformat(),
+            'end': block.end_date.isoformat(),
+        })
+    return ranges
+
+
 class PropertyCreateView(LoginRequiredMixin, CreateView):
     model = Property
     form_class = PropertyForm
@@ -496,6 +516,7 @@ class PropertyDetailView(LoginRequiredMixin, DetailView):
         context['amenities'] = self.object.amenities.all().order_by('name')
         context['check_in_docs'] = all_documents.filter(document_type='check_in')
         context['check_out_docs'] = all_documents.filter(document_type='check_out')
+        context['unavailable_date_ranges'] = get_unavailable_date_ranges(self.object)
         return context
 
 # AJAX Views for file management
@@ -965,6 +986,7 @@ class ListingDetailView(DetailView):
         context['images'] = self.object.images.all()
         context['amenities'] = self.object.amenities.all().order_by('name')
         context['short_code']= self.kwargs.get('short_code')  if self.kwargs.get('short_code') else None
+        context['unavailable_date_ranges'] = get_unavailable_date_ranges(self.object)
         # Public pages: guests can pick a currency; default to the host's currency.
         context.update(currency.display_context(currency.resolve_display_currency(
             self.request.COOKIES.get('guest_currency'),

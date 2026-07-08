@@ -24,7 +24,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.contrib.auth import get_user_model
-from django.core.mail import send_mail, EmailMessage
+from django.core.mail import send_mail, EmailMessage, get_connection
 from django.conf import settings
 from django.views.decorators.http import require_POST
 from .utils import calculateTotalPayment
@@ -1098,6 +1098,10 @@ class CalenderAPIView(LoginRequiredMixin,ListView):
             'enquiries': enquiries_list
         })
 
+
+class CalendarTimelineView(CalenderAPIView):
+    template_name = 'frontend/calender/calender_timeline.html'
+
 # views.py
 from datetime import date
 from django.views.generic import ListView
@@ -1581,6 +1585,53 @@ class WebsiteBlogDetailsView(TemplateView):
 
 class WebsiteContactView(TemplateView):
     template_name = 'frontend/website/contact.html'
+
+    def post(self, request, *args, **kwargs):
+        """Handle the "Get in Touch" contact form: email the submission to
+        support@favhost.com and show a success/error flash message (PRG)."""
+        name = (request.POST.get('name') or '').strip()
+        email = (request.POST.get('email') or '').strip()
+        subject = (request.POST.get('subject') or '').strip()
+        message = (request.POST.get('message') or '').strip()
+
+        if not (name and email and message):
+            messages.error(request, 'Please fill in your name, email and message.')
+            return redirect('contact')
+
+        to_addr = getattr(settings, 'SUPPORT_EMAIL', 'support@favhost.com')
+        mail_subject = f'[Contact form] {subject}' if subject else f'[Contact form] Message from {name}'
+        body = (
+            f'Name: {name}\n'
+            f'Email: {email}\n'
+            f'Subject: {subject or "(none)"}\n\n'
+            f'{message}\n'
+        )
+
+        # Dedicated Zoho SMTP connection for the contact form. Everything else
+        # on the platform keeps using the default Namecheap/noreply account.
+        support_conn = get_connection(
+            backend='django.core.mail.backends.smtp.EmailBackend',
+            host=getattr(settings, 'SUPPORT_EMAIL_HOST', None),
+            port=getattr(settings, 'SUPPORT_EMAIL_PORT', None),
+            username=getattr(settings, 'SUPPORT_EMAIL_HOST_USER', None),
+            password=getattr(settings, 'SUPPORT_EMAIL_HOST_PASSWORD', None),
+            use_tls=getattr(settings, 'SUPPORT_EMAIL_USE_TLS', True),
+        )
+
+        try:
+            EmailMessage(
+                subject=mail_subject,
+                body=body,
+                from_email=getattr(settings, 'SUPPORT_EMAIL_HOST_USER', None),
+                to=[to_addr],
+                reply_to=[email],
+                connection=support_conn,
+            ).send(fail_silently=False)
+            messages.success(request, 'Thanks for reaching out! Your message has been sent to our team.')
+        except Exception:
+            messages.error(request, 'Sorry, we could not send your message right now. Please email support@favhost.com directly.')
+
+        return redirect('contact')
 
 class WebsiteTermsView(TemplateView):
     template_name = 'frontend/website/Terms&Conditions.html'

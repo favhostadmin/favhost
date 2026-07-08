@@ -20,7 +20,9 @@ TIME_CHOICES = generate_time_choices()
 class PropertyForm(forms.ModelForm):
     class Meta:
         model = Property
-        exclude = ['slug', 'created_at', 'created_by', 'updated_at', 'id', 'ical_token']  # Exclude auto-generated fields
+        # Exclude auto-generated fields and the deprecated single email_guest flag
+        # (superseded by email_guest_checkin / email_guest_checkout).
+        exclude = ['slug', 'created_at', 'created_by', 'updated_at', 'id', 'ical_token', 'email_guest']
         
         widgets = {
             # Basic Details
@@ -56,7 +58,8 @@ class PropertyForm(forms.ModelForm):
             'check_out_time': forms.HiddenInput(attrs={'id': 'checkout_time_input'}),
             
             # Instructions and Rules
-            'email_guest': forms.CheckboxInput(attrs={'id': 'emailGuest'}),
+            'email_guest_checkin': forms.CheckboxInput(attrs={'id': 'emailGuestCheckin'}),
+            'email_guest_checkout': forms.CheckboxInput(attrs={'id': 'emailGuestCheckout'}),
             'rules': forms.Textarea(attrs={'class': 'form-input form-textarea', 'placeholder': 'Enter your cancellation policy and house rules...'}),
             'house_rules': forms.Textarea(attrs={'class': 'form-input form-textarea', 'placeholder': 'Enter your house rules...'}),
             'cancellation_policy': forms.Textarea(attrs={'class': 'form-input form-textarea', 'placeholder': 'Enter your cancellation policy...'}),
@@ -131,7 +134,8 @@ class PropertyForm(forms.ModelForm):
         # Optional fields
         optional_fields = [
             'nick_name',
-            'room_password', 'network_name', 'wifi_password', 'youtube_link', 'email_guest',
+            'room_password', 'network_name', 'wifi_password', 'youtube_link',
+            'email_guest_checkin', 'email_guest_checkout',
             'rules', 'application_fees', 'taxes', 'cleaning_fee', 'refundable_deposit',
             'other_fees', 'amenities', 'rental_contract_terms'
         ]
