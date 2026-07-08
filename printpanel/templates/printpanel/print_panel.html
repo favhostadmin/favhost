@@ -69,7 +69,15 @@
       align-items: center;
       gap: 10px;
     }
-    .sidebar-header .logo-row img { width: 28px; height: 28px; object-fit: contain; }
+    .sidebar-header .logo-row img {
+      width: 36px;
+      height: 36px;
+      object-fit: contain;
+      background: #1e1e1e;
+      border-radius: 8px;
+      padding: 5px;
+      box-sizing: border-box;
+    }
     .sidebar-header .logo-row span { font-size: 16px; font-weight: 700; color: #0f172a; }
     .sidebar-header .sub { font-size: 11px; color: #64748b; margin-top: 2px; }
 
@@ -111,14 +119,6 @@
       border-color: #3b82f6;
       box-shadow: 0 0 0 2px rgba(59,130,246,0.15);
     }
-    .form-group .date-range {
-      display: flex;
-      gap: 8px;
-      align-items: center;
-    }
-    .form-group .date-range input { flex: 1; }
-    .form-group .date-range span { color: #94a3b8; font-size: 11px; }
-
     /* ===== Checkbox Toggle ===== */
     .toggle-row {
       display: flex;
@@ -239,12 +239,8 @@
         </select>
       </div>
       <div class="form-group">
-        <label>Date Range</label>
-        <div class="date-range">
-          <input type="date" id="startDate" value="{{ start_date|date:'Y-m-d' }}">
-          <span>—</span>
-          <input type="date" id="endDate" value="{{ end_date|date:'Y-m-d' }}">
-        </div>
+        <label for="refDate">Date</label>
+        <input type="date" id="refDate" value="{{ start_date|date:'Y-m-d' }}">
       </div>
     </div>
 
@@ -261,10 +257,6 @@
     </div>
 
     <div class="sidebar-actions">
-      <button class="btn btn-primary" id="updatePreviewBtn">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
-        Update Preview
-      </button>
       <button class="btn btn-success" id="downloadPdfBtn">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
         Download PDF
@@ -285,7 +277,7 @@
     <div class="preview-toolbar">
       <div class="title">Preview — <span id="previewTitle">{{ view_type|title }} View</span></div>
       <div class="actions">
-        <button class="btn btn-outline btn-sm" onclick="history.back()">
+        <button class="btn btn-outline btn-sm" onclick="window.location.href='{% url 'calendar-timeline-view' %}'">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           Close
         </button>
@@ -303,16 +295,48 @@
   const previewFrame = document.getElementById('previewFrame');
   const previewTitle = document.getElementById('previewTitle');
   const viewType = document.getElementById('viewType');
-  const startDate = document.getElementById('startDate');
-  const endDate = document.getElementById('endDate');
+  const refDate = document.getElementById('refDate');
   const showHeader = document.getElementById('showHeader');
   const showSummary = document.getElementById('showSummary');
 
+  const toISO = (d) => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+
+  // Date range per view, derived from the single reference date - full
+  // month for Month/Timeline/List, 7 days (Sun-Sat) for Week, just that one
+  // day for Day. There's nothing else for the user to pick: the range is
+  // always whatever the selected view naturally covers around that date.
+  function getDateRange() {
+    const anchorStr = refDate.value;
+    const anchor = anchorStr ? new Date(anchorStr + 'T00:00:00') : new Date();
+    const view = viewType.value;
+
+    if (view === 'day') {
+      return { startDate: toISO(anchor), endDate: toISO(anchor) };
+    }
+    if (view === 'week') {
+      const sunday = new Date(anchor);
+      sunday.setDate(anchor.getDate() - anchor.getDay());
+      const saturday = new Date(sunday);
+      saturday.setDate(sunday.getDate() + 6);
+      return { startDate: toISO(sunday), endDate: toISO(saturday) };
+    }
+    // month / timeline / list
+    const monthStart = new Date(anchor.getFullYear(), anchor.getMonth(), 1);
+    const monthEnd = new Date(anchor.getFullYear(), anchor.getMonth() + 1, 0);
+    return { startDate: toISO(monthStart), endDate: toISO(monthEnd) };
+  }
+
+  viewType.addEventListener('change', updatePreview);
+  refDate.addEventListener('change', updatePreview);
+  showHeader.addEventListener('change', updatePreview);
+  showSummary.addEventListener('change', updatePreview);
+
   function buildPreviewUrl() {
+    const { startDate, endDate } = getDateRange();
     const params = new URLSearchParams({
       view: viewType.value,
-      start_date: startDate.value,
-      end_date: endDate.value,
+      start_date: startDate,
+      end_date: endDate,
       show_header: showHeader.checked ? '1' : '0',
       show_summary: showSummary.checked ? '1' : '0',
     });
@@ -320,10 +344,11 @@
   }
 
   function buildPdfUrl(download) {
+    const { startDate, endDate } = getDateRange();
     const params = new URLSearchParams({
       view: viewType.value,
-      start_date: startDate.value,
-      end_date: endDate.value,
+      start_date: startDate,
+      end_date: endDate,
       show_header: showHeader.checked ? '1' : '0',
       show_summary: showSummary.checked ? '1' : '0',
     });
@@ -337,8 +362,6 @@
     previewIframe.src = url;
     previewTitle.textContent = viewType.options[viewType.selectedIndex].text;
   }
-
-  document.getElementById('updatePreviewBtn').addEventListener('click', updatePreview);
 
   document.getElementById('downloadPdfBtn').addEventListener('click', () => {
     window.open(buildPdfUrl(true), '_blank');

@@ -10,16 +10,17 @@
 <link href="{% static 'css/calender/calendar-page.css' %}" rel="stylesheet">
 {% endblock extra_head %}
 
+{% block body_class %}cal-view-timeline{% endblock %}
+
 {% block content %}
 <div class="container-fluid p-0">
-  <!-- Header Navigation (Active - New Design) -->
   <div class="header-nav" style="padding: 8px 32px;">
     <div class="row align-items-center justify-content-between w-100 g-0">
       <div class="col-auto actions-col">
         <div class="nav-left">
           <div class="nav-title">
             <img src="{% static 'img/calender/calendar_dashboard_icon.svg' %}">
-            <span id="viewTitle">Calendar - Month view</span>
+            <span id="viewTitle">Calendar - Timeline view</span>
           </div>
         </div>
       </div>
@@ -103,13 +104,13 @@
           <div class="dropdown">
             <button type="button" class="btn btn-light btn-sm px-2 fw-semibold dropdown-toggle" id="viewDropdownBtn"
               data-bs-toggle="dropdown" aria-expanded="false"
-              style="border: 1px solid #d0d0d0; border-radius: 20px; background: #fff; color: #374151; font-size: 12px; padding: 4px 10px;">Month</button>
+              style="border: 1px solid #d0d0d0; border-radius: 20px; background: #fff; color: #374151; font-size: 12px; padding: 4px 10px;">Timeline</button>
             <ul class="dropdown-menu" aria-labelledby="viewDropdownBtn">
-              <li><a class="dropdown-item" href="{% url 'calendar-timeline-view' %}" data-view="timeline">Timeline</a></li>
-              <li><a class="dropdown-item active" href="#" data-view="month">Month</a></li>
-              <li><a class="dropdown-item" href="#" data-view="week">Week</a></li>
-              <li><a class="dropdown-item" href="#" data-view="day">Day</a></li>
-              <li><a class="dropdown-item" href="#" data-view="list">List View</a></li>
+              <li><a class="dropdown-item active" href="{% url 'calendar-timeline-view' %}" data-view="timeline">Timeline</a></li>
+              <li><a class="dropdown-item" href="{% url 'calendar-grid-view' %}?view=month" data-view="month">Month</a></li>
+              <li><a class="dropdown-item" href="{% url 'calendar-grid-view' %}?view=week" data-view="week">Week</a></li>
+              <li><a class="dropdown-item" href="{% url 'calendar-grid-view' %}?view=day" data-view="day">Day</a></li>
+              <li><a class="dropdown-item" href="{% url 'calendar-grid-view' %}?view=list" data-view="list">List View</a></li>
             </ul>
           </div>
         </div>
@@ -120,8 +121,8 @@
             <div class="mobile-menu-section">
               <div class="mobile-menu-label">View</div>
               <div class="mobile-menu-view-options">
-                <button class="mobile-view-btn" data-view="timeline">Timeline</button>
-                <button class="mobile-view-btn active" data-view="month">Month</button>
+                <button class="mobile-view-btn active" data-view="timeline">Timeline</button>
+                <button class="mobile-view-btn" data-view="month">Month</button>
                 <button class="mobile-view-btn" data-view="week">Week</button>
                 <button class="mobile-view-btn" data-view="day">Day</button>
                 <button class="mobile-view-btn" data-view="list">List</button>
@@ -149,10 +150,6 @@
       </div>
 
       <div class="col-auto actions-col">
-        <!-- <div class="header-actions">
-          <a href="#" class="btn refresh-btn" style="background-color: #ffffff; color: #1D74B2; padding: 4px 11px;"
-            id="refreshBtn">Refresh</a>
-        </div> -->
         <div class="d-flex">
           <div></div>
           <div class="header-actions-group hdr-actions">
@@ -190,15 +187,12 @@
         </div>
         <div id="propertiesList"></div>
       </div>
-      <!-- Grid Calendar Pane for Month/Week/Day Views -->
-      <div id="gridCalendarPane"
-        style="display: none; flex: 1; height: 100%; min-height: 0; overflow-y: auto; padding: 16px; background-color: #fafafa; position: relative; z-index: 1; box-sizing: border-box;">
-      </div>
-      <!-- List View Pane -->
-      <div id="listViewPane" class="list-view-pane"
-        style="display: none; flex: 1; height: 100%; min-height: 0; overflow-y: auto; background-color: #f5f6f8; position: relative; z-index: 1; box-sizing: border-box;">
-        <div id="listViewContent">
-          <div class="list-loading">Loading events…</div>
+      <div class="dates-scroll-container" id="datesPane" style="border:1px solid #1f2937;border-radius:10px;">
+        <div class="dates-header-scroll" id="datesHeaderScroll">
+          <div class="dates-header" id="datesHeader"></div>
+        </div>
+        <div class="dates-body-scroll" id="datesContainer">
+          <div class="dates-grid" id="datesGrid"></div>
         </div>
       </div>
       <div class="calendar-empty-state" id="calendarEmptyState">No data to display</div>
@@ -469,6 +463,9 @@
         </div>
       </div>
       <div class="task-modal-footer">
+        <button class="task-modal-close-btn" id="paymentModalBackBtn" onclick="goBackToTaskFromPaymentModal()"
+          style="display:none;background:linear-gradient(135deg,#6b7280,#4b5563);margin-right:auto;"
+          aria-label="Back to task" title="Back to task">&larr; Back to Task</button>
         <button class="task-modal-close-btn" id="paymentModalCloseBtn" onclick="closePaymentDetailModal()"
           style="background:linear-gradient(135deg,#000,#333);margin-left:auto;">Close</button>
       </div>
@@ -512,15 +509,21 @@
 
 {% block extra_script %}
 <script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"></script>
+{{ rooms_data|json_script:"rooms-data" }}
+{{ bookings_data|json_script:"bookings-data" }}
 <script>
-  const properties = {{ rooms_data| safe }};
-  let bookings = {{ bookings_data| safe }};
+  const currentViewMode = 'timeline';
+  const properties = JSON.parse(document.getElementById('rooms-data').textContent);
+  let bookings = JSON.parse(document.getElementById('bookings-data').textContent);
   let enquiries = [];
   let tasks = [];
   let allDates = [];
   let isLoading = false;
   let filteredProperties = properties; // Track currently filtered properties
   let hideTaskPanelTimeout = null; // Timeout for hiding task panel
+  let timelineResizeTimer = null;
+  let rightWheelRaf = null;
+  let rightWheelDeltaY = 0;
   let selectedDateKey = null;
   let hasManualDateSelection = false;
   const MONTH_PICKER_YEAR_RANGE = 15;
@@ -566,7 +569,6 @@
   let currentDisplayDate = new Date(); // Starts at today
   let selectedWeekStart = null; // Sunday of current week
   let activePropertyId = (properties && properties.length > 0) ? String(properties[0].id) : null;
-  let currentViewMode = 'month'; // 'month', 'week', 'day', 'list'
   let typeFilters = { reservation: true, task: true, payment: true };
   let reservationPanelWasOpenBeforeReceipt = false;
   let initialFilter = null;
@@ -574,7 +576,7 @@
   function updateViewTitle() {
     const el = document.getElementById('viewTitle');
     if (!el) return;
-    const labels = { month: 'Month view', week: 'Week view', day: 'Day view', list: 'List view' };
+    const labels = { month: 'Month view', week: 'Week view', day: 'Day view', timeline: 'Timeline view', list: 'List view' };
     el.textContent = 'Calendar - ' + (labels[currentViewMode] || 'Month view');
   }
 
@@ -606,6 +608,26 @@
     });
     console.log('  Result count:', result.length);
     return result;
+  }
+
+  // The print button should print exactly the date range the current view is
+  // actually showing - a single day for Day view, one week for Week view, and
+  // the full month for Month/Timeline/List (they all display a full month).
+  function computePrintDateRange() {
+    if (currentViewMode === 'day' && selectedDateKey) {
+      return { startDate: selectedDateKey, endDate: selectedDateKey };
+    }
+    if (currentViewMode === 'week' && selectedWeekStart) {
+      const weekEnd = new Date(selectedWeekStart);
+      weekEnd.setDate(weekEnd.getDate() + 6);
+      return { startDate: toISODateString(selectedWeekStart), endDate: toISODateString(weekEnd) };
+    }
+    const year = currentDisplayDate.getFullYear();
+    const month = currentDisplayDate.getMonth();
+    return {
+      startDate: toISODateString(new Date(year, month, 1)),
+      endDate: toISODateString(new Date(year, month + 1, 0)),
+    };
   }
 
   // Update month display function
@@ -764,7 +786,7 @@
       // Update the property sidebar count badges since counts depend on enquiries
       renderProperties(filteredProperties);
 
-      renderActiveView();
+      renderCurrentView();
     } catch (error) {
       console.error('Error fetching bookings:', error);
     } finally {
@@ -772,6 +794,7 @@
       isLoading = false;
     }
   }
+
 
   function generateDates() {
     allDates = [];
@@ -786,6 +809,15 @@
       allDates.push(new Date(d));
     }
   }
+
+  function isBooked(propertyId, date) {
+    const dateStr = toISODateString(date);
+    return bookings.find(
+      booking => booking.propertyId === propertyId &&
+        dateStr >= booking.startDateStr && dateStr < booking.endDateStr
+    );
+  }
+
 
   function renderProperties(propertiesToRender = properties) {
     const propertiesList = document.getElementById('propertiesList');
@@ -831,10 +863,16 @@
 
       row.addEventListener('click', (event) => {
         if (event.target.closest('.property-actions')) return;
-        event.preventDefault();
-        activePropertyId = String(property.id);
-        renderProperties(propertiesToRender);
-        renderActiveView();
+        if (currentViewMode !== 'timeline') {
+          event.preventDefault();
+          activePropertyId = String(property.id);
+          renderProperties(propertiesToRender);
+          renderCurrentView();
+        } else {
+          const shouldProceed = togglePropertyPreview(event, property.id);
+          if (!shouldProceed) return;
+          if (detailUrl && detailUrl !== '#') window.open(detailUrl, '_blank', 'noopener,noreferrer');
+        }
       });
     });
   }
@@ -842,8 +880,9 @@
   function formatPropertyPrice(priceValue) {
     const priceNumber = Number(priceValue);
     if (Number.isNaN(priceNumber)) return null;
-    return `${window.fmtMoney(priceNumber)} night`;
+    return `$${priceNumber.toFixed(2)} night`;
   }
+
 
   function showPropertyPreview(event, propertyId) {
     if (activePropertyDropdown) return;
@@ -939,6 +978,7 @@
 
 
 
+
   function filterProperties() {
     const input = document.getElementById('weekPropertySearchInput') || document.getElementById('propertySearchInput');
     if (!input) return;
@@ -973,7 +1013,7 @@
       if (newBody) newBody.scrollTop = scrollTop;
     } else {
       renderProperties(filteredProperties);
-      renderActiveView();
+      renderCurrentView();
     }
   }
 
@@ -992,7 +1032,7 @@
     document.getElementById('loadingIndicator').style.display = 'none';
   }
 
-  // --- Global Tooltip Logic ---
+
   const fmtDate = d => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
   function getTooltipContent(b) {
@@ -1080,7 +1120,7 @@
 
     tooltip.innerHTML = `
         <div class="payment-tooltip-card">
-          <div class="payment-tooltip-amount">${window.fmtMoney(info.amount)}, due on ${formattedDate}</div>
+          <div class="payment-tooltip-amount">$${Number(info.amount).toFixed(2)}, due on ${formattedDate}</div>
           <div class="payment-tooltip-status">Status: ${statusText}</div>
           <div class="payment-tooltip-meta">Guest name: ${b.guestName}</div>
           <div class="payment-tooltip-dates">${fmtDate(b.startDate)} - ${fmtDate(displayEndDate)} (${nights} nights)</div>
@@ -2112,278 +2152,7 @@
   }
 
   /* --- List View --- */
-  function renderListView() {
-    const c = document.getElementById('listViewContent');
-    if (!c) return;
-    c.innerHTML = '<div class="list-loading">Loading events\u2026</div>';
 
-    const month = currentDisplayDate.getMonth() + 1;
-    const year = currentDisplayDate.getFullYear();
-    const url = "{% url 'calendar-list-view' %}";
-
-    fetch(url + '?month=' + month + '&year=' + year, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-      .then(r => r.json()).then(data => {
-        const events = data.events || [];
-        if (!events.length) { c.innerHTML = '<div class="list-wrap"><div class="empty-state" style="display:block"><b>No events for this month</b></div></div>'; return; }
-
-        // helpers
-        const today = new Date(); const todayStr = today.toISOString().split('T')[0];
-        const fmt = (d, s) => d.toLocaleDateString('en-US', { month: s || 'short', day: 'numeric', year: 'numeric' });
-        const fmtShort = (d) => d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
-        const money = n => '$' + Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-        const esc = s => { let d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; };
-        const isToday = d => d === todayStr;
-
-        // icons
-        const icons = {
-          in: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>',
-          out: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>',
-          pay: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>',
-          enq: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
-          blk: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>',
-          task: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg>',
-          prop: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>',
-          mail: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>',
-          phone: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>',
-          chev: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>'
-        };
-
-        // compute stats and counts
-        let stats = { checkin: 0, checkout: 0, payments: 0, revenue: 0 };
-        let typeCounts = { All: 0, Checkin: 0, Checkout: 0, Payment: 0, Task: 0, Enquiry: 0, Blocked: 0 };
-        events.forEach(ev => {
-          typeCounts.All++;
-          const g = ev.group || '';
-          if (g === 'Checkin') { typeCounts.Checkin++; stats.checkin++; }
-          else if (g === 'Checkout') { typeCounts.Checkout++; stats.checkout++; }
-          else if (g === 'Payment') { typeCounts.Payment++; stats.payments++; if (ev.paid) stats.revenue += Number(ev.amount || 0); }
-          else if (g === 'Task') typeCounts.Task++;
-          else if (g === 'Enquiry') typeCounts.Enquiry++;
-          else if (g === 'Blocked') typeCounts.Blocked++;
-        });
-
-        // group events by date maintaining order
-        const dateGroups = {};
-        events.forEach(ev => {
-          if (!dateGroups[ev.date]) dateGroups[ev.date] = [];
-          dateGroups[ev.date].push(ev);
-        });
-        const dates = Object.keys(dateGroups).sort();
-
-        // render
-        let html = '<div class="list-wrap">';
-
-        // summary strip
-        html += '<div class="summary">' +
-
-          '</div>';
-
-        // filter bar
-        const pillOrder = ['All', 'Checkin', 'Checkout', 'Payment', 'Task', 'Enquiry', 'Blocked'];
-        const pillDots = { All: '#16151C', Checkin: '#059669', Checkout: '#D97706', Payment: '#2563EB', Task: '#6B7280', Enquiry: '#7C3AED', Blocked: '#DC2626' };
-        html += '<div class="filterbar" id="listFilterBar">' +
-          '<div class="search"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input type="text" id="listSearch" placeholder="Search guest, property\u2026"></div>' +
-          '<div class="pills" id="listPills">' +
-          pillOrder.map(t => '<button class="pill pill--' + (t === 'All' ? 'all' : t === 'Checkin' ? 'in' : t === 'Checkout' ? 'out' : t === 'Payment' ? 'pay' : t.toLowerCase()) + '" data-type="' + t + '" aria-pressed="' + (t === 'All' ? 'true' : 'false') + '"><span class="dot" style="color:' + pillDots[t] + '"></span>' + t + '<span class="cnt">' + typeCounts[t] + '</span></button>').join('') +
-          '</div>' +
-          '<span class="result-count"><b id="resultCount">' + events.length + '</b> event' + ((events.length !== 1) ? 's' : '') + '</span>' +
-          '</div>';
-
-        // timeline
-        html += '<div class="timeline" id="listTimeline">';
-        dates.forEach((iso, i) => {
-          const d = new Date(iso + 'T00:00:00');
-          const isLast = i === dates.length - 1;
-
-          // today marker
-          if (iso === todayStr) html += '<div class="marker" id="todayMarker"><div class="rail"><div class="marker__dot"></div><div class="marker__label"><span>Today</span><div class="marker__rule"></div></div></div></div>';
-
-          const weekday = d.toLocaleDateString('en-US', { weekday: 'short' });
-          const monthL = d.toLocaleDateString('en-US', { month: 'short' });
-          const dayNum = d.getDate();
-          const items = dateGroups[iso];
-
-          html += '<div class="day' + (isLast ? ' is-last' : '') + '" data-date="' + iso + '">' +
-            '<div class="rail"><div class="node"><div class="node__day">' + dayNum + '</div><div class="node__mon">' + monthL + '</div></div></div>' +
-            '<div class="day__main">' +
-            '<div class="day__head"><span class="day__weekday">' + weekday + '</span><span class="day__date">' + fmt(d, 'long') + '</span><span class="day__chip">' + items.length + ' event' + (items.length !== 1 ? 's' : '') + '</span></div>' +
-            '<div class="day__events">';
-
-          items.forEach(ev => {
-            const g = ev.group || '';
-            const eClass = g === 'Checkin' ? 'in' : g === 'Checkout' ? 'out' : g === 'Payment' ? 'pay' : g === 'Task' ? 'task' : g === 'Enquiry' ? 'enquiry' : g === 'Blocked' ? 'blocked' : 'pay';
-            let sub = '';
-            if (g === 'Checkin' || g === 'Checkout') sub = esc(ev.stay);
-            else if (g === 'Payment') sub = money(ev.amount) + (ev.paid ? ' <span class="badge badge--pay">Paid</span>' : ' <span class="badge badge--out">Due</span>');
-            else if (g === 'Task') sub = esc(ev.details || '');
-            else if (g === 'Enquiry') sub = (ev.guests ? esc(ev.guests) + ' \u00b7 ' : '') + esc(ev.stay);
-            else if (g === 'Blocked') sub = esc(ev.stay || '');
-
-            const guestName = g === 'Blocked' ? '\u2014' : esc(ev.guest_name || '\u2014');
-            const guestEmail = g === 'Blocked' ? '' : esc(ev.guest_email || '');
-            const guestPhone = g === 'Blocked' ? '' : esc(ev.guest_phone || ev.guest_id || '');
-            const propName = esc(ev.property || '');
-            const propLoc = esc(ev.location || '');
-            const hasAvatar = ev.avatar && ev.avatar.trim();
-            const hasPropImg = ev.property_image && ev.property_image.trim();
-            let typeIco = icons.pay;
-            if (g === 'Checkin') typeIco = icons.in;
-            else if (g === 'Checkout') typeIco = icons.out;
-            else if (g === 'Task') typeIco = icons.task;
-            else if (g === 'Enquiry') typeIco = icons.enq;
-            else if (g === 'Blocked') typeIco = icons.blk;
-
-            const badge = g === 'Checkin' ? '<span class="badge badge--in">Check-in</span>' :
-              g === 'Checkout' ? '<span class="badge badge--out">Check-out</span>' :
-                g === 'Payment' ? '<span class="badge badge--pay">Payment</span>' :
-                  g === 'Task' ? '<span class="badge badge--task">Task</span>' :
-                    g === 'Enquiry' ? '<span class="badge badge--enquiry">Enquiry</span>' :
-                      g === 'Blocked' ? '<span class="badge badge--blocked">Blocked</span>' :
-                        '';
-
-            html += '<div class="event event--' + eClass + '" data-type="' + g.toLowerCase() + '">' +
-              '<div class="event__body">' +
-              // type
-              '<div class="zone zone--type"><div class="ico">' + typeIco + '</div><div class="typecontent"><div class="type__label">' + esc(ev.title || g) + ' ' + badge + '</div>' + (sub ? '<div class="range">' + sub + '</div>' : '') + '</div></div>' +
-              // guest
-              '<div class="zone zone--guest">' +
-              '<div class="avatar avatar--guest">' + (hasAvatar ? '<img src="' + esc(ev.avatar) + '" style="width:100%;height:100%;border-radius:50%;object-fit:cover;" alt="">' : guestName.charAt(0).toUpperCase()) + '</div>' +
-              '<div class="guest__meta"><div class="guest__name">' + guestName + '</div>' +
-              (guestEmail ? '<div class="contact">' + icons.mail + '<span>' + guestEmail + '</span></div>' : '') +
-              (guestPhone ? '<div class="contact contact--mono">' + icons.phone + '<span>' + guestPhone + '</span></div>' : '') +
-              (!guestEmail && !guestPhone ? '<div class="contact contact--none">No contact</div>' : '') +
-              '</div>' +
-              '</div>' +
-              // property
-              '<div class="zone zone--prop">' +
-              '<div class="thumb thumb--r2">' + (hasPropImg ? '<img src="' + esc(ev.property_image) + '" style="width:100%;height:100%;object-fit:cover;" alt="">' : icons.prop) + '</div>' +
-              '<div class="prop__meta"><div class="prop__name">' + propName + '</div><div class="prop__loc">' + icons.prop + '<span>' + propLoc + '</span></div></div>' +
-              '</div>' +
-              // open
-
-              '</div>' +
-              '</div>';
-          });
-
-          html += '</div></div></div>';
-        });
-        html += '</div></div>';
-
-        c.innerHTML = html;
-
-        // ----- interactivity -----
-        const pills = document.querySelectorAll('#listPills .pill');
-        const cards = document.querySelectorAll('#listTimeline .event');
-        const daySections = document.querySelectorAll('#listTimeline .day');
-        const search = document.getElementById('listSearch');
-        const resultCount = document.getElementById('resultCount');
-
-        function filterEvents() {
-          const q = (search.value || '').toLowerCase().trim();
-          const active = document.querySelector('#listPills .pill[aria-pressed="true"]');
-          const activeType = active ? active.dataset.type : 'All';
-          let visible = 0;
-          cards.forEach(card => {
-            const t = card.dataset.type;
-            const matchesType = activeType === 'All' || activeType.toLowerCase() === t;
-            const text = card.textContent.toLowerCase();
-            const matchesSearch = !q || text.includes(q);
-            card.style.display = (matchesType && matchesSearch) ? '' : 'none';
-            if (matchesType && matchesSearch) visible++;
-          });
-          // hide empty days
-          daySections.forEach(day => {
-            const vis = Array.from(day.querySelectorAll('.event')).filter(el => el.style.display !== 'none').length;
-            day.style.display = vis ? 'grid' : 'none';
-          });
-          resultCount.textContent = visible;
-        }
-
-        pills.forEach(p => p.addEventListener('click', function () {
-          const wasPressed = this.getAttribute('aria-pressed') === 'true';
-          pills.forEach(pp => pp.setAttribute('aria-pressed', 'false'));
-          if (!wasPressed) this.setAttribute('aria-pressed', 'true');
-          else document.querySelector('#listPills .pill--all').setAttribute('aria-pressed', 'true');
-          filterEvents();
-        }));
-
-        search.addEventListener('input', filterEvents);
-
-        if (initialFilter) {
-          const filterMap = { in: 'Checkin', out: 'Checkout', pay: 'Payment' };
-          const targetType = filterMap[initialFilter.toLowerCase()] || initialFilter;
-          const targetPill = Array.from(pills).find(p => p.dataset.type === targetType);
-          if (targetPill) { targetPill.click(); }
-          initialFilter = null;
-        }
-      })
-      .catch(() => {
-        c.innerHTML = '<div class="list-wrap"><div class="empty-state" style="display:block"><b>Failed to load events.</b></div></div>';
-      });
-  }
-
-  /* --- Unified Calendar View Router --- */
-  function renderActiveView() {
-    // The property preview card is `position:fixed` and lives outside
-    // .properties-column, so switching views (which can hide/replace the
-    // sidebar and swap in new content underneath) doesn't auto-dismiss it.
-    // Always clear it before rendering the new view so it can't linger on
-    // top of the next view's content (e.g. task icons).
-    hidePropertyPreview();
-    const gridPane = document.getElementById('gridCalendarPane');
-    const listPane = document.getElementById('listViewPane');
-    const propsColumn = document.querySelector('.properties-column');
-    const legend = document.getElementById('calColorLegend');
-    if (!gridPane) return;
-
-    if (currentViewMode === 'list') {
-      if (legend) legend.style.display = 'none';
-      if (propsColumn) propsColumn.style.display = 'none';
-      gridPane.style.display = 'none';
-      listPane.style.display = 'block';
-      renderListView();
-    } else {
-      if (propsColumn) propsColumn.style.display = 'none';
-      listPane.style.display = 'none';
-
-      if (currentViewMode === 'day') {
-        // Day view: full-height flex column, no padding (inner grid scrolls)
-        if (legend) legend.style.display = '';
-        gridPane.style.display = 'flex';
-        gridPane.style.flexDirection = 'column';
-        gridPane.style.padding = '0';
-        gridPane.style.overflowY = 'hidden';
-        gridPane.style.background = '#ffffff';
-        renderDaySchedule(gridPane);
-      } else if (currentViewMode === 'week') {
-        // Week view: unified grid with its own property labels
-        if (legend) legend.style.display = 'none';
-        if (propsColumn) propsColumn.style.display = 'none';
-        gridPane.style.display = 'block';
-        gridPane.style.flex = '1 1 0';
-        gridPane.style.minWidth = '0';
-        gridPane.style.alignSelf = 'stretch';
-        gridPane.style.padding = '16px';
-        gridPane.style.overflowY = 'auto';
-        gridPane.style.background = '#fafafa';
-        renderWeekGrid(gridPane);
-      } else {
-        // Month: restore padding and scroll
-        if (legend) legend.style.display = 'none';
-        gridPane.style.display = 'block';
-        gridPane.style.flexDirection = '';
-        gridPane.style.padding = '16px';
-        gridPane.style.overflowY = 'auto';
-        gridPane.style.background = '#fafafa';
-        if (currentViewMode === 'month') {
-          renderMonthGrid(gridPane);
-        }
-        if (propsColumn) propsColumn.style.display = '';
-      }
-    }
-  }
-
-  /* --- Event Filters and Sidebar Badge Calculations --- */
   function getFilteredEventsForCalendar() {
     // If no property is selected, show all properties' data
     let pBookings = activePropertyId
@@ -2446,675 +2215,9 @@
   }
 
   /* --- Month Grid View Renderer --- */
-  function renderMonthGrid(pane) {
-    const year = currentDisplayDate.getFullYear();
-    const month = currentDisplayDate.getMonth();
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const paymentIconUrl = "{% static 'img/task/type/payment.svg' %}";
 
-    const { bookings: pBookings, enquiries: pEnquiries, tasks: pTasks } = getFilteredEventsForCalendar();
-    const spansList = [];
-    if (typeFilters.reservation) {
-      spansList.push(...pBookings.map(b => ({ ...b, isEnquiry: false })));
-      spansList.push(...pEnquiries.map(eq => ({ ...eq, isEnquiry: true })));
-    } else if (typeFilters.payment) {
-      spansList.push(...pBookings.map(b => ({ ...b, isEnquiry: false })));
-    }
-
-    const firstDay = new Date(year, month, 1);
-    const startDayOfWeek = firstDay.getDay();
-
-    const gridStart = new Date(firstDay);
-    gridStart.setDate(gridStart.getDate() - startDayOfWeek);
-
-    const gridWeeks = [];
-    let temp = new Date(gridStart);
-    for (let w = 0; w < 6; w++) {
-      const weekDates = [];
-      for (let d = 0; d < 7; d++) {
-        weekDates.push(new Date(temp));
-        temp.setDate(temp.getDate() + 1);
-      }
-      gridWeeks.push(weekDates);
-    }
-    if (gridWeeks.length === 6 && gridWeeks[5].every(d => d.getMonth() !== month)) {
-      gridWeeks.pop();
-    }
-
-    pane.style.display = 'flex';
-    pane.style.flexDirection = 'column';
-
-    let html = `
-      <div class="month-calendar-grid" style="flex: 1; min-height: 0;">
-        <div class="month-calendar-header-row">
-          <div class="month-calendar-header-cell">SUN</div>
-          <div class="month-calendar-header-cell">MON</div>
-          <div class="month-calendar-header-cell">TUE</div>
-          <div class="month-calendar-header-cell">WED</div>
-          <div class="month-calendar-header-cell">THU</div>
-          <div class="month-calendar-header-cell">FRI</div>
-          <div class="month-calendar-header-cell">SAT</div>
-        </div>
-        <div class="month-calendar-weeks-container">
-    `;
-
-    gridWeeks.forEach(weekDates => {
-      const weekStart = weekDates[0];
-      const weekEnd = weekDates[6];
-
-      let bgHtml = '';
-      weekDates.forEach(d => {
-        const isOtherMonth = d.getMonth() !== month;
-        const isToday = d.toDateString() === today.toDateString();
-        const dateStr = toISODateString(d);
-
-        bgHtml += `
-          <div class="month-calendar-day-cell ${isOtherMonth ? 'other-month' : ''} ${isToday ? 'today' : ''}" data-date="${dateStr}">
-            <span class="day-number">${d.getDate()}</span>
-          </div>
-        `;
-      });
-
-      let eventsHtml = '';
-      const weekSpans = [];
-      spansList.forEach(event => {
-        const evStart = new Date(event.startDateStr + 'T00:00:00');
-        const evEnd = new Date(event.endDateStr + 'T00:00:00');
-        evEnd.setDate(evEnd.getDate() - 1);
-
-        if (evStart <= weekEnd && evEnd >= weekStart) {
-          const carryStart = evStart < weekStart;
-          const carryEnd = evEnd > weekEnd;
-          const startCol = carryStart ? 0 : Math.round((evStart - weekStart) / (1000 * 60 * 60 * 24));
-          const endCol = carryEnd ? 6 : Math.round((evEnd - weekStart) / (1000 * 60 * 60 * 24));
-
-          weekSpans.push({
-            event,
-            startCol,
-            endCol,
-            carryStart,
-            carryEnd,
-            length: endCol - startCol + 1
-          });
-        }
-      });
-
-      // Fixed 2-band layout: row 1 = reservation, row 2 = separator, row 3 = task
-      const FIXED_GRID = '1fr 3px 1fr';
-
-      const bookingSpans = weekSpans.filter(span => !span.event.isEnquiry);
-      const enquirySpans = weekSpans.filter(span => span.event.isEnquiry);
-
-      const spanOffsets = (span) => {
-        const n = Math.max(span.endCol - span.startCol + 1, 2);
-        const mlPct = span.carryStart ? 0 : (100 / (2 * n));
-        const mrPct = span.carryEnd ? 0 : (100 / (2 * n));
-        return `margin-left:${mlPct.toFixed(2)}%;margin-right:${mrPct.toFixed(2)}%`;
-      };
-
-      bookingSpans.forEach(span => {
-        const ev = span.event;
-        const gridColStart = span.startCol + 1;
-        const gridColEnd = span.endCol + 2;
-        const onClick = ev.type === 'blocked'
-          ? `onclick="openUnblockModal(event, '${ev.id}')"`
-          : `onclick="openReservationPanel(event, '${ev.id}')"`;
-        const carryStartClass = span.carryStart ? 'carry-start' : '';
-        const carryEndClass = span.carryEnd ? 'carry-end' : '';
-        const labelName = ev.guestName || 'Blocked';
-        const labelText = span.carryStart ? `-- ${labelName}` : labelName;
-        const channelLogoUrl = getChannelLogo(ev.channelName, ev.channelIcon);
-        const channelColor = getChannelColor(ev.channelName) || ev.color || '#3b82f6';
-        const channelLogoHtml = channelLogoUrl && ev.type !== 'blocked'
-          ? `<div class="channel-logo-circle" style="border-color:${channelColor};background-color:${channelColor}"><img src="${channelLogoUrl}" alt="${ev.channelName || ''}" /></div>`
-          : '';
-        const style = ev.type === 'blocked' ? 'background-color:#9ca3af;' : `background-color:${channelColor};`;
-        eventsHtml += `<div class="grid-event-span ${carryStartClass} ${carryEndClass}" style="grid-column:${gridColStart}/${gridColEnd};grid-row:1;${style};${spanOffsets(span)}" ${onClick} onmouseenter="showMonthEventTooltip(event,'${ev.id}',false)" onmouseleave="hideGlobalTooltip()">${channelLogoHtml}<span class="event-title">${labelText}</span></div>`;
-      });
-
-      weekDates.forEach((d, colIdx) => {
-        const dateStr = toISODateString(d);
-        const dayTasksForBand = pTasks.filter(t => t.date === dateStr);
-        const bookingStartsHere = weekSpans.some(s => !s.carryStart && s.startCol === colIdx);
-
-        const bookingWithPayment = pBookings.find(b => b.paymentsInfo && b.paymentsInfo[dateStr]);
-        const hasPayment = bookingWithPayment && typeFilters.payment;
-
-        // Check-in colliding with a task and/or payment on the same cell is shown as a single
-        // red blinking dot - never a separate black payment dot. A task takes priority for the
-        // click (opens the task popup, which itself links onward to the payment via its
-        // "Payment ->" button); with no task, the dot opens the payment directly.
-        if (bookingStartsHere && (dayTasksForBand.length > 0 || hasPayment)) {
-          if (dayTasksForBand.length > 0) {
-            const t0 = dayTasksForBand[0];
-            eventsHtml += `<div style="position:static;grid-column:${colIdx + 1}/${colIdx + 2};grid-row:1/-1;align-self:end;justify-self:center;width:8px;height:8px;border-radius:50%;background:#ef4444;z-index:15;cursor:pointer;pointer-events:auto;animation:cell-blink 1.2s ease-in-out infinite;" onclick="openTaskDetailModal(event,'${t0.id}')"></div>`;
-          } else {
-            eventsHtml += `<div style="position:static;grid-column:${colIdx + 1}/${colIdx + 2};grid-row:1/-1;align-self:end;justify-self:center;width:8px;height:8px;border-radius:50%;background:#ef4444;z-index:15;cursor:pointer;pointer-events:auto;animation:cell-blink 1.2s ease-in-out infinite;" onclick="handlePaymentIndicatorClick(event,'${bookingWithPayment.id}','${dateStr}')" onmouseenter="showPaymentTooltip(event,'${bookingWithPayment.id}','${dateStr}')" onmouseleave="handleIndicatorHoverLeave()"></div>`;
-          }
-          return;
-        }
-
-        // Normal payment indicator (day has a payment but isn't also a check-in day)
-        if (hasPayment) {
-          eventsHtml += `<div style="grid-column:${colIdx + 1}/${colIdx + 2};grid-row:1;align-self:center;justify-self:center;width:36px;height:36px;border-radius:50%;background:#3b82f6;border:2px solid #fff;display:flex;align-items:center;justify-content:center;z-index:120;cursor:pointer;pointer-events:auto;box-shadow:0 1px 3px rgba(0,0,0,0.25);" onclick="handlePaymentIndicatorClick(event,'${bookingWithPayment.id}','${dateStr}')" onmouseenter="showPaymentTooltip(event,'${bookingWithPayment.id}','${dateStr}')" onmouseleave="handleIndicatorHoverLeave()"><img src="${paymentIconUrl}" alt="payment" style="width:24px;height:24px;object-fit:contain;filter:brightness(0) invert(1);" /></div>`;
-        }
-
-        if (dayTasksForBand.length === 0) return;
-        const t0 = dayTasksForBand[0];
-
-        const taskIconsMap = {
-          cleaning: "{% static 'img/task/type/cleaning.svg' %}",
-          maintenance: "{% static 'img/task/type/maintenance.svg' %}",
-          payment: "{% static 'img/task/type/payment.svg' %}",
-          other: "{% static 'img/task/type/others.svg' %}"
-        };
-        const taskIconUrl = taskIconsMap[t0.task_type] || taskIconsMap.other;
-        const taskColors = { cleaning: '#10b981', maintenance: '#f59e0b', payment: '#3b82f6', other: '#8b5cf6' };
-        const taskColor = taskColors[t0.task_type] || taskColors.other;
-        const paymentRing = t0.task_type === 'payment' ? 'box-shadow:0 0 0 2.5px #38bdf8,0 2px 6px rgba(0,0,0,0.15);width:30px;height:30px;' : '';
-        eventsHtml += `<div class="task-circle-bar" style="grid-column:${colIdx + 1}/${colIdx + 2};grid-row:1;background-color:${taskColor};${paymentRing}" onclick="openTaskDetailModal(event,'${t0.id}')">${t0.task_type === 'payment' ? `<div style="position:relative;display:flex;align-items:center;justify-content:center;width:100%;height:100%;"><img src="${taskIconUrl}" alt="" style="width:16px;height:16px;filter:brightness(0) invert(1);opacity:0.5;position:absolute;" /><span style="color:#fff;font-weight:900;font-size:14px;line-height:1;position:relative;z-index:1;">$</span></div>` : `<img src="${taskIconUrl}" alt="" />`}</div>`;
-      });
-
-      html += `
-        <div class="month-calendar-week">
-          <div class="month-calendar-week-bg">${bgHtml}</div>
-          <div class="month-calendar-events-layer" style="grid-template-rows: ${FIXED_GRID}; grid-auto-rows: unset;">
-            ${eventsHtml}
-          </div>
-        </div>
-      `;
-    });
-
-    html += `
-        </div>
-      </div>
-    `;
-
-    pane.innerHTML = html;
-  }
-
-  /* --- Week Grid View (unified: property label + 7-day data per row) --- */
-  function renderWeekGrid(pane) {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const paymentIconUrl = "{% static 'img/task/type/payment.svg' %}";
-
-    const pBookings = bookings.filter(b => {
-      if (typeFilters.reservation) return true;
-      if (typeFilters.payment) return b.paymentsInfo && Object.keys(b.paymentsInfo).length > 0;
-      return false;
-    });
-    const pEnquiries = typeFilters.reservation ? enquiries.slice() : [];
-    const pTasks = tasks.filter(t => {
-      if (t.task_type === 'payment') {
-        return typeFilters.payment;
-      } else {
-        return typeFilters.task;
-      }
-    });
-    const spansList = [];
-    if (typeFilters.reservation) {
-      spansList.push(...pBookings.map(b => ({ ...b, isEnquiry: false })));
-      spansList.push(...pEnquiries.map(eq => ({ ...eq, isEnquiry: true })));
-    } else if (typeFilters.payment) {
-      spansList.push(...pBookings.map(b => ({ ...b, isEnquiry: false })));
-    }
-
-    const weekDates = [];
-    const temp = new Date(selectedWeekStart);
-    temp.setHours(0, 0, 0, 0);
-    for (let d = 0; d < 7; d++) {
-      weekDates.push(new Date(temp));
-      temp.setDate(temp.getDate() + 1);
-    }
-
-    const weekStart = weekDates[0];
-    const weekEnd = weekDates[6];
-    const FIXED_GRID = '1fr 3px 1fr';
-    const taskIconsMap = {
-      cleaning: "{% static 'img/task/type/cleaning.svg' %}",
-      maintenance: "{% static 'img/task/type/maintenance.svg' %}",
-      payment: "{% static 'img/task/type/payment.svg' %}",
-      other: "{% static 'img/task/type/others.svg' %}"
-    };
-    const taskColors = { cleaning: '#10b981', maintenance: '#f59e0b', payment: '#3b82f6', other: '#8b5cf6' };
-    const dayNames = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
-    const propsToRender = filteredProperties.length > 0 ? filteredProperties : properties;
-
-    const spanOffsets = (span) => {
-      const n = Math.max(span.endCol - span.startCol + 1, 2);
-      const mlPct = span.carryStart ? 0 : (100 / (2 * n));
-      const mrPct = span.carryEnd ? 0 : (100 / (2 * n));
-      return `margin-left:${mlPct.toFixed(2)}%;margin-right:${mrPct.toFixed(2)}%`;
-    };
-
-    let html = `
-      <div class="week-grid-scroll" style="display:flex;flex-direction:column;flex:1;min-height:0;">
-        <div style="display:flex;min-width:max-content;border:1px solid #1f2937;border-radius:12px 12px 0 0;overflow:hidden;background:#1f2937;color:#fff;font-weight:700;font-size:11px;text-transform:uppercase;user-select:none;">
-          <div class="week-sidebar-col" style="display:flex;align-items:center;padding:10px;background:#f9fafb;position:sticky;left:0;z-index:2;">
-            <div style="display:flex;align-items:center;gap:6px;width:100%;padding:8px 10px;border:1px solid #e5e7eb;border-radius:8px;background:#f9fafb;">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:#9ca3af;flex-shrink:0;"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.35-4.35"></path></svg>
-              <input type="text" id="weekPropertySearchInput" placeholder="Search listings"
-                onkeyup="filterProperties()"
-                style="width:100%;border:none;font-size:13px;background:transparent;color:#1f2937;outline:none;box-sizing:border-box;" />
-            </div>
-          </div>
-          <div class="week-days-grid" style="flex:1;text-align:center;">
-            ${weekDates.map((d, i) => `<div style="padding:12px 4px;border-left:1px solid rgba(255,255,255,0.1);">${dayNames[d.getDay()]} ${d.getDate()}</div>`).join('')}
-          </div>
-        </div>
-        <div class="week-grid-body" style="flex:1;min-width:max-content;overflow-y:auto;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 12px 12px;background:#fff;">
-          ${propsToRender.map(property => {
-      const propImg = property.image || "{% static 'img/common/default_user_icon_1.png' %}";
-      const propName = property.title || 'Property';
-      const propertySpans = spansList.filter(s => String(s.propertyId) === String(property.id));
-      const propertyTasks = pTasks.filter(t => String(t.propertyId) === String(property.id));
-      const propertyBookings = pBookings.filter(b => String(b.propertyId) === String(property.id));
-
-      const weekSpans = [];
-      propertySpans.forEach(event => {
-        const evStart = new Date(event.startDateStr + 'T00:00:00');
-        const evEnd = new Date(event.endDateStr + 'T00:00:00');
-        evEnd.setDate(evEnd.getDate() - 1);
-        if (evStart <= weekEnd && evEnd >= weekStart) {
-          const carryStart = evStart < weekStart;
-          const carryEnd = evEnd > weekEnd;
-          const startCol = carryStart ? 0 : Math.round((evStart - weekStart) / (1000 * 60 * 60 * 24));
-          const endCol = carryEnd ? 6 : Math.round((evEnd - weekStart) / (1000 * 60 * 60 * 24));
-          weekSpans.push({ event, startCol, endCol, carryStart, carryEnd, length: endCol - startCol + 1 });
-        }
-      });
-
-      const bookingSpans = weekSpans.filter(s => !s.event.isEnquiry);
-      let rowHtml = '';
-
-      bookingSpans.forEach(span => {
-        const ev = span.event;
-        const gridColStart = span.startCol + 1;
-        const gridColEnd = span.endCol + 2;
-        const onClick = ev.type === 'blocked'
-          ? `onclick="openUnblockModal(event, '${ev.id}')"`
-          : `onclick="openReservationPanel(event, '${ev.id}')"`;
-        const carryStartClass = span.carryStart ? 'carry-start' : '';
-        const carryEndClass = span.carryEnd ? 'carry-end' : '';
-        const labelName = ev.guestName || 'Blocked';
-        const labelText = span.carryStart ? `-- ${labelName}` : labelName;
-        const channelLogoUrl = getChannelLogo(ev.channelName, ev.channelIcon);
-        const channelColor = getChannelColor(ev.channelName) || ev.color || '#3b82f6';
-        const channelLogoHtml = channelLogoUrl && ev.type !== 'blocked'
-          ? `<div class="channel-logo-circle" style="border-color:${channelColor};background-color:${channelColor}"><img src="${channelLogoUrl}" alt="${ev.channelName || ''}" /></div>`
-          : '';
-        const style = ev.type === 'blocked' ? 'background-color:#9ca3af;' : `background-color:${channelColor};`;
-        rowHtml += `<div class="grid-event-span ${carryStartClass} ${carryEndClass}" style="grid-column:${gridColStart}/${gridColEnd};grid-row:1;${style};${spanOffsets(span)}" ${onClick} onmouseenter="showMonthEventTooltip(event,'${ev.id}',false)" onmouseleave="hideGlobalTooltip()">${channelLogoHtml}<span class="event-title">${labelText}</span></div>`;
-      });
-
-      weekDates.forEach((d, colIdx) => {
-        const dateStr = toISODateString(d);
-        const dayTasks = propertyTasks.filter(t => t.date === dateStr);
-        const bookingStartsHere = weekSpans.some(s => !s.carryStart && s.startCol === colIdx);
-
-        const bookingWithPayment = propertyBookings.find(b => b.paymentsInfo && b.paymentsInfo[dateStr]);
-        const hasPayment = bookingWithPayment && typeFilters.payment;
-
-        // Check-in colliding with a task and/or payment on the same cell is shown as a single
-        // red blinking dot - never a separate black payment dot. A task takes priority for the
-        // click (opens the task popup, which itself links onward to the payment via its
-        // "Payment ->" button); with no task, the dot opens the payment directly.
-        if (bookingStartsHere && (dayTasks.length > 0 || hasPayment)) {
-          if (dayTasks.length > 0) {
-            const t0 = dayTasks[0];
-            rowHtml += `<div style="position:static;grid-column:${colIdx + 1}/${colIdx + 2};grid-row:1/-1;align-self:end;justify-self:center;width:8px;height:8px;border-radius:50%;background:#ef4444;z-index:15;cursor:pointer;pointer-events:auto;animation:cell-blink 1.2s ease-in-out infinite;" onclick="openTaskDetailModal(event,'${t0.id}')"></div>`;
-          } else {
-            rowHtml += `<div style="position:static;grid-column:${colIdx + 1}/${colIdx + 2};grid-row:1/-1;align-self:end;justify-self:center;width:8px;height:8px;border-radius:50%;background:#ef4444;z-index:15;cursor:pointer;pointer-events:auto;animation:cell-blink 1.2s ease-in-out infinite;" onclick="handlePaymentIndicatorClick(event,'${bookingWithPayment.id}','${dateStr}')" onmouseenter="showPaymentTooltip(event,'${bookingWithPayment.id}','${dateStr}')" onmouseleave="handleIndicatorHoverLeave()"></div>`;
-          }
-          return;
-        }
-
-        // Normal payment indicator (day has a payment but isn't also a check-in day)
-        if (hasPayment) {
-          rowHtml += `<div style="grid-column:${colIdx + 1}/${colIdx + 2};grid-row:1;align-self:center;justify-self:center;width:36px;height:36px;border-radius:50%;background:#3b82f6;border:2px solid #fff;display:flex;align-items:center;justify-content:center;z-index:120;cursor:pointer;pointer-events:auto;box-shadow:0 1px 3px rgba(0,0,0,0.25);" onclick="handlePaymentIndicatorClick(event,'${bookingWithPayment.id}','${dateStr}')" onmouseenter="showPaymentTooltip(event,'${bookingWithPayment.id}','${dateStr}')" onmouseleave="handleIndicatorHoverLeave()"><img src="${paymentIconUrl}" alt="payment" style="width:24px;height:24px;object-fit:contain;filter:brightness(0) invert(1);" /></div>`;
-        }
-
-        if (dayTasks.length === 0) return;
-        const t0 = dayTasks[0];
-
-        const taskIconUrl = taskIconsMap[t0.task_type] || taskIconsMap.other;
-        const taskColor = taskColors[t0.task_type] || taskColors.other;
-        const paymentRing = t0.task_type === 'payment' ? 'box-shadow:0 0 0 2.5px #38bdf8,0 2px 6px rgba(0,0,0,0.15);width:30px;height:30px;' : '';
-        rowHtml += `<div class="task-circle-bar" style="grid-column:${colIdx + 1}/${colIdx + 2};grid-row:1;background-color:${taskColor};${paymentRing}" onclick="openTaskDetailModal(event,'${t0.id}')">${t0.task_type === 'payment' ? `<div style="position:relative;display:flex;align-items:center;justify-content:center;width:100%;height:100%;"><img src="${taskIconUrl}" alt="" style="width:16px;height:16px;filter:brightness(0) invert(1);opacity:0.5;position:absolute;" /><span style="color:#fff;font-weight:900;font-size:14px;line-height:1;position:relative;z-index:1;">$</span></div>` : `<img src="${taskIconUrl}" alt="" />`}</div>`;
-      });
-
-      const detailHref = property.slug ? `/property/detail/${property.slug}/` : (property.detail_url || property.url || '#');
-      return `
-              <div style="display:flex;min-width:max-content;border-bottom:1px solid #e5e7eb;">
-                <div class="week-sidebar-col" style="display:flex;align-items:center;gap:0;padding:8px 10px;border-right:1px solid #e5e7eb;background:#fafafa;position:sticky;left:0;z-index:200;"
-                     onmouseenter="showPropertyPreview(event, '${property.id}')" onmouseleave="hidePropertyPreview()"
-                     onclick="togglePropertyPreview(event, '${property.id}')">
-                  <img src="${propImg}" alt="" style="width:32px;height:32px;border-radius:50%;object-fit:cover;flex-shrink:0;" onerror="this.onerror=null;this.src='{% static 'img/common/default_user_icon_1.png' %}';">
-                  <span class="week-property-name-text">${propName}</span>
-                  <div class="property-actions">
-                    <div class="dropdown dropend">
-                      <button class="btn btn-sm" type="button" data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false" style="padding:2px 6px;font-size:18px;line-height:1;border:none;background:none;color:#6b7280;cursor:pointer;">⋮</button>
-                      <ul class="dropdown-menu">
-                        <li><a class="dropdown-item" href="{% url 'booking:booking-create' %}?property_id=${property.id}">Create a new Booking</a></li>
-                        <li><a class="dropdown-item" href="javascript:void(0)" onclick="openBlockCalendarModal('${property.id}')">Block Calendar</a></li>
-                        <li><a class="dropdown-item" href="/manage/${property.id}/">Channel integration</a></li>
-                        <li><a class="dropdown-item" href="{% url 'tasks:task-create' %}?property_id=${property.id}">Create Task</a></li>
-                        <li><a class="dropdown-item" href="#">Report</a></li>
-                        <li><a class="dropdown-item" href="${detailHref}" target="_blank" rel="noopener noreferrer">Listing Details</a></li>
-                      </ul>
-                    </div>
-                  </div>
-                </div>
-                <div style="flex:1;min-height:58px;position:relative;">
-                  <div class="week-days-grid" style="height:100%;">
-                    ${weekDates.map((d, i) => {
-        const isToday = d.toDateString() === today.toDateString();
-        return `<div style="border-left:${i > 0 ? '1px solid #e5e7eb' : 'none'};${isToday ? 'background:rgba(22,163,74,0.08)' : ''};"></div>`;
-      }).join('')}
-                  </div>
-                  <div class="week-days-grid" style="position:absolute;top:14px;left:0;right:0;bottom:6px;grid-template-rows:${FIXED_GRID};pointer-events:none;">
-                    ${rowHtml}
-                  </div>
-                </div>
-              </div>
-            `;
-    }).join('')}
-        </div>
-      </div>
-    `;
-
-    pane.innerHTML = html;
-  }
-
-  /* --- Day Schedule View Renderer --- */
-  function renderDaySchedule(pane) {
-    // Day view shows ALL listings, not just the active one
-    const pBookings = bookings.filter(b => {
-      if (typeFilters.reservation) return true;
-      if (typeFilters.payment) return b.paymentsInfo && Object.keys(b.paymentsInfo).length > 0;
-      return false;
-    });
-    const pEnquiries = typeFilters.reservation ? enquiries.slice() : [];
-    const pTasks = tasks.filter(t => {
-      if (t.task_type === 'payment') {
-        return typeFilters.payment;
-      } else {
-        return typeFilters.task;
-      }
-    });
-    const dateStr = selectedDateKey;
-
-    const dateObj = new Date(dateStr + 'T00:00:00');
-    const today = new Date();
-    const isToday = dateObj.toDateString() === today.toDateString();
-
-    const weekdays = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
-    const weekdayStr = weekdays[dateObj.getDay()];
-    const dayNum = dateObj.getDate();
-
-    // --- Data ---
-    const checkIns = typeFilters.reservation ? pBookings.filter(b => b.start_date === dateStr) : [];
-    const checkOuts = typeFilters.reservation ? pBookings.filter(b => b.end_date === dateStr) : [];
-    const dayTasks = pTasks.filter(t => t.date === dateStr);
-    const dayEnquiries = pEnquiries.filter(eq => eq.start_date === dateStr);
-
-    const dayPaymentIconUrl = "{% static 'img/task/type/payment.svg' %}";
-
-    function bookingHasPayment(b) {
-      return b.paymentsInfo && b.paymentsInfo[dateStr] && typeFilters.payment;
-    }
-
-    // --- Build events list with time placement ---
-    // Each event: { startHour (float), endHour (float), title, sub, color, onClick, icon }
-    const HOUR_PX = 60; // 60px per hour, 1440px total
-    const events = [];
-
-    // Helper: parse "HH:MM" or fall back
-    function parseTime(str, fallback) {
-      if (!str) return fallback;
-      const m = String(str).match(/(\d{1,2}):(\d{2})/);
-      if (m) return parseInt(m[1], 10) + parseInt(m[2], 10) / 60;
-      return fallback;
-    }
-
-    // Bookings: check-ins show at 14:00 (2pm), check-outs at 11:00 (11am)
-    checkIns.forEach(b => {
-      const prop = properties.find(p => String(p.id) === String(b.propertyId));
-      const propName = prop ? prop.title : '';
-      events.push({
-        startHour: parseTime(b.check_in_time, 14),
-        endHour: parseTime(b.check_in_time, 14) + 1,
-        title: b.guestName || 'Guest',
-        badgeText: 'Check-in',
-        sub: `${propName}${propName && b.channelName ? ' · ' : ''}${b.channelName || ''}${b.bookingId ? ' · ' + b.bookingId : ''}`,
-        type: 'check-in',
-        color: '#2979ff',
-        background: 'rgba(41, 121, 255, 0.3)',
-        textColor: '#1565c0',
-        onClick: `openReservationPanel(event, '${b.id}')`,
-        bookingId: b.id,
-        hasPayment: bookingHasPayment(b)
-      });
-    });
-
-    checkOuts.forEach(b => {
-      const prop = properties.find(p => String(p.id) === String(b.propertyId));
-      const propName = prop ? prop.title : '';
-      events.push({
-        startHour: parseTime(b.check_out_time, 11),
-        endHour: parseTime(b.check_out_time, 11) + 1,
-        title: b.guestName || 'Guest',
-        badgeText: 'Check-out',
-        sub: `${propName}${propName && b.channelName ? ' · ' : ''}${b.channelName || ''}${b.bookingId ? ' · ' + b.bookingId : ''}`,
-        type: 'check-out',
-        color: '#5c6bc0',
-        background: 'rgba(92, 107, 192, 0.3)',
-        textColor: '#283593',
-        onClick: `openReservationPanel(event, '${b.id}')`,
-        bookingId: b.id,
-        hasPayment: bookingHasPayment(b)
-      });
-    });
-
-    // Payments: rendering as cards directly on the schedule
-    if (typeFilters.payment) {
-      const bookingsWithPayment = bookings.filter(b => b.paymentsInfo && b.paymentsInfo[dateStr]);
-      bookingsWithPayment.forEach(b => {
-        const payInfo = b.paymentsInfo[dateStr];
-        let hour = 12;
-        if (b.start_date === dateStr) {
-          hour = parseTime(b.check_in_time, 14);
-        } else if (b.end_date === dateStr) {
-          hour = parseTime(b.check_out_time, 11);
-        }
-        const prop = properties.find(p => String(p.id) === String(b.propertyId));
-        const propName = prop ? prop.title : '';
-        const isPaid = payInfo.is_paid;
-        events.push({
-          startHour: hour,
-          endHour: hour + 1,
-          title: fmtMoney(payInfo.amount),
-          badgeText: 'Payment',
-          sub: `${propName ? propName + ' · ' : ''}${payInfo.type || 'Payment'} (${isPaid ? 'Paid' : 'Pending'})`,
-          type: 'payment',
-          color: isPaid ? '#10b981' : '#f59e0b',
-          background: isPaid ? 'rgba(16, 185, 129, 0.3)' : 'rgba(245, 158, 11, 0.3)',
-          textColor: isPaid ? '#065f46' : '#92400e',
-          onClick: `handlePaymentIndicatorClick(event,'${b.id}','${dateStr}')`,
-          bookingId: b.id,
-          hasPayment: false
-        });
-      });
-    }
-
-    dayTasks.forEach(t => {
-      const prop = properties.find(p => String(p.id) === String(t.propertyId));
-      const propName = prop ? prop.title : '';
-      const sh = parseTime(t.time, 9);
-      const eh = parseTime(t.end_time, sh + 1);
-      const taskColorsMap = {
-        cleaning: { color: '#10b981', background: 'rgba(16, 185, 129, 0.3)', text: '#065f46' },
-        maintenance: { color: '#ef4444', background: 'rgba(239, 68, 68, 0.3)', text: '#c62828' },
-        payment: { color: '#3b82f6', background: 'rgba(59, 130, 246, 0.3)', text: '#1d4ed8' },
-        other: { color: '#8b5cf6', background: 'rgba(139, 92, 246, 0.3)', text: '#5b21b6' }
-      };
-      const activeType = t.task_type || 'other';
-      const styleTheme = taskColorsMap[activeType] || taskColorsMap.other;
-
-      events.push({
-        startHour: sh,
-        endHour: eh,
-        title: t.details || 'Task',
-        badgeText: activeType.charAt(0).toUpperCase() + activeType.slice(1),
-        sub: `${propName ? propName + ' · ' : ''}${activeType.charAt(0).toUpperCase() + activeType.slice(1)} · ${t.assigned_to || 'Unassigned'}`,
-        type: 'task',
-        color: styleTheme.color,
-        background: styleTheme.background,
-        textColor: styleTheme.text,
-        onClick: `openTaskDetailModal(event, '${t.id}')`
-      });
-    });
-
-    dayEnquiries.forEach(eq => {
-      const prop = properties.find(p => String(p.id) === String(eq.propertyId));
-      const propName = prop ? prop.title : '';
-      events.push({
-        startHour: 10,
-        endHour: 11,
-        title: eq.guestName || 'Inquirer',
-        badgeText: 'Enquiry',
-        sub: `${propName ? propName + ' · ' : ''}${eq.email}`,
-        type: 'enquiry',
-        color: '#8e24aa',
-        background: 'rgba(142, 36, 170, 0.3)',
-        textColor: '#4a148c',
-        onClick: `openEnquiryPanel(event, '${eq.id}')`
-      });
-    });
-
-    // --- Build time labels & hour lines ---
-    let timeLabelsHtml = '';
-    let hourLinesHtml = '';
-    for (let h = 0; h <= 24; h++) {
-      const top = h * HOUR_PX;
-      if (h > 0 && h < 24) {
-        const label = h < 12 ? `${h} AM` : h === 12 ? '12 PM' : `${h - 12} PM`;
-        timeLabelsHtml += `<div class="gcal-time-label" style="top:${top}px">${label}</div>`;
-      }
-      if (h < 24) {
-        hourLinesHtml += `<div class="gcal-hour-line major" style="top:${top}px"></div>`;
-        // 30-min line
-        hourLinesHtml += `<div class="gcal-hour-line" style="top:${top + 30}px"></div>`;
-      }
-    }
-
-    // --- Now-line ---
-    let nowLineHtml = '';
-    if (isToday) {
-      const now = new Date();
-      const nowTop = (now.getHours() + now.getMinutes() / 60) * HOUR_PX;
-      nowLineHtml = `<div class="gcal-now-line" style="top:${nowTop}px"><div class="gcal-now-dot"></div></div>`;
-    }
-
-    // --- Build event blocks ---
-    // Simple overlap handling: group by overlap then offset left
-    function computeColumns(evts) {
-      // Sort by start
-      const sorted = [...evts].sort((a, b) => a.startHour - b.startHour);
-      const cols = [];
-      sorted.forEach(ev => {
-        let placed = false;
-        for (let c = 0; c < cols.length; c++) {
-          const last = cols[c][cols[c].length - 1];
-          if (last.endHour <= ev.startHour) {
-            cols[c].push(ev);
-            ev._col = c;
-            placed = true;
-            break;
-          }
-        }
-        if (!placed) { ev._col = cols.length; cols.push([ev]); }
-      });
-      const numCols = cols.length || 1;
-      sorted.forEach(ev => { ev._numCols = numCols; });
-      return sorted;
-    }
-
-    const positionedEvents = computeColumns(events);
-
-    let eventBlocksHtml = '';
-    positionedEvents.forEach(ev => {
-      const topPx = ev.startHour * HOUR_PX;
-      const heightPx = Math.max((ev.endHour - ev.startHour) * HOUR_PX - 2, 44);
-      const numCols = ev._numCols || 1;
-      const col = ev._col || 0;
-      const widthPct = (100 / numCols);
-      const leftPct = col * widthPct;
-      const style = [
-        `top:${topPx}px`,
-        `height:${heightPx}px`,
-        `background:${ev.background || 'rgba(0,0,0,0.05)'}`,
-        `border-left: 4px solid ${ev.color || '#6b7280'}`,
-        `border-top: none`,
-        `border-right: none`,
-        `border-bottom: none`,
-        `border-radius: 6px`,
-        `padding: 6px 12px 6px 10px`,
-        `left:calc(${leftPct}% + 4px)`,
-        `width:calc(${widthPct}% - 8px)`
-      ].join(';');
-
-      eventBlocksHtml += `
-        <div class="gcal-event-block" style="${style}" onclick="${ev.onClick}">
-          <div class="gcal-event-title" style="color: ${ev.textColor || '#1f2937'}; display: flex; align-items: center; gap: 4px; flex-wrap: wrap;">
-            ${ev.badgeText ? `<span style="background: ${ev.color}; color: #fff; padding: 2px 5px; border-radius: 4px; font-size: 9px; font-weight: 800; text-transform: uppercase; display: inline-flex; align-items: center; height: 14px; margin-right: 2px; line-height: 1; flex-shrink: 0;">${ev.badgeText}</span>` : ''}
-            <span style="line-height: 1.2;">${ev.title}</span>
-          </div>
-          ${ev.sub ? `<div class="gcal-event-sub" style="color: ${ev.textColor || '#4b5563'}e6; font-weight: 500; margin-top: 3px;">${ev.sub}</div>` : ''}
-        </div>
-      `;
-    });
-
-    // --- Render ---
-    pane.innerHTML = `
-      <div class="gcal-day-view">
-        <!-- Scrollable grid -->
-        <div class="gcal-day-scroll-area" id="gcalDayScrollArea">
-          <div class="gcal-day-grid" style="min-height:${24 * HOUR_PX}px">
-            <!-- Time gutter -->
-            <div class="gcal-time-gutter" style="height:${24 * HOUR_PX}px">
-              ${timeLabelsHtml}
-            </div>
-            <!-- Day column -->
-            <div class="gcal-day-col" style="height:${24 * HOUR_PX}px; position:relative;">
-              ${hourLinesHtml}
-              ${nowLineHtml}
-              ${eventBlocksHtml}
-              ${events.length === 0 ? `<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:14px;color:#9ca3af;font-style:italic;pointer-events:none;">No events scheduled</div>` : ''}
-            </div>
-          </div>
-        </div>
-
-    `;
-
-    // Scroll to 7 AM by default (or now-line if today)
-    requestAnimationFrame(() => {
-      const scrollArea = document.getElementById('gcalDayScrollArea');
-      if (!scrollArea) return;
-      if (isToday) {
-        const now = new Date();
-        const nowTop = (now.getHours() + now.getMinutes() / 60) * HOUR_PX;
-        scrollArea.scrollTop = Math.max(0, nowTop - scrollArea.clientHeight / 2);
-      } else {
-        scrollArea.scrollTop = 7 * HOUR_PX;
-      }
-    });
-  }
-
-  var _currentModalTaskId = null;
   let _taskModalPaymentContext = null;
+  let _paymentModalReturnTaskId = null;
 
   function openTaskDetailModal(event, taskId) {
     if (event) event.stopPropagation();
@@ -3130,7 +2233,10 @@
     );
     if (paymentBooking) {
       _taskModalPaymentContext = { bookingId: paymentBooking.id, dateStr: t.date };
-      if (taskModalNextBtn) taskModalNextBtn.style.display = '';
+      if (taskModalNextBtn) {
+        taskModalNextBtn.style.display = '';
+        taskModalNextBtn.style.background = 'linear-gradient(135deg, #3b82f6, #1d4ed8)';
+      }
     } else {
       _taskModalPaymentContext = null;
       if (taskModalNextBtn) taskModalNextBtn.style.display = 'none';
@@ -3214,12 +2320,26 @@
   function goToPaymentFromTaskModal() {
     if (!_taskModalPaymentContext) return;
     const { bookingId, dateStr } = _taskModalPaymentContext;
+    _paymentModalReturnTaskId = _currentModalTaskId;
     closeTaskDetailModal();
     openPaymentDetailModal(null, bookingId, dateStr);
   }
 
+  function goBackToTaskFromPaymentModal() {
+    if (!_paymentModalReturnTaskId) return;
+    const taskId = _paymentModalReturnTaskId;
+    _paymentModalReturnTaskId = null;
+    closePaymentDetailModal();
+    openTaskDetailModal(null, taskId);
+  }
+
   function openPaymentDetailModal(event, bookingId, dateStr) {
-    if (event) event.stopPropagation();
+    if (event) {
+      event.stopPropagation();
+      // Opened directly from the calendar (badge/dot click), not via the task
+      // modal's "Payment ->" button, so there's nowhere for "Back" to return to.
+      _paymentModalReturnTaskId = null;
+    }
     hideGlobalTooltip();
     const b = bookings.find(x => x.id == bookingId);
     if (!b || !b.paymentsInfo || !b.paymentsInfo[dateStr]) return;
@@ -3227,6 +2347,8 @@
     const info = b.paymentsInfo[dateStr];
     const overlay = document.getElementById('paymentModalOverlay');
     const modal = document.getElementById('paymentModal');
+    const backBtn = document.getElementById('paymentModalBackBtn');
+    if (backBtn) backBtn.style.display = _paymentModalReturnTaskId ? '' : 'none';
 
     const displayEndDate = new Date(b.endDate);
     displayEndDate.setDate(displayEndDate.getDate() - 1);
@@ -3251,6 +2373,7 @@
     if (event && event.target !== event.currentTarget) return;
     const overlay = document.getElementById('paymentModalOverlay');
     overlay.classList.remove('open');
+    _paymentModalReturnTaskId = null;
   }
 
   function toggleTaskCompletion() {
@@ -3273,7 +2396,7 @@
         if (data.success) {
           t.completed = newStatus;
           closeTaskDetailModal();
-          renderActiveView();
+          renderCurrentView();
         }
       })
       .catch(() => { });
@@ -3445,6 +2568,7 @@
     positionTooltip(event, tooltip);
   }
 
+
   function refreshView() {
     if (!selectedWeekStart) {
       const today = new Date();
@@ -3461,19 +2585,38 @@
 
     if (currentViewMode === 'list') {
       updateViewTitle();
-      renderActiveView();
+      renderCurrentView();
       return;
     }
 
     generateDates();
+    syncTimelineDimensions();
     renderProperties(filteredProperties);
     updateViewTitle();
-    renderActiveView();
+    renderCurrentView();
     fetchBookings();
   }
 
+  function syncTimelineDimensions() {
+    const datesPane = document.getElementById('datesPane');
+    const datesContainer = document.getElementById('datesContainer');
+    if (!datesPane || !datesContainer || allDates.length === 0) return;
+
+    const isSmallPhone = window.innerWidth <= 576;
+    const isMobile = window.innerWidth <= 768;
+    const minCellWidth = isSmallPhone ? 46 : (isMobile ? 52 : 60);
+    const containerWidth = datesContainer.clientWidth || 0;
+    const autoCellWidth = containerWidth > 0 ? Math.floor(containerWidth / allDates.length) : minCellWidth;
+    const cellWidth = Math.max(minCellWidth, autoCellWidth);
+    const gridWidth = cellWidth * allDates.length;
+
+    datesPane.style.setProperty('--timeline-cell-width', `${cellWidth}px`);
+    datesPane.style.setProperty('--timeline-grid-width', `${gridWidth}px`);
+  }
+
+
   function goToPrevMonth() {
-    if (currentViewMode === 'month' || currentViewMode === 'list') {
+    if (currentViewMode === 'month' || currentViewMode === 'timeline' || currentViewMode === 'list') {
       currentDisplayDate.setMonth(currentDisplayDate.getMonth() - 1, 1);
       refreshView();
     } else if (currentViewMode === 'week') {
@@ -3492,7 +2635,7 @@
   }
 
   function goToNextMonth() {
-    if (currentViewMode === 'month' || currentViewMode === 'list') {
+    if (currentViewMode === 'month' || currentViewMode === 'timeline' || currentViewMode === 'list') {
       currentDisplayDate.setMonth(currentDisplayDate.getMonth() + 1, 1);
       refreshView();
     } else if (currentViewMode === 'week') {
@@ -3521,19 +2664,13 @@
     selectedWeekStart = sunday;
 
     refreshView();
-    if (currentViewMode === 'list') {
+    if (currentViewMode === 'timeline') {
+      scrollToToday();
+    } else if (currentViewMode === 'list') {
       scrollToListToday();
     }
   }
 
-  function scrollToListToday() {
-    setTimeout(() => {
-      const container = document.getElementById('listViewPane');
-      const todayIso = toISODateString(new Date());
-      const section = container ? container.querySelector('#date-' + todayIso) : null;
-      if (section) section.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 300);
-  }
 
   function refreshData() {
     if (currentViewMode === 'list') {
@@ -3633,147 +2770,7 @@
     }, true);
   }
 
-  function init() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const monthParam = urlParams.get('month');
-    const yearParam = urlParams.get('year');
-    if (monthParam && yearParam) {
-      const m = parseInt(monthParam, 10) - 1, y = parseInt(yearParam, 10);
-      if (!isNaN(m) && !isNaN(y)) currentDisplayDate = new Date(y, m, 1);
-    } else {
-      currentDisplayDate = new Date();
-    }
-    const urlView = urlParams.get('view');
-    if (urlView && ['month', 'week', 'day', 'list'].includes(urlView)) {
-      currentViewMode = urlView;
-    }
-    initialFilter = urlParams.get('filter') || null;
 
-    // Bind view switcher
-    const viewSwitcher = document.getElementById('calendarViewSwitcher');
-    const viewDropdownBtn = document.getElementById('viewDropdownBtn');
-    if (viewSwitcher) {
-      // Sync dropdown to currentViewMode from query params
-      const targetItem = viewSwitcher.querySelector(`.dropdown-menu .dropdown-item[data-view="${currentViewMode}"]`);
-      if (targetItem) {
-        viewSwitcher.querySelectorAll('.dropdown-menu .dropdown-item').forEach(a => a.classList.remove('active'));
-        targetItem.classList.add('active');
-        if (viewDropdownBtn) viewDropdownBtn.firstChild.textContent = targetItem.textContent.trim();
-        const mobileMenu = document.getElementById('mobileActionsMenu');
-        if (mobileMenu) {
-          mobileMenu.querySelectorAll('.mobile-view-btn').forEach(b => b.classList.remove('active'));
-          const mobileBtn = mobileMenu.querySelector(`.mobile-view-btn[data-view="${currentViewMode}"]`);
-          if (mobileBtn) mobileBtn.classList.add('active');
-        }
-      }
-      viewSwitcher.querySelectorAll('.dropdown-menu .dropdown-item').forEach(item => {
-        item.addEventListener('click', function (e) {
-          if (this.dataset.view === 'timeline') return; // real navigation to the standalone timeline page
-          e.preventDefault();
-          viewSwitcher.querySelectorAll('.dropdown-menu .dropdown-item').forEach(a => a.classList.remove('active'));
-          this.classList.add('active');
-          viewDropdownBtn.firstChild.textContent = this.textContent.trim();
-          currentViewMode = this.dataset.view;
-          const mobileMenu = document.getElementById('mobileActionsMenu');
-          if (mobileMenu) {
-            mobileMenu.querySelectorAll('.mobile-view-btn').forEach(b => b.classList.remove('active'));
-            const mobileBtn = mobileMenu.querySelector(`.mobile-view-btn[data-view="${currentViewMode}"]`);
-            if (mobileBtn) mobileBtn.classList.add('active');
-          }
-          // Reset date navigation to today/this week for the selected view
-          const today = new Date();
-          const dayOfWeek = today.getDay();
-          const sunday = new Date(today);
-          sunday.setDate(today.getDate() - dayOfWeek);
-          if (currentViewMode === 'week') {
-            selectedWeekStart = sunday;
-            currentDisplayDate = new Date(sunday);
-          } else {
-            currentDisplayDate = new Date(today.getFullYear(), today.getMonth(), 1);
-            selectedWeekStart = sunday;
-            selectedDateKey = toISODateString(today);
-          }
-          refreshView();
-        });
-      });
-    }
-
-    // Bind type filter dropdown
-    // Bind type filter checkboxes
-    const typeFilter = document.getElementById('calendarTypeFilter');
-    if (typeFilter) {
-      function updateFilterState() {
-        const resCb = document.getElementById('filterReservation');
-        const taskCb = document.getElementById('filterTask');
-        const payCb = document.getElementById('filterPayment');
-        const allCb = document.getElementById('filterAll');
-        typeFilters.reservation = resCb.checked;
-        typeFilters.task = taskCb.checked;
-        typeFilters.payment = payCb.checked;
-        allCb.checked = resCb.checked && taskCb.checked && payCb.checked;
-        const filterBtn = document.getElementById('calendarTypeFilterBtn');
-        if (filterBtn) {
-          const labels = [];
-          if (resCb.checked) labels.push('Reservations');
-          if (taskCb.checked) labels.push('Tasks');
-          if (payCb.checked) labels.push('Payments');
-          filterBtn.textContent = labels.length === 3 ? 'Show: All' : 'Show: ' + (labels.join(', ') || 'None');
-        }
-        renderActiveView();
-      }
-      document.getElementById('filterAll').addEventListener('change', function () {
-        const checked = this.checked;
-        document.querySelectorAll('.filter-type-cb').forEach(cb => cb.checked = checked);
-        updateFilterState();
-      });
-      document.querySelectorAll('.filter-type-cb').forEach(cb => {
-        cb.addEventListener('change', updateFilterState);
-      });
-    }
-
-    renderProperties();
-    refreshView();
-    bindPropertyDropdownFloating();
-
-    // Event listeners
-    document.getElementById('prevBtn').addEventListener('click', goToPrevMonth);
-    document.getElementById('nextBtn').addEventListener('click', goToNextMonth);
-    document.getElementById('todayBtn').addEventListener('click', goToToday);
-    document.getElementById('refreshBtn').addEventListener('click', refreshData);
-    document.getElementById('printBtn').addEventListener('click', function () {
-      const viewType = currentViewMode || 'month';
-      let startDate, endDate;
-      if (allDates.length > 0) {
-        startDate = toISODateString(allDates[0]);
-        endDate = toISODateString(allDates[allDates.length - 1]);
-      } else {
-        const today = new Date();
-        const year = today.getFullYear();
-        const month = today.getMonth();
-        const firstDay = new Date(year, month, 1);
-        const lastDay = new Date(year, month + 1, 0);
-        startDate = toISODateString(firstDay);
-        endDate = toISODateString(lastDay);
-      }
-      window.location.href = `/print/?view=${viewType}&start_date=${startDate}&end_date=${endDate}`;
-    });
-    document.getElementById('monthDisplay').addEventListener('click', toggleMonthYearPanel);
-    document.getElementById('monthYearApplyBtn').addEventListener('click', applyMonthYearSelection);
-    document.getElementById('monthYearPanel').addEventListener('click', function (event) {
-      event.stopPropagation();
-    });
-    document.addEventListener('click', function () {
-      closeMonthYearPanel();
-    });
-    document.addEventListener('click', function (event) {
-      if (!isMobileOrTabletView()) return;
-      if (event.target.closest('.payment-indicator') || event.target.closest('.task-indicator')) return;
-      hideGlobalTooltip();
-    });
-
-  }
-
-  // Show tasks in navbar panel on task icon hover
   function showTasksInNavbar(dateStr, propertyId) {
     console.log('showTasksInNavbar called with:', dateStr, propertyId);
     console.log('Available tasks:', tasks);
@@ -3826,6 +2823,7 @@
     if (hideTaskPanelTimeout) clearTimeout(hideTaskPanelTimeout);
     hideTaskPanelTimeout = setTimeout(() => {
       const panel = document.getElementById('taskDetailsPanel');
+
       if (panel) {
         panel.classList.remove('show');
       }
@@ -3913,7 +2911,7 @@
         if (payCb.checked) labels.push('Payments');
         filterBtn.textContent = labels.length === 3 ? 'Show: All' : 'Show: ' + (labels.join(', ') || 'None');
       }
-      renderActiveView();
+      renderCurrentView();
     };
 
     document.querySelectorAll('#mobileFilterReservation, #mobileFilterTask, #mobileFilterPayment').forEach(cb => {
@@ -3923,19 +2921,8 @@
 
   if (mobilePrintBtn) {
     mobilePrintBtn.addEventListener('click', () => {
-      const viewType = currentViewMode || 'month';
-      let startDate, endDate;
-      if (allDates.length > 0) {
-        startDate = toISODateString(allDates[0]);
-        endDate = toISODateString(allDates[allDates.length - 1]);
-      } else {
-        const today = new Date();
-        const year = today.getFullYear();
-        const month = today.getMonth();
-        startDate = toISODateString(new Date(year, month, 1));
-        endDate = toISODateString(new Date(year, month + 1, 0));
-      }
-      window.location.href = `/print/?view=${viewType}&start_date=${startDate}&end_date=${endDate}`;
+      const { startDate, endDate } = computePrintDateRange();
+      window.location.href = `/print/?view=${currentViewMode}&start_date=${startDate}&end_date=${endDate}`;
     });
   }
 
@@ -3947,108 +2934,512 @@
       }
     });
   }
-</script>
 
-<script>
-  /* Custom month/year dropdowns — replace the native <select> popups (whose
-     blue OS highlight can't be styled) with menus that use the platform orange.
-     The native <select>s stay in the DOM (hidden) as the source of truth, so
-     populateYearPicker / sync / applyMonthYearSelection keep working unchanged. */
-  (function () {
-    function enhance(select) {
-      if (!select || select.dataset.clEnhanced) return;
-      select.dataset.clEnhanced = '1';
-
-      var wrap = document.createElement('div');
-      wrap.className = 'cl-cselect';
-      select.parentNode.insertBefore(wrap, select);
-      wrap.appendChild(select);
-      select.style.display = 'none';
-
-      var trigger = document.createElement('button');
-      trigger.type = 'button';
-      trigger.className = 'cl-cselect-trigger';
-      var label = document.createElement('span');
-      label.className = 'cl-cselect-label';
-      var caret = document.createElement('span');
-      caret.className = 'cl-cselect-caret';
-      caret.textContent = '▾';
-      trigger.appendChild(label);
-      trigger.appendChild(caret);
-      wrap.appendChild(trigger);
-
-      var menu = document.createElement('ul');
-      menu.className = 'cl-cselect-menu';
-      wrap.appendChild(menu);
-
-      function refreshLabel() {
-        var opt = select.options[select.selectedIndex];
-        label.textContent = opt ? opt.textContent : '';
-      }
-      function buildMenu() {
-        menu.innerHTML = '';
-        Array.prototype.forEach.call(select.options, function (opt) {
-          var li = document.createElement('li');
-          li.className = 'cl-cselect-option' + (opt.value === select.value ? ' selected' : '');
-          li.textContent = opt.textContent;
-          li.addEventListener('click', function (e) {
-            e.stopPropagation();
-            select.value = opt.value;
-            select.dispatchEvent(new Event('change', { bubbles: true }));
-            refreshLabel();
-            wrap.classList.remove('open');
-          });
-          menu.appendChild(li);
-        });
-      }
-      function openMenu() {
-        document.querySelectorAll('.cl-cselect.open').forEach(function (o) { o.classList.remove('open'); });
-        buildMenu();
-        wrap.classList.add('open');
-        var sel = menu.querySelector('.selected');
-        if (sel) sel.scrollIntoView({ block: 'nearest' });
-      }
-      trigger.addEventListener('click', function (e) {
-        e.stopPropagation();
-        if (wrap.classList.contains('open')) wrap.classList.remove('open');
-        else openMenu();
-      });
-
-      select._clRefresh = refreshLabel;
-      refreshLabel();
-    }
-
-    function init() {
-      var monthSel = document.getElementById('monthPickerSelect');
-      var yearSel = document.getElementById('yearPickerSelect');
-      enhance(monthSel);
-      enhance(yearSel);
-
-      var panel = document.getElementById('monthYearPanel');
-      if (!panel) return;
-
-      // The panel sets the selects' values programmatically when it opens;
-      // refresh the custom triggers whenever it becomes visible.
-      new MutationObserver(function () {
-        if (!panel.hidden) {
-          if (monthSel && monthSel._clRefresh) monthSel._clRefresh();
-          if (yearSel && yearSel._clRefresh) yearSel._clRefresh();
-        }
-      }).observe(panel, { attributes: true, attributeFilter: ['hidden'] });
-
-      // Clicking empty space inside the panel closes any open custom menu.
-      panel.addEventListener('click', function (e) {
-        if (!e.target.closest('.cl-cselect')) {
-          panel.querySelectorAll('.cl-cselect.open').forEach(function (o) { o.classList.remove('open'); });
-        }
-      });
-    }
-
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', init);
+  function init() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const monthParam = urlParams.get('month');
+    const yearParam = urlParams.get('year');
+    if (monthParam && yearParam) {
+      const m = parseInt(monthParam, 10) - 1, y = parseInt(yearParam, 10);
+      if (!isNaN(m) && !isNaN(y)) currentDisplayDate = new Date(y, m, 1);
     } else {
-      init();
+      currentDisplayDate = new Date();
     }
-  })();
+    initialFilter = urlParams.get('filter') || null;
+
+    // Bind type filter dropdown
+    // Bind type filter checkboxes
+    const typeFilter = document.getElementById('calendarTypeFilter');
+    if (typeFilter) {
+      function updateFilterState() {
+        const resCb = document.getElementById('filterReservation');
+        const taskCb = document.getElementById('filterTask');
+        const payCb = document.getElementById('filterPayment');
+        const allCb = document.getElementById('filterAll');
+        typeFilters.reservation = resCb.checked;
+        typeFilters.task = taskCb.checked;
+        typeFilters.payment = payCb.checked;
+        allCb.checked = resCb.checked && taskCb.checked && payCb.checked;
+        const filterBtn = document.getElementById('calendarTypeFilterBtn');
+        if (filterBtn) {
+          const labels = [];
+          if (resCb.checked) labels.push('Reservations');
+          if (taskCb.checked) labels.push('Tasks');
+          if (payCb.checked) labels.push('Payments');
+          filterBtn.textContent = labels.length === 3 ? 'Show: All' : 'Show: ' + (labels.join(', ') || 'None');
+        }
+        renderCurrentView();
+      }
+      document.getElementById('filterAll').addEventListener('change', function () {
+        const checked = this.checked;
+        document.querySelectorAll('.filter-type-cb').forEach(cb => cb.checked = checked);
+        updateFilterState();
+      });
+      document.querySelectorAll('.filter-type-cb').forEach(cb => {
+        cb.addEventListener('change', updateFilterState);
+      });
+    }
+
+    renderProperties();
+    refreshView();
+    bindPropertyDropdownFloating();
+
+    // Scroll to today initially (instant)
+    setTimeout(() => {
+      if (currentViewMode === 'timeline') {
+        const container = document.getElementById('datesContainer');
+        const todayEl = container.querySelector('.today-column');
+        if (todayEl) {
+          todayEl.scrollIntoView({ inline: 'center', block: 'nearest' });
+        }
+      }
+    }, 100);
+
+    // Event listeners
+    document.getElementById('prevBtn').addEventListener('click', goToPrevMonth);
+    document.getElementById('nextBtn').addEventListener('click', goToNextMonth);
+    document.getElementById('todayBtn').addEventListener('click', goToToday);
+    document.getElementById('refreshBtn').addEventListener('click', refreshData);
+    document.getElementById('printBtn').addEventListener('click', function () {
+      const { startDate, endDate } = computePrintDateRange();
+      window.location.href = `/print/?view=${currentViewMode}&start_date=${startDate}&end_date=${endDate}`;
+    });
+    document.getElementById('monthDisplay').addEventListener('click', toggleMonthYearPanel);
+    document.getElementById('monthYearApplyBtn').addEventListener('click', applyMonthYearSelection);
+    document.getElementById('monthYearPanel').addEventListener('click', function (event) {
+      event.stopPropagation();
+    });
+    document.addEventListener('click', function () {
+      closeMonthYearPanel();
+    });
+    document.addEventListener('click', function (event) {
+      if (!isMobileOrTabletView()) return;
+      if (event.target.closest('.payment-indicator') || event.target.closest('.task-indicator')) return;
+      hideGlobalTooltip();
+    });
+
+    if (typeof initTimelineScrollSync === 'function') initTimelineScrollSync();
+  }
+
+  // Show tasks in navbar panel on task icon hover
+
+  /* --- Timeline view-specific rendering --- */
+  function getBookingSpan(propertyId, dates) {
+    const spans = [];
+    const viewStartStr = toISODateString(dates[0]);
+    const viewEndExclusiveStr = addDaysToISO(toISODateString(dates[dates.length - 1]), 1);
+    bookings.forEach(booking => {
+      if (booking.propertyId === propertyId) {
+        // Find overlap between booking and current view dates
+        const startIndex = dates.findIndex(date => {
+          const dateStr = toISODateString(date);
+          return dateStr >= booking.startDateStr && dateStr < booking.endDateStr;
+        });
+        const endIndex = dates.findLastIndex(date => {
+          const dateStr = toISODateString(date);
+          return dateStr >= booking.startDateStr && dateStr < booking.endDateStr;
+        });
+
+        if (startIndex !== -1 && endIndex !== -1) {
+          spans.push({
+            ...booking,
+            startIndex,
+            endIndex,
+            length: endIndex - startIndex + 1,
+            startsBeforeView: booking.startDateStr < viewStartStr,
+            endsAfterView: booking.endDateStr > viewEndExclusiveStr
+          });
+        }
+      }
+    });
+    return spans;
+  }
+
+  function getEnquirySpan(propertyId, dates) {
+    const spans = [];
+    const viewStartStr = toISODateString(dates[0]);
+    const viewEndExclusiveStr = addDaysToISO(toISODateString(dates[dates.length - 1]), 1);
+    enquiries.forEach(eq => {
+      if (eq.propertyId === propertyId) {
+        const startIndex = dates.findIndex(date => {
+          const dateStr = toISODateString(date);
+          return dateStr >= eq.startDateStr && dateStr < eq.endDateStr;
+        });
+        const endIndex = dates.findLastIndex(date => {
+          const dateStr = toISODateString(date);
+          return dateStr >= eq.startDateStr && dateStr < eq.endDateStr;
+        });
+        if (startIndex !== -1 && endIndex !== -1) {
+          spans.push({
+            ...eq,
+            startIndex,
+            endIndex,
+            length: endIndex - startIndex + 1,
+            startsBeforeView: eq.startDateStr < viewStartStr,
+            endsAfterView: eq.endDateStr > viewEndExclusiveStr
+          });
+        }
+      }
+    });
+    return spans;
+  }
+
+
+  function renderDatesHeader() {
+    syncTimelineDimensions();
+    const datesHeader = document.getElementById('datesHeader');
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    datesHeader.innerHTML = allDates.map(date => {
+      const dateKey = toISODateString(date);
+      const isToday = date.toDateString() === today.toDateString();
+      const isWeekend = date.getDay() === 0 || date.getDay() === 6;
+      const isUserSelected = hasManualDateSelection && selectedDateKey === dateKey && !isToday;
+      return `
+          <div class="date-column ${isWeekend ? 'weekend' : ''} ${isToday ? 'today-column today-date-column' : ''} ${isUserSelected ? 'user-selected-date-column' : ''}"
+               data-date="${dateKey}"
+               onclick="selectDateColumn('${dateKey}')"
+               onmouseenter="showDateInfoTooltip(event, '${dateKey}')"
+               onmouseleave="hideGlobalTooltip()">
+            <div class="date-number">${date.getDate()}</div>
+            <div class="date-day">${date.toLocaleDateString('en-US', { weekday: 'short' })}</div>
+          </div>
+        `;
+    }).join('');
+  }
+
+  function renderDatesGrid(propertiesToRender = filteredProperties) {
+    syncTimelineDimensions();
+    const datesGrid = document.getElementById('datesGrid');
+    const emptyState = document.getElementById('calendarEmptyState');
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const isMobile = window.innerWidth <= 768;
+    const paymentIconUrl = "{% static 'img/task/type/payment.svg' %}";
+    const blockedIconUrl = "{% static 'img/common/close_icon.png' %}";
+    const monthTaskColors = { cleaning: '#10b981', maintenance: '#f59e0b', payment: '#3b82f6', other: '#8b5cf6' };
+    const monthTaskIcons = {
+      cleaning: "{% static 'img/task/type/cleaning.svg' %}",
+      maintenance: "{% static 'img/task/type/maintenance.svg' %}",
+      payment: "{% static 'img/task/type/payment.svg' %}",
+      other: "{% static 'img/task/type/others.svg' %}"
+    };
+    const todayDateKey = toISODateString(today);
+    const todayColIndex = allDates.findIndex(d => toISODateString(d) === todayDateKey);
+    const selectedColIndex = (hasManualDateSelection && selectedDateKey && selectedDateKey !== todayDateKey)
+      ? allDates.findIndex(d => toISODateString(d) === selectedDateKey)
+      : -1;
+
+    if (selectedColIndex >= 0) {
+      datesGrid.classList.add('has-user-selected-column');
+      datesGrid.style.setProperty('--selected-column-index', String(selectedColIndex));
+    } else {
+      datesGrid.classList.remove('has-user-selected-column');
+      datesGrid.style.removeProperty('--selected-column-index');
+    }
+
+    if (todayColIndex >= 0) {
+      datesGrid.classList.add('has-today-column');
+      datesGrid.style.setProperty('--today-column-index', String(todayColIndex));
+    } else {
+      datesGrid.classList.remove('has-today-column');
+      datesGrid.style.removeProperty('--today-column-index');
+    }
+    const daysBetweenISO = (startISO, endISO) => {
+      const [sy, sm, sd] = startISO.split('-').map(Number);
+      const [ey, em, ed] = endISO.split('-').map(Number);
+      const start = Date.UTC(sy, sm - 1, sd);
+      const end = Date.UTC(ey, em - 1, ed);
+      return Math.round((end - start) / (1000 * 60 * 60 * 24));
+    };
+
+    let hasVisibleCalendarData = false;
+
+    datesGrid.innerHTML = propertiesToRender.map((property, rowIndex) => {
+      const spans = getBookingSpan(property.id, allDates);
+      if (spans.length > 0) {
+        hasVisibleCalendarData = true;
+      }
+
+
+      const spanOverlays = spans.map(b => {
+        const isBlocked = b.type === 'blocked';
+        const onClick = isBlocked ? `onclick="openUnblockModal(event, '${b.id}')"` : `onclick="openReservationPanel(event, '${b.id || 101}')"`;
+        const cursor = 'pointer';
+        const channelColor = getChannelColor(b.channelName) || b.color || '#3b82f6';
+        const bgColor = isBlocked ? '#9ca3af' : channelColor;
+        const spanStart = b.startIndex;
+        const spanLength = Math.max(1, b.length);
+        const carryStartClass = b.startsBeforeView ? 'carry-start' : '';
+        const carryEndClass = b.endsAfterView ? 'carry-end' : '';
+        const nights = Math.max(1, daysBetweenISO(b.startDateStr, b.endDateStr) - 1);
+        const guestName = b.guestName || '';
+        // Always render the full name — the bar truncates it with an
+        // ellipsis via CSS to fit whatever width the bar actually has.
+        const labelText = guestName;
+        const shouldShowLabel = nights > 1;
+        const channelLogoUrl = getChannelLogo(b.channelName, b.channelIcon);
+        const channelLogoTimeline = channelLogoUrl && !isBlocked
+          ? `<div class="channel-logo-circle" style="border-color:${bgColor};background-color:${bgColor}"><img src="${channelLogoUrl}" alt="${b.channelName || ''}" /></div>`
+          : '';
+
+        let content = `
+          <div class="segment-content">
+             <div class="avatar-group">
+                 ${channelLogoTimeline}
+             </div>
+             <div class="segment-name-wrap">
+              ${shouldShowLabel ? `<span class="segment-guest-name">${labelText}</span>` : ''}
+              </div>
+          </div>
+        `;
+        if (isBlocked) {
+          const blockedLabel = nights <= 3 ? 'Block...' : 'Blocked';
+          content = `
+            <div class="segment-content">
+              <img class="blocked-icon" src="${blockedIconUrl}" alt="Blocked" />
+              <span class="blocked-label-text">${blockedLabel}</span>
+            </div>
+          `;
+        }
+
+        return `
+          <div class="booking-span-block ${carryStartClass} ${carryEndClass}"
+               ${onClick}
+               onmouseenter="showGlobalTooltip(event, '${b.id}')"
+               onmouseleave="hideGlobalTooltip()"
+               style="--start:${spanStart}; --len:${spanLength}; background-color:${bgColor}; cursor:${cursor};">
+            ${content}
+          </div>
+        `;
+      }).join('');
+
+
+
+      // Reservation bars are gated solely by the "Reservations" filter. Payment
+      // visibility is handled independently by the per-cell payment indicators
+      // below, so a reservation that has an associated payment must still render
+      // its bar when "Reservations" is on but "Payments" is off.
+      const filteredSpanOverlays = typeFilters.reservation ? spanOverlays : '';
+
+      const rowHtml = allDates.map((date, index) => {
+        const isWeekend = date.getDay() === 0 || date.getDay() === 6;
+        const isToday = toISODateString(date) === todayDateKey;
+        const isPast = date < today;
+        let cellClasses = 'date-cell';
+        if (isWeekend) cellClasses += ' weekend';
+        if (isToday) cellClasses += ' today-date-column';
+        if (isPast) cellClasses += ' past-date';
+
+        const dateStr = toISODateString(date);
+        const tasksForCell = getTasksForDateAndProperty(dateStr, property.id).filter(t => {
+          if (t.task_type === 'payment') {
+            return typeFilters.payment;
+          } else {
+            return typeFilters.task;
+          }
+        });
+
+        if (tasksForCell.length > 0) {
+          console.log(`📍 Cell ${dateStr} (property ${property.id}) has ${tasksForCell.length} task(s):`, tasksForCell.map(t => t.details));
+        }
+
+        const bookingWithPayment = typeFilters.payment ? bookings.find(x => x.propertyId == property.id && x.paymentsInfo && x.paymentsInfo[dateStr]) : null;
+        if (bookingWithPayment || tasksForCell.length > 0) {
+          hasVisibleCalendarData = true;
+        }
+
+        const isBookingStart = bookings.some(b =>
+          String(b.propertyId) === String(property.id) && b.startDateStr === dateStr
+        );
+
+        const hasTaskHere = tasksForCell.length > 0;
+        const hasPaymentHere = !!bookingWithPayment;
+
+        // Two distinct collision cases:
+        //  1. Check-in + task and/or payment on the same cell: the booking span bar takes
+        //     over the cell visually, so BOTH the task and payment are only reachable via a
+        //     single red dot (no icons render at all here).
+        //  2. Task + payment together with no check-in: the payment icon still renders as
+        //     normal, but since it's bigger and sits at a higher z-index than the task circle
+        //     (both centered at the same spot), the task icon would be completely hidden
+        //     underneath it. The red dot exists purely to surface that hidden task - the
+        //     payment icon stays visible and clickable on its own.
+        const fullCollision = isBookingStart && (hasTaskHere || hasPaymentHere);
+        const taskUnderPayment = !fullCollision && hasTaskHere && hasPaymentHere;
+        const collision = fullCollision || taskUnderPayment;
+
+        let blinkingClick = '';
+        let blinkingHoverAttrs = '';
+        if (fullCollision) {
+          if (hasTaskHere) {
+            const t0 = tasksForCell[0];
+            blinkingClick = "openTaskDetailModal(event, '" + t0.id + "')";
+          } else if (bookingWithPayment) {
+            blinkingClick = "handlePaymentIndicatorClick(event, '" + bookingWithPayment.id + "', '" + dateStr + "')";
+            blinkingHoverAttrs = ` onmouseenter="showPaymentTooltip(event, '${bookingWithPayment.id}', '${dateStr}')" onmouseleave="handleIndicatorHoverLeave()"`;
+          }
+        } else if (taskUnderPayment) {
+          const t0 = tasksForCell[0];
+          blinkingClick = "openTaskDetailModal(event, '" + t0.id + "')";
+        }
+        const blinkingDotClass = taskUnderPayment ? 'cell-blinking-dot on-payment' : 'cell-blinking-dot';
+        const blinkingDot = collision ? '<div class="' + blinkingDotClass + '" style="cursor:pointer;" onclick="' + blinkingClick + '"' + blinkingHoverAttrs + '></div>' : '';
+
+        const taskCircles = (!collision) ? tasksForCell.map((t, tIdx) => {
+          const tColor = monthTaskColors[t.task_type] || monthTaskColors.other;
+          const tIcon = monthTaskIcons[t.task_type] || monthTaskIcons.other;
+          const countBadge = tasksForCell.length > 1 && tIdx === 0
+            ? `<div class="month-task-count">${tasksForCell.length}</div>`
+            : '';
+          if (tIdx > 0 && tasksForCell.length > 1) return '';
+          return `<div class="month-task-circle above-bar"
+                      style="background-color:${tColor};"
+                      onclick="openTaskDetailModal(event, '${t.id}')"
+                      onmouseenter="showTaskTooltip(event, '${dateStr}', '${property.id}')"
+                      onmouseleave="handleIndicatorHoverLeave()">
+            <img src="${tIcon}" alt="" />
+            ${countBadge}
+          </div>`;
+        }).join('') : '';
+
+        const paymentBadge = (!fullCollision && bookingWithPayment) ? `
+          <div class="payment-indicator"
+               onclick="handlePaymentIndicatorClick(event, '${bookingWithPayment.id}', '${dateStr}')"
+               onmouseenter="showPaymentTooltip(event, '${bookingWithPayment.id}', '${dateStr}')"
+               onmouseleave="handleIndicatorHoverLeave()">
+            <img src="${paymentIconUrl}" alt="payment" />
+          </div>
+        ` : '';
+
+        return `
+          <div
+            class="${cellClasses} ${(hasManualDateSelection && selectedDateKey === dateStr && dateStr !== todayDateKey) ? 'user-selected-date-column' : ''}"
+            data-date="${dateStr}"
+            data-property="${property.id}"
+            style="position: relative;"
+          >
+            ${blinkingDot}
+            ${taskCircles}
+            ${paymentBadge}
+          </div>
+        `;
+      }).join('');
+
+      return `<div class="date-row" style="position: relative;">
+        <div class="booking-row-layer">${filteredSpanOverlays}</div>
+        ${rowHtml}
+      </div>`;
+    }).join('');
+
+    if (emptyState) {
+      emptyState.style.display = hasVisibleCalendarData ? 'none' : 'flex';
+    }
+  }
+
+
+  function selectDateColumn(dateKey, isManual = true) {
+    selectedDateKey = dateKey;
+    hasManualDateSelection = !!isManual;
+    renderDatesHeader();
+    renderDatesGrid(filteredProperties);
+  }
+
+  function selectDate(dateString, propertyId) {
+    selectDateColumn(toDateOnlyString(dateString));
+  }
+
+  // --- Global Tooltip Logic ---
+
+  function scrollToToday() {
+    setTimeout(() => {
+      const container = document.getElementById('datesContainer');
+      const todayEl = container.querySelector('.today-column');
+      if (todayEl) {
+        todayEl.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+      }
+    }, 100);
+  }
+
+
+  function initTimelineScrollSync() {
+    // Sync scrolling
+    const propertiesList = document.getElementById('propertiesList');
+    const datesContainer = document.getElementById('datesContainer');
+    const datesHeaderScroll = document.getElementById('datesHeaderScroll');
+
+    let isSyncingProps = false;
+    let isSyncingDates = false;
+    let isSyncingHeader = false;
+    let isSyncingBody = false;
+
+    propertiesList.addEventListener('scroll', function () {
+      hidePropertyPreview();
+      if (!isSyncingProps) {
+        isSyncingDates = true;
+        datesContainer.scrollTop = this.scrollTop;
+      }
+      isSyncingProps = false;
+    });
+
+    datesContainer.addEventListener('scroll', function () {
+      if (!isSyncingDates) {
+        isSyncingProps = true;
+        propertiesList.scrollTop = this.scrollTop;
+      }
+      isSyncingDates = false;
+
+      if (!isSyncingBody) {
+        isSyncingHeader = true;
+        datesHeaderScroll.scrollLeft = this.scrollLeft;
+      }
+      isSyncingHeader = false;
+    });
+
+    datesHeaderScroll.addEventListener('scroll', function () {
+      if (!isSyncingHeader) {
+        isSyncingBody = true;
+        datesContainer.scrollLeft = this.scrollLeft;
+      }
+      isSyncingBody = false;
+    });
+
+    // Right pane should scroll calendar rows on wheel hover, but without showing a right vertical scrollbar.
+    datesContainer.addEventListener('wheel', function (event) {
+      // Allow browser/page zoom shortcuts (Ctrl/Cmd + wheel / trackpad pinch).
+      if (event.ctrlKey || event.metaKey) return;
+      if (Math.abs(event.deltaX) > Math.abs(event.deltaY)) return;
+      event.preventDefault();
+
+      let deltaY = event.deltaY;
+      if (event.deltaMode === 1) {
+        deltaY *= 16;
+      } else if (event.deltaMode === 2) {
+        deltaY *= propertiesList.clientHeight;
+      }
+
+      rightWheelDeltaY += deltaY;
+      if (rightWheelRaf) return;
+
+      rightWheelRaf = requestAnimationFrame(() => {
+        propertiesList.scrollTop += rightWheelDeltaY;
+        rightWheelDeltaY = 0;
+        rightWheelRaf = null;
+      });
+    }, { passive: false });
+
+    window.addEventListener('resize', function () {
+      if (timelineResizeTimer) clearTimeout(timelineResizeTimer);
+      timelineResizeTimer = setTimeout(() => {
+        syncTimelineDimensions();
+      }, 120);
+    });
+  }
+
+  function renderCurrentView() {
+    renderDatesHeader();
+    renderDatesGrid(filteredProperties);
+  }
 </script>
 {% endblock extra_script %}
