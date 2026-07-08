@@ -463,6 +463,9 @@
         </div>
       </div>
       <div class="task-modal-footer">
+        <button class="task-modal-close-btn" id="paymentModalBackBtn" onclick="goBackToTaskFromPaymentModal()"
+          style="display:none;background:linear-gradient(135deg,#6b7280,#4b5563);margin-right:auto;"
+          aria-label="Back to task" title="Back to task">&larr; Back to Task</button>
         <button class="task-modal-close-btn" id="paymentModalCloseBtn" onclick="closePaymentDetailModal()"
           style="background:linear-gradient(135deg,#000,#333);margin-left:auto;">Close</button>
       </div>
@@ -2214,6 +2217,7 @@
   /* --- Month Grid View Renderer --- */
 
   let _taskModalPaymentContext = null;
+  let _paymentModalReturnTaskId = null;
 
   function openTaskDetailModal(event, taskId) {
     if (event) event.stopPropagation();
@@ -2229,7 +2233,10 @@
     );
     if (paymentBooking) {
       _taskModalPaymentContext = { bookingId: paymentBooking.id, dateStr: t.date };
-      if (taskModalNextBtn) taskModalNextBtn.style.display = '';
+      if (taskModalNextBtn) {
+        taskModalNextBtn.style.display = '';
+        taskModalNextBtn.style.background = 'linear-gradient(135deg, #3b82f6, #1d4ed8)';
+      }
     } else {
       _taskModalPaymentContext = null;
       if (taskModalNextBtn) taskModalNextBtn.style.display = 'none';
@@ -2313,12 +2320,26 @@
   function goToPaymentFromTaskModal() {
     if (!_taskModalPaymentContext) return;
     const { bookingId, dateStr } = _taskModalPaymentContext;
+    _paymentModalReturnTaskId = _currentModalTaskId;
     closeTaskDetailModal();
     openPaymentDetailModal(null, bookingId, dateStr);
   }
 
+  function goBackToTaskFromPaymentModal() {
+    if (!_paymentModalReturnTaskId) return;
+    const taskId = _paymentModalReturnTaskId;
+    _paymentModalReturnTaskId = null;
+    closePaymentDetailModal();
+    openTaskDetailModal(null, taskId);
+  }
+
   function openPaymentDetailModal(event, bookingId, dateStr) {
-    if (event) event.stopPropagation();
+    if (event) {
+      event.stopPropagation();
+      // Opened directly from the calendar (badge/dot click), not via the task
+      // modal's "Payment ->" button, so there's nowhere for "Back" to return to.
+      _paymentModalReturnTaskId = null;
+    }
     hideGlobalTooltip();
     const b = bookings.find(x => x.id == bookingId);
     if (!b || !b.paymentsInfo || !b.paymentsInfo[dateStr]) return;
@@ -2326,6 +2347,8 @@
     const info = b.paymentsInfo[dateStr];
     const overlay = document.getElementById('paymentModalOverlay');
     const modal = document.getElementById('paymentModal');
+    const backBtn = document.getElementById('paymentModalBackBtn');
+    if (backBtn) backBtn.style.display = _paymentModalReturnTaskId ? '' : 'none';
 
     const displayEndDate = new Date(b.endDate);
     displayEndDate.setDate(displayEndDate.getDate() - 1);
@@ -2350,6 +2373,7 @@
     if (event && event.target !== event.currentTarget) return;
     const overlay = document.getElementById('paymentModalOverlay');
     overlay.classList.remove('open');
+    _paymentModalReturnTaskId = null;
   }
 
   function toggleTaskCompletion() {
@@ -3193,35 +3217,11 @@
 
 
 
-      // Filter spans by active filter types
-      const filteredSpanOverlays = (!typeFilters.reservation && !typeFilters.payment) || (!typeFilters.reservation && typeFilters.payment)
-        ? ''
-        : (!typeFilters.reservation || !typeFilters.payment)
-          ? spans.filter(b => {
-            const hasPay = b.paymentsInfo && Object.keys(b.paymentsInfo).length > 0;
-            if (typeFilters.reservation && typeFilters.payment) return true;
-            if (typeFilters.reservation) return !hasPay || b.type === 'blocked';
-            if (typeFilters.payment) return hasPay && b.type !== 'blocked';
-            return true;
-          }).map(b => {
-            const isBlocked = b.type === 'blocked';
-            const onClick = isBlocked ? `onclick="openUnblockModal(event, '${b.id}')"` : `onclick="openReservationPanel(event, '${b.id || 101}')"`;
-            const channelColor = getChannelColor(b.channelName) || b.color || '#3b82f6';
-            const bgColor = isBlocked ? '#9ca3af' : channelColor;
-            const nights = Math.max(1, daysBetweenISO(b.startDateStr, b.endDateStr) - 1);
-            const carryStartClass = b.startsBeforeView ? 'carry-start' : '';
-            const carryEndClass = b.endsAfterView ? 'carry-end' : '';
-            const guestName = b.guestName || '';
-            const labelText = guestName;
-            const shouldShowLabel = nights > 1;
-            const channelLogoUrl = getChannelLogo(b.channelName, b.channelIcon);
-            const channelLogoTimeline = channelLogoUrl && !isBlocked
-              ? `<div class="channel-logo-circle" style="border-color:${bgColor};background-color:${bgColor}"><img src="${channelLogoUrl}" alt="${b.channelName || ''}" /></div>`
-              : '';
-            const content = `<div class="segment-content"><div class="avatar-group">${channelLogoTimeline}</div><div class="segment-name-wrap">${shouldShowLabel ? `<span class="segment-guest-name">${labelText}</span>` : ''}</div></div>`;
-            return `<div class="booking-span-block ${carryStartClass} ${carryEndClass}" ${onClick} onmouseenter="showGlobalTooltip(event, '${b.id}')" onmouseleave="hideGlobalTooltip()" style="--start:${b.startIndex}; --len:${Math.max(1, b.length)}; background-color:${bgColor}; cursor:pointer;">${content}</div>`;
-          }).join('')
-          : spanOverlays;
+      // Reservation bars are gated solely by the "Reservations" filter. Payment
+      // visibility is handled independently by the per-cell payment indicators
+      // below, so a reservation that has an associated payment must still render
+      // its bar when "Reservations" is on but "Payments" is off.
+      const filteredSpanOverlays = typeFilters.reservation ? spanOverlays : '';
 
       const rowHtml = allDates.map((date, index) => {
         const isWeekend = date.getDay() === 0 || date.getDay() === 6;
@@ -3254,24 +3254,38 @@
           String(b.propertyId) === String(property.id) && b.startDateStr === dateStr
         );
 
-        const collision = isBookingStart && (tasksForCell.length > 0 || bookingWithPayment);
+        const hasTaskHere = tasksForCell.length > 0;
+        const hasPaymentHere = !!bookingWithPayment;
 
-        // A collision (check-in + task and/or payment landing on the same cell) is always
-        // shown as a single red blinking dot - no separate black payment dot. If a task is
-        // present it takes priority (opens the task popup, which itself links onward to the
-        // payment via its "Payment ->" button); otherwise the dot opens the payment directly.
+        // Two distinct collision cases:
+        //  1. Check-in + task and/or payment on the same cell: the booking span bar takes
+        //     over the cell visually, so BOTH the task and payment are only reachable via a
+        //     single red dot (no icons render at all here).
+        //  2. Task + payment together with no check-in: the payment icon still renders as
+        //     normal, but since it's bigger and sits at a higher z-index than the task circle
+        //     (both centered at the same spot), the task icon would be completely hidden
+        //     underneath it. The red dot exists purely to surface that hidden task - the
+        //     payment icon stays visible and clickable on its own.
+        const fullCollision = isBookingStart && (hasTaskHere || hasPaymentHere);
+        const taskUnderPayment = !fullCollision && hasTaskHere && hasPaymentHere;
+        const collision = fullCollision || taskUnderPayment;
+
         let blinkingClick = '';
         let blinkingHoverAttrs = '';
-        if (collision) {
-          if (tasksForCell.length > 0) {
+        if (fullCollision) {
+          if (hasTaskHere) {
             const t0 = tasksForCell[0];
             blinkingClick = "openTaskDetailModal(event, '" + t0.id + "')";
           } else if (bookingWithPayment) {
             blinkingClick = "handlePaymentIndicatorClick(event, '" + bookingWithPayment.id + "', '" + dateStr + "')";
             blinkingHoverAttrs = ` onmouseenter="showPaymentTooltip(event, '${bookingWithPayment.id}', '${dateStr}')" onmouseleave="handleIndicatorHoverLeave()"`;
           }
+        } else if (taskUnderPayment) {
+          const t0 = tasksForCell[0];
+          blinkingClick = "openTaskDetailModal(event, '" + t0.id + "')";
         }
-        const blinkingDot = collision ? '<div class="cell-blinking-dot" style="cursor:pointer;" onclick="' + blinkingClick + '"' + blinkingHoverAttrs + '></div>' : '';
+        const blinkingDotClass = taskUnderPayment ? 'cell-blinking-dot on-payment' : 'cell-blinking-dot';
+        const blinkingDot = collision ? '<div class="' + blinkingDotClass + '" style="cursor:pointer;" onclick="' + blinkingClick + '"' + blinkingHoverAttrs + '></div>' : '';
 
         const taskCircles = (!collision) ? tasksForCell.map((t, tIdx) => {
           const tColor = monthTaskColors[t.task_type] || monthTaskColors.other;
@@ -3290,7 +3304,7 @@
           </div>`;
         }).join('') : '';
 
-        const paymentBadge = (!collision && bookingWithPayment) ? `
+        const paymentBadge = (!fullCollision && bookingWithPayment) ? `
           <div class="payment-indicator"
                onclick="handlePaymentIndicatorClick(event, '${bookingWithPayment.id}', '${dateStr}')"
                onmouseenter="showPaymentTooltip(event, '${bookingWithPayment.id}', '${dateStr}')"
