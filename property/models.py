@@ -3,6 +3,7 @@ from django.utils.translation import gettext_lazy as _
 from django.utils.text import slugify
 import uuid
 import os
+import pytz
 from django.urls import reverse
 from django.core.exceptions import ValidationError
 from django.contrib.staticfiles.storage import staticfiles_storage
@@ -65,7 +66,13 @@ class Property(models.Model):
     check_out_time = models.TimeField(default="10:00")  # 10:00 AM
     
     # Instructions and Rules
+    # Deprecated: kept for backward compatibility. Superseded by the two
+    # granular flags below (email_guest_checkin / email_guest_checkout).
     email_guest = models.BooleanField(default=False, verbose_name='Email guest before Check-in')
+    # Automatically email the guest their check-in / check-out instructions
+    # (at the property's local midnight). Default ON.
+    email_guest_checkin = models.BooleanField(default=True, verbose_name='Email guest Check-in instructions')
+    email_guest_checkout = models.BooleanField(default=True, verbose_name='Email guest Check-out instructions')
     rules = models.TextField(blank=True, null=True, verbose_name='Cancellation, Other Policies and Rules')
     house_rules = models.TextField(blank=True, null=True, verbose_name='House Rules')
     cancellation_policy = models.TextField(blank=True, null=True, verbose_name='Cancellation Policy')
@@ -89,6 +96,19 @@ class Property(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     created_by = models.ForeignKey("accounts.MyUser", on_delete=models.SET_NULL, null=True, related_name='properties_created')
 
+
+    def get_timezone(self):
+        """Return the property's local timezone (pytz), derived from its
+        country/state. Falls back to the host's timezone, then UTC. Used to
+        send guest emails at the *hotel's* local midnight."""
+        from .timezones import resolve_timezone
+        tzname = resolve_timezone(self.country, self.state)
+        if not tzname and self.created_by is not None:
+            tzname = getattr(self.created_by, 'timezone', None)
+        try:
+            return pytz.timezone(tzname or 'UTC')
+        except Exception:
+            return pytz.timezone('UTC')
 
     def location_display(self):
         # Adjust as needed for your preferred format

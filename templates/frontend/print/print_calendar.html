@@ -9,6 +9,17 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   {% endif %}
   <style>
+    {% if view_type == 'month' or view_type == 'timeline' %}
+    @page {
+      size: A4 landscape;
+      margin: 1.2cm;
+    }
+    {% else %}
+    @page {
+      size: A4 portrait;
+      margin: 1.2cm;
+    }
+    {% endif %}
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       font-family: 'Inter', -apple-system, sans-serif;
@@ -27,11 +38,21 @@
       margin-bottom: 16px;
       border-bottom: 2px solid #1f2937;
     }
-    .brand-header .brand-logo {
-      width: 36px;
-      height: 36px;
-      object-fit: contain;
+    .brand-logo-badge {
+      background: #1e1e1e;
+      border-radius: 8px;
+      padding: 7px 11px;
+      display: flex;
+      align-items: center;
       flex-shrink: 0;
+    }
+    .brand-header .brand-logo {
+      /* Fixed to the asset's real ~2.12:1 aspect ratio - xhtml2pdf doesn't
+         support object-fit, so width/height must already match or the PDF
+         render stretches it. */
+      width: 84px;
+      height: 40px;
+      display: block;
     }
     .brand-header .brand-text { flex: 1; }
     .brand-header .brand-text .brand-name {
@@ -167,7 +188,7 @@
     .month-grid td.other-month .day-num { color: #cbd5e1; }
     .month-grid td.today { background: #eff6ff; box-shadow: inset 0 0 0 1px #93c5fd; }
 
-    .prop-month-table { width: 100%; border-collapse: collapse; margin-top: 6px; }
+    .prop-month-table { width: 100%; border-collapse: collapse; margin-top: 6px; table-layout: fixed; page-break-before: always; }
     .prop-month-table th {
       background: #f1f5f9;
       padding: 6px 5px;
@@ -188,12 +209,13 @@
       font-weight: 600;
       color: #0f172a;
       font-size: 9px;
-      width: 130px;
-      max-width: 130px;
+      width: 72px;
+      max-width: 72px;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
-      padding-left: 8px;
+      padding-left: 6px;
+      padding-right: 4px;
     }
 
     /* ===== Week View ===== */
@@ -269,7 +291,7 @@
     .day-schedule-item.enquiry { border-color: #f59e0b; }
 
     /* ===== Timeline View ===== */
-    .timeline-table { width: 100%; border-collapse: collapse; }
+    .timeline-table { width: 100%; border-collapse: collapse; table-layout: fixed; page-break-before: always; }
     .timeline-table th {
       background: #f1f5f9;
       padding: 5px;
@@ -289,11 +311,13 @@
       font-weight: 600;
       color: #0f172a;
       white-space: nowrap;
-      max-width: 140px;
+      width: 72px;
+      max-width: 72px;
       overflow: hidden;
       text-overflow: ellipsis;
       font-size: 9px;
-      padding-left: 8px;
+      padding-left: 6px;
+      padding-right: 4px;
     }
     .timeline-table .tl-event {
       display: inline-block;
@@ -379,12 +403,48 @@
       .week-band-title { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     }
   </style>
+  {% if format_type == 'html' %}
+  <style>
+    /* Preview-only overrides: the print layout above packs everything into a
+       fixed page width, which chops property names and guest names in narrow
+       grid views. On screen there's no page limit, so let columns size to
+       their content and wrap instead of truncating; the iframe scrolls
+       horizontally for whatever still doesn't fit. */
+    .prop-month-table, .timeline-table { table-layout: auto; }
+    .prop-month-table th, .timeline-table th,
+    .prop-month-table td, .timeline-table td { min-width: 40px; }
+    .prop-month-table td.prop-name, .timeline-table td.prop-name {
+      width: auto;
+      max-width: none;
+      min-width: 120px;
+      white-space: normal;
+      overflow: visible;
+      text-overflow: clip;
+      word-break: break-word;
+    }
+    .prop-month-table .event, .timeline-table .tl-event {
+      white-space: normal;
+      overflow: visible;
+      text-overflow: clip;
+      word-break: break-word;
+    }
+    .list-event .ev-prop {
+      max-width: none;
+      white-space: normal;
+      overflow: visible;
+      text-overflow: clip;
+      word-break: break-word;
+    }
+  </style>
+  {% endif %}
 </head>
 <body>
 
 <!-- ===== Brand Header ===== -->
 <div class="brand-header">
-  <img src="{{ brand_logo_src }}" alt="FavHost" class="brand-logo" onerror="this.style.display='none'">
+  <div class="brand-logo-badge">
+    <img src="{{ brand_logo_src }}" alt="FavHost" class="brand-logo" onerror="this.parentElement.style.display='none'">
+  </div>
   <div class="brand-text">
     <div class="brand-name">FavHost</div>
     <div class="brand-tagline">Property Management &middot; Simplified</div>
@@ -399,7 +459,7 @@
 <!-- ===== Section Header ===== -->
 <div class="section-header">
   <h1>Calendar — {{ view_type|title }} View</h1>
-  <span class="badge-view">{{ properties|length }} Properties &middot; {{ total_bookings }} Bookings &middot; {{ total_tasks }} Tasks</span>
+  <span class="badge-view">{{ properties|length }} Properties &middot; {{ total_bookings }} Bookings &middot; {{ total_tasks }} Tasks &middot; {{ total_enquiries }} Enquiries</span>
 </div>
 
 <!-- ===== Summary Row ===== -->
@@ -427,7 +487,7 @@
 <table class="prop-month-table">
   <thead>
     <tr>
-      <th style="text-align:left;padding-left:8px;width:130px;">Property</th>
+      <th style="text-align:left;padding-left:6px;width:72px;">Property</th>
       {% for d in date_list %}
       <th>{{ d|date:"j" }}<br><span style="font-weight:400;color:#94a3b8;">{{ d|date:"D" }}</span></th>
       {% endfor %}
@@ -450,6 +510,9 @@
         {% endif %}
         {% for t in day.tasks|slice:":1" %}
         <div class="event task">{{ t.task_type|title }}</div>
+        {% endfor %}
+        {% for e in day.enquiries|slice:":1" %}
+        <div class="event enquiry">{{ e.first_name }}</div>
         {% endfor %}
         {% if day.total_payment > 0 %}
         <div class="event payment">{% money day.total_payment %}</div>
@@ -494,21 +557,22 @@
   {% if week_bands.payments %}
   <table class="week-table">
     <thead>
-      <tr><th style="width:28%;">Property</th><th style="width:22%;">Guest</th><th style="width:25%;">Period</th><th style="width:25%;">Nights</th></tr>
+      <tr><th style="width:26%;">Property</th><th style="width:22%;">Guest</th><th style="width:18%;">Due Date</th><th style="width:17%;">Amount</th><th style="width:17%;">Status</th></tr>
     </thead>
     <tbody>
       {% for p in week_bands.payments %}
       <tr>
         <td><span class="guest">{{ p.property }}</span></td>
         <td><span class="detail">{{ p.guest }}</span></td>
-        <td><span class="detail">{{ p.check_in|date:"M d" }} — {{ p.check_out|date:"M d" }}</span></td>
-        <td style="text-align:center;"><span class="detail">{{ p.nights }}</span></td>
+        <td><span class="detail">{{ p.due_date|date:"M d" }}</span></td>
+        <td><span class="detail">{% money p.amount %}</span></td>
+        <td style="text-align:center;"><span class="detail">{% if p.is_paid %}Paid{% else %}Pending{% endif %}</span></td>
       </tr>
       {% endfor %}
     </tbody>
   </table>
   {% else %}
-  <div class="empty-state" style="padding:12px 0;">No payment bookings in this period.</div>
+  <div class="empty-state" style="padding:12px 0;">No payments due in this period.</div>
   {% endif %}
 </div>
 
@@ -542,60 +606,55 @@
 </div>
 
 <div class="day-section-label">Bookings</div>
-{% for prop in property_data %}
-  {% for day in prop.days_data %}
-    {% if day.date == start_date %}
-      {% for b in day.bookings %}
-      <div class="day-schedule-item booking">
-        <div class="time">{{ prop.property.title|truncatechars:20 }}</div>
-        <div class="info">
-          <div class="title">{{ b.first_name }} {{ b.last_name }}</div>
-          <div class="sub">{{ b.check_in|date:"M d" }} — {{ b.check_out|date:"M d" }} · {{ b.channel.name|default:"Direct" }}</div>
-        </div>
-      </div>
-      {% empty %}
-      <div style="color:#94a3b8;font-size:10px;padding:4px 0 10px 0;">No bookings on this day.</div>
-      {% endfor %}
-    {% endif %}
-  {% endfor %}
+{% for row in day_view_data.bookings %}
+<div class="day-schedule-item booking">
+  <div class="time">{{ row.property|truncatechars:20 }}</div>
+  <div class="info">
+    <div class="title">{{ row.booking.first_name }} {{ row.booking.last_name }}</div>
+    <div class="sub">{{ row.booking.check_in|date:"M d" }} — {{ row.booking.check_out|date:"M d" }} · {{ row.booking.channel.name|default:"Direct" }}</div>
+  </div>
+</div>
+{% empty %}
+<div style="color:#94a3b8;font-size:10px;padding:4px 0 10px 0;">No bookings on this day.</div>
 {% endfor %}
 
 <div class="day-section-label">Tasks</div>
-{% for prop in property_data %}
-  {% for day in prop.days_data %}
-    {% if day.date == start_date %}
-      {% for t in day.tasks %}
-      <div class="day-schedule-item task">
-        <div class="time">{{ prop.property.title|truncatechars:20 }}</div>
-        <div class="info">
-          <div class="title">{{ t.task_type|title }}</div>
-          <div class="sub">{{ t.details|truncatechars:60 }}</div>
-        </div>
-      </div>
-      {% empty %}
-      <div style="color:#94a3b8;font-size:10px;padding:4px 0 10px 0;">No tasks on this day.</div>
-      {% endfor %}
-    {% endif %}
-  {% endfor %}
+{% for row in day_view_data.tasks %}
+<div class="day-schedule-item task">
+  <div class="time">{{ row.property|truncatechars:20 }}</div>
+  <div class="info">
+    <div class="title">{{ row.task.task_type|title }}</div>
+    <div class="sub">{{ row.task.details|truncatechars:60 }}</div>
+  </div>
+</div>
+{% empty %}
+<div style="color:#94a3b8;font-size:10px;padding:4px 0 10px 0;">No tasks on this day.</div>
 {% endfor %}
 
 <div class="day-section-label">Payments</div>
-{% for prop in property_data %}
-  {% for day in prop.days_data %}
-    {% if day.date == start_date %}
-      {% if day.total_payment > 0 %}
-      <div class="day-schedule-item payment">
-        <div class="time">{{ prop.property.title|truncatechars:20 }}</div>
-        <div class="info">
-          <div class="title">Payment Due</div>
-          <div class="sub">{% money day.total_payment %}</div>
-        </div>
-      </div>
-      {% else %}
-      <div style="color:#94a3b8;font-size:10px;padding:4px 0 10px 0;">No payments on this day.</div>
-      {% endif %}
-    {% endif %}
-  {% endfor %}
+{% for row in day_view_data.payments %}
+<div class="day-schedule-item payment">
+  <div class="time">{{ row.property|truncatechars:20 }}</div>
+  <div class="info">
+    <div class="title">{{ row.guest }} — {% money row.amount %}</div>
+    <div class="sub">{% if row.is_paid %}Paid{% else %}Payment Due{% endif %}</div>
+  </div>
+</div>
+{% empty %}
+<div style="color:#94a3b8;font-size:10px;padding:4px 0 10px 0;">No payments on this day.</div>
+{% endfor %}
+
+<div class="day-section-label">Enquiries</div>
+{% for row in day_view_data.enquiries %}
+<div class="day-schedule-item enquiry">
+  <div class="time">{{ row.property|truncatechars:20 }}</div>
+  <div class="info">
+    <div class="title">{{ row.enquiry.first_name }} {{ row.enquiry.last_name }}</div>
+    <div class="sub">{{ row.enquiry.check_in_date|date:"M d" }} — {{ row.enquiry.check_out_date|date:"M d" }}</div>
+  </div>
+</div>
+{% empty %}
+<div style="color:#94a3b8;font-size:10px;padding:4px 0 10px 0;">No enquiries on this day.</div>
 {% endfor %}
 
 {% elif view_type == 'timeline' %}
@@ -603,7 +662,7 @@
 <table class="timeline-table">
   <thead>
     <tr>
-      <th style="width:130px;text-align:left;padding-left:8px;">Property</th>
+      <th style="width:72px;text-align:left;padding-left:6px;">Property</th>
       {% for d in date_list %}
       <th>{{ d|date:"j" }}<br><span style="font-weight:400;color:#94a3b8;">{{ d|date:"D" }}</span></th>
       {% endfor %}
@@ -623,6 +682,9 @@
         {% endfor %}
         {% for t in day.tasks %}
         <div class="tl-event task" style="display:block;text-align:center;">{{ t.task_type|first|upper }}</div>
+        {% endfor %}
+        {% for e in day.enquiries %}
+        <div class="tl-event enquiry" style="display:block;text-align:center;">{{ e.first_name|first }}?</div>
         {% endfor %}
       </td>
       {% endfor %}

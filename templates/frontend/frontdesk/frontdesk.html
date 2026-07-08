@@ -5,7 +5,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>FavHost · Frontdesk</title>
-<link href="{% static 'css/frontdesk/index.css' %}" rel="stylesheet">
+<link href="{% static 'css/frontdesk/frontdesk.css' %}" rel="stylesheet">
 {% endblock extra_head %}
 
 {% block content %}
@@ -48,16 +48,6 @@
       <img src="{% static 'img/header/bell.png' %}" alt="Frontdesk">
       <span class="fd-ph-title">Frontdesk</span>
     </div>
-    <div class="date-nav">
-      <button class="date-nav-btn" id="btn-prev-day" aria-label="Previous day">
-        <svg width="15" height="15"><use href="#ic-chevl"/></svg>
-      </button>
-      <span class="date-display" id="date-display">{{ day_name }}, {{ day_num }} {{ month_name }}</span>
-      <button class="date-nav-btn" id="btn-next-day" aria-label="Next day">
-        <svg width="15" height="15"><use href="#ic-chevr"/></svg>
-      </button>
-      <input type="date" id="date-picker" class="date-picker-input" value="{{ date_iso }}">
-    </div>
     <div class="fd-ph-right">
       <button class="hdr-icon-btn" id="btn-today" aria-label="Go to today" title="Go to today">
         <img src="{% static 'img/calender/today_icon.svg' %}" alt="" width="16" height="16">
@@ -79,6 +69,12 @@
 
       <div class="date-card">
         <input type="date" class="dc-date-overlay" id="dc-date-overlay" value="{{ date_iso }}" aria-label="Pick a date">
+        <button class="dc-nav-btn dc-nav-prev" id="dc-prev-day" type="button" aria-label="Previous day">
+          <svg width="13" height="13"><use href="#ic-chevl"/></svg>
+        </button>
+        <button class="dc-nav-btn dc-nav-next" id="dc-next-day" type="button" aria-label="Next day">
+          <svg width="13" height="13"><use href="#ic-chevr"/></svg>
+        </button>
         <div class="dc-dow" id="dc-dow">{{ day_name|upper }}</div>
         <div class="dc-date">
           <span class="dc-num" id="dc-num">{{ day_num }}</span>
@@ -257,35 +253,35 @@
               <div class="hk-status-dd" data-property-id="{{ h.id }}">
                 <button class="hk-status-btn" type="button" aria-haspopup="listbox">
                   <span class="hk-status-btn-left">
-                    <span class="hk-status-dot hk-dot-{{ st|slugify }}"></span>
-                    <span class="hk-status-label">{{ st }}</span>
+                    <span class="hk-status-dot hk-dot-{% if st %}{{ st|slugify }}{% else %}unset{% endif %}"></span>
+                    <span class="hk-status-label">{% if st %}{{ st }}{% else %}Select Status{% endif %}</span>
                   </span>
                   <svg class="hk-status-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9.5l6 6 6-6"/></svg>
                 </button>
                 <div class="hk-status-menu" role="listbox">
                   <div class="hk-status-opt{% if st == 'Dirty' %} selected{% endif %}" data-value="Dirty">
                     <span class="hk-status-opt-dot hk-dot-dirty"></span>
-                    <div class="hk-status-opt-info"><span class="hk-status-opt-label">Dirty</span><span class="hk-status-opt-desc">Needs cleaning</span></div>
+                    <span class="hk-status-opt-label">Dirty</span>
                   </div>
                   <div class="hk-status-opt{% if st == 'In-Progress' %} selected{% endif %}" data-value="In-Progress">
                     <span class="hk-status-opt-dot hk-dot-in-progress"></span>
-                    <div class="hk-status-opt-info"><span class="hk-status-opt-label">In-Progress</span><span class="hk-status-opt-desc">Currently being cleaned</span></div>
+                    <span class="hk-status-opt-label">In-Progress</span>
                   </div>
                   <div class="hk-status-opt{% if st == 'Clean-Uninspected' %} selected{% endif %}" data-value="Clean-Uninspected">
                     <span class="hk-status-opt-dot hk-dot-clean-uninspected"></span>
-                    <div class="hk-status-opt-info"><span class="hk-status-opt-label">Clean-Uninspected</span><span class="hk-status-opt-desc">Cleaned, not verified</span></div>
+                    <span class="hk-status-opt-label">Clean-Uninspected</span>
                   </div>
                   <div class="hk-status-opt{% if st == 'Clean-Inspected' %} selected{% endif %}" data-value="Clean-Inspected">
                     <span class="hk-status-opt-dot hk-dot-clean-inspected"></span>
-                    <div class="hk-status-opt-info"><span class="hk-status-opt-label">Clean-Inspected</span><span class="hk-status-opt-desc">Verified clean</span></div>
+                    <span class="hk-status-opt-label">Clean-Inspected</span>
                   </div>
                   <div class="hk-status-opt{% if st == 'Clean-Ready' %} selected{% endif %}" data-value="Clean-Ready">
                     <span class="hk-status-opt-dot hk-dot-clean-ready"></span>
-                    <div class="hk-status-opt-info"><span class="hk-status-opt-label">Clean-Ready</span><span class="hk-status-opt-desc">Ready for guest</span></div>
+                    <span class="hk-status-opt-label">Clean-Ready</span>
                   </div>
                   <div class="hk-status-opt{% if st == 'Out-of-Service' %} selected{% endif %}" data-value="Out-of-Service">
                     <span class="hk-status-opt-dot hk-dot-out-of-service"></span>
-                    <div class="hk-status-opt-info"><span class="hk-status-opt-label">Out-of-Service</span><span class="hk-status-opt-desc">Unavailable</span></div>
+                    <span class="hk-status-opt-label">Out-of-Service</span>
                   </div>
                 </div>
               </div>
@@ -349,12 +345,10 @@
   let currentDate = new Date('{{ date_iso }}');
   let isLoading = false;
 
-  const btnPrev    = document.getElementById('btn-prev-day');
-  const btnNext    = document.getElementById('btn-next-day');
+  const btnPrev    = document.getElementById('dc-prev-day');
+  const btnNext    = document.getElementById('dc-next-day');
   const btnToday   = document.getElementById('btn-today');
   const btnRefresh = document.getElementById('btn-refresh');
-  const dateDisp   = document.getElementById('date-display');
-  const datePicker = document.getElementById('date-picker');
 
   function fmtISO(d){ return d.toISOString().slice(0,10); }
   function fmtLabel(d){
@@ -439,7 +433,10 @@
       });
     });
 
-    document.addEventListener('click', closeAllStatusDD, {capture:true, once:false});
+    if(!document.body.dataset.hkOutsideCloseBound){
+      document.body.dataset.hkOutsideCloseBound = '1';
+      document.addEventListener('click', closeAllStatusDD);
+    }
   }
 
   window.addEventListener('resize', closeAllStatusDD);
@@ -467,12 +464,12 @@
   }
 
   const HK_STATUS = [
-    { value:'Dirty',             slug:'dirty',              desc:'Needs cleaning' },
-    { value:'In-Progress',       slug:'in-progress',        desc:'Currently being cleaned' },
-    { value:'Clean-Uninspected', slug:'clean-uninspected',  desc:'Cleaned, not verified' },
-    { value:'Clean-Inspected',   slug:'clean-inspected',    desc:'Verified clean' },
-    { value:'Clean-Ready',       slug:'clean-ready',        desc:'Ready for guest' },
-    { value:'Out-of-Service',    slug:'out-of-service',     desc:'Unavailable' },
+    { value:'Dirty',             slug:'dirty' },
+    { value:'In-Progress',       slug:'in-progress' },
+    { value:'Clean-Uninspected', slug:'clean-uninspected' },
+    { value:'Clean-Inspected',   slug:'clean-inspected' },
+    { value:'Clean-Ready',       slug:'clean-ready' },
+    { value:'Out-of-Service',    slug:'out-of-service' },
   ];
 
   function getCookie(name){
@@ -481,6 +478,7 @@
   }
 
   function statusSlug(val){
+    if(!val) return 'unset';
     const s = HK_STATUS.find(x => x.value === val);
     return s ? s.slug : 'out-of-service';
   }
@@ -493,17 +491,14 @@
     const opts = HK_STATUS.map(s => `
       <div class="hk-status-opt${s.value===current?' selected':''}" data-value="${s.value}">
         <span class="hk-status-opt-dot hk-dot-${s.slug}"></span>
-        <div class="hk-status-opt-info">
-          <span class="hk-status-opt-label">${s.value}</span>
-          <span class="hk-status-opt-desc">${s.desc}</span>
-        </div>
+        <span class="hk-status-opt-label">${s.value}</span>
       </div>`).join('');
     return `
       <div class="hk-status-dd" data-property-id="${escHTML(propertyId)}">
         <button class="hk-status-btn" type="button">
           <span class="hk-status-btn-left">
             ${statusDot(current)}
-            <span class="hk-status-label">${current}</span>
+            <span class="hk-status-label">${current ? current : 'Select Status'}</span>
           </span>
           <svg class="hk-status-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9.5l6 6 6-6"/></svg>
         </button>
@@ -604,8 +599,6 @@
   function setDate(d){
     currentDate = d;
     const iso = fmtISO(d);
-    dateDisp.textContent = fmtLabel(d);
-    datePicker.value = iso;
     if(dcDateOverlay) dcDateOverlay.value = iso;
     window.history.replaceState(null,'', '?date=' + iso);
     loadAll(iso);
@@ -619,12 +612,6 @@
   });
   if(btnToday)   btnToday.addEventListener('click', () => setDate(new Date()));
   if(btnRefresh) btnRefresh.addEventListener('click', () => loadAll(fmtISO(currentDate)));
-
-  datePicker.addEventListener('change', function(){
-    if(this.value){ setDate(new Date(this.value + 'T12:00:00')); }
-  });
-  document.querySelector('.date-display') && (dateDisp.style.cursor='pointer');
-  dateDisp.addEventListener('click', () => datePicker.showPicker && datePicker.showPicker());
 
   var dcDateOverlay = document.getElementById('dc-date-overlay');
   if(dcDateOverlay) dcDateOverlay.addEventListener('change', function(){
@@ -662,7 +649,7 @@
   function stampHKPrintMeta(){
     const el = document.getElementById('hkPrintMeta');
     if(!el) return;
-    el.textContent = dateDisp.textContent + ' · Generated: ' + new Date().toLocaleString();
+    el.textContent = fmtLabel(currentDate) + ' · Generated: ' + new Date().toLocaleString();
   }
 
   const hkReportBtn = document.getElementById('hk-report-btn');
