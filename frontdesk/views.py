@@ -4,17 +4,44 @@ import json
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views.generic import TemplateView
 from django.views import View
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.db.models import Sum, Count, Q
+from django.shortcuts import render
+from django.template.loader import render_to_string
+from django.templatetags.static import static
+from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
+from xhtml2pdf import pisa
 
-from booking.models import Booking, Payment
+from booking.models import Booking, Enquiry
 from property.models import Property, PropertyBlockDate
 from tasks.models import Task
 from accounts.utils import get_visible_user_ids
 from .models import HousekeepingStatus
+
+# Display label/slug for each cleaning status in the print report — status
+# can be None (see `status = saved_statuses.get(prop.id)` in _fd_data above),
+# meaning the host hasn't set one yet for this date.
+HK_PRINT_STATUS_LABELS = {
+    'Dirty': 'Dirty',
+    'In-Progress': 'In-Progress',
+    'Clean-Uninspected': 'Clean-Uninspected',
+    'Clean-Inspected': 'Clean-Inspected',
+    'Clean-Ready': 'Clean-Ready',
+    'Out-of-Service': 'Out-of-Service',
+    None: 'Not Set',
+}
+HK_PRINT_STATUS_SLUGS = {
+    'Dirty': 'dirty',
+    'In-Progress': 'in-progress',
+    'Clean-Uninspected': 'clean-uninspected',
+    'Clean-Inspected': 'clean-inspected',
+    'Clean-Ready': 'clean-ready',
+    'Out-of-Service': 'out-of-service',
+    None: 'unset',
+}
 
 
 def _resolve_date(request):
@@ -94,12 +121,10 @@ def _fd_data(request, target_date):
         date=target_date
     ).count()
 
-    total_payments = Payment.objects.filter(
-        booking__property__created_by__in=user_ids,
-        is_paid=True,
-        payment_date__date=target_date
-    ).exclude(type__in=['Refundable deposit', 'Refundable to guest'])
-    total_payments_amount = total_payments.aggregate(total=Sum('amount'))['total'] or 0
+    total_enquiries = Enquiry.objects.filter(
+        property__created_by__in=user_ids,
+        created_at__date=target_date
+    ).exclude(is_archive=True).count()
 
     # Check-ins / Check-outs lists
     checkins = list(active_bookings.filter(
@@ -167,7 +192,7 @@ def _fd_data(request, target_date):
         'total_active': total_active,
         'total_booked_today': total_booked,
         'total_tasks': total_tasks,
-        'total_payments_amount': total_payments_amount,
+        'total_enquiries': total_enquiries,
         'checkins': checkins,
         'checkouts': checkouts,
         'housekeeping': housekeeping,
@@ -183,6 +208,85 @@ class FrontdeskIndexView(LoginRequiredMixin, TemplateView):
         data = _fd_data(self.request, target_date)
         context.update(data)
         return context
+
+
+# --- Housekeeping print report ---
+# Mirrors the printpanel app's panel-shell + iframe-preview pattern (see
+# printpanel/views.py + printpanel/templates/printpanel/print_panel.html),
+# but scoped to a single date's housekeeping data instead of a calendar
+# date range — there's nothing else for the user to configure here.
+
+def _hk_print_context(request, format_type):
+    target_date = _resolve_date(request)
+    housekeeping = _fd_data(request, target_date)['housekeeping']
+
+    # One flat table (already ordered by property title from _fd_data), with
+    # the cleaning status shown as its own column rather than split into a
+    # separate table per status.
+    rows = [
+        dict(h, status_label=HK_PRINT_STATUS_LABELS[h['status']], status_slug=HK_PRINT_STATUS_SLUGS[h['status']])
+        for h in housekeeping
+    ]
+
+    total = len(housekeeping)
+    available = sum(1 for h in housekeeping if h['available'])
+
+    return {
+        'format_type': format_type,
+        'target_date': target_date,
+        'rows': rows,
+        'total_listings': total,
+        'available_count': available,
+        'not_available_count': total - available,
+        'checkin_count': sum(1 for h in housekeeping if h['has_checkin']),
+        'checkout_count': sum(1 for h in housekeeping if h['has_checkout']),
+        'dirty_count': sum(1 for h in housekeeping if h['status'] == 'Dirty'),
+        'progress_count': sum(1 for h in housekeeping if h['status'] == 'In-Progress'),
+        'clean_count': sum(1 for h in housekeeping if h['status'] in ('Clean-Uninspected', 'Clean-Inspected', 'Clean-Ready')),
+        'user': request.user,
+        'now': timezone.now(),
+        'brand_logo_src': request.build_absolute_uri(static('img/login/favhost_new_logo.png')),
+    }
+
+
+class HousekeepingPrintPanelView(LoginRequiredMixin, View):
+    """Print panel shell: date field + Print/PDF actions, iframe preview."""
+    template_name = 'frontend/frontdesk/print_panel.html'
+
+    def get(self, request, *args, **kwargs):
+        target_date = _resolve_date(request)
+        preview_url = reverse('frontdesk:print-preview') + f'?date={target_date.isoformat()}'
+        context = {
+            'target_date': target_date,
+            'preview_url': preview_url,
+        }
+        return render(request, self.template_name, context)
+
+
+class HousekeepingPrintPreviewView(LoginRequiredMixin, View):
+    """Renders the housekeeping report HTML for the panel's iframe."""
+
+    def get(self, request, *args, **kwargs):
+        context = _hk_print_context(request, format_type='html')
+        return render(request, 'frontend/print/print_housekeeping.html', context)
+
+
+class HousekeepingPrintPDFView(LoginRequiredMixin, View):
+    """Generates the housekeeping report as a PDF via xhtml2pdf."""
+
+    def get(self, request, *args, **kwargs):
+        context = _hk_print_context(request, format_type='pdf')
+        html_string = render_to_string('frontend/print/print_housekeeping.html', context, request=request)
+        response = HttpResponse(content_type='application/pdf')
+        filename = f"housekeeping-{context['target_date'].isoformat()}.pdf"
+        if request.GET.get('download'):
+            response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        else:
+            response['Content-Disposition'] = f'inline; filename="{filename}"'
+        pisa_status = pisa.CreatePDF(html_string, dest=response, encoding='utf-8')
+        if pisa_status.err:
+            return HttpResponse('PDF generation error', status=500)
+        return response
 
 
 # --- API Views ---
@@ -202,7 +306,7 @@ class FrontdeskSummaryAPI(LoginRequiredMixin, View):
             'total_active': data['total_active'],
             'total_booked_today': data['total_booked_today'],
             'total_tasks': data['total_tasks'],
-            'total_payments_amount': data['total_payments_amount'],
+            'total_enquiries': data['total_enquiries'],
             'date_iso': data['date_iso'],
             'day_name': data['day_name'],
             'day_num': data['day_num'],

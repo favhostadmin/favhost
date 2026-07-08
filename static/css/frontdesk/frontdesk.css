@@ -50,8 +50,9 @@
     position:fixed;top:58px;left:0;right:0;height:52px;z-index:999;
     background:#E7E7E9;border-radius:0
   }
-  /* Just two items now (brand + icon actions) — date navigation moved onto
-     the .date-card in the KPI strip below (see .dc-nav-btn). */
+  /* Date navigation and the Today action moved onto the .date-card in the
+     KPI strip below (see .dc-nav-btn and .dc-header-actions) — Refresh
+     stays here on the right. */
   .fd-ph-inner{
     display:flex;align-items:center;justify-content:space-between;
     margin:0 auto;height:100%;padding:0 32px;gap:16px
@@ -78,18 +79,27 @@
 
   .date-card{background:#fff;border:1px solid var(--line);border-radius:var(--r-card);
     padding:16px 34px;box-shadow:var(--shadow-sm);display:flex;flex-direction:column;
-    justify-content:center;min-width:154px;position:relative}
-  .dc-date-overlay{position:absolute;right:8px;top:8px;width:26px;height:26px;
+    justify-content:center;min-width:154px;position:relative;cursor:pointer}
+  /* Covers the whole card (not just a corner icon) so tapping anywhere on
+     it opens the native calendar picker. The nav buttons below sit on top
+     of it (higher z-index) so they keep their own prev/next-day click. */
+  .dc-date-overlay{position:absolute;inset:0;width:100%;height:100%;
     opacity:0;cursor:pointer;z-index:2}
   /* Day-to-day navigation, moved here from the page header's old .date-nav —
      this card is now the single place to both step through days and open
      the native calendar picker (via .dc-date-overlay above). */
   .dc-nav-btn{position:absolute;top:50%;transform:translateY(-50%);width:24px;height:24px;
     border-radius:7px;display:flex;align-items:center;justify-content:center;
-    color:var(--ink-soft);z-index:2;transition:background .15s,color .15s}
+    color:var(--ink-soft);z-index:3;transition:background .15s,color .15s}
   .dc-nav-btn:hover{background:var(--page);color:var(--ink)}
   .dc-nav-prev{left:6px}
   .dc-nav-next{right:6px}
+
+  /* Today action, moved here from the page header's .fd-ph-right — sits in
+     the card's top-right corner, above the full-card overlay. */
+  .dc-header-actions{position:absolute;top:8px;right:8px;display:flex;gap:4px;z-index:3}
+  .date-card .hdr-icon-btn{width:24px;height:24px;border-radius:7px}
+  .date-card .hdr-icon-btn svg,.date-card .hdr-icon-btn img{width:13px;height:13px}
   .dc-dow{font-size:12px;font-weight:700;color:var(--muted);letter-spacing:.5px;text-transform:uppercase;margin-bottom:4px}
   .dc-date{display:flex;align-items:baseline;gap:6px}
   .dc-num{font-size:44px;font-weight:900;letter-spacing:-2px;line-height:1;color:var(--ink)}
@@ -413,15 +423,14 @@
        .fd-page-header drops back into flow on mobile. */
     .fd-page-header{position:static;top:auto;left:auto;right:auto;height:auto;margin-top:58px}
     .fd-body{position:static;top:auto;right:auto;bottom:auto;overflow:visible;padding-top:20px}
-    .fd-ph-inner{display:flex;flex-wrap:wrap;height:auto;padding:14px 20px;gap:12px}
-    .fd-ph-right{width:100%;justify-content:flex-start}
+    .fd-ph-inner{height:auto;padding:14px 20px}
+    .fd-ph-right{justify-content:flex-end}
   }
 
   @media (max-width:600px){
     .fd-wrap{padding:0 12px}
     .fd-ph-inner{padding:12px 14px}
     .fd-ph-refresh{width:36px;height:36px}
-    .dc-date-overlay{width:32px;height:32px}
     .tool-btn{width:36px;height:36px}
     .g-ext{width:36px;height:36px}
     /* Keep clearance either side for .dc-nav-btn (24px + 6px offset). */
@@ -471,44 +480,6 @@
   .fd-error-text--compact{padding:20px}
   .fd-error-detail{font-size:12px}
 
-  /* Branded print header for the Housekeeping report — hidden on screen,
-     revealed only while body.printing-hk is active (see @media print below). */
-  .hk-print-header{display:none}
-  .hk-print-logo{height:30px;width:auto}
-  .hk-print-titles{display:flex;flex-direction:column;gap:2px}
-  .hk-print-title{font-size:15px;font-weight:700;color:#fff}
-  .hk-print-meta{font-size:11px;color:#e5e7eb}
-
-  /* ===========================================================
-     PRINT — Housekeeping report only. Triggered by #hk-report-btn,
-     which adds body.printing-hk before calling window.print().
-     Hides everything except the Housekeeping column.
-     =========================================================== */
-  @media print {
-    body.printing-hk * { -webkit-print-color-adjust:exact !important; print-color-adjust:exact !important }
-
-    body.printing-hk .hk-print-header{
-      display:flex !important;align-items:center;justify-content:space-between;gap:16px;
-      background:#313131;padding:10px 16px;margin-bottom:14px;border-radius:6px
-    }
-
-    body.printing-hk #loader-overlay,
-    body.printing-hk .custom-header,
-    body.printing-hk .toast-messages-container,
-    body.printing-hk .sw-overlay,
-    body.printing-hk .footer,
-    body.printing-hk .fd-page-header,
-    body.printing-hk .kpi-strip,
-    body.printing-hk .col-card:not(.col-hk),
-    body.printing-hk .col-hk .col-head,
-    body.printing-hk .task-modal-overlay { display:none !important }
-
-    body.printing-hk html, body.printing-hk body{ height:auto !important;overflow:visible !important;background:#fff !important }
-    body.printing-hk .main-content-body{ max-height:none !important;overflow:visible !important;display:block !important }
-    body.printing-hk .fd-body{ position:static !important;top:auto !important;bottom:auto !important;overflow:visible !important;padding:0 !important }
-    body.printing-hk .fd-wrap{ max-width:none !important;padding:0 !important }
-    body.printing-hk .columns{ display:block !important }
-    body.printing-hk .col-hk{ border:none !important;box-shadow:none !important;border-radius:0 !important }
-    body.printing-hk .hk-list{ max-height:none !important;overflow:visible !important }
-    body.printing-hk .hk-item{ break-inside:avoid;page-break-inside:avoid }
-  }
+  /* Housekeeping's #hk-report-btn now navigates to a dedicated print-preview
+     panel (frontdesk:print-panel) instead of printing this page in place —
+     see frontend/frontdesk/print_panel.html and frontend/print/print_housekeeping.html. */
