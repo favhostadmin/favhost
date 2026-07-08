@@ -204,18 +204,12 @@ CELERY_BEAT_SCHEDULE = {
         # 'schedule': crontab(minute='*/2'),  # Runs at minute 0 past every 4th hour
         'schedule': crontab(minute='*/15'),  # Runs every 15 minutes
     },
-    'send-booking-emails-daily': {
+    # Runs every hour at :01. The task itself decides which properties are at
+    # their local midnight, so guests are emailed at the *hotel's* midnight
+    # regardless of country/timezone.
+    'send-booking-emails-hourly': {
         'task': 'booking.tasks.send_daily_booking_emails',
-        'schedule': crontab(minute=1, hour=0),  # Runs daily at 12:01 AM
-        # 'schedule': crontab(minute='*/2'),  # Runs every 5 minutes for testing
-    },
-    'send-booking-emails-daily-1am': {
-        'task': 'booking.tasks.send_daily_booking_emails',
-        'schedule': crontab(minute=1, hour=1),  # Runs daily at 1:01 AM
-    },
-    'send-booking-emails-daily-2am': {
-        'task': 'booking.tasks.send_daily_booking_emails',
-        'schedule': crontab(minute=1, hour=2),  # Runs daily at 2:01 AM
+        'schedule': crontab(minute=1),  # every hour at HH:01
     },
     'refresh-exchange-rates-daily': {
         'task': 'accounts.tasks.refresh_exchange_rates_task',
