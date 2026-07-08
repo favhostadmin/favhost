@@ -1098,6 +1098,10 @@ class CalenderAPIView(LoginRequiredMixin,ListView):
             'enquiries': enquiries_list
         })
 
+
+class CalendarTimelineView(CalenderAPIView):
+    template_name = 'frontend/calender/calender_timeline.html'
+
 # views.py
 from datetime import date
 from django.views.generic import ListView

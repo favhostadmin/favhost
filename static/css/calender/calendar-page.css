@@ -224,6 +224,13 @@
     cursor: pointer;
   }
 
+  /* Task hidden under a visible payment icon (no check-in involved): stays at
+     the cell's bottom like the normal dot, but needs a z-index above
+     .payment-indicator (120) so the icon doesn't paint over it. */
+  .cell-blinking-dot.on-payment {
+    z-index: 130;
+  }
+
   @keyframes cell-blink {
 
     0%,
@@ -2136,6 +2143,29 @@
     }
   }
 
+  /* Timeline row/header sizing: the properties list (#propertiesList) and the
+     dates grid (.dates-grid) are two independent DOM trees that must render
+     identical row heights to stay visually aligned as the user scrolls. Both
+     sides read from these shared variables instead of duplicating px values,
+     so they can never drift apart at a given breakpoint. */
+  :root {
+    --cal-row-h: 58px;
+  }
+
+  @media (max-width: 768px) {
+    :root {
+      --cal-row-h: 52px;
+      --cal-header-h: 56px;
+    }
+  }
+
+  @media (max-width: 576px) {
+    :root {
+      --cal-row-h: 44px;
+      --cal-header-h: 46px;
+    }
+  }
+
   /* Scroll Fixes */
   .calendar-container {
     height: calc(100vh - 180px);
@@ -2244,8 +2274,12 @@
     scrollbar-color: #d1d5db transparent;
   }
 
+  /* Vertical scroll on this pane is already driven by #propertiesList's
+     scrollbar (kept in sync via JS in calender_timeline.html) — showing a
+     second vertical scrollbar here was redundant. Only the vertical thumb
+     is hidden; the horizontal one (for scrolling through dates) stays. */
   .dates-body-scroll::-webkit-scrollbar {
-    width: 8px;
+    width: 0;
     height: 8px;
   }
 
@@ -2321,6 +2355,7 @@
     margin-bottom: 0;
     margin-left: 6px;
     min-width: 210px;
+    max-width: calc(100vw - 16px);
     z-index: 5000;
   }
 
@@ -2411,7 +2446,8 @@
     width: max(100%, var(--timeline-grid-width));
     min-width: 100%;
     border-bottom: 1px solid #e5e7eb;
-    min-height: 58px;
+    height: auto;
+    min-height: var(--cal-row-h);
   }
 
   .date-row:last-child {
@@ -2694,7 +2730,8 @@
     cursor: pointer;
     display: flex;
     align-items: center;
-    min-height: 58px;
+    height: auto;
+    min-height: var(--cal-row-h);
     border-bottom: 1px solid #e5e7eb;
   }
 
@@ -2918,7 +2955,7 @@
       box-shadow: none;
       min-width: 0;
       padding: 0 8px 0 22px;
-      overflow: hidden;
+      overflow: visible;
     }
 
     .booking-span-block .channel-logo-circle {
@@ -3023,7 +3060,7 @@
     .properties-column::before {
       content: "";
       display: block;
-      height: 56px;
+      height: var(--cal-header-h);
       background: #E7E7E9;
       border-bottom: 1px solid #e0e0e0;
     }
@@ -3110,17 +3147,15 @@
       line-height: 1;
     }
 
-    .property-actions .dropdown-menu.show {
-      inset: auto auto auto auto !important;
-      transform: none !important;
-      left: 100% !important;
-      bottom: 0 !important;
-      top: auto !important;
-      z-index: 5000 !important;
-    }
+    /* Positioning for this menu on mobile is handled entirely by the
+       floating-dropdown-menu JS (positionFloatingPropertyDropdown), which
+       measures the real viewport and clamps the menu inside it. A static
+       left:100% here would fight that with equal specificity and win by
+       source order, shoving the menu off the right edge of narrow screens
+       since it ignores how little room the 76-90px properties column leaves. */
 
     .dates-header {
-      height: 56px;
+      height: var(--cal-header-h);
     }
 
     .date-column {
@@ -3128,11 +3163,11 @@
     }
 
     .date-row {
-      min-height: 52px;
+      min-height: var(--cal-row-h);
     }
 
     .date-cell {
-      min-height: 52px;
+      min-height: var(--cal-row-h);
     }
 
     .date-row {
@@ -3342,23 +3377,23 @@
     }
 
     .properties-column::before {
-      height: 46px;
+      height: var(--cal-header-h);
     }
 
     .dates-header {
-      height: 46px;
+      height: var(--cal-header-h);
     }
 
     .property-row {
-      min-height: 44px;
+      min-height: var(--cal-row-h);
     }
 
     .date-row {
-      min-height: 44px;
+      min-height: var(--cal-row-h);
     }
 
     .date-cell {
-      min-height: 44px;
+      min-height: var(--cal-row-h);
     }
 
     .property-hover-tooltip {
