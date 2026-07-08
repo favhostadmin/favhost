@@ -127,23 +127,15 @@ def _fd_data(request, target_date):
             property=prop, check_in_date=target_date
         ).exists()
 
-        if has_checkout:
-            suggested_status = 'Dirty'
-        elif is_occupied:
-            suggested_status = 'In-Progress'
-        elif is_blocked:
-            suggested_status = 'Out-of-Service'
-        elif has_checkin:
-            suggested_status = 'Clean-Ready'
-        else:
-            suggested_status = 'Clean-Inspected'
-
         # A check-in today means the unit is occupied from today, so it's
         # not available regardless of whether a checkout also happens that
         # same day (same-day turnover) or the suggested cleaning status.
         available = not (has_checkin or is_occupied or is_blocked)
 
-        status = saved_statuses.get(prop.id, suggested_status)
+        # Only report a status once the user has actually saved one for this
+        # date — otherwise the dropdown should show its "Select Status"
+        # default rather than silently pre-selecting a guess.
+        status = saved_statuses.get(prop.id)
 
         housekeeping.append({
             'id': str(prop.id),
@@ -183,7 +175,7 @@ def _fd_data(request, target_date):
 
 
 class FrontdeskIndexView(LoginRequiredMixin, TemplateView):
-    template_name = 'frontend/frontdesk/index.html'
+    template_name = 'frontend/frontdesk/frontdesk.html'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -313,23 +305,15 @@ class HousekeepingAPI(LoginRequiredMixin, View):
                 property=prop, check_in_date=target_date
             ).exists()
 
-            if has_checkout:
-                suggested_status = 'Dirty'
-            elif is_occupied:
-                suggested_status = 'In-Progress'
-            elif is_blocked:
-                suggested_status = 'Out-of-Service'
-            elif has_checkin:
-                suggested_status = 'Clean-Ready'
-            else:
-                suggested_status = 'Clean-Inspected'
-
             # A check-in today means the unit is occupied from today, so it's
             # not available regardless of whether a checkout also happens that
             # same day (same-day turnover) or the suggested cleaning status.
             available = not (has_checkin or is_occupied or is_blocked)
 
-            status = saved_statuses.get(prop.id, suggested_status)
+            # Only report a status once the user has actually saved one for this
+            # date — otherwise the dropdown should show its "Select Status"
+            # default rather than silently pre-selecting a guess.
+            status = saved_statuses.get(prop.id)
 
             data.append({
                 'id': str(prop.id),
