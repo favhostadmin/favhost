@@ -11,6 +11,7 @@ from .views import (
     forgot_resend_otp_view,
     delete_document_view,
     update_social_url,
+    update_email_preferences,
     manage_cohost_view,
     firebase_auth_view,
     google_auth_view,
@@ -34,6 +35,7 @@ urlpatterns = [
     path('forgot-password/', forgot_password_view, name='forgot_password'),
     path('forgot-resend-otp/', forgot_resend_otp_view, name='forgot_resend_otp'),
     path('profile/update-social/', update_social_url, name='update_social_url'),
+    path('profile/update-email-preferences/', update_email_preferences, name='update_email_preferences'),
 
     # Co-host Management
     path('profile/manage-co-host/', manage_cohost_view, name='manage_cohost'),

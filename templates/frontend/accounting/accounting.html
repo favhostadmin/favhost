@@ -548,13 +548,21 @@
   table.acc-ledger {
     width: 100%;
     border-collapse: collapse;
-    font-size: 13px;
-    min-width: 900px;
+    font-size: 12px;
+    min-width: 0;
+    table-layout: fixed;
+  }
+
+  /* Fixed layout: the name column is pinned narrow and the 13 amount columns
+     (Jan–Dec + Overall) share the rest equally, so the whole grid always fits
+     the container width with no left-right scrolling. */
+  table.acc-ledger col.acc-col-label {
+    width: 132px;
   }
 
   table.acc-ledger th,
   table.acc-ledger td {
-    padding: 7px 10px;
+    padding: 7px 6px;
     border: 1px solid #e5e7eb;
     text-align: left;
     color: #374151;
@@ -565,7 +573,8 @@
     background: #313131;
     color: #fff;
     font-weight: 700;
-    text-align: center;
+    font-size: 15px;
+    text-align: left;
     border: 1px solid #313131;
     letter-spacing: 0.02em;
   }
@@ -574,6 +583,7 @@
     background: #faf7f5;
     color: #1a1a1a;
     font-weight: 600;
+    text-align: center;
   }
 
   table.acc-ledger thead.months th:last-child {
@@ -596,7 +606,7 @@
      Full name stays available via the title tooltip on hover. */
   .acc-rl {
     display: block;
-    max-width: 220px;
+    max-width: 130px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -663,6 +673,13 @@
     color: #111827;
     font-weight: 700;
     font-size: 12px;
+  }
+
+  /* Desktop: the track wrapper generates no box, so the bar behaves as a direct
+     child of the column and the vertical chart is unchanged. On phone (see the
+     mobile media query) the wrapper becomes a horizontal rail the bar fills. */
+  .acc-bar-track {
+    display: contents;
   }
 
   .acc-bar {
@@ -795,7 +812,171 @@
     }
   }
 
-  @media (max-width: 768px) {
+  /* Phone-only statement view: hidden on desktop and in print. */
+  .acc-mobile-ledger { display: none; }
+
+  @media screen and (max-width: 768px) {
+    /* Swap the wide table for the phone statement view. */
+    .acc-table-wrap { display: none !important; }
+    .acc-mobile-ledger { display: block; }
+
+    /* Month selector — horizontally scrollable pill chips, pinned on top. */
+    .aml-months {
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+      padding: 2px 0 12px;
+      position: sticky;
+      top: 0;
+      background: #fff;
+      z-index: 3;
+    }
+    .aml-months::-webkit-scrollbar { display: none; }
+
+    .aml-chip {
+      flex: 0 0 auto;
+      border: 1px solid #e5e7eb;
+      background: #faf7f5;
+      color: #4b5563;
+      font-size: 13px;
+      font-weight: 600;
+      padding: 6px 13px;
+      border-radius: 999px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background .15s ease, color .15s ease, border-color .15s ease;
+    }
+    .aml-chip.active {
+      background: #EB5310;
+      border-color: #EB5310;
+      color: #fff;
+    }
+
+    /* KPI tiles — Income + Expenses side by side, Net Profit as a full hero. */
+    .aml-kpis {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin: 2px 0 4px;
+    }
+    .aml-kpi {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      padding: 12px 14px;
+      border: 1px solid #eef0f3;
+      border-left-width: 3px;
+      border-radius: 12px;
+      background: #fff;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+    }
+    .aml-kpi.income  { border-left-color: #059669; }
+    .aml-kpi.expense { border-left-color: #dc2626; }
+    .aml-kpi.profit  { border-left-color: #EB5310; grid-column: 1 / -1; }
+
+    .aml-kpi-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: #6b7280;
+    }
+    .aml-kpi-val {
+      font-size: 20px;
+      font-weight: 800;
+      color: #111827;
+      font-variant-numeric: tabular-nums;
+      line-height: 1.1;
+    }
+    .aml-kpi.profit .aml-kpi-val { font-size: 23px; }
+    .aml-kpi .neg { color: #dc2626; }
+
+    /* Sections + rows */
+    .aml-section { margin-top: 22px; }
+    .aml-section-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      font-size: 13px;
+      font-weight: 700;
+      color: #111827;
+      letter-spacing: 0.01em;
+      padding-bottom: 7px;
+      margin-bottom: 4px;
+      border-bottom: 2px solid #313131;
+    }
+    .aml-scope {
+      font-size: 12px;
+      font-weight: 600;
+      color: #EB5310;
+    }
+
+    .aml-list { display: flex; flex-direction: column; }
+    .aml-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding: 11px 2px;
+      border-bottom: 1px solid #f1f1f1;
+    }
+    .aml-item:last-child { border-bottom: none; }
+    .aml-item-name {
+      font-size: 14px;
+      color: #1a1a1a;
+      font-weight: 500;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .aml-item-val {
+      flex: 0 0 auto;
+      font-size: 14px;
+      font-weight: 700;
+      color: #111827;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+    .aml-item-val .neg { color: #dc2626; }
+
+    /* Total + subtotal + profit rows get emphasis */
+    .aml-total {
+      margin-top: 2px;
+      border-top: 2px solid #f1f1f1;
+      border-bottom: none;
+    }
+    .aml-total .aml-item-name { font-weight: 700; color: #C2410C; }
+    .aml-total .aml-item-val  { color: #C2410C; }
+
+    .aml-sub .aml-item-name,
+    .aml-sub .aml-item-val {
+      color: #6b7280;
+      font-weight: 600;
+      font-size: 13px;
+    }
+
+    .aml-profit-row .aml-item-name { font-weight: 700; }
+    .aml-profit-row .aml-item-val { font-size: 16px; }
+
+    .aml-empty {
+      padding: 14px 2px;
+      color: #9ca3af;
+      font-size: 13px;
+    }
+
+    /* Muted $0.00 values so rows with real amounts stand out. */
+    .aml-item-val .aml-v.is-zero { color: #b8bcc2; font-weight: 500; }
+    .aml-kpi-val .aml-v.is-zero { color: #9ca3af; }
+
+    /* Only the selected month's value shows; default to the yearly (all) value
+       so the view is correct even before JS runs. */
+    .acc-mobile-ledger .aml-v { display: none; }
+    .acc-mobile-ledger .aml-v[data-month="all"] { display: inline; }
+  }
+
+  @media screen and (max-width: 768px) {
     .acc-title-bar {
       display: flex;
       flex-wrap: wrap;
@@ -822,6 +1003,104 @@
 
     .acc-bar-chart {
       height: 200px;
+    }
+
+    /* Phone: the fixed layout squeezes 13 amount columns into a tiny width and
+       the numbers overlap. Restore auto layout + a real min-width so the grid
+       keeps readable columns and scrolls horizontally inside its wrapper. */
+    table.acc-ledger {
+      table-layout: auto;
+      min-width: 900px;
+    }
+
+    .acc-rl {
+      max-width: 160px;
+    }
+
+    /* Phone: turn the 12-column vertical chart into a stacked horizontal bar
+       list (the pattern analytics dashboards use for many categories) so every
+       month is visible without squeezing/scrolling. Each row is a 3-track grid:
+       [month]  [====== rail the bar fills ======]  [value]
+       — labels align in a neat left column, values in a neat right column, and
+       the rail flexes to fill the phone width edge-to-edge. */
+    .acc-chart-wrap {
+      padding: 2px 2px 0;
+    }
+
+    .acc-bar-chart {
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;   /* override desktop align-items:end (was right-hugging) */
+      gap: 8px;
+      height: auto;
+      padding-top: 2px;
+    }
+
+    .acc-bar-col {
+      display: grid;
+      grid-template-columns: 36px 1fr 66px;
+      align-items: center;
+      column-gap: 10px;
+      row-gap: 0;
+      height: auto;
+    }
+
+    .acc-bar-label {
+      grid-column: 1;
+      grid-row: 1;            /* keep month, rail and value on ONE row */
+      justify-self: start;
+      margin: 0;
+      padding: 0;
+      background: none;
+      font-size: 12px;
+      font-weight: 600;
+      color: #6b7280;
+    }
+
+    /* Current month: subtle orange chip on the label, matching the desktop cue. */
+    .acc-bar-col.highlight .acc-bar-label {
+      background: #EB5310;
+      color: #fff;
+      padding: 2px 7px;
+      border-radius: 5px;
+      justify-self: start;
+    }
+
+    /* The wrapper becomes the rounded rail; the bar fills part of it. */
+    .acc-bar-track {
+      display: block;
+      grid-column: 2;
+      grid-row: 1;
+      height: 11px;
+      background: #eef0f3;
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .acc-bar {
+      height: 100% !important;
+      width: var(--bar-size, 0%);
+      max-width: 100%;
+      min-height: 0;
+      min-width: 0;          /* zero months show a clean empty rail */
+      border-radius: 999px;
+      background: #cbd5e1;   /* neutral for flat/zero months */
+    }
+
+    .acc-bar-value {
+      grid-column: 3;
+      grid-row: 1;
+      justify-self: end;
+      text-align: right;
+      font-size: 12px;
+      font-weight: 600;
+      color: #6b7280;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .acc-bar-col.highlight .acc-bar-value {
+      color: #111827;
+      font-weight: 700;
     }
   }
 
@@ -1178,6 +1457,10 @@
         <div class="acc-card-body">
           <div class="acc-table-wrap">
             <table class="acc-ledger" aria-label="Income, expenses, and profit by month for {{ selected_year }}">
+              <colgroup>
+                <col class="acc-col-label">
+                <col span="13" class="acc-col-num">
+              </colgroup>
               <!-- INCOME -->
               <thead class="section">
                 <tr>
@@ -1266,6 +1549,114 @@
               </tbody>
             </table>
           </div>
+
+          <!-- ================= PHONE-ONLY STATEMENT VIEW =================
+               A 14-column table can't fit a phone, so instead of horizontal
+               scrolling we pivot to a month-filtered statement: pick a month
+               (or Year) and every KPI + listing/expense row shows that month's
+               value. All values are pre-rendered (hidden) and toggled by JS,
+               so the full dataset is available with no side-scrolling. -->
+          <div class="acc-mobile-ledger" id="accMobileLedger">
+            <div class="aml-months" role="tablist" aria-label="Select month">
+              <button type="button" class="aml-chip active" data-month="all">Year</button>
+              {% for m in month_labels %}
+              <button type="button" class="aml-chip" data-month="{{ forloop.counter0 }}">{{ m }}</button>
+              {% endfor %}
+            </div>
+
+            <div class="aml-kpis">
+              <div class="aml-kpi income">
+                <span class="aml-kpi-label">Income</span>
+                <span class="aml-kpi-val">
+                  {% for v in income_total %}<span class="aml-v" data-month="{{ forloop.counter0 }}">{% money v %}</span>{% endfor %}<span class="aml-v" data-month="all">{% money income_overall %}</span>
+                </span>
+              </div>
+              <div class="aml-kpi expense">
+                <span class="aml-kpi-label">Expenses</span>
+                <span class="aml-kpi-val">
+                  {% for v in expense_total %}<span class="aml-v" data-month="{{ forloop.counter0 }}">{% money v %}</span>{% endfor %}<span class="aml-v" data-month="all">{% money expense_overall %}</span>
+                </span>
+              </div>
+              <div class="aml-kpi profit">
+                <span class="aml-kpi-label">Net Profit</span>
+                <span class="aml-kpi-val">
+                  {% for v in net_profit %}<span class="aml-v {% if v < 0 %}neg{% endif %}" data-month="{{ forloop.counter0 }}">{% money v %}</span>{% endfor %}<span class="aml-v {% if net_profit_overall < 0 %}neg{% endif %}" data-month="all">{% money net_profit_overall %}</span>
+                </span>
+              </div>
+            </div>
+
+            <div class="aml-section">
+              <div class="aml-section-head">
+                <span>Income by listing</span>
+                <span class="aml-scope" data-scope>Year</span>
+              </div>
+              <div class="aml-list">
+                {% for row in income_rows %}
+                <div class="aml-item">
+                  <span class="aml-item-name" title="{{ row.label }}">{{ row.label }}</span>
+                  <span class="aml-item-val">
+                    {% for v in row.values %}<span class="aml-v" data-month="{{ forloop.counter0 }}">{% money v %}</span>{% endfor %}<span class="aml-v" data-month="all">{% money row.overall %}</span>
+                  </span>
+                </div>
+                {% empty %}
+                <div class="aml-empty">No listings for {{ selected_year }}.</div>
+                {% endfor %}
+                <div class="aml-item aml-total">
+                  <span class="aml-item-name">Total income</span>
+                  <span class="aml-item-val">
+                    {% for v in income_total %}<span class="aml-v" data-month="{{ forloop.counter0 }}">{% money v %}</span>{% endfor %}<span class="aml-v" data-month="all">{% money income_overall %}</span>
+                  </span>
+                </div>
+                <div class="aml-item aml-sub">
+                  <span class="aml-item-name">RevPAR</span>
+                  <span class="aml-item-val">
+                    {% for v in revpar %}<span class="aml-v" data-month="{{ forloop.counter0 }}">{% money v %}</span>{% endfor %}<span class="aml-v" data-month="all">{% money revpar_overall %}</span>
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div class="aml-section">
+              <div class="aml-section-head">
+                <span>Expenses</span>
+                <span class="aml-scope" data-scope>Year</span>
+              </div>
+              <div class="aml-list">
+                {% for row in expense_rows %}
+                <div class="aml-item">
+                  <span class="aml-item-name" title="{{ row.label }}">{{ row.label }}</span>
+                  <span class="aml-item-val">
+                    {% for v in row.values %}<span class="aml-v" data-month="{{ forloop.counter0 }}">{% money v %}</span>{% endfor %}<span class="aml-v" data-month="all">{% money row.overall %}</span>
+                  </span>
+                </div>
+                {% empty %}
+                <div class="aml-empty">No expenses for {{ selected_year }}.</div>
+                {% endfor %}
+                <div class="aml-item aml-total">
+                  <span class="aml-item-name">Total expenses</span>
+                  <span class="aml-item-val">
+                    {% for v in expense_total %}<span class="aml-v" data-month="{{ forloop.counter0 }}">{% money v %}</span>{% endfor %}<span class="aml-v" data-month="all">{% money expense_overall %}</span>
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div class="aml-section">
+              <div class="aml-section-head">
+                <span>Net profit</span>
+                <span class="aml-scope" data-scope>Year</span>
+              </div>
+              <div class="aml-list">
+                <div class="aml-item aml-profit-row">
+                  <span class="aml-item-name">Net profit</span>
+                  <span class="aml-item-val">
+                    {% for v in net_profit %}<span class="aml-v {% if v < 0 %}neg{% endif %}" data-month="{{ forloop.counter0 }}">{% money v %}</span>{% endfor %}<span class="aml-v {% if net_profit_overall < 0 %}neg{% endif %}" data-month="all">{% money net_profit_overall %}</span>
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- =============== END PHONE-ONLY STATEMENT VIEW =============== -->
         </div>
       </section>
 
@@ -1280,7 +1671,9 @@
               {% for col in bar_cols %}
               <div class="acc-bar-col {% if col.highlight %}highlight{% endif %}">
                 <span class="acc-bar-value">{% money col.value %}</span>
-                <div class="acc-bar {% if col.negative %}neg{% endif %}" data-height="{{ col.height }}"></div>
+                <div class="acc-bar-track">
+                  <div class="acc-bar {% if col.negative %}neg{% endif %}" data-height="{{ col.height }}"></div>
+                </div>
                 <span class="acc-bar-label">{{ col.label }}</span>
               </div>
               {% endfor %}
@@ -1396,8 +1789,46 @@
 
     // --- Apply bar heights from server-computed magnitudes ---
     document.querySelectorAll('.acc-bar[data-height]').forEach(function (el) {
-      el.style.height = (el.getAttribute('data-height') || 0) + '%';
+      var pct = (el.getAttribute('data-height') || 0) + '%';
+      el.style.height = pct;                    // vertical bars (desktop)
+      el.style.setProperty('--bar-size', pct);  // reused as width for horizontal bars (phone)
     });
+
+    // --- Phone statement view: month chip selector toggles which value shows ---
+    (function () {
+      var ledger = document.getElementById('accMobileLedger');
+      if (!ledger) return;
+      var chips = ledger.querySelectorAll('.aml-chip');
+      var values = ledger.querySelectorAll('.aml-v');
+      var scopes = ledger.querySelectorAll('[data-scope]');
+
+      function isZero(text) {
+        var n = parseFloat(text.replace(/[^0-9.\-]/g, ''));
+        return !n; // 0.00 or unparseable → treat as zero
+      }
+
+      function selectMonth(month, label) {
+        values.forEach(function (el) {
+          var show = el.getAttribute('data-month') === month;
+          el.style.display = show ? 'inline' : 'none';
+          // Mute $0.00 so rows with real amounts stand out (finance-app style).
+          if (show) el.classList.toggle('is-zero', isZero(el.textContent));
+        });
+        chips.forEach(function (c) {
+          c.classList.toggle('active', c.getAttribute('data-month') === month);
+        });
+        scopes.forEach(function (s) { s.textContent = label; });
+      }
+
+      chips.forEach(function (chip) {
+        chip.addEventListener('click', function () {
+          selectMonth(chip.getAttribute('data-month'), chip.textContent.trim());
+        });
+      });
+
+      // Default to the yearly total.
+      selectMonth('all', 'Year');
+    })();
 
     // --- Stamp the print header with the generation date/time (like Revenue) ---
     function accStampPrintDate() {
