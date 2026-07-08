@@ -17,7 +17,7 @@
   .fd-page :focus-visible{outline:2px solid var(--brand);outline-offset:2px;border-radius:6px}
   .fd-icon-defs{position:absolute;overflow:hidden}
 
-  .fd-wrap{max-width:1400px;margin:0 auto;padding:0 24px;width:100%;
+  .fd-wrap{margin:0 auto;padding:0 24px;width:100%;
     display:flex;flex-direction:column;flex:1 0 auto}
 
   /* The site-wide top nav (.custom-header, in header.html) normally uses
@@ -30,6 +30,9 @@
     position:fixed !important;top:0 !important;left:0;right:0;
     z-index:99999 !important;
   }
+  /* Safety net: nothing on this page should ever be wide enough to trigger a
+     horizontal scrollbar on mobile, but guard against it regardless. */
+  body:has(.fd-page){overflow-x:hidden}
 
   /* Mirrors host_dashboard.css's .header-nav + .main pattern: the header is
      fixed just below the site nav, and the body is an independent fixed box
@@ -47,28 +50,17 @@
     position:fixed;top:58px;left:0;right:0;height:52px;z-index:999;
     background:#E7E7E9;border-radius:0
   }
+  /* Just two items now (brand + icon actions) — date navigation moved onto
+     the .date-card in the KPI strip below (see .dc-nav-btn). */
   .fd-ph-inner{
-    display:grid;grid-template-columns:1fr auto 1fr;align-items:center;
+    display:flex;align-items:center;justify-content:space-between;
     margin:0 auto;height:100%;padding:0 32px;gap:16px
   }
-  .fd-ph-left{display:flex;align-items:center;gap:8px;color:#111827;justify-self:start}
-  .fd-ph-inner > .date-nav{justify-self:center}
+  .fd-ph-left{display:flex;align-items:center;gap:8px;color:#111827}
   .fd-ph-left svg{width:18px;height:18px;opacity:.9}
   .fd-ph-left img{width:18px;height:18px;object-fit:contain;opacity:.9}
   .fd-ph-title{font-size:16px;font-weight:600;color:#111827}
-  .fd-ph-right{display:flex;align-items:center;gap:8px;justify-self:end}
-
-  .date-nav{display:flex;align-items:center;gap:6px;background:#fff;
-    border:1px solid var(--line);border-radius:10px;padding:4px 6px}
-  .date-nav-btn{width:28px;height:28px;border-radius:7px;display:flex;align-items:center;justify-content:center;
-    color:var(--ink);transition:background .15s,color .15s}
-  .date-nav-btn svg{width:15px;height:15px}
-  .date-nav-btn:hover{background:var(--page);color:var(--ink)}
-  .date-display{color:var(--ink);font-size:13px;font-weight:600;padding:0 6px;min-width:130px;text-align:center}
-  .date-picker-btn{background:rgb(255, 255, 255);border:0;color:#fff;font-size:12px;font-weight:600;
-    padding:5px 12px;border-radius:7px;cursor:pointer;transition:background .15s}
-  .date-picker-btn:hover{background:rgb(255, 255, 255)}
-  .date-picker-input{position:absolute;opacity:0;pointer-events:none;width:0;height:0}
+  .fd-ph-right{display:flex;align-items:center;gap:8px}
 
   .fd-ph-refresh{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;
     color:var(--charcoal);transition:background .15s,color .15s,transform .4s}
@@ -85,10 +77,19 @@
   .kpi-strip{display:grid;grid-template-columns:auto 1fr;gap:16px;margin-bottom:18px;align-items:stretch;flex-shrink:0}
 
   .date-card{background:#fff;border:1px solid var(--line);border-radius:var(--r-card);
-    padding:16px 20px;box-shadow:var(--shadow-sm);display:flex;flex-direction:column;
+    padding:16px 34px;box-shadow:var(--shadow-sm);display:flex;flex-direction:column;
     justify-content:center;min-width:154px;position:relative}
   .dc-date-overlay{position:absolute;right:8px;top:8px;width:26px;height:26px;
     opacity:0;cursor:pointer;z-index:2}
+  /* Day-to-day navigation, moved here from the page header's old .date-nav —
+     this card is now the single place to both step through days and open
+     the native calendar picker (via .dc-date-overlay above). */
+  .dc-nav-btn{position:absolute;top:50%;transform:translateY(-50%);width:24px;height:24px;
+    border-radius:7px;display:flex;align-items:center;justify-content:center;
+    color:var(--ink-soft);z-index:2;transition:background .15s,color .15s}
+  .dc-nav-btn:hover{background:var(--page);color:var(--ink)}
+  .dc-nav-prev{left:6px}
+  .dc-nav-next{right:6px}
   .dc-dow{font-size:12px;font-weight:700;color:var(--muted);letter-spacing:.5px;text-transform:uppercase;margin-bottom:4px}
   .dc-date{display:flex;align-items:baseline;gap:6px}
   .dc-num{font-size:44px;font-weight:900;letter-spacing:-2px;line-height:1;color:var(--ink)}
@@ -119,6 +120,17 @@
 
   .col-card{background:#fff;border:1px solid var(--line);border-radius:var(--r-card);
     box-shadow:var(--shadow);display:flex;flex-direction:column;overflow:hidden;min-height:0}
+  /* Desktop layout normally bounds each column's height via the flex chain
+     fd-body(fixed, viewport-bound) -> fd-wrap(flex:1) -> columns(flex:1) so
+     the list inside scrolls instead of growing. That chain can fail to
+     resolve to a definite height in edge cases (e.g. extreme browser zoom),
+     leaving cards free to grow to fit all their content instead of
+     scrolling. This is a hard viewport-relative cap so every column —
+     Housekeeping especially, since it can list many properties — always
+     scrolls its own list rather than becoming one long box. */
+  @media (min-width:901px){
+    .col-card{max-height:calc(100vh - 320px)}
+  }
   .col-head{display:flex;align-items:center;gap:8px;padding:14px 16px 12px;border-bottom:1px solid var(--line);flex-wrap:wrap;flex-shrink:0}
   .col-title-pill{display:inline-flex;align-items:center;gap:7px;font-weight:700;font-size:13px;
     padding:5px 14px;border-radius:var(--r-pill);line-height:1}
@@ -239,29 +251,27 @@
   .hk-price-unit{font-size:11.5px;color:var(--muted)}
 
   .hk-status-dd{position:relative;display:inline-block}
-  .hk-status-btn{display:inline-flex;align-items:center;gap:5px;
+  .hk-status-btn{display:inline-flex;align-items:center;gap:8px;
     border:1px solid var(--line-2);border-radius:8px;
     padding:4px 8px 4px 8px;background:#fff;transition:border-color .15s,box-shadow .15s;
-    cursor:pointer;white-space:nowrap;min-width:140px;justify-content:space-between}
+    cursor:pointer;white-space:nowrap;min-width:104px;justify-content:flex-start}
   .hk-status-btn:hover{border-color:#C8CACD;box-shadow:0 1px 4px rgba(0,0,0,.07)}
   .hk-status-btn-left{display:flex;align-items:center;gap:5px}
   .hk-status-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;display:inline-block;background:#9AA1AC}
   .hk-status-label{font-size:11px;font-weight:600;color:var(--ink-soft)}
   .hk-status-chevron{width:12px;height:12px;color:var(--muted);transition:transform .2s;flex-shrink:0}
   .hk-status-dd.open .hk-status-chevron{transform:rotate(180deg)}
-  .hk-status-menu{position:fixed;min-width:200px;
-    background:#fff;border:1px solid var(--line);border-radius:12px;
+  .hk-status-menu{position:fixed;min-width:130px;
+    background:#fff;border:1px solid var(--line);border-radius:9px;
     box-shadow:0 8px 24px rgba(0,0,0,.12);z-index:2000;overflow:hidden;
-    display:none;flex-direction:column;padding:4px}
+    display:none;flex-direction:column;padding:3px}
   .hk-status-dd.open .hk-status-menu{display:flex}
-  .hk-status-opt{display:flex;align-items:center;gap:10px;padding:8px 12px;
-    border-radius:8px;cursor:pointer;transition:background .12s}
+  .hk-status-opt{display:flex;align-items:center;gap:6px;padding:5px 8px;
+    border-radius:6px;cursor:pointer;transition:background .12s}
   .hk-status-opt:hover{background:var(--page)}
   .hk-status-opt.selected{background:var(--purple-soft)}
-  .hk-status-opt-dot{width:11px;height:11px;border-radius:50%;flex-shrink:0;display:inline-block}
-  .hk-status-opt-info{display:flex;flex-direction:column;gap:1px}
-  .hk-status-opt-label{font-size:12.5px;font-weight:600;color:var(--ink)}
-  .hk-status-opt-desc{font-size:11px;color:var(--muted)}
+  .hk-status-opt-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;display:inline-block}
+  .hk-status-opt-label{font-size:11.5px;font-weight:600;color:var(--ink)}
 
   /* Housekeeping status colors — shared by the dropdown trigger dot and menu option dots */
   .hk-dot-dirty{background:#E5484D}
@@ -270,6 +280,7 @@
   .hk-dot-clean-inspected{background:#84CC16}
   .hk-dot-clean-ready{background:#1FAE5A}
   .hk-dot-out-of-service{background:#9AA1AC}
+  .hk-dot-unset{background:#C8CACD}
 
   .empty-state{padding:40px 16px;text-align:center;color:var(--muted)}
   .empty-state svg{width:36px;height:36px;margin:0 auto 10px;opacity:.4}
@@ -404,24 +415,26 @@
     .fd-body{position:static;top:auto;right:auto;bottom:auto;overflow:visible;padding-top:20px}
     .fd-ph-inner{display:flex;flex-wrap:wrap;height:auto;padding:14px 20px;gap:12px}
     .fd-ph-right{width:100%;justify-content:flex-start}
-    .fd-ph-inner > .date-nav{flex:1;justify-self:auto}
-    .date-display{flex:1;min-width:0}
   }
 
   @media (max-width:600px){
     .fd-wrap{padding:0 12px}
     .fd-ph-inner{padding:12px 14px}
-    .date-nav-btn{width:36px;height:36px}
     .fd-ph-refresh{width:36px;height:36px}
     .dc-date-overlay{width:32px;height:32px}
     .tool-btn{width:36px;height:36px}
     .g-ext{width:36px;height:36px}
-    .date-card{padding:14px 16px}
+    /* Keep clearance either side for .dc-nav-btn (24px + 6px offset). */
+    .date-card{padding:14px 32px}
     .dc-num{font-size:36px}
     .dc-mon{font-size:16px}
-    .metrics-card{padding:14px 16px;gap:14px}
+    /* Stack the ring above the KPI grid instead of leaning on flex-wrap —
+       relying on wrap here left the grid squeezed to one side of the ring
+       at some widths instead of getting the full card width. */
+    .metrics-card{padding:14px 16px;gap:10px;flex-direction:column;align-items:center}
     .occ-ring{width:76px;height:76px}
     .occ-ring svg{width:76px;height:76px}
+    .kpi-grid{width:100%}
   }
 
   @media (max-width:576px){
@@ -433,6 +446,15 @@
 
   @media (max-width:480px){
     .hk-status-btn{width:100%}
+    /* At 3 columns, long labels like "Cancellations" or "Booked today" don't
+       fit on one line at phone widths — let them wrap instead of clipping/
+       overlapping the neighbouring KPI cell. Grid rows auto-size to the
+       tallest cell so this keeps every column in a row aligned. */
+    .kpi-grid{row-gap:10px}
+    .kpi-label{white-space:normal;line-height:1.2}
+    /* The corner search-collapse input on Housekeeping is fixed-width; at
+       this width plus the other toolbar icons it can overflow the card. */
+    .col-search-collapse.open .col-search-input{width:100px}
   }
 
   @media (max-width:400px){

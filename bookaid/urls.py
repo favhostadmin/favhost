@@ -56,6 +56,7 @@ urlpatterns = [
     path('shared/', include(('shared.urls', 'shared'), namespace='shared')),
     path('print/', include(('printpanel.urls', 'printpanel'), namespace='printpanel')),
     path('calendar-grid-view/',CalenderAPIView.as_view(),name="calendar-grid-view"),
+    path('calendar-timeline-view/',CalendarTimelineView.as_view(),name="calendar-timeline-view"),
     path('calendar-list-view/',CalendarListView.as_view(),name="calendar-list-view"),
 
     path('calendar/',CalenderAPIView.as_view(),name="calendar"),
