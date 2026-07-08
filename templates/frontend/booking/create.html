@@ -1575,8 +1575,12 @@
                                         <input type="hidden" name="deposit_fee" id="id_deposit_fee" value="0.00">
                                     </div>
                                     <div class="summary-item mt-1">
-                                        <span class="summary-label">Application fee:</span>
-                                        <span class="summary-value" id="summary-application-fee" data-fee="0.00">{{ currency_symbol }}0.00</span>
+                                        <span class="summary-label">Taxes:</span>
+                                        <span class="summary-value" id="summary-taxes" data-fee="0.00">{{ currency_symbol }}0.00</span>
+                                    </div>
+                                    <div class="summary-item mt-1">
+                                        <span class="summary-label">Other fees:</span>
+                                        <span class="summary-value" id="summary-other-fees" data-fee="0.00">{{ currency_symbol }}0.00</span>
                                         <input type="hidden" name="application_fee" id="id_application_fee" value="0.00">
                                     </div>
                                     <hr>
@@ -1764,7 +1768,9 @@
                 const pricePerNight = parseFloat(document.getElementById('id_price_per_night')?.value || 0);
                 const cleaningFee = parseFloat(document.getElementById('summary-cleaning-fee')?.dataset.fee || 0);
                 const refundableDeposit = parseFloat(document.getElementById('summary-refundable-deposit')?.dataset.deposit || 0);
-                const applicationFee = parseFloat(document.getElementById('summary-application-fee')?.dataset.fee || 0);
+                const taxesFee = parseFloat(document.getElementById('summary-taxes')?.dataset.fee || 0);
+                const otherFeesFee = parseFloat(document.getElementById('summary-other-fees')?.dataset.fee || 0);
+                const applicationFee = taxesFee + otherFeesFee;
                 // ... rest of the function
 
                 if(document.getElementById('id_cleaning_fee')) document.getElementById('id_cleaning_fee').value = cleaningFee.toFixed(2);
@@ -2279,24 +2285,28 @@
                 const pricePerNight = window.toDisplayCurrency(parseFloat(price) || 0);
                 const cleaningFee = window.toDisplayCurrency(parseFloat(selected.data('cleaning-fee')) || 0);
                 const refundableDeposit = window.toDisplayCurrency(parseFloat(selected.data('refundable-deposit')) || 0);
-                const applicationFee = window.toDisplayCurrency(parseFloat(selected.data('application-fee')) || 0);
+                const taxesFee = window.toDisplayCurrency(parseFloat(selected.data('taxes')) || 0);
+                const otherFeesFee = window.toDisplayCurrency(parseFloat(selected.data('other-fees')) || 0);
 
                 const priceCalcEl = document.getElementById('summary-price-calc');
                 const cleaningFeeEl = document.getElementById('summary-cleaning-fee');
                 const refundableDepositEl = document.getElementById('summary-refundable-deposit');
-                const applicationFeeEl = document.getElementById('summary-application-fee');
+                const taxesFeeEl = document.getElementById('summary-taxes');
+                const otherFeesFeeEl = document.getElementById('summary-other-fees');
                 const pricePerNightInput = document.getElementById('id_price_per_night');
 
                 pricePerNightInput.value = pricePerNight.toFixed(2);
 
                 priceCalcEl.dataset.price = pricePerNight;
                 cleaningFeeEl.dataset.fee = cleaningFee;
-                applicationFeeEl.dataset.fee = applicationFee;
+                taxesFeeEl.dataset.fee = taxesFee;
+                otherFeesFeeEl.dataset.fee = otherFeesFee;
                 refundableDepositEl.dataset.deposit = refundableDeposit;
 
                 cleaningFeeEl.textContent = window.CURRENCY.symbol + cleaningFee.toFixed(2);
                 refundableDepositEl.textContent = window.CURRENCY.symbol + refundableDeposit.toFixed(2);
-                applicationFeeEl.textContent = window.CURRENCY.symbol + applicationFee.toFixed(2);
+                taxesFeeEl.textContent = window.CURRENCY.symbol + taxesFee.toFixed(2);
+                otherFeesFeeEl.textContent = window.CURRENCY.symbol + otherFeesFee.toFixed(2);
 
                 updateSummary();
             });
@@ -2568,7 +2578,8 @@
                     option.setAttribute('data-guest', property.guest || '');
                     option.setAttribute('data-cleaning-fee', property.cleaning_fee || '');
                     option.setAttribute('data-refundable-deposit', property.refundable_deposit || '');
-                    option.setAttribute('data-application-fee', property.application_fees || '');
+                    option.setAttribute('data-taxes', property.taxes || '');
+                    option.setAttribute('data-other-fees', property.other_fees || '');
                     option.setAttribute('data-available', String(isAvailable));
                     option.setAttribute('data-min-nights', property.minimum_nights || '');
                     option.disabled = !isAvailable;

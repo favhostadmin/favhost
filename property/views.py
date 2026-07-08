@@ -330,6 +330,16 @@ class PropertyEditView(LoginRequiredMixin, UpdateView):
         return super().form_invalid(form)
     
     def handle_file_uploads(self):
+        # Handle a replaced cover photo
+        cover_photo = self.request.FILES.get('cover_photo')
+        if cover_photo:
+            self.object.images.filter(is_primary=True).delete()
+            PropertyImage.objects.create(
+                property=self.object,
+                image=cover_photo,
+                is_primary=True
+            )
+
         # Handle new property images
         images = self.request.FILES.getlist('property_images')
         for i, image in enumerate(images):
@@ -693,6 +703,8 @@ class AvailablePropertiesAjaxView(LoginRequiredMixin, View):
                 'cleaning_fee': p.cleaning_fee,
                 'refundable_deposit': p.refundable_deposit,
                 'application_fees': p.application_fees,
+                'taxes': p.taxes,
+                'other_fees': p.other_fees,
                 'guest': p.guest,
                 'minimum_nights': p.minimum_booking,
                 'is_available': is_available
