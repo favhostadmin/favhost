@@ -204,18 +204,12 @@ CELERY_BEAT_SCHEDULE = {
         # 'schedule': crontab(minute='*/2'),  # Runs at minute 0 past every 4th hour
         'schedule': crontab(minute='*/15'),  # Runs every 15 minutes
     },
-    'send-booking-emails-daily': {
+    # Runs every hour at :01. The task itself decides which properties are at
+    # their local midnight, so guests are emailed at the *hotel's* midnight
+    # regardless of country/timezone.
+    'send-booking-emails-hourly': {
         'task': 'booking.tasks.send_daily_booking_emails',
-        'schedule': crontab(minute=1, hour=0),  # Runs daily at 12:01 AM
-        # 'schedule': crontab(minute='*/2'),  # Runs every 5 minutes for testing
-    },
-    'send-booking-emails-daily-1am': {
-        'task': 'booking.tasks.send_daily_booking_emails',
-        'schedule': crontab(minute=1, hour=1),  # Runs daily at 1:01 AM
-    },
-    'send-booking-emails-daily-2am': {
-        'task': 'booking.tasks.send_daily_booking_emails',
-        'schedule': crontab(minute=1, hour=2),  # Runs daily at 2:01 AM
+        'schedule': crontab(minute=1),  # every hour at HH:01
     },
     'refresh-exchange-rates-daily': {
         'task': 'accounts.tasks.refresh_exchange_rates_task',
@@ -248,6 +242,16 @@ EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
 DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', EMAIL_HOST_USER)
 # Address used for Reply-To and the List-Unsubscribe mailto on outgoing emails.
 SUPPORT_EMAIL = os.getenv('SUPPORT_EMAIL', 'support@favhost.com')
+
+# --- Dedicated Zoho SMTP for the public contact form ---------------------- #
+# The default EMAIL_* account above (Namecheap/noreply) keeps sending every
+# other platform email. The contact form uses this separate Zoho account so
+# messages are delivered straight into the support@favhost.com inbox.
+SUPPORT_EMAIL_HOST = os.getenv('SUPPORT_EMAIL_HOST', 'smtp.zoho.com')
+SUPPORT_EMAIL_PORT = int(os.getenv('SUPPORT_EMAIL_PORT', 587))
+SUPPORT_EMAIL_USE_TLS = os.getenv('SUPPORT_EMAIL_USE_TLS', 'True') == 'True'
+SUPPORT_EMAIL_HOST_USER = os.getenv('SUPPORT_EMAIL_HOST_USER', SUPPORT_EMAIL)
+SUPPORT_EMAIL_HOST_PASSWORD = os.getenv('SUPPORT_EMAIL_HOST_PASSWORD')
 
 # --- Tutorials / YouTube channel ---
 # Set this to your real YouTube channel (or on-site tutorials page) URL.

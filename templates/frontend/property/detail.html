@@ -558,6 +558,26 @@
         color: #d1d5db;
         cursor: not-allowed;
     }
+    .detail-date-range-picker .drp-day.unavailable {
+        position: relative;
+        color: #b5b8bf;
+        cursor: not-allowed;
+        background: transparent;
+    }
+    .detail-date-range-picker .drp-day.unavailable::after {
+        content: '';
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        width: 20px;
+        height: 1px;
+        background: #dc3545;
+        transform: translate(-50%, -50%) rotate(-45deg);
+        pointer-events: none;
+    }
+    .detail-date-range-picker .drp-day.unavailable:hover {
+        background: transparent;
+    }
     .detail-date-range-picker .drp-day.in-range {
         background: #d8d8d8;
         color: #111827;
@@ -1856,6 +1876,7 @@
                                 <img src="{% static 'img/property/uit_calendar.svg' %}" alt="Calendar">
                             </button>
                             <div id="detail-date-range-picker" class="detail-date-range-picker" aria-hidden="true"></div>
+                            {{ unavailable_date_ranges|json_script:"unavailable-date-ranges" }}
                         </div>
 
                         <div class="date-inputs native-date-inputs">
@@ -2598,6 +2619,24 @@
             const minDate = new Date();
             minDate.setHours(0, 0, 0, 0);
 
+            const unavailableRangesEl = document.getElementById('unavailable-date-ranges');
+            let unavailableRanges = [];
+            if (unavailableRangesEl) {
+                try {
+                    unavailableRanges = JSON.parse(unavailableRangesEl.textContent).map(function (range) {
+                        return { start: parseIsoDate(range.start), end: parseIsoDate(range.end) };
+                    });
+                } catch (e) {
+                    unavailableRanges = [];
+                }
+            }
+
+            function isDateUnavailable(dateObj) {
+                return unavailableRanges.some(function (range) {
+                    return dateObj >= range.start && dateObj < range.end;
+                });
+            }
+
             function parseDateInput(val) {
                 if (!val) return null;
                 const [y, m, d] = val.split('-').map(Number);
@@ -2641,6 +2680,7 @@
                     if (!cell) return `<div class="drp-day blank"></div>`;
                     const iso = formatInput(cell);
                     const disabled = isDisabled(cell);
+                    const unavailable = !disabled && isDateUnavailable(cell);
                     const previewStart = startDate && !endDate && hoverDate
                         ? (hoverDate < startDate ? hoverDate : startDate)
                         : null;
@@ -2651,6 +2691,7 @@
                     const inPreviewRange = previewStart && previewEnd && cell > previewStart && cell < previewEnd;
                     const classes = ['drp-day'];
                     if (disabled) classes.push('disabled');
+                    if (unavailable) classes.push('unavailable');
                     if (inRange) classes.push('in-range');
                     if (inPreviewRange) classes.push('in-range');
                     if (sameDay(cell, startDate)) classes.push('start');
@@ -2697,7 +2738,7 @@
                 });
 
                 desktopRangePicker.querySelectorAll('.drp-day[data-date]').forEach(dayEl => {
-                    if (dayEl.classList.contains('disabled')) return;
+                    if (dayEl.classList.contains('disabled') || dayEl.classList.contains('unavailable')) return;
                     dayEl.addEventListener('click', function(e) {
                         e.stopPropagation();
                         const clicked = parseDateInput(this.dataset.date);

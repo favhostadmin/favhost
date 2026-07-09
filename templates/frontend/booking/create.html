@@ -1311,64 +1311,6 @@
             background-color: #e9ecef;
         }
     </style>
-    <style>
-        .searchable-select-wrap { position: relative; }
-        .searchable-select-wrap select { display: none; }
-        .searchable-select-wrap input[type="text"] { padding-right: 32px; }
-        .searchable-select-clear {
-            position: absolute;
-            right: 10px;
-            top: 50%;
-            transform: translateY(-50%);
-            width: 18px;
-            height: 18px;
-            border: none;
-            background: none;
-            padding: 0;
-            display: none;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            color: #9ca3af;
-            font-size: 16px;
-            line-height: 1;
-        }
-        .searchable-select-clear:hover { color: #374151; }
-        .searchable-select-clear.show { display: flex; }
-        .searchable-select-dropdown {
-            position: absolute;
-            top: calc(100% + 2px);
-            left: 0;
-            right: 0;
-            z-index: 50;
-            background: #fff;
-            border: 1px solid #d1d5db;
-            border-radius: 8px;
-            box-shadow: 0 8px 28px rgba(0,0,0,.18);
-            margin: 0;
-            padding: 4px 0;
-            list-style: none;
-            display: none;
-            max-height: 240px;
-            overflow-y: auto;
-            font-size: 14px;
-        }
-        .searchable-select-dropdown.open { display: block; }
-        .searchable-select-dropdown li {
-            padding: 8px 14px;
-            cursor: pointer;
-            color: #374151;
-        }
-        .searchable-select-dropdown li:hover,
-        .searchable-select-dropdown li.active {
-            background: #eff6ff;
-        }
-        .searchable-select-dropdown li.no-results {
-            color: #9ca3af;
-            cursor: default;
-        }
-        .searchable-select-dropdown li.no-results:hover { background: transparent; }
-    </style>
 {% endblock extra_head %}
 
 {% block content %}
@@ -1499,28 +1441,11 @@
 
                             <div class="booking-field">
                                 <label class="booking-field-label">Country</label>
-                                <div class="searchable-select-wrap">
-                                    <input type="text" class="booking-input" id="country-search-input" placeholder="Search country..." autocomplete="off">
-                                    <button type="button" class="searchable-select-clear" id="country-search-clear" aria-label="Clear country">&times;</button>
-                                    <ul class="searchable-select-dropdown" id="country-search-dropdown"></ul>
-                                    <select name="country" id="country" style="display:none;" data-selected="{{ form_data.country|default:'' }}">
-                                        <option value="">Select Country</option>
-                                        {% for country_name in countries %}
-                                        <option value="{{ country_name }}">{{ country_name }}</option>
-                                        {% endfor %}
-                                    </select>
-                                </div>
+                                <input type="text" name="country" class="booking-input" placeholder="Country" value="{{ form_data.country|default:'' }}">
                             </div>
                             <div class="booking-field">
                                 <label class="booking-field-label">State</label>
-                                <div class="searchable-select-wrap">
-                                    <input type="text" class="booking-input" id="state-search-input" placeholder="Search state..." autocomplete="off">
-                                    <button type="button" class="searchable-select-clear" id="state-search-clear" aria-label="Clear state">&times;</button>
-                                    <ul class="searchable-select-dropdown" id="state-search-dropdown"></ul>
-                                    <select name="state" id="state" style="display:none;" data-selected="{{ form_data.state|default:'' }}">
-                                        <option value="">Select State</option>
-                                    </select>
-                                </div>
+                                <input type="text" name="state" class="booking-input" placeholder="State" value="{{ form_data.state|default:'' }}">
                             </div>
 
                             <div class="booking-field">
@@ -1642,8 +1567,12 @@
                                         <input type="hidden" name="deposit_fee" id="id_deposit_fee" value="0.00">
                                     </div>
                                     <div class="summary-item mt-1">
-                                        <span class="summary-label">Application fee:</span>
-                                        <span class="summary-value" id="summary-application-fee" data-fee="0.00">{{ currency_symbol }}0.00</span>
+                                        <span class="summary-label">Taxes:</span>
+                                        <span class="summary-value" id="summary-taxes" data-fee="0.00">{{ currency_symbol }}0.00</span>
+                                    </div>
+                                    <div class="summary-item mt-1">
+                                        <span class="summary-label">Other fees:</span>
+                                        <span class="summary-value" id="summary-other-fees" data-fee="0.00">{{ currency_symbol }}0.00</span>
                                         <input type="hidden" name="application_fee" id="id_application_fee" value="0.00">
                                     </div>
                                     <hr>
@@ -1729,177 +1658,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/js/intlTelInput.min.js"></script>
-
-    <script>
-        /* ─── Lightweight searchable combobox (search bar lives in the field itself) ─── */
-        function setupSearchableSelect(inputEl, dropdownEl, selectEl, clearBtn) {
-            if (!inputEl || !dropdownEl || !selectEl) return;
-            let activeIndex = -1;
-
-            function getOptions() {
-                return Array.from(selectEl.options).filter(function(o) { return o.value !== ''; });
-            }
-
-            function renderList(filterText) {
-                const term = (filterText || '').trim().toLowerCase();
-                const matches = getOptions().filter(function(o) {
-                    return o.textContent.toLowerCase().indexOf(term) !== -1;
-                });
-                dropdownEl.innerHTML = '';
-                activeIndex = -1;
-                if (matches.length === 0) {
-                    const li = document.createElement('li');
-                    li.className = 'no-results';
-                    li.textContent = 'No results found';
-                    dropdownEl.appendChild(li);
-                    return;
-                }
-                matches.forEach(function(o) {
-                    const li = document.createElement('li');
-                    li.textContent = o.textContent;
-                    li.dataset.value = o.value;
-                    li.addEventListener('mousedown', function(e) {
-                        e.preventDefault();
-                        selectValue(o.value, o.textContent);
-                    });
-                    dropdownEl.appendChild(li);
-                });
-            }
-
-            function updateClearBtn() {
-                if (clearBtn) clearBtn.classList.toggle('show', !!selectEl.value);
-            }
-
-            function selectValue(value, text) {
-                selectEl.value = value;
-                inputEl.value = text;
-                closeDropdown();
-                updateClearBtn();
-                selectEl.dispatchEvent(new Event('change'));
-            }
-
-            function closeDropdown() {
-                dropdownEl.classList.remove('open');
-            }
-
-            function selectSelectedText() {
-                const opt = selectEl.options[selectEl.selectedIndex];
-                return opt ? opt.textContent : '';
-            }
-
-            inputEl.addEventListener('focus', function() {
-                inputEl.value = '';
-                renderList('');
-                dropdownEl.classList.add('open');
-            });
-
-            inputEl.addEventListener('input', function() {
-                renderList(inputEl.value);
-                dropdownEl.classList.add('open');
-            });
-
-            inputEl.addEventListener('keydown', function(e) {
-                const items = Array.from(dropdownEl.querySelectorAll('li:not(.no-results)'));
-                if (!items.length) return;
-                if (e.key === 'ArrowDown') {
-                    e.preventDefault();
-                    activeIndex = Math.min(activeIndex + 1, items.length - 1);
-                    items.forEach(function(li, i) { li.classList.toggle('active', i === activeIndex); });
-                    items[activeIndex].scrollIntoView({ block: 'nearest' });
-                } else if (e.key === 'ArrowUp') {
-                    e.preventDefault();
-                    activeIndex = Math.max(activeIndex - 1, 0);
-                    items.forEach(function(li, i) { li.classList.toggle('active', i === activeIndex); });
-                    items[activeIndex].scrollIntoView({ block: 'nearest' });
-                } else if (e.key === 'Enter') {
-                    e.preventDefault();
-                    if (activeIndex >= 0 && items[activeIndex]) {
-                        selectValue(items[activeIndex].dataset.value, items[activeIndex].textContent);
-                    }
-                } else if (e.key === 'Escape') {
-                    closeDropdown();
-                }
-            });
-
-            inputEl.addEventListener('blur', function() {
-                // Delay so a mousedown on an option can register first.
-                setTimeout(function() {
-                    closeDropdown();
-                    inputEl.value = selectSelectedText();
-                }, 150);
-            });
-
-            if (clearBtn) {
-                clearBtn.addEventListener('mousedown', function(e) {
-                    e.preventDefault();
-                    selectValue('', '');
-                    inputEl.focus();
-                    renderList('');
-                    dropdownEl.classList.add('open');
-                });
-            }
-
-            // Keep the visible input in sync whenever the underlying select changes programmatically.
-            selectEl.addEventListener('sync-display', function() {
-                inputEl.value = selectSelectedText();
-                updateClearBtn();
-            });
-
-            updateClearBtn();
-        }
-
-        function syncSearchInput(selectEl) {
-            selectEl.dispatchEvent(new Event('sync-display'));
-        }
-
-        document.addEventListener('DOMContentLoaded', function() {
-            const countrySelect = document.getElementById('country');
-            const stateSelect = document.getElementById('state');
-            const countrySearchInput = document.getElementById('country-search-input');
-            const countrySearchDropdown = document.getElementById('country-search-dropdown');
-            const countrySearchClear = document.getElementById('country-search-clear');
-            const stateSearchInput = document.getElementById('state-search-input');
-            const stateSearchDropdown = document.getElementById('state-search-dropdown');
-            const stateSearchClear = document.getElementById('state-search-clear');
-            if (!countrySelect || !stateSelect) return;
-
-            setupSearchableSelect(countrySearchInput, countrySearchDropdown, countrySelect, countrySearchClear);
-            setupSearchableSelect(stateSearchInput, stateSearchDropdown, stateSelect, stateSearchClear);
-
-            function populateStates(countryName, selectedState) {
-                stateSelect.innerHTML = '<option value="">Select State</option>';
-                if (!countryName) { syncSearchInput(stateSelect); return; }
-                fetch('/shared/api/states/' + encodeURIComponent(countryName) + '/')
-                    .then(function(res) { return res.json(); })
-                    .then(function(states) {
-                        states.forEach(function(name) {
-                            const opt = document.createElement('option');
-                            opt.value = name;
-                            opt.textContent = name;
-                            stateSelect.appendChild(opt);
-                        });
-                        if (selectedState) {
-                            const match = Array.from(stateSelect.options).find(function(o) {
-                                return o.value.toLowerCase() === selectedState.toLowerCase();
-                            });
-                            stateSelect.value = match ? match.value : '';
-                        }
-                        syncSearchInput(stateSelect);
-                    })
-                    .catch(function() {});
-            }
-
-            countrySelect.addEventListener('change', function() {
-                populateStates(countrySelect.value, '');
-            });
-
-            const selectedCountry = countrySelect.getAttribute('data-selected');
-            if (selectedCountry) countrySelect.value = selectedCountry;
-            syncSearchInput(countrySelect);
-            const selectedState = stateSelect.getAttribute('data-selected');
-            populateStates(countrySelect.value, selectedState);
-        });
-    </script>
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
@@ -2003,7 +1761,9 @@
                 const pricePerNight = parseFloat(document.getElementById('id_price_per_night')?.value || 0);
                 const cleaningFee = parseFloat(document.getElementById('summary-cleaning-fee')?.dataset.fee || 0);
                 const refundableDeposit = parseFloat(document.getElementById('summary-refundable-deposit')?.dataset.deposit || 0);
-                const applicationFee = parseFloat(document.getElementById('summary-application-fee')?.dataset.fee || 0);
+                const taxesFee = parseFloat(document.getElementById('summary-taxes')?.dataset.fee || 0);
+                const otherFeesFee = parseFloat(document.getElementById('summary-other-fees')?.dataset.fee || 0);
+                const applicationFee = taxesFee + otherFeesFee;
                 // ... rest of the function
 
                 if(document.getElementById('id_cleaning_fee')) document.getElementById('id_cleaning_fee').value = cleaningFee.toFixed(2);
@@ -2518,24 +2278,28 @@
                 const pricePerNight = window.toDisplayCurrency(parseFloat(price) || 0);
                 const cleaningFee = window.toDisplayCurrency(parseFloat(selected.data('cleaning-fee')) || 0);
                 const refundableDeposit = window.toDisplayCurrency(parseFloat(selected.data('refundable-deposit')) || 0);
-                const applicationFee = window.toDisplayCurrency(parseFloat(selected.data('application-fee')) || 0);
+                const taxesFee = window.toDisplayCurrency(parseFloat(selected.data('taxes')) || 0);
+                const otherFeesFee = window.toDisplayCurrency(parseFloat(selected.data('other-fees')) || 0);
 
                 const priceCalcEl = document.getElementById('summary-price-calc');
                 const cleaningFeeEl = document.getElementById('summary-cleaning-fee');
                 const refundableDepositEl = document.getElementById('summary-refundable-deposit');
-                const applicationFeeEl = document.getElementById('summary-application-fee');
+                const taxesFeeEl = document.getElementById('summary-taxes');
+                const otherFeesFeeEl = document.getElementById('summary-other-fees');
                 const pricePerNightInput = document.getElementById('id_price_per_night');
 
                 pricePerNightInput.value = pricePerNight.toFixed(2);
 
                 priceCalcEl.dataset.price = pricePerNight;
                 cleaningFeeEl.dataset.fee = cleaningFee;
-                applicationFeeEl.dataset.fee = applicationFee;
+                taxesFeeEl.dataset.fee = taxesFee;
+                otherFeesFeeEl.dataset.fee = otherFeesFee;
                 refundableDepositEl.dataset.deposit = refundableDeposit;
 
                 cleaningFeeEl.textContent = window.CURRENCY.symbol + cleaningFee.toFixed(2);
                 refundableDepositEl.textContent = window.CURRENCY.symbol + refundableDeposit.toFixed(2);
-                applicationFeeEl.textContent = window.CURRENCY.symbol + applicationFee.toFixed(2);
+                taxesFeeEl.textContent = window.CURRENCY.symbol + taxesFee.toFixed(2);
+                otherFeesFeeEl.textContent = window.CURRENCY.symbol + otherFeesFee.toFixed(2);
 
                 updateSummary();
             });
@@ -2807,7 +2571,8 @@
                     option.setAttribute('data-guest', property.guest || '');
                     option.setAttribute('data-cleaning-fee', property.cleaning_fee || '');
                     option.setAttribute('data-refundable-deposit', property.refundable_deposit || '');
-                    option.setAttribute('data-application-fee', property.application_fees || '');
+                    option.setAttribute('data-taxes', property.taxes || '');
+                    option.setAttribute('data-other-fees', property.other_fees || '');
                     option.setAttribute('data-available', String(isAvailable));
                     option.setAttribute('data-min-nights', property.minimum_nights || '');
                     option.disabled = !isAvailable;

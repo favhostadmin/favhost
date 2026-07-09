@@ -1151,8 +1151,9 @@ document.addEventListener('DOMContentLoaded', function () {
     /* ── intl-tel-input ── */
     const phoneInputField   = document.querySelector('#phone');
     const countryCodeHidden = document.querySelector('#id_country_code');
+    const savedCountryCode  = "{{ task.country_code|default:''|escapejs }}".toLowerCase();
     const phoneInput = window.intlTelInput(phoneInputField, {
-        initialCountry: 'auto',
+        initialCountry: savedCountryCode || 'auto',
         geoIpLookup: function (callback) {
             fetch('https://ipapi.co/json')
                 .then(r => r.json())
@@ -1162,6 +1163,9 @@ document.addEventListener('DOMContentLoaded', function () {
         separateDialCode: true,
         utilsScript: 'https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/js/utils.js',
     });
+    if (savedCountryCode && countryCodeHidden) {
+        countryCodeHidden.value = savedCountryCode;
+    }
 
     phoneInputField.addEventListener('input', function () {
         this.value = this.value.replace(/[^0-9]/g, '');
