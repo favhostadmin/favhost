@@ -62,6 +62,18 @@ class TaskListView(LoginRequiredMixin, ListView):
                 Q(assigned_to__icontains=search_query)
             )
 
+        # Due-date filter(only for pending tasks)
+        due_filter = self.request.GET.get('due', '')
+        if status_filter == 'pending' and due_filter in ('overdue', 'this_week', 'later'):
+            today = datetime.date.today()
+            week_end = today + datetime.timedelta(days=(6 - today.weekday()))
+            if due_filter == 'overdue':
+                tasks = tasks.filter(date__lt=today)
+            elif due_filter == 'this_week':
+                tasks = tasks.filter(date__gte=today, date__lte=week_end)
+            elif due_filter == 'later':
+                tasks = tasks.filter(date__gt=week_end)
+
         tasks = tasks.order_by('date', 'time')
         return tasks
 
@@ -91,7 +103,15 @@ class TaskListView(LoginRequiredMixin, ListView):
         context['pending_tasks_count'] = base_queryset.filter(completed=False).count()
         context['done_tasks_count'] = base_queryset.filter(completed=True).count()
         context['search_query'] = self.request.GET.get('search', '')
-        
+
+        # Counts for the due-date filter chips (pending tasks only)
+        week_end = today + datetime.timedelta(days=(6 - today.weekday()))
+        pending_queryset = base_queryset.filter(completed=False, date__isnull=False)
+        context['due_filter'] = self.request.GET.get('due', '')
+        context['overdue_count'] = pending_queryset.filter(date__lt=today).count()
+        context['this_week_count'] = pending_queryset.filter(date__gte=today, date__lte=week_end).count()
+        context['later_count'] = pending_queryset.filter(date__gt=week_end).count()
+
         return context
 
 class TaskCreateView(LoginRequiredMixin, View):
@@ -248,11 +268,22 @@ class UpdateTaskStatusView(LoginRequiredMixin, View):
             pending_tasks_count = base_queryset.filter(completed=False).count()
             done_tasks_count = base_queryset.filter(completed=True).count()
 
+            # Recalculate the due-date filter chip counts (pending tasks only)
+            today = datetime.date.today()
+            week_end = today + datetime.timedelta(days=(6 - today.weekday()))
+            pending_queryset = base_queryset.filter(completed=False, date__isnull=False)
+            overdue_count = pending_queryset.filter(date__lt=today).count()
+            this_week_count = pending_queryset.filter(date__gte=today, date__lte=week_end).count()
+            later_count = pending_queryset.filter(date__gt=week_end).count()
+
             # messages.success(request, 'Task status updated successfully!')
             return JsonResponse({
                 'success': True,
                 'pending_tasks_count': pending_tasks_count,
-                'done_tasks_count': done_tasks_count
+                'done_tasks_count': done_tasks_count,
+                'overdue_count': overdue_count,
+                'this_week_count': this_week_count,
+                'later_count': later_count,
             })
         except Task.DoesNotExist:
             return JsonResponse({'success': False, 'error': 'Task not found.'}, status=404)

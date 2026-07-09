@@ -1,6 +1,8 @@
 {% extends 'frontend/base/base.html' %}
 {% load static %}
 
+{% block body_class %}single-scroll{% endblock %}
+
 {% block extra_head %}
     <link href="{% static 'css/booking/create.css' %}" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
@@ -545,40 +547,41 @@
         box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
     }
 
-    html, body {
-        height: 100%;
-        overflow: hidden !important;
-    }
-
+    /* Single-scroll layout is handled by base.html (body.single-scroll).
+       These page-specific overrides used to force a fixed-height,
+       non-scrolling body with internal panel scroll — which blocked the
+       page scroll. Let base's single-scroll drive it: .main-content-body
+       scrolls once, header stays fixed, footer at the end. */
     .content {
-        height: 100%;
         min-height: 0;
         display: flex;
         flex-direction: column;
     }
 
-    .main-content-body {
-        max-height: none !important;
-        height: calc(100vh - 60px);
-        overflow: hidden !important;
-        display: flex;
-        flex-direction: column;
-        min-height: 0;
-    }
-
+    /* Single-scroll: form + container grow to fill the scroll column so
+       the footer sits at the bottom on short pages; no internal scroll. */
     #propertyForm,
     .booking-page-container {
-        height: 100%;
+        flex: 1 0 auto;
         min-height: 0;
         display: flex;
         flex-direction: column;
-        overflow: hidden;
     }
 
     .main_row_div{
         padding: 40px 12%;
-        max-height: calc(100vh - 177px);
-        overflow: auto;
+    }
+
+    .booking-scroll-area {
+        flex: 1 0 auto;
+    }
+
+    
+    .booking-page-container > .row {
+        position: sticky;
+        top: 0;
+        z-index: 20;
+        background: #E7E7E9;
     }
 
     @media (max-width: 640px) {
@@ -711,11 +714,9 @@
         margin: 0 1rem;
     }
     .booking-scroll-area {
-        flex: 1 1 auto;
+        flex: 1 0 auto;
         min-height: 0;
-        overflow-y: auto;
-        /* overflow-x: hidden; */
-        /* scrollbar-gutter: stable; */
+        /* No internal scroll — the whole page scrolls once (single-scroll). */
     }
     @media (max-width: 991.98px) {
 
@@ -1293,10 +1294,6 @@
     @media (max-width: 991.98px) {
         .booking-layout-grid {
             grid-template-columns: 1fr;
-            max-height: calc(100vh - 150px);
-            overflow-y: auto;
-            padding-right: 6px;
-            -webkit-overflow-scrolling: touch;
         }
 
         .booking-panel-body {
@@ -1306,11 +1303,6 @@
         .booking-field-grid,
         .booking-upload-grid {
             grid-template-columns: 1fr;
-        }
-
-        .booking-scroll-area {
-            overflow-y: auto;
-            overflow-x: hidden;
         }
     }
     </style>
@@ -1617,7 +1609,6 @@
         </div>
 
     </div>
-    {% include 'frontend/base/footer.html' %}
 </div>
 </form>
 
@@ -1657,6 +1648,8 @@
         <!-- Properties will be loaded here -->
     </div>
 </div>
+
+{% include 'frontend/base/footer.html' %}
 {% endblock content %}
 
 

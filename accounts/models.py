@@ -162,9 +162,18 @@ class MyUser(AbstractBaseUser):
         return self.get_local_now().date()
 
     def is_profile_complete(self):
-        """Check if user profile is complete"""
+        """Check if user profile is complete.
+
+        Mirrors the compulsory (*) fields on the Edit Profile page: the core
+        identity/location fields plus at least one uploaded local-authority
+        permission document. Profile photo, government ID and the about-me
+        text are optional and intentionally not required here.
+        """
         required_fields = [self.first_name, self.last_name, self.email, self.phone, self.country, self.state]
-        return all(field is not None and field != '' for field in required_fields)
+        if not all(field is not None and field != '' for field in required_fields):
+            return False
+        # Local authority permission document is compulsory.
+        return self.documents.filter(doc_type='permission').exists()
 
     def get_full_name(self):
         """Return user's full name"""
