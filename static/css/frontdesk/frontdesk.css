@@ -149,6 +149,29 @@
   .pill-red{background:var(--red-soft);color:var(--red-ink)}
   .pill-purple{background:var(--purple-soft);color:var(--purple-ink)}
 
+  /* Housekeeping's quick status filter — sits centered between the title
+     pill and the search/view/print tools; clicking a dot shows only
+     listings currently in that cleaning status (click again to clear).
+     Each button stacks its color swatch above a short label so the color
+     coding is legible on its own, not just a memorized dot.
+     Selectors are scoped under .hk-status-filter (2 classes) rather than
+     bare .hk-filter-dot (1 class) so they outrank the shared button reset
+     `.fd-page button{background:none;border:0;padding:0}` (1 class + 1
+     type = higher specificity than a single class) — otherwise that reset
+     silently wins and strips the padding/border/background right back off. */
+  .hk-status-filter{flex:1;display:flex;align-items:flex-start;justify-content:center;gap:3px;
+    flex-wrap:nowrap;overflow-x:auto}
+  .hk-status-filter .hk-filter-dot{min-width:40px;flex-shrink:0;padding:5px 4px;border-radius:8px;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
+    border:1px solid transparent;background:none;transition:background .15s,border-color .15s}
+  .hk-status-filter .hk-filter-dot:hover{background:var(--page)}
+  .hk-status-filter .hk-filter-dot.active{background:#fff;border-color:var(--line-2);box-shadow:0 1px 4px rgba(0,0,0,.08)}
+  .hk-filter-swatch{width:11px;height:11px;border-radius:50%;display:block;flex-shrink:0}
+  .hk-filter-swatch-all{background:#000}
+  .hk-filter-word{font-size:7.5px;font-weight:700;color:var(--ink-soft);text-transform:uppercase;
+    letter-spacing:.2px;line-height:1.15;text-align:center;white-space:nowrap}
+  .hk-status-filter .hk-filter-dot.active .hk-filter-word{color:var(--ink)}
+
   .col-search{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line-2);
     border-radius:9px;padding:5px 10px;flex:1;min-width:80px;max-width:160px;color:var(--muted)}
   .col-search svg{width:14px;height:14px}
@@ -230,8 +253,10 @@
   .hk-list--grid .hk-thumb-wrap{width:100%}
   .hk-list--grid .hk-thumb{width:100%;height:120px}
   .hk-list--grid .hk-status-col{width:100%}
-  .hk-list--grid .hk-status-dd{display:block;width:100%}
-  .hk-list--grid .hk-status-btn{width:100%}
+  .hk-list--grid .hk-status-dd,
+  .hk-list--grid .hk-cleaner-dd{display:block;width:100%}
+  .hk-list--grid .hk-status-btn,
+  .hk-list--grid .hk-cleaner-btn{width:100%}
   .hk-list--grid .hk-title{max-width:100%}
 
   .hk-thumb-wrap{display:flex;flex-direction:column;align-items:flex-start;gap:5px}
@@ -259,6 +284,9 @@
   .hk-price{display:flex;align-items:center;gap:6px;margin-top:7px}
   .hk-price-val{font-size:14px;font-weight:800;color:var(--ink)}
   .hk-price-unit{font-size:11.5px;color:var(--muted)}
+
+  /* Stacks the cleaning-status dropdown above the cleaner-assignment one. */
+  .hk-status-col{display:flex;flex-direction:column;align-items:flex-start;gap:6px}
 
   .hk-status-dd{position:relative;display:inline-block}
   .hk-status-btn{display:inline-flex;align-items:center;gap:8px;
@@ -291,6 +319,43 @@
   .hk-dot-clean-ready{background:#1FAE5A}
   .hk-dot-out-of-service{background:#9AA1AC}
   .hk-dot-unset{background:#C8CACD}
+
+  /* Cleaner-assignment dropdown — same trigger/menu pattern as the status
+     dropdown above, plus an inline delete button per option and an
+     add-name box pinned to the bottom of the menu. */
+  .hk-cleaner-dd{position:relative;display:inline-block}
+  .hk-cleaner-btn{display:inline-flex;align-items:center;gap:8px;
+    border:1px solid var(--line-2);border-radius:8px;
+    padding:4px 8px 4px 8px;background:#fff;transition:border-color .15s,box-shadow .15s;
+    cursor:pointer;white-space:nowrap;min-width:104px;justify-content:flex-start}
+  .hk-cleaner-btn:hover{border-color:#C8CACD;box-shadow:0 1px 4px rgba(0,0,0,.07)}
+  .hk-cleaner-btn-left{display:flex;align-items:center;gap:5px;overflow:hidden}
+  .hk-cleaner-btn-left svg{width:12px;height:12px;color:var(--muted);flex-shrink:0}
+  .hk-cleaner-label{font-size:11px;font-weight:600;color:var(--ink-soft);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:120px}
+  .hk-cleaner-dd.open .hk-status-chevron{transform:rotate(180deg)}
+  .hk-cleaner-menu{position:fixed;min-width:190px;
+    background:#fff;border:1px solid var(--line);border-radius:9px;
+    box-shadow:0 8px 24px rgba(0,0,0,.12);z-index:2000;overflow:hidden;
+    display:none;flex-direction:column;padding:3px}
+  .hk-cleaner-dd.open .hk-cleaner-menu{display:flex}
+  .hk-cleaner-opt{display:flex;align-items:center;justify-content:space-between;gap:6px;padding:5px 6px 5px 8px;
+    border-radius:6px;cursor:pointer;transition:background .12s}
+  .hk-cleaner-opt:hover{background:var(--page)}
+  .hk-cleaner-opt.selected{background:var(--purple-soft)}
+  .hk-cleaner-opt-label{font-size:11.5px;font-weight:600;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .hk-cleaner-del{width:18px;height:18px;border-radius:5px;flex-shrink:0;
+    display:flex;align-items:center;justify-content:center;
+    color:var(--muted);font-size:14px;line-height:1;transition:background .12s,color .12s}
+  .hk-cleaner-del:hover{background:var(--red-soft);color:var(--red)}
+  .hk-cleaner-add{display:flex;gap:6px;padding:6px 5px 3px;margin-top:3px;border-top:1px solid var(--line)}
+  .hk-cleaner-add-input{flex:1;min-width:0;border:1px solid var(--line-2);border-radius:6px;
+    padding:5px 8px;font-size:11.5px;color:var(--ink);outline:0}
+  .hk-cleaner-add-input:focus{border-color:var(--brand)}
+  .hk-cleaner-add-btn{width:26px;height:26px;border-radius:6px;flex-shrink:0;
+    display:flex;align-items:center;justify-content:center;
+    background:var(--purple-soft);color:var(--purple-ink);transition:background .15s,color .15s}
+  .hk-cleaner-add-btn svg{width:13px;height:13px}
+  .hk-cleaner-add-btn:hover{background:var(--purple);color:#fff}
 
   .empty-state{padding:40px 16px;text-align:center;color:var(--muted)}
   .empty-state svg{width:36px;height:36px;margin:0 auto 10px;opacity:.4}
@@ -432,6 +497,7 @@
     .fd-ph-inner{padding:12px 14px}
     .fd-ph-refresh{width:36px;height:36px}
     .tool-btn{width:36px;height:36px}
+    .hk-status-filter .hk-filter-dot{padding:6px 5px}
     .g-ext{width:36px;height:36px}
     /* Keep clearance either side for .dc-nav-btn (24px + 6px offset). */
     .date-card{padding:14px 32px}
@@ -454,7 +520,9 @@
   }
 
   @media (max-width:480px){
-    .hk-status-btn{width:100%}
+    .hk-status-btn,.hk-cleaner-btn{width:100%}
+    .hk-status-col{width:100%}
+    .hk-cleaner-label{max-width:none}
     /* At 3 columns, long labels like "Cancellations" or "Booked today" don't
        fit on one line at phone widths — let them wrap instead of clipping/
        overlapping the neighbouring KPI cell. Grid rows auto-size to the

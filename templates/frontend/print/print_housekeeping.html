@@ -75,8 +75,34 @@
     .lg { display: inline-flex; align-items: center; gap: 5px; }
     .sw { width: 9px; height: 9px; border-radius: 3px; display: inline-block; }
 
+    /* ===== Cleaner groups ===== */
+    .cleaner-block { margin-top: 14px; page-break-inside: avoid; }
+    .cleaner-head {
+      display: flex; justify-content: space-between; align-items: center;
+      background: #f8fafc; border: 1px solid #e2e8f0; border-bottom: none;
+      border-radius: 8px 8px 0 0; padding: 8px 12px;
+    }
+    .cleaner-id { display: flex; align-items: center; gap: 9px; }
+    .avatar, .avatar-unassigned {
+      width: 24px; height: 24px; border-radius: 50%; color: #fff;
+      font-size: 9.5px; font-weight: 700; display: flex;
+      align-items: center; justify-content: center; letter-spacing: 0.3px; flex-shrink: 0;
+    }
+    .avatar { background: linear-gradient(135deg, #7C5CFC, #5B3FD6); }
+    .avatar-unassigned { background: #94a3b8; }
+    .cleaner-name { font-size: 12.5px; font-weight: 700; color: #111827; }
+    .room-count {
+      font-size: 8.5px; color: #64748b; font-weight: 600; background: #fff;
+      border: 1px solid #e2e8f0; padding: 2px 8px; border-radius: 12px; margin-left: 8px;
+    }
+    .cleaner-chips { display: flex; gap: 6px; }
+    .chip { font-size: 8.5px; font-weight: 700; padding: 3px 8px; border-radius: 12px; }
+    .chip-dirty { background: #fef2f2; color: #b91c1c; }
+    .chip-progress { background: #fffbeb; color: #b45309; }
+    .chip-clean { background: #f0fdf4; color: #15803d; }
+
     /* ===== Listings table ===== */
-    table.grid { width: 100%; border-collapse: collapse; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; page-break-inside: auto; }
+    table.grid { width: 100%; border-collapse: collapse; border: 1px solid #e2e8f0; border-radius: 0 0 8px 8px; overflow: hidden; page-break-inside: auto; }
     .grid thead th {
       background: #1f2937; color: #fff; font-size: 8.5px; font-weight: 600;
       text-transform: uppercase; letter-spacing: 0.5px; text-align: left; padding: 7px 10px;
@@ -165,40 +191,54 @@
   <span class="lg"><span class="sw" style="background:#CBD5E1"></span>Not Set</span>
 </div>
 
-{% if rows %}
-<table class="grid">
-  <thead>
-    <tr>
-      <th style="width:24%">Property</th>
-      <th style="width:8%" class="c-center">Guests</th>
-      <th style="width:14%">Bed Type</th>
-      <th style="width:12%" class="c-center">Availability</th>
-      <th style="width:16%">Flags</th>
-      <th style="width:11%" class="c-center">Price / Night</th>
-      <th style="width:15%">Cleaning Status</th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for h in rows %}
-    <tr>
-      <td class="c-prop">{{ h.title }}</td>
-      <td class="c-center">{{ h.guest_max }}</td>
-      <td>{{ h.bed_type|default:"—" }}{% if h.pet_friendly %} &middot; Pet friendly{% endif %}</td>
-      <td class="c-center"><span class="badge {% if h.available %}b-ok{% else %}b-no{% endif %}">{% if h.available %}Available{% else %}Not available{% endif %}</span></td>
-      <td>
-        {% if h.has_checkin %}<span class="flag flag-in">Check-in</span>{% endif %}
-        {% if h.has_checkout %}<span class="flag flag-out">Check-out</span>{% endif %}
-        {% if not h.has_checkin and not h.has_checkout %}&mdash;{% endif %}
-      </td>
-      <td class="c-center c-price">${{ h.price|floatformat:2 }}</td>
-      <td><span class="status-badge st-{{ h.status_slug }}"><span class="dot"></span>{{ h.status_label }}</span></td>
-    </tr>
-    {% endfor %}
-  </tbody>
-</table>
-{% else %}
+{% for group in groups %}
+<section class="cleaner-block">
+  <div class="cleaner-head">
+    <div class="cleaner-id">
+      <span class="{% if group.is_unassigned %}avatar-unassigned{% else %}avatar{% endif %}">{{ group.initials }}</span>
+      <span class="cleaner-name">{{ group.name }}</span>
+      <span class="room-count">{{ group.rows|length }} listing{{ group.rows|length|pluralize }}</span>
+    </div>
+    <div class="cleaner-chips">
+      {% if group.dirty_count %}<span class="chip chip-dirty">{{ group.dirty_count }} dirty</span>{% endif %}
+      {% if group.progress_count %}<span class="chip chip-progress">{{ group.progress_count }} in progress</span>{% endif %}
+      {% if group.clean_count %}<span class="chip chip-clean">{{ group.clean_count }} clean</span>{% endif %}
+    </div>
+  </div>
+  <table class="grid">
+    <thead>
+      <tr>
+        <th style="width:26%">Property</th>
+        <th style="width:8%" class="c-center">Guests</th>
+        <th style="width:15%">Bed Type</th>
+        <th style="width:13%" class="c-center">Availability</th>
+        <th style="width:17%">Flags</th>
+        <th style="width:10%" class="c-center">Price / Night</th>
+        <th style="width:14%">Cleaning Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for h in group.rows %}
+      <tr>
+        <td class="c-prop">{{ h.title }}</td>
+        <td class="c-center">{{ h.guest_max }}</td>
+        <td>{{ h.bed_type|default:"—" }}{% if h.pet_friendly %} &middot; Pet friendly{% endif %}</td>
+        <td class="c-center"><span class="badge {% if h.available %}b-ok{% else %}b-no{% endif %}">{% if h.available %}Available{% else %}Not available{% endif %}</span></td>
+        <td>
+          {% if h.has_checkin %}<span class="flag flag-in">Check-in</span>{% endif %}
+          {% if h.has_checkout %}<span class="flag flag-out">Check-out</span>{% endif %}
+          {% if not h.has_checkin and not h.has_checkout %}&mdash;{% endif %}
+        </td>
+        <td class="c-center c-price">${{ h.price|floatformat:2 }}</td>
+        <td><span class="status-badge st-{{ h.status_slug }}"><span class="dot"></span>{{ h.status_label }}</span></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% empty %}
 <div class="empty-state">No active properties for this date.</div>
-{% endif %}
+{% endfor %}
 
 <div class="print-footer">
   <span class="footer-brand">FavHost</span> &middot; Housekeeping Report
