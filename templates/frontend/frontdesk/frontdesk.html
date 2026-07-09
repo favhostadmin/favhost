@@ -11,6 +11,8 @@
 {% block content %}
 <div class="fd-page">
 
+{{ cleaners|json_script:"cleaners-data" }}
+
 <!-- ══════════ ICON SPRITE ══════════ -->
 <svg width="0" height="0" class="fd-icon-defs" aria-hidden="true">
   <symbol id="ic-roof" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M3.2 11.5L12 4.2l8.8 7.3"/><path d="M17.5 8V5h2.2"/></symbol>
@@ -49,9 +51,6 @@
       <span class="fd-ph-title">Frontdesk</span>
     </div>
     <div class="fd-ph-right">
-      <button class="hdr-icon-btn" id="btn-today" aria-label="Go to today" title="Go to today">
-        <img src="{% static 'img/calender/today_icon.svg' %}" alt="" width="16" height="16">
-      </button>
       <button class="hdr-icon-btn" id="btn-refresh" aria-label="Refresh" title="Refresh">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
       </button>
@@ -75,6 +74,11 @@
         <button class="dc-nav-btn dc-nav-next" id="dc-next-day" type="button" aria-label="Next day">
           <svg width="13" height="13"><use href="#ic-chevr"/></svg>
         </button>
+        <div class="dc-header-actions">
+          <button class="hdr-icon-btn" id="btn-today" aria-label="Go to today" title="Go to today">
+            <img src="{% static 'img/calender/today_icon.svg' %}" alt="" width="16" height="16">
+          </button>
+        </div>
         <div class="dc-dow" id="dc-dow">{{ day_name|upper }}</div>
         <div class="dc-date">
           <span class="dc-num" id="dc-num">{{ day_num }}</span>
@@ -106,7 +110,7 @@
           <div class="kpi"><span class="kpi-val" id="kpi-vacant">{{ total_vacant }}/{{ total_active }}</span><span class="kpi-label">Vacant</span></div>
           <div class="kpi"><span class="kpi-val purple" id="kpi-booked">{{ total_booked_today }}</span><span class="kpi-label">Booked today</span></div>
           <div class="kpi"><span class="kpi-val amber" id="kpi-tasks">{{ total_tasks }}</span><span class="kpi-label">Tasks</span></div>
-          <div class="kpi"><span class="kpi-val" id="kpi-payments">${{ total_payments_amount }}</span><span class="kpi-label">Payments</span></div>
+          <div class="kpi"><span class="kpi-val" id="kpi-enquiries">{{ total_enquiries }}</span><span class="kpi-label">Inquiries</span></div>
         </div>
       </div>
 
@@ -196,15 +200,30 @@
       </div>
 
       <div class="col-card col-hk">
-        <div class="hk-print-header" aria-hidden="true">
-          <img src="{% static 'img/login/favhost_new_logo.png' %}" alt="FavHost" class="hk-print-logo">
-          <div class="hk-print-titles">
-            <span class="hk-print-title">Housekeeping Report</span>
-            <span class="hk-print-meta" id="hkPrintMeta"></span>
-          </div>
-        </div>
         <div class="col-head">
           <span class="col-title-pill pill-purple">Housekeeping</span>
+          <div class="hk-status-filter" id="hkStatusFilter">
+            <button class="hk-filter-dot active" type="button" data-status="" aria-label="Filter: All" title="All listings">
+              <span class="hk-filter-swatch hk-filter-swatch-all"></span>
+              <span class="hk-filter-word">All</span>
+            </button>
+            <button class="hk-filter-dot" type="button" data-status="Dirty" aria-label="Filter: Dirty" title="Dirty">
+              <span class="hk-filter-swatch hk-dot-dirty"></span>
+              <span class="hk-filter-word">Dirty</span>
+            </button>
+            <button class="hk-filter-dot" type="button" data-status="In-Progress" aria-label="Filter: In-Progress" title="In-Progress">
+              <span class="hk-filter-swatch hk-dot-in-progress"></span>
+              <span class="hk-filter-word">In Progress</span>
+            </button>
+            <button class="hk-filter-dot" type="button" data-status="Clean-Uninspected" aria-label="Filter: Clean-Uninspected" title="Clean-Uninspected">
+              <span class="hk-filter-swatch hk-dot-clean-uninspected"></span>
+              <span class="hk-filter-word">Uninspected</span>
+            </button>
+            <button class="hk-filter-dot" type="button" data-status="Clean-Ready" aria-label="Filter: Clean-Ready" title="Clean-Ready">
+              <span class="hk-filter-swatch hk-dot-clean-ready"></span>
+              <span class="hk-filter-word">Ready</span>
+            </button>
+          </div>
           <div class="col-tools">
             <div class="col-search-collapse" id="hkSearchCollapse">
               <input type="search" id="hk-search" class="col-search-input" placeholder="Search listing…" autocomplete="off">
@@ -217,7 +236,7 @@
         </div>
         <ul class="hk-list" id="hk-list">
           {% for h in housekeeping %}
-          <li class="hk-item">
+          <li class="hk-item" data-status="{{ h.status|default:'' }}">
             <div class="hk-thumb-wrap">
               <div class="hk-thumb">
                 {% if h.image_url %}
@@ -286,6 +305,33 @@
                 </div>
               </div>
               {% endwith %}
+
+              <!-- Assigns who looks after cleaning this listing. The roster
+                   (add/delete) is shared across every listing's dropdown. -->
+              <div class="hk-cleaner-dd" data-property-id="{{ h.id }}" data-current-id="{{ h.cleaner_id|default:'' }}">
+                <button class="hk-cleaner-btn" type="button" aria-haspopup="listbox">
+                  <span class="hk-cleaner-btn-left">
+                    <svg><use href="#ic-user"/></svg>
+                    <span class="hk-cleaner-label">{% if h.cleaner_name %}{{ h.cleaner_name }}{% else %}Assign cleaner{% endif %}</span>
+                  </span>
+                  <svg class="hk-status-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9.5l6 6 6-6"/></svg>
+                </button>
+                <div class="hk-cleaner-menu" role="listbox">
+                  <div class="hk-cleaner-opt{% if not h.cleaner_id %} selected{% endif %}" data-value="">
+                    <span class="hk-cleaner-opt-label">Unassigned</span>
+                  </div>
+                  {% for c in cleaners %}
+                  <div class="hk-cleaner-opt{% if h.cleaner_id == c.id %} selected{% endif %}" data-value="{{ c.id }}">
+                    <span class="hk-cleaner-opt-label">{{ c.name }}</span>
+                    <button class="hk-cleaner-del" type="button" data-cleaner-id="{{ c.id }}" aria-label="Remove {{ c.name }} from cleaner list">&times;</button>
+                  </div>
+                  {% endfor %}
+                  <div class="hk-cleaner-add">
+                    <input type="text" class="hk-cleaner-add-input" placeholder="Add cleaner…" maxlength="120">
+                    <button class="hk-cleaner-add-btn" type="button" aria-label="Add cleaner"><svg><use href="#ic-plus"/></svg></button>
+                  </div>
+                </div>
+              </div>
             </div>
           </li>
           {% empty %}
@@ -340,10 +386,16 @@
     checkins:     '{% url "frontdesk:api-checkins" %}',
     checkouts:    '{% url "frontdesk:api-checkouts" %}',
     housekeeping: '{% url "frontdesk:api-housekeeping" %}',
+    cleaners:     '{% url "frontdesk:api-cleaners" %}',
   };
 
   let currentDate = new Date('{{ date_iso }}');
   let isLoading = false;
+  // Active Housekeeping status quick-filter ('' = show all statuses).
+  let hkStatusFilterValue = '';
+  // Shared cleaner roster — same list backs every listing's assignment
+  // dropdown; add/delete anywhere updates this and re-renders them all.
+  let CLEANERS = JSON.parse(document.getElementById('cleaners-data').textContent);
 
   const btnPrev    = document.getElementById('dc-prev-day');
   const btnNext    = document.getElementById('dc-next-day');
@@ -374,11 +426,11 @@
     arc.setAttribute('stroke-dasharray', `${fill.toFixed(2)} ${(CIRC - fill).toFixed(2)}`);
   }
 
-  function closeAllStatusDD(){
-    document.querySelectorAll('.hk-status-dd.open').forEach(o => o.classList.remove('open'));
+  function closeAllDropdowns(){
+    document.querySelectorAll('.hk-status-dd.open, .hk-cleaner-dd.open').forEach(o => o.classList.remove('open'));
   }
 
-  function positionStatusMenu(btn, menu){
+  function positionDropdownMenu(btn, menu){
     const r = btn.getBoundingClientRect();
     const menuWidth = menu.offsetWidth || 200;
     const menuHeight = menu.offsetHeight || 0;
@@ -395,7 +447,7 @@
     const hkList = document.getElementById('hk-list');
     if(hkList && !hkList.dataset.scrollCloseBound){
       hkList.dataset.scrollCloseBound = '1';
-      hkList.addEventListener('scroll', closeAllStatusDD);
+      hkList.addEventListener('scroll', closeAllDropdowns);
     }
 
     document.querySelectorAll('.hk-status-dd').forEach(dd => {
@@ -407,10 +459,10 @@
       btn.addEventListener('click', function(e){
         e.stopPropagation();
         const isOpen = dd.classList.contains('open');
-        closeAllStatusDD();
+        closeAllDropdowns();
         if(!isOpen){
           dd.classList.add('open');
-          positionStatusMenu(btn, menu);
+          positionDropdownMenu(btn, menu);
         }
       });
 
@@ -435,11 +487,167 @@
 
     if(!document.body.dataset.hkOutsideCloseBound){
       document.body.dataset.hkOutsideCloseBound = '1';
-      document.addEventListener('click', closeAllStatusDD);
+      document.addEventListener('click', closeAllDropdowns);
     }
   }
 
-  window.addEventListener('resize', closeAllStatusDD);
+  window.addEventListener('resize', closeAllDropdowns);
+
+  /* ── Cleaner assignment dropdown ── */
+
+  function cleanerOptionsHTML(currentId){
+    const noneOpt = `
+      <div class="hk-cleaner-opt${!currentId ? ' selected' : ''}" data-value="">
+        <span class="hk-cleaner-opt-label">Unassigned</span>
+      </div>`;
+    const opts = CLEANERS.map(c => `
+      <div class="hk-cleaner-opt${currentId===c.id ? ' selected' : ''}" data-value="${c.id}">
+        <span class="hk-cleaner-opt-label">${escHTML(c.name)}</span>
+        <button class="hk-cleaner-del" type="button" data-cleaner-id="${c.id}" aria-label="Remove ${escHTML(c.name)} from cleaner list">&times;</button>
+      </div>`).join('');
+    const addRow = `
+      <div class="hk-cleaner-add">
+        <input type="text" class="hk-cleaner-add-input" placeholder="Add cleaner…" maxlength="120">
+        <button class="hk-cleaner-add-btn" type="button" aria-label="Add cleaner"><svg><use href="#ic-plus"/></svg></button>
+      </div>`;
+    return noneOpt + opts + addRow;
+  }
+
+  function setCleanerCurrent(dd, cleanerId, cleanerName){
+    dd.dataset.currentId = cleanerId || '';
+    const label = dd.querySelector('.hk-cleaner-label');
+    if(label) label.textContent = cleanerName || 'Assign cleaner';
+    rebuildCleanerMenu(dd);
+  }
+
+  function selectCleaner(dd, cleanerId, propertyId){
+    const cleaner = cleanerId ? CLEANERS.find(c => c.id === cleanerId) : null;
+    setCleanerCurrent(dd, cleanerId, cleaner ? cleaner.name : null);
+    dd.classList.remove('open');
+    fetch(API.housekeeping, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json','X-CSRFToken': getCookie('csrftoken')},
+      body: JSON.stringify({property_id: propertyId, cleaner_id: cleanerId || '', date: fmtISO(currentDate)})
+    });
+  }
+
+  function deleteCleaner(id){
+    fetch(`${API.cleaners}${id}/`, {
+      method: 'DELETE',
+      headers: {'X-CSRFToken': getCookie('csrftoken')}
+    })
+      .then(r => { if(!r.ok) throw new Error('delete failed'); })
+      .then(() => {
+        CLEANERS = CLEANERS.filter(c => c.id !== id);
+        document.querySelectorAll('.hk-cleaner-dd').forEach(dd => {
+          if(parseInt(dd.dataset.currentId, 10) === id){
+            dd.dataset.currentId = '';
+            const label = dd.querySelector('.hk-cleaner-label');
+            if(label) label.textContent = 'Assign cleaner';
+          }
+          rebuildCleanerMenu(dd);
+        });
+      })
+      .catch(() => alert('Could not remove cleaner. Please try again.'));
+  }
+
+  function addCleaner(name, sourceDD, propertyId){
+    fetch(API.cleaners, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json','X-CSRFToken': getCookie('csrftoken')},
+      body: JSON.stringify({name})
+    })
+      .then(r => { if(!r.ok) throw new Error('add failed'); return r.json(); })
+      .then(cleaner => {
+        if(!CLEANERS.some(c => c.id === cleaner.id)){
+          CLEANERS.push(cleaner);
+          CLEANERS.sort((a,b) => a.name.localeCompare(b.name));
+        }
+        document.querySelectorAll('.hk-cleaner-dd').forEach(dd => {
+          if(dd !== sourceDD) rebuildCleanerMenu(dd);
+        });
+        selectCleaner(sourceDD, cleaner.id, propertyId);
+      })
+      .catch(() => alert('Could not add cleaner. Please try again.'));
+  }
+
+  function bindCleanerMenu(dd){
+    const menu = dd.querySelector('.hk-cleaner-menu');
+    const propertyId = dd.dataset.propertyId;
+
+    menu.querySelectorAll('.hk-cleaner-opt').forEach(opt => {
+      opt.addEventListener('click', function(e){
+        e.stopPropagation();
+        const val = this.dataset.value;
+        selectCleaner(dd, val ? parseInt(val, 10) : null, propertyId);
+      });
+    });
+
+    menu.querySelectorAll('.hk-cleaner-del').forEach(delBtn => {
+      delBtn.addEventListener('click', function(e){
+        e.stopPropagation();
+        const id = parseInt(this.dataset.cleanerId, 10);
+        const label = this.previousElementSibling ? this.previousElementSibling.textContent : 'this cleaner';
+        if(!confirm(`Remove "${label}" from the cleaner list? This unassigns them from every listing.`)) return;
+        deleteCleaner(id);
+      });
+    });
+
+    const addInput = menu.querySelector('.hk-cleaner-add-input');
+    const addBtn = menu.querySelector('.hk-cleaner-add-btn');
+    function doAdd(){
+      const name = addInput.value.trim();
+      if(!name) return;
+      addCleaner(name, dd, propertyId);
+    }
+    if(addInput) addInput.addEventListener('click', e => e.stopPropagation());
+    if(addInput) addInput.addEventListener('keydown', function(e){
+      if(e.key === 'Enter'){ e.preventDefault(); doAdd(); }
+    });
+    if(addBtn) addBtn.addEventListener('click', function(e){ e.stopPropagation(); doAdd(); });
+  }
+
+  function rebuildCleanerMenu(dd){
+    const menu = dd.querySelector('.hk-cleaner-menu');
+    const currentId = dd.dataset.currentId ? parseInt(dd.dataset.currentId, 10) : null;
+    menu.innerHTML = cleanerOptionsHTML(currentId);
+    bindCleanerMenu(dd);
+  }
+
+  function applyCleanerDD(){
+    document.querySelectorAll('.hk-cleaner-dd').forEach(dd => {
+      const btn  = dd.querySelector('.hk-cleaner-btn');
+      const menu = dd.querySelector('.hk-cleaner-menu');
+      if(!btn || btn.dataset.bound) return;
+      btn.dataset.bound = '1';
+
+      btn.addEventListener('click', function(e){
+        e.stopPropagation();
+        const isOpen = dd.classList.contains('open');
+        closeAllDropdowns();
+        if(!isOpen){
+          dd.classList.add('open');
+          positionDropdownMenu(btn, menu);
+        }
+      });
+
+      bindCleanerMenu(dd);
+    });
+  }
+
+  function buildCleanerDD(currentId, currentName, propertyId){
+    return `
+      <div class="hk-cleaner-dd" data-property-id="${escHTML(propertyId)}" data-current-id="${currentId || ''}">
+        <button class="hk-cleaner-btn" type="button" aria-haspopup="listbox">
+          <span class="hk-cleaner-btn-left">
+            <svg><use href="#ic-user"/></svg>
+            <span class="hk-cleaner-label">${currentName ? escHTML(currentName) : 'Assign cleaner'}</span>
+          </span>
+          <svg class="hk-status-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9.5l6 6 6-6"/></svg>
+        </button>
+        <div class="hk-cleaner-menu">${cleanerOptionsHTML(currentId)}</div>
+      </div>`;
+  }
 
   function renderGuest(b, timeKey){
     const img = b.image_url
@@ -516,8 +724,9 @@
     const checkinBadge  = h.has_checkin  ? `<span class="hk-flag checkin"><svg><use href="#ic-checkin"/></svg>Check-in</span>` : '';
     const checkoutBadge = h.has_checkout ? `<span class="hk-flag checkout"><svg><use href="#ic-checkout"/></svg>Check-out</span>` : '';
     const opts = buildStatusDD(h.status, h.id);
+    const cleanerDD = buildCleanerDD(h.cleaner_id, h.cleaner_name, h.id);
     return `
-      <li class="hk-item">
+      <li class="hk-item" data-status="${h.status || ''}">
         <div class="hk-thumb-wrap">
           <div class="hk-thumb">${img}</div>
           <span class="avail-badge ${availClass}">${availText}</span>
@@ -534,7 +743,7 @@
             <span class="hk-price-unit">/ night</span>
           </div>
         </div>
-        <div class="hk-status-col">${opts}</div>
+        <div class="hk-status-col">${opts}${cleanerDD}</div>
       </li>`;
   }
 
@@ -560,7 +769,7 @@
       document.getElementById('kpi-vacant').textContent      = sum.total_vacant + '/' + sum.total_active;
       document.getElementById('kpi-booked').textContent      = sum.total_booked_today;
       document.getElementById('kpi-tasks').textContent       = sum.total_tasks;
-      document.getElementById('kpi-payments').textContent    = '$' + sum.total_payments_amount;
+      document.getElementById('kpi-enquiries').textContent    = sum.total_enquiries;
       document.getElementById('ci-count').textContent        = sum.total_checkin;
       document.getElementById('co-count').textContent        = sum.total_checkout;
       updateDonut(sum.occupancy_pct);
@@ -580,13 +789,17 @@
         ? co.data.map(b => renderGuest(b, 'check_out_time')).join('')
         : emptyState('ic-users','No check-outs on this date');
 
+      if(Array.isArray(hk.cleaners)) CLEANERS = hk.cleaners;
+
       const hkList = document.getElementById('hk-list');
       hkList.innerHTML = hk.data.length
         ? hk.data.map(renderHKItem).join('')
         : emptyState('ic-home','No active properties');
 
       applyStatusDD();
+      applyCleanerDD();
       attachSearch();
+      applyHKFilters();
 
     } catch(err) {
       console.error('Frontdesk fetch error:', err);
@@ -617,6 +830,12 @@
   if(dcDateOverlay) dcDateOverlay.addEventListener('change', function(){
     if(this.value){ setDate(new Date(this.value + 'T12:00:00')); }
   });
+  // The overlay now spans the whole date-card so any tap on it should open
+  // the calendar — native <input type=date> only guarantees that from the
+  // calendar-icon portion, so trigger it explicitly on click too.
+  if(dcDateOverlay) dcDateOverlay.addEventListener('click', function(){
+    if(this.showPicker){ try{ this.showPicker(); }catch(e){} }
+  });
 
   function attachSearch(){
     function filterList(inputId, listId){
@@ -635,34 +854,46 @@
     filterList('co-search','checkout-list');
 
     const hkInp = document.getElementById('hk-search');
-    if(hkInp){
-      hkInp.addEventListener('input', function(){
-        const q = this.value.toLowerCase();
-        document.querySelectorAll('#hk-list .hk-item').forEach(li => {
-          const title = (li.querySelector('.hk-title')?.textContent || '').toLowerCase();
-          li.style.display = title.includes(q) ? '' : 'none';
-        });
-      });
-    }
+    if(hkInp) hkInp.addEventListener('input', applyHKFilters);
   }
 
-  function stampHKPrintMeta(){
-    const el = document.getElementById('hkPrintMeta');
-    if(!el) return;
-    el.textContent = fmtLabel(currentDate) + ' · Generated: ' + new Date().toLocaleString();
+  // Combines the search box and the status quick-filter dots — both narrow
+  // down the same #hk-list, so every listing must satisfy whichever of the
+  // two are currently active.
+  function applyHKFilters(){
+    const q = (document.getElementById('hk-search')?.value || '').toLowerCase();
+    document.querySelectorAll('#hk-list .hk-item').forEach(li => {
+      const title = (li.querySelector('.hk-title')?.textContent || '').toLowerCase();
+      const matchesSearch = !q || title.includes(q);
+      const matchesStatus = !hkStatusFilterValue || li.dataset.status === hkStatusFilterValue;
+      li.style.display = (matchesSearch && matchesStatus) ? '' : 'none';
+    });
+  }
+
+  // The filter dots live in .col-head, outside #hk-list, so they survive
+  // every loadAll() re-render — bind their click handling once.
+  function applyHKStatusFilterButtons(){
+    const bar = document.getElementById('hkStatusFilter');
+    if(!bar || bar.dataset.bound) return;
+    bar.dataset.bound = '1';
+    bar.querySelectorAll('.hk-filter-dot').forEach(btn => {
+      btn.addEventListener('click', function(){
+        const val = this.dataset.status;
+        hkStatusFilterValue = (hkStatusFilterValue === val) ? '' : val;
+        bar.querySelectorAll('.hk-filter-dot').forEach(b => {
+          b.classList.toggle('active', b.dataset.status === hkStatusFilterValue);
+        });
+        applyHKFilters();
+      });
+    });
   }
 
   const hkReportBtn = document.getElementById('hk-report-btn');
   if(hkReportBtn){
     hkReportBtn.addEventListener('click', function(){
-      stampHKPrintMeta();
-      document.body.classList.add('printing-hk');
-      window.print();
+      window.location.href = '{% url "frontdesk:print-panel" %}?date=' + fmtISO(currentDate);
     });
   }
-  window.addEventListener('afterprint', function(){
-    document.body.classList.remove('printing-hk');
-  });
 
   /* ── Housekeeping corner search (icon expands to input) ── */
   (function(){
@@ -717,7 +948,9 @@
 
   updateDonut(parseFloat('{{ occupancy_pct }}') || 0);
   applyStatusDD();
+  applyCleanerDD();
   attachSearch();
+  applyHKStatusFilterButtons();
 
   setInterval(() => loadAll(fmtISO(currentDate)), 5 * 60 * 1000);
 
