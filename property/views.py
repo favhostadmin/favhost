@@ -498,8 +498,14 @@ class PropertyListView(LoginRequiredMixin, ListView):
 
             next_available_by_property = {}
             for property_id, bookings in bookings_by_property.items():
-                # Merge overlapping/back-to-back bookings starting from the nearest one
-                # so the badge reflects when the property is next fully free.
+                # Property is booked today if the earliest upcoming booking has
+                # already started; otherwise it's free today, so no badge is needed.
+                if bookings[0].check_in_date > today:
+                    continue
+
+                # Merge overlapping/back-to-back bookings starting from the one
+                # covering today, so the badge reflects the first checkout that
+                # isn't immediately followed by another check-in the same day.
                 chain_end = bookings[0].check_out_date
                 for booking in bookings[1:]:
                     if booking.check_in_date <= chain_end:
@@ -951,8 +957,14 @@ class ListingPageView(ListView):
 
             next_available_by_property = {}
             for property_id, bookings in bookings_by_property.items():
-                # Merge overlapping/back-to-back bookings starting from the nearest one
-                # so the badge reflects when the property is next fully free.
+                # Property is booked today if the earliest upcoming booking has
+                # already started; otherwise it's free today, so no badge is needed.
+                if bookings[0].check_in_date > today:
+                    continue
+
+                # Merge overlapping/back-to-back bookings starting from the one
+                # covering today, so the badge reflects the first checkout that
+                # isn't immediately followed by another check-in the same day.
                 chain_end = bookings[0].check_out_date
                 for booking in bookings[1:]:
                     if booking.check_in_date <= chain_end:

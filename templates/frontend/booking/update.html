@@ -1228,65 +1228,58 @@
                                 <input type="hidden" name="country_code" id="id_country_code">
                             </div>
                             <div class="booking-field full-width">
-                                <label class="booking-field-label">Guest Photo</label>
                                 <div class="booking-upload-grid">
-                                    <div class="booking-upload-box upload-area" id="upload-area">
-                                        <div><img src="{% static 'img/property/upload.png' %}" alt="Upload Photo"></div>
-                                        <div class="booking-upload-title">Click to upload or drag and drop</div>
-                                        <div class="booking-upload-subtitle">Documents, images up to 15MB each</div>
+                                    <div>
+                                        <label class="booking-field-label">Guest Photo</label>
+                                        <div class="booking-upload-box upload-area" id="upload-area">
+                                            <div><img src="{% static 'img/property/upload.png' %}" alt="Upload Photo"></div>
+                                            <div class="booking-upload-title">Click to upload or drag and drop</div>
+                                            <div class="booking-upload-subtitle">Documents, images up to 15MB each</div>
+                                        </div>
+                                        <div class="error-message" id="error-message"></div>
+                                        <div class="preview-container" id="image-preview-container" {% if existing_images %}style="display: block;"{% endif %}>
+                                            <div class="preview-grid" id="preview-grid">
+                                                {% for image in existing_images %}
+                                                <div class="preview-item" data-image-id="{{ image.id }}">
+                                                    <a href="{{ image.image.url }}" target="_blank">
+                                                        <img src="{{ image.image.url }}" alt="Existing Guest Photo">
+                                                    </a>
+                                                    <button type="button" class="remove-btn" onclick="deleteExistingFile('image', '{{ image.id }}', this)">×</button>
+                                                </div>
+                                                {% endfor %}
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div class="booking-upload-box upload-area" id="attachmentUploadArea">
-                                        <div><img src="{% static 'img/property/upload.png' %}" alt="Upload Photo"></div>
-                                        <div class="booking-upload-title">Click to upload or drag and drop</div>
-                                        <div class="booking-upload-subtitle">Documents, images up to 15MB each</div>
+                                    <div>
+                                        <label class="booking-field-label">Guest ID/Documents</label>
+                                        <div class="booking-upload-box upload-area" id="attachmentUploadArea">
+                                            <div><img src="{% static 'img/property/upload.png' %}" alt="Upload Photo"></div>
+                                            <div class="booking-upload-title">Click to upload or drag and drop</div>
+                                            <div class="booking-upload-subtitle">Documents, images up to 15MB each</div>
+                                        </div>
+                                        <div class="attachment-error-message" id="attachment-error-message"></div>
+                                        <div class="attachment-preview-container" id="attachment-preview-container" {% if existing_attachments %}style="display: block;"{% endif %}>
+                                            <div class="preview-grid" id="attachmentPreview">
+                                                {% for doc in existing_attachments %}
+                                                {% with file_extension=doc.document.name|lower|slice:"-4:" %}
+                                                {% with long_file_extension=doc.document.name|lower|slice:"-5:" %}
+                                                <div class="{% if file_extension == '.jpg' or file_extension == '.png' or file_extension == '.gif' or long_file_extension == '.jpeg' %}preview-item{% else %}preview-doc-item{% endif %}" data-doc-id="{{ doc.id }}">
+                                                    {% if file_extension == '.jpg' or file_extension == '.png' or file_extension == '.gif' or long_file_extension == '.jpeg' %}
+                                                        <a href="{{ doc.document.url }}" target="_blank"><img src="{{ doc.document.url }}" alt="Existing Attachment"></a>
+                                                    {% else %}
+                                                        <a href="{{ doc.document.url }}" target="_blank" class="doc-link"><span>📄</span> {{ doc.name }}</a>
+                                                    {% endif %}
+                                                    <button type="button" class="remove-btn" onclick="deleteExistingFile('document', '{{ doc.id }}', this)">×</button>
+                                                </div>
+                                                {% endwith %}
+                                                {% endwith %}
+                                                {% endfor %}
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                                 <input type="file" name="guest_images" accept="image/*" style="display: none;" id="id_guest_images" multiple>
                                 <input type="file" name="guest_attachments" style="display: none;" id="id_guest_attachments" multiple>
-                                <div class="error-message" id="error-message"></div>
-                                <div class="attachment-error-message" id="attachment-error-message"></div>
-                                <div class="preview-container" id="image-preview-container">
-                                    <div class="preview-grid" id="preview-grid"></div>
-                                </div>
-                                <div class="attachment-preview-container" id="attachment-preview-container">
-                                    <div class="preview-grid" id="attachmentPreview"></div>
-                                </div>
-                                {% if existing_images %}
-                                <div class="mt-3">
-                                    <p class="form-label" style="font-size: 12px; color: #6b7280;">Existing Images:</p>
-                                    <div class="preview-grid">
-                                        {% for image in existing_images %}
-                                        <div class="preview-item" data-image-id="{{ image.id }}">
-                                            <a href="{{ image.image.url }}" target="_blank">
-                                                <img src="{{ image.image.url }}" alt="Existing Guest Photo">
-                                            </a>
-                                            <button type="button" class="remove-btn" onclick="deleteExistingFile('image', '{{ image.id }}', this)">×</button>
-                                        </div>
-                                        {% endfor %}
-                                    </div>
-                                </div>
-                                {% endif %}
-                                {% if existing_attachments %}
-                                <div class="mt-3">
-                                    <p class="form-label" style="font-size: 12px; color: #6b7280;">Existing Attachments:</p>
-                                    <div class="preview-grid">
-                                        {% for doc in existing_attachments %}
-                                        {% with file_extension=doc.document.name|lower|slice:"-4:" %}
-                                        {% with long_file_extension=doc.document.name|lower|slice:"-5:" %}
-                                        <div class="{% if file_extension == '.jpg' or file_extension == '.png' or file_extension == '.gif' or long_file_extension == '.jpeg' %}preview-item{% else %}preview-doc-item{% endif %}" data-doc-id="{{ doc.id }}">
-                                            {% if file_extension == '.jpg' or file_extension == '.png' or file_extension == '.gif' or long_file_extension == '.jpeg' %}
-                                                <a href="{{ doc.document.url }}" target="_blank"><img src="{{ doc.document.url }}" alt="Existing Attachment"></a>
-                                            {% else %}
-                                                <a href="{{ doc.document.url }}" target="_blank" class="doc-link"><span>📄</span> {{ doc.name }}</a>
-                                            {% endif %}
-                                            <button type="button" class="remove-btn" onclick="deleteExistingFile('document', '{{ doc.id }}', this)">×</button>
-                                        </div>
-                                        {% endwith %}
-                                        {% endwith %}
-                                        {% endfor %}
-                                    </div>
-                                </div>
-                                {% endif %}
                             </div>
                             <div class="booking-field full-width">
                                 <label class="booking-field-label">Street address</label>
@@ -1941,12 +1934,12 @@
                 selectedGuestPhotos = selectedGuestPhotos.filter(f => !(f.name === fileName && f.size === fileSize));
                 guestPhotoPreviewGrid.querySelector(`[data-file-name="${fileName}"]`)?.remove();
                 updateFileInput('id_guest_images', selectedGuestPhotos);
-                if (selectedGuestPhotos.length === 0) guestPhotoPreviewContainer.style.display = 'none';
+                if (guestPhotoPreviewGrid.children.length === 0) guestPhotoPreviewContainer.style.display = 'none';
             } else if (type === 'attachment') {
                 selectedAttachments = selectedAttachments.filter(f => !(f.name === fileName && f.size === fileSize));
                 attachmentPreviewGrid.querySelector(`[data-file-name="${fileName}"]`)?.remove();
                 updateFileInput('id_guest_attachments', selectedAttachments);
-                if (selectedAttachments.length === 0) attachmentPreviewContainer.style.display = 'none';
+                if (attachmentPreviewGrid.children.length === 0) attachmentPreviewContainer.style.display = 'none';
             }
         }
         window.removeFile = removeFile;
