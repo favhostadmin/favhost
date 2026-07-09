@@ -1167,6 +1167,17 @@ document.addEventListener('DOMContentLoaded', function () {
         countryCodeHidden.value = savedCountryCode;
     }
 
+    /* Existing data is stored in E.164 form (e.g. "+919876543210").
+       Re-parse it through setNumber() once utils.js is loaded so the
+       input shows only the national number with the flag/dial code
+       displayed separately, instead of the raw stored value. */
+    const initialPhoneValue = phoneInputField.value.trim();
+    if (initialPhoneValue) {
+        phoneInput.promise.then(function () {
+            phoneInput.setNumber(initialPhoneValue);
+        });
+    }
+
     phoneInputField.addEventListener('input', function () {
         this.value = this.value.replace(/[^0-9]/g, '');
     });
