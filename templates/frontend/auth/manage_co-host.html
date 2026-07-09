@@ -148,6 +148,31 @@
       max-width: 55%;
       height: auto;
     }
+
+    /* Inline field error (invalid email) shown inside the modal */
+    .cohost-field-error {
+      display: none;
+      margin-top: 6px;
+      color: #e74c3c;
+      font-size: 12.5px;
+      font-weight: 500;
+      line-height: 1.3;
+    }
+
+    .cohost-field.has-error .cohost-field-error {
+      display: block;
+    }
+
+    .cohost-field.has-error input,
+    .cohost-field.has-error input:focus {
+      border-color: #e74c3c !important;
+      box-shadow: 0 0 0 3px rgba(231, 76, 60, 0.15) !important;
+      background: #fff;
+    }
+
+    .cohost-field.has-error .cohost-input-icon {
+      color: #e74c3c !important;
+    }
   </style>
 </head>
 
@@ -291,6 +316,7 @@
                 </span>
                 <input id="cohostEmail" name="cohostEmail" type="text" placeholder="Enter email" required>
               </div>
+              <span class="cohost-field-error" id="cohostEmailError">Please enter a valid email address.</span>
             </div>
             <div class="cohost-field">
               <label for="cohostPassword">Cohost Password</label>
@@ -365,11 +391,13 @@
       const formCohostId = document.getElementById('formCohostId');
       const modalTitle = document.getElementById('cohostModalTitle');
       const emailInput = document.getElementById('cohostEmail');
+      const emailField = emailInput.closest('.cohost-field');
       const passwordInput = document.getElementById('cohostPassword');
       const fullnameInput = document.getElementById('cohostFullname');
       const phoneInput = document.getElementById('cohostPhone');
 
       function openModal() {
+        clearEmailError();
         overlay.classList.add('show');
         overlay.setAttribute('aria-hidden', 'false');
         document.body.style.overflow = 'hidden';
@@ -392,6 +420,22 @@
           <span>${text}</span>`;
       }
 
+      function clearEmailError() {
+        emailField.classList.remove('has-error');
+      }
+
+      function showEmailError(message) {
+        var errorEl = document.getElementById('cohostEmailError');
+        if (errorEl && message) errorEl.textContent = message;
+        emailField.classList.add('has-error');
+        emailInput.focus();
+      }
+
+      function isValidEmail(value) {
+        // Mirrors the format Django's validate_email accepts for the common case.
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+      }
+
       function resetForm() {
         formAction.value = 'add';
         formCohostId.value = '';
@@ -400,8 +444,22 @@
         fullnameInput.value = '';
         phoneInput.value = '';
         passwordInput.required = true;
+        clearEmailError();
         setModalTitle('Add Co-host');
       }
+
+      // Clear the error as soon as the user edits the email.
+      emailInput.addEventListener('input', clearEmailError);
+
+      // Validate the email in-place so the error stays inside the modal
+      // (red box + inline message) instead of reloading the page.
+      form.addEventListener('submit', function (event) {
+        var email = emailInput.value.trim();
+        if (!isValidEmail(email)) {
+          event.preventDefault();
+          showEmailError('Please enter a valid email address.');
+        }
+      });
 
       openBtn.addEventListener('click', function () {
         if (openBtn.disabled) return;
