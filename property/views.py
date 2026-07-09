@@ -74,6 +74,16 @@ class PropertyCreateView(LoginRequiredMixin, CreateView):
     template_name = 'frontend/property/create.html'
     success_url = reverse_lazy('property:property-list')
 
+    def dispatch(self, request, *args, **kwargs):
+        # Listings can only be created once the host's profile is complete.
+        # This also blocks direct-URL access, not just the "Create Listing"
+        # button (which shows the complete-profile modal). Uses the effective
+        # user so co-hosts are gated by the host's profile.
+        if request.user.is_authenticated and not get_effective_user(request.user).is_profile_complete():
+            messages.error(request, 'Please complete your profile before creating a listing.')
+            return redirect('profile')
+        return super().dispatch(request, *args, **kwargs)
+
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
         clone_from_id = self.request.GET.get('clone_from')
@@ -481,7 +491,10 @@ class PropertyListView(LoginRequiredMixin, ListView):
         context['check_out'] = check_out
         context['guests'] = self.request.GET.get('guests', '')
         context['total_listing'] = Property.objects.filter(created_by__in=get_visible_user_ids(self.request.user)).count()
-        context['is_profile_complete'] = self.request.user.is_profile_complete()
+        # Gate listing creation on the *host's* profile (the effective user):
+        # co-hosts cannot edit a profile, so both host and co-hosts become able
+        # to create listings once the host has completed the profile.
+        context['is_profile_complete'] = get_effective_user(self.request.user).is_profile_complete()
 
         # Only relevant when the user hasn't searched with specific dates yet.
         if not (check_in and check_out):

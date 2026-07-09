@@ -124,20 +124,41 @@ def create_checkout_session(request):
                 # Fall through to standard Checkout below
 
         # ── New customer or no saved card: standard Stripe Checkout ────────
-        session_params = {
-            'mode': 'subscription',
-            'line_items': [{'price': settings.STRIPE_PRICE_ID, 'quantity': 1}],
-            'client_reference_id': str(request.user.id),
-            'success_url': success_url,
-            'cancel_url': cancel_url,
-        }
+        def _session_params(use_customer):
+            params = {
+                'mode': 'subscription',
+                'line_items': [{'price': settings.STRIPE_PRICE_ID, 'quantity': 1}],
+                'client_reference_id': str(request.user.id),
+                'success_url': success_url,
+                'cancel_url': cancel_url,
+            }
+            if use_customer and customer_id:
+                params['customer'] = customer_id
+            else:
+                params['customer_email'] = request.user.email or ''
+            return params
 
-        if customer_id:
-            session_params['customer'] = customer_id
-        else:
-            session_params['customer_email'] = request.user.email or ''
+        try:
+            session = stripe.checkout.Session.create(**_session_params(use_customer=True))
+        except stripe.error.InvalidRequestError as e:
+            # The stored customer belongs to a different Stripe account/mode
+            # (e.g. the API keys were switched) — Stripe answers "No such
+            # customer". Rather than dead-ending on the error page, drop the
+            # stale ids and start a fresh customer so checkout still works.
+            if customer_id and 'no such customer' in str(e).lower():
+                logger.warning(
+                    f"Stale Stripe customer {customer_id} for {request.user.username}; "
+                    f"recreating a fresh customer. {e}"
+                )
+                if sc is not None:
+                    sc.stripe_customer_id = ''
+                    sc.stripe_subscription_id = ''
+                    sc.save(update_fields=['stripe_customer_id', 'stripe_subscription_id'])
+                customer_id = None
+                session = stripe.checkout.Session.create(**_session_params(use_customer=False))
+            else:
+                raise
 
-        session = stripe.checkout.Session.create(**session_params)
         return redirect(session.url, code=303)
 
     except stripe.error.StripeError as e:
@@ -321,13 +342,23 @@ def _handle_checkout_completed(session):
         except Exception as e:
             logger.warning(f"Could not fetch subscription period_end: {e}")
 
-    # One-time "subscription confirmed" email — only on the user's very first subscription.
-    if not sc.confirmation_email_sent:
-        _send_first_subscription_email(user, sc, sub)
-        sc.confirmation_email_sent = True
-
+    # Persist activation FIRST. The card is already charged in Stripe, so a
+    # later failure (e.g. SMTP down while sending the confirmation email) must
+    # never leave a paying customer locked out behind the paywall.
     sc.save()
     logger.info(f"User {user.username} subscription activated")
+
+    # One-time "subscription confirmed" email — best-effort, first subscription
+    # only. Wrapped so an email failure can't undo the activation above.
+    if not sc.confirmation_email_sent:
+        try:
+            _send_first_subscription_email(user, sc, sub)
+            sc.confirmation_email_sent = True
+            sc.save(update_fields=['confirmation_email_sent'])
+        except Exception as e:
+            logger.warning(
+                f"Could not send first-subscription confirmation email for {user.username}: {e}"
+            )
 
 
 def _send_first_subscription_email(user, sc, sub):

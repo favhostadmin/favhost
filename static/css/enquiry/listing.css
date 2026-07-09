@@ -140,15 +140,37 @@
     display: none;
 }
 
+/* ---- Single-scroll flex chain: footer pins to the bottom on short pages
+   and follows the content on long pages, with no double scrollbar ---- */
+body.single-scroll.enquiry-page .main-content-body {
+    overflow-y: auto !important;
+}
+
+body.single-scroll .page-content-wrap > .container-fluid {
+    flex: 1 0 auto;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
 /* ---- Page body ---- */
 .task-main-content {
     margin: 0 auto;
     padding-top: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    flex: 1 0 auto;
+    width: 100%;
 }
 
 .main_body_div {
     padding: 0 10%;
-    min-height: calc(100vh - 200px);
+    flex: 1 0 auto;
+}
+
+/* pin the footer to the bottom of the flex column */
+.task-main-content > .footer {
+    margin-top: auto;
 }
 
 /* ---- Utility: hidden by default ---- */
@@ -821,15 +843,12 @@ body > .dropdown-menu {
         overflow: hidden;
     }
 
+    /* Keep the inquiry nav header sticky & always visible (like the Tasks page)
+       instead of collapsing on scroll. */
     .header-nav.mobile-header-hidden {
-        max-height: 0 !important;
-        opacity: 0;
-        pointer-events: none;
-        padding-top: 0 !important;
-        padding-bottom: 0 !important;
-        margin-top: 0 !important;
-        margin-bottom: 0 !important;
-        border: 0 !important;
+        max-height: 140px !important;
+        opacity: 1 !important;
+        pointer-events: auto !important;
     }
 
     .header-nav.mobile-menu-open {
@@ -842,14 +861,14 @@ body > .dropdown-menu {
 @media (max-width: 991px) {
     .main_body_div {
         padding: 0 10px;
-        min-height: calc(100vh - 200px);
     }
 
     .task-main-content { padding-top: 1rem; }
     .task-main-content > div { padding: 0 !important; }
 
     .header-nav {
-        position: relative;
+        position: sticky;
+        top: 0;
         z-index: 1040;
         padding: 6px 12px !important;
     }
@@ -1007,6 +1026,13 @@ body > .dropdown-menu {
 }
 
 @media (max-width: 767px) {
+    /* Inquiry page: match the mobile header height so the single-scroll area
+       doesn't overshoot and leave a sliver of whitespace below the footer.
+       dvh accounts for mobile browser chrome (address bar) too. */
+    body.single-scroll.enquiry-page .main-content-body {
+        height: calc(100dvh - 58px);
+    }
+
     .header-nav .search-box input {
         width: 100%;
         max-width: 100%;
@@ -1047,7 +1073,7 @@ body > .dropdown-menu {
     #enquiryResults .task-list-row {
         display: block !important;
         position: relative !important;
-        padding: 14px 16px !important;
+        padding: 14px 14px 14px 12px !important;
         margin: 0 0 12px !important;
         border: 1px solid #e8e6e0 !important;
         border-radius: 14px !important;
@@ -1061,45 +1087,52 @@ body > .dropdown-menu {
 
     #enquiryResults .enquiry-mobile-card { display: block !important; }
 
-    #enquiryResults .enquiry-mobile-head {
+    /* ---- Property row (top): thumb + title + inline dates, pill top-right ---- */
+    #enquiryResults .enquiry-mobile-propcard {
         display: flex;
-        align-items: center;
-        gap: 10px;
-        padding-right: 42px;
-        margin-bottom: 10px;
+        align-items: flex-start;
+        gap: 12px;
+        padding: 0 42px 12px 0;
+        margin-bottom: 12px;
+        border-bottom: 1px solid #f0eeea;
     }
 
-    #enquiryResults .enquiry-mobile-guest-img {
+    #enquiryResults .enquiry-mobile-prop-img {
         display: block;
-        width: 44px;
-        height: 44px;
-        border-radius: 50%;
+        width: 58px;
+        height: 58px;
+        border-radius: 10px;
         object-fit: cover;
         border: 1px solid #e8e6e0;
         flex-shrink: 0;
     }
 
-    #enquiryResults .enquiry-mobile-headinfo { min-width: 0; }
+    #enquiryResults .enquiry-mobile-propinfo {
+        min-width: 0;
+        flex: 1;
+    }
 
-    #enquiryResults .enquiry-mobile-name {
-        margin: 0;
+    #enquiryResults .enquiry-mobile-prop-title {
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
         font-size: 15px;
         font-weight: 700;
         color: #1a1917;
-        line-height: 1.25;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
+        line-height: 1.3;
     }
 
-    #enquiryResults .enquiry-mobile-contact {
-        margin: 3px 0 0;
+    /* address hidden in this layout — dates shown instead */
+    #enquiryResults .enquiry-mobile-prop-addr { display: none; }
+
+    #enquiryResults .enquiry-mobile-prop-dates {
+        display: block;
+        margin-top: 4px;
         font-size: 12px;
-        color: #6b6860;
-        line-height: 1.35;
+        color: #9c9a94;
+        line-height: 1.4;
         white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
     }
 
     #enquiryResults .enquiry-mobile-pill {
@@ -1111,8 +1144,8 @@ body > .dropdown-menu {
         line-height: 1;
         padding: 5px 10px;
         border-radius: 999px;
-        margin-left: auto;
         flex-shrink: 0;
+        margin-right: -6px;
     }
 
     #enquiryResults .enquiry-mobile-pill::before {
@@ -1133,57 +1166,60 @@ body > .dropdown-menu {
         color: #b21f2e;
     }
 
-    #enquiryResults .enquiry-mobile-propcard {
+    /* ---- Guest row (bottom): initials circle + name + counts, Received right ---- */
+    #enquiryResults .enquiry-mobile-head {
         display: flex;
         align-items: center;
-        gap: 10px;
-        padding: 0 0 10px;
-        margin-bottom: 10px;
-        border-bottom: 1px solid #f0eeea;
+        gap: 12px;
     }
 
-    #enquiryResults .enquiry-mobile-prop-img {
-        display: block;
-        width: 58px;
-        height: 46px;
-        border-radius: 8px;
-        object-fit: cover;
-        border: 1px solid #e8e6e0;
+    /* replace guest photo with an initials circle */
+    #enquiryResults .enquiry-mobile-guest-img { display: none; }
+
+    #enquiryResults .enquiry-mobile-guest-initial {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        background: #6366f1;
+        color: #ffffff;
+        font-size: 14px;
+        font-weight: 700;
+        line-height: 1;
+        letter-spacing: .02em;
         flex-shrink: 0;
     }
 
-    #enquiryResults .enquiry-mobile-propinfo { min-width: 0; }
+    #enquiryResults .enquiry-mobile-headinfo {
+        min-width: 0;
+        flex: 1;
+    }
 
-    #enquiryResults .enquiry-mobile-prop-title {
-        display: block;
-        font-size: 13px;
-        font-weight: 600;
+    #enquiryResults .enquiry-mobile-name {
+        margin: 0;
+        font-size: 15px;
+        font-weight: 700;
         color: #1a1917;
-        line-height: 1.3;
+        line-height: 1.25;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
     }
 
-    #enquiryResults .enquiry-mobile-prop-addr {
-        display: block;
-        margin-top: 3px;
-        font-size: 11px;
+    /* email/phone contact not shown in this layout */
+    #enquiryResults .enquiry-mobile-contact { display: none; }
+
+    #enquiryResults .enquiry-mobile-guestcount {
+        margin: 3px 0 0;
+        font-size: 12px;
         color: #9c9a94;
-        line-height: 1.4;
+        line-height: 1.35;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
     }
-
-    #enquiryResults .enquiry-mobile-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 12px 14px;
-    }
-
-    #enquiryResults .enquiry-mobile-cell-wide { grid-column: 1 / -1; }
-    #enquiryResults .enquiry-mobile-cell-right { text-align: right; }
 
     #enquiryResults .enquiry-mobile-pet-info {
         width: 14px;
@@ -1192,40 +1228,29 @@ body > .dropdown-menu {
         margin-left: 2px;
     }
 
-    #enquiryResults .enquiry-mobile-cell { min-width: 0; }
+    #enquiryResults .enquiry-mobile-received {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        text-align: right;
+        flex-shrink: 0;
+    }
 
-    #enquiryResults .enquiry-mobile-label {
-        display: block;
+    #enquiryResults .enquiry-mobile-received-label {
         font-size: 10px;
         font-weight: 600;
         letter-spacing: .06em;
         text-transform: uppercase;
         color: #9c9a94;
-        margin-bottom: 4px;
     }
 
-    #enquiryResults .enquiry-mobile-value {
-        display: block;
-        font-size: 13px;
-        font-weight: 500;
-        color: #1a1917;
-        line-height: 1.45;
-        overflow-wrap: anywhere;
-    }
-
-    #enquiryResults .enquiry-mobile-nights {
-        display: inline-block;
-        font-size: 10px;
+    #enquiryResults .enquiry-mobile-received-date {
+        margin-top: 3px;
+        font-size: 14px;
         font-weight: 700;
-        letter-spacing: 0;
-        text-transform: none;
-        color: #185fa5;
-        background: #e8f0fe;
-        border-radius: 5px;
-        padding: 2px 6px;
-        margin-left: 4px;
-        line-height: 1;
-        vertical-align: -1px;
+        color: #1a1917;
+        line-height: 1.2;
+        white-space: nowrap;
     }
 
     #enquiryResults .enquiry-mobile-reservation {
