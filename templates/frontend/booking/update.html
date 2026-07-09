@@ -2,6 +2,8 @@
 {% load static %}
 {% load currency_tags %}
 
+{% block body_class %}single-scroll{% endblock %}
+
 {% block extra_head %}
     <link href="{% static 'css/booking/create.css' %}" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
@@ -1148,24 +1150,40 @@
 
     .main_row_div{
         padding: 40px 12%;
-        max-height: calc(100vh - 177px);
-        overflow: auto;
+    }
+
+    /* Single-scroll: the page content (form panels) does NOT scroll
+       internally. The whole page scrolls once via .main-content-body and
+       the footer is the last thing at the end. The form grows to fill so
+       the footer pins to the bottom on short pages. */
+    body.single-scroll .page-content-wrap > form {
+        flex: 1 0 auto;
+        display: flex;
+        flex-direction: column;
+    }
+    .booking-page-container {
+        flex: 1 0 auto;
+        display: flex;
+        flex-direction: column;
+    }
+    .booking-scroll-area {
+        flex: 1 0 auto;
+    }
+
+   
+    .booking-page-container > .row {
+        position: sticky;
+        top: 0;
+        z-index: 20;
+        background: #E7E7E9;
     }
 
     @media (max-width: 991px) {
-        .main_body_div{
-            padding: 0rem 3%;
-            min-height: calc(100vh - 190px);
-        }
         .main_row_div{
             padding: 0rem 3%;
         }
         .booking-layout-grid {
             grid-template-columns: 1fr;
-            max-height: calc(100vh - 150px);
-            overflow-y: auto;
-            padding-right: 6px;
-            -webkit-overflow-scrolling: touch;
         }
         .booking-panel-body {
             padding: 12px;
@@ -1173,10 +1191,6 @@
         .booking-field-grid,
         .booking-upload-grid {
             grid-template-columns: 1fr;
-        }
-        .booking-scroll-area {
-            overflow-y: auto;
-            overflow-x: hidden;
         }
     }
     </style>

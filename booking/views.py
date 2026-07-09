@@ -34,6 +34,47 @@ class BookingListView(LoginRequiredMixin, ListView):
     context_object_name = 'bookings'
     paginate_by = 12
 
+    # Printable reports — one per reservation status. Each entry drives a
+    # separate report document (title + subtitle) behind the Print button.
+    REPORT_STATUSES = {
+        'past':      {'title': 'Past Reservations',      'info': 'Completed stays'},
+        'current':   {'title': 'Current Hosting',        'info': 'Guests currently checked in'},
+        'upcoming':  {'title': 'Upcoming Reservations',  'info': 'Confirmed future arrivals'},
+        'cancelled': {'title': 'Cancelled Reservations', 'info': 'Reservations that were cancelled'},
+        'no_show':   {'title': 'No-Show Reservations',   'info': 'Guests who did not check in'},
+    }
+
+    # Image extensions that can be embedded inline in the printable report;
+    # anything else (PDF, docx, …) is shown as a "see attached file" note.
+    _REPORT_IMAGE_EXTS = ('.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.svg')
+
+    @staticmethod
+    def _status_queryset(base_qs, status_filter, now):
+        """Apply the status filter + ordering shared by the list and reports."""
+        if status_filter == 'past':
+            # List sorted by checkout date, latest checkout on the top
+            return base_qs.filter(check_out_date__lt=now, status='confirmed').order_by('-check_out_date')
+        elif status_filter == 'current':
+            # List sorted by Checkin Date, latest checking date on the top
+            return base_qs.filter(check_in_date__lte=now, check_out_date__gte=now, status='confirmed').order_by('-check_in_date')
+        elif status_filter == 'upcoming':
+            # List sorted by Checkin Date, Closest checking date on the top
+            return base_qs.filter(check_in_date__gt=now, status='confirmed').order_by('check_in_date')
+        elif status_filter == 'cancelled':
+            return base_qs.filter(status='cancelled').order_by('-created_at')
+        elif status_filter == 'no_show':
+            return base_qs.filter(status='no_show').order_by('-check_in_date')
+        # 'all'
+        return base_qs.order_by('-check_in_date')
+
+    def get(self, request, *args, **kwargs):
+        # Printable report ("Print Report" dropdown in the header): a branded,
+        # print-ready document for a single reservation status.
+        report_status = request.GET.get('report')
+        if report_status:
+            return self._render_report(request, report_status)
+        return super().get(request, *args, **kwargs)
+
     def get_context_data(self, **kwargs):
         status_filter = self.request.GET.get('status', 'current')
         # Use user's local timezone instead of UTC
@@ -51,27 +92,7 @@ class BookingListView(LoginRequiredMixin, ListView):
         # Calculate counts for all statuses
         now = self.request.user.get_local_date()
 
-        if status_filter == 'past':
-            bookings = base_qs.filter(check_out_date__lt=now, status='confirmed')
-            # List sorted by checkout date, latest checkout on the top
-            bookings = bookings.order_by('-check_out_date')
-        elif status_filter == 'current':
-            bookings = base_qs.filter(check_in_date__lte=now, check_out_date__gte=now, status='confirmed')
-            # List sorted by Checkin Date, latest checking date on the top
-            bookings = bookings.order_by('-check_in_date')
-        elif status_filter == 'upcoming':
-            bookings = base_qs.filter(check_in_date__gt=now, status='confirmed')
-            # List sorted by Checkin Date, Closest checking date on the top
-            bookings = bookings.order_by('check_in_date')
-        elif status_filter == 'cancelled':
-            bookings = base_qs.filter(status='cancelled')
-            bookings = bookings.order_by('-created_at')
-        elif status_filter == 'no_show':
-            bookings = base_qs.filter(status='no_show')
-            bookings = bookings.order_by('-check_in_date')
-        else:  # 'all'
-            bookings = base_qs
-            bookings = bookings.order_by('-check_in_date')
+        bookings = self._status_queryset(base_qs, status_filter, now)
 
         search_query = self.request.GET.get('search', '')
 
@@ -188,6 +209,142 @@ class BookingListView(LoginRequiredMixin, ListView):
             'today_date': now,
         }
         return context
+
+    def _booking_info(self, booking, status_filter, now):
+        """Short human status line for a single booking in a report row."""
+        if booking.status == 'cancelled':
+            return 'Cancelled'
+        if booking.status == 'no_show':
+            return 'No Show'
+        if status_filter == 'upcoming' and booking.check_in_date:
+            delta = (booking.check_in_date - now).days
+            if delta > 1:
+                return f'Check-in in {delta} days'
+            if delta == 1:
+                return 'Check-in tomorrow'
+            if delta == 0:
+                return 'Check-in today'
+        if status_filter == 'current':
+            return 'Currently hosting'
+        if booking.check_out_date:
+            delta = (booking.check_out_date - now).days
+            if delta > 1:
+                return f'Checkout in {delta} days'
+            if delta == 1:
+                return 'Checkout tomorrow'
+            if delta == 0:
+                return 'Checkout today'
+            if delta == -1:
+                return 'Checked out yesterday'
+            return f'Checked out {abs(delta)} days ago'
+        return ''
+
+    def _render_report(self, request, status_filter):
+        """Render the branded, print-ready report for one reservation status.
+
+        There is a distinct report per status (Past / Current / Upcoming /
+        Cancelled / No-Show); the header dropdown links to each one. The report
+        respects the property filter currently in view so it can be scoped to a
+        single listing. UI mirrors the Revenue / Accounting report documents.
+        """
+        if status_filter not in self.REPORT_STATUSES:
+            status_filter = 'current'
+        meta = self.REPORT_STATUSES[status_filter]
+
+        now = request.user.get_local_date()
+        user_ids = get_visible_user_ids(request.user)
+        base_qs = (
+            Booking.objects
+            .filter(property__created_by__in=user_ids)
+            .select_related('property', 'channel')
+            .prefetch_related('images', 'documents')
+        )
+
+        current_property = None
+        property_id = request.GET.get('property_id')
+        if property_id:
+            base_qs = base_qs.filter(property_id=property_id)
+            current_property = Property.objects.filter(id=property_id, created_by__in=user_ids).first()
+
+        bookings = self._status_queryset(base_qs, status_filter, now)
+
+        items = []
+        attachment_groups = []  # appendix: attachments grouped per reservation
+        attachment_count = 0
+        total_nights = 0
+        total_guests = 0
+        total_value = 0.0
+        for b in bookings:
+            nights = b.total_nights or 0
+            total_nights += nights
+            total_guests += (b.guest_count or 0)
+            total_value += float(b.price or 0)
+            guest_name = f'{b.first_name} {b.last_name}'.strip() or '—'
+
+            # Appendix per reservation: a single guest photo on the left and
+            # the guest's uploaded documents (one or more) as compact download
+            # rows on the right. Only the first guest image is used as the photo.
+            guest_photo = None
+            for img in b.images.all():
+                if img.image and img.image.name:
+                    guest_photo = img.image.url
+                    break
+
+            documents = []
+            for doc in b.documents.all():
+                if not (doc.document and doc.document.name):
+                    continue
+                documents.append({
+                    'url': doc.document.url,
+                    'filename': doc.document.name.rsplit('/', 1)[-1],
+                })
+
+            group_count = (1 if guest_photo else 0) + len(documents)
+            if guest_photo or documents:
+                attachment_count += group_count
+                attachment_groups.append({
+                    'reservation_number': b.booking_id,
+                    'guest_name': guest_name,
+                    'property_name': b.property.title if b.property else '—',
+                    'guest_photo': guest_photo,
+                    'documents': documents,
+                    'count': group_count,
+                })
+
+            items.append({
+                'reservation_number': b.booking_id,
+                'guest_name': guest_name,
+                'property_name': b.property.title if b.property else '—',
+                'check_in': b.check_in_date,
+                'check_out': b.check_out_date,
+                'nights': nights,
+                'guests': b.guest_count or 0,
+                'channel': b.channel.name if b.channel else 'Others',
+                'info': self._booking_info(b, status_filter, now),
+                'price': b.price or 0,
+                'attachment_count': group_count,
+            })
+
+        code = (getattr(request.user, 'currency', None) or currency.BASE_CURRENCY).upper()
+        context = {
+            'status_filter': status_filter,
+            'report_title': meta['title'],
+            'report_info': meta['info'],
+            'account_name': request.user.get_full_name() or request.user.email,
+            'generated_at': timezone.localtime(),
+            'display_currency': code,
+            'currency_symbol': currency.symbol_for(code),
+            'current_property': current_property,
+            'today_date': now,
+            'items': items,
+            'attachment_groups': attachment_groups,
+            'attachment_count': attachment_count,
+            'reservation_count': len(items),
+            'total_nights': total_nights,
+            'total_guests': total_guests,
+            'total_value': total_value,
+        }
+        return render(request, 'frontend/booking/reservation_report.html', context)
 
 class BookingCreateView(LoginRequiredMixin, View):
     template_name = 'frontend/booking/create.html'
