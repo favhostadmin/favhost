@@ -1,0 +1,249 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Housekeeping Report — {{ target_date|date:"M d, Y" }}</title>
+  {% if format_type == 'html' %}
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  {% endif %}
+  <style>
+    @page { size: A4 portrait; margin: 1.2cm; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      font-size: 11px;
+      color: #1f2937;
+      background: #fff;
+      line-height: 1.5;
+      padding: 32px 36px;
+    }
+
+    /* ===== Brand Header ===== */
+    .brand-header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding-bottom: 16px;
+      margin-bottom: 16px;
+      border-bottom: 2px solid #1f2937;
+    }
+    .brand-logo-badge {
+      background: #1e1e1e;
+      border-radius: 8px;
+      padding: 7px 11px;
+      display: flex;
+      align-items: center;
+      flex-shrink: 0;
+    }
+    .brand-header .brand-logo { width: 84px; height: 40px; display: block; }
+    .brand-header .brand-text { flex: 1; }
+    .brand-header .brand-text .brand-name { font-size: 18px; font-weight: 800; color: #111827; letter-spacing: -0.4px; line-height: 1.2; }
+    .brand-header .brand-text .brand-tagline { font-size: 10px; color: #6b7280; font-weight: 400; letter-spacing: 0.2px; }
+    .brand-header .brand-meta { text-align: right; font-size: 10px; color: #6b7280; line-height: 1.6; flex-shrink: 0; }
+    .brand-header .brand-meta .meta-user { font-weight: 600; color: #374151; font-size: 11px; }
+    .brand-header .brand-meta .meta-date { font-size: 11px; color: #111827; font-weight: 500; }
+
+    /* ===== Section Header ===== */
+    .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+    .section-header h1 { font-size: 16px; font-weight: 700; color: #111827; }
+    .section-header .badge-view {
+      display: inline-block; background: #f3f4f6; color: #374151; font-size: 9px; font-weight: 600;
+      padding: 3px 10px; border-radius: 10px; letter-spacing: 0.3px; text-transform: uppercase;
+    }
+
+    /* ===== Summary Cards ===== */
+    .summary-row { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+    .summary-card {
+      flex: 1; min-width: 84px; background: #fff; border: 1px solid #e2e8f0;
+      border-left-width: 4px; border-radius: 8px; padding: 9px 12px;
+    }
+    .summary-card .value { font-size: 19px; font-weight: 800; line-height: 1; }
+    .summary-card .label { font-size: 8.5px; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; margin-top: 4px; }
+    .sc-total { border-left-color: #334155; }
+    .sc-dirty { border-left-color: #dc2626; } .sc-dirty .value { color: #dc2626; }
+    .sc-progress { border-left-color: #d97706; } .sc-progress .value { color: #d97706; }
+    .sc-clean { border-left-color: #16a34a; } .sc-clean .value { color: #16a34a; }
+    .sc-avail { border-left-color: #2563eb; } .sc-avail .value { color: #2563eb; }
+    .sc-notavail { border-left-color: #94a3b8; } .sc-notavail .value { color: #64748b; }
+
+    /* ===== Legend ===== */
+    .legend {
+      display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 18px;
+      font-size: 9px; color: #64748b; align-items: center;
+    }
+    .lg { display: inline-flex; align-items: center; gap: 5px; }
+    .sw { width: 9px; height: 9px; border-radius: 3px; display: inline-block; }
+
+    /* ===== Cleaner groups ===== */
+    .cleaner-block { margin-top: 14px; page-break-inside: avoid; }
+    .cleaner-head {
+      display: flex; justify-content: space-between; align-items: center;
+      background: #f8fafc; border: 1px solid #e2e8f0; border-bottom: none;
+      border-radius: 8px 8px 0 0; padding: 8px 12px;
+    }
+    .cleaner-id { display: flex; align-items: center; gap: 9px; }
+    .avatar, .avatar-unassigned {
+      width: 24px; height: 24px; border-radius: 50%; color: #fff;
+      font-size: 9.5px; font-weight: 700; display: flex;
+      align-items: center; justify-content: center; letter-spacing: 0.3px; flex-shrink: 0;
+    }
+    .avatar { background: linear-gradient(135deg, #7C5CFC, #5B3FD6); }
+    .avatar-unassigned { background: #94a3b8; }
+    .cleaner-name { font-size: 12.5px; font-weight: 700; color: #111827; }
+    .room-count {
+      font-size: 8.5px; color: #64748b; font-weight: 600; background: #fff;
+      border: 1px solid #e2e8f0; padding: 2px 8px; border-radius: 12px; margin-left: 8px;
+    }
+    .cleaner-chips { display: flex; gap: 6px; }
+    .chip { font-size: 8.5px; font-weight: 700; padding: 3px 8px; border-radius: 12px; }
+    .chip-dirty { background: #fef2f2; color: #b91c1c; }
+    .chip-progress { background: #fffbeb; color: #b45309; }
+    .chip-clean { background: #f0fdf4; color: #15803d; }
+
+    /* ===== Listings table ===== */
+    table.grid { width: 100%; border-collapse: collapse; border: 1px solid #e2e8f0; border-radius: 0 0 8px 8px; overflow: hidden; page-break-inside: auto; }
+    .grid thead th {
+      background: #1f2937; color: #fff; font-size: 8.5px; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.5px; text-align: left; padding: 7px 10px;
+    }
+    .grid tbody tr { page-break-inside: avoid; }
+    .grid tbody td { padding: 7px 10px; border-bottom: 1px solid #e2e8f0; font-size: 10px; vertical-align: middle; }
+    .grid tbody tr:last-child td { border-bottom: none; }
+    .grid tbody tr:nth-child(even) { background: #fbfcfd; }
+    .c-prop { font-weight: 700; font-size: 10.5px; color: #111827; }
+    .c-center { text-align: center; }
+    .c-price { font-weight: 700; color: #111827; }
+
+    .badge { display: inline-block; font-size: 9px; font-weight: 700; padding: 3px 9px; border-radius: 12px; border: 1px solid transparent; }
+    .b-ok { background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; }
+    .b-no { background: #f8fafc; color: #64748b; border-color: #e2e8f0; }
+    .flag { display: inline-block; font-size: 8.5px; font-weight: 700; padding: 2px 7px; border-radius: 10px; margin-right: 3px; }
+    .flag-in { background: #f0fdf4; color: #15803d; }
+    .flag-out { background: #fffbeb; color: #b45309; }
+
+    /* Cleaning-status badge — one color per status, matching the legend and
+       the live frontdesk page's hk-dot-* colors. */
+    .status-badge { display: inline-flex; align-items: center; gap: 5px; font-size: 9px; font-weight: 700; padding: 3px 9px 3px 7px; border-radius: 12px; }
+    .status-badge .dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+    .st-dirty { background: #fef2f2; color: #b91c1c; } .st-dirty .dot { background: #E5484D; }
+    .st-in-progress { background: #fff7ed; color: #c2410c; } .st-in-progress .dot { background: #F97316; }
+    .st-clean-uninspected { background: #fefce8; color: #a16207; } .st-clean-uninspected .dot { background: #EAB308; }
+    .st-clean-inspected { background: #f7fee7; color: #4d7c0f; } .st-clean-inspected .dot { background: #84CC16; }
+    .st-clean-ready { background: #f0fdf4; color: #15803d; } .st-clean-ready .dot { background: #1FAE5A; }
+    .st-out-of-service { background: #f8fafc; color: #64748b; } .st-out-of-service .dot { background: #9AA1AC; }
+    .st-unset { background: #f8fafc; color: #94a3b8; } .st-unset .dot { background: #CBD5E1; }
+
+    /* ===== Footer ===== */
+    .print-footer { margin-top: 26px; padding-top: 12px; border-top: 1px solid #e2e8f0; text-align: center; font-size: 8px; color: #94a3b8; line-height: 1.8; }
+    .print-footer .footer-brand { font-weight: 600; color: #64748b; }
+
+    .empty-state { text-align: center; padding: 40px 20px; color: #94a3b8; font-size: 12px; }
+
+    @media print {
+      body { padding: 0.5in; }
+      .summary-card, .grid, .status-badge { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ===== Brand Header ===== -->
+<div class="brand-header">
+  <div class="brand-logo-badge">
+    <img src="{{ brand_logo_src }}" alt="FavHost" class="brand-logo" onerror="this.parentElement.style.display='none'">
+  </div>
+  <div class="brand-text">
+    <div class="brand-name">FavHost</div>
+    <div class="brand-tagline">Property Management &middot; Simplified</div>
+  </div>
+  <div class="brand-meta">
+    <span class="meta-user">{{ user.get_full_name|default:user.username }}</span><br>
+    <span class="meta-date">{{ target_date|date:"l, M d, Y" }}</span>
+    <span style="margin-top:3px;display:block;color:#94a3b8;">Generated {{ now|date:"M d, Y h:i A" }}</span>
+  </div>
+</div>
+
+<!-- ===== Section Header ===== -->
+<div class="section-header">
+  <h1>Housekeeping Report</h1>
+  <span class="badge-view">{{ target_date|date:"M d, Y" }}</span>
+</div>
+
+<!-- ===== Summary Cards ===== -->
+<div class="summary-row">
+  <div class="summary-card sc-total"><div class="value">{{ total_listings }}</div><div class="label">Total Listings</div></div>
+  <div class="summary-card sc-dirty"><div class="value">{{ dirty_count }}</div><div class="label">Dirty</div></div>
+  <div class="summary-card sc-progress"><div class="value">{{ progress_count }}</div><div class="label">In Progress</div></div>
+  <div class="summary-card sc-clean"><div class="value">{{ clean_count }}</div><div class="label">Clean / Ready</div></div>
+  <div class="summary-card sc-avail"><div class="value">{{ available_count }}</div><div class="label">Available</div></div>
+  <div class="summary-card sc-notavail"><div class="value">{{ not_available_count }}</div><div class="label">Not Available</div></div>
+</div>
+
+<!-- ===== Legend ===== -->
+<div class="legend">
+  <span class="lg"><span class="sw" style="background:#E5484D"></span>Dirty</span>
+  <span class="lg"><span class="sw" style="background:#F97316"></span>In-Progress</span>
+  <span class="lg"><span class="sw" style="background:#EAB308"></span>Clean-Uninspected</span>
+  <span class="lg"><span class="sw" style="background:#84CC16"></span>Clean-Inspected</span>
+  <span class="lg"><span class="sw" style="background:#1FAE5A"></span>Clean-Ready</span>
+  <span class="lg"><span class="sw" style="background:#9AA1AC"></span>Out-of-Service</span>
+  <span class="lg"><span class="sw" style="background:#CBD5E1"></span>Not Set</span>
+</div>
+
+{% for group in groups %}
+<section class="cleaner-block">
+  <div class="cleaner-head">
+    <div class="cleaner-id">
+      <span class="{% if group.is_unassigned %}avatar-unassigned{% else %}avatar{% endif %}">{{ group.initials }}</span>
+      <span class="cleaner-name">{{ group.name }}</span>
+      <span class="room-count">{{ group.rows|length }} listing{{ group.rows|length|pluralize }}</span>
+    </div>
+    <div class="cleaner-chips">
+      {% if group.dirty_count %}<span class="chip chip-dirty">{{ group.dirty_count }} dirty</span>{% endif %}
+      {% if group.progress_count %}<span class="chip chip-progress">{{ group.progress_count }} in progress</span>{% endif %}
+      {% if group.clean_count %}<span class="chip chip-clean">{{ group.clean_count }} clean</span>{% endif %}
+    </div>
+  </div>
+  <table class="grid">
+    <thead>
+      <tr>
+        <th style="width:26%">Property</th>
+        <th style="width:8%" class="c-center">Guests</th>
+        <th style="width:15%">Bed Type</th>
+        <th style="width:13%" class="c-center">Availability</th>
+        <th style="width:17%">Flags</th>
+        <th style="width:10%" class="c-center">Price / Night</th>
+        <th style="width:14%">Cleaning Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for h in group.rows %}
+      <tr>
+        <td class="c-prop">{{ h.title }}</td>
+        <td class="c-center">{{ h.guest_max }}</td>
+        <td>{{ h.bed_type|default:"—" }}{% if h.pet_friendly %} &middot; Pet friendly{% endif %}</td>
+        <td class="c-center"><span class="badge {% if h.available %}b-ok{% else %}b-no{% endif %}">{% if h.available %}Available{% else %}Not available{% endif %}</span></td>
+        <td>
+          {% if h.has_checkin %}<span class="flag flag-in">Check-in</span>{% endif %}
+          {% if h.has_checkout %}<span class="flag flag-out">Check-out</span>{% endif %}
+          {% if not h.has_checkin and not h.has_checkout %}&mdash;{% endif %}
+        </td>
+        <td class="c-center c-price">${{ h.price|floatformat:2 }}</td>
+        <td><span class="status-badge st-{{ h.status_slug }}"><span class="dot"></span>{{ h.status_label }}</span></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% empty %}
+<div class="empty-state">No active properties for this date.</div>
+{% endfor %}
+
+<div class="print-footer">
+  <span class="footer-brand">FavHost</span> &middot; Housekeeping Report
+  <br>Generated {{ now|date:"M d, Y \a\t h:i A" }} &middot; {{ target_date|date:"l, M d, Y" }}
+</div>
+
+</body>
+</html>
