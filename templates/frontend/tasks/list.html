@@ -513,6 +513,7 @@
                         }
 
                         updateTaskCounts(data.pending_tasks_count, data.done_tasks_count);
+                        updateDueFilterCounts(data);
                     } else {
                         if (typeof onFailure === 'function') onFailure();
                         alert('Error updating task: ' + data.error);
@@ -564,6 +565,19 @@
             }
             // The 'All' count doesn't change, but let's update it for consistency in case of deletions.
             if (allTab) allTab.textContent = `All (${pendingCount + doneCount})`;
+        }
+
+        function updateDueFilterCounts(data) {
+            const map = {
+                '.due-chip--overdue .due-chip-count': data.overdue_count,
+                '.due-chip--week .due-chip-count': data.this_week_count,
+                '.due-chip--later .due-chip-count': data.later_count,
+            };
+            Object.keys(map).forEach(sel => {
+                if (map[sel] === undefined) return;
+                const el = document.querySelector(sel);
+                if (el) el.textContent = map[sel];
+            });
         }
 
         let taskToDeleteId = null;

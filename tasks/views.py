@@ -268,11 +268,22 @@ class UpdateTaskStatusView(LoginRequiredMixin, View):
             pending_tasks_count = base_queryset.filter(completed=False).count()
             done_tasks_count = base_queryset.filter(completed=True).count()
 
+            # Recalculate the due-date filter chip counts (pending tasks only)
+            today = datetime.date.today()
+            week_end = today + datetime.timedelta(days=(6 - today.weekday()))
+            pending_queryset = base_queryset.filter(completed=False, date__isnull=False)
+            overdue_count = pending_queryset.filter(date__lt=today).count()
+            this_week_count = pending_queryset.filter(date__gte=today, date__lte=week_end).count()
+            later_count = pending_queryset.filter(date__gt=week_end).count()
+
             # messages.success(request, 'Task status updated successfully!')
             return JsonResponse({
                 'success': True,
                 'pending_tasks_count': pending_tasks_count,
-                'done_tasks_count': done_tasks_count
+                'done_tasks_count': done_tasks_count,
+                'overdue_count': overdue_count,
+                'this_week_count': this_week_count,
+                'later_count': later_count,
             })
         except Task.DoesNotExist:
             return JsonResponse({'success': False, 'error': 'Task not found.'}, status=404)
