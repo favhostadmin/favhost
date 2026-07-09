@@ -85,6 +85,11 @@ class MyUser(AbstractBaseUser):
     # Free-trial length (days) captured at signup from PlatformSetting, so that
     # changing the platform-wide trial length later only affects NEW accounts.
     trial_days = models.PositiveIntegerField(default=90, help_text="This account's free-trial length in days (set at signup).")
+    # Account-level master switches for automated guest instruction emails.
+    # These gate sending across ALL of the host's listings (in addition to each
+    # listing's own per-property toggle). Default ON.
+    email_guest_checkin = models.BooleanField(default=True, help_text="Email guests their check-in instructions automatically.")
+    email_guest_checkout = models.BooleanField(default=True, help_text="Email guests their check-out instructions automatically.")
 
     objects = MyUserManager()
 

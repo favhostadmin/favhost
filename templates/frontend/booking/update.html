@@ -1403,12 +1403,12 @@
                             <select name="property" class="booking-select property-select" id="id_property" style="display:none;" required>
                                 {% if available_properties %}
                                     {% for prop in available_properties %}
-                                        <option value="{{ prop.id }}" {% if booking.property.id == prop.id %}selected{% endif %} data-image="{{ prop.get_primary_image_url }}" data-location="{{ prop.location_display }}" data-price="{{ prop.price_per_night }}" data-guest="{{ prop.guest }}" data-cleaning-fee="{{ prop.cleaning_fee }}" data-refundable-deposit="{{ prop.refundable_deposit }}" data-application-fee="{{ prop.application_fees }}" data-available="{% if prop.is_available %}true{% else %}false{% endif %}">
+                                        <option value="{{ prop.id }}" {% if booking.property.id == prop.id %}selected{% endif %} data-image="{{ prop.get_primary_image_url }}" data-location="{{ prop.location_display }}" data-price="{{ prop.price_per_night }}" data-guest="{{ prop.guest }}" data-cleaning-fee="{{ prop.cleaning_fee }}" data-refundable-deposit="{{ prop.refundable_deposit }}" data-taxes="{{ prop.taxes }}" data-other-fees="{{ prop.other_fees }}" data-available="{% if prop.is_available %}true{% else %}false{% endif %}">
                                             {{ prop.title }}
                                         </option>
                                     {% endfor %}
                                 {% elif booking.property %}
-                                    <option value="{{ booking.property.id }}" selected data-image="{{ booking.property.get_primary_image_url }}" data-location="{{ booking.property.location_display }}" data-price="{{ booking.property.price_per_night }}" data-guest="{{ booking.property.guest }}" data-cleaning-fee="{{ booking.property.cleaning_fee }}" data-refundable-deposit="{{ booking.property.refundable_deposit }}" data-application-fee="{{ booking.property.application_fees }}" data-available="true">{{ booking.property.title }}</option>
+                                    <option value="{{ booking.property.id }}" selected data-image="{{ booking.property.get_primary_image_url }}" data-location="{{ booking.property.location_display }}" data-price="{{ booking.property.price_per_night }}" data-guest="{{ booking.property.guest }}" data-cleaning-fee="{{ booking.property.cleaning_fee }}" data-refundable-deposit="{{ booking.property.refundable_deposit }}" data-taxes="{{ booking.property.taxes }}" data-other-fees="{{ booking.property.other_fees }}" data-available="true">{{ booking.property.title }}</option>
                                 {% endif %}
                             </select>
                         </div>
@@ -1442,8 +1442,12 @@
                                     <input type="hidden" name="deposit_fee" id="id_deposit_fee" value="{% money_raw booking.deposit_fee %}">
                                 </div>
                                 <div class="summary-item mt-1">
-                                    <span class="summary-label">Application fee:</span>
-                                    <span class="summary-value" id="summary-application-fee" data-fee="{% money_raw booking.application_fee %}">{% money booking.application_fee %}</span>
+                                    <span class="summary-label">Taxes:</span>
+                                    <span class="summary-value" id="summary-taxes" data-fee="{% money_raw booking.property.taxes %}">{% money booking.property.taxes %}</span>
+                                </div>
+                                <div class="summary-item mt-1">
+                                    <span class="summary-label">Other fees:</span>
+                                    <span class="summary-value" id="summary-other-fees" data-fee="{% money_raw booking.property.other_fees %}">{% money booking.property.other_fees %}</span>
                                     <input type="hidden" name="application_fee" id="id_application_fee" value="{% money_raw booking.application_fee %}">
                                 </div>
                                 <hr>
@@ -1635,7 +1639,9 @@
                 const pricePerNight = parseFloat(document.getElementById('id_price_per_night')?.value || 0);
                 const cleaningFee = parseFloat(document.getElementById('summary-cleaning-fee')?.dataset.fee || 0);
                 const refundableDeposit = parseFloat(document.getElementById('summary-refundable-deposit')?.dataset.deposit || 0);
-                const applicationFee = parseFloat(document.getElementById('summary-application-fee')?.dataset.fee || 0);
+                const taxesFee = parseFloat(document.getElementById('summary-taxes')?.dataset.fee || 0);
+                const otherFeesFee = parseFloat(document.getElementById('summary-other-fees')?.dataset.fee || 0);
+                const applicationFee = taxesFee + otherFeesFee;
                 // ... rest of the function
 
                 if(document.getElementById('id_cleaning_fee')) document.getElementById('id_cleaning_fee').value = cleaningFee.toFixed(2);
@@ -2150,12 +2156,14 @@
                 const pricePerNight = window.toDisplayCurrency(parseFloat(price) || 0);
                 const cleaningFee = window.toDisplayCurrency(parseFloat(selected.data('cleaning-fee')) || 0);
                 const refundableDeposit = window.toDisplayCurrency(parseFloat(selected.data('refundable-deposit')) || 0);
-                const applicationFee = window.toDisplayCurrency(parseFloat(selected.data('application-fee')) || 0);
+                const taxesFee = window.toDisplayCurrency(parseFloat(selected.data('taxes')) || 0);
+                const otherFeesFee = window.toDisplayCurrency(parseFloat(selected.data('other-fees')) || 0);
 
                 const priceCalcEl = document.getElementById('summary-price-calc');
                 const cleaningFeeEl = document.getElementById('summary-cleaning-fee');
                 const refundableDepositEl = document.getElementById('summary-refundable-deposit');
-                const applicationFeeEl = document.getElementById('summary-application-fee');
+                const taxesFeeEl = document.getElementById('summary-taxes');
+                const otherFeesFeeEl = document.getElementById('summary-other-fees');
                 const pricePerNightInput = document.getElementById('id_price_per_night');
 
                 if (!e.preservePrice) {
@@ -2167,11 +2175,13 @@
                 priceCalcEl.dataset.price = pricePerNight;
                 cleaningFeeEl.dataset.fee = cleaningFee;
                 refundableDepositEl.dataset.deposit = refundableDeposit;
-                applicationFeeEl.dataset.fee = applicationFee;
+                taxesFeeEl.dataset.fee = taxesFee;
+                otherFeesFeeEl.dataset.fee = otherFeesFee;
 
                 cleaningFeeEl.textContent = window.CURRENCY.symbol + cleaningFee.toFixed(2);
                 refundableDepositEl.textContent = window.CURRENCY.symbol + refundableDeposit.toFixed(2);
-                applicationFeeEl.textContent = window.CURRENCY.symbol + applicationFee.toFixed(2);
+                taxesFeeEl.textContent = window.CURRENCY.symbol + taxesFee.toFixed(2);
+                otherFeesFeeEl.textContent = window.CURRENCY.symbol + otherFeesFee.toFixed(2);
 
 
                 updateSummary();
@@ -2457,7 +2467,8 @@
                     option.setAttribute('data-guest', property.guest || '');
                     option.setAttribute('data-cleaning-fee', property.cleaning_fee || '');
                     option.setAttribute('data-refundable-deposit', property.refundable_deposit || '');
-                    option.setAttribute('data-application-fee', property.application_fees || '');
+                    option.setAttribute('data-taxes', property.taxes || '');
+                    option.setAttribute('data-other-fees', property.other_fees || '');
                     option.setAttribute('data-available', String(isAvailable));
                     option.setAttribute('data-min-nights', property.minimum_nights || '');
                     option.disabled = !isAvailable;
