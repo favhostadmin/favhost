@@ -100,6 +100,76 @@
     .rb-warning-modal-btn-cancel.is-hidden {
         display: none;
     }
+    .rb-policies-modal-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.35);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 2000;
+        padding: 16px;
+    }
+    .rb-policies-modal-overlay.is-open {
+        display: flex;
+    }
+    .rb-policies-modal {
+        width: min(680px, 100%);
+        max-height: 85vh;
+        display: flex;
+        flex-direction: column;
+        background: #fff;
+        color: #202124;
+        border-radius: 6px;
+        box-shadow: 0 14px 36px rgba(0, 0, 0, 0.28);
+        border: 1px solid #d8d8d8;
+        overflow: hidden;
+    }
+    .rb-policies-modal-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 14px 20px;
+        border-bottom: 1px solid #e3e3e3;
+        background: #f7f7f7;
+    }
+    .rb-policies-modal-title {
+        margin: 0;
+        font-size: 20px;
+        font-weight: 700;
+        line-height: 1.25;
+    }
+    .rb-policies-modal-close {
+        border: 0;
+        background: transparent;
+        color: #7c7c7c;
+        font-size: 32px;
+        line-height: 1;
+        cursor: pointer;
+        padding: 0;
+    }
+    .rb-policies-modal-body {
+        padding: 18px 20px 22px;
+        overflow-y: auto;
+    }
+    .rb-policies-modal-section + .rb-policies-modal-section {
+        margin-top: 22px;
+        padding-top: 18px;
+        border-top: 1px solid #e3e3e3;
+    }
+    .rb-policies-modal-section h4 {
+        margin: 0 0 8px;
+        font-size: 16px;
+        font-weight: 700;
+    }
+    .rb-policies-modal-section p {
+        margin: 0;
+        font-size: 14px;
+        line-height: 1.6;
+        color: #4b4b4b;
+        white-space: pre-line;
+    }
     @media (max-width: 576px) {
         .rb-warning-modal-title {
             font-size: 26px;
@@ -268,7 +338,7 @@
                     </div>
                 </div>
                 <div class="rb-consent">
-                    By sending the request you agree to the <a href="#">cancellation policy and house rules</a>
+                    By sending the request you agree to the <a href="#" id="rb-policies-link">cancellation policy and house rules</a>
                 </div>
                 <div class="rb-sticky-bar">
                     <button type="submit" form="rb-form" class="rb-submit">Agree and Send booking Request</button>
@@ -370,6 +440,38 @@
         </div>
     </div>
 </div>
+<!-- Policies Modal -->
+<div class="rb-policies-modal-overlay" id="rb-policies-modal" role="dialog" aria-modal="true" aria-labelledby="rb-policies-modal-title" aria-hidden="true">
+    <div class="rb-policies-modal">
+        <div class="rb-policies-modal-header">
+            <h3 class="rb-policies-modal-title" id="rb-policies-modal-title">Policies &amp; Terms</h3>
+            <button type="button" class="rb-policies-modal-close" id="rb-policies-modal-close" aria-label="Close">×</button>
+        </div>
+        <div class="rb-policies-modal-body">
+            {% if property.house_rules %}
+            <div class="rb-policies-modal-section">
+                <h4>House Rules</h4>
+                <p>{{ property.house_rules }}</p>
+            </div>
+            {% endif %}
+            {% if property.cancellation_policy %}
+            <div class="rb-policies-modal-section">
+                <h4>Cancellation Policy</h4>
+                <p>{{ property.cancellation_policy }}</p>
+            </div>
+            {% endif %}
+            {% if property.rental_contract_terms %}
+            <div class="rb-policies-modal-section">
+                <h4>Rental Contract Terms and Conditions</h4>
+                <p>{{ property.rental_contract_terms }}</p>
+            </div>
+            {% endif %}
+            {% if not property.house_rules and not property.cancellation_policy and not property.rental_contract_terms %}
+            <p style="margin:0; font-size:14px; color:#6b7280;">No policy information has been provided for this property yet.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
 <script src="https://cdn.jsdelivr.net/npm/intl-tel-input@25.12.1/build/js/intlTelInput.min.js"></script>
 <script>
     (function() {
@@ -418,6 +520,44 @@
         document.addEventListener('keydown', function(event) {
             if (event.key === 'Escape' && warningModal && warningModal.classList.contains('is-open')) {
                 closeAlertModal();
+            }
+        });
+
+        const policiesLink = document.getElementById('rb-policies-link');
+        const policiesModal = document.getElementById('rb-policies-modal');
+        const policiesModalClose = document.getElementById('rb-policies-modal-close');
+
+        function openPoliciesModal() {
+            if (!policiesModal) return;
+            policiesModal.classList.add('is-open');
+            policiesModal.setAttribute('aria-hidden', 'false');
+        }
+
+        function closePoliciesModal() {
+            if (!policiesModal) return;
+            policiesModal.classList.remove('is-open');
+            policiesModal.setAttribute('aria-hidden', 'true');
+        }
+
+        if (policiesLink) {
+            policiesLink.addEventListener('click', function(event) {
+                event.preventDefault();
+                openPoliciesModal();
+            });
+        }
+        if (policiesModalClose) {
+            policiesModalClose.addEventListener('click', closePoliciesModal);
+        }
+        if (policiesModal) {
+            policiesModal.addEventListener('click', function(event) {
+                if (event.target === policiesModal) {
+                    closePoliciesModal();
+                }
+            });
+        }
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape' && policiesModal && policiesModal.classList.contains('is-open')) {
+                closePoliciesModal();
             }
         });
 
