@@ -360,6 +360,14 @@
   .empty-state{padding:40px 16px;text-align:center;color:var(--muted)}
   .empty-state svg{width:36px;height:36px;margin:0 auto 10px;opacity:.4}
   .empty-state p{font-size:13px;font-weight:500}
+  /* Recovery action shown on the Housekeeping "nothing matches the filter"
+     empty state — 2-class selector to outrank the shared button reset. */
+  .empty-state .empty-state-clear{
+    display:inline-block;margin-top:12px;padding:6px 14px;border-radius:var(--r-pill);
+    font-size:12px;font-weight:600;color:var(--brand);background:var(--page);
+    transition:background .15s,color .15s
+  }
+  .empty-state .empty-state-clear:hover{background:var(--brand);color:#fff}
   .skeleton{background:linear-gradient(90deg,#f0f0f0 25%,#e8e8e8 50%,#f0f0f0 75%);
     background-size:200% 100%;animation:shimmer 1.4s infinite;border-radius:6px}
   @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
@@ -480,6 +488,38 @@
     from { opacity: 0; transform: scale(0.92) translateY(20px); }
     to { opacity: 1; transform: scale(1) translateY(0); }
   }
+
+  /* Reusable confirm dialog — replaces window.confirm() for destructive
+     in-page actions (currently the cleaner-roster delete). */
+  .hk-confirm-overlay{
+    position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:17000;
+    display:none;justify-content:center;align-items:center;
+    backdrop-filter:blur(4px);padding:16px
+  }
+  .hk-confirm-overlay.open{display:flex}
+  .hk-confirm-modal{
+    background:#fff;border-radius:16px;width:100%;max-width:360px;
+    box-shadow:0 25px 80px rgba(0,0,0,.3);padding:28px 24px 20px;text-align:center;
+    animation:taskModalIn .3s cubic-bezier(.16,1,.3,1)
+  }
+  .hk-confirm-icon{
+    width:48px;height:48px;border-radius:50%;background:var(--red-soft);color:var(--red);
+    display:flex;align-items:center;justify-content:center;margin:0 auto 16px
+  }
+  .hk-confirm-icon svg{width:22px;height:22px}
+  .hk-confirm-title{font-size:16px;font-weight:700;color:var(--ink);margin-bottom:8px}
+  .hk-confirm-message{font-size:13px;color:var(--ink-soft);line-height:1.55;margin-bottom:22px}
+  .hk-confirm-actions{display:flex;gap:10px}
+  /* 2-class selectors here (not just .hk-confirm-btn) to outrank the shared
+     `.fd-page button{background:none;border:0;padding:0}` reset above. */
+  .hk-confirm-actions .hk-confirm-btn{
+    flex:1;padding:10px 16px;border-radius:9px;font-size:13.5px;font-weight:600;
+    cursor:pointer;transition:background .15s,color .15s,border-color .15s
+  }
+  .hk-confirm-actions .hk-confirm-cancel{background:#fff;border:1px solid var(--line-2);color:var(--ink)}
+  .hk-confirm-actions .hk-confirm-cancel:hover{background:var(--page)}
+  .hk-confirm-actions .hk-confirm-danger{background:var(--red);border:1px solid var(--red);color:#fff}
+  .hk-confirm-actions .hk-confirm-danger:hover{background:var(--red-ink)}
 
   /* ── Mobile responsiveness additions ── */
   @media (max-width:900px){
