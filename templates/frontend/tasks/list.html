@@ -2,6 +2,8 @@
 {% load static %}
 {% load i18n %}
 
+{% block body_class %}single-scroll{% endblock %}
+
 {% block extra_head %}
 <link href="{% static 'css/task/listing.css' %}?v=14" rel="stylesheet">
 <link href="{% static 'css/booking/list.css' %}" rel="stylesheet">
@@ -84,8 +86,47 @@
         </div>
     </div>
 
-    <main class="task-main-content" style="overflow-y: auto">
+    <main class="task-main-content">
         <div class="main_body_div" >
+                    {% if status_filter == 'pending' %}
+                    <div class="task-due-filter">
+                        <a href="?status=pending{% if search_query %}&search={{ search_query|urlencode }}{% endif %}&due=overdue"
+                           class="due-chip due-chip--overdue {% if due_filter == 'overdue' %}active{% endif %}">
+                            <span class="due-chip-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+                            </span>
+                            <span class="due-chip-text">
+                                <span class="due-chip-count">{{ overdue_count }}</span>
+                                <span class="due-chip-label">Overdue</span>
+                            </span>
+                        </a>
+                        <a href="?status=pending{% if search_query %}&search={{ search_query|urlencode }}{% endif %}&due=this_week"
+                           class="due-chip due-chip--week {% if due_filter == 'this_week' %}active{% endif %}">
+                            <span class="due-chip-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg>
+                            </span>
+                            <span class="due-chip-text">
+                                <span class="due-chip-count">{{ this_week_count }}</span>
+                                <span class="due-chip-label">Due this week</span>
+                            </span>
+                        </a>
+                        <a href="?status=pending{% if search_query %}&search={{ search_query|urlencode }}{% endif %}&due=later"
+                           class="due-chip due-chip--later {% if due_filter == 'later' %}active{% endif %}">
+                            <span class="due-chip-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+                            </span>
+                            <span class="due-chip-text">
+                                <span class="due-chip-count">{{ later_count }}</span>
+                                <span class="due-chip-label">Due later</span>
+                            </span>
+                        </a>
+                        {% if due_filter %}
+                        <a href="?status=pending{% if search_query %}&search={{ search_query|urlencode }}{% endif %}" class="due-chip due-chip--clear">
+                            Clear
+                        </a>
+                        {% endif %}
+                    </div>
+                    {% endif %}
                     {% if page_obj.object_list %}
                     {% for task in page_obj.object_list %}
                     {% ifchanged task.date %}
@@ -104,12 +145,6 @@
                     </span>
                     {% endif %}
 
-                    {% if task.repeat != 'None' %}
-                    <span class="task-repeat-inline task-detail-icon" style="color: #000;">
-                        <img src="{% static 'img/task/task_type.svg' %}" alt="" srcset="" style="height: 18px;">
-                        <span>{{ task.repeat }}</span>
-                    </span>
-                    {% endif %}
                 </span>
                 {% now "Y-m-d" as today_str %}
                 {% if task.completed %}
@@ -134,17 +169,6 @@
                         <img src="{% static 'img/booking/horizontal_dots.svg' %}" alt="">
                     </button>
                     <ul class="dropdown-menu dropdown-menu-end dropdown-menu-right">
-                        <li class="mobile-status-action">
-                            <a class="dropdown-item task-status-toggle" href="#" data-task-id="{{ task.id }}" data-completed="{% if task.completed %}true{% else %}false{% endif %}">
-                                {% if task.completed %}
-                                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M8 14A6 6 0 1 0 8 2a6 6 0 0 0 0 12Z" stroke="currentColor" stroke-width="1.5"/><path d="M8 4.5V8H10.8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                                {% else %}
-                                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M8 14A6 6 0 1 0 8 2a6 6 0 0 0 0 12Z" stroke="currentColor" stroke-width="1.5"/><path d="m5.5 8 1.5 1.5L10.5 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                                {% endif %}
-                                {% if task.completed %}Pending{% else %}Done{% endif %}
-                            </a>
-                        </li>
-                        <li class="mobile-status-action"><hr class="dropdown-divider"></li>
                         <li>
                             <a class="dropdown-item" href="{% url 'tasks:task-edit' pk=task.id %}">
                                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M11.5 2.5L13.5 4.5L5 13H3V11L11.5 2.5Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -160,17 +184,22 @@
                     </ul>
 
                     <div class="task-col-main">
-                        <div class="task-type-chip">
-                            {% if task.get_task_type_display == 'Cleaning' %}
-                            <img src="{% static 'img/task/type/cleaning.svg' %}" alt="">
-                            {% elif task.get_task_type_display == 'Maintenance' %}
-                            <img src="{% static 'img/task/type/maintenance.svg' %}" alt="">
-                            {% elif task.get_task_type_display == 'Payment' %}
-                            <img src="{% static 'img/task/type/payment.svg' %}" alt="">
-                            {% else %}
-                            <img src="{% static 'img/task/type/others.svg' %}" alt="">
+                        <div class="task-chips-row">
+                            <div class="task-type-chip">
+                                {% if task.get_task_type_display == 'Cleaning' %}
+                                <img src="{% static 'img/task/type/cleaning.svg' %}" alt="">
+                                {% elif task.get_task_type_display == 'Maintenance' %}
+                                <img src="{% static 'img/task/type/maintenance.svg' %}" alt="">
+                                {% elif task.get_task_type_display == 'Payment' %}
+                                <img src="{% static 'img/task/type/payment.svg' %}" alt="">
+                                {% else %}
+                                <img src="{% static 'img/task/type/others.svg' %}" alt="">
+                                {% endif %}
+                                {{ task.get_task_type_display }}
+                            </div>
+                            {% if task.repeat != 'None' %}
+                            <span class="task-repeat-chip">{{ task.repeat }}</span>
                             {% endif %}
-                            {{ task.get_task_type_display }}
                         </div>
                         <div class="task-desc">{{ task.title }}</div>
                     </div>
@@ -186,12 +215,14 @@
 
                     <div class="task-col-assignee">
                         <img src="{% static 'img/common/default_user.svg' %}" alt="" class="task-avatar">
+                        <span class="task-avatar-initial" aria-hidden="true">{{ task.assigned_to|slice:":1"|upper }}</span>
                         <div>
                             <div class="task-assignee-name">{{ task.assigned_to }}</div>
                             <div class="task-assignee-phone">
                                 <img src="{% static 'img/common/phone_no_icon.svg' %}" alt="">
                                 {{ task.phone }}
                             </div>
+                            <div class="task-assignee-sub">Assigned</div>
                         </div>
                     </div>
 
@@ -202,6 +233,7 @@
                             <span class="task-check__box">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
                             </span>
+                            <span class="task-markdone-label">Mark done</span>
                         </label>
                     </div>
 
@@ -268,6 +300,25 @@
 
 {% block extra_script %}
 <script>
+    // On a page refresh, clear the due-date filter so it starts fresh.
+    (function () {
+        var isReload = false;
+        var navEntries = performance.getEntriesByType && performance.getEntriesByType('navigation');
+        if (navEntries && navEntries.length) {
+            isReload = navEntries[0].type === 'reload';
+        } else if (performance.navigation) {
+            isReload = performance.navigation.type === 1; // TYPE_RELOAD (fallback)
+        }
+
+        if (isReload) {
+            var url = new URL(window.location.href);
+            if (url.searchParams.has('due')) {
+                url.searchParams.delete('due');
+                window.location.replace(url.toString());
+            }
+        }
+    })();
+
     document.addEventListener('DOMContentLoaded', function () {
 
         const SEARCH_FOCUS_KEY = 'taskListSearchFocus';
@@ -376,6 +427,24 @@
                 menu.style.display  = '';
             });
         });
+
+        // Close any open task dropdown when clicking/tapping outside it.
+        window.__taskDropdownJustClosed = false;
+        function closeOpenTaskDropdowns(e) {
+            const openKebabs = document.querySelectorAll('.task-row .task-kebab[aria-expanded="true"]');
+            if (!openKebabs.length) { window.__taskDropdownJustClosed = false; return; }
+            const clickedMenu = e.target.closest('.dropdown-menu');
+            openKebabs.forEach(kebab => {
+                const clickedKebab = e.target.closest('.task-kebab') === kebab;
+                if (!clickedKebab && !clickedMenu) {
+                    const instance = bootstrap.Dropdown.getInstance(kebab) || new bootstrap.Dropdown(kebab);
+                    instance.hide();
+                    window.__taskDropdownJustClosed = true;
+                }
+            });
+        }
+        document.addEventListener('click', closeOpenTaskDropdowns, true);
+        document.addEventListener('touchstart', closeOpenTaskDropdowns, true);
 
 
         function getCookie(name) {
@@ -599,6 +668,8 @@
     document.querySelectorAll('.task-row[data-task-url]').forEach(function (row) {
         row.addEventListener('click', function (e) {
             if (e.target.closest('.task-kebab') || e.target.closest('.dropdown-menu') || e.target.closest('.task-col-done')) return;
+            // If this click just closed an open dropdown, don't also navigate.
+            if (window.__taskDropdownJustClosed) { window.__taskDropdownJustClosed = false; return; }
             window.location.href = row.dataset.taskUrl;
         });
     });
