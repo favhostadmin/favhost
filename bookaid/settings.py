@@ -110,6 +110,9 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+
+    # Renders our branded 404.html for missing URLs even when DEBUG=True.
+    'bookaid.middleware.CustomPageNotFoundMiddleware',
 ]
 
 ROOT_URLCONF = 'bookaid.urls'
