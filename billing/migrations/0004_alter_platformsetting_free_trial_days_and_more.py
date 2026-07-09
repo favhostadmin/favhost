@@ -1,0 +1,31 @@
+from django.db import migrations, models
+
+
+class Migration(migrations.Migration):
+
+    dependencies = [
+        ('billing', '0003_platformsetting'),
+    ]
+
+    operations = [
+        migrations.AlterField(
+            model_name='platformsetting',
+            name='free_trial_days',
+            field=models.PositiveIntegerField(default=90, help_text='Free-trial length for NEW accounts (in days). Changing this does not affect accounts that already signed up.'),
+        ),
+        migrations.AlterField(
+            model_name='platformsetting',
+            name='subscription_currency',
+            field=models.CharField(default='USD', help_text='3-letter currency code, e.g. USD, EUR, GBP.', max_length=10),
+        ),
+        migrations.AlterField(
+            model_name='platformsetting',
+            name='subscription_interval',
+            field=models.CharField(default='month', help_text='Billing interval label, e.g. month or year.', max_length=20),
+        ),
+        migrations.AlterField(
+            model_name='platformsetting',
+            name='subscription_price',
+            field=models.DecimalField(decimal_places=2, default=9.99, help_text='Monthly price shown across the platform (display only — update Stripe separately for real billing).', max_digits=8),
+        ),
+    ]
