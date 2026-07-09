@@ -51,9 +51,54 @@
         color: #6b7280;
     }
     .main_reservation_div{
-        padding: 0rem 10%; 
+        padding: 0rem 10%;
         min-height: 0;
     }
+
+    /* Print Report dropdown (header, centered) */
+    .report-print {
+        flex-shrink: 0;
+    }
+    .report-print-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        white-space: nowrap;
+        flex-shrink: 0;
+        background: #fff;
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+        padding: 7px 14px;
+        font-size: 14px;
+        font-weight: 600;
+        color: #111827;
+        cursor: pointer;
+        transition: background 0.15s ease, border-color 0.15s ease;
+    }
+    .report-print-btn:hover { background: #f3f4f6; border-color: #9ca3af; }
+    .report-print-btn svg { width: 16px; height: 16px; }
+    .report-print-btn .report-print-caret { width: 14px; height: 14px; opacity: 0.7; }
+    .report-print-menu {
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        padding: 4px;
+        min-width: 220px;
+    }
+    .report-print-menu .dropdown-header {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+        color: #9ca3af;
+        padding: 6px 12px 4px;
+    }
+    .report-print-menu .dropdown-item {
+        padding: 9px 12px;
+        font-size: 14px;
+        color: #374151;
+        border-radius: 6px;
+    }
+    .report-print-menu .dropdown-item:hover { background: #f3f4f6; color: #111827; }
 
     .booking-list-page .header-nav {
         position: sticky;
@@ -333,6 +378,21 @@
             <div class="col d-flex justify-content-center header-col-tabs"></div>
             <div class="col-auto header-col-actions">
                 <div class="header-actions">
+                    <div class="dropdown report-print">
+                        <button class="report-print-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Print reservations report">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+                            <span>Print Report</span>
+                            <svg class="report-print-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end report-print-menu">
+                            <li><h6 class="dropdown-header">Download / print report</h6></li>
+                            <li><a class="dropdown-item" target="_blank" rel="noopener" href="{% url 'booking:booking-list' %}?report=past{% if current_property %}&property_id={{ current_property.id }}{% endif %}">Past reservations</a></li>
+                            <li><a class="dropdown-item" target="_blank" rel="noopener" href="{% url 'booking:booking-list' %}?report=current{% if current_property %}&property_id={{ current_property.id }}{% endif %}">Current hosting</a></li>
+                            <li><a class="dropdown-item" target="_blank" rel="noopener" href="{% url 'booking:booking-list' %}?report=upcoming{% if current_property %}&property_id={{ current_property.id }}{% endif %}">Upcoming reservations</a></li>
+                            <li><a class="dropdown-item" target="_blank" rel="noopener" href="{% url 'booking:booking-list' %}?report=cancelled{% if current_property %}&property_id={{ current_property.id }}{% endif %}">Cancelled reservations</a></li>
+                            <li><a class="dropdown-item" target="_blank" rel="noopener" href="{% url 'booking:booking-list' %}?report=no_show{% if current_property %}&property_id={{ current_property.id }}{% endif %}">No-show reservations</a></li>
+                        </ul>
+                    </div>
                     <div class="search-box search-box-desktop">
                         <input type="text" name="search" placeholder="Search" value="{{ search_query|default:'' }}">
                         <div class="search-icon" style="right: 12px;" onclick="performSearch(this)">
