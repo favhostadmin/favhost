@@ -435,6 +435,46 @@
                     {% for booking in bookings %}
                     <article class="reservation-card reservation-item" data-urgency="{{ booking.urgency|default:'green' }}"
                              data-url="{% url 'booking:payment-details' pk=booking.id %}">
+                        <div class="reservation-mobile-card">
+                            <div class="reservation-mobile-head">
+                                <div class="reservation-mobile-dates">{{ booking.check_in }} <span class="reservation-mobile-arrow">&rarr;</span> {{ booking.check_out }}</div>
+                                {% if booking.checkout_info %}
+                                <span class="reservation-mobile-badge reservation-item__badge--{{ booking.urgency|default:'green' }}">
+                                    {% if booking.checkout_info == 'Cancelled' %}
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>
+                                    {% elif booking.checkout_info == 'No Show' %}
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="18" y1="8" x2="23" y2="13"></line><line x1="23" y1="8" x2="18" y2="13"></line></svg>
+                                    {% else %}
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>
+                                    {% endif %}
+                                    {{ booking.checkout_info }}
+                                </span>
+                                {% endif %}
+                            </div>
+                            <div class="reservation-mobile-body">
+                                <span class="reservation-mobile-thumb">
+                                    <img src="{{ booking.property_thumbnail }}" alt="{{ booking.property_name }}">
+                                </span>
+                                <div class="reservation-mobile-info">
+                                    <div class="reservation-mobile-name">{{ booking.guest_name }}</div>
+                                    <div class="reservation-mobile-prop">{{ booking.property_name }}</div>
+                                </div>
+                            </div>
+                            <div class="reservation-mobile-foot">
+                                <span class="reservation-mobile-meta"><b>{{ booking.nights }}</b> nights &middot; {{ booking.guests }} guests</span>
+                                <span class="reservation-mobile-footright">
+                                    <span class="reservation-item__platform {% if booking.platform == 'Airbnb' %}reservation-item__platform--airbnb{% elif 'Furnished' in booking.platform %}reservation-item__platform--ff{% endif %}">
+                                        {% if booking.platform_icon %}
+                                            <img src="{{ booking.platform_icon }}" alt="{{ booking.platform }}">
+                                        {% else %}
+                                            <img src="{% static 'img/booking/other_browser.svg' %}" alt="Platform">
+                                        {% endif %}
+                                        {{ booking.platform }}
+                                    </span>
+                                    <span class="reservation-mobile-number">#{{ booking.reservation_number }}</span>
+                                </span>
+                            </div>
+                        </div>
                         <div class="reservation-item__stay">
                             <div class="reservation-item__dates">{{ booking.check_in }} <span class="reservation-item__arrow">&rarr;</span> {{ booking.check_out }}</div>
                             {% if booking.checkout_info %}
@@ -601,8 +641,8 @@
 </div>
 
 <!-- Guest Receipt Modal -->
-<div id="guestReceiptModal" class="modal" style="display: none; position: fixed; z-index: 1050; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.5); align-items: center; justify-content: center;">
-    <div class="modal-content" style="background-color: #fefefe; margin: auto; padding: 0; border: 1px solid #888; width: 90%; max-width: 960px; border-radius: 8px; position: relative; box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2),0 6px 20px 0 rgba(0,0,0,0.19);">
+<div id="guestReceiptModal" class="modal" style="display: none; position: fixed; z-index: 1050; left: 0; top: 0; width: 100%; height: 100%; overflow-y: auto; -webkit-overflow-scrolling: touch; background-color: rgba(0,0,0,0.5); align-items: flex-start; justify-content: center; padding: 20px 0;">
+    <div class="modal-content" style="background-color: #fefefe; margin: auto; padding: 0; border: 1px solid #888; width: 90%; max-width: 960px; border-radius: 8px; position: relative; box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2),0 6px 20px 0 rgba(0,0,0,0.19); max-height: calc(100vh - 40px); overflow-y: auto; -webkit-overflow-scrolling: touch;">
         <!-- <div class="modal-header" style="display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid #e5e7eb;">
             <div style="font-weight: 600; color: #111827;">Guest Receipt</div>
             <button type="button" class="close-guest-receipt" style="background: none; border: none; font-size: 22px; line-height: 1; color: #6b7280; cursor: pointer;">&times;</button>
