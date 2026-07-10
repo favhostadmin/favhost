@@ -540,7 +540,7 @@
                     <div class="booking-card desktop-only">
                         <div class="booking-card-header">
                             <h3 class="fw-bold text-center me-2 booking-card-price">{% money property.price_per_night %}<small class="text-muted fw-normal"> night</small></h3>
-                            {% if property.cleaning_fee > 0 or property.refundable_deposit > 0 or property.application_fees > 0 %}
+                            {% if property.cleaning_fee > 0 or property.refundable_deposit > 0 or property.taxes > 0 or property.other_fees > 0 %}
                             <a href="#" id="openOtherFeesModal" class="booking-card-fee-link">*Other Fee</a>
                             {% endif %}
                         </div>
@@ -591,8 +591,12 @@
                                 <strong>{% money property.cleaning_fee %}</strong>
                             </div>
                             <div class="ld-cost-row">
-                                <span>Application fee</span>
-                                <strong>{% money property.application_fees %}</strong>
+                                <span>Taxes</span>
+                                <strong>{% money property.taxes %}</strong>
+                            </div>
+                            <div class="ld-cost-row">
+                                <span>Other fees</span>
+                                <strong>{% money property.other_fees %}</strong>
                             </div>
                             <div class="ld-cost-row">
                                 <span>Refundable deposit</span>
@@ -623,7 +627,7 @@
     <div class="mobile-cta-bar d-lg-none d-md-none">
         <div class="mobile-cta-price">
             <span class="amount">{% money property.price_per_night %} <small class="text-muted">night</small></span>
-            {% if property.cleaning_fee > 0 or property.refundable_deposit > 0 or property.application_fees > 0 %}
+            {% if property.cleaning_fee > 0 or property.refundable_deposit > 0 or property.taxes > 0 or property.other_fees > 0 %}
             <a href="#" id="openOtherFeesModalMobileBar" class="fee-link">Other fees</a>
             {% endif %}
             <!-- <span class="next-available-text">Next Available 25-May-26</span> -->
@@ -638,7 +642,7 @@
             <div class="booking-card">
                 <div class="booking-card-header">
                     <h3 id="mobileBookingModalTitle" class="fw-bold text-center me-2 booking-card-price">{% money property.price_per_night %}<small class="text-muted fw-normal"> night</small></h3>
-                    {% if property.cleaning_fee > 0 or property.refundable_deposit > 0 or property.application_fees > 0 %}
+                    {% if property.cleaning_fee > 0 or property.refundable_deposit > 0 or property.taxes > 0 or property.other_fees > 0 %}
                     <a href="#" id="openOtherFeesModalMobileModal" class="booking-card-fee-link">*Other Fee</a>
                     {% endif %}
                 </div>
@@ -675,8 +679,12 @@
                         <strong>{% money property.cleaning_fee %}</strong>
                     </div>
                     <div class="ld-cost-row">
-                        <span>Application fee</span>
-                        <strong>{% money property.application_fees %}</strong>
+                        <span>Taxes</span>
+                        <strong>{% money property.taxes %}</strong>
+                    </div>
+                    <div class="ld-cost-row">
+                        <span>Other fees</span>
+                        <strong>{% money property.other_fees %}</strong>
                     </div>
                     <div class="ld-cost-row">
                         <span>Refundable deposit</span>
@@ -780,10 +788,16 @@
                         <td class="text-end fw-bold">{% money property.refundable_deposit %}</td>
                     </tr>
                     {% endif %}
-                    {% if property.application_fees > 0 %}
+                    {% if property.taxes > 0 %}
                     <tr>
-                        <td>Application Fee</td>
-                        <td class="text-end fw-bold">{% money property.application_fees %}</td>
+                        <td>Taxes</td>
+                        <td class="text-end fw-bold">{% money property.taxes %}</td>
+                    </tr>
+                    {% endif %}
+                    {% if property.other_fees > 0 %}
+                    <tr>
+                        <td>Other Fees</td>
+                        <td class="text-end fw-bold">{% money property.other_fees %}</td>
                     </tr>
                     {% endif %}
                 </tbody>
@@ -1245,7 +1259,8 @@
         // --- Payment Summary Logic ---
         const ldPricePerNight = parseFloat("{% money_raw property.price_per_night %}");
         const ldCleaningFee   = parseFloat("{% money_raw property.cleaning_fee %}");
-        const ldAppFee        = parseFloat("{% money_raw property.application_fees %}");
+        const ldTaxes         = parseFloat("{% money_raw property.taxes %}");
+        const ldOtherFees     = parseFloat("{% money_raw property.other_fees %}");
         const ldDepositFee    = parseFloat("{% money_raw property.refundable_deposit %}");
 
         function updatePaymentSummary(checkinValue, checkoutValue, ids) {
@@ -1257,7 +1272,7 @@
             const nights = Math.max(0, Math.round((d2 - d1) / (1000 * 60 * 60 * 24)));
             if (nights <= 0) { summary.style.display = 'none'; return; }
             const stayTotal = ldPricePerNight * nights;
-            const totalDue  = stayTotal + ldCleaningFee + ldAppFee + ldDepositFee;
+            const totalDue  = stayTotal + ldCleaningFee + ldTaxes + ldOtherFees + ldDepositFee;
             const stayLabel = document.getElementById(ids.stayLabel);
             const stayTotal_ = document.getElementById(ids.stayTotal);
             const totalDueEl = document.getElementById(ids.totalDue);

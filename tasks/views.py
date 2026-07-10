@@ -74,7 +74,10 @@ class TaskListView(LoginRequiredMixin, ListView):
             elif due_filter == 'later':
                 tasks = tasks.filter(date__gt=week_end)
 
-        tasks = tasks.order_by('date', 'time')
+        if status_filter == 'done':
+            tasks = tasks.order_by('-date', '-time')
+        else:
+            tasks = tasks.order_by('date', 'time')
         return tasks
 
 
@@ -117,6 +120,16 @@ class TaskListView(LoginRequiredMixin, ListView):
 class TaskCreateView(LoginRequiredMixin, View):
     template_name = 'frontend/tasks/create.html'
     form_class = TaskForm
+
+    def dispatch(self, request, *args, **kwargs):
+        # Tasks can only be created once the host's profile is complete. Blocks
+        # direct-URL access too, not just the "Create Task" button (which shows
+        # the complete-profile modal). Uses the effective user so co-hosts are
+        # gated by the host's profile.
+        if request.user.is_authenticated and not get_effective_user(request.user).is_profile_complete():
+            messages.error(request, 'Please complete your profile before creating a task.')
+            return redirect('profile')
+        return super().dispatch(request, *args, **kwargs)
 
     def get(self, request, *args, **kwargs):
         form = self.form_class(user=request.user)
