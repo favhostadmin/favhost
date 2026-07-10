@@ -168,6 +168,7 @@ class BookingListView(LoginRequiredMixin, ListView):
                 'id': str(booking.id),
                 'guest_name': f"{booking.first_name} {booking.last_name}",
                 'property_name': booking.property.title,
+                'is_checkin_today': bool(booking.check_in_date and booking.check_in_date == now),
                 'check_in': booking.check_in_date.strftime('%b %d, %Y') if booking.check_in_date else 'N/A',
                 'check_out': booking.check_out_date.strftime('%b %d, %Y') if booking.check_out_date else 'N/A',
                 'nights': booking.total_nights,
@@ -795,6 +796,8 @@ def payment_details(request, pk):
     elif booking.check_in_date and booking.check_in_date > now and booking.status == 'confirmed':
         booking_status = 'upcoming'
 
+    is_checkin_today = bool(booking.check_in_date and booking.check_in_date == now)
+
     delta = (booking.check_out_date - now) if booking.check_out_date else None
 
     # No show receipt is available only from the checkout date onwards
@@ -810,6 +813,7 @@ def payment_details(request, pk):
         'monthly_payment': monthly_payment,
         'time_delta': True if (delta is not None and delta.days == 0) else False,
         'no_show_receipt': no_show_receipt,
+        'is_checkin_today': is_checkin_today,
     }
     context['booking_status'] = booking_status
 
