@@ -56,8 +56,13 @@ def _resolve_date(request):
 
 
 def _cleaner_roster(user_ids):
-    """The shared cleaner roster visible to this host/co-host group."""
-    return list(Cleaner.objects.filter(created_by__in=user_ids).order_by('name').values('id', 'name'))
+    """The *selectable* cleaner roster — active cleaners only. A soft-deleted
+    (is_active=False) cleaner drops out of this list so they can't be picked
+    for new assignments, but existing HousekeepingStatus.cleaner FKs to them
+    are untouched, so already-assigned listings keep showing their name
+    (see _hk_rows, which reads the FK directly rather than via this roster).
+    """
+    return list(Cleaner.objects.filter(created_by__in=user_ids, is_active=True).order_by('name').values('id', 'name'))
 
 
 def _hk_rows(user_ids, target_date):
@@ -513,8 +518,15 @@ class CleanersAPI(LoginRequiredMixin, View):
             return JsonResponse({'error': 'Name is too long'}, status=400)
 
         user_ids = get_visible_user_ids(request.user)
+        # Matches regardless of is_active — the unique_together constraint on
+        # (created_by, name) means a soft-deleted cleaner with this name
+        # already occupies it, so "adding" it again should reactivate that
+        # row rather than fail or create a duplicate.
         existing = Cleaner.objects.filter(created_by__in=user_ids, name__iexact=name).first()
         if existing:
+            if not existing.is_active:
+                existing.is_active = True
+                existing.save(update_fields=['is_active'])
             return JsonResponse({'id': existing.id, 'name': existing.name})
 
         cleaner = Cleaner.objects.create(created_by=get_effective_user(request.user), name=name)
@@ -522,8 +534,11 @@ class CleanersAPI(LoginRequiredMixin, View):
 
 
 class CleanerDetailAPI(LoginRequiredMixin, View):
-    """Delete a cleaner from the roster — any date's assignment to them
-    (HousekeepingStatus.cleaner) is set to null automatically."""
+    """Removes a cleaner from the *selectable* roster (soft delete) — see
+    Cleaner.is_active. Existing HousekeepingStatus.cleaner assignments to
+    them, for any date, are left untouched so those listings keep showing
+    the name; the cleaner just can't be picked for new assignments anymore.
+    """
 
     def delete(self, request, cleaner_id):
         user_ids = get_visible_user_ids(request.user)
@@ -531,5 +546,6 @@ class CleanerDetailAPI(LoginRequiredMixin, View):
             cleaner = Cleaner.objects.get(id=cleaner_id, created_by__in=user_ids)
         except Cleaner.DoesNotExist:
             return JsonResponse({'error': 'Cleaner not found'}, status=404)
-        cleaner.delete()
+        cleaner.is_active = False
+        cleaner.save(update_fields=['is_active'])
         return JsonResponse({'ok': True})

@@ -17,7 +17,7 @@ from django.db.models.functions import Concat
 from calendar import monthrange
 from datetime import datetime, timedelta
 from django.contrib.auth.mixins import LoginRequiredMixin
-from accounts.utils import get_visible_user_ids
+from accounts.utils import get_visible_user_ids, get_effective_user
 from accounts import currency
 from .enums import BOOKING_CHANNELS
 from .utils import generate_booking_payments
@@ -350,6 +350,16 @@ class BookingListView(LoginRequiredMixin, ListView):
 class BookingCreateView(LoginRequiredMixin, View):
     template_name = 'frontend/booking/create.html'
 
+    def dispatch(self, request, *args, **kwargs):
+        # Reservations can only be created once the host's profile is complete.
+        # Blocks direct-URL access too, not just the "Create Reservation" button
+        # (which shows the complete-profile modal). Uses the effective user so
+        # co-hosts are gated by the host's profile.
+        if request.user.is_authenticated and not get_effective_user(request.user).is_profile_complete():
+            messages.error(request, 'Please complete your profile before creating a reservation.')
+            return redirect('profile')
+        return super().dispatch(request, *args, **kwargs)
+
     def get(self, request, *args, **kwargs):
         # Get query parameters
         property_id = request.GET.get('property_id')
@@ -595,6 +605,7 @@ class BookingUpdateView(LoginRequiredMixin, View):
             'channels': channels,
             'existing_images': existing_images,
             'existing_attachments': existing_attachments,
+            'countries': CountryAndState.objects.order_by('country_name').values_list('country_name', flat=True).distinct(),
         }
         return render(request, self.template_name, context)
 

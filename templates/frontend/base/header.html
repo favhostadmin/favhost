@@ -798,13 +798,15 @@
                         </a>
                     </li>
                     <li>
-                        <a class="dropdown-item create-menu-item" href="{% url 'booking:booking-create' %}">
+                        <a class="dropdown-item create-menu-item" href="javascript:void(0)"
+                            onclick="headerCreateGuard(function(){ window.location.href='{% url 'booking:booking-create' %}'; })">
                             <img class="create-menu-icon" src="{% static 'img/header/hotel-room.png' %}" alt="Reservation">
                             <span>Create Reservation</span>
                         </a>
                     </li>
                     <li>
-                        <a class="dropdown-item create-menu-item" href="{% url 'tasks:task-create' %}">
+                        <a class="dropdown-item create-menu-item" href="javascript:void(0)"
+                            onclick="headerCreateGuard(function(){ window.location.href='{% url 'tasks:task-create' %}'; })">
                             <img class="create-menu-icon" src="{% static 'img/header/task_icon_white.png' %}" alt="Task">
                             <span>Create Task</span>
                         </a>
@@ -812,12 +814,13 @@
                     <li>
                         {% if is_cohost %}
                         <a class="dropdown-item create-menu-item" href="javascript:void(0)"
-                            data-bs-toggle="modal" data-bs-target="#accAddModal">
+                            onclick="headerCreateExpenseCohost()">
                             <i class="ti ti-calculator" style="font-size:16px;line-height:1;width:16px;color:#111;" aria-hidden="true"></i>
                             <span>Create Expense</span>
                         </a>
                         {% else %}
-                        <a class="dropdown-item create-menu-item" href="{% url 'accounting' %}?add_expense=1">
+                        <a class="dropdown-item create-menu-item" href="javascript:void(0)"
+                            onclick="headerCreateGuard(function(){ window.location.href='{% url 'accounting' %}?add_expense=1'; })">
                             <i class="ti ti-calculator" style="font-size:16px;line-height:1;width:16px;color:#111;" aria-hidden="true"></i>
                             <span>Create Expense</span>
                         </a>
@@ -1042,13 +1045,15 @@
                             </a>
                         </li>
                         <li>
-                            <a class="dropdown-item create-menu-item" href="{% url 'booking:booking-create' %}">
+                            <a class="dropdown-item create-menu-item" href="javascript:void(0)"
+                                onclick="headerCreateGuard(function(){ window.location.href='{% url 'booking:booking-create' %}'; })">
                                 <img class="create-menu-icon" src="{% static 'img/header/hotel-room.png' %}" alt="Reservation">
                                 <span>Create Reservation</span>
                             </a>
                         </li>
                         <li>
-                            <a class="dropdown-item create-menu-item" href="{% url 'tasks:task-create' %}">
+                            <a class="dropdown-item create-menu-item" href="javascript:void(0)"
+                                onclick="headerCreateGuard(function(){ window.location.href='{% url 'tasks:task-create' %}'; })">
                                 <img class="create-menu-icon" src="{% static 'img/header/task_icon_white.png' %}" alt="Task">
                                 <span>Create Task</span>
                             </a>
@@ -1056,12 +1061,13 @@
                         <li>
                             {% if is_cohost %}
                             <a class="dropdown-item create-menu-item" href="javascript:void(0)"
-                                data-bs-toggle="modal" data-bs-target="#accAddModal">
+                                onclick="headerCreateExpenseCohost()">
                                 <i class="ti ti-calculator" style="font-size:16px;line-height:1;width:16px;color:#111;" aria-hidden="true"></i>
                                 <span>Create Expense</span>
                             </a>
                             {% else %}
-                            <a class="dropdown-item create-menu-item" href="{% url 'accounting' %}?add_expense=1">
+                            <a class="dropdown-item create-menu-item" href="javascript:void(0)"
+                                onclick="headerCreateGuard(function(){ window.location.href='{% url 'accounting' %}?add_expense=1'; })">
                                 <i class="ti ti-calculator" style="font-size:16px;line-height:1;width:16px;color:#111;" aria-hidden="true"></i>
                                 <span>Create Expense</span>
                             </a>
@@ -1152,26 +1158,100 @@
 <div id="mobileNavbarBackdrop" class="mobile-navbar-backdrop d-xl-none" aria-hidden="true"></div>
 
 <!-- Profile Completion Modal -->
+<style>
+    #headerProfileCompleteModal .modal-content.pcm-content {
+        border: none;
+        border-radius: 16px;
+        box-shadow: 0 20px 60px rgba(17, 24, 39, 0.15);
+    }
+    #headerProfileCompleteModal .modal-body {
+        padding: 40px 44px 36px;
+        text-align: center;
+    }
+    #headerProfileCompleteModal .pcm-illustration {
+        width: 100%;
+        max-width: 185px;
+        height: auto;
+        margin: 0 auto 26px;
+        display: block;
+    }
+    #headerProfileCompleteModal .pcm-title {
+        font-size: 19px;
+        font-weight: 700;
+        line-height: 1.4;
+        color: #1f2937;
+        max-width: 420px;
+        margin: 0 auto 10px;
+    }
+    #headerProfileCompleteModal .pcm-subtitle {
+        font-size: 13.5px;
+        font-weight: 400;
+        color: #9aa0a6;
+        line-height: 1.5;
+        margin-bottom: 28px;
+    }
+    #headerProfileCompleteModal .pcm-actions {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 14px;
+        flex-wrap: wrap;
+        margin-bottom: 16px;
+    }
+    #headerProfileCompleteModal .pcm-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 150px;
+        padding: 11px 22px;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        line-height: 1;
+        text-decoration: none;
+        cursor: pointer;
+        border: 1px solid transparent;
+        transition: background 0.15s, border-color 0.15s, transform 0.1s;
+    }
+    #headerProfileCompleteModal .pcm-btn-primary { background: #e05c2a; color: #fff; }
+    #headerProfileCompleteModal .pcm-btn-primary:hover { background: #c94e22; color: #fff; }
+    #headerProfileCompleteModal .pcm-btn-primary:active { transform: scale(0.98); }
+    #headerProfileCompleteModal .pcm-btn-secondary { background: #fff; color: #374151; border-color: #e5e7eb; }
+    #headerProfileCompleteModal .pcm-btn-secondary:hover { background: #f8f9fa; border-color: #d1d5db; }
+    #headerProfileCompleteModal .pcm-btn-secondary:active { transform: scale(0.98); }
+    #headerProfileCompleteModal .pcm-help {
+        display: inline-block;
+        font-size: 13px;
+        font-weight: 500;
+        color: #e05c2a;
+        text-decoration: underline;
+        text-underline-offset: 2px;
+    }
+    #headerProfileCompleteModal .pcm-help:hover { color: #c94e22; }
+    @media (max-width: 480px) {
+        #headerProfileCompleteModal .modal-body { padding: 32px 22px 28px; }
+        #headerProfileCompleteModal .pcm-btn { flex: 1 1 auto; min-width: 0; }
+    }
+</style>
 <div class="modal fade d-none" id="headerProfileCompleteModal" tabindex="-1" aria-labelledby="headerProfileCompleteModalLabel" aria-hidden="true" >
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="headerProfileCompleteModalLabel">Complete Your Profile</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
+        <div class="modal-content pcm-content">
             <div class="modal-body">
+                <img class="pcm-illustration" src="{% static 'img/common/profile_incomplete.png' %}" alt="Complete your profile">
                 {% if is_cohost %}
-                Please ask the host to complete their profile before a listing can be created.
+                <h2 class="pcm-title" id="headerProfileCompleteModalLabel">The host's profile is not complete</h2>
+                <p class="pcm-subtitle">Please ask the host to complete their profile before you can create a listing, reservation, task, or expense.</p>
+                <div class="pcm-actions">
+                    <button type="button" class="pcm-btn pcm-btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
                 {% else %}
-                Please complete your profile before creating a listing.
-                {% endif %}
-            </div>
-            <div class="modal-footer">
-                {% if is_cohost %}
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                {% else %}
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Later</button>
-                <a href="{% url 'accounts:profile_edit' %}" class="btn btn-primary">Complete Profile</a>
+                <h2 class="pcm-title" id="headerProfileCompleteModalLabel">Your profile is not complete. Do you want to complete it now?</h2>
+                <p class="pcm-subtitle">To create data in the application, the profile should be complete</p>
+                <div class="pcm-actions">
+                    <a href="{% url 'accounts:profile_edit' %}?complete=1" class="pcm-btn pcm-btn-primary">Complete profile</a>
+                    <button type="button" class="pcm-btn pcm-btn-secondary" data-bs-dismiss="modal">Maybe Later</button>
+                </div>
+                <a href="#" class="pcm-help">How to use FavHost?</a>
                 {% endif %}
             </div>
         </div>
@@ -1336,18 +1416,42 @@
         });
     });
 
-    function checkProfileHeader() {
-        const isProfileComplete = "{{ request.user.is_profile_complete|yesno:'true,false' }}" === "true";
-        if (isProfileComplete) {
-            window.location.href = "{% url 'property:property-create' %}";
+    // Effective-user (host) profile completeness. Co-hosts are gated by the
+    // host's profile, matching the server-side create guards.
+    const HEADER_PROFILE_COMPLETE = "{{ header_profile_complete|yesno:'true,false' }}" === "true";
+
+    function showHeaderProfileModal() {
+        const modalElement = document.getElementById('headerProfileCompleteModal');
+        modalElement.classList.remove('d-none');
+        const modal = new bootstrap.Modal(modalElement);
+        modal.show();
+        modalElement.addEventListener('hidden.bs.modal', function () {
+            modalElement.classList.add('d-none');
+        }, { once: true });
+    }
+
+    // Guard any "Create" action: run onOk() only when the profile is complete,
+    // otherwise show the complete-profile modal.
+    function headerCreateGuard(onOk) {
+        if (HEADER_PROFILE_COMPLETE) {
+            onOk();
         } else {
-            const modalElement = document.getElementById('headerProfileCompleteModal');
-            modalElement.classList.remove('d-none');
-            const modal = new bootstrap.Modal(modalElement);
-            modal.show();
-            modalElement.addEventListener('hidden.bs.modal', function () {
-                modalElement.classList.add('d-none');
-            }, { once: true });
+            showHeaderProfileModal();
         }
+    }
+
+    // Backwards-compatible helper for the "Create Listing" entry points.
+    function checkProfileHeader() {
+        headerCreateGuard(function () {
+            window.location.href = "{% url 'property:property-create' %}";
+        });
+    }
+
+    // Open the shared "Add Expense" modal (co-hosts) once the profile is complete.
+    function headerCreateExpenseCohost() {
+        headerCreateGuard(function () {
+            const el = document.getElementById('accAddModal');
+            if (el) new bootstrap.Modal(el).show();
+        });
     }
 </script>
