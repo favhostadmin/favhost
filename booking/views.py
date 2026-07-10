@@ -595,6 +595,7 @@ class BookingUpdateView(LoginRequiredMixin, View):
             'channels': channels,
             'existing_images': existing_images,
             'existing_attachments': existing_attachments,
+            'countries': CountryAndState.objects.order_by('country_name').values_list('country_name', flat=True).distinct(),
         }
         return render(request, self.template_name, context)
 
