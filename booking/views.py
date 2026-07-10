@@ -496,6 +496,8 @@ class BookingCreateView(LoginRequiredMixin, View):
                     price_per_night=currency.to_usd(request.POST.get('price_per_night', '0.00'), request.user.currency),
                     deposit_fee=currency.to_usd(request.POST.get('deposit_fee', '0.00'), request.user.currency),
                     application_fee=currency.to_usd(request.POST.get('application_fee', '0.00'), request.user.currency),
+                    taxes=currency.to_usd(request.POST.get('taxes', '0.00'), request.user.currency),
+                    other_fees=currency.to_usd(request.POST.get('other_fees', '0.00'), request.user.currency),
                     cleaning_fee=currency.to_usd(request.POST.get('cleaning_fee', '0.00'), request.user.currency)
 
                 )
@@ -640,6 +642,12 @@ class BookingUpdateView(LoginRequiredMixin, View):
                     raise Exception("The selected property is blocked for these dates. Please choose different dates or another property.")
                 old_check_in_date = booking.check_in_date
                 old_check_out_date = booking.check_out_date
+                # Snapshot fee/price values so we can detect fee-only edits and
+                # regenerate the payment schedule for them too (not just date changes).
+                old_price_values = (
+                    booking.price_per_night, booking.cleaning_fee, booking.deposit_fee,
+                    booking.taxes, booking.other_fees, booking.application_fee,
+                )
 
                 booking.first_name = request.POST.get('first_name')
                 booking.last_name = request.POST.get('last_name')
@@ -665,6 +673,11 @@ class BookingUpdateView(LoginRequiredMixin, View):
                 # Amounts are submitted in the host's display currency; store as USD.
                 booking.price = currency.to_usd(request.POST.get('price', '0.00'), request.user.currency)
                 booking.price_per_night = currency.to_usd(request.POST.get('price_per_night', '0.00'), request.user.currency)
+                booking.cleaning_fee = currency.to_usd(request.POST.get('cleaning_fee', '0.00'), request.user.currency)
+                booking.deposit_fee = currency.to_usd(request.POST.get('deposit_fee', '0.00'), request.user.currency)
+                booking.taxes = currency.to_usd(request.POST.get('taxes', '0.00'), request.user.currency)
+                booking.other_fees = currency.to_usd(request.POST.get('other_fees', '0.00'), request.user.currency)
+                booking.application_fee = currency.to_usd(request.POST.get('application_fee', '0.00'), request.user.currency)
                 booking.save()
 
                 # --- Handle Guest Images ---
@@ -675,9 +688,17 @@ class BookingUpdateView(LoginRequiredMixin, View):
                 for doc_file in request.FILES.getlist('guest_attachments'):
                     GuestDocument.objects.create(reservation=booking, document=doc_file, name=doc_file.name, file_type=doc_file.content_type)
 
-                # Check if dates have changed to regenerate installments
-                if old_check_in_date != booking.check_in_date or old_check_out_date != booking.check_out_date:
-                    # Delete old payment schedule
+                # Regenerate the payment schedule when dates OR any fee/price
+                # changed, so edits to Taxes, Other fees, etc. flow through to
+                # the Payment Schedule for this reservation.
+                new_price_values = (
+                    booking.price_per_night, booking.cleaning_fee, booking.deposit_fee,
+                    booking.taxes, booking.other_fees, booking.application_fee,
+                )
+                dates_changed = (old_check_in_date != booking.check_in_date or
+                                 old_check_out_date != booking.check_out_date)
+                if dates_changed or old_price_values != new_price_values:
+                    # Delete old payment schedule and regenerate it
                     booking.payments.all().delete()
                     generate_booking_payments(booking)
 
@@ -758,10 +779,9 @@ def payment_details(request, pk):
         if nights >= 30:
             monthly_payment = booking.price_per_night * 30
     
-    if nights >= 30:
-        total_price = monthly_payment + (booking.cleaning_fee or 0) + (booking.deposit_fee or 0) + (booking.application_fee or 0)
-    else:
-        total_price = subtotal + (booking.cleaning_fee or 0) + (booking.deposit_fee or 0) + (booking.application_fee or 0)
+    # Total always uses the full stay rent (nights * daily rate), not just one
+    # month's payment. The "Monthly Payment" line is informational only.
+    total_price = subtotal + (booking.cleaning_fee or 0) + (booking.deposit_fee or 0) + (booking.taxes or 0) + (booking.other_fees or 0)
 
     # Determine booking status to conditionally show actions
     # now = timezone.now().date()
@@ -918,13 +938,19 @@ def guest_receipt(request, pk):
     if booking.check_in_date and booking.check_out_date:
         nights = (booking.check_out_date - booking.check_in_date).days
 
-    # Calculate totals (refundable deposit excluded from all payment math)
+    # Calculate totals. The refundable deposit is money held in trust, not
+    # revenue, so it is excluded from the receipt's total, amount paid, and
+    # balance. We do this by ignoring deposit-type payment rows entirely
+    # rather than subtracting a fixed deposit figure.
+    DEPOSIT_PAYMENT_TYPES = {'Refundable deposit', 'Refundable to guest'}
     payments = booking.payments.all()
     total_paid = sum(p.amount for p in payments if p.is_paid)
-    deposit = booking.deposit_fee or 0
-    paid_excluding_deposit = max(total_paid - deposit, 0)
+    paid_excluding_deposit = sum(
+        p.amount for p in payments
+        if p.is_paid and p.type not in DEPOSIT_PAYMENT_TYPES
+    )
     subtotal = (booking.price_per_night or 0) * nights
-    total_price = subtotal + (booking.cleaning_fee or 0) + (booking.application_fee or 0)
+    total_price = subtotal + (booking.cleaning_fee or 0) + (booking.taxes or 0) + (booking.other_fees or 0)
     all_paid = paid_excluding_deposit >= total_price
 
     balance_due = max(total_price - paid_excluding_deposit, 0)
@@ -1116,9 +1142,9 @@ class EnquiryDetailView(LoginRequiredMixin, View):
         monthly_payment = 0
         if nights >= 30:
             monthly_payment = price_per_night * 30
-            total_price = monthly_payment + cleaning_fee + deposit_fee + application_fee
-        else:
-            total_price = subtotal + cleaning_fee + deposit_fee + application_fee
+        # Total always uses the full stay rent (nights * daily rate), not just
+        # one month's payment. The "Monthly Payment" line is informational only.
+        total_price = subtotal + cleaning_fee + deposit_fee + application_fee
 
         context = {
             'enquiry': enquiry,
