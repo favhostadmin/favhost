@@ -78,7 +78,7 @@ class HostDashboardAPIView(LoginRequiredMixin, TemplateView):
             expected_payment_date__date=target_date,
             is_paid=False
         ).exclude(
-            type__in = ['Refundable deposit', 'Cleaning Fee', 'Application Fee', 'Refundable to guest']
+            type__in = ['Refundable deposit', 'Cleaning Fee', 'Application Fee', 'Taxes', 'Other Fees', 'Refundable to guest']
         ).count()
 
         # Determine which properties are currently occupied by guests
@@ -353,7 +353,7 @@ class HostDashboardAPIView(LoginRequiredMixin, TemplateView):
                 })
 
             for p in b.payments.all():
-                if p.type in ['Refundable deposit', 'Cleaning Fee', 'Application Fee', 'Refundable to guest']:
+                if p.type in ['Refundable deposit', 'Cleaning Fee', 'Application Fee', 'Taxes', 'Other Fees', 'Refundable to guest']:
                     continue
                 pay_date = None
                 if p.expected_payment_date:
@@ -979,9 +979,9 @@ class CalenderAPIView(LoginRequiredMixin,ListView):
                 first_installment_amount = 0.0
 
                 for p in b.payments.all():
-                    if p.type in ['Refundable deposit', 'Cleaning Fee', 'Application Fee', 'Payment 1']:
+                    if p.type in ['Refundable deposit', 'Cleaning Fee', 'Application Fee', 'Taxes', 'Other Fees', 'Payment 1']:
                         first_installment_amount += float(p.amount)
-                    if p.type in ['Refundable deposit', 'Cleaning Fee', 'Application Fee', 'Refundable to guest']:
+                    if p.type in ['Refundable deposit', 'Cleaning Fee', 'Application Fee', 'Taxes', 'Other Fees', 'Refundable to guest']:
                         continue
                     if p.expected_payment_date:
                         d_str = p.expected_payment_date.date().isoformat()
@@ -1249,7 +1249,7 @@ class CalendarListView(LoginRequiredMixin, ListView):
 
                 # Payments (from Payment model)
                 for p in b.payments.all():
-                    if p.type in ['Refundable deposit', 'Cleaning Fee', 'Application Fee', 'Refundable to guest']:
+                    if p.type in ['Refundable deposit', 'Cleaning Fee', 'Application Fee', 'Taxes', 'Other Fees', 'Refundable to guest']:
                         continue
                     pay_date = p.expected_payment_date.date() if p.expected_payment_date else (p.payment_date.date() if p.payment_date else today)
                     code, label = status_for(pay_date)

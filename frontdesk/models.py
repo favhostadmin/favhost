@@ -12,6 +12,12 @@ class Cleaner(models.Model):
     created_by = models.ForeignKey("accounts.MyUser", on_delete=models.SET_NULL, null=True, related_name='cleaners')
     name       = models.CharField(max_length=120)
     created_at = models.DateTimeField(auto_now_add=True)
+    # "Deleting" a cleaner from the roster soft-deletes it (is_active=False)
+    # rather than removing the row — HousekeepingStatus.cleaner FKs to it
+    # from any date (past, today, future) stay intact so already-made
+    # assignments keep showing the name. Only the *selectable* roster
+    # (see frontdesk/views.py::_cleaner_roster) excludes inactive cleaners.
+    is_active  = models.BooleanField(default=True)
 
     class Meta:
         ordering = ['name']

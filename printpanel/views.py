@@ -18,7 +18,7 @@ from accounts.utils import get_visible_user_ids
 
 # Deposits/fees aren't revenue due on a date - the main calendar excludes
 # these from payment displays too, so print output stays consistent with it.
-NON_REVENUE_PAYMENT_TYPES = {'Refundable deposit', 'Cleaning Fee', 'Application Fee', 'Refundable to guest'}
+NON_REVENUE_PAYMENT_TYPES = {'Refundable deposit', 'Cleaning Fee', 'Application Fee', 'Taxes', 'Other Fees', 'Refundable to guest'}
 
 
 def _payment_due_date(payment):
