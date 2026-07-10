@@ -151,6 +151,46 @@
       cursor: default;
     }
     .searchable-select-dropdown li.no-results:hover { background: transparent; }
+    /* Inline validation for required searchable selects (country/state) */
+    .searchable-select-wrap.has-error input[type="text"] {
+      border-color: #dc2626 !important;
+      background-color: #fef2f2;
+    }
+    .searchable-select-wrap.has-error input[type="text"]:focus {
+      outline: none;
+      box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.15);
+    }
+    .field-error-msg {
+      display: none;
+      color: #dc2626;
+      font-size: 12px;
+      margin-top: 4px;
+    }
+    .searchable-select-wrap.has-error + .field-error-msg { display: block; }
+    .field-error-msg.show { display: block; }
+    /* Read-only fields (e.g. Email) — visibly non-editable */
+    .form-group input.readonly-field {
+      background-color: #f3f4f6;
+      color: #6b7280;
+      cursor: not-allowed;
+    }
+    /* Red box for required text inputs */
+    .form-group input.has-error,
+    .form-group textarea.has-error {
+      border-color: #dc2626 !important;
+      background-color: #fef2f2;
+    }
+    .form-group input.has-error:focus,
+    .form-group textarea.has-error:focus {
+      outline: none;
+      box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.15);
+    }
+    /* intl-tel-input wraps the phone field; colour its container too */
+    .iti.has-error .iti__flag-container + input,
+    .iti.has-error input[type="tel"] {
+      border-color: #dc2626 !important;
+      background-color: #fef2f2;
+    }
   </style>
 </head>
 
@@ -191,30 +231,33 @@
             <div class="form-row">
               <div class="form-group">
                 <label>First Name<span class="req">*</span></label>
-                <input type="text" name="first_name" value="{{ user.first_name|default:'' }}" placeholder="" required>
+                <input type="text" name="first_name" value="{{ user.first_name|default:'' }}" placeholder="" data-required-msg="Please enter your first name."{% if field_errors.first_name %} class="has-error"{% endif %}>
+                <div class="field-error-msg{% if field_errors.first_name %} show{% endif %}">Please enter your first name.</div>
               </div>
               <div class="form-group">
                 <label>Last Name<span class="req">*</span></label>
-                <input type="text" name="last_name" value="{{ user.last_name|default:'' }}" placeholder="" required>
+                <input type="text" name="last_name" value="{{ user.last_name|default:'' }}" placeholder="" data-required-msg="Please enter your last name."{% if field_errors.last_name %} class="has-error"{% endif %}>
+                <div class="field-error-msg{% if field_errors.last_name %} show{% endif %}">Please enter your last name.</div>
               </div>
             </div>
 
             <div class="form-row">
               <div class="form-group">
                 <label>Email<span class="req">*</span></label>
-                <input type="email" name="email" value="{{ user.email|default:'' }}" placeholder="" required>
+                <input type="email" name="email" value="{{ user.email|default:'' }}" placeholder="" class="readonly-field" readonly title="Email cannot be changed">
               </div>
               <div class="form-group">
                 <label>Phone<span class="req">*</span></label>
-                <input type="tel" name="phone_number" id="phone" value="{% if phone_number %}{{ phone_code }} {{ phone_number }}{% endif %}" placeholder="Enter phone number" required>
+                <input type="tel" name="phone_number" id="phone" value="{% if phone_number %}{{ phone_code }} {{ phone_number }}{% endif %}" placeholder="Enter phone number" data-required-msg="Please enter your phone number."{% if field_errors.phone %} class="has-error"{% endif %}>
                 <input type="hidden" name="phone_code" id="phoneCodeSelect" value="{{ phone_code }}">
+                <div class="field-error-msg{% if field_errors.phone %} show{% endif %}" id="phone-error">Please enter your phone number.</div>
               </div>
             </div>
 
             <div class="form-row">
               <div class="form-group">
                 <label>Country<span class="req">*</span></label>
-                <div class="searchable-select-wrap">
+                <div class="searchable-select-wrap{% if field_errors.country %} has-error{% endif %}">
                     <input type="text" id="country-search-input" placeholder="Search country..." autocomplete="off">
                     <button type="button" class="searchable-select-clear" id="country-search-clear" aria-label="Clear country">&times;</button>
                     <ul class="searchable-select-dropdown" id="country-search-dropdown"></ul>
@@ -225,10 +268,11 @@
                         {% endfor %}
                     </select>
                 </div>
+                <div class="field-error-msg" id="country-error">Please select a country.</div>
               </div>
               <div class="form-group">
                 <label>State<span class="req">*</span></label>
-                <div class="searchable-select-wrap">
+                <div class="searchable-select-wrap{% if field_errors.state %} has-error{% endif %}">
                     <input type="text" id="state-search-input" placeholder="Search state..." autocomplete="off">
                     <button type="button" class="searchable-select-clear" id="state-search-clear" aria-label="Clear state">&times;</button>
                     <ul class="searchable-select-dropdown" id="state-search-dropdown"></ul>
@@ -236,6 +280,7 @@
                         <option value="">Select state</option>
                     </select>
                 </div>
+                <div class="field-error-msg" id="state-error">Please select a state.</div>
               </div>
             </div>
 
@@ -498,7 +543,7 @@
                   </div>
                 </div>
                 <div>
-                  <p class="upload-label">Upload documents for local authority permission<span class="req">*</span></p>
+                  <p class="upload-label">Upload documents for local authority permission</p>
                   <div class="upload-box" role="button" tabindex="0" data-file-trigger="local-permission-input">
                     <svg viewBox="0 0 24 24">
                       <polyline points="16 16 12 12 8 16" />
@@ -793,6 +838,89 @@
         syncSearchInput(countrySelectEl);
         const selectedState = stateSelectEl.getAttribute('data-selected');
         populateStates(countrySelectEl.value, selectedState);
+
+        // ── Required-field validation for Country & State ──────────────
+        // Show an inline red box + message (no popup) and block saving until
+        // both are chosen.
+        function setError(selectEl, on) {
+            const wrap = selectEl.closest('.searchable-select-wrap');
+            if (wrap) wrap.classList.toggle('has-error', on);
+        }
+
+        // Clear the error as soon as the user picks a value. The submit-time
+        // validation itself lives in the unified validator below.
+        countrySelectEl.addEventListener('change', function() {
+            if (countrySelectEl.value) setError(countrySelectEl, false);
+        });
+        stateSelectEl.addEventListener('change', function() {
+            if (stateSelectEl.value) setError(stateSelectEl, false);
+        });
+        window.__setSelectError = setError;
+    })();
+
+    // ── Unified required-field validation ──────────────────────────────
+    // One submit handler for every compulsory field: shows an inline red box
+    // + message (never a native browser popup) and blocks Save until fixed.
+    (function() {
+        const form = document.querySelector('form[action*="profile"]') ||
+                     (document.querySelector('input[name="first_name"]') || {}).form;
+        if (!form) return;
+
+        const countrySelectEl = document.getElementById('country');
+        const stateSelectEl = document.getElementById('state');
+
+        function markInput(input, on) {
+            input.classList.toggle('has-error', on);
+            // Find this field's inline message within its form-group. Using the
+            // group (not nextElementSibling) is robust to the intl-tel-input
+            // wrapper that reparents the phone field.
+            const group = input.closest('.form-group');
+            const msg = group ? group.querySelector('.field-error-msg') : null;
+            if (msg) msg.classList.toggle('show', on);
+        }
+
+        // Clear each text field's error as the user types.
+        form.querySelectorAll('input[data-required-msg]').forEach(function(input) {
+            input.addEventListener('input', function() {
+                if (input.value.trim()) markInput(input, false);
+            });
+        });
+
+        form.addEventListener('submit', function(e) {
+            let firstBad = null;
+
+            // Text/phone inputs marked required via data-required-msg.
+            form.querySelectorAll('input[data-required-msg]').forEach(function(input) {
+                const missing = !input.value.trim();
+                markInput(input, missing);
+                if (missing && !firstBad) firstBad = input;
+            });
+
+            // Country & State searchable selects.
+            if (countrySelectEl) {
+                const missing = !countrySelectEl.value.trim();
+                if (window.__setSelectError) window.__setSelectError(countrySelectEl, missing);
+                if (missing && !firstBad) {
+                    firstBad = countrySelectEl.closest('.searchable-select-wrap')
+                                             .querySelector('input[type="text"]');
+                }
+            }
+            if (stateSelectEl) {
+                const missing = !stateSelectEl.value.trim();
+                if (window.__setSelectError) window.__setSelectError(stateSelectEl, missing);
+                if (missing && !firstBad) {
+                    firstBad = stateSelectEl.closest('.searchable-select-wrap')
+                                            .querySelector('input[type="text"]');
+                }
+            }
+
+            if (firstBad) {
+                e.preventDefault();
+                e.stopPropagation();
+                firstBad.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                try { firstBad.focus(); } catch (err) {}
+            }
+        });
     })();
   </script>
   <script>
