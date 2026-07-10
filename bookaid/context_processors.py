@@ -1,7 +1,7 @@
 from booking.models import Enquiry, Expense
 from property.models import Property
 from django.db.models import Q
-from accounts.utils import get_visible_user_ids
+from accounts.utils import get_visible_user_ids, get_effective_user
 from accounts.models import CoHost
 
 
@@ -26,6 +26,10 @@ def enquiry_counts(request):
         return {
             'new_enquiry_count': new_enquiry_count,
             'is_cohost': is_cohost,
+            # Effective-user (host) profile completeness — drives the header's
+            # "Complete Your Profile" gate on every Create action so co-hosts
+            # are gated by the host's profile, matching the server-side checks.
+            'header_profile_complete': get_effective_user(request.user).is_profile_complete(),
             'expense_categories': [c[0] for c in Expense.CATEGORY_CHOICES],
             'expense_listings': Property.objects.filter(
                 created_by__in=visible_ids

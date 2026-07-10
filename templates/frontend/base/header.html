@@ -798,13 +798,15 @@
                         </a>
                     </li>
                     <li>
-                        <a class="dropdown-item create-menu-item" href="{% url 'booking:booking-create' %}">
+                        <a class="dropdown-item create-menu-item" href="javascript:void(0)"
+                            onclick="headerCreateGuard(function(){ window.location.href='{% url 'booking:booking-create' %}'; })">
                             <img class="create-menu-icon" src="{% static 'img/header/hotel-room.png' %}" alt="Reservation">
                             <span>Create Reservation</span>
                         </a>
                     </li>
                     <li>
-                        <a class="dropdown-item create-menu-item" href="{% url 'tasks:task-create' %}">
+                        <a class="dropdown-item create-menu-item" href="javascript:void(0)"
+                            onclick="headerCreateGuard(function(){ window.location.href='{% url 'tasks:task-create' %}'; })">
                             <img class="create-menu-icon" src="{% static 'img/header/task_icon_white.png' %}" alt="Task">
                             <span>Create Task</span>
                         </a>
@@ -812,12 +814,13 @@
                     <li>
                         {% if is_cohost %}
                         <a class="dropdown-item create-menu-item" href="javascript:void(0)"
-                            data-bs-toggle="modal" data-bs-target="#accAddModal">
+                            onclick="headerCreateExpenseCohost()">
                             <i class="ti ti-calculator" style="font-size:16px;line-height:1;width:16px;color:#111;" aria-hidden="true"></i>
                             <span>Create Expense</span>
                         </a>
                         {% else %}
-                        <a class="dropdown-item create-menu-item" href="{% url 'accounting' %}?add_expense=1">
+                        <a class="dropdown-item create-menu-item" href="javascript:void(0)"
+                            onclick="headerCreateGuard(function(){ window.location.href='{% url 'accounting' %}?add_expense=1'; })">
                             <i class="ti ti-calculator" style="font-size:16px;line-height:1;width:16px;color:#111;" aria-hidden="true"></i>
                             <span>Create Expense</span>
                         </a>
@@ -1042,13 +1045,15 @@
                             </a>
                         </li>
                         <li>
-                            <a class="dropdown-item create-menu-item" href="{% url 'booking:booking-create' %}">
+                            <a class="dropdown-item create-menu-item" href="javascript:void(0)"
+                                onclick="headerCreateGuard(function(){ window.location.href='{% url 'booking:booking-create' %}'; })">
                                 <img class="create-menu-icon" src="{% static 'img/header/hotel-room.png' %}" alt="Reservation">
                                 <span>Create Reservation</span>
                             </a>
                         </li>
                         <li>
-                            <a class="dropdown-item create-menu-item" href="{% url 'tasks:task-create' %}">
+                            <a class="dropdown-item create-menu-item" href="javascript:void(0)"
+                                onclick="headerCreateGuard(function(){ window.location.href='{% url 'tasks:task-create' %}'; })">
                                 <img class="create-menu-icon" src="{% static 'img/header/task_icon_white.png' %}" alt="Task">
                                 <span>Create Task</span>
                             </a>
@@ -1056,12 +1061,13 @@
                         <li>
                             {% if is_cohost %}
                             <a class="dropdown-item create-menu-item" href="javascript:void(0)"
-                                data-bs-toggle="modal" data-bs-target="#accAddModal">
+                                onclick="headerCreateExpenseCohost()">
                                 <i class="ti ti-calculator" style="font-size:16px;line-height:1;width:16px;color:#111;" aria-hidden="true"></i>
                                 <span>Create Expense</span>
                             </a>
                             {% else %}
-                            <a class="dropdown-item create-menu-item" href="{% url 'accounting' %}?add_expense=1">
+                            <a class="dropdown-item create-menu-item" href="javascript:void(0)"
+                                onclick="headerCreateGuard(function(){ window.location.href='{% url 'accounting' %}?add_expense=1'; })">
                                 <i class="ti ti-calculator" style="font-size:16px;line-height:1;width:16px;color:#111;" aria-hidden="true"></i>
                                 <span>Create Expense</span>
                             </a>
@@ -1161,9 +1167,9 @@
             </div>
             <div class="modal-body">
                 {% if is_cohost %}
-                Please ask the host to complete their profile before a listing can be created.
+                Please ask the host to complete their profile before you can create a listing, reservation, task, or expense.
                 {% else %}
-                Please complete your profile before creating a listing.
+                Please complete your profile before creating a listing, reservation, task, or expense.
                 {% endif %}
             </div>
             <div class="modal-footer">
@@ -1171,7 +1177,7 @@
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                 {% else %}
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Later</button>
-                <a href="{% url 'accounts:profile_edit' %}" class="btn btn-primary">Complete Profile</a>
+                <a href="{% url 'accounts:profile_edit' %}?complete=1" class="btn btn-primary">Complete Profile</a>
                 {% endif %}
             </div>
         </div>
@@ -1336,18 +1342,42 @@
         });
     });
 
-    function checkProfileHeader() {
-        const isProfileComplete = "{{ request.user.is_profile_complete|yesno:'true,false' }}" === "true";
-        if (isProfileComplete) {
-            window.location.href = "{% url 'property:property-create' %}";
+    // Effective-user (host) profile completeness. Co-hosts are gated by the
+    // host's profile, matching the server-side create guards.
+    const HEADER_PROFILE_COMPLETE = "{{ header_profile_complete|yesno:'true,false' }}" === "true";
+
+    function showHeaderProfileModal() {
+        const modalElement = document.getElementById('headerProfileCompleteModal');
+        modalElement.classList.remove('d-none');
+        const modal = new bootstrap.Modal(modalElement);
+        modal.show();
+        modalElement.addEventListener('hidden.bs.modal', function () {
+            modalElement.classList.add('d-none');
+        }, { once: true });
+    }
+
+    // Guard any "Create" action: run onOk() only when the profile is complete,
+    // otherwise show the complete-profile modal.
+    function headerCreateGuard(onOk) {
+        if (HEADER_PROFILE_COMPLETE) {
+            onOk();
         } else {
-            const modalElement = document.getElementById('headerProfileCompleteModal');
-            modalElement.classList.remove('d-none');
-            const modal = new bootstrap.Modal(modalElement);
-            modal.show();
-            modalElement.addEventListener('hidden.bs.modal', function () {
-                modalElement.classList.add('d-none');
-            }, { once: true });
+            showHeaderProfileModal();
         }
+    }
+
+    // Backwards-compatible helper for the "Create Listing" entry points.
+    function checkProfileHeader() {
+        headerCreateGuard(function () {
+            window.location.href = "{% url 'property:property-create' %}";
+        });
+    }
+
+    // Open the shared "Add Expense" modal (co-hosts) once the profile is complete.
+    function headerCreateExpenseCohost() {
+        headerCreateGuard(function () {
+            const el = document.getElementById('accAddModal');
+            if (el) new bootstrap.Modal(el).show();
+        });
     }
 </script>
