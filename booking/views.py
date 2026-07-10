@@ -973,6 +973,72 @@ def guest_receipt(request, pk):
     return render(request, 'frontend/common/receipt.html', context)
 
 
+def _format_phone_with_space(phone):
+    """Insert a space after the international calling code in an E.164 number.
+
+    e.g. '+919234429008' -> '+91 9234429008'. Falls back to the original
+    string when the number isn't a recognizable '+<code><national>' form.
+    """
+    if not phone:
+        return phone
+    phone = str(phone).strip()
+    if not phone.startswith('+'):
+        return phone
+    digits = phone[1:]
+    if not digits.isdigit():
+        return phone
+    # Common calling codes (1-3 digits). Try the longest match first.
+    codes = (
+        '1', '7', '20', '27', '30', '31', '32', '33', '34', '36', '39', '40',
+        '41', '43', '44', '45', '46', '47', '48', '49', '51', '52', '53', '54',
+        '55', '56', '57', '58', '60', '61', '62', '63', '64', '65', '66', '81',
+        '82', '84', '86', '90', '91', '92', '93', '94', '95', '98', '212', '213',
+        '234', '251', '254', '255', '256', '351', '352', '353', '354', '355',
+        '358', '359', '370', '371', '372', '380', '381', '385', '386', '420',
+        '421', '852', '853', '855', '856', '880', '886', '960', '961', '962',
+        '963', '964', '965', '966', '967', '968', '971', '972', '973', '974',
+        '975', '976', '977', '992', '993', '994', '995', '998',
+    )
+    for length in (3, 2, 1):
+        code = digits[:length]
+        if code in codes and len(digits) > length:
+            return '+' + code + ' ' + digits[length:]
+    return phone
+
+
+@login_required
+def rental_agreement(request, pk):
+    booking = get_object_or_404(Booking, pk=pk, property__created_by__in=get_visible_user_ids(request.user))
+
+    nights = booking.total_nights
+    subtotal = (booking.price_per_night or 0) * nights
+
+    monthly_payment = 0
+    if nights >= 30:
+        monthly_payment = booking.price_per_night * 30
+
+    # Total always uses the full stay rent (nights * daily rate), not just one
+    # month's payment. The "Monthly Payment" line is informational only.
+    total_price = subtotal + (booking.cleaning_fee or 0) + (booking.deposit_fee or 0) + (booking.taxes or 0) + (booking.other_fees or 0)
+
+    host = booking.property.created_by
+    context = {
+        'booking': booking,
+        'property': booking.property,
+        'host': host,
+        'nights': nights,
+        'subtotal': subtotal,
+        'monthly_payment': monthly_payment,
+        'total_price': total_price,
+        # Phone numbers formatted with a space after the calling code.
+        'guest_phone': _format_phone_with_space(booking.phone),
+        'host_phone': _format_phone_with_space(getattr(host, 'phone', None)),
+        # The agreement is dated the day it is opened.
+        'agreement_date': request.user.get_local_date(),
+        'is_modal': request.GET.get('is_modal') == 'true',
+    }
+    return render(request, 'frontend/common/rental_agreement.html', context)
+
 
 class CancelBookingView(LoginRequiredMixin, View):
     def post(self, request, *args, **kwargs):
