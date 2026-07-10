@@ -18,45 +18,56 @@
       line-height: 1.5;
       padding: 32px 36px;
     }
+    /* NOTE ON LAYOUT: this template is rendered both as the live HTML
+       preview (a real browser, in the print panel's iframe) AND as the
+       downloadable PDF (via xhtml2pdf/reportlab, see
+       frontdesk/views.py::HousekeepingPrintPDFView). xhtml2pdf has no
+       flexbox or CSS grid support — a flex-based layout here renders fine
+       in the preview but collapses in the PDF (cards stack full-width,
+       centered content disappears, etc). Every layout below is therefore
+       done with plain tables / inline-block / floats so the two stay
+       visually identical, per explicit request. Do not reintroduce
+       display:flex or gap here. */
 
     /* ===== Brand Header ===== */
     .brand-header {
-      display: flex;
-      align-items: center;
-      gap: 14px;
       padding-bottom: 16px;
       margin-bottom: 16px;
       border-bottom: 2px solid #1f2937;
     }
+    .bh-table { width: 100%; border-collapse: collapse; }
+    .bh-table td { vertical-align: middle; padding: 0; }
     .brand-logo-badge {
       background: #1e1e1e;
       border-radius: 8px;
       padding: 7px 11px;
-      display: flex;
-      align-items: center;
-      flex-shrink: 0;
+      display: inline-block;
     }
-    .brand-header .brand-logo { width: 84px; height: 40px; display: block; }
-    .brand-header .brand-text { flex: 1; }
-    .brand-header .brand-text .brand-name { font-size: 18px; font-weight: 800; color: #111827; letter-spacing: -0.4px; line-height: 1.2; }
-    .brand-header .brand-text .brand-tagline { font-size: 10px; color: #6b7280; font-weight: 400; letter-spacing: 0.2px; }
-    .brand-header .brand-meta { text-align: right; font-size: 10px; color: #6b7280; line-height: 1.6; flex-shrink: 0; }
-    .brand-header .brand-meta .meta-user { font-weight: 600; color: #374151; font-size: 11px; }
-    .brand-header .brand-meta .meta-date { font-size: 11px; color: #111827; font-weight: 500; }
+    .bh-logo-cell { width: 100px; }
+    .brand-logo { width: 84px; height: 40px; display: block; }
+    .brand-name { font-size: 18px; font-weight: 800; color: #111827; letter-spacing: -0.4px; line-height: 1.2; }
+    .brand-tagline { font-size: 10px; color: #6b7280; font-weight: 400; letter-spacing: 0.2px; }
+    .bh-meta-cell { text-align: right; width: 230px; font-size: 10px; color: #6b7280; line-height: 1.6; }
+    .meta-user { font-weight: 600; color: #374151; font-size: 11px; }
+    .meta-date { font-size: 11px; color: #111827; font-weight: 500; }
+    .meta-generated { margin-top: 3px; color: #94a3b8; }
 
     /* ===== Section Header ===== */
-    .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
-    .section-header h1 { font-size: 16px; font-weight: 700; color: #111827; }
-    .section-header .badge-view {
+    .section-header-table { width: 100%; border-collapse: collapse; margin-bottom: 14px; }
+    .section-header-table td { vertical-align: middle; padding: 0; }
+    .section-header-table h1 { font-size: 16px; font-weight: 700; color: #111827; }
+    .badge-view {
       display: inline-block; background: #f3f4f6; color: #374151; font-size: 9px; font-weight: 600;
       padding: 3px 10px; border-radius: 10px; letter-spacing: 0.3px; text-transform: uppercase;
     }
 
     /* ===== Summary Cards ===== */
-    .summary-row { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+    .summary-table { width: 100%; border-collapse: collapse; margin-bottom: 16px; }
+    .summary-cell { width: 16.66%; padding: 0 6px 0 0; vertical-align: top; }
+    .summary-cell:last-child { padding-right: 0; }
     .summary-card {
-      flex: 1; min-width: 84px; background: #fff; border: 1px solid #e2e8f0;
-      border-left-width: 4px; border-radius: 8px; padding: 9px 12px;
+      background: #fff; border: 1px solid #e2e8f0;
+      border-left-width: 4px; border-radius: 8px; padding: 9px 10px;
     }
     .summary-card .value { font-size: 19px; font-weight: 800; line-height: 1; }
     .summary-card .label { font-size: 8.5px; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; margin-top: 4px; }
@@ -68,35 +79,32 @@
     .sc-notavail { border-left-color: #94a3b8; } .sc-notavail .value { color: #64748b; }
 
     /* ===== Legend ===== */
-    .legend {
-      display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 18px;
-      font-size: 9px; color: #64748b; align-items: center;
-    }
-    .lg { display: inline-flex; align-items: center; gap: 5px; }
-    .sw { width: 9px; height: 9px; border-radius: 3px; display: inline-block; }
+    .legend { margin-bottom: 18px; font-size: 9px; color: #64748b; }
+    .lg { display: inline-block; margin-right: 14px; white-space: nowrap; }
+    .sw { display: inline-block; width: 9px; height: 9px; border-radius: 3px; margin-right: 5px; vertical-align: middle; }
 
     /* ===== Cleaner groups ===== */
     .cleaner-block { margin-top: 14px; page-break-inside: avoid; }
     .cleaner-head {
-      display: flex; justify-content: space-between; align-items: center;
       background: #f8fafc; border: 1px solid #e2e8f0; border-bottom: none;
       border-radius: 8px 8px 0 0; padding: 8px 12px;
     }
-    .cleaner-id { display: flex; align-items: center; gap: 9px; }
+    .ch-table { width: 100%; border-collapse: collapse; }
+    .ch-table td { vertical-align: middle; padding: 0; }
+    .ch-right { text-align: right; white-space: nowrap; }
     .avatar, .avatar-unassigned {
-      width: 24px; height: 24px; border-radius: 50%; color: #fff;
-      font-size: 9.5px; font-weight: 700; display: flex;
-      align-items: center; justify-content: center; letter-spacing: 0.3px; flex-shrink: 0;
+      display: inline-block; width: 22px; height: 22px; border-radius: 11px; color: #fff;
+      font-size: 9.5px; font-weight: 700; letter-spacing: 0.3px;
+      text-align: center; line-height: 22px; vertical-align: middle; margin-right: 8px;
     }
-    .avatar { background: linear-gradient(135deg, #7C5CFC, #5B3FD6); }
+    .avatar { background: #7C5CFC; }
     .avatar-unassigned { background: #94a3b8; }
-    .cleaner-name { font-size: 12.5px; font-weight: 700; color: #111827; }
+    .cleaner-name { font-size: 12.5px; font-weight: 700; color: #111827; vertical-align: middle; }
     .room-count {
-      font-size: 8.5px; color: #64748b; font-weight: 600; background: #fff;
-      border: 1px solid #e2e8f0; padding: 2px 8px; border-radius: 12px; margin-left: 8px;
+      display: inline-block; font-size: 8.5px; color: #64748b; font-weight: 600; background: #fff;
+      border: 1px solid #e2e8f0; padding: 2px 8px; border-radius: 12px; margin-left: 8px; vertical-align: middle;
     }
-    .cleaner-chips { display: flex; gap: 6px; }
-    .chip { font-size: 8.5px; font-weight: 700; padding: 3px 8px; border-radius: 12px; }
+    .chip { display: inline-block; font-size: 8.5px; font-weight: 700; padding: 3px 8px; border-radius: 12px; margin-left: 6px; }
     .chip-dirty { background: #fef2f2; color: #b91c1c; }
     .chip-progress { background: #fffbeb; color: #b45309; }
     .chip-clean { background: #f0fdf4; color: #15803d; }
@@ -124,8 +132,8 @@
 
     /* Cleaning-status badge — one color per status, matching the legend and
        the live frontdesk page's hk-dot-* colors. */
-    .status-badge { display: inline-flex; align-items: center; gap: 5px; font-size: 9px; font-weight: 700; padding: 3px 9px 3px 7px; border-radius: 12px; }
-    .status-badge .dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+    .status-badge { display: inline-block; font-size: 9px; font-weight: 700; padding: 3px 9px 3px 7px; border-radius: 12px; white-space: nowrap; }
+    .status-badge .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 5px; vertical-align: middle; }
     .st-dirty { background: #fef2f2; color: #b91c1c; } .st-dirty .dot { background: #E5484D; }
     .st-in-progress { background: #fff7ed; color: #c2410c; } .st-in-progress .dot { background: #F97316; }
     .st-clean-uninspected { background: #fefce8; color: #a16207; } .st-clean-uninspected .dot { background: #EAB308; }
@@ -150,35 +158,45 @@
 
 <!-- ===== Brand Header ===== -->
 <div class="brand-header">
-  <div class="brand-logo-badge">
-    <img src="{{ brand_logo_src }}" alt="FavHost" class="brand-logo" onerror="this.parentElement.style.display='none'">
-  </div>
-  <div class="brand-text">
-    <div class="brand-name">FavHost</div>
-    <div class="brand-tagline">Property Management &middot; Simplified</div>
-  </div>
-  <div class="brand-meta">
-    <span class="meta-user">{{ user.get_full_name|default:user.username }}</span><br>
-    <span class="meta-date">{{ target_date|date:"l, M d, Y" }}</span>
-    <span style="margin-top:3px;display:block;color:#94a3b8;">Generated {{ now|date:"M d, Y h:i A" }}</span>
-  </div>
+  <table class="bh-table">
+    <tr>
+      <td class="bh-logo-cell">
+        <div class="brand-logo-badge">
+          <img src="{{ brand_logo_src }}" alt="FavHost" class="brand-logo" onerror="this.parentElement.style.display='none'">
+        </div>
+      </td>
+      <td>
+        <div class="brand-name">FavHost</div>
+        <div class="brand-tagline">Property Management &middot; Simplified</div>
+      </td>
+      <td class="bh-meta-cell">
+        <span class="meta-user">{{ user.get_full_name|default:user.username }}</span><br>
+        <span class="meta-date">{{ target_date|date:"l, M d, Y" }}</span>
+        <div class="meta-generated">Generated {{ now|date:"M d, Y h:i A" }}</div>
+      </td>
+    </tr>
+  </table>
 </div>
 
 <!-- ===== Section Header ===== -->
-<div class="section-header">
-  <h1>Housekeeping Report</h1>
-  <span class="badge-view">{{ target_date|date:"M d, Y" }}</span>
-</div>
+<table class="section-header-table">
+  <tr>
+    <td><h1>Housekeeping Report</h1></td>
+    <td style="text-align:right"><span class="badge-view">{{ target_date|date:"M d, Y" }}</span></td>
+  </tr>
+</table>
 
 <!-- ===== Summary Cards ===== -->
-<div class="summary-row">
-  <div class="summary-card sc-total"><div class="value">{{ total_listings }}</div><div class="label">Total Listings</div></div>
-  <div class="summary-card sc-dirty"><div class="value">{{ dirty_count }}</div><div class="label">Dirty</div></div>
-  <div class="summary-card sc-progress"><div class="value">{{ progress_count }}</div><div class="label">In Progress</div></div>
-  <div class="summary-card sc-clean"><div class="value">{{ clean_count }}</div><div class="label">Clean / Ready</div></div>
-  <div class="summary-card sc-avail"><div class="value">{{ available_count }}</div><div class="label">Available</div></div>
-  <div class="summary-card sc-notavail"><div class="value">{{ not_available_count }}</div><div class="label">Not Available</div></div>
-</div>
+<table class="summary-table">
+  <tr>
+    <td class="summary-cell"><div class="summary-card sc-total"><div class="value">{{ total_listings }}</div><div class="label">Total Listings</div></div></td>
+    <td class="summary-cell"><div class="summary-card sc-dirty"><div class="value">{{ dirty_count }}</div><div class="label">Dirty</div></div></td>
+    <td class="summary-cell"><div class="summary-card sc-progress"><div class="value">{{ progress_count }}</div><div class="label">In Progress</div></div></td>
+    <td class="summary-cell"><div class="summary-card sc-clean"><div class="value">{{ clean_count }}</div><div class="label">Clean / Ready</div></div></td>
+    <td class="summary-cell"><div class="summary-card sc-avail"><div class="value">{{ available_count }}</div><div class="label">Available</div></div></td>
+    <td class="summary-cell"><div class="summary-card sc-notavail"><div class="value">{{ not_available_count }}</div><div class="label">Not Available</div></div></td>
+  </tr>
+</table>
 
 <!-- ===== Legend ===== -->
 <div class="legend">
@@ -194,16 +212,20 @@
 {% for group in groups %}
 <section class="cleaner-block">
   <div class="cleaner-head">
-    <div class="cleaner-id">
-      <span class="{% if group.is_unassigned %}avatar-unassigned{% else %}avatar{% endif %}">{{ group.initials }}</span>
-      <span class="cleaner-name">{{ group.name }}</span>
-      <span class="room-count">{{ group.rows|length }} listing{{ group.rows|length|pluralize }}</span>
-    </div>
-    <div class="cleaner-chips">
-      {% if group.dirty_count %}<span class="chip chip-dirty">{{ group.dirty_count }} dirty</span>{% endif %}
-      {% if group.progress_count %}<span class="chip chip-progress">{{ group.progress_count }} in progress</span>{% endif %}
-      {% if group.clean_count %}<span class="chip chip-clean">{{ group.clean_count }} clean</span>{% endif %}
-    </div>
+    <table class="ch-table">
+      <tr>
+        <td>
+          <span class="{% if group.is_unassigned %}avatar-unassigned{% else %}avatar{% endif %}">{{ group.initials }}</span>
+          <span class="cleaner-name">{{ group.name }}</span>
+          <span class="room-count">{{ group.rows|length }} listing{{ group.rows|length|pluralize }}</span>
+        </td>
+        <td class="ch-right">
+          {% if group.dirty_count %}<span class="chip chip-dirty">{{ group.dirty_count }} dirty</span>{% endif %}
+          {% if group.progress_count %}<span class="chip chip-progress">{{ group.progress_count }} in progress</span>{% endif %}
+          {% if group.clean_count %}<span class="chip chip-clean">{{ group.clean_count }} clean</span>{% endif %}
+        </td>
+      </tr>
+    </table>
   </div>
   <table class="grid">
     <thead>
