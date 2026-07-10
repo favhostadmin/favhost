@@ -74,7 +74,10 @@ class TaskListView(LoginRequiredMixin, ListView):
             elif due_filter == 'later':
                 tasks = tasks.filter(date__gt=week_end)
 
-        tasks = tasks.order_by('date', 'time')
+        if status_filter == 'done':
+            tasks = tasks.order_by('-date', '-time')
+        else:
+            tasks = tasks.order_by('date', 'time')
         return tasks
 
 
