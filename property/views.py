@@ -27,7 +27,7 @@ from accounts.utils import get_visible_user_ids, get_effective_user
 from accounts import currency
 
 # Property money fields are stored in USD but entered/shown in the host's currency.
-PROPERTY_PRICE_FIELDS = ('price_per_night', 'cleaning_fee', 'application_fees', 'refundable_deposit')
+PROPERTY_PRICE_FIELDS = ('price_per_night', 'cleaning_fee', 'application_fees', 'refundable_deposit', 'taxes', 'other_fees')
 
 
 def _property_prices_to_usd(instance, code):

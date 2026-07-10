@@ -28,7 +28,7 @@ from django.core.mail import send_mail, EmailMessage, get_connection
 from django.conf import settings
 from django.views.decorators.http import require_POST
 from .utils import calculateTotalPayment
-from accounts.utils import get_visible_user_ids
+from accounts.utils import get_visible_user_ids, get_effective_user
 from accounts.models import CoHost
 from django.contrib.staticfiles.storage import staticfiles_storage
 
@@ -78,7 +78,7 @@ class HostDashboardAPIView(LoginRequiredMixin, TemplateView):
             expected_payment_date__date=target_date,
             is_paid=False
         ).exclude(
-            type__in = ['Refundable deposit', 'Cleaning Fee', 'Application Fee', 'Refundable to guest']
+            type__in = ['Refundable deposit', 'Cleaning Fee', 'Application Fee', 'Taxes', 'Other Fees', 'Refundable to guest']
         ).count()
 
         # Determine which properties are currently occupied by guests
@@ -353,7 +353,7 @@ class HostDashboardAPIView(LoginRequiredMixin, TemplateView):
                 })
 
             for p in b.payments.all():
-                if p.type in ['Refundable deposit', 'Cleaning Fee', 'Application Fee', 'Refundable to guest']:
+                if p.type in ['Refundable deposit', 'Cleaning Fee', 'Application Fee', 'Taxes', 'Other Fees', 'Refundable to guest']:
                     continue
                 pay_date = None
                 if p.expected_payment_date:
@@ -979,9 +979,9 @@ class CalenderAPIView(LoginRequiredMixin,ListView):
                 first_installment_amount = 0.0
 
                 for p in b.payments.all():
-                    if p.type in ['Refundable deposit', 'Cleaning Fee', 'Application Fee', 'Payment 1']:
+                    if p.type in ['Refundable deposit', 'Cleaning Fee', 'Application Fee', 'Taxes', 'Other Fees', 'Payment 1']:
                         first_installment_amount += float(p.amount)
-                    if p.type in ['Refundable deposit', 'Cleaning Fee', 'Application Fee', 'Refundable to guest']:
+                    if p.type in ['Refundable deposit', 'Cleaning Fee', 'Application Fee', 'Taxes', 'Other Fees', 'Refundable to guest']:
                         continue
                     if p.expected_payment_date:
                         d_str = p.expected_payment_date.date().isoformat()
@@ -1249,7 +1249,7 @@ class CalendarListView(LoginRequiredMixin, ListView):
 
                 # Payments (from Payment model)
                 for p in b.payments.all():
-                    if p.type in ['Refundable deposit', 'Cleaning Fee', 'Application Fee', 'Refundable to guest']:
+                    if p.type in ['Refundable deposit', 'Cleaning Fee', 'Application Fee', 'Taxes', 'Other Fees', 'Refundable to guest']:
                         continue
                     pay_date = p.expected_payment_date.date() if p.expected_payment_date else (p.payment_date.date() if p.payment_date else today)
                     code, label = status_for(pay_date)
@@ -2140,6 +2140,11 @@ def _redirect_after_add_expense(request):
 def add_expense(request):
     # Note: co-hosts ARE allowed to add expenses (but not to view the
     # Accounting/Revenue pages, which are guarded separately).
+    # Expenses can only be created once the host's profile is complete. Uses the
+    # effective user so co-hosts are gated by the host's profile.
+    if not get_effective_user(request.user).is_profile_complete():
+        messages.error(request, 'Please complete your profile before creating an expense.')
+        return redirect('profile')
     user_ids = get_visible_user_ids(request.user)
     category = request.POST.get('category') or 'Other expenses'
     date_str = request.POST.get('date')
