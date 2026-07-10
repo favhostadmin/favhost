@@ -168,7 +168,7 @@ class BookingListView(LoginRequiredMixin, ListView):
                 'id': str(booking.id),
                 'guest_name': f"{booking.first_name} {booking.last_name}",
                 'property_name': booking.property.title,
-                'is_checkin_today': bool(booking.check_in_date and booking.check_in_date == now),
+                'is_checkin_today': bool(booking.check_in_date and booking.check_in_date == now and booking.status == 'confirmed'),
                 'check_in': booking.check_in_date.strftime('%b %d, %Y') if booking.check_in_date else 'N/A',
                 'check_out': booking.check_out_date.strftime('%b %d, %Y') if booking.check_out_date else 'N/A',
                 'nights': booking.total_nights,
@@ -796,7 +796,7 @@ def payment_details(request, pk):
     elif booking.check_in_date and booking.check_in_date > now and booking.status == 'confirmed':
         booking_status = 'upcoming'
 
-    is_checkin_today = bool(booking.check_in_date and booking.check_in_date == now)
+    is_checkin_today = bool(booking.check_in_date and booking.check_in_date == now and booking.status == 'confirmed')
 
     delta = (booking.check_out_date - now) if booking.check_out_date else None
 
