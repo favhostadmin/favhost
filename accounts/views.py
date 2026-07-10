@@ -948,7 +948,8 @@ def profile_edit_view(request):
         # Retrieve text fields
         user.first_name = request.POST.get('first_name', '').strip()
         user.last_name = request.POST.get('last_name', '').strip()
-        user.email = request.POST.get('email', '').strip()
+        # Email is read-only on the edit form — never overwrite it from POST
+        # (guards against a tampered request changing the account email).
 
         # Phone code + phone number
         phone_code = request.POST.get('phone_code', '').strip()
@@ -974,6 +975,35 @@ def profile_edit_view(request):
         user.youtube_url = request.POST.get('youtube_url', '').strip()
         user.linkedin_url = request.POST.get('linkedin_url', '').strip()
         user.whatsapp_number = request.POST.get('whatsapp_number', '').strip()
+
+        # Compulsory fields are mandatory — reject the save and re-render the
+        # form with inline errors (no data is persisted) if any is missing.
+        field_errors = {}
+        if not user.first_name:
+            field_errors['first_name'] = 'Please enter your first name.'
+        if not user.last_name:
+            field_errors['last_name'] = 'Please enter your last name.'
+        if not user.email:
+            field_errors['email'] = 'Please enter your email.'
+        if not phone_number:
+            field_errors['phone'] = 'Please enter your phone number.'
+        if not user.country:
+            field_errors['country'] = 'Please select a country.'
+        if not user.state:
+            field_errors['state'] = 'Please select a state.'
+        if field_errors:
+            context = {
+                'user': user,
+                'permission_docs': user.documents.filter(doc_type='permission'),
+                'govt_id_docs': user.documents.filter(doc_type='govt_id'),
+                'permission_count': user.documents.filter(doc_type='permission').count(),
+                'govt_id_count': user.documents.filter(doc_type='govt_id').count(),
+                'phone_code': phone_code or '+1',
+                'phone_number': phone_number,
+                'countries': CountryAndState.objects.order_by('country_name').values_list('country_name', flat=True).distinct(),
+                'field_errors': field_errors,
+            }
+            return render(request, 'frontend/auth/profile_edit.html', context)
 
         # Handle Profile Picture
         if 'profile_picture' in request.FILES:
