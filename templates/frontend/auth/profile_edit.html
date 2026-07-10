@@ -886,7 +886,21 @@
             });
         });
 
-        form.addEventListener('submit', function(e) {
+        // A searchable select is "empty" when it has no live value. On the
+        // initial load pass the state list is still being fetched, so also
+        // honour the persisted data-selected value to avoid a false positive.
+        function selectMissing(selectEl, useSaved) {
+            if (selectEl.value.trim()) return false;
+            if (useSaved) {
+                const saved = (selectEl.getAttribute('data-selected') || '').trim();
+                if (saved) return false;
+            }
+            return true;
+        }
+
+        // Validate every compulsory field. Marks the empty ones with an inline
+        // red box + message and returns the first empty field (or null).
+        function validateRequired(scrollToFirst, useSaved) {
             let firstBad = null;
 
             // Text/phone inputs marked required via data-required-msg.
@@ -898,7 +912,7 @@
 
             // Country & State searchable selects.
             if (countrySelectEl) {
-                const missing = !countrySelectEl.value.trim();
+                const missing = selectMissing(countrySelectEl, useSaved);
                 if (window.__setSelectError) window.__setSelectError(countrySelectEl, missing);
                 if (missing && !firstBad) {
                     firstBad = countrySelectEl.closest('.searchable-select-wrap')
@@ -906,7 +920,7 @@
                 }
             }
             if (stateSelectEl) {
-                const missing = !stateSelectEl.value.trim();
+                const missing = selectMissing(stateSelectEl, useSaved);
                 if (window.__setSelectError) window.__setSelectError(stateSelectEl, missing);
                 if (missing && !firstBad) {
                     firstBad = stateSelectEl.closest('.searchable-select-wrap')
@@ -914,13 +928,26 @@
                 }
             }
 
-            if (firstBad) {
-                e.preventDefault();
-                e.stopPropagation();
+            if (firstBad && scrollToFirst) {
                 firstBad.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 try { firstBad.focus(); } catch (err) {}
             }
+            return firstBad;
+        }
+
+        form.addEventListener('submit', function(e) {
+            if (validateRequired(true, false)) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
         });
+
+        // When the user arrives here from the "Complete Your Profile" prompt
+        // (?complete=1), surface the missing compulsory fields right away so
+        // they know exactly what to fill before they can create anything.
+        if (/[?&]complete=1(&|$)/.test(window.location.search)) {
+            validateRequired(false, true);
+        }
     })();
   </script>
   <script>
