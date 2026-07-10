@@ -50,6 +50,8 @@ class Booking(models.Model):
     price_per_night = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='Price per night', default=0.00)
     cleaning_fee = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='Cleaning fee', default=0.00)
     application_fee = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='Application fee', default=0.00)
+    taxes = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='Taxes', default=0.00)
+    other_fees = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='Other fees', default=0.00)
     deposit_fee = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='Deposit fee', default=0.00)
     price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='TotalPrice', default=0.00)
 

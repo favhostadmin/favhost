@@ -200,6 +200,8 @@ def sync_property_channel(self, channel_id):
         cleaning_price = channel.property.cleaning_fee or 0
         deposit_fee = channel.property.refundable_deposit or 0
         application_fee = channel.property.application_fees or 0
+        taxes = channel.property.taxes or 0
+        other_fees = channel.property.other_fees or 0
 
         total_night = (end_date - start_date).days
         total_price = property_price * total_night
@@ -318,7 +320,9 @@ def sync_property_channel(self, channel_id):
                 price=total_price,
                 cleaning_fee=cleaning_price,
                 deposit_fee=deposit_fee,
-                application_fee=application_fee
+                application_fee=application_fee,
+                taxes=taxes,
+                other_fees=other_fees
             )
             logger.info(f"Created booking {booking.id} for {channel}")
             generate_booking_payments(booking)
@@ -399,11 +403,20 @@ def generate_booking_payments(booking):
             expected_payment_date=first_due_date
         ))
 
-    if (booking.application_fee or 0) > 0:
+    if (booking.taxes or 0) > 0:
         payments_to_create.append(Payment(
             booking=booking,
-            type='Application Fee',
-            amount=booking.application_fee,
+            type='Taxes',
+            amount=booking.taxes,
+            is_paid=False,
+            expected_payment_date=first_due_date
+        ))
+
+    if (booking.other_fees or 0) > 0:
+        payments_to_create.append(Payment(
+            booking=booking,
+            type='Other Fees',
+            amount=booking.other_fees,
             is_paid=False,
             expected_payment_date=first_due_date
         ))

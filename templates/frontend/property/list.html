@@ -1645,7 +1645,7 @@
                                 <div class="listing-stay-wrap" style="display: flex; align-items: center; gap: 6px;">
                                     <span class="listing-nights" data-listing-nights style="display: none;"></span>
                                     <a href="{% url 'property:property-detail' slug=item.slug %}" data-open-property-preview="true" data-preview-title="{{ item.title|escape }}" rel="noopener noreferrer">
-                                        <p class="listing-price" data-nightly-price="{% money_raw item.price_per_night %}" data-cleaning-fee="{% money_raw item.cleaning_fee %}" data-refundable-deposit="{% money_raw item.refundable_deposit %}" data-application-fee="{% money_raw item.application_fees %}">
+                                        <p class="listing-price" data-nightly-price="{% money_raw item.price_per_night %}" data-cleaning-fee="{% money_raw item.cleaning_fee %}" data-refundable-deposit="{% money_raw item.refundable_deposit %}" data-taxes="{% money_raw item.taxes %}" data-other-fees="{% money_raw item.other_fees %}">
                                             {% money item.price_per_night %} <span class="price-period">Night</span>
                                         </p>
                                     </a>
@@ -1661,7 +1661,7 @@
                             </div>
                             <div class="d-flex justify-content-between align-items-center mt-2" style="gap: 6px; min-width: 0;">
                                 <a href="{% url 'property:property-detail' slug=item.slug %}" data-open-property-preview="true" data-preview-title="{{ item.title|escape }}" rel="noopener noreferrer" style="min-width: 0; flex-shrink: 0;">
-                                    <p class="listing-price" data-nightly-price="{% money_raw item.price_per_night %}" data-cleaning-fee="{% money_raw item.cleaning_fee %}" data-refundable-deposit="{% money_raw item.refundable_deposit %}" data-application-fee="{% money_raw item.application_fees %}">
+                                    <p class="listing-price" data-nightly-price="{% money_raw item.price_per_night %}" data-cleaning-fee="{% money_raw item.cleaning_fee %}" data-refundable-deposit="{% money_raw item.refundable_deposit %}" data-taxes="{% money_raw item.taxes %}" data-other-fees="{% money_raw item.other_fees %}">
                                         {% money item.price_per_night %} <span class="price-period">Night</span>
                                     </p>
                                 </a>
@@ -3163,8 +3163,9 @@
             const nightly = parseFloat(el.dataset.nightlyPrice || '0') || 0;
             const cleaningFee = parseFloat(el.dataset.cleaningFee || '0') || 0;
             const refundableDeposit = parseFloat(el.dataset.refundableDeposit || '0') || 0;
-            const applicationFee = parseFloat(el.dataset.applicationFee || '0') || 0;
-            const total = (nightly * nights) + cleaningFee + refundableDeposit + applicationFee;
+            const taxes = parseFloat(el.dataset.taxes || '0') || 0;
+            const otherFees = parseFloat(el.dataset.otherFees || '0') || 0;
+            const total = (nightly * nights) + cleaningFee + refundableDeposit + taxes + otherFees;
             el.dataset.totalPrice = total.toFixed(2);
             el.classList.add('listing-price--total');
             el.innerHTML = window.CURRENCY.symbol + total.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});

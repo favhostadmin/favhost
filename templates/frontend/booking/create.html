@@ -629,6 +629,42 @@
         width: 20px;
     }
 
+    /* Inline-editable fee values in the payment summary */
+    .summary-item .fee-edit-icon {
+        cursor: pointer;
+        width: 15px;
+        margin-left: 6px;
+        opacity: 0.65;
+        flex-shrink: 0;
+    }
+    .summary-item .fee-edit-icon:hover { opacity: 1; }
+    .summary-item .fee-value-group {
+        display: inline-flex;
+        align-items: center;
+        margin-left: auto;
+    }
+    /* Rows without a pencil (subtotal, total) reserve the same trailing gutter
+       as the pencil (15px icon + 6px gap) so every amount lines up on the right. */
+    #summary-subtotal,
+    #summary-total-display {
+        padding-right: 21px;
+    }
+    .summary-item .fee-edit-input {
+        width: 90px;
+        border: 1px solid #d1d5db;
+        border-radius: 6px;
+        padding: 2px 8px;
+        font-size: 14px;
+        font-weight: 600;
+        color: #121212;
+        text-align: right;
+    }
+    .summary-item .fee-edit-input:focus {
+        outline: none;
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 2px rgba(59,130,246,0.15);
+    }
+
     /* Styles for file previews, similar to property/create.html */
     .preview-container, .attachment-preview-container {
         margin-top: 1rem;
@@ -1550,7 +1586,11 @@
                                     <hr>
                                     <div class="summary-item">
                                         <span class="summary-label">Daily rate</span>
-                                        <span class="summary-value" id="summary-daily-rate">{{ currency_symbol }}0.00</span>
+                                        <span class="fee-value-group">
+                                            <span class="summary-value" id="summary-daily-rate">{{ currency_symbol }}0.00</span>
+                                            <input type="number" step="0.01" class="fee-edit-input" id="edit-daily-rate" style="display:none;">
+                                            <img src="{% static 'img/booking/edit_icon.svg' %}" class="fee-edit-icon" id="dailyRateEditIcon" alt="Edit daily rate" title="Edit daily rate">
+                                        </span>
                                     </div>
                                     <div class="summary-item">
                                         <span class="summary-label" id="summary-price-calc" data-price="0.00">{{ currency_symbol }}0.00 x 0 nights</span>
@@ -1569,10 +1609,12 @@
                                     <div class="summary-item mt-1">
                                         <span class="summary-label">Taxes:</span>
                                         <span class="summary-value" id="summary-taxes" data-fee="0.00">{{ currency_symbol }}0.00</span>
+                                        <input type="hidden" name="taxes" id="id_taxes" value="0.00">
                                     </div>
                                     <div class="summary-item mt-1">
                                         <span class="summary-label">Other fees:</span>
                                         <span class="summary-value" id="summary-other-fees" data-fee="0.00">{{ currency_symbol }}0.00</span>
+                                        <input type="hidden" name="other_fees" id="id_other_fees" value="0.00">
                                         <input type="hidden" name="application_fee" id="id_application_fee" value="0.00">
                                     </div>
                                     <hr>
@@ -1768,6 +1810,8 @@
 
                 if(document.getElementById('id_cleaning_fee')) document.getElementById('id_cleaning_fee').value = cleaningFee.toFixed(2);
                 if(document.getElementById('id_deposit_fee')) document.getElementById('id_deposit_fee').value = refundableDeposit.toFixed(2);
+                if(document.getElementById('id_taxes')) document.getElementById('id_taxes').value = taxesFee.toFixed(2);
+                if(document.getElementById('id_other_fees')) document.getElementById('id_other_fees').value = otherFeesFee.toFixed(2);
                 if(document.getElementById('id_application_fee')) document.getElementById('id_application_fee').value = applicationFee.toFixed(2);
 
                 const checkinDateStr = document.querySelector('input[name="check_in_date"]')?.value;
@@ -1790,7 +1834,7 @@
                 }
 
                 const subtotal = pricePerNight * nights;
-                const total = subtotal + cleaningFee + refundableDeposit + applicationFee;
+                const total = subtotal + cleaningFee + refundableDeposit + taxesFee + otherFeesFee;
 
                 // Update UI
                 document.getElementById('summary-daily-rate').textContent = window.CURRENCY.symbol + pricePerNight.toFixed(2);
@@ -1823,6 +1867,40 @@
                 pricePerNightInput.focus();
                 pricePerNightInput.select();
             });
+
+            // --- Inline editing for the Daily rate (mirrors the Price* box) ---
+            (function setupDailyRateInlineEdit() {
+                const icon = document.getElementById('dailyRateEditIcon');
+                const input = document.getElementById('edit-daily-rate');
+                const display = document.getElementById('summary-daily-rate');
+                const priceInput = document.getElementById('id_price_per_night');
+                if (!icon || !input || !display || !priceInput) return;
+
+                function beginEdit() {
+                    const current = parseFloat(priceInput.value || 0) || 0;
+                    input.value = current.toFixed(2);
+                    display.style.display = 'none';
+                    input.style.display = 'inline-block';
+                    input.focus();
+                    input.select();
+                }
+
+                function commitEdit() {
+                    const val = parseFloat(input.value);
+                    const safeVal = isNaN(val) || val < 0 ? 0 : val;
+                    // Keep the Price* box and the summary in sync.
+                    priceInput.value = safeVal.toFixed(2);
+                    input.style.display = 'none';
+                    display.style.display = '';
+                    updateSummary();
+                }
+
+                icon.addEventListener('click', beginEdit);
+                input.addEventListener('blur', commitEdit);
+                input.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter') { e.preventDefault(); input.blur(); }
+                });
+            })();
 
         });
 
