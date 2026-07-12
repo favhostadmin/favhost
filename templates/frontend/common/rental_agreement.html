@@ -236,6 +236,16 @@
 
   /* ---------- Payment table ---------- */
   #rental-agreement-root .pay-note{margin:0 0 14px;color:var(--body);}
+  #rental-agreement-root .pay-cancelled{margin:6px 0 0;}
+  #rental-agreement-root .pay-cancelled-badge{
+    display:inline-flex;align-items:center;
+    background:#fef2f2;color:#b91c1c;border:1px solid #fecaca;
+    border-radius:999px;padding:7px 14px;
+    font-size:12px;font-weight:700;letter-spacing:.4px;
+  }
+  #rental-agreement-root .pay-cancelled-text{
+    margin:12px 0 0;color:var(--body);font-size:14.5px;line-height:1.7;
+  }
   #rental-agreement-root .pay{
     width:100%;
     border-collapse:collapse;
@@ -558,6 +568,15 @@
       <!-- 4. Payment Summary -->
       <section class="section">
         <div class="section-head"><span class="sec-num">4</span><h2 class="section-title">Payment Summary</h2></div>
+        {% if booking.status == 'cancelled' %}
+        <div class="pay-cancelled">
+          <span class="pay-cancelled-badge">RESERVATION CANCELLED</span>
+          <p class="pay-cancelled-text">
+            This reservation was cancelled{% if booking.updated_at %} on {{ booking.updated_at|date:"F d, Y" }}{% endif %}.
+            No payment is due.
+          </p>
+        </div>
+        {% else %}
         <p class="pay-note">
           The Guest agrees to pay the Host the following amounts for the stay.
         </p>
@@ -579,6 +598,7 @@
             <tr class="total"><td>Total Amount Due</td><td class="amt">{% money total_price %}</td></tr>
           </tbody>
         </table>
+        {% endif %}
       </section>
 
       <!-- 5. House Rules -->
