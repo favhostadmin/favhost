@@ -693,11 +693,7 @@
     /* Rows without a pencil reserve the same trailing gutter
        as the pencil (15px icon + 6px gap) so every amount lines up on the right. */
     #summary-subtotal,
-    #summary-total-display,
-    #summary-cleaning-fee,
-    #summary-refundable-deposit,
-    #summary-taxes,
-    #summary-other-fees {
+    #summary-total-display {
         padding-right: 21px;
     }
     .summary-item .fee-edit-input {
@@ -1741,22 +1737,38 @@
                                     </div>
                                     <div class="summary-item mt-1 fee-muted">
                                         <span class="summary-label">Cleaning fee:</span>
-                                        <span class="summary-value" id="summary-cleaning-fee" data-fee="0.00">{{ currency_symbol }}0.00</span>
+                                        <span class="fee-value-group">
+                                            <span class="summary-value" id="summary-cleaning-fee" data-fee="0.00">{{ currency_symbol }}0.00</span>
+                                            <input type="number" step="0.01" class="fee-edit-input" id="edit-cleaning-fee" data-target="summary-cleaning-fee" data-attr="fee" style="display:none;">
+                                            <img src="{% static 'img/booking/edit_icon.svg' %}" class="fee-edit-icon" data-input="edit-cleaning-fee" alt="Edit cleaning fee" title="Edit cleaning fee">
+                                        </span>
                                         <input type="hidden" name="cleaning_fee" id="id_cleaning_fee" value="0.00">
                                     </div>
                                     <div class="summary-item mt-1 fee-muted">
                                         <span class="summary-label">Refundable deposit:</span>
-                                        <span class="summary-value" id="summary-refundable-deposit" data-deposit="0.00">{{ currency_symbol }}0.00</span>
+                                        <span class="fee-value-group">
+                                            <span class="summary-value" id="summary-refundable-deposit" data-deposit="0.00">{{ currency_symbol }}0.00</span>
+                                            <input type="number" step="0.01" class="fee-edit-input" id="edit-refundable-deposit" data-target="summary-refundable-deposit" data-attr="deposit" style="display:none;">
+                                            <img src="{% static 'img/booking/edit_icon.svg' %}" class="fee-edit-icon" data-input="edit-refundable-deposit" alt="Edit refundable deposit" title="Edit refundable deposit">
+                                        </span>
                                         <input type="hidden" name="deposit_fee" id="id_deposit_fee" value="0.00">
                                     </div>
                                     <div class="summary-item mt-1 fee-muted">
                                         <span class="summary-label">Taxes:</span>
-                                        <span class="summary-value" id="summary-taxes" data-fee="0.00">{{ currency_symbol }}0.00</span>
+                                        <span class="fee-value-group">
+                                            <span class="summary-value" id="summary-taxes" data-fee="0.00">{{ currency_symbol }}0.00</span>
+                                            <input type="number" step="0.01" class="fee-edit-input" id="edit-taxes" data-target="summary-taxes" data-attr="fee" style="display:none;">
+                                            <img src="{% static 'img/booking/edit_icon.svg' %}" class="fee-edit-icon" data-input="edit-taxes" alt="Edit taxes" title="Edit taxes">
+                                        </span>
                                         <input type="hidden" name="taxes" id="id_taxes" value="0.00">
                                     </div>
                                     <div class="summary-item mt-1 fee-muted">
                                         <span class="summary-label">Other fees:</span>
-                                        <span class="summary-value" id="summary-other-fees" data-fee="0.00">{{ currency_symbol }}0.00</span>
+                                        <span class="fee-value-group">
+                                            <span class="summary-value" id="summary-other-fees" data-fee="0.00">{{ currency_symbol }}0.00</span>
+                                            <input type="number" step="0.01" class="fee-edit-input" id="edit-other-fees" data-target="summary-other-fees" data-attr="fee" style="display:none;">
+                                            <img src="{% static 'img/booking/edit_icon.svg' %}" class="fee-edit-icon" data-input="edit-other-fees" alt="Edit other fees" title="Edit other fees">
+                                        </span>
                                         <input type="hidden" name="other_fees" id="id_other_fees" value="0.00">
                                         <input type="hidden" name="application_fee" id="id_application_fee" value="0.00">
                                     </div>
@@ -2192,6 +2204,39 @@
                 pricePerNightInput.readOnly = false;
                 pricePerNightInput.focus();
                 pricePerNightInput.select();
+            });
+
+            // --- Inline editing for the summary fee values (per-reservation only) ---
+            document.querySelectorAll('.fee-edit-icon[data-input]').forEach(function(icon) {
+                const input = document.getElementById(icon.dataset.input);
+                if (!input) return;
+                const display = document.getElementById(input.dataset.target);
+                const attr = input.dataset.attr; // 'fee' or 'deposit'
+
+                function beginEdit() {
+                    const current = parseFloat(display.dataset[attr] || 0) || 0;
+                    input.value = current.toFixed(2);
+                    display.style.display = 'none';
+                    input.style.display = 'inline-block';
+                    input.focus();
+                    input.select();
+                }
+
+                function commitEdit() {
+                    const val = parseFloat(input.value);
+                    const safeVal = isNaN(val) || val < 0 ? 0 : val;
+                    display.dataset[attr] = safeVal;
+                    display.textContent = window.CURRENCY.symbol + safeVal.toFixed(2);
+                    input.style.display = 'none';
+                    display.style.display = '';
+                    updateSummary();
+                }
+
+                icon.addEventListener('click', beginEdit);
+                input.addEventListener('blur', commitEdit);
+                input.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter') { e.preventDefault(); input.blur(); }
+                });
             });
 
             // --- Inline editing for the Daily rate (mirrors the Price* box) ---
