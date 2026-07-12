@@ -138,10 +138,10 @@
             </div>
             <div class="mobile-menu-divider"></div>
             <div class="mobile-menu-bottom-row">
-              <button class="btn p-0 tooltip-light" id="mobilePrintBtn" style="border:none">
+              <button class="btn p-0" id="mobilePrintBtn" style="border:none" aria-label="Print" title="Print">
                 <img src="{% static 'img/calender/print_icon.svg' %}">
               </button>
-              <button class="btn p-0 tooltip-light" id="mobileRefreshBtn" style="border:none">
+              <button class="btn p-0" id="mobileRefreshBtn" style="border:none" aria-label="Refresh" title="Refresh">
                 <img src="{% static 'img/calender/refresh_icon.svg' %}">
               </button>
             </div>
@@ -153,10 +153,10 @@
         <div class="d-flex">
           <div></div>
           <div class="header-actions-group hdr-actions">
-            <button type="button" class="hdr-icon-btn tooltip-light" id="refreshBtn" aria-label="Refresh" title="Refresh">
+            <button type="button" class="hdr-icon-btn" id="refreshBtn" aria-label="Refresh" title="Refresh">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
             </button>
-            <button type="button" class="hdr-icon-btn tooltip-light" id="printBtn" aria-label="Print" title="Print">
+            <button type="button" class="hdr-icon-btn" id="printBtn" aria-label="Print" title="Print">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
             </button>
           </div>
@@ -3117,7 +3117,13 @@
     today.setHours(0, 0, 0, 0);
     const isMobile = window.innerWidth <= 768;
     const paymentIconUrl = "{% static 'img/task/type/payment.svg' %}";
-    const blockedIconUrl = "{% static 'img/common/close_icon.png' %}";
+    // Leading circle icon for blocked date-range bars — same .channel-logo-circle
+    // treatment as a reservation's channel logo, just with a "no entry" glyph.
+    const blockedIconUrl = "{% static 'img/calender/blocked_icon.svg' %}";
+    // Same treatment for a booking marked "no_show" (guest never checked in) —
+    // amber, matching the No Show badge/stat-card color on the booking list page.
+    const noShowIconUrl = "{% static 'img/calender/no_show_icon.svg' %}";
+    const NO_SHOW_COLOR = '#d97706';
     const monthTaskColors = { cleaning: '#10b981', maintenance: '#f59e0b', payment: '#3b82f6', other: '#8b5cf6' };
     const monthTaskIcons = {
       cleaning: "{% static 'img/task/type/cleaning.svg' %}",
@@ -3165,10 +3171,11 @@
 
       const spanOverlays = spans.map(b => {
         const isBlocked = b.type === 'blocked';
+        const isNoShow = !isBlocked && b.status === 'no_show';
         const onClick = isBlocked ? `onclick="openUnblockModal(event, '${b.id}')"` : `onclick="openReservationPanel(event, '${b.id || 101}')"`;
         const cursor = 'pointer';
         const channelColor = getChannelColor(b.channelName) || b.color || '#3b82f6';
-        const bgColor = isBlocked ? '#9ca3af' : channelColor;
+        const bgColor = isBlocked ? '#9ca3af' : isNoShow ? NO_SHOW_COLOR : channelColor;
         const spanStart = b.startIndex;
         const spanLength = Math.max(1, b.length);
         const carryStartClass = b.startsBeforeView ? 'carry-start' : '';
@@ -3180,9 +3187,11 @@
         const labelText = guestName;
         const shouldShowLabel = nights > 1;
         const channelLogoUrl = getChannelLogo(b.channelName, b.channelIcon);
-        const channelLogoTimeline = channelLogoUrl && !isBlocked
-          ? `<div class="channel-logo-circle" style="border-color:${bgColor};background-color:${bgColor}"><img src="${channelLogoUrl}" alt="${b.channelName || ''}" /></div>`
-          : '';
+        const channelLogoTimeline = isBlocked
+          ? `<div class="channel-logo-circle" style="background-color:#9ca3af"><img src="${blockedIconUrl}" alt="Blocked" /></div>`
+          : isNoShow
+          ? `<div class="channel-logo-circle" style="background-color:${NO_SHOW_COLOR}"><img src="${noShowIconUrl}" alt="No Show" /></div>`
+          : (channelLogoUrl ? `<div class="channel-logo-circle" style="border-color:${bgColor};background-color:${bgColor}"><img src="${channelLogoUrl}" alt="${b.channelName || ''}" /></div>` : '');
 
         let content = `
           <div class="segment-content">
@@ -3198,7 +3207,7 @@
           const blockedLabel = nights <= 3 ? 'Block...' : 'Blocked';
           content = `
             <div class="segment-content">
-              <img class="blocked-icon" src="${blockedIconUrl}" alt="Blocked" />
+              <div class="avatar-group">${channelLogoTimeline}</div>
               <span class="blocked-label-text">${blockedLabel}</span>
             </div>
           `;

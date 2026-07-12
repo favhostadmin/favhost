@@ -981,19 +981,37 @@ class CalenderAPIView(LoginRequiredMixin,ListView):
                 for p in b.payments.all():
                     if p.type in ['Refundable deposit', 'Cleaning Fee', 'Application Fee', 'Taxes', 'Other Fees', 'Payment 1']:
                         first_installment_amount += float(p.amount)
-                    if p.type in ['Refundable deposit', 'Cleaning Fee', 'Application Fee', 'Taxes', 'Other Fees', 'Refundable to guest']:
+                    # "Refundable to guest" is money owed BACK to the guest, not an
+                    # amount they owe — it's the only type that shouldn't feed the
+                    # calendar's "amount due this day" badge. Every other type
+                    # (rent installments, deposit, cleaning fee, taxes, other fees)
+                    # is a real amount the guest owes and belongs in the total, same
+                    # as the unfiltered payment schedule on the reservation page.
+                    if p.type == 'Refundable to guest':
                         continue
                     if p.expected_payment_date:
                         d_str = p.expected_payment_date.date().isoformat()
                         payment_dates.append(d_str)
-                        payments_info[d_str] = {
-                            'amount': float(p.amount),
-                            'is_paid': p.is_paid,
-                            'type': p.type or 'Payment'
-                        }
+                        p_type = p.type or 'Payment'
+                        existing = payments_info.get(d_str)
+                        if existing:
+                            # Multiple payments (e.g. rent + deposit) due the same
+                            # day — combine into one badge rather than letting the
+                            # later one silently overwrite the earlier one.
+                            existing['amount'] += float(p.amount)
+                            existing['is_paid'] = existing['is_paid'] and p.is_paid
+                            if p_type not in existing['type'].split(' + '):
+                                existing['type'] = f"{existing['type']} + {p_type}"
+                        else:
+                            payments_info[d_str] = {
+                                'amount': float(p.amount),
+                                'is_paid': p.is_paid,
+                                'type': p_type
+                            }
 
                 bookings_list.append({
                     'id': str(b.id),
+                    'status': b.status,
                     'propertyId': str(b.property.id),
                     'price_per_night': float(b.price_per_night),
                     'totalPrice': float(total_price),
