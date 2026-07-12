@@ -53,21 +53,68 @@
         margin-bottom: 16px;
     }
 
+    .summary-subcard {
+        background: #fff;
+        border: 1px solid #d7dbe2;
+        border-radius: 8px;
+        box-shadow: 0 1px 4px rgba(15, 23, 42, 0.08);
+        padding: 16px 18px;
+        height: 100%;
+        box-sizing: border-box;
+    }
+
+    @media (min-width: 992px) {
+        .booking-details-col {
+            padding-left: 16px !important;
+        }
+    }
+
+    @media (max-width: 991px) {
+        .booking-details-col {
+            margin-top: 16px;
+        }
+    }
+
 
     .summary-item {
         display: flex;
+        align-items: center;
         justify-content: space-between;
+        padding: 3px 0;
+        gap: 12px;
+    }
+
+    .summary-item.mt-1 {
+        margin-top: 0;
+    }
+
+    .summary-item.fee-muted .summary-value {
+        color: #adb5bd;
+        font-weight: 600;
+    }
+
+    .summary-item-stacked {
+        flex-wrap: wrap;
+        row-gap: 2px;
+    }
+
+    .summary-item-stacked .summary-value {
+        text-align: right;
+        white-space: normal;
+        flex: 1 1 auto;
     }
 
     .summary-label {
         color: #6c757d;
-        /* font-size: 14px; */
+        font-size: 14px;
     }
 
     .summary-value {
         font-weight: 600;
         color: #121212;
         font-size: 14px;
+        text-align: right;
+        white-space: nowrap;
     }
 
     .summary-booking-details {
@@ -623,10 +670,14 @@
         align-items: center;
         margin-left: auto;
     }
-    /* Rows without a pencil (subtotal) reserve the same trailing gutter as the
+    /* Rows without a pencil reserve the same trailing gutter as the
        pencil (15px icon + 6px gap) so every amount lines up on the right. */
     #summary-subtotal,
-    #summary-total-display {
+    #summary-total-display,
+    #summary-cleaning-fee,
+    #summary-refundable-deposit,
+    #summary-taxes,
+    #summary-other-fees {
         padding-right: 21px;
     }
     .summary-item .fee-edit-input {
@@ -1204,7 +1255,13 @@
     }
 
     .booking-summary-card {
-        margin-top: 14px;
+        margin-top: 14px !important;
+    }
+
+    .booking-summary-card hr {
+        border-top: 1px dashed #dee2e6;
+        opacity: 1;
+        margin: 4px 0;
     }
 
     .booking-range-trigger,
@@ -1273,7 +1330,7 @@
 
     @media (max-width: 991px) {
         .main_row_div{
-            padding: 0rem 3%;
+            padding: 1rem 3%;
         }
         .booking-layout-grid {
             grid-template-columns: 1fr;
@@ -1530,14 +1587,15 @@
                             </select>
                         </div>
                         <div id="summary-section" class="row m-0 booking-summary-card" style="display: none;">
-                            <div class="form-group p-0">
+                            <div class="form-group p-0" style="display:none;">
                                 <label for="id_price_per_night" class="booking-field-label">Price*</label>
                                 <div class="price-input-container">
                                     <input type="number" class="form-input w-100 booking-input" name="price_per_night" id="id_price_per_night" value="{% money_raw booking.price_per_night %}" step="0.01" readonly>
                                     <img src="{% static 'img/booking/edit_icon.svg' %}" class="edit-price-icon" id="editTotalPriceIcon" alt="Edit Total Price" title="Edit total price">
                                 </div>
                             </div>
-                            <div class="col-lg-6 col-12 p-0">
+                            <div class="col-lg-7 col-12 p-0">
+                              <div class="summary-subcard">
                                 <div class="summary-header">Payment Summary</div>
                                 <hr>
                                 <div class="summary-item">
@@ -1552,22 +1610,22 @@
                                     <span class="summary-label" id="summary-price-calc" data-price="0.00">{{ currency_symbol }}0.00 x 0 nights</span>
                                     <span class="summary-value" id="summary-subtotal">{{ currency_symbol }}0.00</span>
                                 </div>
-                                <div class="summary-item mt-1">
+                                <div class="summary-item mt-1 fee-muted">
                                     <span class="summary-label">Cleaning fee:</span>
                                     <span class="summary-value" id="summary-cleaning-fee" data-fee="{% money_raw booking.cleaning_fee %}">{% money booking.cleaning_fee %}</span>
                                     <input type="hidden" name="cleaning_fee" id="id_cleaning_fee" value="{% money_raw booking.cleaning_fee %}">
                                 </div>
-                                <div class="summary-item mt-1">
+                                <div class="summary-item mt-1 fee-muted">
                                     <span class="summary-label">Refundable deposit:</span>
                                     <span class="summary-value" id="summary-refundable-deposit" data-deposit="{% money_raw booking.deposit_fee %}">{% money booking.deposit_fee %}</span>
                                     <input type="hidden" name="deposit_fee" id="id_deposit_fee" value="{% money_raw booking.deposit_fee %}">
                                 </div>
-                                <div class="summary-item mt-1">
+                                <div class="summary-item mt-1 fee-muted">
                                     <span class="summary-label">Taxes:</span>
                                     <span class="summary-value" id="summary-taxes" data-fee="{% money_raw booking.taxes %}">{% money booking.taxes %}</span>
                                     <input type="hidden" name="taxes" id="id_taxes" value="{% money_raw booking.taxes %}">
                                 </div>
-                                <div class="summary-item mt-1">
+                                <div class="summary-item mt-1 fee-muted">
                                     <span class="summary-label">Other fees:</span>
                                     <span class="summary-value" id="summary-other-fees" data-fee="{% money_raw booking.other_fees %}">{% money booking.other_fees %}</span>
                                     <input type="hidden" name="other_fees" id="id_other_fees" value="{% money_raw booking.other_fees %}">
@@ -1579,25 +1637,29 @@
                                     <input type="hidden" name="price" id="id_price" value="0.00">
                                     <span class="summary-value" id="summary-total-display">{{ currency_symbol }}0.00</span>
                                 </div>
+                              </div>
                             </div>
-                            <div class="col-lg-auto d-none d-lg-flex align-items-center p-0"><div class="payment-divider" style="height: 80%; margin-top: 20px;"></div></div>
-                            <div class="col-lg-5 col-12 p-0" style="padding-left: 24px !important;">
-                                <div style="margin-top: 42px;">
+                            <div class="col-lg-5 col-12 p-0 booking-details-col">
+                              <div class="summary-subcard">
+                                <div class="summary-header">Booking Details</div>
+                                <hr>
+                                <div class="summary-item summary-item-stacked">
                                     <span class="summary-label">Check In:</span>
-                                    <p class="summary-value m-0 mb-1" id="summary-checkin">-</p>
+                                    <p class="summary-value m-0" id="summary-checkin">-</p>
                                 </div>
-                                <div>
+                                <div class="summary-item summary-item-stacked">
                                     <span class="summary-label">Check Out:</span>
-                                    <p class="summary-value m-0 mb-1" id="summary-checkout">-</p>
+                                    <p class="summary-value m-0" id="summary-checkout">-</p>
                                 </div>
-                                <div>
+                                <div class="summary-item">
                                     <span class="summary-label">Nights:</span>
-                                    <p class="summary-value m-0 mb-1" id="summary-nights">0</p>
+                                    <p class="summary-value m-0" id="summary-nights">0</p>
                                 </div>
-                                <div>
+                                <div class="summary-item">
                                     <span class="summary-label">Guests:</span>
-                                    <p class="summary-value" id="summary-guests">0</p>
+                                    <p class="summary-value m-0" id="summary-guests">0</p>
                                 </div>
+                              </div>
                             </div>
                         </div>
                     </div>
