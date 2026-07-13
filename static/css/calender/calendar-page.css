@@ -484,18 +484,6 @@
     z-index: 2;
   }
 
-  .booking-segment .blocked-icon,
-  .booking-span-block .blocked-icon {
-    display: block;
-    margin: 0 !important;
-    height: 16px;
-    width: 16px;
-    object-fit: contain;
-    flex: 0 0 auto;
-    vertical-align: middle;
-    filter: brightness(0) saturate(100%) invert(1);
-  }
-
   .blocked-label-text {
     color: #fff;
     font-size: 13px;
@@ -1978,6 +1966,7 @@
   }
 
   .reservation-modal {
+    position: relative;
     background: #ffffff;
     border-radius: 16px;
     width: 100%;
@@ -1992,17 +1981,14 @@
   }
 
   .reservation-modal-header {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    padding: 6px 12px;
-    border: none;
-    flex-shrink: 0;
-    background: #fff;
-    min-height: 0;
+    display: none;
   }
 
   .reservation-modal-close {
+    position: absolute;
+    /* Vertically centered against the header bar / Action button row. */
+    top: 22px;
+    right: 30px;
     background: none;
     border: none;
     font-size: 22px;
@@ -2010,6 +1996,8 @@
     cursor: pointer;
     padding: 0 4px;
     line-height: 1;
+    /* Must paint above the sticky action bar (z-index: 50) inside the body. */
+    z-index: 60;
   }
 
   .reservation-modal-close:hover {
@@ -2017,9 +2005,23 @@
   }
 
   .reservation-modal-body {
+    position: relative;
     overflow-y: auto;
     padding: 0;
     flex: 1;
+  }
+
+  #guestReceiptModal,
+  #rentalAgreementModal {
+    position: fixed !important;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 3500 !important;
+    background: rgba(0, 0, 0, 0.55);
+    justify-content: center;
+    align-items: center;
   }
 
   #guestReceiptModal .modal-content {
@@ -2027,10 +2029,20 @@
     overflow-x: auto;
   }
 
+  #rentalAgreementModal .modal-content {
+    max-width: calc(100vw - 24px);
+    max-height: calc(100vh - 24px);
+    overflow-y: auto;
+  }
+
   /* --- Minimal modal adjustments — preserve full page appearance --- */
   .reservation-modal-body .action-buttons {
-    margin: 0;
+    margin: 0 !important;
     border-radius: 0;
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 50;
+    padding-right: 56px !important;
   }
 
   .reservation-modal-body .payment-partial-shell {
@@ -2038,66 +2050,8 @@
   }
 
   .reservation-modal-body .reservation-row {
-    margin: 0 !important;
     max-width: 1200px;
     margin: 0 auto !important;
-    padding: 0 32px 24px !important;
-  }
-
-  .reservation-modal-body .details-col {
-    padding: 0 !important;
-  }
-
-  .reservation-modal-body .booking-card {
-    border: none !important;
-    border-bottom: 1px solid #f0f0f0 !important;
-    border-radius: 0 !important;
-    padding: 20px 24px !important;
-    margin: 0 !important;
-    box-shadow: none !important;
-    overflow: visible;
-  }
-
-  .reservation-modal-body .booking-card:first-child {
-    padding-top: 20px !important;
-  }
-
-  .reservation-modal-body .booking-card:last-child {
-    border-bottom: none !important;
-  }
-
-  .reservation-modal-body .toggle-btns {
-    position: absolute;
-    right: 10px;
-    top: 50%;
-    transform: translateY(-50%);
-  }
-
-  .reservation-modal-body .toggle-btn {
-    background: none;
-    border: 1px solid #d1d5db;
-    border-radius: 4px;
-    padding: 2px 8px;
-    cursor: pointer;
-    font-size: 16px;
-    line-height: 1;
-    color: #6b7280;
-  }
-
-  .reservation-modal-body .payment-schedule-container {
-    border: 1px solid #e5e7eb !important;
-    border-radius: 8px !important;
-  }
-
-  .reservation-modal-body .payment-summary {
-    border: 1px solid #e5e7eb;
-    border-radius: 8px;
-    padding: 16px;
-    background: #fafafa;
-  }
-
-  .reservation-modal-body .payment-section {
-    margin: 0 !important;
   }
 
   @media (max-width: 991.98px) {
@@ -2531,12 +2485,55 @@
 
   @media (max-width: 992px) {
 
+    .reservation-modal {
+      margin: 8px !important;
+    }
+    .reservation-modal-body .action-buttons {
+      padding-top: 16px !important;
+      padding-bottom: 12px !important;
+    }
+    .reservation-modal-close {
+      top: 16px;
+      right: 26px;
+    }
+
+    /* Space between the pinned header bar and the first card. */
+    .reservation-modal-body .payment-details-wrapper {
+      padding-top: 12px !important;
+    }
+
     .reservation-modal-body .reservation-row {
-      padding: 0 20px 20px !important;
+      padding: 0 !important;
     }
 
     .reservation-modal-body .booking-card {
-      padding: 20px !important;
+      padding: 16px !important;
+    }
+    .reservation-modal-body .mobile-booking-title,
+    .reservation-modal-body .desktop-property-title,
+    .reservation-modal-body .guest-name,
+    .reservation-modal-body .contact-item span {
+      overflow-wrap: break-word !important;
+      white-space: normal !important;
+      min-width: 0 !important;
+    }
+
+    .reservation-modal-body .contact-item {
+      min-width: 0 !important;
+    }
+    .reservation-modal-body .notes-section.row {
+      display: block !important;
+    }
+
+    .reservation-modal-body .notes-section.row > [class*="col-"] {
+      width: 100% !important;
+      max-width: 100% !important;
+      flex: none !important;
+      margin-bottom: 12px !important;
+    }
+
+    .reservation-modal-body .notes-section.row > [class*="col-"]:last-child {
+      margin-bottom: 0 !important;
     }
 
     .bc-date-inputs {
@@ -3308,7 +3305,7 @@
     }
 
     .reservation-modal-body .reservation-row {
-      padding: 0 16px 16px !important;
+      padding: 0 !important;
     }
 
     .reservation-modal-body .booking-card {
