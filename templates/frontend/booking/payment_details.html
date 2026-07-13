@@ -423,6 +423,8 @@
             flex: 1 1 auto;
             min-height: auto !important;
             justify-content: flex-start !important;
+            /* Same shrink guard for long names/emails beside the avatar. */
+            min-width: 0;
         }
 
         .desktop-only {
@@ -495,6 +497,9 @@
             flex: 1 1 auto;
             display: flex;
             flex-direction: column;
+            /* Let this flex column shrink so long unbroken titles wrap
+               instead of pushing past the card edge. */
+            min-width: 0;
         }
 
         .mobile-booking-title {
@@ -503,6 +508,8 @@
             color: #111827;
             margin-bottom: 8px;
             line-height: 1.35;
+            overflow-wrap: break-word;
+            word-break: break-word;
         }
 
         .mobile-date-row {
@@ -761,6 +768,12 @@
     .payment-section > [class*="col-"] > .payment-schedule,
     .payment-section > [class*="col-"] > .payment-summary {
         width: 100%;
+    }
+    /* When the schedule and summary stack on mobile, keep a gap between them. */
+    @media (max-width: 991.98px) {
+        .payment-section > [class*="col-"] + [class*="col-"] {
+            margin-top: 16px;
+        }
     }
     .payment-schedule .payment-header {
         border: none !important;
@@ -1200,7 +1213,9 @@
         }
     }
 
-    /* Ensure notes wrap cleanly on mobile */
+    /* Ensure notes wrap cleanly on mobile. white-space stays normal so the
+       template's own indentation/newlines don't render as stray spacing
+       (notes line breaks come from the linebreaksbr filter). */
     @media (max-width: 991.98px) {
         .notes-section {
             padding: 0 12px 10px;
@@ -1209,9 +1224,17 @@
             margin-bottom: 6px;
         }
         .notes-section .notes-text {
-            white-space: pre-wrap;
+            white-space: normal;
             word-break: break-word;
             overflow-wrap: anywhere;
+        }
+    }
+
+    /* Vehicle information / Purpose of Stay: gap between the columns once
+       they stack (col-md-6 collapses below 768px). */
+    @media (max-width: 767.98px) {
+        .notes-section.row > [class*="col-"]:not(:last-child) {
+            margin-bottom: 14px;
         }
     }
 </style>
@@ -1827,7 +1850,7 @@
 </div>
 
 <!-- Guest Receipt Modal -->
-<div id="guestReceiptModal" class="modal">
+<div id="guestReceiptModal" class="modal" style="z-index: 10000 !important;">
     <div class="modal-content" style="width: 90%; max-width: 960px; padding: 0;">
         <div class="modal-body" style="padding: 0;">
             <div id="guest-receipt-content-placeholder">Loading...</div>
@@ -1836,8 +1859,8 @@
 </div>
 
 <!-- Rental Agreement Modal -->
-<div id="rentalAgreementModal" class="modal" style="align-items: flex-start;">
-    <div class="modal-content" style="width: 90%; max-width: 960px; padding: 0; overflow: hidden; margin-top: 68px; margin-bottom: 12px;">
+<div id="rentalAgreementModal" class="modal" style="z-index: 10000 !important;">
+    <div class="modal-content" style="width: 90%; max-width: 960px; max-height: 90vh; padding: 0; overflow: hidden;">
         <div class="modal-body" style="padding: 0; max-height: none; overflow: visible;">
             <div id="rental-agreement-content-placeholder">Loading...</div>
         </div>

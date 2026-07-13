@@ -980,6 +980,8 @@ def guest_receipt(request, pk):
         'balance_due': balance_due,
         'all_paid': all_paid,
         'is_modal': is_modal,
+        # Phone number formatted with a space after the calling code.
+        'host_phone': _format_phone_with_space(getattr(booking.property.created_by, 'phone', None)),
     }
     return render(request, 'frontend/common/receipt.html', context)
 
