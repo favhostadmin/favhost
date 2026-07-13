@@ -195,7 +195,7 @@ class BookingForm(forms.ModelForm):
             self.fields['check_out_time'].initial = '10:00'
 
         required_fields = [
-            'first_name', 'last_name', 'email', 'phone', 'guest_count',
+            'first_name', 'last_name', 'email', 'guest_count',
             'channel', 'check_in_time', 'check_out_time',
             'check_in_date', 'check_out_date', 'property'
         ]
