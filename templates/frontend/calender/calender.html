@@ -721,8 +721,21 @@
       return;
     }
 
-    const firstDate = allDates[0];
-    const lastDate = allDates[allDates.length - 1];
+    let firstDate = allDates[0];
+    let lastDate = allDates[allDates.length - 1];
+
+    // Week view's visible 7 days can spill outside the current month's
+    // date range (e.g. a week starting on the month's last Sunday), so
+    // widen the request to also cover the actual selected week - otherwise
+    // bookings on those trailing/leading days never get fetched.
+    if (currentViewMode === 'week' && selectedWeekStart) {
+      const weekStart = new Date(selectedWeekStart);
+      weekStart.setHours(0, 0, 0, 0);
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekEnd.getDate() + 6);
+      if (weekStart < firstDate) firstDate = weekStart;
+      if (weekEnd > lastDate) lastDate = weekEnd;
+    }
 
     // Ensure we cover the full range of the view
     const url = `?start_date=${toISODateString(firstDate)}&end_date=${toISODateString(lastDate)}&_=${Date.now()}`;
@@ -3681,8 +3694,15 @@
           const sunday = new Date(today);
           sunday.setDate(today.getDate() - dayOfWeek);
           if (currentViewMode === 'week') {
-            selectedWeekStart = sunday;
-            currentDisplayDate = new Date(sunday);
+            // Anchor on whatever date was already being viewed (not real
+            // "today") so switching into Week view doesn't discard the
+            // month/date context you navigated to in another view.
+            const base = new Date(currentDisplayDate);
+            base.setHours(0, 0, 0, 0);
+            const baseWeekStart = new Date(base);
+            baseWeekStart.setDate(base.getDate() - base.getDay());
+            selectedWeekStart = baseWeekStart;
+            currentDisplayDate = new Date(baseWeekStart);
           } else {
             currentDisplayDate = new Date(today.getFullYear(), today.getMonth(), 1);
             selectedWeekStart = sunday;
@@ -3869,8 +3889,15 @@
           const sunday = new Date(today);
           sunday.setDate(today.getDate() - dayOfWeek);
           if (currentViewMode === 'week') {
-            selectedWeekStart = sunday;
-            currentDisplayDate = new Date(sunday);
+            // Anchor on whatever date was already being viewed (not real
+            // "today") so switching into Week view doesn't discard the
+            // month/date context you navigated to in another view.
+            const base = new Date(currentDisplayDate);
+            base.setHours(0, 0, 0, 0);
+            const baseWeekStart = new Date(base);
+            baseWeekStart.setDate(base.getDate() - base.getDay());
+            selectedWeekStart = baseWeekStart;
+            currentDisplayDate = new Date(baseWeekStart);
           } else {
             currentDisplayDate = new Date(today.getFullYear(), today.getMonth(), 1);
             selectedWeekStart = sunday;

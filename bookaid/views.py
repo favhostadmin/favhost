@@ -982,12 +982,14 @@ class CalenderAPIView(LoginRequiredMixin,ListView):
                     if p.type in ['Refundable deposit', 'Cleaning Fee', 'Application Fee', 'Taxes', 'Other Fees', 'Payment 1']:
                         first_installment_amount += float(p.amount)
                     # "Refundable to guest" is money owed BACK to the guest, not an
-                    # amount they owe — it's the only type that shouldn't feed the
-                    # calendar's "amount due this day" badge. Every other type
-                    # (rent installments, deposit, cleaning fee, taxes, other fees)
-                    # is a real amount the guest owes and belongs in the total, same
-                    # as the unfiltered payment schedule on the reservation page.
-                    if p.type == 'Refundable to guest':
+                    # amount they owe, and "Application Fee" is excluded from the
+                    # reservation payment card's total (see payment_details total_price
+                    # in booking/views.py) — so neither should feed the calendar's
+                    # "amount due this day" badge, to keep the two totals matching.
+                    # Every other type (rent installments, deposit, cleaning fee,
+                    # taxes, other fees) is a real amount the guest owes and belongs
+                    # in the total, same as the payment card.
+                    if p.type in ('Refundable to guest', 'Application Fee'):
                         continue
                     if p.expected_payment_date:
                         d_str = p.expected_payment_date.date().isoformat()

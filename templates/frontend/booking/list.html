@@ -491,210 +491,9 @@
                         </span>
                     </a>
                 </div>
-                <div class="reservation-list">
-                    {% for booking in bookings %}
-                    <article class="reservation-card reservation-item" data-urgency="{{ booking.urgency|default:'green' }}"
-                             data-url="{% url 'booking:payment-details' pk=booking.id %}">
-                        <div class="reservation-mobile-card">
-                            <div class="reservation-mobile-head">
-                                <div class="reservation-mobile-dates">{{ booking.check_in }} <span class="reservation-mobile-arrow">&rarr;</span> {{ booking.check_out }}</div>
-                                {% if booking.checkout_info %}
-                                <span class="reservation-mobile-badge reservation-item__badge--{{ booking.urgency|default:'green' }}">
-                                    {% if booking.checkout_info == 'Cancelled' %}
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>
-                                    {% elif booking.checkout_info == 'No Show' %}
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="18" y1="8" x2="23" y2="13"></line><line x1="23" y1="8" x2="18" y2="13"></line></svg>
-                                    {% else %}
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>
-                                    {% endif %}
-                                    {{ booking.checkout_info }}
-                                </span>
-                                {% endif %}
-                            </div>
-                            <div class="reservation-mobile-body">
-                                <span class="reservation-mobile-thumb">
-                                    <img src="{{ booking.property_thumbnail }}" alt="{{ booking.property_name }}">
-                                </span>
-                                <div class="reservation-mobile-info">
-                                    <div class="reservation-mobile-name">{{ booking.guest_name }}</div>
-                                    <div class="reservation-mobile-prop">{{ booking.property_name }}</div>
-                                </div>
-                            </div>
-                            <div class="reservation-mobile-foot">
-                                <span class="reservation-mobile-meta"><b>{{ booking.nights }}</b> nights &middot; {{ booking.guests }} guests</span>
-                                <span class="reservation-mobile-footright">
-                                    <span class="reservation-item__platform {% if booking.platform == 'Airbnb' %}reservation-item__platform--airbnb{% elif 'Furnished' in booking.platform %}reservation-item__platform--ff{% endif %}">
-                                        {% if booking.platform_icon %}
-                                            <img src="{{ booking.platform_icon }}" alt="{{ booking.platform }}">
-                                        {% else %}
-                                            <img src="{% static 'img/booking/other_browser.svg' %}" alt="Platform">
-                                        {% endif %}
-                                        {{ booking.platform }}
-                                    </span>
-                                    <span class="reservation-mobile-number">#{{ booking.reservation_number }}</span>
-                                </span>
-                            </div>
-                        </div>
-                        <div class="reservation-item__stay">
-                            <div class="reservation-item__dates">{{ booking.check_in }} <span class="reservation-item__arrow">&rarr;</span> {{ booking.check_out }}</div>
-                            {% if booking.checkout_info %}
-                            <span class="reservation-item__badge reservation-item__badge--{{ booking.urgency|default:'green' }} d-none d-md-inline-flex">
-                                {% if booking.checkout_info == 'Cancelled' %}
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>
-                                {% elif booking.checkout_info == 'No Show' %}
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="18" y1="8" x2="23" y2="13"></line><line x1="23" y1="8" x2="18" y2="13"></line></svg>
-                                {% else %}
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>
-                                {% endif %}
-                                {{ booking.checkout_info }}
-                            </span>
-                            {% endif %}
-                            <div class="reservation-item__meta d-none d-md-block"><b>{{ booking.nights }}</b> nights &middot; {{ booking.guests }} guests</div>
-                        </div>
-
-                        <div class="reservation-item__guest">
-                            <span class="reservation-item__avatar">
-                                <img src="{{ booking.guest_avatar }}" alt="{{ booking.guest_name }}">
-                            </span>
-                            <div class="reservation-item__guest-info">
-                                <div class="reservation-item__name">{{ booking.guest_name }}</div>
-                                <div class="reservation-item__contact">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="m3 7 9 6 9-6"></path></svg>
-                                    <span class="ellipsis">{% if booking.email and booking.email != "Not available" %}{{ booking.email }}{% else %}Not available{% endif %}</span>
-                                </div>
-                                <div class="reservation-item__contact mono">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3-8.6A2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2Z"></path></svg>
-                                    <span class="ellipsis">{% if booking.phone and booking.phone != "Not available" %}{{ booking.phone }}{% else %}Not available{% endif %}</span>
-                                </div>
-                            </div>
-                            <div class="reservation-item__meta reservation-item__meta--guest d-md-none"><b>{{ booking.nights }}</b> nights &middot; {{ booking.guests }} guests</div>
-                        </div>
-
-                        <div class="reservation-item__property">
-                            <span class="reservation-item__thumbnail">
-                                <img src="{{ booking.property_thumbnail }}" alt="{{ booking.property_name }}">
-                            </span>
-                            <div class="reservation-item__property-info">
-                                <div class="reservation-item__property-name">{{ booking.property_name }}</div>
-                                <div class="reservation-item__property-row">
-                                    <span class="reservation-item__platform {% if booking.platform == 'Airbnb' %}reservation-item__platform--airbnb{% elif 'Furnished' in booking.platform %}reservation-item__platform--ff{% endif %}">
-                                        {% if booking.platform_icon %}
-                                            <img src="{{ booking.platform_icon }}" alt="{{ booking.platform }}">
-                                        {% else %}
-                                            <img src="{% static 'img/booking/other_browser.svg' %}" alt="Platform">
-                                        {% endif %}
-                                        {{ booking.platform }}
-                                    </span>
-                                    <span class="reservation-item__number">#{{ booking.reservation_number }}</span>
-                                    {% if booking.checkout_info %}
-                                    <span class="reservation-item__badge reservation-item__badge--{{ booking.urgency|default:'green' }} d-md-none">
-                                        {% if booking.checkout_info == 'Cancelled' %}
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>
-                                        {% elif booking.checkout_info == 'No Show' %}
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="18" y1="8" x2="23" y2="13"></line><line x1="23" y1="8" x2="18" y2="13"></line></svg>
-                                        {% else %}
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>
-                                        {% endif %}
-                                        {{ booking.checkout_info }}
-                                    </span>
-                                    {% endif %}
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="reservation-item__actions">
-                            <div class="btn-group dropdown">
-                                <button class="reservation-item__menu-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Reservation options">
-                                    <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.7"></circle><circle cx="12" cy="12" r="1.7"></circle><circle cx="12" cy="19" r="1.7"></circle></svg>
-                                </button>
-                                <ul class="dropdown-menu dropdown-menu-end">
-                                    {% if status_filter == 'past' or status_filter == 'all' or status_filter == 'current' or status_filter == 'upcoming' or status_filter == 'no_show' %}
-                                    <li>
-                                        <a class="dropdown-item email-guest-btn" href="#" data-booking-id="{{ booking.id }}" data-guest-email="{{ booking.email }}">
-                                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                                                <path d="M3 4H13C13.5523 4 14 4.44772 14 5V11C14 11.5523 13.5523 12 13 12H3C2.44772 12 2 11.5523 2 11V5C2 4.44772 2.44772 4 3 4Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                                                <path d="M14 5L8 8.5L2 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                                            </svg>
-                                            Email Guest
-                                        </a>
-                                    </li>
-                                    {% endif %}
-
-                                    <li>
-                                        <a class="dropdown-item" href="{% url 'booking:payment-details' pk=booking.id %}">
-                                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                                                <rect x="2" y="3" width="12" height="10" rx="1" stroke="currentColor" stroke-width="1.5"/>
-                                                <path d="M2 6h12" stroke="currentColor" stroke-width="1.5"/>
-                                            </svg>
-                                            Reservation details
-                                        </a>
-                                    </li>
-
-                                    {% if status_filter == 'past' or status_filter == 'current' or status_filter == 'upcoming' %}
-                                    <li>
-                                        <a class="dropdown-item" href="{% url 'booking:booking-edit' pk=booking.id %}">
-                                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                                                <path d="M11.5 2.5L13.5 4.5L5 13H3V11L11.5 2.5Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                                            </svg>
-                                            Edit
-                                        </a>
-                                    </li>
-                                    {% endif %}
-
-                                    {% if status_filter != 'cancelled' %}
-                                    {% if booking.time_delta or status_filter == 'past' or booking.no_show_receipt %}
-                                    <li>
-                                        <a class="dropdown-item guest-receipt-btn" href="#" data-receipt-url="{% url 'booking:guest-receipt' pk=booking.id %}">
-                                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                                                <path d="M4 2h8v12l-4-2-4 2V2z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                                            </svg>
-                                            Guest Receipt
-                                        </a>
-                                    </li>
-                                    {% endif %}
-                                    {% endif %}
-
-                                    {% if status_filter == 'past' or status_filter == 'current' %}
-                                    <li class="no-show-item">
-                                        <a class="dropdown-item mark-no-show-btn" href="{% url 'booking:mark-no-show' pk=booking.id %}" data-booking-id="{{ booking.id }}" style="color: #d97706;">
-                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                                <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                                                <circle cx="8.5" cy="7" r="4"></circle>
-                                                <line x1="18" y1="8" x2="23" y2="13"></line>
-                                                <line x1="23" y1="8" x2="18" y2="13"></line>
-                                            </svg>
-                                            No Show
-                                        </a>
-                                    </li>
-                                    {% endif %}
-
-                                    {% if status_filter == 'upcoming' or status_filter == 'all' or booking.is_checkin_today %}
-                                    <li class="cancel-reservation-item">
-                                        <a class="dropdown-item cancel-reservation-btn" href="{% url 'booking:cancel-booking' pk=booking.id %}" data-booking-id="{{ booking.id }}" style="color: #dc2626;">
-                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                                <circle cx="12" cy="12" r="10"></circle>
-                                                <line x1="15" y1="9" x2="9" y2="15"></line>
-                                                <line x1="9" y1="9" x2="15" y2="15"></line>
-                                            </svg>
-                                            Cancel Reservation
-                                        </a>
-                                    </li>
-                                    {% endif %}
-                                </ul>
-                            </div>
-                        </div>
-                    </article>
-                {% empty %}
-                <div class="col-12">
-                    <div class="no-results text-center py-5">
-                        <img src="{% static 'img/common/empty_booking.svg' %}" alt="No properties" class="mt-2 mb-2" style="width: auto; height: 18rem;">
-                        <p class="no-results-title">I could not find any reservation</p>
-                        <p class="no-results-subtitle">Create new reservation from the Create button</p>
-                    </div>
+                <div id="booking-results">
+                    {% include 'frontend/booking/_reservation_list_partial.html' %}
                 </div>
-                    {% endfor %}
-                </div>
-                {% include 'frontend/base/pagination.html' %}
             </div>
         </div>
     </div>
@@ -797,18 +596,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const guestReceiptModal = document.getElementById('guestReceiptModal');
     const guestReceiptPlaceholder = document.getElementById('guest-receipt-content-placeholder');
 
-    document.querySelectorAll('.reservation-card').forEach(card => {
-        card.addEventListener('click', function(e) {
-            // Prevent redirect if clicking on dropdown or other links
-            if (e.target.closest('.dropdown') || e.target.closest('.dropup') || e.target.closest('a') || e.target.closest('button')) {
-                return;
-            }
-            if (this.dataset.url) {
-                window.location.href = this.dataset.url;
-            }
-        });
-    });
-
     function closeDropdown(element) {
         const dropdownMenu = element.closest('.dropdown-menu');
         if (dropdownMenu) {
@@ -825,11 +612,14 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    document.querySelectorAll('.email-guest-btn').forEach(button => {
-        button.addEventListener('click', function(e) {
+    // Delegated on document (rather than bound per-.reservation-card) so these
+    // keep working after the AJAX search swaps #booking-results' innerHTML.
+    document.addEventListener('click', function(e) {
+        const emailBtn = e.target.closest('.email-guest-btn');
+        if (emailBtn) {
             e.preventDefault();
-            closeDropdown(this);
-            const guestEmail = this.dataset.guestEmail;
+            closeDropdown(emailBtn);
+            const guestEmail = emailBtn.dataset.guestEmail;
             if (guestEmail) {
                 // Open the mail app via a hidden iframe so the page itself
                 // never enters a stuck loading/navigation state.
@@ -843,29 +633,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 setTimeout(() => frame.remove(), 2000);
             }
+            return;
+        }
 
-            /* --- Old in-app email compose modal (kept for later reuse) ---
-            const bookingId = this.dataset.bookingId;
-            const url = `{% url 'booking:render-email-form' %}?booking_id=${bookingId}`;
-
-            emailModalPlaceholder.innerHTML = '<div style="text-align: center; padding: 40px;">Loading...</div>';
-            emailModal.style.display = 'flex';
-
-            fetch(url)
-                .then(response => response.text())
-                .then(html => {
-                    emailModalPlaceholder.innerHTML = html;
-                    const closeEmailBtn = emailModal.querySelector('.btn-cancel-email');
-                    if (closeEmailBtn) {
-                        closeEmailBtn.onclick = () => emailModal.style.display = 'none';
-                    }
-                })
-                .catch(error => {
-                    emailModalPlaceholder.innerHTML = '<p style="text-align: center; padding: 40px; color: red;">Error loading email form. Please try again.</p>';
-                    console.error('Error fetching email form:', error);
-                });
-            */
-        });
+        const card = e.target.closest('.reservation-card');
+        if (card && !e.target.closest('.dropdown') && !e.target.closest('.dropup') && !e.target.closest('a') && !e.target.closest('button')) {
+            if (card.dataset.url) {
+                window.location.href = card.dataset.url;
+            }
+        }
     });
 
     function initGuestReceiptActions(scope) {
@@ -914,28 +690,28 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    document.querySelectorAll('.guest-receipt-btn').forEach(button => {
-        button.addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            closeDropdown(this);
+    document.addEventListener('click', function(e) {
+        const receiptBtn = e.target.closest('.guest-receipt-btn');
+        if (!receiptBtn) return;
+        e.preventDefault();
+        e.stopPropagation();
+        closeDropdown(receiptBtn);
 
-            let url = this.dataset.receiptUrl;
-            url += (url.includes('?') ? '&' : '?') + 'is_modal=true';
-            guestReceiptPlaceholder.innerHTML = '<div style="text-align: center; padding: 40px;">Loading...</div>';
-            guestReceiptModal.style.display = 'flex';
+        let url = receiptBtn.dataset.receiptUrl;
+        url += (url.includes('?') ? '&' : '?') + 'is_modal=true';
+        guestReceiptPlaceholder.innerHTML = '<div style="text-align: center; padding: 40px;">Loading...</div>';
+        guestReceiptModal.style.display = 'flex';
 
-            fetch(url)
-                .then(response => response.text())
-                .then(html => {
-                    guestReceiptPlaceholder.innerHTML = html;
-                    initGuestReceiptActions(guestReceiptPlaceholder);
-                })
-                .catch(error => {
-                    guestReceiptPlaceholder.innerHTML = '<p style="text-align: center; padding: 40px; color: red;">Error loading guest receipt. Please try again.</p>';
-                    console.error('Error fetching guest receipt:', error);
-                });
-        });
+        fetch(url)
+            .then(response => response.text())
+            .then(html => {
+                guestReceiptPlaceholder.innerHTML = html;
+                initGuestReceiptActions(guestReceiptPlaceholder);
+            })
+            .catch(error => {
+                guestReceiptPlaceholder.innerHTML = '<p style="text-align: center; padding: 40px; color: red;">Error loading guest receipt. Please try again.</p>';
+                console.error('Error fetching guest receipt:', error);
+            });
     });
 
     const closeGuestReceipt = guestReceiptModal.querySelector('.close-guest-receipt');
@@ -954,15 +730,15 @@ document.addEventListener('DOMContentLoaded', function() {
     let cancelUrl = '';
     let reservationCard = null;
 
-    document.querySelectorAll('.cancel-reservation-btn').forEach(button => {
-        button.addEventListener('click', function(e) {
-            e.preventDefault();
-            closeDropdown(this);
-            cancelUrl = this.href;
-            reservationCard = this.closest('.reservation-card');
-            const cancelModal = new bootstrap.Modal(document.getElementById('cancelReservationModal'));
-            cancelModal.show();
-        });
+    document.addEventListener('click', function(e) {
+        const cancelBtn = e.target.closest('.cancel-reservation-btn');
+        if (!cancelBtn) return;
+        e.preventDefault();
+        closeDropdown(cancelBtn);
+        cancelUrl = cancelBtn.href;
+        reservationCard = cancelBtn.closest('.reservation-card');
+        const cancelModal = new bootstrap.Modal(document.getElementById('cancelReservationModal'));
+        cancelModal.show();
     });
 
     document.getElementById('confirmCancelBtn').addEventListener('click', function() {
@@ -991,14 +767,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
     let noShowUrl = '';
 
-    document.querySelectorAll('.mark-no-show-btn').forEach(button => {
-        button.addEventListener('click', function(e) {
-            e.preventDefault();
-            closeDropdown(this);
-            noShowUrl = this.href;
-            const noShowModal = new bootstrap.Modal(document.getElementById('noShowModal'));
-            noShowModal.show();
-        });
+    document.addEventListener('click', function(e) {
+        const noShowBtn = e.target.closest('.mark-no-show-btn');
+        if (!noShowBtn) return;
+        e.preventDefault();
+        closeDropdown(noShowBtn);
+        noShowUrl = noShowBtn.href;
+        const noShowModal = new bootstrap.Modal(document.getElementById('noShowModal'));
+        noShowModal.show();
     });
 
     document.getElementById('confirmNoShowBtn').addEventListener('click', function() {
@@ -1029,17 +805,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        const SEARCH_FOCUS_KEY = 'bookingListSearchFocus';
         const searchInputs = document.querySelectorAll('.search-box input[name="search"]');
 
-        function toggleClearIcon() {
-            const searchInput = this;
-            const clearIcon = searchInput.closest('.search-box').querySelector('.clear-icon');
-            if (searchInput.value) {
-                clearIcon.style.display = 'block';
-            } else {
-                clearIcon.style.display = 'none';
-            }
+        function toggleClearIcon(input) {
+            const clearIcon = input.closest('.search-box').querySelector('.clear-icon');
+            clearIcon.style.display = input.value ? 'block' : 'none';
         }
 
         searchInputs.forEach((input, index) => {
@@ -1047,7 +817,7 @@ document.addEventListener('DOMContentLoaded', function() {
             input.dataset.searchInstance = `booking-search-${index}`;
 
             input.addEventListener('input', function () {
-                toggleClearIcon.call(this);
+                toggleClearIcon(this);
                 clearTimeout(typingTimer);
                 typingTimer = setTimeout(() => performSearch(this), 500);
             });
@@ -1057,72 +827,69 @@ document.addEventListener('DOMContentLoaded', function() {
                     performSearch(this);
                 }
             });
-            toggleClearIcon.call(input);
+            toggleClearIcon(input);
         });
-
-        function focusStoredSearch() {
-            const stored = sessionStorage.getItem(SEARCH_FOCUS_KEY);
-            let target;
-            if (stored) {
-                target = document.querySelector(`[data-search-instance="${stored}"]`);
-            }
-            if (!target) {
-                target = document.querySelector('.search-box.search-box-desktop input[name="search"]');
-            }
-            if (!target && searchInputs[0]) {
-                target = searchInputs[0];
-            }
-            if (target) {
-                setTimeout(() => {
-                    target.focus();
-                    target.setSelectionRange(target.value.length, target.value.length);
-                }, 12);
-            }
-            if (stored) {
-                sessionStorage.removeItem(SEARCH_FOCUS_KEY);
-            }
-        }
-
-        focusStoredSearch();
-        window.addEventListener('pageshow', focusStoredSearch);
-        window.addEventListener('load', focusStoredSearch);
     });
 
-function performSearch(element) {
-    const SEARCH_FOCUS_KEY = 'bookingListSearchFocus';
-    let searchInput;
-    if (element.tagName.toLowerCase() === 'input') {
-        searchInput = element;
-    } else {
-        searchInput = element.closest('.search-box').querySelector('input[name="search"]');
+    // Fetches the results partial for `url` and swaps it into #booking-results
+    // in place, instead of navigating — this is what keeps typing in the search
+    // box (and the pause right after hitting space) from reloading the page.
+    function loadBookingResults(url, { pushState = true } = {}) {
+        fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+            .then(response => response.text())
+            .then(html => {
+                document.getElementById('booking-results').innerHTML = html;
+                if (pushState) {
+                    window.history.pushState({ bookingResultsUrl: url }, '', url);
+                }
+            })
+            .catch(() => { window.location.href = url; });
     }
-    const instance = searchInput.dataset.searchInstance || 'booking-search-0';
-    sessionStorage.setItem(SEARCH_FOCUS_KEY, instance);
 
-    const query = searchInput.value;
-    const params = new URLSearchParams(window.location.search);
+    window.addEventListener('popstate', function () {
+        const query = new URLSearchParams(window.location.search).get('search') || '';
+        document.querySelectorAll('.search-box input[name="search"]').forEach(input => {
+            input.value = query;
+            input.closest('.search-box').querySelector('.clear-icon').style.display = query ? 'block' : 'none';
+        });
+        loadBookingResults(window.location.href, { pushState: false });
+    });
 
-    if (query.trim()) {
-        params.set('search', query.trim());
-    } else {
-        params.delete('search');
-    }
-    params.delete('page'); // Reset to first page on new search
-    const newUrl = new URL(window.location.pathname, window.location.origin);
-    newUrl.search = params.toString();
-    window.location.href = newUrl.toString();
-}
+    function performSearch(element) {
+        let searchInput;
+        if (element.tagName.toLowerCase() === 'input') {
+            searchInput = element;
+        } else {
+            searchInput = element.closest('.search-box').querySelector('input[name="search"]');
+        }
 
-function clearSearch(element) {
-    const searchInput = element.closest('.search-box').querySelector('input[name="search"]');
-        searchInput.value = '';
+        const query = searchInput.value;
+        // Keep the mobile/desktop search boxes in sync since only one of them
+        // is edited at a time but both show the same underlying query.
+        document.querySelectorAll('.search-box input[name="search"]').forEach(input => {
+            if (input !== searchInput) {
+                input.value = query;
+                input.closest('.search-box').querySelector('.clear-icon').style.display = query ? 'block' : 'none';
+            }
+        });
 
         const params = new URLSearchParams(window.location.search);
-        params.delete('search');
-
+        if (query.trim()) {
+            params.set('search', query.trim());
+        } else {
+            params.delete('search');
+        }
+        params.delete('page'); // Reset to first page on new search
         const newUrl = new URL(window.location.pathname, window.location.origin);
         newUrl.search = params.toString();
-        window.location.href = newUrl.toString();
+        loadBookingResults(newUrl.toString());
+    }
+
+    function clearSearch(element) {
+        const searchInput = element.closest('.search-box').querySelector('input[name="search"]');
+        searchInput.value = '';
+        searchInput.closest('.search-box').querySelector('.clear-icon').style.display = 'none';
+        performSearch(searchInput);
     }
 </script>
 {% endblock extra_script %}
