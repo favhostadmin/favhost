@@ -75,6 +75,13 @@ class BookingListView(LoginRequiredMixin, ListView):
             return self._render_report(request, report_status)
         return super().get(request, *args, **kwargs)
 
+    def get_template_names(self):
+        # The header search box fetches this via AJAX (see list.html) so typing
+        # updates the results without reloading the whole page.
+        if self.request.headers.get('x-requested-with') == 'XMLHttpRequest':
+            return ['frontend/booking/_reservation_list_partial.html']
+        return [self.template_name]
+
     def get_context_data(self, **kwargs):
         status_filter = self.request.GET.get('status', 'current')
         # Use user's local timezone instead of UTC
