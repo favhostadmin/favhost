@@ -521,7 +521,7 @@
                 </div>
                 <span class="step-counter">1/2</span>
                 <div class="d-flex btn-group">
-                    <button type="button" class="btn-create" onclick="goToStep(2)">Next</button>
+                    <button type="button" class="btn-create" onclick="validateStep1AndProceed()">Next</button>
                     <div class="btn-divider"></div>
                     <a href="javascript:history.back()" class="btn-cancel">Cancel</a>
                 </div>
@@ -746,7 +746,7 @@
                 <div class="step-counter">1/2</div>
                 <div class="d-flex justify-content-center mt-2">
                     <div class="d-flex btn-group">
-                        <button type="button" class="btn-create" onclick="goToStep(2)">Next</button>
+                        <button type="button" class="btn-create" onclick="validateStep1AndProceed()">Next</button>
                         <div class="btn-divider"></div>
                         <a href="javascript:history.back()" class="btn-cancel">Cancel</a>
                     </div>
@@ -1108,6 +1108,28 @@
         }
         const sc = document.getElementById('formScrollContainer');
         if (sc) sc.scrollTop = 0;
+    }
+
+    function validateStep1AndProceed() {
+        const step1Content = document.getElementById('step1-content');
+        step1Content.querySelectorAll('.field-invalid').forEach(el => el.classList.remove('field-invalid'));
+
+        const missingFields = collectMissingRequiredFields(step1Content);
+        if (missingFields.length > 0) {
+            missingFields.forEach(f => {
+                if (!f.control) return;
+                f.control.classList.add('field-invalid');
+                const clearHighlight = () => f.control.classList.remove('field-invalid');
+                const fileInput = f.group.querySelector('input[type="file"]');
+                if (fileInput) fileInput.addEventListener('change', clearHighlight, { once: true });
+                f.control.addEventListener('input', clearHighlight, { once: true });
+                f.control.addEventListener('change', clearHighlight, { once: true });
+            });
+            missingFields[0].group.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            focusField(missingFields[0].control);
+            return;
+        }
+        goToStep(2);
     }
 
     // Initialise display state
