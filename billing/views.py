@@ -47,6 +47,10 @@ def pricing_page(request):
         'subscription_status': subscription_status,
         'period_end': period_end,
         'stripe_publishable_key': settings.STRIPE_PUBLISHABLE_KEY,
+        # The pricing page IS the place to pick a plan, so suppress the paywall
+        # overlay here — otherwise an expired-trial / canceled user is walled off
+        # and can never reach the Monthly/Yearly chooser (same as success/cancel).
+        'hide_subscription_wall': True,
     }
     return render(request, 'frontend/billing/pricing.html', context)
 
