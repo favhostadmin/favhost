@@ -1,5 +1,6 @@
 {% extends 'frontend/base/base.html' %}
 {% load static %}
+{% load currency_tags %}
 
 {% block extra_head %}
     <link href="{% static 'css/host_dashboard.css' %}" rel="stylesheet">
@@ -65,7 +66,7 @@
                         <div class="stat-card sc2">
                             <div class="stat-icon ic2"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6" width="19" height="12" rx="2.5"/><circle cx="12" cy="12" r="2.6"/><path d="M6 9.5h.01M18 14.5h.01"/></svg></div>
                             <div class="stat-lbl">Total Revenue</div>
-                            <div class="stat-number">$ {{total_revenue}}</div>
+                            <div class="stat-number">{% money total_revenue %}</div>
                         </div>
                         </a>
                     </div>
@@ -216,7 +217,7 @@
                                                             <div class="entry-body">
                                                                 <div class="entry-title">
                                                                     <span class="entry-label">
-                                                                        {{ item.title }}{% if item.amount %} ${{ item.amount }}{% endif %}
+                                                                        {{ item.title }}{% if item.amount %} {% money item.amount %}{% endif %}
                                                                     </span>
                                                                     {% if item.group == "Payment" %}
                                                                         <span class="payment-status {% if item.paid %}paid{% else %}unpaid{% endif %}">
@@ -294,7 +295,7 @@
                         <div class="chart-card flex-fill monthly-avg-card-mobile-revert laptop-padded-section">
                             <div class="chart-header d-flex justify-content-between align-items-center">
                                 <div class="chart-title">
-                                    <p>Monthly average <b>${{monthly_average}}</b></p>
+                                    <p>Monthly average <b>{% money monthly_average %}</b></p>
                                 </div>
                                 <div class="d-flex align-items-center gap-2">
                                     <select id="year-select" class="year-select">
@@ -631,7 +632,7 @@
 
         if (value > 0) {
             const label = document.createElement("span");
-            label.innerText = `$${value.toLocaleString()}`;
+            label.innerText = window.fmtMoney(value);
             bar.appendChild(label); // font size set dynamically by autoSizeBarLabels()
         }
 
@@ -646,7 +647,7 @@
             avgLine.className = "avg-line";
             avgLine.style.bottom = avgPct + "%";
             const avgLbl = document.createElement("span");
-            avgLbl.textContent = "$" + avg.toLocaleString("en-US", {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            avgLbl.textContent = window.fmtMoney(avg);
             avgLine.appendChild(avgLbl);
             chart.appendChild(avgLine);
         }
@@ -696,7 +697,7 @@
         const ytdValueElement = document.getElementById("ytd-value");
         if (ytdValueElement) {
             ytdValueElement.innerText =
-            "$" + monthlyEarnings.reduce((a, b) => a + b, 0).toLocaleString();
+            window.fmtMoney(monthlyEarnings.reduce((a, b) => a + b, 0));
         }
     </script>
 
