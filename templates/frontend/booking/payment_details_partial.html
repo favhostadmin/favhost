@@ -648,6 +648,64 @@
         }
     }
 
+    /* Give the Payment Schedule its own bordered card, matching the
+       Payment Summary panel (divider between them removed). */
+    .payment-summary,
+    .payment-schedule {
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 16px;
+        background: #ffffff;
+        height: 100%;
+    }
+    /* Make both cards stretch to the same height in the row. */
+    .payment-section {
+        align-items: stretch;
+    }
+    .payment-section > [class*="col-"] {
+        display: flex;
+    }
+    .payment-section > [class*="col-"] > .payment-schedule,
+    .payment-section > [class*="col-"] > .payment-summary {
+        width: 100%;
+    }
+    /* The schedule's own header/body already have borders; drop the doubled
+       inner borders so it reads as one clean card. */
+    .payment-schedule .payment-header {
+        border: none !important;
+        padding: 0 0 6px !important;
+    }
+    .payment-schedule #payment-body {
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+    }
+    /* Match the Payment Summary heading to the Payment Schedule heading:
+       same size/weight, centered in its card. */
+    .payment-schedule .payment-header h3,
+    .payment-summary h3 {
+        font-size: 20px;
+        font-weight: 700;
+        text-align: center;
+        color: #1f2937;
+        margin: 0 0 12px;
+        width: 100%;
+    }
+    .payment-schedule .payment-header h3 {
+        margin: 0;
+    }
+    /* Slightly larger summary rows so the card fills more vertically. */
+    .payment-summary .summary-item {
+        padding: 4px 0;
+    }
+    .payment-summary .summary-item .summary-label,
+    .payment-summary .summary-item .summary-value {
+        font-size: 16px;
+    }
+    .payment-summary .summary-total .summary-label,
+    .payment-summary .summary-total .summary-value {
+        font-size: 18px;
+    }
+
     /* ── Documents section ── */
     .documents-section h3 {
         font-size: 16px;
@@ -1324,7 +1382,7 @@
 
         .guest-top {
             display: flex;
-            align-items: flex-start;
+            align-items: stretch;
             gap: 24px;
         }
 
@@ -1431,15 +1489,15 @@
             font-size: 24px;
             font-weight: 600;
             color: #000;
-            margin-bottom: 12px;
+            margin-bottom: 8px;
         }
 
         .contact-item {
-            margin-bottom: 12px;
+            margin-bottom: 10px;
             display: flex;
             align-items: center;
-            gap: 16px;
-            font-size: 16px;
+            gap: 12px;
+            font-size: 15px;
         }
         
         .contact-item img {
@@ -1656,7 +1714,11 @@
 
                                             {% if booking.nationality %}
                                             <div class="contact-item">
-                                                <span class="icon-spacer"></span>
+                                                <svg class="mobile-date-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                    <circle cx="12" cy="12" r="10"></circle>
+                                                    <line x1="2" y1="12" x2="22" y2="12"></line>
+                                                    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+                                                </svg>
                                                 <span style="color: #000;">{{ booking.nationality }}</span>
                                             </div>
                                             {% endif %}
@@ -1707,9 +1769,9 @@
                                     </div>
                                 </div>
 
-                                <div class="right-section desktop-only" style="flex: 1 1 auto; display: flex; flex-direction: column; justify-content: space-between; min-height: 200px; gap: 16px;">
+                                <div class="right-section desktop-only" style="flex: 1 1 auto; display: flex; flex-direction: column; justify-content: flex-start; min-height: 200px; gap: 16px;">
                                     <div>
-                                        <div class="desktop-property-title" style="font-size: 18px; font-weight: 600; line-height: 1.4; color: #000; margin-bottom: 0;">
+                                        <div class="desktop-property-title" style="font-size: 18px; font-weight: 600; line-height: 1.4; color: #000; margin-bottom: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="{{ booking.property.title }}">
                                             {{ booking.property.title }}
                                         </div>
                                         
@@ -1753,6 +1815,17 @@
 
                         </div>
                     </div>
+
+                    {% if booking.street_address or booking.city or booking.state or booking.zip or booking.country %}
+                    <div class="booking-card">
+                        <div class="notes-section">
+                            <h3>Address</h3>
+                            <p class="notes-text" style="color: #000;">
+                                {{ booking.street_address|default:"" }}{% if booking.street_address and booking.city %}, {% endif %}{{ booking.city|default:"" }}{% if booking.city and booking.state %}, {% endif %}{{ booking.state|default:"" }}{% if booking.zip %} {{ booking.zip }}{% endif %}{% if booking.country %}, {{ booking.country }}{% endif %}
+                            </p>
+                        </div>
+                    </div>
+                    {% endif %}
 
                     {% if booking.vehicle_information or booking.purpose_of_stay %}
                     <div class="booking-card">
@@ -1865,11 +1938,6 @@
                                 </div>
                             </div>
 
-                            <div class="col-lg-auto d-none d-lg-flex align-items-center p-0">
-                                <div class="payment-divider h-100"></div>
-                            </div>
-
-
                             <div class="col-lg-4 col-md-12 mt-3 mx-lg-auto">
                                 <div class="payment-summary">
                                     <h3 >Payment Summary</h3>
@@ -1908,7 +1976,7 @@
                                         <span class="summary-value">{% money booking.other_fees %}</span>
                                     </div>
                                     <hr>
-                                    <div class="summary-item" style="font-size: 16px;">
+                                    <div class="summary-item summary-total" style="font-size: 18px;">
                                         <span class="summary-label">Total</span>
                                         <span class="summary-value">{% money total_price %}</span>
                                     </div>
