@@ -269,7 +269,6 @@ class BookingListView(LoginRequiredMixin, ListView):
         bookings = self._status_queryset(base_qs, status_filter, now)
 
         items = []
-        attachment_groups = []  # appendix: attachments grouped per reservation
         attachment_count = 0
         total_nights = 0
         total_guests = 0
@@ -281,35 +280,15 @@ class BookingListView(LoginRequiredMixin, ListView):
             total_value += float(b.price or 0)
             guest_name = f'{b.first_name} {b.last_name}'.strip() or '—'
 
-            # Appendix per reservation: a single guest photo on the left and
-            # the guest's uploaded documents (one or more) as compact download
-            # rows on the right. Only the first guest image is used as the photo.
-            guest_photo = None
-            for img in b.images.all():
-                if img.image and img.image.name:
-                    guest_photo = img.image.url
-                    break
-
-            documents = []
-            for doc in b.documents.all():
-                if not (doc.document and doc.document.name):
-                    continue
-                documents.append({
-                    'url': doc.document.url,
-                    'filename': doc.document.name.rsplit('/', 1)[-1],
-                })
-
-            group_count = (1 if guest_photo else 0) + len(documents)
-            if guest_photo or documents:
-                attachment_count += group_count
-                attachment_groups.append({
-                    'reservation_number': b.booking_id,
-                    'guest_name': guest_name,
-                    'property_name': b.property.title if b.property else '—',
-                    'guest_photo': guest_photo,
-                    'documents': documents,
-                    'count': group_count,
-                })
+            # Count of the guest's attachments (one guest photo + any uploaded
+            # documents) — shown as a per-reservation count in the table and in
+            # the totals. The photos/documents appendix itself was removed.
+            has_photo = any(img.image and img.image.name for img in b.images.all())
+            document_count = sum(
+                1 for doc in b.documents.all() if doc.document and doc.document.name
+            )
+            group_count = (1 if has_photo else 0) + document_count
+            attachment_count += group_count
 
             items.append({
                 'reservation_number': b.booking_id,
@@ -337,7 +316,6 @@ class BookingListView(LoginRequiredMixin, ListView):
             'current_property': current_property,
             'today_date': now,
             'items': items,
-            'attachment_groups': attachment_groups,
             'attachment_count': attachment_count,
             'reservation_count': len(items),
             'total_nights': total_nights,
