@@ -641,8 +641,6 @@
                                     </li>
                                     {% endif %}
 
-                                    {% if status_filter != 'cancelled' %}
-                                    {% if booking.time_delta or status_filter == 'past' or booking.no_show_receipt %}
                                     <li>
                                         <a class="dropdown-item guest-receipt-btn" href="#" data-receipt-url="{% url 'booking:guest-receipt' pk=booking.id %}">
                                             <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
@@ -651,8 +649,6 @@
                                             Guest Receipt
                                         </a>
                                     </li>
-                                    {% endif %}
-                                    {% endif %}
 
                                     {% if status_filter == 'past' or status_filter == 'current' %}
                                     <li class="no-show-item">
@@ -690,11 +686,9 @@
                         <img src="{% static 'img/common/empty_booking.svg' %}" alt="No properties" class="mt-2 mb-2" style="width: auto; height: 18rem;">
                         <p class="no-results-title">I could not find any reservation</p>
                         <p class="no-results-subtitle">Create new reservation from the Create button</p>
+                        <a href="{% url 'booking:booking-create' %}" class="btn mt-3" style="border: 0.75px solid #00000080; color: #1D74B2; padding: 8px 6rem;">Create new reservation</a>
                     </div>
                 </div>
-                    {% endfor %}
-                </div>
-                {% include 'frontend/base/pagination.html' %}
             </div>
         </div>
     </div>
@@ -797,18 +791,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const guestReceiptModal = document.getElementById('guestReceiptModal');
     const guestReceiptPlaceholder = document.getElementById('guest-receipt-content-placeholder');
 
-    document.querySelectorAll('.reservation-card').forEach(card => {
-        card.addEventListener('click', function(e) {
-            // Prevent redirect if clicking on dropdown or other links
-            if (e.target.closest('.dropdown') || e.target.closest('.dropup') || e.target.closest('a') || e.target.closest('button')) {
-                return;
-            }
-            if (this.dataset.url) {
-                window.location.href = this.dataset.url;
-            }
-        });
-    });
-
     function closeDropdown(element) {
         const dropdownMenu = element.closest('.dropdown-menu');
         if (dropdownMenu) {
@@ -825,11 +807,14 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    document.querySelectorAll('.email-guest-btn').forEach(button => {
-        button.addEventListener('click', function(e) {
+    // Delegated on document (rather than bound per-.reservation-card) so these
+    // keep working after the AJAX search swaps #booking-results' innerHTML.
+    document.addEventListener('click', function(e) {
+        const emailBtn = e.target.closest('.email-guest-btn');
+        if (emailBtn) {
             e.preventDefault();
-            closeDropdown(this);
-            const guestEmail = this.dataset.guestEmail;
+            closeDropdown(emailBtn);
+            const guestEmail = emailBtn.dataset.guestEmail;
             if (guestEmail) {
                 // Open the mail app via a hidden iframe so the page itself
                 // never enters a stuck loading/navigation state.
@@ -843,29 +828,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 setTimeout(() => frame.remove(), 2000);
             }
+            return;
+        }
 
-            /* --- Old in-app email compose modal (kept for later reuse) ---
-            const bookingId = this.dataset.bookingId;
-            const url = `{% url 'booking:render-email-form' %}?booking_id=${bookingId}`;
-
-            emailModalPlaceholder.innerHTML = '<div style="text-align: center; padding: 40px;">Loading...</div>';
-            emailModal.style.display = 'flex';
-
-            fetch(url)
-                .then(response => response.text())
-                .then(html => {
-                    emailModalPlaceholder.innerHTML = html;
-                    const closeEmailBtn = emailModal.querySelector('.btn-cancel-email');
-                    if (closeEmailBtn) {
-                        closeEmailBtn.onclick = () => emailModal.style.display = 'none';
-                    }
-                })
-                .catch(error => {
-                    emailModalPlaceholder.innerHTML = '<p style="text-align: center; padding: 40px; color: red;">Error loading email form. Please try again.</p>';
-                    console.error('Error fetching email form:', error);
-                });
-            */
-        });
+        const card = e.target.closest('.reservation-card');
+        if (card && !e.target.closest('.dropdown') && !e.target.closest('.dropup') && !e.target.closest('a') && !e.target.closest('button')) {
+            if (card.dataset.url) {
+                window.location.href = card.dataset.url;
+            }
+        }
     });
 
     function initGuestReceiptActions(scope) {
@@ -914,28 +885,28 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    document.querySelectorAll('.guest-receipt-btn').forEach(button => {
-        button.addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            closeDropdown(this);
+    document.addEventListener('click', function(e) {
+        const receiptBtn = e.target.closest('.guest-receipt-btn');
+        if (!receiptBtn) return;
+        e.preventDefault();
+        e.stopPropagation();
+        closeDropdown(receiptBtn);
 
-            let url = this.dataset.receiptUrl;
-            url += (url.includes('?') ? '&' : '?') + 'is_modal=true';
-            guestReceiptPlaceholder.innerHTML = '<div style="text-align: center; padding: 40px;">Loading...</div>';
-            guestReceiptModal.style.display = 'flex';
+        let url = receiptBtn.dataset.receiptUrl;
+        url += (url.includes('?') ? '&' : '?') + 'is_modal=true';
+        guestReceiptPlaceholder.innerHTML = '<div style="text-align: center; padding: 40px;">Loading...</div>';
+        guestReceiptModal.style.display = 'flex';
 
-            fetch(url)
-                .then(response => response.text())
-                .then(html => {
-                    guestReceiptPlaceholder.innerHTML = html;
-                    initGuestReceiptActions(guestReceiptPlaceholder);
-                })
-                .catch(error => {
-                    guestReceiptPlaceholder.innerHTML = '<p style="text-align: center; padding: 40px; color: red;">Error loading guest receipt. Please try again.</p>';
-                    console.error('Error fetching guest receipt:', error);
-                });
-        });
+        fetch(url)
+            .then(response => response.text())
+            .then(html => {
+                guestReceiptPlaceholder.innerHTML = html;
+                initGuestReceiptActions(guestReceiptPlaceholder);
+            })
+            .catch(error => {
+                guestReceiptPlaceholder.innerHTML = '<p style="text-align: center; padding: 40px; color: red;">Error loading guest receipt. Please try again.</p>';
+                console.error('Error fetching guest receipt:', error);
+            });
     });
 
     const closeGuestReceipt = guestReceiptModal.querySelector('.close-guest-receipt');
@@ -954,15 +925,15 @@ document.addEventListener('DOMContentLoaded', function() {
     let cancelUrl = '';
     let reservationCard = null;
 
-    document.querySelectorAll('.cancel-reservation-btn').forEach(button => {
-        button.addEventListener('click', function(e) {
-            e.preventDefault();
-            closeDropdown(this);
-            cancelUrl = this.href;
-            reservationCard = this.closest('.reservation-card');
-            const cancelModal = new bootstrap.Modal(document.getElementById('cancelReservationModal'));
-            cancelModal.show();
-        });
+    document.addEventListener('click', function(e) {
+        const cancelBtn = e.target.closest('.cancel-reservation-btn');
+        if (!cancelBtn) return;
+        e.preventDefault();
+        closeDropdown(cancelBtn);
+        cancelUrl = cancelBtn.href;
+        reservationCard = cancelBtn.closest('.reservation-card');
+        const cancelModal = new bootstrap.Modal(document.getElementById('cancelReservationModal'));
+        cancelModal.show();
     });
 
     document.getElementById('confirmCancelBtn').addEventListener('click', function() {
@@ -991,14 +962,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
     let noShowUrl = '';
 
-    document.querySelectorAll('.mark-no-show-btn').forEach(button => {
-        button.addEventListener('click', function(e) {
-            e.preventDefault();
-            closeDropdown(this);
-            noShowUrl = this.href;
-            const noShowModal = new bootstrap.Modal(document.getElementById('noShowModal'));
-            noShowModal.show();
-        });
+    document.addEventListener('click', function(e) {
+        const noShowBtn = e.target.closest('.mark-no-show-btn');
+        if (!noShowBtn) return;
+        e.preventDefault();
+        closeDropdown(noShowBtn);
+        noShowUrl = noShowBtn.href;
+        const noShowModal = new bootstrap.Modal(document.getElementById('noShowModal'));
+        noShowModal.show();
     });
 
     document.getElementById('confirmNoShowBtn').addEventListener('click', function() {
@@ -1029,17 +1000,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        const SEARCH_FOCUS_KEY = 'bookingListSearchFocus';
         const searchInputs = document.querySelectorAll('.search-box input[name="search"]');
 
-        function toggleClearIcon() {
-            const searchInput = this;
-            const clearIcon = searchInput.closest('.search-box').querySelector('.clear-icon');
-            if (searchInput.value) {
-                clearIcon.style.display = 'block';
-            } else {
-                clearIcon.style.display = 'none';
-            }
+        function toggleClearIcon(input) {
+            const clearIcon = input.closest('.search-box').querySelector('.clear-icon');
+            clearIcon.style.display = input.value ? 'block' : 'none';
         }
 
         searchInputs.forEach((input, index) => {
@@ -1047,7 +1012,7 @@ document.addEventListener('DOMContentLoaded', function() {
             input.dataset.searchInstance = `booking-search-${index}`;
 
             input.addEventListener('input', function () {
-                toggleClearIcon.call(this);
+                toggleClearIcon(this);
                 clearTimeout(typingTimer);
                 typingTimer = setTimeout(() => performSearch(this), 500);
             });
@@ -1057,72 +1022,69 @@ document.addEventListener('DOMContentLoaded', function() {
                     performSearch(this);
                 }
             });
-            toggleClearIcon.call(input);
+            toggleClearIcon(input);
         });
-
-        function focusStoredSearch() {
-            const stored = sessionStorage.getItem(SEARCH_FOCUS_KEY);
-            let target;
-            if (stored) {
-                target = document.querySelector(`[data-search-instance="${stored}"]`);
-            }
-            if (!target) {
-                target = document.querySelector('.search-box.search-box-desktop input[name="search"]');
-            }
-            if (!target && searchInputs[0]) {
-                target = searchInputs[0];
-            }
-            if (target) {
-                setTimeout(() => {
-                    target.focus();
-                    target.setSelectionRange(target.value.length, target.value.length);
-                }, 12);
-            }
-            if (stored) {
-                sessionStorage.removeItem(SEARCH_FOCUS_KEY);
-            }
-        }
-
-        focusStoredSearch();
-        window.addEventListener('pageshow', focusStoredSearch);
-        window.addEventListener('load', focusStoredSearch);
     });
 
-function performSearch(element) {
-    const SEARCH_FOCUS_KEY = 'bookingListSearchFocus';
-    let searchInput;
-    if (element.tagName.toLowerCase() === 'input') {
-        searchInput = element;
-    } else {
-        searchInput = element.closest('.search-box').querySelector('input[name="search"]');
+    // Fetches the results partial for `url` and swaps it into #booking-results
+    // in place, instead of navigating — this is what keeps typing in the search
+    // box (and the pause right after hitting space) from reloading the page.
+    function loadBookingResults(url, { pushState = true } = {}) {
+        fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+            .then(response => response.text())
+            .then(html => {
+                document.getElementById('booking-results').innerHTML = html;
+                if (pushState) {
+                    window.history.pushState({ bookingResultsUrl: url }, '', url);
+                }
+            })
+            .catch(() => { window.location.href = url; });
     }
-    const instance = searchInput.dataset.searchInstance || 'booking-search-0';
-    sessionStorage.setItem(SEARCH_FOCUS_KEY, instance);
 
-    const query = searchInput.value;
-    const params = new URLSearchParams(window.location.search);
+    window.addEventListener('popstate', function () {
+        const query = new URLSearchParams(window.location.search).get('search') || '';
+        document.querySelectorAll('.search-box input[name="search"]').forEach(input => {
+            input.value = query;
+            input.closest('.search-box').querySelector('.clear-icon').style.display = query ? 'block' : 'none';
+        });
+        loadBookingResults(window.location.href, { pushState: false });
+    });
 
-    if (query.trim()) {
-        params.set('search', query.trim());
-    } else {
-        params.delete('search');
-    }
-    params.delete('page'); // Reset to first page on new search
-    const newUrl = new URL(window.location.pathname, window.location.origin);
-    newUrl.search = params.toString();
-    window.location.href = newUrl.toString();
-}
+    function performSearch(element) {
+        let searchInput;
+        if (element.tagName.toLowerCase() === 'input') {
+            searchInput = element;
+        } else {
+            searchInput = element.closest('.search-box').querySelector('input[name="search"]');
+        }
 
-function clearSearch(element) {
-    const searchInput = element.closest('.search-box').querySelector('input[name="search"]');
-        searchInput.value = '';
+        const query = searchInput.value;
+        // Keep the mobile/desktop search boxes in sync since only one of them
+        // is edited at a time but both show the same underlying query.
+        document.querySelectorAll('.search-box input[name="search"]').forEach(input => {
+            if (input !== searchInput) {
+                input.value = query;
+                input.closest('.search-box').querySelector('.clear-icon').style.display = query ? 'block' : 'none';
+            }
+        });
 
         const params = new URLSearchParams(window.location.search);
-        params.delete('search');
-
+        if (query.trim()) {
+            params.set('search', query.trim());
+        } else {
+            params.delete('search');
+        }
+        params.delete('page'); // Reset to first page on new search
         const newUrl = new URL(window.location.pathname, window.location.origin);
         newUrl.search = params.toString();
-        window.location.href = newUrl.toString();
+        loadBookingResults(newUrl.toString());
+    }
+
+    function clearSearch(element) {
+        const searchInput = element.closest('.search-box').querySelector('input[name="search"]');
+        searchInput.value = '';
+        searchInput.closest('.search-box').querySelector('.clear-icon').style.display = 'none';
+        performSearch(searchInput);
     }
 </script>
 {% endblock extra_script %}

@@ -1469,264 +1469,8 @@
         </div>
     </div>
 
-<main class="main-content">
-    <div class="container-fluid main_content_div" >
-        <div class="row">
-            {% if total_listing > 0 %}
-                {% for item in page_obj.object_list %}
-                <div class="property-card-col col-12 col-sm-6 col-md-3 col-lg-3 col-xl-3 p-2">
-                    <div class="listing-card" data-property-id="{{ item.id }}">
-                        <a href="{% url 'property:property-detail' slug=item.slug %}" class="listing-card-link" data-open-property-preview="true" data-preview-title="{{ item.title|escape }}" rel="noopener noreferrer">
-                            <div class="listing-image-container">
-                                {% with images=item.images.all %}
-                                {% if images %}
-                                    <div class="listing-image active" style="background-image: url('{{ images.0.image.url }}');">
-                                        <div class="status-badge {{ item.status|lower }}">{{ item.status }}</div>
-                                    </div>
-                                    {% if images|length > 1 %}
-                                    <div class="deferred-images" style="display: none;" data-status="{{ item.status }}" data-status-class="{{ item.status|lower }}">
-                                        {% for image in images|slice:"1:5" %}
-                                            <span data-url="{{ image.image.url }}"></span>
-                                        {% endfor %}
-                                    </div>
-                                    {% endif %}
-                                {% else %}
-                                    <div class="listing-image active no-image">
-                                        <div class="status-badge {{ item.status|lower }}">{{ item.status }}</div>
-                                        <div class="no-image-placeholder">
-                                            <img src="{% static 'img/property/placeholder-image.png' %}" alt="No image">
-                                        </div>
-                                    </div>
-                                {% endif %}
-                                {% endwith %}
-
-                                <!-- Navigation arrows -->
-                                {% if item.images.count > 1 %}
-                                <button class="image-nav prev-btn" onclick="changeImage(event, this, 'prev')" data-property="{{ item.id }}">
-                                    <img src="{% static 'img/property/previous.png' %}">
-                                </button>
-                                <button class="image-nav next-btn" onclick="changeImage(event, this, 'next')" data-property="{{ item.id }}">
-                                    <img src="{% static 'img/property/next.png' %}">
-                                </button>
-                                {% endif %}
-                            </div>
-                        </a>
-                        <div class="listing-info">
-                            <div style="display: flex; justify-content: space-between; align-items: center; gap: 6px;">
-                                <a style="display: flex; align-self: center; min-width: 0; flex: 1;" href="{% url 'property:property-detail' slug=item.slug %}" data-open-property-preview="true" data-preview-title="{{ item.title|escape }}" rel="noopener noreferrer">
-                                    <h3 class="listing-title">
-                                        {{ item.title }}
-                                    </h3>
-                                </a>
-                                <div class="listing-actions">
-                                    <div class="btn-group dropup">
-                                        <button class="options-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="More options">
-                                            <svg class="options-dots-icon" viewBox="0 0 20 20" aria-hidden="true">
-                                                <circle cx="10" cy="4" r="1.5"></circle>
-                                                <circle cx="10" cy="10" r="1.5"></circle>
-                                                <circle cx="10" cy="16" r="1.5"></circle>
-                                            </svg>
-                                        </button>
-                                        <ul class="dropdown-menu dropdown-menu-end">
-                                            {% if item.status == 'Active' %}
-                                                <li>
-                                                <a class="dropdown-item" href="{% url 'booking:booking-create' %}?property_id={{ item.id }}">
-                                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                                                        <path d="M12 2H4C2.89543 2 2 2.89543 2 4V12C2 13.1046 2.89543 14 4 14H12C13.1046 14 14 13.1046 14 12V4C14 2.89543 13.1046 2 12 2Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                                                        <path d="M11 1V3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                                                        <path d="M5 1V3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                                                        <path d="M2 7H14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                                                        </svg>
-                                                        Create a Reservation
-                                                    </a>
-                                                </li>
-                                                <li>
-                                                    <a class="dropdown-item" href="{% url 'tasks:task-create' %}?property_id={{ item.id }}">
-                                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                                                        <rect x="3" y="3" width="18" height="18" rx="3" stroke="currentColor" stroke-width="1.6"/>
-                                                        <path d="M7 9L9 11L13 7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-                                                        <path d="M7 14H17" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
-                                                        <path d="M7 18L9 20L13 16" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-                                                        </svg>
-                                                        Create Task
-                                                    </a>
-                                                </li>
-                                            {% endif %}
-                                            <li>
-                                                <a class="dropdown-item" href="{% url 'booking:booking-list' %}?property_id={{ item.id }}&status=current">
-                                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                                                        <path d="M11 7C12.1046 7 13 6.10457 13 5C13 3.89543 12.1046 3 11 3C9.89543 3 9 3.89543 9 5C9 6.10457 9.89543 7 11 7Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                                                        <path d="M6 13V11C6 9.89543 6.89543 9 8 9H14C15.1046 9 16 9.89543 16 11V13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                                                        <path d="M5 7C6.10457 7 7 6.10457 7 5C7 3.89543 6.10457 3 5 3C3.89543 3 3 3.89543 3 5C3 6.10457 3.89543 7 5 7Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                                                        <path d="M0 13V11C0 9.89543 0.895431 9 2 9H8C9.10457 9 10 9.89543 10 11V13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                                                    </svg>
-                                                    View Guests
-                                                </a>
-                                            </li>
-                                            <li>
-                                                <a class="dropdown-item" href="{% url 'property:property-edit' pk=item.id %}">
-                                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                                                        <path d="M11.5 2.5L13.5 4.5L5 13H3V11L11.5 2.5Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                                                    </svg>
-                                                    Edit
-                                                </a>
-                                            </li>
-                                            <li>
-                                                <a class="dropdown-item" onclick="deleteProperty('{{ item.id }}')" style="cursor: pointer;">
-                                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                                                        <path d="M2 4H14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                                                        <path d="M6.5 1H9.5C10.0523 1 10.5 1.44772 10.5 2V4H5.5V2C5.5 1.44772 5.94772 1 6.5 1Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                                                        <path d="M12.5 4V13C12.5 14.1046 11.6046 15 10.5 15H5.5C4.39543 15 3.5 14.1046 3.5 13V4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                                                        <path d="M6.5 7.5V11.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                                                        <path d="M9.5 7.5V11.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                                                    </svg>
-                                                    Delete
-                                                </a>
-                                            </li>
-                                            <li>
-                                                <a class="dropdown-item" href="{% url 'property:property-create' %}?clone_from={{ item.id }}">
-                                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                                                        <path d="M4 6H2C1.44772 6 1 6.44772 1 7V14C1 14.5523 1.44772 15 2 15H9C9.55228 15 10 14.5523 10 14V12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                                                        <path d="M7 1H14C14.5523 1 15 1.44772 15 2V9C15 9.55228 14.5523 10 14 10H7C6.44772 10 6 9.55228 6 9V2C6 1.44772 6.44772 1 7 1Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                                                    </svg>
-                                                    Clone
-                                                </a>
-                                            </li>
-                                            <li>
-                                                <a class="dropdown-item" href="javascript:void(0)"
-                                                    onclick="toggleStatus('{{ item.id }}', '{{ item.status }}')">
-                                                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                                                            <path d="M8 15C11.866 15 15 11.866 15 8C15 4.13401 11.866 1 8 1C4.13401 1 1 4.13401 1 8C1 11.866 4.13401 15 8 15Z"
-                                                                stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                                                            <path d="M8 4V8L11 11"
-                                                                stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                                                        </svg>
-                                                        {% if item.status == "Active" %}
-                                                            Make Inactive
-                                                        {% else %}
-                                                            Make Active
-                                                        {% endif %}
-                                                </a>
-                                            </li>
-                                            {% if item.status == "Active" %}
-                                            <li>
-                                                <a class="dropdown-item" href="/manage/{{item.id}}/" >
-                                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                                                        <path d="M4 6H2C1.44772 6 1 6.44772 1 7V14C1 14.5523 1.44772 15 2 15H9C9.55228 15 10 14.5523 10 14V12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                                                        <path d="M7 1H14C14.5523 1 15 1.44772 15 2V9C15 9.55228 14.5523 10 14 10H7C6.44772 10 6 9.55228 6 9V2C6 1.44772 6.44772 1 7 1Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                                                    </svg>
-                                                    Channel Integration
-                                                </a>
-                                            </li>
-                                            {% endif %}
-                                            <!-- <li>
-                                                <a class="dropdown-item" href="#" >
-                                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                                                        <path d="M10.125 5.875C11.025 4.975 12.475 4.975 13.375 5.875C14.275 6.775 14.275 8.225 13.375 9.125L11.75 10.75" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                                                        <path d="M5.875 10.125C4.975 11.025 3.525 11.025 2.625 10.125C1.725 9.225 1.725 7.775 2.625 6.875L4.25 5.25" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                                                        <path d="M5.25 10.75L10.75 5.25" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                                                    </svg>
-                                                    Copy Guest Link
-                                                </a>
-                                            </li> -->
-                                        </ul>
-                                    </div>
-                                </div>
-                            </div>
-                            <a href="{% url 'property:property-detail' slug=item.slug %}" data-open-property-preview="true" data-preview-title="{{ item.title|escape }}" rel="noopener noreferrer">
-                                <p class="listing-location">{{ item.city }}, {{ item.state }}</p>
-                            </a>
-                            <div class="d-flex justify-content-between align-items-center">
-                                {% if check_in and check_out %}
-                                <div style="display: flex; align-items: center; gap: 6px;">
-                                    <img src="{% static 'img/property/bed.svg' %}">
-                                    <div class="listing-bed-type">{{ item.get_bed_type_display|cut:" Bed" }}</div>
-                                </div>
-                                <div class="listing-stay-wrap" style="display: flex; align-items: center; gap: 6px;">
-                                    <span class="listing-nights" data-listing-nights style="display: none;"></span>
-                                    <a href="{% url 'property:property-detail' slug=item.slug %}" data-open-property-preview="true" data-preview-title="{{ item.title|escape }}" rel="noopener noreferrer">
-                                        <p class="listing-price" data-nightly-price="{% money_raw item.price_per_night %}" data-cleaning-fee="{% money_raw item.cleaning_fee %}" data-refundable-deposit="{% money_raw item.refundable_deposit %}" data-taxes="{% money_raw item.taxes %}" data-other-fees="{% money_raw item.other_fees %}">
-                                            {% money item.price_per_night %} <span class="price-period">Night</span>
-                                        </p>
-                                    </a>
-                                </div>
-                                {% endif %}
-                            </div>
-                            {% if not check_in or not check_out %}
-                            <div class="d-flex justify-content-between align-items-center mt-2">
-                                <div style="display: flex; align-items: center; gap: 6px;">
-                                    <img src="{% static 'img/property/bed.svg' %}">
-                                    <div class="listing-bed-type">{{ item.get_bed_type_display|cut:" Bed" }}</div>
-                                </div>
-                            </div>
-                            <div class="d-flex justify-content-between align-items-center mt-2" style="gap: 6px; min-width: 0;">
-                                <a href="{% url 'property:property-detail' slug=item.slug %}" data-open-property-preview="true" data-preview-title="{{ item.title|escape }}" rel="noopener noreferrer" style="min-width: 0; flex-shrink: 0;">
-                                    <p class="listing-price" data-nightly-price="{% money_raw item.price_per_night %}" data-cleaning-fee="{% money_raw item.cleaning_fee %}" data-refundable-deposit="{% money_raw item.refundable_deposit %}" data-taxes="{% money_raw item.taxes %}" data-other-fees="{% money_raw item.other_fees %}">
-                                        {% money item.price_per_night %} <span class="price-period">Night</span>
-                                    </p>
-                                </a>
-                                <div class="listing-stay-wrap listing-stay-badge" style="display: flex; align-items: center; gap: 6px; min-width: 0; max-width: 100%; box-sizing: border-box;">
-                                    <span class="listing-availability-text" style="overflow: hidden; text-overflow: ellipsis;">{% if item.next_available_date %}Available on {{ item.next_available_date|date:"d-M-y" }}{% else %}Available today{% endif %}</span>
-                                </div>
-                            </div>
-                            {% endif %}
-                            <!-- <div class="property-meta-row">
-                                <span class="property-meta-item">
-                                    <svg viewBox="0 0 24 24" aria-hidden="true">
-                                        <path d="M4 20V7a2 2 0 0 1 2-2h3v15"></path>
-                                        <path d="M9 20V4a2 2 0 0 1 2-2h3v18"></path>
-                                        <path d="M14 20v-9a2 2 0 0 1 2-2h4v11"></path>
-                                    </svg>
-                                    <span>Entire place</span>
-                                </span>
-                                <span class="property-meta-item">
-                                    <svg viewBox="0 0 24 24" aria-hidden="true">
-                                        <circle cx="7" cy="10" r="2.2"></circle>
-                                        <circle cx="17" cy="10" r="2.2"></circle>
-                                        <circle cx="12" cy="7" r="2.2"></circle>
-                                        <path d="M4 17c.5-2.3 2.3-3.5 4.2-3.5 1.5 0 2.8.6 3.8 1.7 1-1.1 2.3-1.7 3.8-1.7 1.9 0 3.7 1.2 4.2 3.5"></path>
-                                    </svg>
-                                    <span>Pet friendly</span>
-                                </span>
-                            </div> -->
-                        </div>
-                    </div>
-                </div>
-                {% empty %}
-                <div class="col-12">
-                    <!-- <div class="no-results text-center py-5">
-                        <img src="{% static 'img/not-found/no_property.jpg' %}" alt="No properties" class="mt-2 mb-2" style="width: auto; height: 40vh;">
-                        <h3 style="font-size: 20px;">Your /static/img/common/white_share_icon.svg/static/img/common/white_share_icon.svg returned no results</h3>
-                        <p>You can expand your search criteria and try again.</p>
-                    </div> -->
-
-                    <div class="no-results text-center py-5">
-                        <div style="display:inline-flex;align-items:center;justify-content:center;width:100px;height:100px;border-radius:50%;background:#f3f4f6;margin-bottom:16px;">
-                            <svg width="52" height="52" viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <circle cx="23" cy="23" r="15" stroke="#9ca3af" stroke-width="2.5" fill="#e5e7eb"/>
-                                <path d="M34 34 L44 44" stroke="#9ca3af" stroke-width="3" stroke-linecap="round"/>
-                                <path d="M18 23 H28 M23 18 V28" stroke="#9ca3af" stroke-width="2.5" stroke-linecap="round"/>
-                            </svg>
-                        </div>
-                        <h3 style="font-size:18px;font-weight:600;color:#374151;margin-bottom:6px;">No results found</h3>
-                        <p style="color:#6b7280;font-size:14px;margin-bottom:0;">Your search returned no listings.<br>Try adjusting your filters or clearing the search.</p>
-                    </div>
-                </div>
-                {% endfor %}
-            {% else %}
-                <div class="col-12">
-                    <div class="no-results text-center py-5">
-                        <img src="{% static 'img/not-found/empty_listing.png' %}" alt="No properties" class="mt-2 mb-2" style="width: auto; height: 30vh;">
-                        <p>You do not have any listing created yet</p>
-                        <h3 class="mt-2" style="font-size: 20px;">Get started with your first listing</h3>
-                        <a href="javascript:void(0);" onclick="checkProfileAndCreateListing()" class="btn mt-3" style="border: 0.75px solid #00000080; color: #1D74B2; padding: 8px 6rem;">Create Listing</a>
-                    </div>
-                </div>
-            {% endif %}
-
-        </div>
-    </div>
-    {% include 'frontend/base/pagination.html' %}
+<main class="main-content" id="property-results">
+    {% include 'frontend/property/_property_list_partial.html' %}
 </main>
 
 <div class="modal fade" id="propertyPreviewModal" tabindex="-1" aria-labelledby="propertyPreviewModalLabel" aria-hidden="true">
@@ -2801,7 +2545,35 @@
         window.location.href = newUrl.toString();
     }
 
-    const SEARCH_FOCUS_KEY = 'propertyListSearchFocus';
+    // Fetches the results partial for `url` and swaps it into #property-results
+    // in place, instead of navigating — this is what keeps typing in the search
+    // box (and the pause right after hitting space) from reloading the page.
+    function loadPropertyResults(url, { pushState = true } = {}) {
+        fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+            .then(response => response.text())
+            .then(html => {
+                document.getElementById('property-results').innerHTML = html;
+                if (pushState) {
+                    window.history.pushState({ propertyResultsUrl: url }, '', url);
+                }
+                loadDeferredListingImages();
+                applyNightsAndTotalPricing();
+            })
+            .catch(() => { window.location.href = url; });
+    }
+
+    function syncSearchInputs(query) {
+        document.querySelectorAll('.search-box input[name="search"], .mobile-filter-section input[name="search_mobile"]').forEach(input => {
+            input.value = query;
+            const clearIcon = input.closest('.search-box')?.querySelector('.clear-icon');
+            if (clearIcon) clearIcon.style.display = query ? 'block' : 'none';
+        });
+    }
+
+    window.addEventListener('popstate', function () {
+        syncSearchInputs(new URLSearchParams(window.location.search).get('search') || '');
+        loadPropertyResults(window.location.href, { pushState: false });
+    });
 
     function performTextSearch(element) {
         const searchInput = element || (window.innerWidth < 992
@@ -2809,8 +2581,9 @@
             : document.querySelector('.search-box input[name="search"]'));
         if (!searchInput) return;
         const query = searchInput.value;
-        const instance = searchInput.dataset.searchInstance || 'property-search-default';
-        sessionStorage.setItem(SEARCH_FOCUS_KEY, instance);
+        // Keep the desktop/mobile search boxes in sync since only one of them
+        // is edited at a time but both show the same underlying query.
+        syncSearchInputs(query);
         const params = new URLSearchParams(window.location.search);
 
         if (query.trim()) {
@@ -2821,7 +2594,7 @@
 
         const newUrl = new URL(window.location.pathname, window.location.origin);
         newUrl.search = params.toString();
-        window.location.href = newUrl.toString();
+        loadPropertyResults(newUrl.toString());
     }
 
     function clearTextSearch() {
@@ -2830,13 +2603,7 @@
             : document.querySelector('.search-box input[name="search"]');
         if (!searchInput) return;
         searchInput.value = '';
-
-        const params = new URLSearchParams(window.location.search);
-        params.delete('search');
-
-        const newUrl = new URL(window.location.pathname, window.location.origin);
-        newUrl.search = params.toString();
-        window.location.href = newUrl.toString();
+        performTextSearch(searchInput);
     }
 
     function setupAutoSearch() {
@@ -2846,9 +2613,6 @@
         ];
         searchInputs.forEach(input => {
             let timer;
-            if (!input.dataset.searchInstance) {
-                input.dataset.searchInstance = `property-search-${Math.random().toString(36).slice(2)}`;
-            }
             input.addEventListener('input', function () {
                 clearTimeout(timer);
                 timer = setTimeout(() => performTextSearch(this), 400);
@@ -2864,15 +2628,8 @@
 
     document.addEventListener('DOMContentLoaded', setupAutoSearch);
 
-    function focusStoredSearch() {
-        const stored = sessionStorage.getItem(SEARCH_FOCUS_KEY);
-        let target;
-        if (stored) {
-            target = document.querySelector(`[data-search-instance="${stored}"]`);
-        }
-        if (!target) {
-            target = document.querySelector('.search-box input[name="search"]');
-        }
+    function focusSearch() {
+        const target = document.querySelector('.search-box input[name="search"]');
         if (target) {
             setTimeout(() => {
                 target.focus();
@@ -2881,8 +2638,8 @@
         }
     }
 
-    document.addEventListener('DOMContentLoaded', focusStoredSearch);
-    window.addEventListener('pageshow', focusStoredSearch);
+    document.addEventListener('DOMContentLoaded', focusSearch);
+    window.addEventListener('pageshow', focusSearch);
 
     function checkProfileAndCreateListing() {
         // This assumes `is_profile_complete` is passed into the template context.
@@ -3091,8 +2848,10 @@
         }
     });
 
-    document.addEventListener('DOMContentLoaded', function() {
-        // Load deferred images after page load to improve initial load time
+    // Loads the extra (2nd-5th) listing photos after a short delay to improve
+    // initial load time. Re-run after the AJAX search swap since it only
+    // touches whatever `.listing-image-container` elements exist at call time.
+    function loadDeferredListingImages() {
         setTimeout(function() {
             document.querySelectorAll('.listing-image-container').forEach(function(container) {
                 const deferredDiv = container.querySelector('.deferred-images');
@@ -3100,38 +2859,43 @@
                     const status = deferredDiv.dataset.status;
                     const statusClass = deferredDiv.dataset.statusClass;
                     const spans = deferredDiv.querySelectorAll('span');
-                    
+
                     const fragment = document.createDocumentFragment();
-                    
+
                     spans.forEach(function(span) {
                         const div = document.createElement('div');
                         div.className = 'listing-image';
                         div.style.backgroundImage = "url('" + span.dataset.url + "')";
-                        
+
                         const badge = document.createElement('div');
                         badge.className = "status-badge " + statusClass;
                         badge.textContent = status;
-                        
+
                         div.appendChild(badge);
                         fragment.appendChild(div);
                     });
-                    
+
                     const firstNavBtn = container.querySelector('.image-nav');
                     if (firstNavBtn) {
                         container.insertBefore(fragment, firstNavBtn);
                     } else {
                         container.appendChild(fragment);
                     }
-                    
+
                     deferredDiv.remove();
                 }
             });
         }, 1000);
-    });
+    }
+
+    document.addEventListener('DOMContentLoaded', loadDeferredListingImages);
 </script>
 
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
+    // Client-side total-for-stay price display (only relevant when a
+    // check_in/check_out range is active). Re-run after the AJAX search swap
+    // for the same reason as loadDeferredListingImages above.
+    function applyNightsAndTotalPricing() {
         const params = new URLSearchParams(window.location.search);
         const checkIn = params.get('check_in');
         const checkOut = params.get('check_out');
@@ -3170,7 +2934,9 @@
             el.classList.add('listing-price--total');
             el.innerHTML = window.CURRENCY.symbol + total.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
         });
-    });
+    }
+
+    document.addEventListener('DOMContentLoaded', applyNightsAndTotalPricing);
 </script>
 
 {% endblock extra_script %}

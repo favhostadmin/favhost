@@ -413,7 +413,14 @@ class PropertyListView(LoginRequiredMixin, ListView):
     template_name = 'frontend/property/list.html'
     context_object_name = 'properties'
     paginate_by = 20
-    
+
+    def get_template_names(self):
+        # The header search box fetches this via AJAX (see list.html) so typing
+        # updates the results without reloading the whole page.
+        if self.request.headers.get('x-requested-with') == 'XMLHttpRequest':
+            return ['frontend/property/_property_list_partial.html']
+        return [self.template_name]
+
     def get_queryset(self):
         # queryset = Property.objects.prefetch_related('images', 'amenities').all()
         queryset = Property.objects.filter(created_by__in=get_visible_user_ids(self.request.user)).prefetch_related('images').all()
