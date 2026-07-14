@@ -10,9 +10,18 @@ def _platform_price_context(settings_obj):
         'platform_price': settings_obj.amount_display,           # e.g. "$9.99"
         'platform_price_amount': settings_obj.subscription_price,  # e.g. 9.99 (raw)
         'platform_price_interval': settings_obj.subscription_interval,
+        'platform_price_interval_adverb': settings_obj.interval_adverb,  # e.g. "monthly"
         'platform_price_currency': settings_obj.subscription_currency,
         'platform_price_display': settings_obj.full_display,      # e.g. "$9.99/month"
         'platform_trial_days': settings_obj.free_trial_days,
+        # Yearly plan (mirrors the monthly values above)
+        'platform_price_yearly': settings_obj.amount_display_yearly,       # e.g. "$99.99"
+        'platform_price_yearly_amount': settings_obj.subscription_price_yearly,  # raw
+        'platform_price_yearly_interval': settings_obj.subscription_interval_yearly,
+        'platform_price_yearly_display': settings_obj.full_display_yearly,  # "$99.99/year"
+        'platform_price_yearly_per_month': settings_obj.yearly_monthly_equivalent_display,  # "$8.33"
+        'platform_price_yearly_was': settings_obj.yearly_anchor_display,  # "$119.88" (monthly x12)
+        'platform_price_yearly_savings': settings_obj.yearly_savings_percent,  # e.g. 17
     }
 
 

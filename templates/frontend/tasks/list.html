@@ -5,13 +5,8 @@
 {% block body_class %}single-scroll{% endblock %}
 
 {% block extra_head %}
-<link href="{% static 'css/task/listing.css' %}?v=14" rel="stylesheet">
-<link href="{% static 'css/booking/list.css' %}" rel="stylesheet">
+<link href="{% static 'css/task/list.css' %}" rel="stylesheet">
 
-<style>
-   
-
-</style>
 {% endblock extra_head %}
 
 {% block content %}
@@ -88,173 +83,13 @@
 
     <main class="task-main-content">
         <div class="main_body_div" >
-                    {% if status_filter == 'pending' %}
-                    <div class="task-due-filter">
-                        <a href="?status=pending{% if search_query %}&search={{ search_query|urlencode }}{% endif %}&due=overdue"
-                           class="due-chip due-chip--overdue {% if due_filter == 'overdue' %}active{% endif %}">
-                            <span class="due-chip-icon" aria-hidden="true">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
-                            </span>
-                            <span class="due-chip-text">
-                                <span class="due-chip-count">{{ overdue_count }}</span>
-                                <span class="due-chip-label">Overdue</span>
-                            </span>
-                        </a>
-                        <a href="?status=pending{% if search_query %}&search={{ search_query|urlencode }}{% endif %}&due=this_week"
-                           class="due-chip due-chip--week {% if due_filter == 'this_week' %}active{% endif %}">
-                            <span class="due-chip-icon" aria-hidden="true">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg>
-                            </span>
-                            <span class="due-chip-text">
-                                <span class="due-chip-count">{{ this_week_count }}</span>
-                                <span class="due-chip-label">Due this week</span>
-                            </span>
-                        </a>
-                        <a href="?status=pending{% if search_query %}&search={{ search_query|urlencode }}{% endif %}&due=later"
-                           class="due-chip due-chip--later {% if due_filter == 'later' %}active{% endif %}">
-                            <span class="due-chip-icon" aria-hidden="true">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
-                            </span>
-                            <span class="due-chip-text">
-                                <span class="due-chip-count">{{ later_count }}</span>
-                                <span class="due-chip-label">Due later</span>
-                            </span>
-                        </a>
-                        {% if due_filter %}
-                        <a href="?status=pending{% if search_query %}&search={{ search_query|urlencode }}{% endif %}" class="due-chip due-chip--clear">
-                            Clear
-                        </a>
-                        {% endif %}
-                    </div>
-                    {% endif %}
-                    {% if page_obj.object_list %}
-                    {% for task in page_obj.object_list %}
-                    {% ifchanged task.date %}
-                    {% if not forloop.first %}</div>
-        </div>{% endif %}
-        <div class="task-date-group" data-urgency="{% if task.completed %}done{% elif task.is_overdue %}overdue{% else %}warn{% endif %}">
-            <div class="task-date-header">
-                <span class="task-date-title">
-                    <img src="{% static 'img/task/calender.svg' %}" alt="" srcset="" style="height: 18px;">
-                    <span class="task-date-day">{{ task.date|date:"M d, Y" }}</span><span class="task-date-dow">{{ task.date|date:"D" }}</span>
-
-                    {% if task.time %}
-                    <span class="task-detail-icon" style="color: #000;">
-                        <img src="{% static 'img/task/clock.svg' %}" alt="" srcset="" style="height: 18px;">
-                        <span>{{ task.time|time:"g:i A" }}</span>
-                    </span>
-                    {% endif %}
-
-                </span>
-                {% now "Y-m-d" as today_str %}
-                {% if task.completed %}
-                {# Don't show any badge for completed tasks #}
-                {% elif task.is_overdue %}
-                <span class="task-status-badge task-status-overdue">Overdue</span>
-                {% elif task.days_until_due == 0 %}
-                <span class="task-status-badge task-status-upcoming">Due today</span>
-                {% else %}
-                <span class="task-status-badge task-status-upcoming">
-                    Due in {{ task.days_until_due }} day{{ task.days_until_due|pluralize }}
-                </span>
-                {% endif %}
-            </div>
-            <div>
-                {% endifchanged %}
-                <article class="task-row" data-task-url="{% url 'tasks:task-detail' pk=task.id %}">
-
-                    <button class="task-kebab" type="button" data-bs-toggle="dropdown"
-                        aria-expanded="false"
-                        aria-label="Task options">
-                        <img src="{% static 'img/booking/horizontal_dots.svg' %}" alt="">
-                    </button>
-                    <ul class="dropdown-menu dropdown-menu-end dropdown-menu-right">
-                        <li>
-                            <a class="dropdown-item" href="{% url 'tasks:task-edit' pk=task.id %}">
-                                <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M11.5 2.5L13.5 4.5L5 13H3V11L11.5 2.5Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                                Edit
-                            </a>
-                        </li>
-                        <li>
-                            <a class="dropdown-item" href="#" onclick="deleteTask('{{ task.id }}', '{{ task.repeat }}', event)">
-                                <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 4H14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M6.5 1H9.5C10.0523 1 10.5 1.44772 10.5 2V4H5.5V2C5.5 1.44772 5.94772 1 6.5 1Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M12.5 4V13C12.5 14.1046 11.6046 15 10.5 15H5.5C4.39543 15 3.5 14.1046 3.5 13V4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M6.5 7.5V11.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M9.5 7.5V11.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                                Delete
-                            </a>
-                        </li>
-                    </ul>
-
-                    <div class="task-col-main">
-                        <div class="task-chips-row">
-                            <div class="task-type-chip">
-                                {% if task.get_task_type_display == 'Cleaning' %}
-                                <img src="{% static 'img/task/type/cleaning.svg' %}" alt="">
-                                {% elif task.get_task_type_display == 'Maintenance' %}
-                                <img src="{% static 'img/task/type/maintenance.svg' %}" alt="">
-                                {% elif task.get_task_type_display == 'Payment' %}
-                                <img src="{% static 'img/task/type/payment.svg' %}" alt="">
-                                {% else %}
-                                <img src="{% static 'img/task/type/others.svg' %}" alt="">
-                                {% endif %}
-                                {{ task.get_task_type_display }}
-                            </div>
-                            {% if task.repeat != 'None' %}
-                            <span class="task-repeat-chip">{{ task.repeat }}</span>
-                            {% endif %}
-                        </div>
-                        <div class="task-desc">{{ task.title }}</div>
-                    </div>
-
-                    <div class="task-col-prop">
-                        <img class="task-prop-thumb" src="{{ task.property.get_primary_image_url }}"
-                            alt="{{ task.property.title }}">
-                        <div>
-                            <div class="task-prop-name">{{ task.property.title }}</div>
-                            <div class="task-prop-addr">{{ task.property.street_address }}, {{ task.property.city }}, {{ task.property.state }}, {{ task.property.zip }}</div>
-                        </div>
-                    </div>
-
-                    <div class="task-col-assignee">
-                        <img src="{% static 'img/common/default_user.svg' %}" alt="" class="task-avatar">
-                        <span class="task-avatar-initial" aria-hidden="true">{{ task.assigned_to|slice:":1"|upper }}</span>
-                        <div>
-                            <div class="task-assignee-name">{{ task.assigned_to }}</div>
-                            <div class="task-assignee-phone">
-                                <img src="{% static 'img/common/phone_no_icon.svg' %}" alt="">
-                                {{ task.phone }}
-                            </div>
-                            <div class="task-assignee-sub">Assigned</div>
-                        </div>
-                    </div>
-
-                    <div class="task-col-done">
-                        <span class="task-done-label">Done?</span>
-                        <label class="task-check">
-                            <input type="checkbox" class="task-checkbox" data-task-id="{{ task.id }}" {% if task.completed %}checked{% endif %}>
-                            <span class="task-check__box">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-                            </span>
-                            <span class="task-markdone-label">Mark done</span>
-                        </label>
-                    </div>
-
-                </article>
-                {% if forloop.last %}
-            </div>
-        </div>
-        {% endif %}
-        {% endfor %}
-        {% else %}
-        <div class="no-tasks" style="border: none;">
-            <img src="{% static 'img/common/no_task_found.svg' %}" style="height: 239px;">
-            <h6 class="no-task-heading">No task is available to display</h6>
-            <h6 class="no-task-subtext">Create new Task from the Create button</h6>
-            <a href="{% url 'tasks:task-create' %}" class="btn mt-3" style="border: 0.75px solid #00000080; color: #1D74B2; padding: 8px 6rem;">Create new Task</a>
+        <div id="task-results">
+            {% include 'frontend/tasks/_task_list_partial.html' %}
         </div>
         </div>
-        {% endif %}
-        
+        {% include 'frontend/base/footer.html' %}
+
     </main>
-    {% include 'frontend/base/footer.html' %}
 </div>
 
 <!-- Delete Confirmation Modal -->
