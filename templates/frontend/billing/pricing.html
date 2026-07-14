@@ -6,49 +6,50 @@
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid p-2">
+<div class="pricing-wrap">
 
   <!-- Page header -->
   <div class="billing-header">
     <div class="billing-header-title">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-        stroke-linecap="round">
+        stroke-linecap="round" stroke-linejoin="round">
         <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path>
       </svg>
       Upgrade to Premium
     </div>
-    <a href="{% url 'billing:subscription' %}" style="color:#6b7280; font-size:13px; text-decoration:none;">
-      View Subscription &rarr;
-    </a>
+    <a href="{% url 'billing:subscription' %}" class="billing-header-link">View Subscription &rarr;</a>
   </div>
 
+  {% if is_subscribed %}
+  <!-- Already subscribed -->
   <div class="row justify-content-center">
-    <div class="col-12 col-sm-10 col-md-7 col-lg-5">
-
-      {% if is_subscribed %}
-      <!-- Already subscribed -->
-      <div class="billing-card text-center">
-        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#166534" stroke-width="1.5"
+    <div class="col-12 col-sm-10 col-md-7 col-lg-6">
+      <div class="billing-card text-center" style="margin-top:24px;">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="1.5"
           style="margin-bottom:12px;">
           <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" stroke-linecap="round"></path>
           <polyline points="22 4 12 14.01 9 11.01"></polyline>
         </svg>
-        <div style="font-size:16px; font-weight:600; color:#111827; margin-bottom:4px;">You're on Premium</div>
-        <div style="font-size:13px; color:#6b7280; margin-bottom:6px;">
+        <div style="font-size:18px; font-weight:700; color:#111827; margin-bottom:4px;">You're on Premium</div>
+        <div style="font-size:13.5px; color:#6b7280; margin-bottom:6px;">
           Your FavHost Premium subscription is active.
         </div>
         {% if period_end %}
         <div style="font-size:12px; color:#9ca3af; margin-bottom:20px;">Renews {{ period_end|date:"M d, Y" }}</div>
         {% endif %}
         <a href="{% url 'billing:subscription' %}"
-          style="display:inline-block; background:#111827; color:white; text-decoration:none; border-radius:6px; padding:9px 22px; font-size:13px; font-weight:600;">
+          style="display:inline-block; background:#EB5310; color:white; text-decoration:none; border-radius:10px; padding:11px 24px; font-size:14px; font-weight:700;">
           View Subscription &amp; Billing
         </a>
       </div>
+    </div>
+  </div>
 
-      {% elif subscription_status == 'past_due' %}
-      <!-- Past due -->
-      <div class="billing-card">
+  {% elif subscription_status == 'past_due' %}
+  <!-- Past due -->
+  <div class="row justify-content-center">
+    <div class="col-12 col-sm-10 col-md-7 col-lg-6">
+      <div class="billing-card" style="margin-top:24px;">
         <div class="status-pastdue">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M10.3 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
@@ -58,69 +59,106 @@
           Payment past due &mdash; please update your payment method to restore access.
         </div>
         <a href="{% url 'billing:subscription' %}"
-          style="display:block; background:#111827; color:white; text-decoration:none; text-align:center; border-radius:6px; padding:10px; font-size:13px; font-weight:600;">
+          style="display:block; background:#EB5310; color:white; text-decoration:none; text-align:center; border-radius:10px; padding:12px; font-size:14px; font-weight:700;">
           Fix Payment Method
         </a>
       </div>
+    </div>
+  </div>
 
+  {% else %}
+  <!-- Not subscribed: choose Monthly or Yearly -->
+  <div class="plans-center">
+  <div class="plans-grid">
+
+    <!-- ── Monthly plan ─────────────────────────────────────── -->
+    <div class="plan-card">
+      <div class="plan-name">Monthly</div>
+      <div class="plan-price">{{ platform_price }} <span>/{{ platform_price_interval }}</span></div>
+      <div class="plan-sub">Billed {{ platform_price_interval_adverb }} &middot; cancel anytime</div>
+
+      <div class="plan-tag">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"></path><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
+        Flexible &middot; pay as you go
+      </div>
+
+      <form action="{% url 'billing:create_checkout_session' %}" method="POST">
+        {% csrf_token %}
+        <input type="hidden" name="plan" value="monthly">
+        <button type="submit" class="btn-plan btn-plan-outline">Choose monthly</button>
+      </form>
+
+      <div class="plan-included-label">Everything included</div>
+      <ul class="feature-list">
+        <li><span class="feat-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></span>Unlimited property listings</li>
+        <li><span class="feat-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></span>Advanced booking management</li>
+        <li><span class="feat-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></span>Guest communication tools</li>
+        <li><span class="feat-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></span>Revenue analytics &amp; reports</li>
+        <li><span class="feat-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></span>Priority customer support</li>
+        <li><span class="feat-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></span>Team collaboration (co-hosts)</li>
+      </ul>
+    </div>
+
+    <!-- ── Yearly plan (best value) ─────────────────────────── -->
+    <div class="plan-card plan-card-featured">
+      <div class="plan-ribbon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path></svg>
+        Best value
+      </div>
+      <div class="plan-name">Yearly</div>
+      <div class="plan-price">
+        {{ platform_price_yearly }} <span>/{{ platform_price_yearly_interval }}</span>
+        {% if platform_price_yearly_savings > 0 %}
+        <span class="plan-was">{{ platform_price_yearly_was }}</span>
+        {% endif %}
+      </div>
+      <div class="plan-sub">{{ platform_price_yearly_per_month }}/mo &middot; billed annually</div>
+
+      {% if platform_price_yearly_savings > 0 %}
+      <div class="plan-savings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>
+        Save {{ platform_price_yearly_savings }}% vs paying monthly
+      </div>
       {% else %}
-      <!-- Not subscribed -->
-      <div class="billing-card">
-        <div class="plan-badge">Most Popular</div>
-        <div class="plan-price">{{ platform_price }} <span>/{{ platform_price_interval }}</span></div>
-        <div style="font-size:11px;color:#888;margin-top:-4px;margin-bottom:6px;">Billed in {{ platform_price_currency }}</div>
-        <div class="plan-desc">Everything you need to manage your vacation rental properties professionally.</div>
-
-        <ul class="feature-list">
-          <li>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-              <polyline points="20 6 9 17 4 12"></polyline>
-            </svg>
-            Unlimited property listings
-          </li>
-          <li>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-              <polyline points="20 6 9 17 4 12"></polyline>
-            </svg>
-            Advanced booking management
-          </li>
-          <li>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-              <polyline points="20 6 9 17 4 12"></polyline>
-            </svg>
-            Guest communication tools
-          </li>
-          <li>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-              <polyline points="20 6 9 17 4 12"></polyline>
-            </svg>
-            Revenue analytics &amp; reports
-          </li>
-          <li>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-              <polyline points="20 6 9 17 4 12"></polyline>
-            </svg>
-            Priority customer support
-          </li>
-          <li>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-              <polyline points="20 6 9 17 4 12"></polyline>
-            </svg>
-            Team collaboration (co-hosts)
-          </li>
-        </ul>
-
-        <form action="{% url 'billing:create_checkout_session' %}" method="POST">
-          {% csrf_token %}
-          <button type="submit" class="btn-subscribe">Subscribe &mdash; {{ platform_price }}/{{ platform_price_interval }}</button>
-        </form>
-        <div style="text-align:center; margin-top:12px; font-size:12px; color:#9ca3af;">
-          Powered by Stripe &nbsp;&middot;&nbsp; Cancel anytime &nbsp;&middot;&nbsp; No hidden fees
-        </div>
+      <div class="plan-tag">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 12-9 12s-9-5-9-12a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+        One payment a year &middot; less hassle
       </div>
       {% endif %}
 
+      <form action="{% url 'billing:create_checkout_session' %}" method="POST">
+        {% csrf_token %}
+        <input type="hidden" name="plan" value="yearly">
+        <button type="submit" class="btn-plan btn-plan-primary">Choose yearly</button>
+      </form>
+
+      <div class="plan-included-label">Everything included</div>
+      <ul class="feature-list">
+        <li><span class="feat-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></span>Unlimited property listings</li>
+        <li><span class="feat-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></span>Advanced booking management</li>
+        <li><span class="feat-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></span>Guest communication tools</li>
+        <li><span class="feat-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></span>Revenue analytics &amp; reports</li>
+        <li><span class="feat-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></span>Priority customer support</li>
+        <li><span class="feat-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></span>Team collaboration (co-hosts)</li>
+      </ul>
     </div>
+
   </div>
+
+  <div class="plans-footnote">
+    <span class="secure">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+      Secured by Stripe
+    </span>
+    <span class="dot">&middot;</span>
+    <span>Cancel anytime</span>
+    <span class="dot">&middot;</span>
+    <span>No hidden fees</span>
+    <span class="dot">&middot;</span>
+    <span>Prices in {{ platform_price_currency }}</span>
+  </div>
+  </div>
+  {% endif %}
+
 </div>
 {% endblock %}

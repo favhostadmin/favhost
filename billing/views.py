@@ -47,6 +47,10 @@ def pricing_page(request):
         'subscription_status': subscription_status,
         'period_end': period_end,
         'stripe_publishable_key': settings.STRIPE_PUBLISHABLE_KEY,
+        # The pricing page IS the place to pick a plan, so suppress the paywall
+        # overlay here — otherwise an expired-trial / canceled user is walled off
+        # and can never reach the Monthly/Yearly chooser (same as success/cancel).
+        'hide_subscription_wall': True,
     }
     return render(request, 'frontend/billing/pricing.html', context)
 
@@ -72,6 +76,15 @@ def create_checkout_session(request):
     # Checkout page so the customer sees their saved card and an explicit
     # Subscribe button — instead of the silent one-click saved-card path.
     prefer_checkout = request.POST.get('prefer_checkout') == '1'
+
+    # Which plan the user picked. Monthly is the default (keeps the existing
+    # behaviour); yearly uses its own Stripe price. Everything downstream is
+    # identical — only the Stripe price id differs.
+    plan = request.POST.get('plan', 'monthly')
+    if plan == 'yearly':
+        price_id = settings.STRIPE_PRICE_ID_YEARLY or settings.STRIPE_PRICE_ID
+    else:
+        price_id = settings.STRIPE_PRICE_ID
 
     try:
         # Resolve existing Stripe customer, if any
@@ -100,7 +113,7 @@ def create_checkout_session(request):
                 if pm and not isinstance(pm, str) and getattr(pm, 'id', None):
                     subscription = stripe.Subscription.create(
                         customer=customer_id,
-                        items=[{'price': settings.STRIPE_PRICE_ID}],
+                        items=[{'price': price_id}],
                         default_payment_method=pm.id,
                     )
                     # Optimistic DB update — webhooks will also confirm this
@@ -127,7 +140,7 @@ def create_checkout_session(request):
         def _session_params(use_customer):
             params = {
                 'mode': 'subscription',
-                'line_items': [{'price': settings.STRIPE_PRICE_ID, 'quantity': 1}],
+                'line_items': [{'price': price_id, 'quantity': 1}],
                 'client_reference_id': str(request.user.id),
                 'success_url': success_url,
                 'cancel_url': cancel_url,

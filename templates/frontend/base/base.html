@@ -513,6 +513,23 @@
       transition: background 0.2s;
     }
     .sw-btn-subscribe:hover { background: #d4480d; }
+    .sw-btn-subscribe-alt {
+      display: block;
+      width: 100%;
+      background: #fff;
+      color: #EB5310;
+      border: 1.5px solid #EB5310;
+      border-radius: 8px;
+      padding: 11px 20px;
+      font-size: 13.5px;
+      font-weight: 700;
+      cursor: pointer;
+      margin-bottom: 8px;
+      font-family: inherit;
+      letter-spacing: 0.3px;
+      transition: background 0.2s;
+    }
+    .sw-btn-subscribe-alt:hover { background: #fff3ee; }
     .sw-contact-host {
       background: #fff7f3;
       border: 1px solid #f6d3c3;
@@ -671,11 +688,17 @@
         to restore access.
       </div>
       {% else %}
-      <p class="sw-price-note">{{ platform_price }} / {{ platform_price_interval }} &nbsp;·&nbsp; Cancel anytime &nbsp;·&nbsp; No hidden fees</p>
+      <p class="sw-price-note">Cancel anytime &nbsp;·&nbsp; No hidden fees</p>
 
+      <form method="post" action="{% url 'billing:create_checkout_session' %}" style="margin:0 0 8px;">
+        {% csrf_token %}
+        <input type="hidden" name="plan" value="monthly">
+        <button type="submit" class="sw-btn-subscribe">Subscribe Monthly — {{ platform_price }} / {{ platform_price_interval }}</button>
+      </form>
       <form method="post" action="{% url 'billing:create_checkout_session' %}" style="margin:0;">
         {% csrf_token %}
-        <button type="submit" class="sw-btn-subscribe">Subscribe Now — {{ platform_price }} / {{ platform_price_interval }}</button>
+        <input type="hidden" name="plan" value="yearly">
+        <button type="submit" class="sw-btn-subscribe-alt">Subscribe Yearly — {{ platform_price_yearly }} / {{ platform_price_yearly_interval }}{% if platform_price_yearly_savings > 0 %} &nbsp;·&nbsp; Save {{ platform_price_yearly_savings }}%{% endif %}</button>
       </form>
       {% endif %}
 
