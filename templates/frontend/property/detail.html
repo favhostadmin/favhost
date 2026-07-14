@@ -1293,7 +1293,7 @@
                                         <p class="mb-0 fw-bold mobile-price-text">{% money property.price_per_night %} night</p>
                                     </div>
 
-                                    {% if property.cleaning_fee > 0 or property.refundable_deposit > 0 or property.application_fees > 0 or property.taxes > 0 %}
+                                    {% if property.cleaning_fee > 0 or property.refundable_deposit > 0 or property.other_fees > 0 or property.taxes > 0 %}
                                     <div class="mobile-fee-row">
                                         <a href="#" id="openOtherFeesModalMobile" class="mobile-fee-link">Other fees</a>
                                     </div>
@@ -1860,7 +1860,7 @@
                     <div class="booking-card">
 <div class="booking-card-header">
                             <h3 class="fw-bold text-center me-2 booking-card-price">{% money property.price_per_night %}<small class="text-muted fw-normal"> night</small></h3>
-                            {% if property.cleaning_fee > 0 or property.refundable_deposit > 0 or property.application_fees > 0 or property.taxes > 0 %}
+                            {% if property.cleaning_fee > 0 or property.refundable_deposit > 0 or property.other_fees > 0 or property.taxes > 0 %}
                             <a href="#" id="openOtherFeesModal" class="booking-card-fee-link">*Other Fee</a>
                             {% endif %}
                         </div>
@@ -1919,12 +1919,12 @@
                                 <span class="detail-summary-value" id="detail-summary-refundable-deposit">{% money property.refundable_deposit %}</span>
                             </div>
                             <div class="detail-summary-item">
-                                <span class="detail-summary-label">Application fee:</span>
-                                <span class="detail-summary-value" id="detail-summary-application-fee">{% money property.application_fees %}</span>
-                            </div>
-                            <div class="detail-summary-item">
                                 <span class="detail-summary-label">Taxes:</span>
                                 <span class="detail-summary-value" id="detail-summary-taxes">{% money property.taxes %}</span>
+                            </div>
+                            <div class="detail-summary-item">
+                                <span class="detail-summary-label">Other fees:</span>
+                                <span class="detail-summary-value" id="detail-summary-other-fees">{% money property.other_fees %}</span>
                             </div>
                             <div class="detail-summary-item detail-summary-total">
                                 <span class="detail-summary-label">Total price:</span>
@@ -2133,16 +2133,16 @@
                         <td class="text-end fw-bold">{% money property.refundable_deposit %}</td>
                     </tr>
                     {% endif %}
-                    {% if property.application_fees > 0 %}
-                    <tr>
-                        <td>Application Fee</td>
-                        <td class="text-end fw-bold">{% money property.application_fees %}</td>
-                    </tr>
-                    {% endif %}
                     {% if property.taxes > 0 %}
                     <tr>
                         <td>Taxes</td>
                         <td class="text-end fw-bold">{% money property.taxes %}</td>
+                    </tr>
+                    {% endif %}
+                    {% if property.other_fees > 0 %}
+                    <tr>
+                        <td>Other Fees</td>
+                        <td class="text-end fw-bold">{% money property.other_fees %}</td>
                     </tr>
                     {% endif %}
                 </tbody>
@@ -2427,13 +2427,13 @@
         const detailSummarySubtotal = document.getElementById('detail-summary-subtotal');
         const detailSummaryCleaningFee = document.getElementById('detail-summary-cleaning-fee');
         const detailSummaryRefundableDeposit = document.getElementById('detail-summary-refundable-deposit');
-        const detailSummaryApplicationFee = document.getElementById('detail-summary-application-fee');
+        const detailSummaryOtherFees = document.getElementById('detail-summary-other-fees');
         const detailSummaryTaxes = document.getElementById('detail-summary-taxes');
         const detailSummaryTotal = document.getElementById('detail-summary-total');
         const propertyPricePerNight = parseFloat("{% money_raw property.price_per_night %}") || 0;
         const propertyCleaningFee = parseFloat("{% money_raw property.cleaning_fee %}") || 0;
         const propertyRefundableDeposit = parseFloat("{% money_raw property.refundable_deposit %}") || 0;
-        const propertyApplicationFee = parseFloat("{% money_raw property.application_fees %}") || 0;
+        const propertyOtherFees = parseFloat("{% money_raw property.other_fees %}") || 0;
         const propertyTaxes = parseFloat("{% money_raw property.taxes %}") || 0;
 
         function formatLocalIso(dateObj) {
@@ -2570,7 +2570,7 @@
 
             const nights = Math.ceil((checkoutDate - checkinDate) / (1000 * 60 * 60 * 24));
             const subtotal = propertyPricePerNight * nights;
-            const total = subtotal + propertyCleaningFee + propertyRefundableDeposit + propertyApplicationFee + propertyTaxes;
+            const total = subtotal + propertyCleaningFee + propertyRefundableDeposit + propertyOtherFees + propertyTaxes;
 
             detailSummarySection.style.display = 'block';
             if (detailSummaryDailyRate) {
@@ -2588,8 +2588,8 @@
             if (detailSummaryRefundableDeposit) {
                 detailSummaryRefundableDeposit.textContent = `{{ currency_symbol }}${propertyRefundableDeposit.toFixed(2)}`;
             }
-            if (detailSummaryApplicationFee) {
-                detailSummaryApplicationFee.textContent = `{{ currency_symbol }}${propertyApplicationFee.toFixed(2)}`;
+            if (detailSummaryOtherFees) {
+                detailSummaryOtherFees.textContent = `{{ currency_symbol }}${propertyOtherFees.toFixed(2)}`;
             }
             if (detailSummaryTaxes) {
                 detailSummaryTaxes.textContent = `{{ currency_symbol }}${propertyTaxes.toFixed(2)}`;

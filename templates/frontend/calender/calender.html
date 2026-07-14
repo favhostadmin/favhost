@@ -2836,7 +2836,6 @@
       if (typeFilters.payment) return b.paymentsInfo && Object.keys(b.paymentsInfo).length > 0;
       return false;
     });
-    const pEnquiries = typeFilters.reservation ? enquiries.slice() : [];
     const pTasks = tasks.filter(t => {
       if (t.task_type === 'payment') {
         return typeFilters.payment;
@@ -2858,7 +2857,6 @@
     const checkIns = typeFilters.reservation ? pBookings.filter(b => b.start_date === dateStr) : [];
     const checkOuts = typeFilters.reservation ? pBookings.filter(b => b.end_date === dateStr) : [];
     const dayTasks = pTasks.filter(t => t.date === dateStr);
-    const dayEnquiries = pEnquiries.filter(eq => eq.start_date === dateStr);
 
     const dayPaymentIconUrl = "{% static 'img/task/type/payment.svg' %}";
 
@@ -2974,23 +2972,6 @@
         background: styleTheme.background,
         textColor: styleTheme.text,
         onClick: `openTaskDetailModal(event, '${t.id}')`
-      });
-    });
-
-    dayEnquiries.forEach(eq => {
-      const prop = properties.find(p => String(p.id) === String(eq.propertyId));
-      const propName = prop ? prop.title : '';
-      events.push({
-        startHour: 10,
-        endHour: 11,
-        title: eq.guestName || 'Inquirer',
-        badgeText: 'Enquiry',
-        sub: `${propName ? propName + ' · ' : ''}${eq.email}`,
-        type: 'enquiry',
-        color: '#8e24aa',
-        background: 'rgba(142, 36, 170, 0.3)',
-        textColor: '#4a148c',
-        onClick: `openEnquiryPanel(event, '${eq.id}')`
       });
     });
 

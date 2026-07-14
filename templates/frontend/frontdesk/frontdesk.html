@@ -216,13 +216,13 @@
               <span class="hk-filter-swatch hk-dot-in-progress"></span>
               <span class="hk-filter-word">In Progress</span>
             </button>
-            <button class="hk-filter-dot" type="button" data-status="Clean-Uninspected" aria-label="Filter: Clean-Uninspected" title="Clean-Uninspected">
-              <span class="hk-filter-swatch hk-dot-clean-uninspected"></span>
-              <span class="hk-filter-word">Uninspected</span>
-            </button>
             <button class="hk-filter-dot" type="button" data-status="Clean-Ready" aria-label="Filter: Clean-Ready" title="Clean-Ready">
               <span class="hk-filter-swatch hk-dot-clean-ready"></span>
               <span class="hk-filter-word">Ready</span>
+            </button>
+            <button class="hk-filter-dot" type="button" data-status="Out-of-Service" aria-label="Filter: Out-of-Service" title="Out-of-Service">
+              <span class="hk-filter-swatch hk-dot-out-of-service"></span>
+              <span class="hk-filter-word">Out of Service</span>
             </button>
           </div>
           <div class="col-tools">
@@ -370,6 +370,21 @@
   <div class="modal-content" style="width: 90%; max-width: 960px; padding: 0;">
     <div class="modal-body" style="padding: 0;">
       <div id="guest-receipt-content-placeholder">Loading...</div>
+    </div>
+  </div>
+</div>
+
+<!-- Reusable confirm dialog (currently used by the cleaner-roster "×" delete) -->
+<div class="hk-confirm-overlay" id="hkConfirmOverlay">
+  <div class="hk-confirm-modal" role="alertdialog" aria-modal="true" aria-labelledby="hkConfirmTitle" aria-describedby="hkConfirmMessage">
+    <div class="hk-confirm-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+    </div>
+    <div class="hk-confirm-title" id="hkConfirmTitle">Remove cleaner?</div>
+    <div class="hk-confirm-message" id="hkConfirmMessage"></div>
+    <div class="hk-confirm-actions">
+      <button class="hk-confirm-btn hk-confirm-cancel" type="button" id="hkConfirmCancel">Cancel</button>
+      <button class="hk-confirm-btn hk-confirm-danger" type="button" id="hkConfirmOk">Remove</button>
     </div>
   </div>
 </div>
@@ -539,15 +554,12 @@
     })
       .then(r => { if(!r.ok) throw new Error('delete failed'); })
       .then(() => {
+        // Soft delete on the backend: this only shrinks the *pickable*
+        // roster going forward. Any listing already assigned to this
+        // cleaner — any date, including today — keeps showing their name,
+        // so dd.dataset.currentId / the label are deliberately left alone.
         CLEANERS = CLEANERS.filter(c => c.id !== id);
-        document.querySelectorAll('.hk-cleaner-dd').forEach(dd => {
-          if(parseInt(dd.dataset.currentId, 10) === id){
-            dd.dataset.currentId = '';
-            const label = dd.querySelector('.hk-cleaner-label');
-            if(label) label.textContent = 'Assign cleaner';
-          }
-          rebuildCleanerMenu(dd);
-        });
+        document.querySelectorAll('.hk-cleaner-dd').forEach(dd => rebuildCleanerMenu(dd));
       })
       .catch(() => alert('Could not remove cleaner. Please try again.'));
   }
@@ -572,6 +584,40 @@
       .catch(() => alert('Could not add cleaner. Please try again.'));
   }
 
+  // Promise-based replacement for window.confirm() — resolves true/false.
+  // Reused for any destructive in-page confirmation, not just cleaners.
+  function hkConfirm(title, message){
+    const overlay = document.getElementById('hkConfirmOverlay');
+    const titleEl = document.getElementById('hkConfirmTitle');
+    const msgEl   = document.getElementById('hkConfirmMessage');
+    const okBtn   = document.getElementById('hkConfirmOk');
+    const cancelBtn = document.getElementById('hkConfirmCancel');
+
+    titleEl.textContent = title;
+    msgEl.textContent = message;
+    overlay.classList.add('open');
+
+    return new Promise(resolve => {
+      function cleanup(result){
+        overlay.classList.remove('open');
+        okBtn.removeEventListener('click', onOk);
+        cancelBtn.removeEventListener('click', onCancel);
+        overlay.removeEventListener('click', onOverlay);
+        document.removeEventListener('keydown', onKeydown);
+        resolve(result);
+      }
+      function onOk(){ cleanup(true); }
+      function onCancel(){ cleanup(false); }
+      function onOverlay(e){ if(e.target === overlay) cleanup(false); }
+      function onKeydown(e){ if(e.key === 'Escape') cleanup(false); }
+
+      okBtn.addEventListener('click', onOk);
+      cancelBtn.addEventListener('click', onCancel);
+      overlay.addEventListener('click', onOverlay);
+      document.addEventListener('keydown', onKeydown);
+    });
+  }
+
   function bindCleanerMenu(dd){
     const menu = dd.querySelector('.hk-cleaner-menu');
     const propertyId = dd.dataset.propertyId;
@@ -585,11 +631,15 @@
     });
 
     menu.querySelectorAll('.hk-cleaner-del').forEach(delBtn => {
-      delBtn.addEventListener('click', function(e){
+      delBtn.addEventListener('click', async function(e){
         e.stopPropagation();
         const id = parseInt(this.dataset.cleanerId, 10);
         const label = this.previousElementSibling ? this.previousElementSibling.textContent : 'this cleaner';
-        if(!confirm(`Remove "${label}" from the cleaner list? This unassigns them from every listing.`)) return;
+        const ok = await hkConfirm(
+          'Remove cleaner?',
+          `Remove "${label}" from the cleaner list? They won't be selectable for new assignments, but any listing already assigned to them keeps showing their name.`
+        );
+        if(!ok) return;
         deleteCleaner(id);
       });
     });
@@ -860,15 +910,57 @@
 
   // Combines the search box and the status quick-filter dots — both narrow
   // down the same #hk-list, so every listing must satisfy whichever of the
-  // two are currently active.
+  // two are currently active. When that leaves nothing visible, show a
+  // proper empty state (with a way back) instead of just a blank list.
   function applyHKFilters(){
+    const hkList = document.getElementById('hk-list');
+    if(!hkList) return;
     const q = (document.getElementById('hk-search')?.value || '').toLowerCase();
-    document.querySelectorAll('#hk-list .hk-item').forEach(li => {
+    const items = hkList.querySelectorAll('.hk-item');
+    let visibleCount = 0;
+    items.forEach(li => {
       const title = (li.querySelector('.hk-title')?.textContent || '').toLowerCase();
       const matchesSearch = !q || title.includes(q);
       const matchesStatus = !hkStatusFilterValue || li.dataset.status === hkStatusFilterValue;
-      li.style.display = (matchesSearch && matchesStatus) ? '' : 'none';
+      const visible = matchesSearch && matchesStatus;
+      li.style.display = visible ? '' : 'none';
+      if(visible) visibleCount++;
     });
+
+    let emptyEl = hkList.querySelector('#hkEmptyFilter');
+    if(items.length > 0 && visibleCount === 0){
+      if(!emptyEl){
+        emptyEl = document.createElement('li');
+        emptyEl.id = 'hkEmptyFilter';
+        hkList.appendChild(emptyEl);
+      }
+      const activeBtn = hkStatusFilterValue
+        ? document.querySelector(`.hk-filter-dot[data-status="${hkStatusFilterValue}"] .hk-filter-word`)
+        : null;
+      const statusLabel = activeBtn ? activeBtn.textContent : '';
+      let msg;
+      if(hkStatusFilterValue && q)      msg = `No "${escHTML(statusLabel)}" listings match "${escHTML(q)}"`;
+      else if(hkStatusFilterValue)      msg = `No listings are currently "${escHTML(statusLabel)}"`;
+      else                              msg = `No listings match "${escHTML(q)}"`;
+      emptyEl.innerHTML = `
+        <div class="empty-state">
+          <svg><use href="#ic-search"/></svg>
+          <p>${msg}</p>
+          <button type="button" class="empty-state-clear" id="hkEmptyFilterClear">Clear filter</button>
+        </div>`;
+      const clearBtn = emptyEl.querySelector('#hkEmptyFilterClear');
+      clearBtn.addEventListener('click', function(){
+        hkStatusFilterValue = '';
+        document.querySelectorAll('.hk-filter-dot').forEach(b => {
+          b.classList.toggle('active', b.dataset.status === '');
+        });
+        const searchInp = document.getElementById('hk-search');
+        if(searchInp) searchInp.value = '';
+        applyHKFilters();
+      });
+    } else if(emptyEl){
+      emptyEl.remove();
+    }
   }
 
   // The filter dots live in .col-head, outside #hk-list, so they survive
