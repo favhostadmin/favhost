@@ -23,6 +23,13 @@ class TaskListView(LoginRequiredMixin, ListView):
     context_object_name = 'tasks'
     paginate_by = 10
 
+    def get_template_names(self):
+        # The header search box fetches this via AJAX (see list.html) so typing
+        # updates the results without reloading the whole page.
+        if self.request.headers.get('x-requested-with') == 'XMLHttpRequest':
+            return ['frontend/tasks/_task_list_partial.html']
+        return [self.template_name]
+
     def get(self, request, *args, **kwargs):
         try:
             return super().get(request, *args, **kwargs)

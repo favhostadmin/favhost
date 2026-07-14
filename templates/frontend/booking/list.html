@@ -1,4 +1,4 @@
-{% extends 'frontend/base/base.html' %}
+﻿{% extends 'frontend/base/base.html' %}
 {% load static %}
 
 {% block body_class %}single-scroll{% endblock %}
@@ -7,335 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link href="{% static 'css/booking/list.css' %}" rel="stylesheet">
-<style>
-    .container{
-        padding: 16px;
-        border-radius: 10px;
-    }
-
-    .divider {
-        width: 1px;
-        height: 20px;
-        background: #000;
-    }
-
-    .dropdown-menu {
-        border: 1px solid #e5e7eb;
-        border-radius: 8px;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-        padding: 4px;
-        min-width: 200px;
-    }
-    
-    .dropdown-item {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        padding: 10px 12px;
-        font-size: 14px;
-        color: #374151;
-        border-radius: 6px;
-        transition: all 0.15s ease;
-    }
-    
-    .dropdown-item:hover {
-        background: #f3f4f6;
-        color: #111827;
-    }
-    
-    .dropdown-item svg,
-    .dropdown-item img {
-        width: 16px;
-        height: 16px;
-        color: #6b7280;
-    }
-    .main_reservation_div{
-        padding: 0rem 10%;
-        min-height: 0;
-    }
-
-    /* Print Report dropdown (header, centered) */
-    .report-print {
-        flex-shrink: 0;
-    }
-    .report-print-btn {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        white-space: nowrap;
-        flex-shrink: 0;
-        background: #fff;
-        border: 1px solid #d1d5db;
-        border-radius: 8px;
-        padding: 7px 14px;
-        font-size: 14px;
-        font-weight: 600;
-        color: #111827;
-        cursor: pointer;
-        transition: background 0.15s ease, border-color 0.15s ease;
-    }
-    .report-print-btn:hover { background: #f3f4f6; border-color: #9ca3af; }
-    .report-print-btn svg { width: 16px; height: 16px; }
-    .report-print-btn .report-print-caret { width: 14px; height: 14px; opacity: 0.7; }
-    .report-print-menu {
-        border: 1px solid #e5e7eb;
-        border-radius: 8px;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-        padding: 4px;
-        min-width: 220px;
-    }
-    .report-print-menu .dropdown-header {
-        font-size: 11px;
-        text-transform: uppercase;
-        letter-spacing: 0.4px;
-        color: #9ca3af;
-        padding: 6px 12px 4px;
-    }
-    .report-print-menu .dropdown-item {
-        padding: 9px 12px;
-        font-size: 14px;
-        color: #374151;
-        border-radius: 6px;
-    }
-    .report-print-menu .dropdown-item:hover { background: #f3f4f6; color: #111827; }
-
-    .booking-list-page .header-nav {
-        position: sticky;
-        top: 0;
-        z-index: 100;
-    }
-
-    .reservations-list {
-        padding: 0;
-    }
-
-    .no-results-subtitle {
-        color: #6b7280;
-        font-size: 20px;
-        margin-top: 6px;
-        margin-bottom: 0;
-    }
-
-    .no-results-title {
-        color: #111827;
-        font-size: 20px;
-        font-weight: 600;
-        margin-bottom: 6px;
-    }
-
-    /* Responsive adjustments */
-    @media (max-width: 768px) {
-        .header-col-actions {
-            margin-top: 0px !important;
-        }
-    }
-
-    /* Force mobile/tablet header layout + colors */
-    @media (max-width: 991px) {
-        .header-nav {
-            background: #E7E7E9 !important;
-            border: none !important;
-            border-radius: 0 !important;
-            padding: 8px 16px !important;
-        }
-
-        .header-nav * {
-            color: #000000 !important;
-            font-size: 12px;
-        }
-
-        .header-nav img {
-            filter: grayscale(1) brightness(0) !important;
-            margin-left: 10px;
-        }
-        /* Keep current property thumbnail visible in mobile/tablet header */
-        .header-nav .nav-title img {
-            display: inline-block !important;
-            width: 30px !important;
-            height: 30px !important;
-            min-width: 30px !important;
-            border-radius: 4px !important;
-            object-fit: cover !important;
-            margin: 0 8px 0 8px !important;
-            flex-shrink: 0;
-        }
-        .header-nav .nav-title img.header-property-thumb {
-            filter: none !important;
-        }
-        .header-nav .nav-title img.header-reservation-icon {
-            width: 25px !important;
-            height: 25px !important;
-            min-width: 18px !important;
-            border-radius: 0 !important;
-            object-fit: contain !important;
-            filter: grayscale(1) brightness(0) !important;
-        }
-        .header-nav .nav-title {
-            display: flex !important;
-            align-items: center !important;
-            min-width: 0;
-            overflow: visible !important;
-        }
-        .header-nav .nav-title span {
-            display: block;
-            min-width: 0;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-
-        .header-nav .header-nav-row {
-            display: flex !important;
-            flex-wrap: wrap !important;
-            align-items: center !important;
-            row-gap: 8px !important;
-        }
-
-        .header-col-title {
-            order: 1 !important;
-            flex: 1 1 100% !important;
-            width: 100% !important;
-        }
-        .header-col-title .nav-left .d-flex {
-            justify-content: space-between !important;
-            width: 100% !important;
-            column-gap: 12px;
-        }
-        .nav-title {
-            flex: 1 1 auto !important;
-            min-width: 0;
-        }
-
-        .header-col-actions {
-            order: 2 !important;
-            margin-left: 8px !important;
-            flex: 1 1 auto !important;
-            width: auto !important;
-            /* margin-top: 0px !important; */
-        }
-
-        .header-col-tabs {
-            order: 3 !important;
-            justify-content: center !important;
-            width: 100% !important;
-            flex-basis: 100% !important;
-            margin-top: 0px !important;
-        }
-
-        .header-col-actions .header-actions {
-            width: 100% !important;
-            justify-content: flex-end !important;
-        }
-
-        .header-actions {
-            gap: 8px !important;
-            width: 100% !important;
-        }
-
-        .search-box {
-            flex: 1 1 auto !important;
-            width: 100% !important;
-        }
-
-        .search-box input {
-            width: 100% !important;
-            max-width: none !important;
-        }
-
-        .header-nav .divider {
-            display: none !important;
-        }
-
-        .header-nav .search-box input {
-            border: 1px solid #d1d5db !important;
-        }
-        .nav-title {
-            padding-bottom: 0px !important;
-        }
-        .search-box-mobile {
-            display: flex !important;
-            align-items: center !important;
-            margin-left: auto !important;
-            flex: 0 0 200px !important;
-            width: 200px !important;
-        }
-
-        .main_reservation_div{
-            padding: 0rem 0% !important;
-            min-height: 0;
-        }
-    }
-
-    .search-box-mobile {
-        display: none;
-    }
-
-    .search-box-desktop {
-        display: block;
-    }
-
-    @media (max-width: 767px) {
-        .header-nav {
-            padding: 10px 12px !important;
-        }
-
-        .header-nav-row {
-            row-gap: 8px !important;
-        }
-
-        /* Row 1: title on left, search on right */
-        .header-col-title {
-            order: 1 !important;
-            flex: 1 1 100% !important;
-            width: 100% !important;
-            padding: 0 !important;
-        }
-
-        .header-col-title .nav-left,
-        .header-col-title .nav-left .d-flex {
-            width: 100% !important;
-            align-items: center !important;
-        }
-
-        .nav-title {
-            flex: 1 1 auto !important;
-            min-width: 0 !important;
-            white-space: nowrap !important;
-        }
-
-        .search-box-mobile {
-            display: flex !important;
-            align-items: center !important;
-            flex: 0 0 130px !important;
-            width: 130px !important;
-            margin-left: 8px !important;
-        }
-
-        .search-box-mobile input {
-            width: 100% !important;
-            max-width: none !important;
-        }
-
-        .header-col-tabs {
-            order: 2 !important;
-            width: 100% !important;
-            flex-basis: 100% !important;
-            padding: 0 !important;
-        }
-
-        /* Hide desktop search, show mobile search */
-        .header-col-actions {
-            display: none !important;
-        }
-    }
-
-    @media (max-width: 991px) {
-        .search-box-desktop {
-            display: none !important;
-        }
-    }
-</style>
+<link href="{% static 'css/booking/list_page.css' %}" rel="stylesheet">
 {% endblock extra_head %}
 
 {% block content %}
@@ -641,8 +313,6 @@
                                     </li>
                                     {% endif %}
 
-                                    {% if status_filter != 'cancelled' %}
-                                    {% if booking.time_delta or status_filter == 'past' or booking.no_show_receipt %}
                                     <li>
                                         <a class="dropdown-item guest-receipt-btn" href="#" data-receipt-url="{% url 'booking:guest-receipt' pk=booking.id %}">
                                             <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
@@ -651,8 +321,6 @@
                                             Guest Receipt
                                         </a>
                                     </li>
-                                    {% endif %}
-                                    {% endif %}
 
                                     {% if status_filter == 'past' or status_filter == 'current' %}
                                     <li class="no-show-item">
@@ -690,18 +358,17 @@
                         <img src="{% static 'img/common/empty_booking.svg' %}" alt="No properties" class="mt-2 mb-2" style="width: auto; height: 18rem;">
                         <p class="no-results-title">I could not find any reservation</p>
                         <p class="no-results-subtitle">Create new reservation from the Create button</p>
+                        <a href="{% url 'booking:booking-create' %}" class="btn mt-3" style="border: 0.75px solid #00000080; color: #1D74B2; padding: 8px 6rem;">Create new reservation</a>
                     </div>
                 </div>
-                    {% endfor %}
-                </div>
-                {% include 'frontend/base/pagination.html' %}
+                {% endfor %}
             </div>
         </div>
     </div>
 </div>
 
 <!-- Guest Receipt Modal -->
-<div id="guestReceiptModal" class="modal" style="display: none; position: fixed; z-index: 1050; left: 0; top: 0; width: 100%; height: 100%; overflow-y: auto; -webkit-overflow-scrolling: touch; background-color: rgba(0,0,0,0.5); align-items: flex-start; justify-content: center; padding: 20px 0;">
+<div id="guestReceiptModal" class="modal" style="display: none; position: fixed; z-index: 10000; left: 0; top: 0; width: 100%; height: 100%; overflow-y: auto; -webkit-overflow-scrolling: touch; background-color: rgba(0,0,0,0.5); align-items: flex-start; justify-content: center; padding: 20px 0;">
     <div class="modal-content" style="background-color: #fefefe; margin: auto; padding: 0; border: 1px solid #888; width: 90%; max-width: 960px; border-radius: 8px; position: relative; box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2),0 6px 20px 0 rgba(0,0,0,0.19); max-height: calc(100vh - 40px); overflow-y: auto; -webkit-overflow-scrolling: touch;">
         <!-- <div class="modal-header" style="display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid #e5e7eb;">
             <div style="font-weight: 600; color: #111827;">Guest Receipt</div>
@@ -797,18 +464,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const guestReceiptModal = document.getElementById('guestReceiptModal');
     const guestReceiptPlaceholder = document.getElementById('guest-receipt-content-placeholder');
 
-    document.querySelectorAll('.reservation-card').forEach(card => {
-        card.addEventListener('click', function(e) {
-            // Prevent redirect if clicking on dropdown or other links
-            if (e.target.closest('.dropdown') || e.target.closest('.dropup') || e.target.closest('a') || e.target.closest('button')) {
-                return;
-            }
-            if (this.dataset.url) {
-                window.location.href = this.dataset.url;
-            }
-        });
-    });
-
     function closeDropdown(element) {
         const dropdownMenu = element.closest('.dropdown-menu');
         if (dropdownMenu) {
@@ -825,11 +480,14 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    document.querySelectorAll('.email-guest-btn').forEach(button => {
-        button.addEventListener('click', function(e) {
+    // Delegated on document (rather than bound per-.reservation-card) so these
+    // keep working after the AJAX search swaps #booking-results' innerHTML.
+    document.addEventListener('click', function(e) {
+        const emailBtn = e.target.closest('.email-guest-btn');
+        if (emailBtn) {
             e.preventDefault();
-            closeDropdown(this);
-            const guestEmail = this.dataset.guestEmail;
+            closeDropdown(emailBtn);
+            const guestEmail = emailBtn.dataset.guestEmail;
             if (guestEmail) {
                 // Open the mail app via a hidden iframe so the page itself
                 // never enters a stuck loading/navigation state.
@@ -843,29 +501,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 setTimeout(() => frame.remove(), 2000);
             }
+            return;
+        }
 
-            /* --- Old in-app email compose modal (kept for later reuse) ---
-            const bookingId = this.dataset.bookingId;
-            const url = `{% url 'booking:render-email-form' %}?booking_id=${bookingId}`;
-
-            emailModalPlaceholder.innerHTML = '<div style="text-align: center; padding: 40px;">Loading...</div>';
-            emailModal.style.display = 'flex';
-
-            fetch(url)
-                .then(response => response.text())
-                .then(html => {
-                    emailModalPlaceholder.innerHTML = html;
-                    const closeEmailBtn = emailModal.querySelector('.btn-cancel-email');
-                    if (closeEmailBtn) {
-                        closeEmailBtn.onclick = () => emailModal.style.display = 'none';
-                    }
-                })
-                .catch(error => {
-                    emailModalPlaceholder.innerHTML = '<p style="text-align: center; padding: 40px; color: red;">Error loading email form. Please try again.</p>';
-                    console.error('Error fetching email form:', error);
-                });
-            */
-        });
+        const card = e.target.closest('.reservation-card');
+        if (card && !e.target.closest('.dropdown') && !e.target.closest('.dropup') && !e.target.closest('a') && !e.target.closest('button')) {
+            if (card.dataset.url) {
+                window.location.href = card.dataset.url;
+            }
+        }
     });
 
     function initGuestReceiptActions(scope) {
@@ -914,28 +558,28 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    document.querySelectorAll('.guest-receipt-btn').forEach(button => {
-        button.addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            closeDropdown(this);
+    document.addEventListener('click', function(e) {
+        const receiptBtn = e.target.closest('.guest-receipt-btn');
+        if (!receiptBtn) return;
+        e.preventDefault();
+        e.stopPropagation();
+        closeDropdown(receiptBtn);
 
-            let url = this.dataset.receiptUrl;
-            url += (url.includes('?') ? '&' : '?') + 'is_modal=true';
-            guestReceiptPlaceholder.innerHTML = '<div style="text-align: center; padding: 40px;">Loading...</div>';
-            guestReceiptModal.style.display = 'flex';
+        let url = receiptBtn.dataset.receiptUrl;
+        url += (url.includes('?') ? '&' : '?') + 'is_modal=true';
+        guestReceiptPlaceholder.innerHTML = '<div style="text-align: center; padding: 40px;">Loading...</div>';
+        guestReceiptModal.style.display = 'flex';
 
-            fetch(url)
-                .then(response => response.text())
-                .then(html => {
-                    guestReceiptPlaceholder.innerHTML = html;
-                    initGuestReceiptActions(guestReceiptPlaceholder);
-                })
-                .catch(error => {
-                    guestReceiptPlaceholder.innerHTML = '<p style="text-align: center; padding: 40px; color: red;">Error loading guest receipt. Please try again.</p>';
-                    console.error('Error fetching guest receipt:', error);
-                });
-        });
+        fetch(url)
+            .then(response => response.text())
+            .then(html => {
+                guestReceiptPlaceholder.innerHTML = html;
+                initGuestReceiptActions(guestReceiptPlaceholder);
+            })
+            .catch(error => {
+                guestReceiptPlaceholder.innerHTML = '<p style="text-align: center; padding: 40px; color: red;">Error loading guest receipt. Please try again.</p>';
+                console.error('Error fetching guest receipt:', error);
+            });
     });
 
     const closeGuestReceipt = guestReceiptModal.querySelector('.close-guest-receipt');
@@ -954,15 +598,15 @@ document.addEventListener('DOMContentLoaded', function() {
     let cancelUrl = '';
     let reservationCard = null;
 
-    document.querySelectorAll('.cancel-reservation-btn').forEach(button => {
-        button.addEventListener('click', function(e) {
-            e.preventDefault();
-            closeDropdown(this);
-            cancelUrl = this.href;
-            reservationCard = this.closest('.reservation-card');
-            const cancelModal = new bootstrap.Modal(document.getElementById('cancelReservationModal'));
-            cancelModal.show();
-        });
+    document.addEventListener('click', function(e) {
+        const cancelBtn = e.target.closest('.cancel-reservation-btn');
+        if (!cancelBtn) return;
+        e.preventDefault();
+        closeDropdown(cancelBtn);
+        cancelUrl = cancelBtn.href;
+        reservationCard = cancelBtn.closest('.reservation-card');
+        const cancelModal = new bootstrap.Modal(document.getElementById('cancelReservationModal'));
+        cancelModal.show();
     });
 
     document.getElementById('confirmCancelBtn').addEventListener('click', function() {
@@ -991,14 +635,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
     let noShowUrl = '';
 
-    document.querySelectorAll('.mark-no-show-btn').forEach(button => {
-        button.addEventListener('click', function(e) {
-            e.preventDefault();
-            closeDropdown(this);
-            noShowUrl = this.href;
-            const noShowModal = new bootstrap.Modal(document.getElementById('noShowModal'));
-            noShowModal.show();
-        });
+    document.addEventListener('click', function(e) {
+        const noShowBtn = e.target.closest('.mark-no-show-btn');
+        if (!noShowBtn) return;
+        e.preventDefault();
+        closeDropdown(noShowBtn);
+        noShowUrl = noShowBtn.href;
+        const noShowModal = new bootstrap.Modal(document.getElementById('noShowModal'));
+        noShowModal.show();
     });
 
     document.getElementById('confirmNoShowBtn').addEventListener('click', function() {
@@ -1029,17 +673,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        const SEARCH_FOCUS_KEY = 'bookingListSearchFocus';
         const searchInputs = document.querySelectorAll('.search-box input[name="search"]');
 
-        function toggleClearIcon() {
-            const searchInput = this;
-            const clearIcon = searchInput.closest('.search-box').querySelector('.clear-icon');
-            if (searchInput.value) {
-                clearIcon.style.display = 'block';
-            } else {
-                clearIcon.style.display = 'none';
-            }
+        function toggleClearIcon(input) {
+            const clearIcon = input.closest('.search-box').querySelector('.clear-icon');
+            clearIcon.style.display = input.value ? 'block' : 'none';
         }
 
         searchInputs.forEach((input, index) => {
@@ -1047,7 +685,7 @@ document.addEventListener('DOMContentLoaded', function() {
             input.dataset.searchInstance = `booking-search-${index}`;
 
             input.addEventListener('input', function () {
-                toggleClearIcon.call(this);
+                toggleClearIcon(this);
                 clearTimeout(typingTimer);
                 typingTimer = setTimeout(() => performSearch(this), 500);
             });
@@ -1057,72 +695,69 @@ document.addEventListener('DOMContentLoaded', function() {
                     performSearch(this);
                 }
             });
-            toggleClearIcon.call(input);
+            toggleClearIcon(input);
         });
-
-        function focusStoredSearch() {
-            const stored = sessionStorage.getItem(SEARCH_FOCUS_KEY);
-            let target;
-            if (stored) {
-                target = document.querySelector(`[data-search-instance="${stored}"]`);
-            }
-            if (!target) {
-                target = document.querySelector('.search-box.search-box-desktop input[name="search"]');
-            }
-            if (!target && searchInputs[0]) {
-                target = searchInputs[0];
-            }
-            if (target) {
-                setTimeout(() => {
-                    target.focus();
-                    target.setSelectionRange(target.value.length, target.value.length);
-                }, 12);
-            }
-            if (stored) {
-                sessionStorage.removeItem(SEARCH_FOCUS_KEY);
-            }
-        }
-
-        focusStoredSearch();
-        window.addEventListener('pageshow', focusStoredSearch);
-        window.addEventListener('load', focusStoredSearch);
     });
 
-function performSearch(element) {
-    const SEARCH_FOCUS_KEY = 'bookingListSearchFocus';
-    let searchInput;
-    if (element.tagName.toLowerCase() === 'input') {
-        searchInput = element;
-    } else {
-        searchInput = element.closest('.search-box').querySelector('input[name="search"]');
+    // Fetches the results partial for `url` and swaps it into #booking-results
+    // in place, instead of navigating — this is what keeps typing in the search
+    // box (and the pause right after hitting space) from reloading the page.
+    function loadBookingResults(url, { pushState = true } = {}) {
+        fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+            .then(response => response.text())
+            .then(html => {
+                document.getElementById('booking-results').innerHTML = html;
+                if (pushState) {
+                    window.history.pushState({ bookingResultsUrl: url }, '', url);
+                }
+            })
+            .catch(() => { window.location.href = url; });
     }
-    const instance = searchInput.dataset.searchInstance || 'booking-search-0';
-    sessionStorage.setItem(SEARCH_FOCUS_KEY, instance);
 
-    const query = searchInput.value;
-    const params = new URLSearchParams(window.location.search);
+    window.addEventListener('popstate', function () {
+        const query = new URLSearchParams(window.location.search).get('search') || '';
+        document.querySelectorAll('.search-box input[name="search"]').forEach(input => {
+            input.value = query;
+            input.closest('.search-box').querySelector('.clear-icon').style.display = query ? 'block' : 'none';
+        });
+        loadBookingResults(window.location.href, { pushState: false });
+    });
 
-    if (query.trim()) {
-        params.set('search', query.trim());
-    } else {
-        params.delete('search');
-    }
-    params.delete('page'); // Reset to first page on new search
-    const newUrl = new URL(window.location.pathname, window.location.origin);
-    newUrl.search = params.toString();
-    window.location.href = newUrl.toString();
-}
+    function performSearch(element) {
+        let searchInput;
+        if (element.tagName.toLowerCase() === 'input') {
+            searchInput = element;
+        } else {
+            searchInput = element.closest('.search-box').querySelector('input[name="search"]');
+        }
 
-function clearSearch(element) {
-    const searchInput = element.closest('.search-box').querySelector('input[name="search"]');
-        searchInput.value = '';
+        const query = searchInput.value;
+        // Keep the mobile/desktop search boxes in sync since only one of them
+        // is edited at a time but both show the same underlying query.
+        document.querySelectorAll('.search-box input[name="search"]').forEach(input => {
+            if (input !== searchInput) {
+                input.value = query;
+                input.closest('.search-box').querySelector('.clear-icon').style.display = query ? 'block' : 'none';
+            }
+        });
 
         const params = new URLSearchParams(window.location.search);
-        params.delete('search');
-
+        if (query.trim()) {
+            params.set('search', query.trim());
+        } else {
+            params.delete('search');
+        }
+        params.delete('page'); // Reset to first page on new search
         const newUrl = new URL(window.location.pathname, window.location.origin);
         newUrl.search = params.toString();
-        window.location.href = newUrl.toString();
+        loadBookingResults(newUrl.toString());
+    }
+
+    function clearSearch(element) {
+        const searchInput = element.closest('.search-box').querySelector('input[name="search"]');
+        searchInput.value = '';
+        searchInput.closest('.search-box').querySelector('.clear-icon').style.display = 'none';
+        performSearch(searchInput);
     }
 </script>
 {% endblock extra_script %}

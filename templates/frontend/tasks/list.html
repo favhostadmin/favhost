@@ -5,13 +5,8 @@
 {% block body_class %}single-scroll{% endblock %}
 
 {% block extra_head %}
-<link href="{% static 'css/task/listing.css' %}?v=14" rel="stylesheet">
-<link href="{% static 'css/booking/list.css' %}" rel="stylesheet">
+<link href="{% static 'css/task/list.css' %}" rel="stylesheet">
 
-<style>
-   
-
-</style>
 {% endblock extra_head %}
 
 {% block content %}
@@ -248,14 +243,13 @@
             <img src="{% static 'img/common/no_task_found.svg' %}" style="height: 239px;">
             <h6 class="no-task-heading">No task is available to display</h6>
             <h6 class="no-task-subtext">Create new Task from the Create button</h6>
-
+            <a href="{% url 'tasks:task-create' %}" class="btn mt-3" style="border: 0.75px solid #00000080; color: #1D74B2; padding: 8px 6rem;">Create new Task</a>
+        </div>
         </div>
         {% endif %}
-        {% include 'frontend/base/pagination.html' %}
-        </div>
-        {% include 'frontend/base/footer.html' %}
-
+        
     </main>
+    {% include 'frontend/base/footer.html' %}
 </div>
 
 <!-- Delete Confirmation Modal -->
@@ -321,7 +315,6 @@
 
     document.addEventListener('DOMContentLoaded', function () {
 
-        const SEARCH_FOCUS_KEY = 'taskListSearchFocus';
         const searchInput = document.querySelector('.search-box input[name="search"]');
         const clearIcon = document.querySelector('.search-box .clear-icon');
         const mobileSearchToggle = document.getElementById('mobileSearchToggle');
@@ -332,7 +325,6 @@
         }
 
         if (searchInput) {
-            searchInput.dataset.searchInstance = searchInput.dataset.searchInstance || 'task-search-main';
             let typingTimer;
             searchInput.addEventListener('input', function () {
                 toggleClearIcon.call(this);
@@ -349,21 +341,16 @@
         }
         if (searchInput) toggleClearIcon();
 
-        function focusStoredSearch() {
-            const stored = sessionStorage.getItem(SEARCH_FOCUS_KEY);
-            let target = stored && document.querySelector(`[data-search-instance="${stored}"]`);
-            if (!target) target = searchInput;
-            if (target) {
-                setTimeout(() => {
-                    target.focus();
-                    target.setSelectionRange(target.value.length, target.value.length);
-                }, 50);
-            }
+        function focusSearch() {
+            if (!searchInput) return;
+            setTimeout(() => {
+                searchInput.focus();
+                searchInput.setSelectionRange(searchInput.value.length, searchInput.value.length);
+            }, 50);
         }
 
-        focusStoredSearch();
-        window.addEventListener('pageshow', focusStoredSearch);
-        window.addEventListener('load', focusStoredSearch);
+        focusSearch();
+        window.addEventListener('pageshow', focusSearch);
 
         if (mobileSearchToggle && headerNav && searchInput) {
             if (window.matchMedia('(max-width: 767px)').matches && searchInput.value.trim()) {
@@ -380,52 +367,57 @@
             });
         }
 
-        document.querySelectorAll('.task-row .task-kebab').forEach(kebab => {
-            const row = kebab.closest('.task-row');
+        // Delegated on document (rather than bound per-.task-kebab at load time)
+        // so these keep working after the AJAX search swaps #task-results' innerHTML.
+        document.addEventListener('show.bs.dropdown', function (e) {
+            const kebab = e.target.closest('.task-row .task-kebab');
+            const row = kebab && kebab.closest('.task-row');
+            const menu = kebab && kebab.nextElementSibling;
+            if (!kebab || !row || !menu) return;
             const group = kebab.closest('.task-date-group');
-            if (!row) return;
 
-            const menu = kebab.nextElementSibling;
-            let originalParent = null;
+            row.classList.add('menu-open');
+            if (group) group.classList.add('menu-open');
 
-            kebab.addEventListener('show.bs.dropdown', function () {
-                row.classList.add('menu-open');
-                if (group) group.classList.add('menu-open');
+            // Move menu to body so overflow:hidden can't clip it
+            kebab._taskMenuOriginalParent = menu.parentElement;
+            document.body.appendChild(menu);
+            menu.style.position = 'fixed';
+            menu.style.zIndex   = '9999';
+            menu.style.display  = 'block';
 
-                // Move menu to body so overflow:hidden can't clip it
-                originalParent = menu.parentElement;
-                document.body.appendChild(menu);
-                menu.style.position = 'fixed';
-                menu.style.zIndex   = '9999';
-                menu.style.display  = 'block';
+            const b   = kebab.getBoundingClientRect();
+            const mh  = menu.offsetHeight;
+            const mw  = menu.offsetWidth;
+            const top = (window.innerHeight - b.bottom >= mh + 8)
+                ? b.bottom + 4
+                : b.top - mh - 4;
+            menu.style.top   = top + 'px';
+            menu.style.left  = Math.max(8, b.right - mw) + 'px';
+            menu.style.right = 'auto';
+        });
 
-                const b   = kebab.getBoundingClientRect();
-                const mh  = menu.offsetHeight;
-                const mw  = menu.offsetWidth;
-                const top = (window.innerHeight - b.bottom >= mh + 8)
-                    ? b.bottom + 4
-                    : b.top - mh - 4;
-                menu.style.top   = top + 'px';
-                menu.style.left  = Math.max(8, b.right - mw) + 'px';
-                menu.style.right = 'auto';
-            });
+        document.addEventListener('hide.bs.dropdown', function (e) {
+            const kebab = e.target.closest('.task-row .task-kebab');
+            const row = kebab && kebab.closest('.task-row');
+            const menu = kebab && kebab.nextElementSibling;
+            if (!kebab || !row || !menu) return;
+            const group = kebab.closest('.task-date-group');
 
-            kebab.addEventListener('hide.bs.dropdown', function () {
-                row.classList.remove('menu-open');
-                if (group) group.classList.remove('menu-open');
+            row.classList.remove('menu-open');
+            if (group) group.classList.remove('menu-open');
 
-                // Return menu to original position in DOM
-                if (originalParent) {
-                    originalParent.appendChild(menu);
-                    originalParent = null;
-                }
-                menu.style.position = '';
-                menu.style.zIndex   = '';
-                menu.style.top      = '';
-                menu.style.right    = '';
-                menu.style.left     = '';
-                menu.style.display  = '';
-            });
+            // Return menu to original position in DOM
+            if (kebab._taskMenuOriginalParent) {
+                kebab._taskMenuOriginalParent.appendChild(menu);
+                kebab._taskMenuOriginalParent = null;
+            }
+            menu.style.position = '';
+            menu.style.zIndex   = '';
+            menu.style.top      = '';
+            menu.style.right    = '';
+            menu.style.left     = '';
+            menu.style.display  = '';
         });
 
         // Close any open task dropdown when clicking/tapping outside it.
@@ -526,28 +518,29 @@
                 });
         }
 
-        document.querySelectorAll('.task-checkbox').forEach(checkbox => {
-            checkbox.addEventListener('change', function () {
-                const taskId = this.dataset.taskId;
-                const isCompleted = this.checked;
-                const taskRow = this.closest('.task-row');
+        // Delegated so newly-inserted rows (after the AJAX search swap) keep working.
+        document.addEventListener('change', function (e) {
+            const checkbox = e.target.closest('.task-checkbox');
+            if (!checkbox) return;
+            const taskId = checkbox.dataset.taskId;
+            const isCompleted = checkbox.checked;
+            const taskRow = checkbox.closest('.task-row');
 
-                handleStatusUpdate(taskId, isCompleted, taskRow, () => {
-                    this.checked = !isCompleted;
-                });
+            handleStatusUpdate(taskId, isCompleted, taskRow, () => {
+                checkbox.checked = !isCompleted;
             });
         });
 
-        document.querySelectorAll('.task-status-toggle').forEach(toggleLink => {
-            toggleLink.addEventListener('click', function (event) {
-                event.preventDefault();
-                const taskId = this.dataset.taskId;
-                const currentlyCompleted = this.dataset.completed === 'true';
-                const nextCompleted = !currentlyCompleted;
-                const taskRow = this.closest('.task-row');
+        document.addEventListener('click', function (e) {
+            const toggleLink = e.target.closest('.task-status-toggle');
+            if (!toggleLink) return;
+            e.preventDefault();
+            const taskId = toggleLink.dataset.taskId;
+            const currentlyCompleted = toggleLink.dataset.completed === 'true';
+            const nextCompleted = !currentlyCompleted;
+            const taskRow = toggleLink.closest('.task-row');
 
-                handleStatusUpdate(taskId, nextCompleted, taskRow, () => {});
-            });
+            handleStatusUpdate(taskId, nextCompleted, taskRow, () => {});
         });
 
         function updateTaskCounts(pendingCount, doneCount) {
@@ -642,12 +635,35 @@
 </script>
 
 <script>
+    // Fetches the results partial for `url` and swaps it into #task-results in
+    // place, instead of navigating — this is what keeps typing in the search
+    // box (and the pause right after hitting space) from reloading the page.
+    function loadTaskResults(url, { pushState = true } = {}) {
+        fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+            .then(response => response.text())
+            .then(html => {
+                document.getElementById('task-results').innerHTML = html;
+                if (pushState) {
+                    window.history.pushState({ taskResultsUrl: url }, '', url);
+                }
+            })
+            .catch(() => { window.location.href = url; });
+    }
+
+    window.addEventListener('popstate', function () {
+        const query = new URLSearchParams(window.location.search).get('search') || '';
+        const searchInput = document.querySelector('.search-box input[name="search"]');
+        if (searchInput) {
+            searchInput.value = query;
+            const clearIcon = document.querySelector('.search-box .clear-icon');
+            if (clearIcon) clearIcon.style.display = query ? 'block' : 'none';
+        }
+        loadTaskResults(window.location.href, { pushState: false });
+    });
+
     function performSearchNow(element) {
-        const SEARCH_FOCUS_KEY = 'taskListSearchFocus';
         const searchInput = element || document.querySelector('.search-box input[name="search"]');
         if (!searchInput) return;
-        const instance = searchInput.dataset.searchInstance || 'task-search-main';
-        sessionStorage.setItem(SEARCH_FOCUS_KEY, instance);
 
         const query = searchInput.value;
         const params = new URLSearchParams(window.location.search);
@@ -660,7 +676,7 @@
 
         const newUrl = new URL(window.location.pathname, window.location.origin);
         newUrl.search = params.toString();
-        window.location.href = newUrl.toString();
+        loadTaskResults(newUrl.toString());
     }
 </script>
 
@@ -668,24 +684,20 @@
     function clearSearchAndReload() {
         const searchInput = document.querySelector('.search-box input[name="search"]');
         searchInput.value = '';
-
-        const params = new URLSearchParams(window.location.search);
-        params.delete('search');
-
-        const newUrl = new URL(window.location.pathname, window.location.origin);
-        newUrl.search = params.toString();
-        window.location.href = newUrl.toString();
+        const clearIcon = document.querySelector('.search-box .clear-icon');
+        if (clearIcon) clearIcon.style.display = 'none';
+        performSearchNow(searchInput);
     }
 </script>
 
 <script>
-    document.querySelectorAll('.task-row[data-task-url]').forEach(function (row) {
-        row.addEventListener('click', function (e) {
-            if (e.target.closest('.task-kebab') || e.target.closest('.dropdown-menu') || e.target.closest('.task-col-done')) return;
-            // If this click just closed an open dropdown, don't also navigate.
-            if (window.__taskDropdownJustClosed) { window.__taskDropdownJustClosed = false; return; }
-            window.location.href = row.dataset.taskUrl;
-        });
+    document.addEventListener('click', function (e) {
+        const row = e.target.closest('.task-row[data-task-url]');
+        if (!row) return;
+        if (e.target.closest('.task-kebab') || e.target.closest('.dropdown-menu') || e.target.closest('.task-col-done')) return;
+        // If this click just closed an open dropdown, don't also navigate.
+        if (window.__taskDropdownJustClosed) { window.__taskDropdownJustClosed = false; return; }
+        window.location.href = row.dataset.taskUrl;
     });
 </script>
 {% endblock extra_script %}

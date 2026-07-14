@@ -8,475 +8,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Receipt #{{ booking.booking_id }} · FavHost</title>
 {% endif %}
-    <style>
-        *, *::before, *::after { box-sizing: border-box; }
-        html, body { margin: 0; padding: 0; }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            background: #f3f4f6;
-            color: #1f2937;
-            font-size: 14px;
-            line-height: 1.5;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-        }
-        a { color: #1d4ed8; text-decoration: underline; text-underline-offset: 2px; }
-        a:hover { color: #1e40af; }
-
-        #guest-receipt-root .top {
-            background: #1f2937;
-            color: #e5e7eb;
-            padding: 22px 36px 18px;
-            display: flex;
-            align-items: flex-start;
-            justify-content: space-between;
-            gap: 20px;
-            flex-wrap: wrap;
-            position: relative;
-        }
-        #guest-receipt-root .top::after {
-            content: "";
-            position: absolute;
-            left: 0; right: 0; bottom: 0;
-            height: 5px;
-            background: #eb5310;
-        }
-
-        #guest-receipt-root .host-info { display: flex; flex-direction: column; gap: 4px; font-size: 13px; }
-        #guest-receipt-root .host-info .hosted-by {
-            color: #d1d5db;
-            font-weight: 400;
-        }
-        #guest-receipt-root .host-info .hosted-by strong {
-            color: #fff;
-            font-weight: 700;
-            margin-left: 4px;
-        }
-        #guest-receipt-root .host-info .contact {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            color: #fff;
-            font-weight: 600;
-        }
-        #guest-receipt-root .host-info .contact svg { color: #9ca3af; flex: none; }
-        #guest-receipt-root .host-info a.contact { color: #fff; }
-        #guest-receipt-root .host-info a.contact:hover { color: #22d3ee; }
-
-        #guest-receipt-root .created-with {
-            display: inline-flex;
-            align-items: center;
-            gap: 12px;
-            color: #d1d5db;
-            font-size: 13px;
-            margin-top: 6px;
-        }
-        #guest-receipt-root .logo {
-            height: 32px;
-        }
-
-        #guest-receipt-root .top-right-actions {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-        }
-        #guest-receipt-root .top-action-btn {
-            background: transparent;
-            color: #d1d5db;
-            border: 1px solid #6b7280;
-            width: 34px;
-            height: 34px;
-            padding: 0;
-            border-radius: 50%;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            text-decoration: none;
-            font-family: inherit;
-            transition: background 0.15s, color 0.15s, border-color 0.15s;
-        }
-        #guest-receipt-root .top-action-btn:hover {
-            background: #374151;
-            color: #fff;
-            border-color: #9ca3af;
-        }
-        #guest-receipt-root .top-action-btn svg { width: 15px; height: 15px; flex: none; }
-
-        #guest-receipt-root .top-right-actions .dropdown-menu {
-            background: #fff;
-            border: 1px solid #e5e7eb;
-            border-radius: 8px;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.12);
-            padding: 6px 0;
-            min-width: 180px;
-        }
-        #guest-receipt-root .top-right-actions .dropdown-item {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 8px 14px;
-            font-size: 13px;
-            color: #1f2937;
-            font-weight: 500;
-            cursor: pointer;
-        }
-        #guest-receipt-root .top-right-actions .dropdown-item:hover {
-            background: #f3f4f6;
-            color: #111827;
-        }
-        #guest-receipt-root .top-right-actions .dropdown-item svg {
-            width: 16px; height: 16px;
-            flex: none;
-            color: #6b7280;
-        }
-
-        #guest-receipt-root .layout {
-            flex: 1;
-            padding: 28px 36px 24px;
-            display: grid;
-            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-            gap: 22px;
-            max-width: 1100px;
-            width: 100%;
-            margin: 0 auto;
-            align-self: center;
-        }
-
-        #guest-receipt-root .card {
-            background: #fff;
-            border: 1px solid #e5e7eb;
-            border-radius: 4px;
-            padding: 26px 28px;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.03);
-        }
-
-        #guest-receipt-root .res-head {
-            display: flex;
-            align-items: flex-start;
-            justify-content: space-between;
-            gap: 16px;
-            margin-bottom: 22px;
-        }
-        #guest-receipt-root .res-head h1 {
-            font-size: 20px;
-            font-weight: 700;
-            color: #111827;
-            margin: 0;
-        }
-        #guest-receipt-root .res-meta {
-            text-align: right;
-            font-size: 12px;
-            color: #6b7280;
-            line-height: 1.4;
-            flex: none;
-        }
-        #guest-receipt-root .res-meta .num {
-            color: #111827;
-            font-weight: 600;
-            font-size: 13px;
-        }
-
-        #guest-receipt-root .stay {
-            display: flex;
-            align-items: flex-start;
-            gap: 14px;
-            margin-bottom: 14px;
-        }
-        #guest-receipt-root .stay-dates {
-            flex: 1;
-            font-size: 15px;
-            color: #111827;
-        }
-        #guest-receipt-root .stay-dates .dates {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            font-weight: 600;
-            margin-bottom: 6px;
-        }
-        #guest-receipt-root .stay-dates .arrow {
-            color: #9ca3af;
-            font-weight: 400;
-        }
-        #guest-receipt-root .stay-thumb {
-            width: 56px; height: 44px;
-            border-radius: 4px;
-            flex: none;
-            background:
-                linear-gradient(135deg, rgba(0,0,0,0.05), rgba(0,0,0,0.15)),
-                linear-gradient(135deg, #d4b88f, #a08157);
-            position: relative;
-            overflow: hidden;
-        }
-        #guest-receipt-root .stay-thumb::before {
-            content: "";
-            position: absolute;
-            inset: 0;
-            background:
-                radial-gradient(circle at 30% 60%, rgba(255,255,255,0.25) 0, transparent 30%),
-                radial-gradient(circle at 70% 70%, rgba(0,0,0,0.15) 0, transparent 35%);
-        }
-
-        #guest-receipt-root .stay-summary {
-            font-size: 14px;
-            color: #6b7280;
-            margin-bottom: 14px;
-        }
-        #guest-receipt-root .stay-summary a {
-            color: #111827;
-            text-decoration: underline;
-            font-weight: 500;
-        }
-
-        #guest-receipt-root .address {
-            font-size: 14px;
-            color: #6b7280;
-            line-height: 1.55;
-            margin-bottom: 14px;
-        }
-
-        #guest-receipt-root .host-line {
-            font-size: 14px;
-            color: #6b7280;
-            margin-bottom: 4px;
-        }
-        #guest-receipt-root .host-line .contact {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            color: #6b7280;
-            font-weight: 500;
-        }
-        #guest-receipt-root .host-line .contact svg { color: #9ca3af; flex: none; }
-        #guest-receipt-root .host-line a.contact { color: #6b7280; }
-        #guest-receipt-root .host-line a.contact:hover { color: #1d4ed8; }
-        #guest-receipt-root .conf-line {
-            font-size: 12px;
-            color: #6b7280;
-            margin-bottom: 10px;
-        }
-        #guest-receipt-root .conf-line a { color: #6b7280; text-decoration: underline; font-weight: 500; }
-
-        #guest-receipt-root .divider {
-            height: 1px;
-            background: #e5e7eb;
-            margin: 14px 0;
-        }
-
-        #guest-receipt-root .traveler {
-            font-size: 14px;
-            color: #6b7280;
-        }
-        #guest-receipt-root .traveler strong { color: #111827; font-weight: 600; }
-
-        #guest-receipt-root .right-card h2 {
-            font-size: 17px;
-            font-weight: 700;
-            color: #111827;
-            margin: 0 0 18px;
-        }
-
-        #guest-receipt-root .price-row {
-            display: flex;
-            align-items: baseline;
-            justify-content: space-between;
-            padding: 6px 0;
-            font-size: 14px;
-            color: #111827;
-        }
-        #guest-receipt-root .price-row .label { color: #111827; }
-        #guest-receipt-root .price-row.muted .label { color: #6b7280; }
-        #guest-receipt-root .price-row .amount { font-weight: 500; }
-        #guest-receipt-root .price-row a.label { color: #1d4ed8; }
-
-        #guest-receipt-root .price-divider {
-            height: 1px;
-            background: #e5e7eb;
-            margin: 10px 0;
-        }
-
-        #guest-receipt-root .total-row {
-            display: flex;
-            justify-content: space-between;
-            font-weight: 700;
-            font-size: 16px;
-            color: #111827;
-            padding: 8px 0 4px;
-        }
-
-        #guest-receipt-root .section-gap { height: 22px; }
-
-        #guest-receipt-root .payment h2 { margin-top: 4px; }
-
-        #guest-receipt-root .confirmed {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            background: #ecfdf5;
-            color: #047857;
-            border: 1px solid #a7f3d0;
-            border-radius: 999px;
-            padding: 8px 14px;
-            font-size: 12px;
-            font-weight: 700;
-            letter-spacing: 0.4px;
-            margin-top: 18px;
-        }
-        #guest-receipt-root .confirmed .check {
-            width: 16px; height: 16px;
-            background: #10b981;
-            border-radius: 50%;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            color: #fff;
-        }
-        #guest-receipt-root .confirmed .check svg { width: 10px; height: 10px; }
-
-        #guest-receipt-root .thanks {
-            max-width: 1100px;
-            width: 100%;
-            margin: 0 auto;
-            padding: 0 36px 36px;
-            text-align: right;
-            color: #6b7280;
-            font-size: 13px;
-            line-height: 1.6;
-        }
-
-        #guestReceiptModal {
-            z-index: 1070 !important;
-        }
-
-        #guest-receipt-root .receipt-close-btn {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            width: 30px;
-            height: 30px;
-            border-radius: 50%;
-            border: 1px solid #d1d5db;
-            background: transparent;
-            color: #9ca3af;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            flex-shrink: 0;
-            z-index: 10;
-            transition: background 0.15s;
-        }
-        #guest-receipt-root .receipt-close-btn:hover {
-            background: #f3f4f6;
-            color: #374151;
-            border-color: #9ca3af;
-        }
-        #guest-receipt-root .receipt-close-btn svg {
-            width: 14px;
-            height: 14px;
-        }
-
-        @media (max-width: 880px) {
-            #guest-receipt-root .layout {
-                grid-template-columns: 1fr;
-                padding: 22px 18px 18px;
-            }
-            #guest-receipt-root .top {
-                padding: 16px 18px 14px;
-                gap: 12px;
-            }
-            #guest-receipt-root .thanks { padding: 0 18px 28px; text-align: left; }
-        }
-        @media (max-width: 600px) {
-            #guest-receipt-root .top {
-                flex-direction: column;
-                gap: 10px;
-            }
-            #guest-receipt-root .top > div:last-child {
-                width: 100%;
-                justify-content: space-between;
-            }
-            #guest-receipt-root .host-info {
-                width: 100%;
-            }
-            #guest-receipt-root .created-with {
-                margin-top: 0;
-                font-size: 12px;
-            }
-            #guest-receipt-root .top-action-btn {
-                width: 32px;
-                height: 32px;
-            }
-        }
-        @media (max-width: 480px) {
-            #guest-receipt-root .card { padding: 20px 18px; }
-            #guest-receipt-root .res-head { flex-direction: column; }
-            #guest-receipt-root .res-meta { text-align: left; }
-            #guest-receipt-root .res-head h1 { font-size: 16px; }
-            #guest-receipt-root .right-card h2, #guest-receipt-root .payment h2 { font-size: 15px; }
-            #guest-receipt-root .total-row { font-size: 15px; }
-        }
-
-        #guest-receipt-root.receipt-export .top-right-actions,
-        #guest-receipt-root.receipt-export .receipt-close-btn {
-            display: none !important;
-        }
-        #guest-receipt-root.receipt-export .confirmed {
-            padding: 4px 10px;
-            font-size: 10px;
-            gap: 5px;
-            margin-top: 12px;
-        }
-        #guest-receipt-root.receipt-export .confirmed .check {
-            width: 12px;
-            height: 12px;
-        }
-        #guest-receipt-root.receipt-export .confirmed .check svg {
-            width: 8px;
-            height: 8px;
-        }
-
-        @media print {
-            .custom-header, .custom-header * { visibility: hidden !important; }
-            #guest-receipt-root, #guest-receipt-root * {
-                box-shadow: none !important;
-                text-shadow: none !important;
-                filter: none !important;
-                background: transparent !important;
-            }
-            #guest-receipt-root {
-                padding: 0 !important;
-                margin: 0 !important;
-            }
-            #guest-receipt-root .top {
-                background: #1f2937 !important;
-                -webkit-print-color-adjust: exact !important;
-                print-color-adjust: exact !important;
-                padding: 16px 24px 14px !important;
-            }
-            #guest-receipt-root .top::after {
-                background: #eb5310 !important;
-                -webkit-print-color-adjust: exact !important;
-                print-color-adjust: exact !important;
-            }
-            #guest-receipt-root .card {
-                border: 1px solid #e5e7eb !important;
-                break-inside: avoid;
-            }
-            #guest-receipt-root .receipt-close-btn,
-            #guest-receipt-root .top-right-actions,
-            #guest-receipt-root .top-action-btn { display: none !important; }
-            #guest-receipt-root .confirmed {
-                -webkit-print-color-adjust: exact !important;
-                print-color-adjust: exact !important;
-            }
-            #guest-receipt-root .thanks {
-                text-align: right !important;
-            }
-        }
-    </style>
+    <link href="{% static 'css/common/receipt.css' %}" rel="stylesheet">
 {% if not is_modal %}
 </head>
 <body>
@@ -548,12 +80,12 @@
                 <div class="host-line">
                     <span class="hosted-by">Hosted by <strong>{{ booking.property.created_by.get_full_name|default:"Host" }}</strong></span>
                     <br/>
-                    {% if booking.property.created_by.phone %}
+                    {% if host_phone %}
                     <span class="contact">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                             <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z"/>
                         </svg>
-                        {{ booking.property.created_by.phone }}
+                        <span>{{ host_phone }}</span>
                     </span>
                     <br/>
                     {% endif %}
@@ -563,7 +95,7 @@
                             <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
                             <polyline points="22,6 12,13 2,6"/>
                         </svg>
-                        {{ booking.property.created_by.email }}
+                        <span>{{ booking.property.created_by.email }}</span>
                     </a>
                     {% endif %}
                 </div>
@@ -574,6 +106,23 @@
             </section>
 
             <section class="card right-card" aria-label="Price and payment">
+                {% if booking.status == 'cancelled' %}
+                <h2>Status</h2>
+                <div class="cancelled-state">
+                    <span class="cancelled-badge">
+                        <span class="x" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                            </svg>
+                        </span>
+                        RESERVATION CANCELLED
+                    </span>
+                    <p class="cancelled-text">
+                        This reservation was cancelled{% if booking.updated_at %} on {{ booking.updated_at|date:"M d, Y" }}{% endif %}.
+                        No payment is due.
+                    </p>
+                </div>
+                {% else %}
                 <h2>Price breakdown</h2>
 
                 <div class="price-row">
@@ -633,6 +182,7 @@
                     </span>
                     {% endif %}
                 </div>
+                {% endif %}
             </section>
         </main>
 
