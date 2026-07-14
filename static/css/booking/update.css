@@ -1,6 +1,6 @@
-/* Reservation create page (booking/create.html) — single stylesheet.
+/* Reservation update page (booking/update.html) — single stylesheet.
    Combines the former shared css/booking/create.css with this page's
-   former inline <style> blocks, in the same cascade order. */
+   former inline <style> block, in the same cascade order. */
 
 /* ── shared create/update form rules (former css/booking/create.css) ── */
     .action-buttons {
@@ -335,21 +335,20 @@
     }
 }
 
-/* ── page styles (former inline block 1) ── */
+/* ── page styles (former inline block) ── */
 /* Country code selector styles */
 
-/* Hide arrows from all number inputs */
+/* Hide arrows from number inputs in the payment section */
 /* For Chrome, Safari, Edge, Opera */
-input[type=number]::-webkit-inner-spin-button,
-input[type=number]::-webkit-outer-spin-button {
+.price-input-container input[type=number]::-webkit-inner-spin-button,
+.price-input-container input[type=number]::-webkit-outer-spin-button {
     -webkit-appearance: none;
     margin: 0;
 }
 
 /* For Firefox */
-input[type=number] {
+.price-input-container input[type=number] {
     -moz-appearance: textfield;
-    appearance: textfield;
 }
 
 .phone-wrapper {
@@ -364,23 +363,6 @@ input[type=number] {
 
 .phone-input {
     flex: 1;
-}
-
-.last-name-col {
-    padding-left: 0 !important;
-}
-
-@media (max-width: 991.98px) {
-    .last-name-col {
-        padding-right: calc(var(--bs-gutter-x, 1.5rem) * 0.5) !important;
-    }
-}
-
-@media (min-width: 992px) {
-    .last-name-col {
-        padding-left: calc(var(--bs-gutter-x, 1.5rem) * 0.5) !important;
-        padding-right: 0 !important;
-    }
 }
 
 .iti{
@@ -509,6 +491,12 @@ input[type=number] {
     margin-bottom: 16px;
 }
 
+.booking-range-trigger:disabled,
+.booking-range-trigger.is-disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
 .booking-range-trigger-label {
     display: inline-flex;
     align-items: center;
@@ -522,26 +510,65 @@ input[type=number] {
     flex-shrink: 0;
 }
 
+.date-display-input {
+    width: 100%;
+    padding: 12px 44px 12px 16px;
+    border: 1px solid #cfd4dc;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #111827;
+    background: #fff;
+    cursor: pointer;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.date-display-input::placeholder {
+    color: #111827;
+    font-weight: 600;
+}
+
+.date-display-input:focus {
+    outline: none;
+    border-color: #cfd4dc;
+    box-shadow: none;
+}
+
+.date-display-input:disabled {
+    background: #eef0f2;
+    cursor: not-allowed;
+}
+
+.date-display-wrapper {
+    position: relative;
+}
+
+.date-display-wrapper::after {
+    content: "";
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    width: 16px;
+    height: 16px;
+    transform: translateY(-50%);
+    pointer-events: none;
+    background: no-repeat center/contain url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23121212" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>');
+}
+
 .booking-hidden-date-inputs {
-    position: absolute !important;
-    height: 1px; width: 1px; overflow: hidden; clip: rect(1px, 1px, 1px, 1px);
+    display: none;
 }
 
 .separate-date-input {
-    position: absolute !important;
-    height: 1px; width: 1px; overflow: hidden; clip: rect(1px, 1px, 1px, 1px);
+    display: none;
 }
 
 .separate-date-fields-row {
-    position: absolute !important;
-    opacity: 0;
-    pointer-events: none;
-    z-index: -1;
+    display: none;
 }
 
 .booking-hidden-range-input {
-    position: absolute !important;
-    height: 1px; width: 1px; overflow: hidden; clip: rect(1px, 1px, 1px, 1px);
+    display: none;
 }
 
 .flatpickr-calendar {
@@ -722,29 +749,26 @@ input[type=number] {
 }
 
 @media (max-width: 991.98px) {
+    .booking-range-trigger,
+    .date-display-wrapper.booking-date-range {
+        display: none;
+    }
+
     .separate-date-fields-row {
-        position: static !important;
-        opacity: 1 !important;
-        pointer-events: auto !important;
-        display: flex !important;
-        height: auto !important;
-        overflow: visible !important;
-        z-index: auto !important;
+        display: flex;
+    }
+
+    .booking-hidden-date-inputs {
+        display: block;
     }
 
     .separate-date-input {
-        position: static !important;
-        height: auto !important;
-        width: 100% !important;
-        overflow: visible !important;
-        clip: auto !important;
-        display: block !important;
+        display: block;
     }
 }
 
 .select2-container--default .select2-selection--single {
     height: auto;
-    min-height: 48px;
     border-radius: 8px;
     display: flex;
     align-items: center;
@@ -757,13 +781,8 @@ input[type=number] {
     border:1px solid #d1d5db;
 }
 
-.booking-field .select2-container {
-    margin-bottom: 0;
-}
-
 .select2-container--default .select2-selection--single:hover {
     border-color: #d1d5db;
-    
 }
 
 .select2-container--default.select2-container--focus .select2-selection--single {
@@ -871,9 +890,9 @@ input[type=number] {
     line-height: 1.3;
     color: #111827;
     margin: 0;
-    white-space: normal; 
-    word-break: break-word; 
-    overflow-wrap: break-word; 
+    white-space: normal;
+    word-break: break-word;
+    overflow-wrap: break-word;
 }
 
 .property-card-location {
@@ -926,47 +945,7 @@ input[type=number] {
     box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
-/* Single-scroll layout is handled by base.html (body.single-scroll).
-   These page-specific overrides used to force a fixed-height,
-   non-scrolling body with internal panel scroll — which blocked the
-   page scroll. Let base's single-scroll drive it: .main-content-body
-   scrolls once, header stays fixed, footer at the end. */
-.content {
-    min-height: 0;
-    display: flex;
-    flex-direction: column;
-}
-
-/* Single-scroll: form + container grow to fill the scroll column so
-   the footer sits at the bottom on short pages; no internal scroll. */
-#propertyForm,
-.booking-page-container {
-    flex: 1 0 auto;
-    min-height: 0;
-    display: flex;
-    flex-direction: column;
-}
-
-.main_row_div{
-    padding: 40px 12%;
-}
-
-.booking-scroll-area {
-    flex: 1 0 auto;
-}
-
-
-.booking-page-container > .row {
-    position: sticky;
-    top: 0;
-    z-index: 20;
-    background: #E7E7E9;
-}
-
 @media (max-width: 640px) {
-    .main_row_div{
-        padding: 1rem 0% !important;
-    }
     .property-card-img {
         width: 60px;
         height: 48px;
@@ -981,10 +960,10 @@ input[type=number] {
         font-size: 0.875rem;
     }
 
-    /* .select2-container--default .select2-selection--single {
+    .select2-container--default .select2-selection--single {
         min-height: 80px;
         padding: 12px 16px;
-    } */
+    }
 
     .phone-wrapper {
         flex-direction: column;
@@ -1022,8 +1001,8 @@ input[type=number] {
     align-items: center;
     margin-left: auto;
 }
-/* Rows without a pencil reserve the same trailing gutter
-   as the pencil (15px icon + 6px gap) so every amount lines up on the right. */
+/* Rows without a pencil reserve the same trailing gutter as the
+   pencil (15px icon + 6px gap) so every amount lines up on the right. */
 #summary-subtotal,
 #summary-total-display {
     padding-right: 21px;
@@ -1118,41 +1097,44 @@ input[type=number] {
     border-radius: 4px;
 }
 
+
+#id_price_per_night[readonly] {
+    background-color: #e9ecef;
+    /* A standard Bootstrap disabled gray */
+}
+
 .upload-area {
     min-height: 200px; /* Ensures both upload boxes have the same height */
     display: flex; flex-direction: column; justify-content: center;
 }
-
 .payment-divider {
     width: 1px;
     background-color: #e5e7eb;
     margin: 0 1rem;
 }
-.booking-scroll-area {
-    flex: 1 0 auto;
-    min-height: 0;
-    /* No internal scroll — the whole page scrolls once (single-scroll). */
-}
 @media (max-width: 991.98px) {
+    .payment-divider {
+        /* On smaller screens, we rely on stacking, so the divider is not needed */
+        display: none;
+    }
 
-    .action-buttons span{
-        font-size: 18px !important;
-    }
-    .main_row_div{
-        padding: 1rem 3% !important;
-    }
     .action-buttons {
         background: #E7E7E9 !important;
         border-radius: 0 !important;
         border-bottom: 1px solid #e5e7eb;
         padding: 10px 7px !important;
     }
+
     .action-buttons > .d-flex.align-items-center span {
         color: #000000 !important;
+        font-size: 18px !important;
+        font-weight: 700;
     }
+
     .action-buttons > .d-flex.align-items-center img {
         filter: brightness(0);
     }
+
     .action-buttons .btn-group {
         background: #ffffff;
         border: 2px solid #7f8a95;
@@ -1161,6 +1143,7 @@ input[type=number] {
         overflow: hidden;
         min-height: 40px;
     }
+
     .action-buttons .btn-create,
     .action-buttons .btn-cancel {
         background: #ffffff;
@@ -1168,50 +1151,24 @@ input[type=number] {
         font-weight: 700;
         padding: 8px 12px;
     }
+
     .action-buttons .btn-divider {
         background: #7f8a95;
         margin: 6px 0;
     }
-    .main_row_div > .col-lg-6.col-12 {
+
+    .main_body_div > .col-lg-6.col-12 {
         padding-left: 0 !important;
         padding-right: 0 !important;
     }
-    .main_row_div .row {
+
+    .main_body_div .row {
         --bs-gutter-x: 0 !important;
     }
-    .main_row_div .row > [class*="col-"] {
-        padding-left: 0 !important;
-        padding-right: 0 !important;
-    }
-    .main_row_div .form-group.ps-0,
-    .main_row_div .last-name-col {
-        padding-left: 0 !important;
-        padding-right: 0 !important;
-    }
-    .payment-divider {
-        /* On smaller screens, we rely on stacking, so the divider is not needed */
-        display: none;
-    }
-}
 
-/* iPhone Safari viewport fix: avoid top blank gap from 100vh calculations */
-@supports (-webkit-touch-callout: none) {
-    @media (max-width: 991.98px) {
-        .main-content-body {
-            height: calc(100dvh - 66px) !important;
-            max-height: none !important;
-            padding-top: 0 !important;
-        }
-        .booking-scroll-area {
-            max-height: none !important;
-        }
-        .booking-page-container {
-            margin-top: 0 !important;
-            padding-top: 0 !important;
-        }
-        .custom-header {
-            margin-top: 0 !important;
-        }
+    .main_body_div .row > [class*="col-"] {
+        padding-left: 0 !important;
+        padding-right: 0 !important;
     }
 }
 
@@ -1247,8 +1204,9 @@ input[type=number] {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    gap: 14px;
+    gap: 12px;
     background: #fff;
+    z-index: 2;
     flex-wrap: nowrap;
 }
 
@@ -1256,27 +1214,25 @@ input[type=number] {
     font-size: 20px;
     font-weight: 700;
     color: #111827;
+    margin: 0;
+    line-height: 1.2;
     white-space: nowrap;
-    line-height: 1;
 }
 
 .close-sidebar-btn {
     background: none;
     border: none;
     font-size: 24px;
-    line-height: 1;
     color: #6b7280;
     cursor: pointer;
-    padding: 0;
+    padding: 4px;
     border-radius: 50%;
-    flex: 0 0 auto;
 }
 
 .sidebar-search {
-    flex: 0 1 360px;
     width: 360px;
     max-width: 100%;
-    min-width: 220px;
+    flex-shrink: 0;
     margin-left: auto;
 }
 
@@ -1285,10 +1241,8 @@ input[type=number] {
     height: 42px;
     padding: 10px 14px;
     border: 1px solid #d1d5db;
-    border-radius: 10px;
+    border-radius: 8px;
     outline: none;
-    background: #f3f4f6;
-    font-size: 15px;
 }
 
 .sidebar-content {
@@ -1300,20 +1254,93 @@ input[type=number] {
 
 .property-card-sidebar {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
+    gap: 12px;
     border: 1px solid #e5e7eb;
     border-radius: 12px;
-    padding: 10px;
+    padding: 6px;
     margin-bottom: 10px;
     cursor: pointer;
     transition: all 0.2s;
-    background: #fff;
 }
 
 .property-card-sidebar.selected {
     border-color: #2563eb;
     box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.12);
     background: #eff6ff;
+}
+
+.property-card-sidebar .property-card-img {
+    width: 72px;
+    height: 72px;
+    margin-right: 0;
+    flex-shrink: 0;
+}
+
+.property-card-sidebar .property-card-info {
+    min-width: 0;
+}
+
+.property-card-sidebar .d-flex.justify-content-between.align-items-start {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start !important;
+    gap: 12px;
+    width: 100%;
+}
+
+.property-card-sidebar .d-flex.justify-content-between.align-items-start > div:first-child {
+    min-width: 0;
+    flex: 1;
+}
+
+.property-card-sidebar .availability-status {
+    margin-left: auto;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.property-card-sidebar .selected-status {
+    display: inline-flex;
+    align-items: center;
+    margin-left: 8px;
+    padding: 4px 8px;
+    border-radius: 999px;
+    background: #dbeafe;
+    color: #1d4ed8;
+    font-size: 0.74rem;
+    font-weight: 700;
+    line-height: 1;
+    white-space: nowrap;
+}
+
+@media (max-width: 991.98px) {
+    .property-sidebar {
+        width: calc(100vw - 16px);
+        height: calc(100dvh - 16px);
+        border-radius: 14px;
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
+    }
+
+    .sidebar-search {
+        width: clamp(190px, 50vw, 320px);
+        min-width: 0;
+    }
+
+    .sidebar-content {
+        padding: 12px 12px 0px 12px;
+        padding-bottom: 60px !important;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .sidebar-title {
+        font-size: 16px;
+    }
+
+    .sidebar-search {
+        width: min(56vw, 250px);
+    }
 }
 
 .property-card-sidebar:hover {
@@ -1332,145 +1359,6 @@ input[type=number] {
     box-shadow: none;
 }
 
-.property-card-sidebar .property-card-img {
-    width: 76px;
-    height: 72px;
-    border-radius: 12px;
-    margin-right: 12px;
-}
-
-.property-card-sidebar .property-card-title {
-    font-size: 1.12rem;
-    line-height: 1.25;
-    margin-bottom: 2px;
-}
-
-.property-card-sidebar .property-card-location {
-    font-size: 0.98rem;
-    line-height: 1.3;
-}
-
-.property-card-sidebar .property-card-meta {
-    font-size: 0.98rem;
-    line-height: 1.35;
-}
-
-.property-card-sidebar .availability-status {
-    font-size: 0.86rem;
-    padding: 6px 10px;
-    border-radius: 6px;
-    white-space: nowrap;
-}
-
-.property-card-sidebar .selected-status {
-    display: inline-flex;
-    align-items: center;
-    margin-left: 8px;
-    padding: 4px 8px;
-    border-radius: 999px;
-    background: #dbeafe;
-    color: #1d4ed8;
-    font-size: 0.74rem;
-    font-weight: 700;
-    line-height: 1;
-    white-space: nowrap;
-}
-
-@media (max-width: 1199.98px) {
-    .property-sidebar {
-        width: min(920px, calc(100vw - 20px));
-    }
-}
-
-@media (max-width: 991.98px) {
-    .property-sidebar {
-        width: calc(100vw - 16px);
-        height: calc(100dvh - 16px);
-        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
-        border-left: 0;
-        border-radius: 14px;
-    }
-
-    .sidebar-header {
-        padding: 12px;
-        gap: 10px;
-    }
-
-    .sidebar-title {
-        font-size: 18px;
-    }
-
-    .close-sidebar-btn {
-        font-size: 24px;
-    }
-
-    .sidebar-search {
-        flex: 0 1 320px;
-        width: 320px;
-        max-width: 60vw;
-        min-width: 0;
-    }
-
-    .sidebar-search input {
-        height: 40px;
-        font-size: 15px;
-    }
-
-    .property-card-sidebar {
-        padding: 8px;
-        margin-bottom: 10px;
-        border-radius: 12px;
-    }
-
-    .property-card-sidebar .property-card-img {
-        width: 78px;
-        height: 64px;
-        margin-right: 12px;
-    }
-
-    .property-card-sidebar .property-card-title {
-        font-size: 1.08rem;
-    }
-
-    .property-card-sidebar .property-card-location,
-    .property-card-sidebar .property-card-meta {
-        font-size: 0.95rem;
-    }
-
-    .property-card-sidebar .availability-status {
-        font-size: 0.82rem;
-        padding: 5px 9px;
-    }
-}
-
-@media (max-width: 640px) {
-    .sidebar-title {
-        font-size: 17px;
-    }
-
-    .close-sidebar-btn {
-        font-size: 22px;
-    }
-
-    .sidebar-search {
-        max-width: 56vw;
-    }
-
-    .property-card-sidebar .property-card-title {
-        font-size: 1.02rem;
-    }
-
-    .property-card-sidebar .property-card-location,
-    .property-card-sidebar .property-card-meta {
-        font-size: 0.9rem;
-    }
-
-    .property-card-sidebar .availability-status {
-        font-size: 0.78rem;
-        padding: 4px 8px;
-    }
-}
-
 .property-selection-trigger {
     border: 1px solid #d1d5db;
     border-radius: 8px;
@@ -1481,21 +1369,6 @@ input[type=number] {
     align-items: center;
     background: #fff;
     min-height: 46px;
-    font-size: 14px;
-    color: #111827;
-    width: 100%;
-}
-
-.property-selection-trigger .trigger-placeholder {
-    color: #9ca3af;
-}
-
-.property-selection-trigger .trigger-caret {
-    color: #9ca3af;
-    font-size: 16px;
-    line-height: 1;
-    flex: 0 0 auto;
-    margin-left: 10px;
 }
 
 .overlay-backdrop {
@@ -1521,17 +1394,6 @@ input[type=number] {
     cursor: not-allowed;
     opacity: 0.6;
     pointer-events: none;
-}
-
-.accommodation-field-wrap.show-unavailable #accommodation-not-available {
-    display: block !important;
-}
-
-#accommodation-not-available {
-    color: #dc3545 !important;
-    font-size: 13px;
-    margin-top: 6px;
-    font-weight: 600;
 }
 
 .booking-layout-grid {
@@ -1579,10 +1441,14 @@ input[type=number] {
 
 .booking-field-label {
     display: block;
-    margin-bottom: 6px;
+    margin-bottom: 8px;
     font-size: 12px;
     font-weight: 700;
     color: #1f2937;
+}
+
+.time-field-label {
+    margin-top: 4px;
 }
 
 .searchable-select-wrap { position: relative; z-index: 10; }
@@ -1642,10 +1508,6 @@ input[type=number] {
 }
 .searchable-select-dropdown li.no-results:hover { background: transparent; }
 
-.time-field-label {
-    margin-top: 4px;
-}
-
 .booking-input,
 .booking-select,
 .booking-textarea {
@@ -1688,7 +1550,7 @@ input[type=number] {
 .booking-upload-box {
     border: 1px dashed #d1d5db;
     border-radius: 10px;
-    min-height: 123px;
+    min-height: 118px;
     padding: 14px 10px;
     display: flex;
     flex-direction: column;
@@ -1719,25 +1581,8 @@ input[type=number] {
     margin-top: 2px;
 }
 
-.booking-inline-note {
-    font-size: 12px;
-    color: #6b7280;
-    margin-top: 4px;
-}
-
 .booking-summary-card {
     margin-top: 14px !important;
-    padding: 0 !important;
-}
-
-.booking-summary-card .summary-item.mt-1 {
-    margin-top: 0;
-}
-
-.booking-summary-card hr {
-    border-top: 1px dashed #dee2e6;
-    opacity: 1;
-    margin: 4px 0;
 }
 
 .booking-summary-card hr {
@@ -1780,22 +1625,48 @@ input[type=number] {
     right: 14px;
 }
 
-@media (max-width: 991.98px) {
+.main_row_div{
+    padding: 40px 12%;
+}
+
+/* Single-scroll: the page content (form panels) does NOT scroll
+   internally. The whole page scrolls once via .main-content-body and
+   the footer is the last thing at the end. The form grows to fill so
+   the footer pins to the bottom on short pages. */
+body.single-scroll .page-content-wrap > form {
+    flex: 1 0 auto;
+    display: flex;
+    flex-direction: column;
+}
+.booking-page-container {
+    flex: 1 0 auto;
+    display: flex;
+    flex-direction: column;
+}
+.booking-scroll-area {
+    flex: 1 0 auto;
+}
+
+   
+.booking-page-container > .row {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background: #E7E7E9;
+}
+
+@media (max-width: 991px) {
+    .main_row_div{
+        padding: 1rem 3%;
+    }
     .booking-layout-grid {
         grid-template-columns: 1fr;
     }
-
     .booking-panel-body {
         padding: 12px;
     }
-
     .booking-field-grid,
     .booking-upload-grid {
         grid-template-columns: 1fr;
     }
 }
-
-/* ── page styles (former inline block 2) ── */
-    #id_price_per_night[readonly] {
-        background-color: #e9ecef;
-    }
