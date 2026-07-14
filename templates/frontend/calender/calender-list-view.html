@@ -289,7 +289,7 @@
     document.getElementById('statCheckins').textContent = ins;
     document.getElementById('statCheckouts').textContent = outs;
     document.getElementById('statPayments').textContent = payments;
-    document.getElementById('statRevenue').textContent = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(collected);
+    document.getElementById('statRevenue').textContent = window.fmtMoney(collected);
     document.getElementById('cntAll').textContent = events.length;
     document.getElementById('cntIn').textContent = ins;
     document.getElementById('cntOut').textContent = outs;
@@ -378,7 +378,7 @@
       typeZoneHtml = `<span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 4h5a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1h-5"/><path d="M3 12h11m0 0-4-4m4 4-4 4"/></svg></span><div class="typecontent"><span class="type__label">Check-in <span class="badge badge--in">Arrival</span></span>${renderStayRange(ev.stay)}</div>`;
     } else if (group === 'Payment') {
       const method = (ev.channel_name || '').toLowerCase() === 'airbnb' ? 'payout' : 'card';
-      typeZoneHtml = `<span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2.5" y="6" width="19" height="12" rx="2.5"/><circle cx="12" cy="12" r="2.6"/><path d="M6 9.5v5M18 9.5v5"/></svg></span><div class="typecontent"><span class="type__label">Payment <span class="badge badge--pay">${ev.paid ? 'Received' : 'Pending'}</span></span><span class="amount">$${Number(ev.amount||0).toFixed(2)} <small>· ${method}</small></span></div>`;
+      typeZoneHtml = `<span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2.5" y="6" width="19" height="12" rx="2.5"/><circle cx="12" cy="12" r="2.6"/><path d="M6 9.5v5M18 9.5v5"/></svg></span><div class="typecontent"><span class="type__label">Payment <span class="badge badge--pay">${ev.paid ? 'Received' : 'Pending'}</span></span><span class="amount">${window.fmtMoney(Number(ev.amount||0))} <small>· ${method}</small></span></div>`;
     } else if (group === 'Enquiry') {
       typeZoneHtml = `<span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20a8 8 0 0 1 16 0"/></svg></span><div class="typecontent"><span class="type__label">Enquiry <span class="badge badge--enquiry">New</span></span>${renderStayRange(ev.stay)}${ev.guests ? '<span style="font-size:12px;color:var(--muted)">'+ev.guests+'</span>' : ''}</div>`;
     } else if (group === 'Blocked') {

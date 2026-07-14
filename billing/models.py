@@ -25,6 +25,15 @@ class PlatformSetting(models.Model):
         max_length=20, default='month',
         help_text="Billing interval label, e.g. month or year.",
     )
+    subscription_price_yearly = models.DecimalField(
+        max_digits=8, decimal_places=2, default=99.99,
+        help_text="Yearly price shown across the platform (display only — "
+                  "update Stripe separately for real billing).",
+    )
+    subscription_interval_yearly = models.CharField(
+        max_length=20, default='year',
+        help_text="Yearly billing interval label, e.g. year.",
+    )
     free_trial_days = models.PositiveIntegerField(
         default=90,
         help_text="Free-trial length for NEW accounts (in days). Changing this "
@@ -64,6 +73,62 @@ class PlatformSetting(models.Model):
     def full_display(self):
         """e.g. '$9.99/month' — amount plus interval."""
         return f"{self.amount_display}/{self.subscription_interval}"
+
+    @property
+    def interval_adverb(self):
+        """Turn the interval into an adverb for copy, e.g. 'month' -> 'monthly'.
+
+        Robust to admin entering either the noun ('month') or the adverb
+        ('Monthly') — avoids bugs like 'Daily' -> 'Dailyly'.
+        """
+        key = (self.subscription_interval or 'month').strip().lower()
+        mapping = {
+            'day': 'daily', 'week': 'weekly', 'month': 'monthly', 'year': 'yearly',
+            'daily': 'daily', 'weekly': 'weekly', 'monthly': 'monthly', 'yearly': 'yearly',
+        }
+        if key in mapping:
+            return mapping[key]
+        return key if key.endswith('ly') else f"{key}ly"
+
+    # ── Yearly plan display helpers (mirror the monthly ones) ─────────────
+    @property
+    def amount_display_yearly(self):
+        """e.g. '$99.99' — yearly amount without the interval."""
+        from .emails import format_price
+        return format_price(self.subscription_price_yearly, self.subscription_currency)
+
+    @property
+    def full_display_yearly(self):
+        """e.g. '$99.99/year' — yearly amount plus interval."""
+        return f"{self.amount_display_yearly}/{self.subscription_interval_yearly}"
+
+    @property
+    def yearly_monthly_equivalent_display(self):
+        """e.g. '$8.33' — the yearly price broken down per month (display only)."""
+        from .emails import format_price
+        monthly = (self.subscription_price_yearly or 0) / 12
+        return format_price(monthly, self.subscription_currency)
+
+    @property
+    def yearly_anchor_display(self):
+        """A year's cost at the MONTHLY rate (monthly x 12), e.g. '$119.88'.
+
+        Shown struck-through next to the yearly price to anchor the saving.
+        """
+        from .emails import format_price
+        return format_price((self.subscription_price or 0) * 12, self.subscription_currency)
+
+    @property
+    def yearly_savings_percent(self):
+        """Percent saved by paying yearly vs 12x the monthly price, e.g. 17."""
+        try:
+            monthly_annual = float(self.subscription_price) * 12
+            yearly = float(self.subscription_price_yearly)
+            if monthly_annual <= 0:
+                return 0
+            return round((monthly_annual - yearly) / monthly_annual * 100)
+        except (TypeError, ValueError):
+            return 0
 
 
 class StripeCustomer(models.Model):

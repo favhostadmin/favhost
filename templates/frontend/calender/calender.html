@@ -137,10 +137,10 @@
             </div>
             <div class="mobile-menu-divider"></div>
             <div class="mobile-menu-bottom-row">
-              <button class="btn p-0 tooltip-light" id="mobilePrintBtn" style="border:none">
+              <button class="btn p-0" id="mobilePrintBtn" style="border:none" aria-label="Print" title="Print">
                 <img src="{% static 'img/calender/print_icon.svg' %}">
               </button>
-              <button class="btn p-0 tooltip-light" id="mobileRefreshBtn" style="border:none">
+              <button class="btn p-0" id="mobileRefreshBtn" style="border:none" aria-label="Refresh" title="Refresh">
                 <img src="{% static 'img/calender/refresh_icon.svg' %}">
               </button>
             </div>
@@ -156,10 +156,10 @@
         <div class="d-flex">
           <div></div>
           <div class="header-actions-group hdr-actions">
-            <button type="button" class="hdr-icon-btn tooltip-light" id="refreshBtn" aria-label="Refresh" title="Refresh">
+            <button type="button" class="hdr-icon-btn" id="refreshBtn" aria-label="Refresh" title="Refresh">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
             </button>
-            <button type="button" class="hdr-icon-btn tooltip-light" id="printBtn" aria-label="Print" title="Print">
+            <button type="button" class="hdr-icon-btn" id="printBtn" aria-label="Print" title="Print">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
             </button>
           </div>
@@ -569,6 +569,14 @@
     return CHANNEL_LOGOS[key] || '';
   }
 
+  // Leading circle icon for blocked date-range bars — same .channel-logo-circle
+  // treatment as a reservation's channel logo, just with a "no entry" glyph.
+  const blockedIconUrl = "{% static 'img/calender/blocked_icon.svg' %}";
+  // Same treatment for a booking marked "no_show" (guest never checked in) —
+  // amber, matching the No Show badge/stat-card color on the booking list page.
+  const noShowIconUrl = "{% static 'img/calender/no_show_icon.svg' %}";
+  const NO_SHOW_COLOR = '#d97706';
+
   // Global currentDisplayDate for month display
   let currentDisplayDate = new Date(); // Starts at today
   let selectedWeekStart = null; // Sunday of current week
@@ -720,8 +728,21 @@
       return;
     }
 
-    const firstDate = allDates[0];
-    const lastDate = allDates[allDates.length - 1];
+    let firstDate = allDates[0];
+    let lastDate = allDates[allDates.length - 1];
+
+    // Week view's visible 7 days can spill outside the current month's
+    // date range (e.g. a week starting on the month's last Sunday), so
+    // widen the request to also cover the actual selected week - otherwise
+    // bookings on those trailing/leading days never get fetched.
+    if (currentViewMode === 'week' && selectedWeekStart) {
+      const weekStart = new Date(selectedWeekStart);
+      weekStart.setHours(0, 0, 0, 0);
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekEnd.getDate() + 6);
+      if (weekStart < firstDate) firstDate = weekStart;
+      if (weekEnd > lastDate) lastDate = weekEnd;
+    }
 
     // Ensure we cover the full range of the view
     const url = `?start_date=${toISODateString(firstDate)}&end_date=${toISODateString(lastDate)}&_=${Date.now()}`;
@@ -2656,10 +2677,13 @@
         const labelText = span.carryStart ? `-- ${labelName}` : labelName;
         const channelLogoUrl = getChannelLogo(ev.channelName, ev.channelIcon);
         const channelColor = getChannelColor(ev.channelName) || ev.color || '#3b82f6';
-        const channelLogoHtml = channelLogoUrl && ev.type !== 'blocked'
-          ? `<div class="channel-logo-circle" style="border-color:${channelColor};background-color:${channelColor}"><img src="${channelLogoUrl}" alt="${ev.channelName || ''}" /></div>`
-          : '';
-        const style = ev.type === 'blocked' ? 'background-color:#9ca3af;' : `background-color:${channelColor};`;
+        const isNoShow = ev.status === 'no_show';
+        const channelLogoHtml = ev.type === 'blocked'
+          ? `<div class="channel-logo-circle" style="background-color:#9ca3af"><img src="${blockedIconUrl}" alt="Blocked" /></div>`
+          : isNoShow
+          ? `<div class="channel-logo-circle" style="background-color:${NO_SHOW_COLOR}"><img src="${noShowIconUrl}" alt="No Show" /></div>`
+          : (channelLogoUrl ? `<div class="channel-logo-circle" style="border-color:${channelColor};background-color:${channelColor}"><img src="${channelLogoUrl}" alt="${ev.channelName || ''}" /></div>` : '');
+        const style = ev.type === 'blocked' ? 'background-color:#9ca3af;' : isNoShow ? `background-color:${NO_SHOW_COLOR};` : `background-color:${channelColor};`;
         eventsHtml += `<div class="grid-event-span ${carryStartClass} ${carryEndClass}" style="grid-column:${gridColStart}/${gridColEnd};grid-row:1;${style};${spanOffsets(span)}" ${onClick} onmouseenter="showMonthEventTooltip(event,'${ev.id}',false)" onmouseleave="hideGlobalTooltip()">${channelLogoHtml}<span class="event-title">${labelText}</span></div>`;
       });
 
@@ -2832,10 +2856,13 @@
         const labelText = span.carryStart ? `-- ${labelName}` : labelName;
         const channelLogoUrl = getChannelLogo(ev.channelName, ev.channelIcon);
         const channelColor = getChannelColor(ev.channelName) || ev.color || '#3b82f6';
-        const channelLogoHtml = channelLogoUrl && ev.type !== 'blocked'
-          ? `<div class="channel-logo-circle" style="border-color:${channelColor};background-color:${channelColor}"><img src="${channelLogoUrl}" alt="${ev.channelName || ''}" /></div>`
-          : '';
-        const style = ev.type === 'blocked' ? 'background-color:#9ca3af;' : `background-color:${channelColor};`;
+        const isNoShow = ev.status === 'no_show';
+        const channelLogoHtml = ev.type === 'blocked'
+          ? `<div class="channel-logo-circle" style="background-color:#9ca3af"><img src="${blockedIconUrl}" alt="Blocked" /></div>`
+          : isNoShow
+          ? `<div class="channel-logo-circle" style="background-color:${NO_SHOW_COLOR}"><img src="${noShowIconUrl}" alt="No Show" /></div>`
+          : (channelLogoUrl ? `<div class="channel-logo-circle" style="border-color:${channelColor};background-color:${channelColor}"><img src="${channelLogoUrl}" alt="${ev.channelName || ''}" /></div>` : '');
+        const style = ev.type === 'blocked' ? 'background-color:#9ca3af;' : isNoShow ? `background-color:${NO_SHOW_COLOR};` : `background-color:${channelColor};`;
         rowHtml += `<div class="grid-event-span ${carryStartClass} ${carryEndClass}" style="grid-column:${gridColStart}/${gridColEnd};grid-row:1;${style};${spanOffsets(span)}" ${onClick} onmouseenter="showMonthEventTooltip(event,'${ev.id}',false)" onmouseleave="hideGlobalTooltip()">${channelLogoHtml}<span class="event-title">${labelText}</span></div>`;
       });
 
@@ -3757,8 +3784,15 @@
           const sunday = new Date(today);
           sunday.setDate(today.getDate() - dayOfWeek);
           if (currentViewMode === 'week') {
-            selectedWeekStart = sunday;
-            currentDisplayDate = new Date(sunday);
+            // Anchor on whatever date was already being viewed (not real
+            // "today") so switching into Week view doesn't discard the
+            // month/date context you navigated to in another view.
+            const base = new Date(currentDisplayDate);
+            base.setHours(0, 0, 0, 0);
+            const baseWeekStart = new Date(base);
+            baseWeekStart.setDate(base.getDate() - base.getDay());
+            selectedWeekStart = baseWeekStart;
+            currentDisplayDate = new Date(baseWeekStart);
           } else {
             currentDisplayDate = new Date(today.getFullYear(), today.getMonth(), 1);
             selectedWeekStart = sunday;
@@ -3945,8 +3979,15 @@
           const sunday = new Date(today);
           sunday.setDate(today.getDate() - dayOfWeek);
           if (currentViewMode === 'week') {
-            selectedWeekStart = sunday;
-            currentDisplayDate = new Date(sunday);
+            // Anchor on whatever date was already being viewed (not real
+            // "today") so switching into Week view doesn't discard the
+            // month/date context you navigated to in another view.
+            const base = new Date(currentDisplayDate);
+            base.setHours(0, 0, 0, 0);
+            const baseWeekStart = new Date(base);
+            baseWeekStart.setDate(base.getDate() - base.getDay());
+            selectedWeekStart = baseWeekStart;
+            currentDisplayDate = new Date(baseWeekStart);
           } else {
             currentDisplayDate = new Date(today.getFullYear(), today.getMonth(), 1);
             selectedWeekStart = sunday;
