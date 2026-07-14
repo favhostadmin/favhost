@@ -690,7 +690,7 @@
                         <!-- Bathroom | Bed Type -->
                         <div class="row m-0 p-0">
                             <div class="col-lg-6 col-12 ps-0 form-group">
-                                <label class="form-label">Bathroom</label>
+                                <label class="form-label">Bathroom<span class="required">*</span></label>
                                 {{ form.bathroom_type }}
                             </div>
                             <div class="col-lg-6 col-12 ps-0 form-group">
@@ -770,16 +770,16 @@
                     <div class="section-block">
                         <h2 class="section-title">Address</h2>
                         <div class="form-group ps-0">
-                            <label class="form-label">Street address</label>
+                            <label class="form-label">Street address<span class="required">*</span></label>
                             {{ form.street_address }}
                         </div>
                         <div class="row m-0 p-0">
                             <div class="col-lg-6 col-12 ps-0 form-group">
-                                <label class="form-label">City</label>
+                                <label class="form-label">City<span class="required">*</span></label>
                                 {{ form.city }}
                             </div>
                             <div class="col-lg-6 col-12 ps-0 form-group">
-                                <label class="form-label">Zip</label>
+                                <label class="form-label">Zip<span class="required">*</span></label>
                                 <div class="number-input">{{ form.zip }}</div>
                             </div>
                         </div>
@@ -1110,23 +1110,43 @@
         if (sc) sc.scrollTop = 0;
     }
 
+    function collectStep1InvalidFields(step1Content) {
+        const otherPhotosInput = document.getElementById('file-input');
+        const otherPhotosGroup = otherPhotosInput.closest('.form-group');
+        const otherPhotosCount = selectedFiles.length + document.querySelectorAll('.existing-images .preview-item').length;
+
+        const otherPhotosErrorEl = document.getElementById('error-message');
+        const invalid = [];
+        step1Content.querySelectorAll('.form-group').forEach(group => {
+            if (group === otherPhotosGroup) {
+                const remaining = 5 - otherPhotosCount;
+                if (remaining > 0) {
+                    const message = `Upload Other Photos (${remaining} more photo${remaining === 1 ? '' : 's'} needed)`;
+                    invalid.push({ label: message, group, control: getFieldControl(group) });
+                    showError(otherPhotosErrorEl, `Please upload ${remaining} more photo${remaining === 1 ? '' : 's'} (minimum 5 required).`);
+                } else {
+                    hideError(otherPhotosErrorEl);
+                }
+                return;
+            }
+            const requiredMark = group.querySelector(':scope > label .required');
+            if (!requiredMark) return;
+            if (isFieldGroupEmpty(group)) {
+                invalid.push({ label: getRequiredFieldLabel(group), group, control: getFieldControl(group) });
+            }
+        });
+        return invalid;
+    }
+
     function validateStep1AndProceed() {
         const step1Content = document.getElementById('step1-content');
         step1Content.querySelectorAll('.field-invalid').forEach(el => el.classList.remove('field-invalid'));
 
-        const missingFields = collectMissingRequiredFields(step1Content);
+        const missingFields = collectStep1InvalidFields(step1Content);
         if (missingFields.length > 0) {
-            missingFields.forEach(f => {
-                if (!f.control) return;
-                f.control.classList.add('field-invalid');
-                const clearHighlight = () => f.control.classList.remove('field-invalid');
-                const fileInput = f.group.querySelector('input[type="file"]');
-                if (fileInput) fileInput.addEventListener('change', clearHighlight, { once: true });
-                f.control.addEventListener('input', clearHighlight, { once: true });
-                f.control.addEventListener('change', clearHighlight, { once: true });
-            });
+            highlightInvalidFields(missingFields);
             missingFields[0].group.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            focusField(missingFields[0].control);
+            showMissingFieldsModal([missingFields[0]], () => focusField(missingFields[0].control));
             return;
         }
         goToStep(2);
@@ -1821,6 +1841,9 @@
             control.setAttribute('tabindex', '-1');
         }
         control.focus({ preventScroll: true });
+        if (control.tagName === 'SELECT' && typeof control.showPicker === 'function') {
+            try { control.showPicker(); } catch (e) {}
+        }
     }
 
     function getRequiredFieldLabel(group) {
@@ -1860,6 +1883,24 @@
         return missing;
     }
 
+    function collectAllInvalidFields(form) {
+        const step1Content = document.getElementById('step1-content');
+        const step2Content = document.getElementById('step2-content');
+        return collectStep1InvalidFields(step1Content).concat(collectMissingRequiredFields(step2Content));
+    }
+
+    function highlightInvalidFields(fields) {
+        fields.forEach(f => {
+            if (!f.control) return;
+            f.control.classList.add('field-invalid');
+            const clearHighlight = () => f.control.classList.remove('field-invalid');
+            const fileInput = f.group.querySelector('input[type="file"]');
+            if (fileInput) fileInput.addEventListener('change', clearHighlight, { once: true });
+            f.control.addEventListener('input', clearHighlight, { once: true });
+            f.control.addEventListener('change', clearHighlight, { once: true });
+        });
+    }
+
     function showMissingFieldsModal(missingFields, onClose) {
         const list = document.getElementById('missingFieldsList');
         list.innerHTML = '';
@@ -1884,14 +1925,16 @@
         form.addEventListener('submit', function(event) {
             showLoader();
 
-            const missingFields = collectMissingRequiredFields(form);
+            const missingFields = collectAllInvalidFields(form);
             if (missingFields.length > 0) {
                 event.preventDefault(); hideLoader();
+                form.querySelectorAll('.field-invalid').forEach(el => el.classList.remove('field-invalid'));
+                highlightInvalidFields(missingFields);
                 const firstGroup = missingFields[0].group;
                 const isInStep2 = !!firstGroup.closest('#step2-content');
                 goToStep(isInStep2 ? 2 : 1);
                 firstGroup.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                showMissingFieldsModal(missingFields, () => focusField(missingFields[0].control));
+                showMissingFieldsModal([missingFields[0]], () => focusField(missingFields[0].control));
                 return;
             }
 
