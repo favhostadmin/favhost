@@ -1,6 +1,7 @@
 {% extends 'frontend/base/base.html' %}
 {% load static %}
 {% load frontdesk_extras %}
+{% load currency_tags %}
 {% block extra_head %}
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -102,7 +103,7 @@
         </div>
 
         <div class="kpi-grid">
-          <div class="kpi"><span class="kpi-val green" id="kpi-revpar">${{ revpar }}</span><span class="kpi-label">RevPAR</span></div>
+          <div class="kpi"><span class="kpi-val green" id="kpi-revpar">{% money revpar %}</span><span class="kpi-label">RevPAR</span></div>
           <div class="kpi"><span class="kpi-val" id="kpi-inhouse">{{ total_inhouse }}</span><span class="kpi-label">In house</span></div>
           <div class="kpi"><span class="kpi-val green" id="kpi-checkins">{{ total_checkin }}</span><span class="kpi-label">Check-ins</span></div>
           <div class="kpi"><span class="kpi-val amber" id="kpi-checkouts">{{ total_checkout }}</span><span class="kpi-label">Check-outs</span></div>
@@ -263,7 +264,7 @@
               </div>
               {% endif %}
               <div class="hk-price">
-                <span class="hk-price-val">${{ h.price }}</span>
+                <span class="hk-price-val">{% money h.price %}</span>
                 <span class="hk-price-unit">/ night</span>
               </div>
             </div>
@@ -789,7 +790,7 @@
           </div>
           ${(checkinBadge || checkoutBadge) ? `<div class="hk-flags">${checkoutBadge}${checkinBadge}</div>` : ''}
           <div class="hk-price">
-            <span class="hk-price-val">$${h.price.toFixed(2)}</span>
+            <span class="hk-price-val">${window.fmtMoney(h.price)}</span>
             <span class="hk-price-unit">/ night</span>
           </div>
         </div>
@@ -811,7 +812,7 @@
       ]);
 
       document.getElementById('occ-pct').textContent         = sum.occupancy_pct + '%';
-      document.getElementById('kpi-revpar').textContent      = '$' + sum.revpar;
+      document.getElementById('kpi-revpar').textContent      = window.fmtMoney(sum.revpar);
       document.getElementById('kpi-inhouse').textContent     = sum.total_inhouse;
       document.getElementById('kpi-checkins').textContent    = sum.total_checkin;
       document.getElementById('kpi-checkouts').textContent   = sum.total_checkout;
