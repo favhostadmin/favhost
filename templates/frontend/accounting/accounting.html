@@ -640,6 +640,51 @@
     color: #dc2626;
   }
 
+  /* Income "view all" collapse — extra listing rows past the first 15 are
+     hidden on screen until the toggle is clicked. Print always shows them
+     (see @media print) so the PDF is complete. */
+  table.acc-ledger tr.acc-inc-extra {
+    display: none;
+  }
+
+  table.acc-ledger.acc-inc-open tr.acc-inc-extra {
+    display: table-row;
+  }
+
+  tr.acc-inc-toggle-row td {
+    padding: 0 !important;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+  }
+
+  .acc-inc-toggle {
+    width: 100%;
+    background: #fff;
+    border: none;
+    padding: 9px 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #EB5310;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+
+  .acc-inc-toggle:hover {
+    background: #FEF1EB;
+  }
+
+  .acc-inc-toggle svg {
+    width: 14px;
+    height: 14px;
+    transition: transform 0.15s ease;
+  }
+
+  table.acc-ledger.acc-inc-open .acc-inc-toggle svg {
+    transform: rotate(180deg);
+  }
+
   /* Chart — mirrors the Revenue page bar chart (grey bars, blue peak) */
   .acc-chart-wrap {
     width: 100%;
@@ -968,6 +1013,37 @@
       font-size: 13px;
     }
 
+    /* Mobile income "view all": hide listing rows past the first 15 until the
+       toggle is tapped. The list gets .aml-inc-open to reveal them. */
+    .aml-list .aml-inc-extra {
+      display: none;
+    }
+    .aml-list.aml-inc-open .aml-inc-extra {
+      display: flex;
+    }
+    .aml-inc-toggle {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      width: 100%;
+      background: none;
+      border: none;
+      padding: 11px 2px;
+      font-size: 13px;
+      font-weight: 700;
+      color: #EB5310;
+      border-bottom: 1px solid #f1f1f1;
+    }
+    .aml-inc-toggle svg {
+      width: 14px;
+      height: 14px;
+      transition: transform 0.15s ease;
+    }
+    .aml-list.aml-inc-open .aml-inc-toggle svg {
+      transform: rotate(180deg);
+    }
+
     /* Muted $0.00 values so rows with real amounts stand out. */
     .aml-item-val .aml-v.is-zero { color: #b8bcc2; font-weight: 500; }
     .aml-kpi-val .aml-v.is-zero { color: #9ca3af; }
@@ -1251,6 +1327,22 @@
       break-inside: avoid;
       page-break-inside: avoid;
     }
+
+    /* Always print every income row and never print the on-screen toggle,
+       so the PDF is the full statement regardless of the collapsed state. */
+    table.acc-ledger tr.acc-inc-extra {
+      display: table-row !important;
+    }
+
+    tr.acc-inc-toggle-row,
+    .aml-inc-extra + .aml-inc-toggle,
+    .aml-inc-toggle {
+      display: none !important;
+    }
+
+    .aml-inc-extra {
+      display: flex !important;
+    }
   }
 </style>
 {% endblock %}
@@ -1478,7 +1570,7 @@
               </thead>
               <tbody>
                 {% for row in income_rows %}
-                <tr>
+                <tr {% if forloop.counter > 15 %}class="acc-inc-extra"{% endif %}>
                   <td class="row-label"><span class="acc-rl" title="{{ row.label }}">{{ row.label }}</span></td>
                   {% for v in row.values %}<td class="numeric">{% money v %}</td>{% endfor %}
                   <td class="overall numeric">{% money row.overall %}</td>
@@ -1489,6 +1581,19 @@
                   </td>{% endfor %}<td class="overall numeric">{% money 0 %}</td>
                 </tr>
                 {% endfor %}
+                {% if income_rows|length > 15 %}
+                <tr class="acc-inc-toggle-row" aria-hidden="true">
+                  <td colspan="14">
+                    <button type="button" class="acc-inc-toggle" id="accIncToggle"
+                      aria-expanded="false" data-count="{{ income_rows|length }}">
+                      <span class="acc-inc-toggle-text">View all {{ income_rows|length }} listings</span>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4">
+                        <polyline points="6 9 12 15 18 9" />
+                      </svg>
+                    </button>
+                  </td>
+                </tr>
+                {% endif %}
                 <tr class="total">
                   <td class="row-label">Total</td>
                   {% for v in income_total %}<td class="numeric">{% money v %}</td>{% endfor %}
@@ -1592,14 +1697,23 @@
                 <span>Income by listing</span>
                 <span class="aml-scope" data-scope>Year</span>
               </div>
-              <div class="aml-list">
+              <div class="aml-list" id="amlIncList">
                 {% for row in income_rows %}
-                <div class="aml-item">
+                <div class="aml-item {% if forloop.counter > 15 %}aml-inc-extra{% endif %}">
                   <span class="aml-item-name" title="{{ row.label }}">{{ row.label }}</span>
                   <span class="aml-item-val">
                     {% for v in row.values %}<span class="aml-v" data-month="{{ forloop.counter0 }}">{% money v %}</span>{% endfor %}<span class="aml-v" data-month="all">{% money row.overall %}</span>
                   </span>
                 </div>
+                {% if forloop.counter == 15 and income_rows|length > 15 %}
+                <button type="button" class="aml-inc-toggle" id="amlIncToggle"
+                  aria-expanded="false">
+                  <span class="aml-inc-toggle-text">View all {{ income_rows|length }} listings</span>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4">
+                    <polyline points="6 9 12 15 18 9" />
+                  </svg>
+                </button>
+                {% endif %}
                 {% empty %}
                 <div class="aml-empty">No listings for {{ selected_year }}.</div>
                 {% endfor %}
@@ -1795,6 +1909,26 @@
       el.style.height = pct;                    // vertical bars (desktop)
       el.style.setProperty('--bar-size', pct);  // reused as width for horizontal bars (phone)
     });
+
+    // --- Income "view all": reveal listing rows past the first 15 on demand.
+    // Print/PDF is unaffected — the @media print rules force every row visible
+    // and hide the toggle, so the export is always the complete statement. ---
+    function wireIncomeToggle(btnId, container, openClass, count) {
+      var btn = document.getElementById(btnId);
+      if (!btn || !container) return;
+      var textEl = btn.querySelector('.acc-inc-toggle-text, .aml-inc-toggle-text');
+      btn.addEventListener('click', function () {
+        var open = container.classList.toggle(openClass);
+        btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+        if (textEl) textEl.textContent = open ? 'Show less' : ('View all ' + count + ' listings');
+      });
+    }
+    var incTable = document.querySelector('table.acc-ledger');
+    var incBtn = document.getElementById('accIncToggle');
+    wireIncomeToggle('accIncToggle', incTable, 'acc-inc-open',
+      incBtn ? incBtn.getAttribute('data-count') : '');
+    wireIncomeToggle('amlIncToggle', document.getElementById('amlIncList'), 'aml-inc-open',
+      '{{ income_rows|length }}');
 
     // --- Phone statement view: month chip selector toggles which value shows ---
     (function () {
