@@ -17,6 +17,7 @@ urlpatterns = [
     path('render-email-form/', views.render_email_form, name='render-email-form'),
     path('send-guest-email/', views.send_guest_email, name='send-guest-email'),
     path('guest-receipt/<uuid:pk>/', views.guest_receipt, name='guest-receipt'),
+    path('rental-agreement/<uuid:pk>/', views.rental_agreement, name='rental-agreement'),
 
     path('cancel/<uuid:pk>/', views.CancelBookingView.as_view(), name='cancel-booking'),
     path('no-show/<uuid:pk>/', views.MarkNoShowView.as_view(), name='mark-no-show'),

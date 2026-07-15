@@ -241,6 +241,15 @@
     </div>
   </div>
 
+  <!-- Rental Agreement Modal (used by calendar sidebar actions) -->
+  <div id="rentalAgreementModal" class="modal" style="display: none; z-index: 10000 !important;">
+    <div class="modal-content" style="width: 90%; max-width: 960px; max-height: 90vh; padding: 0; overflow: hidden;">
+      <div class="modal-body" style="padding: 0; max-height: none; overflow: visible;">
+        <div id="rental-agreement-content-placeholder">Loading...</div>
+      </div>
+    </div>
+  </div>
+
   <!-- Block Calendar Modal -->
   <div id="blockCalendarModal" class="bc-modal-overlay">
     <div class="bc-container">
@@ -483,10 +492,8 @@
   <!-- Reservation Detail Modal -->
   <div class="task-modal-overlay" id="reservationModalOverlay" onclick="closeReservationPanel(event)">
     <div class="reservation-modal" id="reservationModal" onclick="event.stopPropagation()">
-      <div class="reservation-modal-header" style="justify-content:flex-end;border:none;padding:6px 12px;min-height:0;">
-        <button class="reservation-modal-close" onclick="closeReservationPanel()"
-          style="font-size:22px;">&times;</button>
-      </div>
+      <button class="reservation-modal-close" onclick="closeReservationPanel()"
+        style="font-size:22px;">&times;</button>
       <div class="reservation-modal-body" id="reservationModalContent">
         <div style="display:flex;justify-content:center;align-items:center;height:200px;">
           <div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div>
@@ -1782,6 +1789,89 @@
             guestReceiptModal.style.display = 'none';
             guestReceiptPlaceholder.innerHTML = '';
             restoreReservationOverlayAfterReceipt();
+          }
+        });
+      }
+    }
+
+    // 3b. Rental Agreement Modal
+    const rentalAgreementModal = document.getElementById('rentalAgreementModal');
+    const rentalAgreementPlaceholder = document.getElementById('rental-agreement-content-placeholder');
+
+    function initRentalAgreementActions(scope) {
+      if (!scope) return;
+      const root = scope.querySelector('#rental-agreement-root');
+      const printBtn = scope.querySelector('#ra-print');
+      const pdfBtn = scope.querySelector('#ra-pdf');
+      const closeBtn = scope.querySelector('#ra-close');
+
+      if (printBtn) printBtn.addEventListener('click', function (e) { e.preventDefault(); window.print(); });
+
+      if (pdfBtn) pdfBtn.addEventListener('click', function (e) {
+        e.preventDefault();
+        if (!root || typeof html2pdf === 'undefined') { window.print(); return; }
+        pdfBtn.setAttribute('disabled', '');
+        const opt = {
+          margin: [12, 12, 14, 12],
+          filename: 'Rental-Stay-Agreement.pdf',
+          image: { type: 'jpeg', quality: 0.98 },
+          html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', scrollX: 0, scrollY: 0 },
+          jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' },
+          pagebreak: { mode: ['css', 'legacy'], avoid: ['tr', '.sig-card', '.section-head'] }
+        };
+        const clone = root.cloneNode(true);
+        clone.classList.add('ra-export');
+        const holder = document.createElement('div');
+        holder.style.cssText = 'position:fixed;left:-10000px;top:0;width:820px;background:#ffffff;z-index:-1;';
+        holder.appendChild(clone);
+        document.body.appendChild(holder);
+        const ready = (document.fonts && document.fonts.ready) ? document.fonts.ready : Promise.resolve();
+        ready.then(function () { return html2pdf().set(opt).from(clone).save(); })
+          .catch(function () { window.print(); })
+          .finally(function () {
+            holder.remove();
+            pdfBtn.removeAttribute('disabled');
+          });
+      });
+
+      if (closeBtn) closeBtn.addEventListener('click', function (e) {
+        e.preventDefault();
+        rentalAgreementModal.style.display = 'none';
+        rentalAgreementPlaceholder.innerHTML = '';
+      });
+    }
+
+    const rentalAgreementBtns = sidebarRoot.querySelectorAll('.rental-agreement-btn');
+    if (rentalAgreementModal && rentalAgreementPlaceholder && rentalAgreementBtns.length > 0) {
+      rentalAgreementBtns.forEach(btn => {
+        btn.addEventListener('click', function (e) {
+          e.preventDefault();
+          closeDropdown(this);
+          let url = this.dataset.agreementUrl;
+          if (!url) return;
+          url += (url.includes('?') ? '&' : '?') + 'is_modal=true';
+          rentalAgreementPlaceholder.innerHTML = '<div style="text-align: center; padding: 40px;">Loading...</div>';
+          rentalAgreementModal.style.display = 'flex';
+
+          fetch(url)
+            .then(response => response.text())
+            .then(html => {
+              rentalAgreementPlaceholder.innerHTML = html;
+              initRentalAgreementActions(rentalAgreementPlaceholder);
+            })
+            .catch(error => {
+              rentalAgreementPlaceholder.innerHTML = '<p style="text-align: center; padding: 40px; color: red;">Error loading rental agreement. Please try again.</p>';
+              console.error('Error fetching rental agreement:', error);
+            });
+        });
+      });
+
+      if (!window.__bookaidAgreementOutsideClickBound) {
+        window.__bookaidAgreementOutsideClickBound = true;
+        window.addEventListener('click', (e) => {
+          if (e.target == rentalAgreementModal) {
+            rentalAgreementModal.style.display = 'none';
+            rentalAgreementPlaceholder.innerHTML = '';
           }
         });
       }

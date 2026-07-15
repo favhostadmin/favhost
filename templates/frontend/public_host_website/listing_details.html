@@ -1247,11 +1247,23 @@
             if (availabilityBtn) availabilityBtn.style.display = 'none';
             if (reservationBtn) reservationBtn.style.display = 'none';
             if (statusDiv) { statusDiv.style.display = 'block'; statusDiv.textContent = 'Checking availability...'; statusDiv.className = 'availability-text'; }
+            if (availabilityBtnMobile) availabilityBtnMobile.style.display = 'none';
+            if (reservationBtnMobile) reservationBtnMobile.style.display = 'none';
+            if (statusDivMobile) { statusDivMobile.style.display = 'block'; statusDivMobile.textContent = 'Checking availability...'; statusDivMobile.className = 'availability-text'; }
             window.setTimeout(function () {
                 performCheck({
                     checkinEl: checkinEl, checkoutEl: checkoutEl,
                     guestsInput: guestsInput, statusDiv: statusDiv,
                     reservationBtn: reservationBtn, availabilityBtn: availabilityBtn
+                });
+                performCheck({
+                    checkinEl: checkinElMobile, checkoutEl: checkoutElMobile,
+                    guestsInput: guestsInputMobile, statusDiv: statusDivMobile,
+                    reservationBtn: reservationBtnMobile, availabilityBtn: availabilityBtnMobile
+                }, function (isAvailable) {
+                    if (isAvailable && window.matchMedia('(max-width: 1024px)').matches) {
+                        openMobileModal();
+                    }
                 });
             }, 0);
         }
@@ -1663,7 +1675,7 @@
             if (form.statusDiv) form.statusDiv.style.display = 'none';
         }
 
-        function checkAvailability(checkin, checkout, guests, form) {
+        function checkAvailability(checkin, checkout, guests, form, onResult) {
             const url = `/property/${propertyId}/check-availability/?check_in=${checkin}&check_out=${checkout}&guests=${guests}`;
 
             fetch(url)
@@ -1682,6 +1694,7 @@
                         if (form.reservationBtn) form.reservationBtn.style.display = 'none';
                         if (form.availabilityBtn) form.availabilityBtn.style.display = 'none';
                     }
+                    if (typeof onResult === 'function') onResult(!!data.available);
                 })
                 .catch(error => {
                     console.error('Error checking availability:', error);
@@ -1691,15 +1704,16 @@
                         form.statusDiv.className = 'availability-text not-available';
                     }
                     resetAvailabilityState(form);
+                    if (typeof onResult === 'function') onResult(false);
                 });
         }
 
-        function performCheck(form) {
+        function performCheck(form, onResult) {
             const guestsValue = form.guestsInput.value;
 
             if (form.checkinEl && form.checkoutEl && form.checkinEl.value.trim() && form.checkoutEl.value.trim() && guestsValue) {
                 const guests = parseInt(guestsValue, 10);
-                checkAvailability(form.checkinEl.value, form.checkoutEl.value, guests, form);
+                checkAvailability(form.checkinEl.value, form.checkoutEl.value, guests, form, onResult);
             } else {
                 showValidationModal('Please select check-in, check-out dates, and number of guests first.');
             }

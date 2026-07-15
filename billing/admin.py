@@ -5,12 +5,22 @@ from .models import StripeCustomer, PlatformSetting
 @admin.register(PlatformSetting)
 class PlatformSettingAdmin(admin.ModelAdmin):
     """Single, always-present row of site-wide pricing & trial settings."""
-    list_display = ['__str__', 'subscription_price', 'subscription_currency',
-                    'subscription_interval', 'free_trial_days', 'updated_at']
+    list_display = ['__str__', 'subscription_price', 'subscription_price_yearly',
+                    'subscription_currency', 'subscription_interval', 'free_trial_days',
+                    'updated_at']
     readonly_fields = ['updated_at']
     fieldsets = (
-        ('Subscription price (display only — also update Stripe)', {
-            'fields': ('subscription_price', 'subscription_currency', 'subscription_interval'),
+        ('Monthly subscription price (display only — also update Stripe)', {
+            'fields': ('subscription_price', 'subscription_interval'),
+        }),
+        ('Yearly subscription price (display only — also update Stripe)', {
+            'fields': ('subscription_price_yearly', 'subscription_interval_yearly'),
+            'description': "Shown on the yearly plan card on the upgrade page. The "
+                           "per-month equivalent and savings % are calculated automatically.",
+        }),
+        ('Currency', {
+            'fields': ('subscription_currency',),
+            'description': "Applies to both the monthly and yearly prices.",
         }),
         ('Free trial', {
             'fields': ('free_trial_days',),

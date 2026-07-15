@@ -277,7 +277,6 @@ class BookingListView(LoginRequiredMixin, ListView):
         bookings = self._status_queryset(base_qs, status_filter, now)
 
         items = []
-        attachment_groups = []  # appendix: attachments grouped per reservation
         attachment_count = 0
         total_nights = 0
         total_guests = 0
@@ -289,35 +288,15 @@ class BookingListView(LoginRequiredMixin, ListView):
             total_value += float(b.price or 0)
             guest_name = f'{b.first_name} {b.last_name}'.strip() or '—'
 
-            # Appendix per reservation: a single guest photo on the left and
-            # the guest's uploaded documents (one or more) as compact download
-            # rows on the right. Only the first guest image is used as the photo.
-            guest_photo = None
-            for img in b.images.all():
-                if img.image and img.image.name:
-                    guest_photo = img.image.url
-                    break
-
-            documents = []
-            for doc in b.documents.all():
-                if not (doc.document and doc.document.name):
-                    continue
-                documents.append({
-                    'url': doc.document.url,
-                    'filename': doc.document.name.rsplit('/', 1)[-1],
-                })
-
-            group_count = (1 if guest_photo else 0) + len(documents)
-            if guest_photo or documents:
-                attachment_count += group_count
-                attachment_groups.append({
-                    'reservation_number': b.booking_id,
-                    'guest_name': guest_name,
-                    'property_name': b.property.title if b.property else '—',
-                    'guest_photo': guest_photo,
-                    'documents': documents,
-                    'count': group_count,
-                })
+            # Count of the guest's attachments (one guest photo + any uploaded
+            # documents) — shown as a per-reservation count in the table and in
+            # the totals. The photos/documents appendix itself was removed.
+            has_photo = any(img.image and img.image.name for img in b.images.all())
+            document_count = sum(
+                1 for doc in b.documents.all() if doc.document and doc.document.name
+            )
+            group_count = (1 if has_photo else 0) + document_count
+            attachment_count += group_count
 
             items.append({
                 'reservation_number': b.booking_id,
@@ -345,7 +324,6 @@ class BookingListView(LoginRequiredMixin, ListView):
             'current_property': current_property,
             'today_date': now,
             'items': items,
-            'attachment_groups': attachment_groups,
             'attachment_count': attachment_count,
             'reservation_count': len(items),
             'total_nights': total_nights,
@@ -987,9 +965,77 @@ def guest_receipt(request, pk):
         'balance_due': balance_due,
         'all_paid': all_paid,
         'is_modal': is_modal,
+        # Phone number formatted with a space after the calling code.
+        'host_phone': _format_phone_with_space(getattr(booking.property.created_by, 'phone', None)),
     }
     return render(request, 'frontend/common/receipt.html', context)
 
+
+def _format_phone_with_space(phone):
+    """Insert a space after the international calling code in an E.164 number.
+
+    e.g. '+919234429008' -> '+91 9234429008'. Falls back to the original
+    string when the number isn't a recognizable '+<code><national>' form.
+    """
+    if not phone:
+        return phone
+    phone = str(phone).strip()
+    if not phone.startswith('+'):
+        return phone
+    digits = phone[1:]
+    if not digits.isdigit():
+        return phone
+    # Common calling codes (1-3 digits). Try the longest match first.
+    codes = (
+        '1', '7', '20', '27', '30', '31', '32', '33', '34', '36', '39', '40',
+        '41', '43', '44', '45', '46', '47', '48', '49', '51', '52', '53', '54',
+        '55', '56', '57', '58', '60', '61', '62', '63', '64', '65', '66', '81',
+        '82', '84', '86', '90', '91', '92', '93', '94', '95', '98', '212', '213',
+        '234', '251', '254', '255', '256', '351', '352', '353', '354', '355',
+        '358', '359', '370', '371', '372', '380', '381', '385', '386', '420',
+        '421', '852', '853', '855', '856', '880', '886', '960', '961', '962',
+        '963', '964', '965', '966', '967', '968', '971', '972', '973', '974',
+        '975', '976', '977', '992', '993', '994', '995', '998',
+    )
+    for length in (3, 2, 1):
+        code = digits[:length]
+        if code in codes and len(digits) > length:
+            return '+' + code + ' ' + digits[length:]
+    return phone
+
+
+@login_required
+def rental_agreement(request, pk):
+    booking = get_object_or_404(Booking, pk=pk, property__created_by__in=get_visible_user_ids(request.user))
+
+    nights = booking.total_nights
+    subtotal = (booking.price_per_night or 0) * nights
+
+    monthly_payment = 0
+    if nights >= 30:
+        monthly_payment = booking.price_per_night * 30
+
+    # Total always uses the full stay rent (nights * daily rate), not just one
+    # month's payment. The "Monthly Payment" line is informational only.
+    total_price = subtotal + (booking.cleaning_fee or 0) + (booking.deposit_fee or 0) + (booking.taxes or 0) + (booking.other_fees or 0)
+
+    host = booking.property.created_by
+    context = {
+        'booking': booking,
+        'property': booking.property,
+        'host': host,
+        'nights': nights,
+        'subtotal': subtotal,
+        'monthly_payment': monthly_payment,
+        'total_price': total_price,
+        # Phone numbers formatted with a space after the calling code.
+        'guest_phone': _format_phone_with_space(booking.phone),
+        'host_phone': _format_phone_with_space(getattr(host, 'phone', None)),
+        # The agreement is dated the day it is opened.
+        'agreement_date': request.user.get_local_date(),
+        'is_modal': request.GET.get('is_modal') == 'true',
+    }
+    return render(request, 'frontend/common/rental_agreement.html', context)
 
 
 class CancelBookingView(LoginRequiredMixin, View):

@@ -1,0 +1,266 @@
+{% load static currency_tags %}
+{% if not is_modal %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Rental Stay Agreement</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+{% endif %}
+<link href="{% static 'css/common/rental_agreement.css' %}" rel="stylesheet">
+{% if not is_modal %}
+</head>
+<body class="ra-standalone">
+{% endif %}
+
+<div id="rental-agreement-root"{% if is_modal %} class="is-modal"{% endif %}>
+
+  <!-- ===== Header ===== -->
+  <div class="ra-toolbar">
+    <div class="ra-toolbar-inner">
+      <div class="ra-brand">
+        <span class="t">Rental Stay Agreement</span>
+      </div>
+      <div class="ra-actions">
+        <button class="icon-btn" id="ra-pdf" type="button" aria-label="Download agreement as PDF" title="Download PDF">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        </button>
+        <button class="icon-btn" id="ra-print" type="button" aria-label="Print agreement" title="Print">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+        </button>
+        <span class="ra-created">
+          <span>Created with</span>
+          <img src="{% static 'img/header/favhost.png' %}" class="logo" alt="FavHost" />
+        </span>
+        {% if is_modal %}
+        <button class="ra-close" id="ra-close" type="button" aria-label="Close">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Document ===== -->
+  <div class="ra-scroll">
+  <main class="app">
+    <article class="document" id="ra-document">
+
+      <!-- Header -->
+      <div class="doc-head">
+        <p class="eyebrow">Short-Term Rental</p>
+        <h1 class="title">Rental Stay Agreement</h1>
+        <p class="listing">{{ property.title }}</p>
+        <hr class="rule" />
+        <p class="lede">
+          This Short-Term Rental Stay Agreement (the &ldquo;Agreement&rdquo;) is made and entered into on
+          <span class="val">{{ agreement_date|date:"F d, Y" }}</span> by and between the Host and the Guest identified below
+          (each a &ldquo;Party&rdquo; and together the &ldquo;Parties&rdquo;). By signing below, both Parties agree
+          to be bound by the terms and conditions set out in this Agreement for the rental of the property described herein.
+        </p>
+      </div>
+
+      <!-- 1. Parties -->
+      <section class="section">
+        <div class="section-head"><span class="sec-num">1</span><h2 class="section-title">The Parties</h2></div>
+
+        <p class="subhead">Host (Owner / Property Manager)</p>
+        <table class="kv">
+          <tr><th>Full Legal Name</th><td>{% if host.get_full_name %}<span class="val">{{ host.get_full_name }}</span>{% else %}<span class="ph">[Host full name]</span>{% endif %}</td></tr>
+          <tr><th>Email Address</th><td>{% if host.email %}<span class="val">{{ host.email }}</span>{% else %}<span class="ph">[host@email.com]</span>{% endif %}</td></tr>
+          <tr><th>Phone Number</th><td>{% if host.phone %}<span class="val">{{ host_phone }}</span>{% else %}<span class="ph">[(000) 000-0000]</span>{% endif %}</td></tr>
+        </table>
+
+        <p class="subhead">Guest / Tenant</p>
+        <table class="kv">
+          <tr><th>Full Legal Name</th><td>{% if booking.first_name or booking.last_name %}<span class="val">{{ booking.first_name }} {{ booking.last_name }}</span>{% else %}<span class="ph">[Guest full name]</span>{% endif %}</td></tr>
+          <tr><th>Email Address</th><td>{% if booking.email %}<span class="val">{{ booking.email }}</span>{% else %}<span class="ph">[guest@email.com]</span>{% endif %}</td></tr>
+          <tr><th>Phone Number</th><td>{% if booking.phone %}<span class="val">{{ guest_phone }}</span>{% else %}<span class="ph">[(000) 000-0000]</span>{% endif %}</td></tr>
+        </table>
+      </section>
+
+      <!-- 2. Rental Property -->
+      <section class="section">
+        <div class="section-head"><span class="sec-num">2</span><h2 class="section-title">Rental Property</h2></div>
+        <p class="lede" style="margin-bottom:16px;">
+          The Host agrees to rent to the Guest the following property (the &ldquo;Property&rdquo;) for the stay described in this Agreement:
+        </p>
+        <table class="kv">
+          <tr><th>Property / Street Address</th><td>{% if property.street_address %}<span class="val">{{ property.street_address }}</span>{% else %}<span class="ph">[Street address]</span>{% endif %}</td></tr>
+          <tr><th>City, State, ZIP</th><td><span class="val">{{ property.city }}, {{ property.state }} {{ property.zip }}</span></td></tr>
+          <tr><th>Country</th><td>{% if property.country %}<span class="val">{{ property.country }}</span>{% else %}<span class="ph">[Country]</span>{% endif %}</td></tr>
+          <tr><th>Property Type</th><td>{% if property.property_type %}<span class="val">{{ property.get_property_type_display }}</span>{% else %}<span class="ph">[Property type]</span>{% endif %}</td></tr>
+          <tr><th>Booking Platform</th><td>{% if booking.channel %}<span class="val">{{ booking.channel.name }}</span>{% else %}<span class="ph">[Direct booking]</span>{% endif %}</td></tr>
+          <tr><th>Reservation / Confirmation Code</th><td><span class="val">{{ booking.booking_id }}</span></td></tr>
+        </table>
+      </section>
+
+      <!-- 3. Stay Details -->
+      <section class="section">
+        <div class="section-head"><span class="sec-num">3</span><h2 class="section-title">Stay Details</h2></div>
+        <table class="kv">
+          <tr><th>Check-In Date</th><td>{% if booking.check_in_date %}<span class="val">{{ booking.check_in_date|date:"F d, Y" }}</span>{% else %}<span class="ph">[Month DD, YYYY]</span>{% endif %}</td></tr>
+          <tr><th>Check-In Time</th><td><span class="val">{{ booking.check_in_time|time:"g:i A" }}</span></td></tr>
+          <tr><th>Check-Out Date</th><td>{% if booking.check_out_date %}<span class="val">{{ booking.check_out_date|date:"F d, Y" }}</span>{% else %}<span class="ph">[Month DD, YYYY]</span>{% endif %}</td></tr>
+          <tr><th>Check-Out Time</th><td><span class="val">{{ booking.check_out_time|time:"g:i A" }}</span></td></tr>
+          <tr><th>Duration of Stay</th><td><span class="val">{{ nights }}</span> night(s)</td></tr>
+          <tr><th>Number of Guests</th><td><span class="val">{{ booking.guest_count }}</span> guest(s)</td></tr>
+        </table>
+      </section>
+
+      <!-- 4. Payment Summary -->
+      <section class="section">
+        <div class="section-head"><span class="sec-num">4</span><h2 class="section-title">Payment Summary</h2></div>
+        {% if booking.status == 'cancelled' %}
+        <div class="pay-cancelled">
+          <span class="pay-cancelled-badge">RESERVATION CANCELLED</span>
+          <p class="pay-cancelled-text">
+            This reservation was cancelled{% if booking.updated_at %} on {{ booking.updated_at|date:"F d, Y" }}{% endif %}.
+            No payment is due.
+          </p>
+        </div>
+        {% else %}
+        <p class="pay-note">
+          The Guest agrees to pay the Host the following amounts for the stay.
+        </p>
+        <table class="pay">
+          <thead>
+            <tr><th>Description</th><th class="amt">Amount</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Nightly Rate</td><td class="amt">{% money booking.price_per_night %}</td></tr>
+            <tr><td>Number of Nights</td><td class="amt">{{ nights }}</td></tr>
+            <tr><td>Subtotal (Rate &times; Nights)</td><td class="amt">{% money subtotal %}</td></tr>
+            {% if nights >= 30 %}
+            <tr><td>Monthly Payment</td><td class="amt">{% money monthly_payment %}</td></tr>
+            {% endif %}
+            <tr><td>Cleaning Fee</td><td class="amt">{% money booking.cleaning_fee %}</td></tr>
+            <tr><td>Taxes</td><td class="amt">{% money booking.taxes %}</td></tr>
+            <tr><td>Other Fees</td><td class="amt">{% money booking.other_fees %}</td></tr>
+            <tr><td>Refundable Deposit</td><td class="amt">{% money booking.deposit_fee %}</td></tr>
+            <tr class="total"><td>Total Amount Due</td><td class="amt">{% money total_price %}</td></tr>
+          </tbody>
+        </table>
+        {% endif %}
+      </section>
+
+      <!-- 5. House Rules -->
+      <section class="section">
+        <div class="section-head"><span class="sec-num">5</span><h2 class="section-title">House Rules</h2></div>
+        {% if property.house_rules %}
+        <p class="policy-text">{{ property.house_rules }}</p>
+        {% else %}
+        <p class="policy-text empty">No house rules have been specified for this property.</p>
+        {% endif %}
+      </section>
+
+      <!-- 6. Cancellation Policy -->
+      <section class="section">
+        <div class="section-head"><span class="sec-num">6</span><h2 class="section-title">Cancellation Policy</h2></div>
+        {% if property.cancellation_policy %}
+        <p class="policy-text">{{ property.cancellation_policy }}</p>
+        {% else %}
+        <p class="policy-text empty">No cancellation policy has been specified for this property.</p>
+        {% endif %}
+      </section>
+
+      <!-- 7. Rental Contract Terms and Conditions -->
+      <section class="section">
+        <div class="section-head"><span class="sec-num">7</span><h2 class="section-title">Rental Contract Terms and Conditions</h2></div>
+        {% if property.rental_contract_terms %}
+        <p class="policy-text">{{ property.rental_contract_terms }}</p>
+        {% else %}
+        <p class="policy-text empty">No rental contract terms and conditions have been specified for this property.</p>
+        {% endif %}
+      </section>
+
+      <!-- 8. Signatures -->
+      <section class="section">
+        <div class="section-head"><span class="sec-num">8</span><h2 class="section-title">Signatures</h2></div>
+        <p class="sig-intro">
+          IN WITNESS WHEREOF, the Parties have read, understood, and agreed to this Agreement and have executed it as of the dates written below.
+        </p>
+        <div class="sig-grid">
+          <div class="sig-card">
+            <p class="role">Host</p>
+            <div class="sig-line"></div><p class="sig-label">Signature</p>
+            <div class="sig-line"></div><p class="sig-label">Printed Name</p>
+            <div class="sig-line"></div><p class="sig-label">Date</p>
+          </div>
+          <div class="sig-card">
+            <p class="role">Guest</p>
+            <div class="sig-line"></div><p class="sig-label">Signature</p>
+            <div class="sig-line"></div><p class="sig-label">Printed Name</p>
+            <div class="sig-line"></div><p class="sig-label">Date</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Branding footer (modal only) -->
+      <div class="doc-brand">
+        <span>Created with <strong>FavHost</strong></span>
+      </div>
+
+    </article>
+  </main>
+  </div>
+
+</div>
+
+<script>
+(function(){
+  var root = document.getElementById('rental-agreement-root');
+  if (!root) return;
+  var doc = document.getElementById('ra-document');
+  var printBtn = document.getElementById('ra-print');
+  var pdfBtn = document.getElementById('ra-pdf');
+  var closeBtn = document.getElementById('ra-close');
+
+  function triggerPrint(e){ if(e) e.preventDefault(); window.print(); }
+
+  function triggerPdf(e){
+    if(e) e.preventDefault();
+    if (typeof html2pdf === 'undefined'){ window.print(); return; }
+    pdfBtn.setAttribute('disabled','');
+    var ready = (document.fonts && document.fonts.ready) ? document.fonts.ready : Promise.resolve();
+    var opt = {
+      margin: [12, 12, 14, 12],
+      filename: 'Rental-Stay-Agreement.pdf',
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', scrollX: 0, scrollY: 0 },
+      jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' },
+      pagebreak: { mode: ['css', 'legacy'], avoid: ['tr', '.sig-card', '.section-head'] }
+    };
+    // Capture an off-screen clone so the visible document never reflows.
+    var clone = root.cloneNode(true);
+    clone.classList.add('ra-export');
+    var holder = document.createElement('div');
+    holder.style.cssText = 'position:fixed;left:-10000px;top:0;width:820px;background:#ffffff;z-index:-1;';
+    holder.appendChild(clone);
+    document.body.appendChild(holder);
+    ready.then(function(){ return html2pdf().set(opt).from(clone).save(); })
+      .catch(function(){ window.print(); })
+      .then(function(){
+        holder.remove();
+        pdfBtn.removeAttribute('disabled');
+      });
+  }
+
+  if (printBtn) printBtn.addEventListener('click', triggerPrint);
+  if (pdfBtn) pdfBtn.addEventListener('click', triggerPdf);
+  if (closeBtn) closeBtn.addEventListener('click', function(e){
+    e.preventDefault();
+    var modalEl = closeBtn.closest('.modal');
+    if (modalEl) modalEl.style.display = 'none';
+  });
+})();
+</script>
+
+{% if not is_modal %}
+</body>
+</html>
+{% endif %}
