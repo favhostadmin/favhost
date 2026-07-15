@@ -296,7 +296,7 @@
                     <div class="rb-inline-1">
                         <div class="rb-field">
                             <label>Total Guests</label>
-                            <input id="rb-adults" name="adults" class="rb-input" type="number" min="1" value="1" required readonly>
+                            <input id="rb-adults" name="adults" class="rb-input" type="number" min="1" max="{{ property.guest }}" value="1" required>
                         </div>
                         <div class="rb-field mt-3">
                             <label>Children (under 13) (optional)</label>
@@ -732,9 +732,12 @@
             document.getElementById('hidden-check-in').value = checkInVal;
             document.getElementById('hidden-check-out').value = checkOutVal;
 
-            // Sync form input
+            // Sync form input (clamped to the property's guest limit)
             const adultInput = document.getElementById('rb-adults');
-            if (adultInput) adultInput.value = guestsVal;
+            if (adultInput) {
+                const maxG = parseInt(adultInput.getAttribute('max') || '0', 10);
+                adultInput.value = (maxG && guestsVal > maxG) ? maxG : Math.max(1, guestsVal);
+            }
 
             // Financial calculations
             const pNight = parseFloat("{% money_raw property.price_per_night %}");
@@ -753,6 +756,36 @@
             if (stayLabel) stayLabel.textContent = `{{ currency_symbol }}${pNight.toFixed(2)} x ${nights} night${nights !== 1 ? 's' : ''}`;
             if (stayTotalEl) stayTotalEl.textContent = `{{ currency_symbol }}${stayTotal.toFixed(2)}`;
             if (totalDueEl) totalDueEl.textContent = `{{ currency_symbol }}${totalDue.toFixed(2)}`;
+        }
+
+        // Total Guests is editable: clamp to the property max and keep the
+        // summary panel in sync
+        const rbAdultsField = document.getElementById('rb-adults');
+        if (rbAdultsField) {
+            const maxGuests = parseInt(rbAdultsField.getAttribute('max') || '0', 10);
+            const summaryGuestsEl = document.getElementById('summary-guests');
+
+            const syncGuestSummary = (v) => {
+                if (summaryGuestsEl) summaryGuestsEl.textContent = `${v} Adult${v > 1 ? 's' : ''}`;
+            };
+
+            rbAdultsField.addEventListener('input', function () {
+                let v = parseInt(this.value, 10);
+                if (isNaN(v)) return; // let the user finish typing
+                if (maxGuests && v > maxGuests) {
+                    v = maxGuests;
+                    this.value = v;
+                }
+                if (v >= 1) syncGuestSummary(v);
+            });
+
+            rbAdultsField.addEventListener('change', function () {
+                let v = parseInt(this.value, 10);
+                if (isNaN(v) || v < 1) v = 1;
+                if (maxGuests && v > maxGuests) v = maxGuests;
+                this.value = v;
+                syncGuestSummary(v);
+            });
         }
 
         // ---- Captcha (self-contained canvas challenge) ----
