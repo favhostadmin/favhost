@@ -57,8 +57,30 @@
     cursor: default;
   }
 
-  .month-task-circle {
+  /* Positions the circle+count-badge pair as a unit; kept overflow:visible
+     (unlike the circle itself) so the count badge can pop out past the
+     circle's edge instead of being clipped by the circle's own
+     overflow:hidden (which exists to mask the task-type icon to a circle). */
+  .month-task-circle-wrapper {
     position: absolute;
+    overflow: visible;
+    z-index: 15;
+  }
+
+  .month-task-circle-wrapper.above-bar {
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+  }
+
+  .month-task-circle-wrapper.at-bar-start {
+    left: 5px;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+
+  .month-task-circle {
+    position: relative;
     width: 28px;
     height: 28px;
     border-radius: 50%;
@@ -71,7 +93,6 @@
     border: 2px solid rgba(255, 255, 255, 0.4);
     overflow: hidden;
     transition: transform 0.15s;
-    z-index: 15;
   }
 
   .month-task-circle:hover {
@@ -84,26 +105,6 @@
     object-fit: contain;
     filter: brightness(0) invert(1);
     display: block;
-  }
-
-  .month-task-circle.above-bar {
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-  }
-
-  .month-task-circle.above-bar:hover {
-    transform: translate(-50%, -50%) scale(1.15);
-  }
-
-  .month-task-circle.at-bar-start {
-    left: 5px;
-    top: 50%;
-    transform: translateY(-50%);
-  }
-
-  .month-task-circle.at-bar-start:hover {
-    transform: translateY(-50%) scale(1.15);
   }
 
   .month-task-count {
@@ -1097,6 +1098,58 @@
     border-radius: 4px;
     background: #f0f0f0;
     color: #666;
+  }
+
+  /* Cards inside the "Day Activity" modal — shown when a day cell has more
+     than one task and/or a payment colliding, so each item gets its own
+     clickable row instead of everything collapsing into one dot/circle. */
+  .day-item-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    background: #f9fafb;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.15s;
+  }
+
+  .day-item-card:hover {
+    background: #eef2ff;
+  }
+
+  .day-item-badge {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .day-item-badge img {
+    width: 18px;
+    height: 18px;
+    filter: brightness(0) invert(1);
+  }
+
+  .day-item-info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .day-item-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #1f2937;
+    text-transform: capitalize;
+  }
+
+  .day-item-sub {
+    font-size: 11px;
+    color: #6b7280;
+    margin-top: 2px;
   }
 
   .nav-button-header {
@@ -3702,6 +3755,17 @@
     object-fit: contain;
     filter: brightness(0) invert(1);
     display: block;
+  }
+
+  /* Positions the circle+count-badge pair as a grid item in the circle's place;
+     kept overflow:visible (unlike .task-circle-bar itself) so the count badge
+     can pop out past the circle's edge instead of being clipped. */
+  .task-circle-bar-wrapper {
+    position: relative;
+    display: flex;
+    overflow: visible;
+    justify-self: center;
+    align-self: center;
   }
 
   @media (max-width: 992px) {
