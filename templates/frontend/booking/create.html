@@ -600,12 +600,8 @@
                 }
             }
 
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            const todayStr = today.toISOString().split('T')[0];
-            if (!checkInEl.value || checkInEl.value >= todayStr) {
-                checkInEl.min = todayStr;
-            }
+            // Past check-in dates are allowed (hosts can log offline/past
+            // reservations), so no min is set on the check-in input.
 
             syncCheckoutMin();
             checkInEl.addEventListener('change', syncCheckoutMin);
@@ -1483,11 +1479,7 @@
     const checkInFromUrl = urlParams.get('check_in');
     const guestsFromUrl = urlParams.get('guests');
 
-    const today = new Date().toISOString().split('T')[0];
-    // Only set min if the value is empty or currently in the future
-    if (checkInEl && (!checkInEl.value || checkInEl.value >= today)) {
-        checkInEl.setAttribute('min', today);
-    }
+    // Past check-in dates are allowed — no min attribute on check-in.
 
     if (checkInEl) {
         checkInEl.addEventListener('change', function() {
