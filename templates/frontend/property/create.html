@@ -318,10 +318,32 @@
         .main_row_div { padding: 0rem 12%; }
 
         @media (max-width: 640px) {
-            .main_row_div { padding: 0rem 0% !important; }
+            /* Compact nav header so "‹ Back" fits without wrapping the title */
+            .action-buttons { gap: 8px !important; }
+            .action-buttons #step2-nav img,
+            .action-buttons #step1-nav img { display: none; }
+            .action-buttons .btn-back {
+                padding: 0 6px 0 0;
+                font-size: 14px;
+                white-space: nowrap;
+            }
+            .action-buttons #step1-nav span.ms-2,
+            .action-buttons #step2-nav span.ms-2 {
+                white-space: nowrap;
+                font-size: 14px;
+                margin-left: 0 !important;
+            }
+            .action-buttons .step-counter { min-width: auto; font-size: 13px; }
+            .action-buttons .btn-create,
+            .action-buttons .btn-cancel { padding: 7px 12px; font-size: 13px; }
         }
         @media (max-width: 991.98px) {
-            .main_row_div { padding: 0rem 3% !important; }
+            /* Symmetric edge spacing lives on the cards themselves */
+            .main_row_div { padding: 0 !important; }
+            .main_row_div .form-section {
+                margin-left: 12px !important;
+                margin-right: 12px !important;
+            }
             .action-buttons {
                 background: #E7E7E9 !important;
                 border-radius: 0 !important;
@@ -349,7 +371,10 @@
             .main_row_div .row { --bs-gutter-x: 0 !important; }
             .main_row_div > [class*="col-"] { padding-left: 0 !important; padding-right: 0 !important; }
             .main_row_div .row > [class*="col-"] { padding-left: 0 !important; padding-right: 0 !important; }
-            .main_row_div .form-section { padding-right: 0 !important; }
+            .main_row_div .section-block > *:not(.section-title) {
+                padding-left: 0 !important;
+                padding-right: 0 !important;
+            }
         }
 
         /* Step wizard */
@@ -1059,7 +1084,7 @@
 <!-- Missing Required Fields Modal -->
 <div class="missing-fields-backdrop" id="missingFieldsModal">
     <div class="missing-fields-card">
-        <div class="missing-fields-title"><span class="icon">⚠</span> <span>Please fill the following required fields</span></div>
+        <div class="missing-fields-title"><span class="icon">⚠</span> <span id="missingFieldsTitleText">Please fill the following required fields</span></div>
         <ul class="missing-fields-list" id="missingFieldsList"></ul>
         <button type="button" class="missing-fields-btn" id="missingFieldsClose">OK</button>
     </div>
@@ -1138,6 +1163,16 @@
         return invalid;
     }
 
+    function findInvalidYoutubeLink(form) {
+        const input = form.querySelector('[name="youtube_link"]');
+        if (!input || input.value.trim() === '') return null;
+        try {
+            const parsed = new URL(input.value.trim());
+            if (parsed.protocol === 'http:' || parsed.protocol === 'https:') return null;
+        } catch (e) {}
+        return input;
+    }
+
     function validateStep1AndProceed() {
         const step1Content = document.getElementById('step1-content');
         step1Content.querySelectorAll('.field-invalid').forEach(el => el.classList.remove('field-invalid'));
@@ -1147,6 +1182,18 @@
             highlightInvalidFields(missingFields);
             missingFields[0].group.scrollIntoView({ behavior: 'smooth', block: 'center' });
             showMissingFieldsModal([missingFields[0]], () => focusField(missingFields[0].control));
+            return;
+        }
+
+        const invalidYoutubeInput = findInvalidYoutubeLink(document.getElementById('propertyForm'));
+        if (invalidYoutubeInput) {
+            invalidYoutubeInput.classList.add('field-invalid');
+            invalidYoutubeInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            showMissingFieldsModal(
+                [{ label: 'YouTube link', group: null, control: invalidYoutubeInput }],
+                () => focusField(invalidYoutubeInput),
+                'Please enter a valid URL'
+            );
             return;
         }
         goToStep(2);
@@ -1901,7 +1948,9 @@
         });
     }
 
-    function showMissingFieldsModal(missingFields, onClose) {
+    function showMissingFieldsModal(missingFields, onClose, title) {
+        const titleText = document.getElementById('missingFieldsTitleText');
+        if (titleText) titleText.textContent = title || 'Please fill the following required fields';
         const list = document.getElementById('missingFieldsList');
         list.innerHTML = '';
         missingFields.forEach(f => {
@@ -1938,6 +1987,19 @@
                 return;
             }
 
+            const invalidYoutubeInput = findInvalidYoutubeLink(form);
+            if (invalidYoutubeInput) {
+                event.preventDefault(); hideLoader();
+                goToStep(1);
+                invalidYoutubeInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                showMissingFieldsModal(
+                    [{ label: 'YouTube link', group: null, control: invalidYoutubeInput }],
+                    () => focusField(invalidYoutubeInput),
+                    'Please enter a valid URL'
+                );
+                return;
+            }
+
             const countrySelectEl = document.getElementById('country') || document.querySelector('select[name="country"]');
             const stateSelectEl = document.getElementById('state') || document.querySelector('select[name="state"]');
             const stateValue = stateSelectEl ? stateSelectEl.value : '';
@@ -1961,20 +2023,36 @@
                 return;
             }
 
-            const priceFields = [
-                { name: 'price_per_night', label: 'Price per night' },
+            const requiredPriceField = { name: 'price_per_night', label: 'Price per night' };
+            const optionalPriceFields = [
                 { name: 'taxes', label: 'Taxes' },
                 { name: 'cleaning_fee', label: 'Cleaning Fee' },
                 { name: 'refundable_deposit', label: 'Refundable Deposit' },
                 { name: 'other_fees', label: 'Other fees' }
             ];
-            for (const field of priceFields) {
-                const input = form.querySelector(`[name="${field.name}"]`);
+            {
+                const input = form.querySelector(`[name="${requiredPriceField.name}"]`);
                 if (input) {
                     const val = parseFloat(input.value);
                     if (input.value.trim() === '' || isNaN(val) || val < 0) {
                         event.preventDefault(); hideLoader();
-                        showToastMessage(`${field.label} cannot be empty and must be 0 or greater.`, 'error');
+                        showToastMessage(`${requiredPriceField.label} cannot be empty and must be 0 or greater.`, 'error');
+                        goToStep(2);
+                        input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        focusField(input);
+                        return;
+                    }
+                }
+            }
+            // These fields default to 0 on the backend, so a blank value is valid — only
+            // reject an explicitly entered negative number.
+            for (const field of optionalPriceFields) {
+                const input = form.querySelector(`[name="${field.name}"]`);
+                if (input && input.value.trim() !== '') {
+                    const val = parseFloat(input.value);
+                    if (isNaN(val) || val < 0) {
+                        event.preventDefault(); hideLoader();
+                        showToastMessage(`${field.label} must be 0 or greater.`, 'error');
                         goToStep(2);
                         input.scrollIntoView({ behavior: 'smooth', block: 'center' });
                         focusField(input);
@@ -2118,6 +2196,22 @@
         updateMapFromFields();
     });
 })();
+</script>
+
+<script>
+// Pricing inputs: select the value on focus so the default "0" is replaced
+// as soon as the user starts typing.
+document.addEventListener('DOMContentLoaded', function () {
+    ['price_per_night', 'taxes', 'cleaning_fee', 'refundable_deposit', 'other_fees'].forEach(function (name) {
+        var input = document.querySelector('[name="' + name + '"]');
+        if (!input) return;
+        input.addEventListener('focus', function () {
+            var self = this;
+            // Defer so the click that focused the input doesn't undo the selection
+            setTimeout(function () { self.select(); }, 0);
+        });
+    });
+});
 </script>
 
 {% endblock extra_script %}
