@@ -159,6 +159,11 @@
             <button type="button" class="hdr-icon-btn" id="refreshBtn" aria-label="Refresh" title="Refresh">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
             </button>
+            <!-- SYNC-NOW (channel integration manual trigger) — wired up, commented out until go-ahead.
+            <button type="button" class="hdr-icon-btn" id="syncNowBtn" aria-label="Sync Now" title="Sync Now">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 12a9 9 0 1 1-3-6.7"/><polyline points="21 3 21 9 15 9"/></svg>
+            </button>
+            -->
             <button type="button" class="hdr-icon-btn" id="printBtn" aria-label="Print" title="Print">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
             </button>
@@ -422,6 +427,26 @@
     </div>
   </div>
 
+  <!-- Day Activity Modal — lists every task and/or payment on a day/listing
+       that collided into a single indicator, each as its own clickable card. -->
+  <div class="task-modal-overlay" id="dayItemsModalOverlay" onclick="closeDayItemsModal(event)">
+    <div class="task-modal" onclick="event.stopPropagation()">
+      <div class="task-modal-top-bar" style="background:linear-gradient(90deg,#3b82f6,#8b5cf6);"></div>
+      <div class="task-modal-header">
+        <div class="task-modal-badge" style="background:linear-gradient(135deg,#3b82f6,#8b5cf6);">
+          <span>Day Activity</span>
+        </div>
+        <div class="task-modal-status" id="dayItemsCount"></div>
+      </div>
+      <div class="task-modal-body">
+        <div id="dayItemsList" style="display:flex;flex-direction:column;gap:10px;max-height:60vh;overflow-y:auto;"></div>
+      </div>
+      <div class="task-modal-footer">
+        <button class="task-modal-close-btn" style="background:linear-gradient(135deg,#3b82f6,#8b5cf6);" onclick="closeDayItemsModal()">Close</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Payment Detail Modal -->
   <div class="task-modal-overlay" id="paymentModalOverlay" onclick="closePaymentDetailModal(event)">
     <div class="task-modal" id="paymentModal" onclick="event.stopPropagation()">
@@ -572,10 +597,6 @@
   // Leading circle icon for blocked date-range bars — same .channel-logo-circle
   // treatment as a reservation's channel logo, just with a "no entry" glyph.
   const blockedIconUrl = "{% static 'img/calender/blocked_icon.svg' %}";
-  // Same treatment for a booking marked "no_show" (guest never checked in) —
-  // amber, matching the No Show badge/stat-card color on the booking list page.
-  const noShowIconUrl = "{% static 'img/calender/no_show_icon.svg' %}";
-  const NO_SHOW_COLOR = '#d97706';
 
   // Global currentDisplayDate for month display
   let currentDisplayDate = new Date(); // Starts at today
@@ -750,7 +771,8 @@
     try {
       const response = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
       const data = await response.json();
-      bookings = data.bookings;
+      // No-show reservations are excluded entirely from the calendar — no bar, no dot, nothing.
+      bookings = data.bookings.filter(b => b.status !== 'no_show');
       tasks = data.tasks || [];
       enquiries = data.enquiries || [];
 
@@ -2677,13 +2699,10 @@
         const labelText = span.carryStart ? `-- ${labelName}` : labelName;
         const channelLogoUrl = getChannelLogo(ev.channelName, ev.channelIcon);
         const channelColor = getChannelColor(ev.channelName) || ev.color || '#3b82f6';
-        const isNoShow = ev.status === 'no_show';
         const channelLogoHtml = ev.type === 'blocked'
           ? `<div class="channel-logo-circle" style="background-color:#9ca3af"><img src="${blockedIconUrl}" alt="Blocked" /></div>`
-          : isNoShow
-          ? `<div class="channel-logo-circle" style="background-color:${NO_SHOW_COLOR}"><img src="${noShowIconUrl}" alt="No Show" /></div>`
           : (channelLogoUrl ? `<div class="channel-logo-circle" style="border-color:${channelColor};background-color:${channelColor}"><img src="${channelLogoUrl}" alt="${ev.channelName || ''}" /></div>` : '');
-        const style = ev.type === 'blocked' ? 'background-color:#9ca3af;' : isNoShow ? `background-color:${NO_SHOW_COLOR};` : `background-color:${channelColor};`;
+        const style = ev.type === 'blocked' ? 'background-color:#9ca3af;' : `background-color:${channelColor};`;
         eventsHtml += `<div class="grid-event-span ${carryStartClass} ${carryEndClass}" style="grid-column:${gridColStart}/${gridColEnd};grid-row:1;${style};${spanOffsets(span)}" ${onClick} onmouseenter="showMonthEventTooltip(event,'${ev.id}',false)" onmouseleave="hideGlobalTooltip()">${channelLogoHtml}<span class="event-title">${labelText}</span></div>`;
       });
 
@@ -2694,18 +2713,13 @@
 
         const bookingWithPayment = pBookings.find(b => b.paymentsInfo && b.paymentsInfo[dateStr]);
         const hasPayment = bookingWithPayment && typeFilters.payment;
+        const taskIdsCsv = dayTasksForBand.map(t => t.id).join(',');
 
         // Check-in colliding with a task and/or payment on the same cell is shown as a single
-        // red blinking dot - never a separate black payment dot. A task takes priority for the
-        // click (opens the task popup, which itself links onward to the payment via its
-        // "Payment ->" button); with no task, the dot opens the payment directly.
+        // red blinking dot. It opens the Day Activity list so nothing behind it is hidden —
+        // if there's genuinely only one thing that day, it jumps straight to that item's modal.
         if (bookingStartsHere && (dayTasksForBand.length > 0 || hasPayment)) {
-          if (dayTasksForBand.length > 0) {
-            const t0 = dayTasksForBand[0];
-            eventsHtml += `<div style="position:static;grid-column:${colIdx + 1}/${colIdx + 2};grid-row:1/-1;align-self:end;justify-self:center;width:8px;height:8px;border-radius:50%;background:#ef4444;z-index:15;cursor:pointer;pointer-events:auto;animation:cell-blink 1.2s ease-in-out infinite;" onclick="openTaskDetailModal(event,'${t0.id}')"></div>`;
-          } else {
-            eventsHtml += `<div style="position:static;grid-column:${colIdx + 1}/${colIdx + 2};grid-row:1/-1;align-self:end;justify-self:center;width:8px;height:8px;border-radius:50%;background:#ef4444;z-index:15;cursor:pointer;pointer-events:auto;animation:cell-blink 1.2s ease-in-out infinite;" onclick="handlePaymentIndicatorClick(event,'${bookingWithPayment.id}','${dateStr}')" onmouseenter="showPaymentTooltip(event,'${bookingWithPayment.id}','${dateStr}')" onmouseleave="handleIndicatorHoverLeave()"></div>`;
-          }
+          eventsHtml += `<div style="position:static;grid-column:${colIdx + 1}/${colIdx + 2};grid-row:1/-1;align-self:end;justify-self:center;width:8px;height:8px;border-radius:50%;background:#ef4444;z-index:15;cursor:pointer;pointer-events:auto;animation:cell-blink 1.2s ease-in-out infinite;" onclick="openDayItemsPanel(event,'${taskIdsCsv}','${hasPayment ? bookingWithPayment.id : ''}','${dateStr}')"></div>`;
           return;
         }
 
@@ -2727,7 +2741,11 @@
         const taskColors = { cleaning: '#10b981', maintenance: '#f59e0b', payment: '#3b82f6', other: '#8b5cf6' };
         const taskColor = taskColors[t0.task_type] || taskColors.other;
         const paymentRing = t0.task_type === 'payment' ? 'box-shadow:0 0 0 2.5px #38bdf8,0 2px 6px rgba(0,0,0,0.15);width:30px;height:30px;' : '';
-        eventsHtml += `<div class="task-circle-bar" style="grid-column:${colIdx + 1}/${colIdx + 2};grid-row:1;background-color:${taskColor};${paymentRing}" onclick="openTaskDetailModal(event,'${t0.id}')">${t0.task_type === 'payment' ? `<div style="position:relative;display:flex;align-items:center;justify-content:center;width:100%;height:100%;"><img src="${taskIconUrl}" alt="" style="width:16px;height:16px;filter:brightness(0) invert(1);opacity:0.5;position:absolute;" /><span style="color:#fff;font-weight:900;font-size:14px;line-height:1;position:relative;z-index:1;">$</span></div>` : `<img src="${taskIconUrl}" alt="" />`}</div>`;
+        const taskCountBadge = dayTasksForBand.length > 1 ? `<div class="month-task-count">${dayTasksForBand.length}</div>` : '';
+        eventsHtml += `<div class="task-circle-bar-wrapper" style="grid-column:${colIdx + 1}/${colIdx + 2};grid-row:1;">
+          <div class="task-circle-bar" style="background-color:${taskColor};${paymentRing}" onclick="openDayItemsPanel(event,'${taskIdsCsv}','','${dateStr}')">${t0.task_type === 'payment' ? `<div style="position:relative;display:flex;align-items:center;justify-content:center;width:100%;height:100%;"><img src="${taskIconUrl}" alt="" style="width:16px;height:16px;filter:brightness(0) invert(1);opacity:0.5;position:absolute;" /><span style="color:#fff;font-weight:900;font-size:14px;line-height:1;position:relative;z-index:1;">$</span></div>` : `<img src="${taskIconUrl}" alt="" />`}</div>
+          ${taskCountBadge}
+        </div>`;
       });
 
       html += `
@@ -2856,13 +2874,10 @@
         const labelText = span.carryStart ? `-- ${labelName}` : labelName;
         const channelLogoUrl = getChannelLogo(ev.channelName, ev.channelIcon);
         const channelColor = getChannelColor(ev.channelName) || ev.color || '#3b82f6';
-        const isNoShow = ev.status === 'no_show';
         const channelLogoHtml = ev.type === 'blocked'
           ? `<div class="channel-logo-circle" style="background-color:#9ca3af"><img src="${blockedIconUrl}" alt="Blocked" /></div>`
-          : isNoShow
-          ? `<div class="channel-logo-circle" style="background-color:${NO_SHOW_COLOR}"><img src="${noShowIconUrl}" alt="No Show" /></div>`
           : (channelLogoUrl ? `<div class="channel-logo-circle" style="border-color:${channelColor};background-color:${channelColor}"><img src="${channelLogoUrl}" alt="${ev.channelName || ''}" /></div>` : '');
-        const style = ev.type === 'blocked' ? 'background-color:#9ca3af;' : isNoShow ? `background-color:${NO_SHOW_COLOR};` : `background-color:${channelColor};`;
+        const style = ev.type === 'blocked' ? 'background-color:#9ca3af;' : `background-color:${channelColor};`;
         rowHtml += `<div class="grid-event-span ${carryStartClass} ${carryEndClass}" style="grid-column:${gridColStart}/${gridColEnd};grid-row:1;${style};${spanOffsets(span)}" ${onClick} onmouseenter="showMonthEventTooltip(event,'${ev.id}',false)" onmouseleave="hideGlobalTooltip()">${channelLogoHtml}<span class="event-title">${labelText}</span></div>`;
       });
 
@@ -2873,18 +2888,13 @@
 
         const bookingWithPayment = propertyBookings.find(b => b.paymentsInfo && b.paymentsInfo[dateStr]);
         const hasPayment = bookingWithPayment && typeFilters.payment;
+        const taskIdsCsv = dayTasks.map(t => t.id).join(',');
 
         // Check-in colliding with a task and/or payment on the same cell is shown as a single
-        // red blinking dot - never a separate black payment dot. A task takes priority for the
-        // click (opens the task popup, which itself links onward to the payment via its
-        // "Payment ->" button); with no task, the dot opens the payment directly.
+        // red blinking dot. It opens the Day Activity list so nothing behind it is hidden —
+        // if there's genuinely only one thing that day, it jumps straight to that item's modal.
         if (bookingStartsHere && (dayTasks.length > 0 || hasPayment)) {
-          if (dayTasks.length > 0) {
-            const t0 = dayTasks[0];
-            rowHtml += `<div style="position:static;grid-column:${colIdx + 1}/${colIdx + 2};grid-row:1/-1;align-self:end;justify-self:center;width:8px;height:8px;border-radius:50%;background:#ef4444;z-index:15;cursor:pointer;pointer-events:auto;animation:cell-blink 1.2s ease-in-out infinite;" onclick="openTaskDetailModal(event,'${t0.id}')"></div>`;
-          } else {
-            rowHtml += `<div style="position:static;grid-column:${colIdx + 1}/${colIdx + 2};grid-row:1/-1;align-self:end;justify-self:center;width:8px;height:8px;border-radius:50%;background:#ef4444;z-index:15;cursor:pointer;pointer-events:auto;animation:cell-blink 1.2s ease-in-out infinite;" onclick="handlePaymentIndicatorClick(event,'${bookingWithPayment.id}','${dateStr}')" onmouseenter="showPaymentTooltip(event,'${bookingWithPayment.id}','${dateStr}')" onmouseleave="handleIndicatorHoverLeave()"></div>`;
-          }
+          rowHtml += `<div style="position:static;grid-column:${colIdx + 1}/${colIdx + 2};grid-row:1/-1;align-self:end;justify-self:center;width:8px;height:8px;border-radius:50%;background:#ef4444;z-index:15;cursor:pointer;pointer-events:auto;animation:cell-blink 1.2s ease-in-out infinite;" onclick="openDayItemsPanel(event,'${taskIdsCsv}','${hasPayment ? bookingWithPayment.id : ''}','${dateStr}')"></div>`;
           return;
         }
 
@@ -2899,7 +2909,11 @@
         const taskIconUrl = taskIconsMap[t0.task_type] || taskIconsMap.other;
         const taskColor = taskColors[t0.task_type] || taskColors.other;
         const paymentRing = t0.task_type === 'payment' ? 'box-shadow:0 0 0 2.5px #38bdf8,0 2px 6px rgba(0,0,0,0.15);width:30px;height:30px;' : '';
-        rowHtml += `<div class="task-circle-bar" style="grid-column:${colIdx + 1}/${colIdx + 2};grid-row:1;background-color:${taskColor};${paymentRing}" onclick="openTaskDetailModal(event,'${t0.id}')">${t0.task_type === 'payment' ? `<div style="position:relative;display:flex;align-items:center;justify-content:center;width:100%;height:100%;"><img src="${taskIconUrl}" alt="" style="width:16px;height:16px;filter:brightness(0) invert(1);opacity:0.5;position:absolute;" /><span style="color:#fff;font-weight:900;font-size:14px;line-height:1;position:relative;z-index:1;">$</span></div>` : `<img src="${taskIconUrl}" alt="" />`}</div>`;
+        const taskCountBadge = dayTasks.length > 1 ? `<div class="month-task-count">${dayTasks.length}</div>` : '';
+        rowHtml += `<div class="task-circle-bar-wrapper" style="grid-column:${colIdx + 1}/${colIdx + 2};grid-row:1;">
+          <div class="task-circle-bar" style="background-color:${taskColor};${paymentRing}" onclick="openDayItemsPanel(event,'${taskIdsCsv}','','${dateStr}')">${t0.task_type === 'payment' ? `<div style="position:relative;display:flex;align-items:center;justify-content:center;width:100%;height:100%;"><img src="${taskIconUrl}" alt="" style="width:16px;height:16px;filter:brightness(0) invert(1);opacity:0.5;position:absolute;" /><span style="color:#fff;font-weight:900;font-size:14px;line-height:1;position:relative;z-index:1;">$</span></div>` : `<img src="${taskIconUrl}" alt="" />`}</div>
+          ${taskCountBadge}
+        </div>`;
       });
 
       const detailHref = property.slug ? `/property/detail/${property.slug}/` : (property.detail_url || property.url || '#');
@@ -3306,6 +3320,78 @@
   function closeTaskDetailModal(event) {
     if (event && event.target !== event.currentTarget) return;
     const overlay = document.getElementById('taskModalOverlay');
+    overlay.classList.remove('open');
+  }
+
+  // Shown when a day cell has more than one task and/or a payment colliding
+  // on the same date/listing — each item gets its own clickable card here
+  // instead of everything collapsing into a single dot/circle. When there's
+  // only one thing total, this skips straight to that item's own modal.
+  function openDayItemsPanel(event, taskIdsCsv, paymentBookingId, dateStr) {
+    if (event) { event.stopPropagation(); event.preventDefault(); }
+    hideGlobalTooltip();
+
+    const taskIds = taskIdsCsv ? taskIdsCsv.split(',').filter(Boolean) : [];
+    const dayTasks = taskIds.map(id => tasks.find(t => String(t.id) === id)).filter(Boolean);
+    const paymentBooking = paymentBookingId ? bookings.find(b => String(b.id) === String(paymentBookingId)) : null;
+    const paymentInfo = (paymentBooking && paymentBooking.paymentsInfo) ? paymentBooking.paymentsInfo[dateStr] : null;
+
+    const totalCount = dayTasks.length + (paymentInfo ? 1 : 0);
+
+    if (totalCount <= 1) {
+      if (dayTasks.length === 1) { openTaskDetailModal(event, dayTasks[0].id); return; }
+      if (paymentInfo) { openPaymentDetailModal(event, paymentBooking.id, dateStr); return; }
+      return;
+    }
+
+    const taskTypeColors = { cleaning: '#10b981', maintenance: '#f59e0b', payment: '#3b82f6', other: '#8b5cf6' };
+    const taskIcons = {
+      cleaning: "{% static 'img/task/type/cleaning.svg' %}",
+      maintenance: "{% static 'img/task/type/maintenance.svg' %}",
+      payment: "{% static 'img/task/type/payment.svg' %}",
+      other: "{% static 'img/task/type/others.svg' %}"
+    };
+    const paymentIconUrl = "{% static 'img/task/type/payment.svg' %}";
+
+    const cardsHtml = [];
+
+    dayTasks.forEach(t => {
+      const type = t.task_type || 'other';
+      const color = taskTypeColors[type] || '#6b7280';
+      const iconUrl = taskIcons[type] || taskIcons.other;
+      const timeStr = t.time ? new Date('2000-01-01T' + t.time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : null;
+      cardsHtml.push(`
+        <div class="day-item-card" onclick="closeDayItemsModal();openTaskDetailModal(event,'${t.id}')">
+          <div class="day-item-badge" style="background-color:${color};"><img src="${iconUrl}" alt="" /></div>
+          <div class="day-item-info">
+            <div class="day-item-title">${type}</div>
+            <div class="day-item-sub">${t.details || 'Task'}${timeStr ? ' &middot; ' + timeStr : ''}</div>
+          </div>
+        </div>
+      `);
+    });
+
+    if (paymentInfo) {
+      const amount = Number(paymentInfo.amount || 0).toFixed(2);
+      cardsHtml.push(`
+        <div class="day-item-card" onclick="closeDayItemsModal();openPaymentDetailModal(event,'${paymentBooking.id}','${dateStr}')">
+          <div class="day-item-badge" style="background-color:#3b82f6;"><img src="${paymentIconUrl}" alt="" /></div>
+          <div class="day-item-info">
+            <div class="day-item-title">Payment</div>
+            <div class="day-item-sub">${paymentInfo.type || 'Payment'} &middot; $${amount}${paymentInfo.is_paid ? ' (Paid)' : ''}</div>
+          </div>
+        </div>
+      `);
+    }
+
+    document.getElementById('dayItemsList').innerHTML = cardsHtml.join('');
+    document.getElementById('dayItemsCount').textContent = `${totalCount} items`;
+    document.getElementById('dayItemsModalOverlay').classList.add('open');
+  }
+
+  function closeDayItemsModal(event) {
+    if (event && event.target !== event.currentTarget) return;
+    const overlay = document.getElementById('dayItemsModalOverlay');
     overlay.classList.remove('open');
   }
 
@@ -3845,6 +3931,32 @@
     document.getElementById('nextBtn').addEventListener('click', goToNextMonth);
     document.getElementById('todayBtn').addEventListener('click', goToToday);
     document.getElementById('refreshBtn').addEventListener('click', refreshData);
+
+    // SYNC-NOW (channel integration manual trigger) — wired up, commented out until go-ahead.
+    // Uncomment together with the #syncNowBtn markup above to activate.
+    /*
+    const syncNowBtn = document.getElementById('syncNowBtn');
+    if (syncNowBtn) {
+      syncNowBtn.addEventListener('click', function () {
+        syncNowBtn.disabled = true;
+        fetch("{% url 'manual-sync' %}", {
+          method: 'POST',
+          headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+        })
+          .then(response => response.json())
+          .then(data => {
+            if (data.success) {
+              refreshData();
+            } else {
+              alert('Sync failed: ' + (data.error || 'Unknown error'));
+            }
+          })
+          .catch(() => alert('Sync request failed.'))
+          .finally(() => { syncNowBtn.disabled = false; });
+      });
+    }
+    */
+
     document.getElementById('printBtn').addEventListener('click', function () {
       const viewType = currentViewMode || 'month';
       let startDate, endDate;

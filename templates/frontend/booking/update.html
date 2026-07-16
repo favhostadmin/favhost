@@ -63,7 +63,7 @@
                                         <div class="booking-upload-box upload-area" id="upload-area">
                                             <div><img src="{% static 'img/property/upload.png' %}" alt="Upload Photo"></div>
                                             <div class="booking-upload-title">Click to upload or drag and drop</div>
-                                            <div class="booking-upload-subtitle">Documents, images up to 15MB each</div>
+                                            <div class="booking-upload-subtitle">JPG or PNG, up to 5MB</div>
                                         </div>
                                         <div class="error-message" id="error-message"></div>
                                         <div class="preview-container" id="image-preview-container" {% if existing_images %}style="display: block;"{% endif %}>
@@ -84,7 +84,7 @@
                                         <div class="booking-upload-box upload-area" id="attachmentUploadArea">
                                             <div><img src="{% static 'img/property/upload.png' %}" alt="Upload Photo"></div>
                                             <div class="booking-upload-title">Click to upload or drag and drop</div>
-                                            <div class="booking-upload-subtitle">Documents, images up to 15MB each</div>
+                                            <div class="booking-upload-subtitle">Documents, images up to 5MB each</div>
                                         </div>
                                         <div class="attachment-error-message" id="attachment-error-message"></div>
                                         <div class="attachment-preview-container" id="attachment-preview-container" {% if existing_attachments %}style="display: block;"{% endif %}>
@@ -107,7 +107,7 @@
                                         </div>
                                     </div>
                                 </div>
-                                <input type="file" name="guest_images" accept="image/*" style="display: none;" id="id_guest_images" multiple>
+                                <input type="file" name="guest_images" accept="image/*" style="display: none;" id="id_guest_images">
                                 <input type="file" name="guest_attachments" style="display: none;" id="id_guest_attachments" multiple>
                             </div>
                             <div class="booking-field full-width">
@@ -606,12 +606,8 @@
                 }
             }
 
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            const todayStr = today.toISOString().split('T')[0];
-            if (!checkInEl.value || checkInEl.value >= todayStr) {
-                checkInEl.min = todayStr;
-            }
+            // Past check-in dates are allowed (bookings can be edited to or
+            // created for past stays), so no min is set on the check-in input.
 
             syncCheckoutMin();
             checkInEl.addEventListener('change', syncCheckoutMin);
@@ -985,9 +981,14 @@
 
         setupUpload(guestPhotoUploadArea, guestPhotoInput, handleGuestPhotoFiles);
 
-        function handleGuestPhotoFiles(e) {
-            handleFileSelection(e, selectedGuestPhotos, validateGuestPhoto, createGuestPhotoPreview, guestPhotoErrorMessage, true);
-            updateFileInput('id_guest_images', selectedGuestPhotos);
+        async function handleGuestPhotoFiles(e) {
+            const files = Array.from(e.target.files);
+            if (files.length === 0) return;
+            // Limit: 1 guest photo — a new selection replaces the previous one
+            selectedGuestPhotos = [];
+            guestPhotoPreviewGrid.innerHTML = '';
+            await handleFileSelection({ target: { files: [files[0]] } }, selectedGuestPhotos, validateGuestPhoto, createGuestPhotoPreview, guestPhotoErrorMessage, true);
+            updateFileInput(guestPhotoInput, selectedGuestPhotos);
         }
 
         function validateGuestPhoto(file, errorContainer) {
@@ -1019,9 +1020,22 @@
 
         setupUpload(attachmentUploadArea, attachmentInput, handleAttachmentFiles);
 
-        function handleAttachmentFiles(e) {
-            handleFileSelection(e, selectedAttachments, validateAttachment, createAttachmentPreview, attachmentErrorMessage);
-            updateFileInput('id_guest_attachments', selectedAttachments);
+        const MAX_ATTACHMENTS = 5;
+
+        async function handleAttachmentFiles(e) {
+            const files = Array.from(e.target.files);
+            // Cap is for the whole booking: count documents already saved on
+            // it (still shown in the preview grid) plus new ones picked now.
+            const existingDocsCount = attachmentPreviewGrid.querySelectorAll('[data-doc-id]').length;
+            const remaining = MAX_ATTACHMENTS - existingDocsCount - selectedAttachments.length;
+            const accepted = files.slice(0, Math.max(0, remaining));
+            if (accepted.length) {
+                await handleFileSelection({ target: { files: accepted } }, selectedAttachments, validateAttachment, createAttachmentPreview, attachmentErrorMessage);
+            }
+            updateFileInput(attachmentInput, selectedAttachments);
+            if (files.length > remaining) {
+                showError(attachmentErrorMessage, `A booking can have a maximum of ${MAX_ATTACHMENTS} documents in total. Delete an existing document to add a new one.`);
+            }
         }
 
         function validateAttachment(file, errorContainer) {
@@ -1059,12 +1073,12 @@
             if (type === 'photo') {
                 selectedGuestPhotos = selectedGuestPhotos.filter(f => !(f.name === fileName && f.size === fileSize));
                 guestPhotoPreviewGrid.querySelector(`[data-file-name="${fileName}"]`)?.remove();
-                updateFileInput('id_guest_images', selectedGuestPhotos);
+                updateFileInput(guestPhotoInput, selectedGuestPhotos);
                 if (guestPhotoPreviewGrid.children.length === 0) guestPhotoPreviewContainer.style.display = 'none';
             } else if (type === 'attachment') {
                 selectedAttachments = selectedAttachments.filter(f => !(f.name === fileName && f.size === fileSize));
                 attachmentPreviewGrid.querySelector(`[data-file-name="${fileName}"]`)?.remove();
-                updateFileInput('id_guest_attachments', selectedAttachments);
+                updateFileInput(attachmentInput, selectedAttachments);
                 if (attachmentPreviewGrid.children.length === 0) attachmentPreviewContainer.style.display = 'none';
             }
         }
