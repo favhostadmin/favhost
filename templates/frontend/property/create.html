@@ -1084,7 +1084,7 @@
 <!-- Missing Required Fields Modal -->
 <div class="missing-fields-backdrop" id="missingFieldsModal">
     <div class="missing-fields-card">
-        <div class="missing-fields-title"><span class="icon">⚠</span> <span>Please fill the following required fields</span></div>
+        <div class="missing-fields-title"><span class="icon">⚠</span> <span id="missingFieldsTitleText">Please fill the following required fields</span></div>
         <ul class="missing-fields-list" id="missingFieldsList"></ul>
         <button type="button" class="missing-fields-btn" id="missingFieldsClose">OK</button>
     </div>
@@ -1163,6 +1163,16 @@
         return invalid;
     }
 
+    function findInvalidYoutubeLink(form) {
+        const input = form.querySelector('[name="youtube_link"]');
+        if (!input || input.value.trim() === '') return null;
+        try {
+            const parsed = new URL(input.value.trim());
+            if (parsed.protocol === 'http:' || parsed.protocol === 'https:') return null;
+        } catch (e) {}
+        return input;
+    }
+
     function validateStep1AndProceed() {
         const step1Content = document.getElementById('step1-content');
         step1Content.querySelectorAll('.field-invalid').forEach(el => el.classList.remove('field-invalid'));
@@ -1172,6 +1182,18 @@
             highlightInvalidFields(missingFields);
             missingFields[0].group.scrollIntoView({ behavior: 'smooth', block: 'center' });
             showMissingFieldsModal([missingFields[0]], () => focusField(missingFields[0].control));
+            return;
+        }
+
+        const invalidYoutubeInput = findInvalidYoutubeLink(document.getElementById('propertyForm'));
+        if (invalidYoutubeInput) {
+            invalidYoutubeInput.classList.add('field-invalid');
+            invalidYoutubeInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            showMissingFieldsModal(
+                [{ label: 'YouTube link', group: null, control: invalidYoutubeInput }],
+                () => focusField(invalidYoutubeInput),
+                'Please enter a valid URL'
+            );
             return;
         }
         goToStep(2);
@@ -1926,7 +1948,9 @@
         });
     }
 
-    function showMissingFieldsModal(missingFields, onClose) {
+    function showMissingFieldsModal(missingFields, onClose, title) {
+        const titleText = document.getElementById('missingFieldsTitleText');
+        if (titleText) titleText.textContent = title || 'Please fill the following required fields';
         const list = document.getElementById('missingFieldsList');
         list.innerHTML = '';
         missingFields.forEach(f => {
@@ -1963,6 +1987,19 @@
                 return;
             }
 
+            const invalidYoutubeInput = findInvalidYoutubeLink(form);
+            if (invalidYoutubeInput) {
+                event.preventDefault(); hideLoader();
+                goToStep(1);
+                invalidYoutubeInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                showMissingFieldsModal(
+                    [{ label: 'YouTube link', group: null, control: invalidYoutubeInput }],
+                    () => focusField(invalidYoutubeInput),
+                    'Please enter a valid URL'
+                );
+                return;
+            }
+
             const countrySelectEl = document.getElementById('country') || document.querySelector('select[name="country"]');
             const stateSelectEl = document.getElementById('state') || document.querySelector('select[name="state"]');
             const stateValue = stateSelectEl ? stateSelectEl.value : '';
@@ -1986,20 +2023,36 @@
                 return;
             }
 
-            const priceFields = [
-                { name: 'price_per_night', label: 'Price per night' },
+            const requiredPriceField = { name: 'price_per_night', label: 'Price per night' };
+            const optionalPriceFields = [
                 { name: 'taxes', label: 'Taxes' },
                 { name: 'cleaning_fee', label: 'Cleaning Fee' },
                 { name: 'refundable_deposit', label: 'Refundable Deposit' },
                 { name: 'other_fees', label: 'Other fees' }
             ];
-            for (const field of priceFields) {
-                const input = form.querySelector(`[name="${field.name}"]`);
+            {
+                const input = form.querySelector(`[name="${requiredPriceField.name}"]`);
                 if (input) {
                     const val = parseFloat(input.value);
                     if (input.value.trim() === '' || isNaN(val) || val < 0) {
                         event.preventDefault(); hideLoader();
-                        showToastMessage(`${field.label} cannot be empty and must be 0 or greater.`, 'error');
+                        showToastMessage(`${requiredPriceField.label} cannot be empty and must be 0 or greater.`, 'error');
+                        goToStep(2);
+                        input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        focusField(input);
+                        return;
+                    }
+                }
+            }
+            // These fields default to 0 on the backend, so a blank value is valid — only
+            // reject an explicitly entered negative number.
+            for (const field of optionalPriceFields) {
+                const input = form.querySelector(`[name="${field.name}"]`);
+                if (input && input.value.trim() !== '') {
+                    const val = parseFloat(input.value);
+                    if (isNaN(val) || val < 0) {
+                        event.preventDefault(); hideLoader();
+                        showToastMessage(`${field.label} must be 0 or greater.`, 'error');
                         goToStep(2);
                         input.scrollIntoView({ behavior: 'smooth', block: 'center' });
                         focusField(input);
