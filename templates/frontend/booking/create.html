@@ -66,7 +66,7 @@
                                         <div class="booking-upload-box upload-area" id="upload-area">
                                             <div><img src="{% static 'img/property/upload.png' %}" alt="Upload Photo"></div>
                                             <div class="booking-upload-title">Click to upload or drag and drop</div>
-                                            <div class="booking-upload-subtitle">Documents, images up to 5MB each</div>
+                                            <div class="booking-upload-subtitle">JPG or PNG, up to 5MB</div>
                                         </div>
                                         <div class="error-message" id="error-message"></div>
                                         <div class="preview-container" id="image-preview-container">
@@ -600,6 +600,9 @@
                 }
             }
 
+            // Past check-in dates are allowed (hosts can log offline/past
+            // reservations), so no min is set on the check-in input.
+
             syncCheckoutMin();
             checkInEl.addEventListener('change', syncCheckoutMin);
             checkInEl.addEventListener('input', syncCheckoutMin);
@@ -958,9 +961,19 @@
             guestPhotoPreviewContainer.style.display = 'block';
         }
 
+        const MAX_ATTACHMENTS = 5;
+
         async function handleAttachmentFiles(e) {
-            await handleFileSelection(e, selectedAttachments, validateAttachment, createAttachmentPreview, attachmentErrorMessage);
+            const files = Array.from(e.target.files);
+            const remaining = MAX_ATTACHMENTS - selectedAttachments.length;
+            const accepted = files.slice(0, Math.max(0, remaining));
+            if (accepted.length) {
+                await handleFileSelection({ target: { files: accepted } }, selectedAttachments, validateAttachment, createAttachmentPreview, attachmentErrorMessage);
+            }
             updateFileInput(attachmentInput, selectedAttachments);
+            if (files.length > remaining) {
+                showError(attachmentErrorMessage, `You can upload a maximum of ${MAX_ATTACHMENTS} documents.`);
+            }
         }
 
         function validateAttachment(file, errorContainer) {
@@ -1475,6 +1488,8 @@
     const propertyIdFromUrl = urlParams.get('property_id') || '{{ property_id|default:"" }}';
     const checkInFromUrl = urlParams.get('check_in');
     const guestsFromUrl = urlParams.get('guests');
+
+    // Past check-in dates are allowed — no min attribute on check-in.
 
     if (checkInEl) {
         checkInEl.addEventListener('change', function() {

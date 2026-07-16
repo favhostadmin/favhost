@@ -318,10 +318,32 @@
         .main_row_div { padding: 0rem 12%; }
 
         @media (max-width: 640px) {
-            .main_row_div { padding: 0rem 0% !important; }
+            /* Compact nav header so "‹ Back" fits without wrapping the title */
+            .action-buttons { gap: 8px !important; }
+            .action-buttons #step2-nav img,
+            .action-buttons #step1-nav img { display: none; }
+            .action-buttons .btn-back {
+                padding: 0 6px 0 0;
+                font-size: 14px;
+                white-space: nowrap;
+            }
+            .action-buttons #step1-nav span.ms-2,
+            .action-buttons #step2-nav span.ms-2 {
+                white-space: nowrap;
+                font-size: 14px;
+                margin-left: 0 !important;
+            }
+            .action-buttons .step-counter { min-width: auto; font-size: 13px; }
+            .action-buttons .btn-create,
+            .action-buttons .btn-cancel { padding: 7px 12px; font-size: 13px; }
         }
         @media (max-width: 991.98px) {
-            .main_row_div { padding: 0rem 3% !important; }
+            /* Symmetric edge spacing lives on the cards themselves */
+            .main_row_div { padding: 0 !important; }
+            .main_row_div .form-section {
+                margin-left: 12px !important;
+                margin-right: 12px !important;
+            }
             .action-buttons {
                 background: #E7E7E9 !important;
                 border-radius: 0 !important;
@@ -349,7 +371,10 @@
             .main_row_div .row { --bs-gutter-x: 0 !important; }
             .main_row_div > [class*="col-"] { padding-left: 0 !important; padding-right: 0 !important; }
             .main_row_div .row > [class*="col-"] { padding-left: 0 !important; padding-right: 0 !important; }
-            .main_row_div .form-section { padding-right: 0 !important; }
+            .main_row_div .section-block > *:not(.section-title) {
+                padding-left: 0 !important;
+                padding-right: 0 !important;
+            }
         }
 
         /* Step wizard */
@@ -2171,6 +2196,22 @@
         updateMapFromFields();
     });
 })();
+</script>
+
+<script>
+// Pricing inputs: select the value on focus so the default "0" is replaced
+// as soon as the user starts typing.
+document.addEventListener('DOMContentLoaded', function () {
+    ['price_per_night', 'taxes', 'cleaning_fee', 'refundable_deposit', 'other_fees'].forEach(function (name) {
+        var input = document.querySelector('[name="' + name + '"]');
+        if (!input) return;
+        input.addEventListener('focus', function () {
+            var self = this;
+            // Defer so the click that focused the input doesn't undo the selection
+            setTimeout(function () { self.select(); }, 0);
+        });
+    });
+});
 </script>
 
 {% endblock extra_script %}
