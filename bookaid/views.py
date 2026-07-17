@@ -431,15 +431,14 @@ class HostDashboardAPIView(LoginRequiredMixin, TemplateView):
 
         upcoming_groups = []
         for group_date in sorted(event_groups.keys()):
-            if group_date >= today:
-                group_code, group_label = status_for(group_date)
-                items = sorted(event_groups[group_date], key=lambda e: e["sort_key"])
-                upcoming_groups.append({
-                    "date": group_date,
-                    "status_label": group_label,
-                    "status_code": group_code,
-                    "items": items,
-                })
+            group_code, group_label = status_for(group_date)
+            items = sorted(event_groups[group_date], key=lambda e: e["sort_key"])
+            upcoming_groups.append({
+                "date": group_date,
+                "status_label": group_label,
+                "status_code": group_code,
+                "items": items,
+            })
 
         context["upcoming_month"] = upcoming_month
         context["upcoming_year"] = upcoming_year
