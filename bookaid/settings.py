@@ -113,6 +113,10 @@ MIDDLEWARE = [
 
     # Renders our branded 404.html for missing URLs even when DEBUG=True.
     'bookaid.middleware.CustomPageNotFoundMiddleware',
+
+    # Prevents browsers caching authenticated HTML pages, so the subscription
+    # paywall is re-checked on every navigation (not only on a hard refresh).
+    'bookaid.middleware.NoCacheAuthenticatedHTMLMiddleware',
 ]
 
 ROOT_URLCONF = 'bookaid.urls'
