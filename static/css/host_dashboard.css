@@ -657,7 +657,116 @@
         margin-top: 2px;
         word-break: break-word;
     }
-   
+
+    /* ── Upcoming timeline (list-view style, matches calender.html list view) ── */
+    .upcoming-timeline {
+        --ut-text: #1F2430;
+        --ut-muted: #6B7280;
+        --ut-faint: #9AA1AC;
+        --ut-paper: #F5F6F8;
+        --ut-surface: #FFFFFF;
+        --ut-line: #E7E9ED;
+        --ut-shadow-sm: 0 1px 2px rgba(16, 24, 40, .05);
+        --ut-shadow-md: 0 4px 14px rgba(16, 24, 40, .07);
+        --ut-radius: 12px;
+        --ut-in: #059669; --ut-in-text: #047857; --ut-in-bg: #ECFDF5; --ut-in-line: #A7F3D0;
+        --ut-out: #D97706; --ut-out-text: #B45309; --ut-out-bg: #FFFBEB; --ut-out-line: #FCD9A4;
+        --ut-pay: #2563EB; --ut-pay-text: #1D4ED8; --ut-pay-bg: #EFF6FF; --ut-pay-line: #BFDBFE;
+        --ut-task: #6B7280; --ut-task-text: #4B5563; --ut-task-bg: #F9FAFB; --ut-task-line: #E5E7EB;
+        --ut-overdue: #DC2626; --ut-overdue-bg: #FEF2F2; --ut-overdue-line: #FECACA;
+        --ut-duesoon: #D97706; --ut-duesoon-bg: #FFFBEB; --ut-duesoon-line: #FCD9A4;
+        --ut-upcoming: #059669; --ut-upcoming-bg: #ECFDF5; --ut-upcoming-line: #A7F3D0;
+        color: var(--ut-text);
+    }
+
+    .ut-day { display: grid; grid-template-columns: 44px 1fr; gap: 12px; align-items: stretch; }
+    .ut-day + .ut-day { margin-top: 12px; }
+    .ut-rail { position: relative; width: 44px; }
+    .ut-day:not(.is-last) .ut-rail::after {
+        content: ""; position: absolute; left: calc(50% - 1px); top: 40px; bottom: -12px; width: 2px; background: var(--ut-line);
+    }
+    .ut-node {
+        position: relative; z-index: 1; width: 40px; height: 40px; margin: 0 auto; border-radius: 50%;
+        background: var(--ut-surface); border: 2px solid var(--ut-line); box-shadow: var(--ut-shadow-sm);
+        display: grid; place-items: center; text-align: center;
+    }
+    .ut-node__day { font-weight: 800; font-size: 14px; line-height: 1; letter-spacing: -.02em; color: var(--ut-text); }
+    .ut-node__mon { font-size: 8.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--ut-muted); }
+    .ut-day__main { min-width: 0; }
+    .ut-day__head { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; padding: 4px 2px 8px; }
+    .ut-day__weekday { font-weight: 800; font-size: 13.5px; color: var(--ut-text); letter-spacing: -.01em; }
+    .ut-day__date { color: var(--ut-muted); font-size: 12px; font-weight: 600; }
+    .ut-day__chip {
+        font-size: 10.5px; font-weight: 700; border-radius: 20px; padding: 2px 9px; margin-left: 2px; border: 1px solid;
+    }
+    .ut-chip--overdue { color: var(--ut-overdue); background: var(--ut-overdue-bg); border-color: var(--ut-overdue-line); }
+    .ut-chip--due-soon { color: var(--ut-duesoon); background: var(--ut-duesoon-bg); border-color: var(--ut-duesoon-line); }
+    .ut-chip--upcoming { color: var(--ut-upcoming); background: var(--ut-upcoming-bg); border-color: var(--ut-upcoming-line); }
+    .ut-day__events { display: flex; flex-direction: column; gap: 10px; }
+
+    .ut-event {
+        position: relative; background: var(--ut-surface); border: 1px solid var(--ut-line);
+        border-left: 3px solid var(--ut-accent, var(--ut-muted)); border-radius: var(--ut-radius);
+        box-shadow: var(--ut-shadow-sm); transition: transform .14s, box-shadow .14s;
+    }
+    .ut-event:hover { transform: translateY(-1px); box-shadow: var(--ut-shadow-md); }
+    .ut-event--checkin { --ut-accent: var(--ut-in); }
+    .ut-event--checkout { --ut-accent: var(--ut-out); }
+    .ut-event--payment { --ut-accent: var(--ut-pay); }
+    .ut-event--task { --ut-accent: var(--ut-task); }
+
+    .ut-event__body { display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; }
+    .ut-zone--type { display: flex; gap: 10px; align-items: flex-start; }
+    .ut-ico {
+        width: 32px; height: 32px; border-radius: 9px; flex: 0 0 auto; display: grid; place-items: center;
+        background: var(--ut-accent-bg, var(--ut-task-bg)); color: var(--ut-accent, var(--ut-task));
+    }
+    .ut-ico svg { width: 16px; height: 16px; }
+    .ut-event--checkin .ut-ico { --ut-accent-bg: var(--ut-in-bg); }
+    .ut-event--checkout .ut-ico { --ut-accent-bg: var(--ut-out-bg); }
+    .ut-event--payment .ut-ico { --ut-accent-bg: var(--ut-pay-bg); }
+    .ut-event--task .ut-ico { --ut-accent-bg: var(--ut-task-bg); }
+
+    .ut-typecontent { display: flex; flex-direction: column; gap: 3px; min-width: 0; flex: 1; }
+    .ut-type__label { font-weight: 700; font-size: 13.5px; display: flex; align-items: center; gap: 7px; flex-wrap: wrap; color: var(--ut-text); }
+    .ut-badge {
+        font-size: 9.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em;
+        padding: 1px 7px; border-radius: 20px; border: 1px solid;
+    }
+    .ut-badge--checkin { color: var(--ut-in-text); background: var(--ut-in-bg); border-color: var(--ut-in-line); }
+    .ut-badge--checkout { color: var(--ut-out-text); background: var(--ut-out-bg); border-color: var(--ut-out-line); }
+    .ut-badge--payment { color: var(--ut-pay-text); background: var(--ut-pay-bg); border-color: var(--ut-pay-line); }
+    .ut-badge--task { color: var(--ut-task-text); background: var(--ut-task-bg); border-color: var(--ut-task-line); }
+    .ut-amount { font-weight: 700; font-size: 13px; color: var(--ut-text); }
+    .ut-range { font-size: 11.5px; color: var(--ut-muted); font-weight: 500; }
+
+    .ut-event__row2 { display: flex; gap: 12px; flex-wrap: wrap; }
+    .ut-zone--guest, .ut-zone--prop { display: flex; gap: 9px; align-items: flex-start; flex: 1 1 140px; min-width: 0; }
+    .ut-avatar {
+        width: 30px; height: 30px; border-radius: 50%; flex: 0 0 auto; display: grid; place-items: center;
+        font-weight: 700; font-size: 11px; color: #fff; background: #9CA3AF; overflow: hidden;
+    }
+    .ut-avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .ut-guest__meta, .ut-prop__meta { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+    .ut-guest__name, .ut-prop__name {
+        font-weight: 700; font-size: 12.5px; color: var(--ut-text);
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .ut-contact { font-size: 11px; color: var(--ut-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .ut-contact--mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 10.5px; }
+    .ut-contact--none { color: var(--ut-faint); font-style: italic; }
+    .ut-thumb {
+        width: 40px; height: 32px; border-radius: 7px; flex: 0 0 auto; overflow: hidden;
+        background: var(--ut-paper); box-shadow: inset 0 0 0 1px rgba(16, 24, 40, .06);
+    }
+    .ut-thumb img { width: 100%; height: 100%; object-fit: cover; }
+
+    .ut-empty-state {
+        text-align: center; padding: 40px 16px; color: var(--ut-muted); background: var(--ut-surface);
+        border: 1px dashed var(--ut-line); border-radius: var(--ut-radius);
+    }
+    .ut-empty-state b { display: block; color: var(--ut-text); font-size: 14px; margin-bottom: 4px; }
+
     .status-badges {
         display: flex;
         gap: 8px;
@@ -996,6 +1105,31 @@ html, body {
 
 .month-picker button:hover {
     color: #1a1a1a;
+}
+
+.today-month-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border: 1.5px solid #d1d5db;
+    border-radius: 10px;
+    background: #fff;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background .15s, border-color .15s;
+}
+
+.today-month-btn:hover {
+    background: #f3f4f6;
+    border-color: #9ca3af;
+}
+
+.today-month-btn img {
+    width: 16px;
+    height: 16px;
+    display: block;
 }
 
 #month-label {

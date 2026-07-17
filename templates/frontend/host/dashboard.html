@@ -177,96 +177,93 @@
                 <div class="upcoming-section flex-fill d-flex flex-column laptop-padded-section">
 
                     <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h2 class="upcoming-header">Upcoming</h2>
-                        <div class="month-picker">
-                            <button id="prev-month" aria-label="Previous month"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" width="16" height="16"><path d="M15 6l-6 6 6 6"/></svg></button>
-                            <span id="month-label" data-month="{{ upcoming_month }}" data-year="{{ upcoming_year }}"></span>
-                            <button id="next-month" aria-label="Next month"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" width="16" height="16"><path d="M9 6l6 6-6 6"/></svg></button>
+                        <h2 class="upcoming-header">Events</h2>
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="month-picker">
+                                <button id="prev-month" aria-label="Previous month"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" width="16" height="16"><path d="M15 6l-6 6 6 6"/></svg></button>
+                                <span id="month-label" data-month="{{ upcoming_month }}" data-year="{{ upcoming_year }}"></span>
+                                <button id="next-month" aria-label="Next month"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" width="16" height="16"><path d="M9 6l6 6-6 6"/></svg></button>
+                            </div>
+                            <button id="today-month-btn" class="today-month-btn" aria-label="Go to current month" title="Go to current month">
+                                <img src="{% static 'img/calender/today_icon.svg' %}" alt="" width="16" height="16">
+                            </button>
                         </div>
                     </div>
 
                     <div class="position-relative flex-fill upcoming-container-wrapper">
-                        <div class="position-absolute w-100 h-100 upcoming-scroll-content" style="overflow-y: auto; overflow-x: hidden; top: 0; left: 0; padding-right: 8px;">
+                        <div class="position-absolute w-100 h-100 upcoming-scroll-content upcoming-timeline" style="overflow-y: auto; overflow-x: hidden; top: 0; left: 0; padding-right: 8px;">
                             {% if upcoming_groups %}
-                                    {% for group in upcoming_groups %}
-                                        <div class="upcoming-item">
-                                            <div class="upcoming-date">
-                                                <div class="left">
-                                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px;flex-shrink:0;opacity:.6"><rect x="3" y="4.5" width="18" height="16" rx="2.5"/><path d="M3 9h18M8 2.5v4M16 2.5v4"/></svg>
-                                                    {{ group.date|date:"M d, Y, D" }}
-                                                </div>
-                                                <div class="due-badge {{ group.status_code }}">{{ group.status_label }}</div>
-                                            </div>
-                                            <div class="upcoming-entries">
-                                                {% for item in group.items %}
-                                                    <div class="upcoming-entry">
-                                                        <div class="entry-left">
-                                                            <div class="entry-icon-wrap entry-icon-{{ item.group|lower }}">
-                                                                {% if item.group == "Payment" %}
-                                                                    <svg class="entry-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2.5" y="6" width="19" height="12" rx="2.5"/><circle cx="12" cy="12" r="2.6"/><path d="M6 9.5h.01M18 14.5h.01"/></svg>
-                                                                {% elif item.group == "Checkin" %}
-                                                                    <svg class="entry-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="M10 17l5-5-5-5M15 12H3"/></svg>
-                                                                {% elif item.group == "Checkout" %}
-                                                                    <svg class="entry-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></svg>
-                                                                {% elif item.group == "Cleaning" %}
-                                                                    <svg class="entry-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 22l4-4m0 0l7-7m-7 7l-1.5-1.5M14 11l3-3m0 0l2-2a2 2 0 0 0-3-3l-2 2m3 3l-7 7"/></svg>
-                                                                {% else %}
-                                                                    <svg class="entry-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3.5" width="16" height="17" rx="2.5"/><path d="m8.5 12 2.2 2.2L15 9.8"/></svg>
-                                                                {% endif %}
-                                                            </div>
-                                                            <div class="entry-body">
-                                                                <div class="entry-title">
-                                                                    <span class="entry-label">
-                                                                        {{ item.title }}{% if item.amount %} {% money item.amount %}{% endif %}
-                                                                    </span>
-                                                                    {% if item.group == "Payment" %}
-                                                                        <span class="payment-status {% if item.paid %}paid{% else %}unpaid{% endif %}">
-                                                                            {% if item.paid %}Paid{% else %}Not paid{% endif %}
-                                                                        </span>
-                                                                    {% endif %}
-                                                                </div>
-                                                                <div class="entry-subtitle">
-                                                                    <img src="{{ item.property_image }}" class="entry-property-icon" alt="">
-                                                                    <span>{{ item.property }}</span>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                        <div class="entry-right">
-                                                            <div class="guest-avatar-wrap">
-                                                                <img src="{{ item.avatar }}" class="user-avatar" alt="Guest">
-                                                                <div class="guest-tooltip">
-                                                                    <div class="tooltip-name">{{ item.guest_name }}</div>
-                                                                    {% if item.guest_phone %}
-                                                                        <div class="tooltip-line">{{ item.guest_phone }}</div>
-                                                                    {% endif %}
-                                                                    {% if item.guest_email %}
-                                                                        <div class="tooltip-line">{{ item.guest_email }}</div>
-                                                                    {% endif %}
-                                                                    {% if item.stay %}
-                                                                        <div class="tooltip-line">{{ item.stay }}</div>
-                                                                    {% endif %}
-                                                                    {% if item.channel_name %}
-                                                                        <div class="tooltip-line">{{ item.channel_name }}</div>
-                                                                    {% endif %}
-                                                                </div>
-                                                            </div>
-                                                            <div class="user-name" data-full="{{ item.guest_name }}">{{ item.guest_name|truncatewords:2 }}</div>
+                                {% for group in upcoming_groups %}
+                                <div class="ut-day{% if forloop.last %} is-last{% endif %}">
+                                    <div class="ut-rail"><div class="ut-node"><span class="ut-node__day">{{ group.date|date:"d" }}</span><span class="ut-node__mon">{{ group.date|date:"M"|upper }}</span></div></div>
+                                    <div class="ut-day__main">
+                                        <div class="ut-day__head">
+                                            <span class="ut-day__weekday">{{ group.date|date:"D" }}</span>
+                                            <span class="ut-day__date">{{ group.date|date:"M j, Y" }}</span>
+                                            <span class="ut-day__chip ut-chip--{{ group.status_code }}">{{ group.status_label }}</span>
+                                        </div>
+                                        <div class="ut-day__events">
+                                            {% for item in group.items %}
+                                            <article class="ut-event ut-event--{{ item.group|lower }}">
+                                                <div class="ut-event__body">
+                                                    <div class="ut-zone--type">
+                                                        <span class="ut-ico">
+                                                            {% if item.group == "Payment" %}
+                                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2.5" y="6" width="19" height="12" rx="2.5"/><circle cx="12" cy="12" r="2.6"/><path d="M6 9.5h.01M18 14.5h.01"/></svg>
+                                                            {% elif item.group == "Checkin" %}
+                                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="M10 17l5-5-5-5M15 12H3"/></svg>
+                                                            {% elif item.group == "Checkout" %}
+                                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></svg>
+                                                            {% elif item.task_type == "cleaning" %}
+                                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 22l4-4m0 0l7-7m-7 7l-1.5-1.5M14 11l3-3m0 0l2-2a2 2 0 0 0-3-3l-2 2m3 3l-7 7"/></svg>
+                                                            {% else %}
+                                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3.5" width="16" height="17" rx="2.5"/><path d="m8.5 12 2.2 2.2L15 9.8"/></svg>
+                                                            {% endif %}
+                                                        </span>
+                                                        <div class="ut-typecontent">
+                                                            <span class="ut-type__label">
+                                                                {{ item.title }}
+                                                                <span class="ut-badge ut-badge--{{ item.group|lower }}">
+                                                                    {% if item.group == "Payment" %}{% if item.paid %}Paid{% else %}Due{% endif %}{% elif item.group == "Checkin" %}Arrival{% elif item.group == "Checkout" %}Departure{% else %}Task{% endif %}
+                                                                </span>
+                                                            </span>
+                                                            {% if item.group == "Payment" %}
+                                                                <span class="ut-amount">{% money item.amount %}</span>
+                                                            {% elif item.stay %}
+                                                                <span class="ut-range">{{ item.stay }}</span>
+                                                            {% endif %}
                                                         </div>
                                                     </div>
-                                                {% endfor %}
-                                            </div>
-                                        </div>
-                                    {% endfor %}
-                                {% else %}
-                                    <div class="upcoming-item">
-                                        <div class="upcoming-date">
-                                            <div class="left">
-                                                <img src="{% static 'img/dashboard/upcoming_event_calender.png' %}"/>
-                                                No upcoming events
-                                            </div>
-                                            <div class="due-badge upcoming">This month</div>
+                                                    <div class="ut-event__row2">
+                                                        <div class="ut-zone--guest">
+                                                            <div class="ut-avatar">
+                                                                {% if item.avatar %}<img src="{{ item.avatar }}" alt="">{% else %}{{ item.guest_name|first|upper }}{% endif %}
+                                                            </div>
+                                                            <div class="ut-guest__meta">
+                                                                <span class="ut-guest__name" title="{{ item.guest_name }}">{{ item.guest_name|truncatewords:2 }}</span>
+                                                                {% if item.guest_email %}
+                                                                    <span class="ut-contact" title="{{ item.guest_email }}">{{ item.guest_email }}</span>
+                                                                {% elif item.guest_phone %}
+                                                                    <span class="ut-contact ut-contact--mono">{{ item.guest_phone }}</span>
+                                                                {% else %}
+                                                                    <span class="ut-contact ut-contact--none">No contact shared</span>
+                                                                {% endif %}
+                                                            </div>
+                                                        </div>
+                                                        <div class="ut-zone--prop">
+                                                            <div class="ut-thumb"><img src="{{ item.property_image }}" onerror="this.style.display='none'" alt=""></div>
+                                                            <div class="ut-prop__meta"><span class="ut-prop__name" title="{{ item.property }}">{{ item.property }}</span></div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </article>
+                                            {% endfor %}
                                         </div>
                                     </div>
+                                </div>
+                                {% endfor %}
+                            {% else %}
+                                <div class="ut-empty-state"><b>No upcoming events</b><span>Nothing scheduled for this month.</span></div>
                             {% endif %}
                         </div>
                     </div>
@@ -705,6 +702,7 @@
         const label = document.getElementById('month-label');
         const prevBtn = document.getElementById('prev-month');
         const nextBtn = document.getElementById('next-month');
+        const todayBtn = document.getElementById('today-month-btn');
 
         let current;
         if (label && label.dataset && label.dataset.month && label.dataset.year) {
@@ -739,6 +737,12 @@
         current.setMonth(current.getMonth() + 1);  // go to next month
         goToMonth(current);
         });
+
+        if (todayBtn) {
+            todayBtn.addEventListener('click', () => {
+                goToMonth(new Date());  // reset to the current month
+            });
+        }
 
         updateLabel(); // initial render
 
