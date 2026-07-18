@@ -237,29 +237,40 @@ STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_DIRS = [ BASE_DIR / 'static' ]
 
-#MEDIA_ROOT = BASE_DIR / 'media'
-#MEDIA_URL = '/media/'
+if DEBUG:
+    # Local dev: media lives on disk, so no AWS credentials are needed
+    # and nobody touches the production bucket by accident.
+    MEDIA_ROOT = BASE_DIR / 'media'
+    MEDIA_URL = '/media/'
 
+    STORAGES = {
+        "default": {
+            "BACKEND": "django.core.files.storage.FileSystemStorage",
+        },
+        "staticfiles": {
+            "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+        },
+    }
+else:
+    # AWS S3 settings for media storage
+    AWS_STORAGE_BUCKET_NAME = "favhost-media-prod"
+    AWS_S3_REGION_NAME = "us-east-1"
+    AWS_S3_CUSTOM_DOMAIN = f"{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com"
 
-# AWS S3 settings for media storage
-AWS_STORAGE_BUCKET_NAME = "favhost-media-prod"
-AWS_S3_REGION_NAME = "us-east-1"
-AWS_S3_CUSTOM_DOMAIN = f"{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com"
+    # Since instance uses IAM role, do not set access key/secret here
+    AWS_DEFAULT_ACL = None
+    AWS_QUERYSTRING_AUTH = True
 
-# Since instance uses IAM role, do not set access key/secret here
-AWS_DEFAULT_ACL = None
-AWS_QUERYSTRING_AUTH = True
+    STORAGES = {
+        "default": {
+            "BACKEND": "storages.backends.s3boto3.S3Boto3Storage",
+        },
+        "staticfiles": {
+            "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+        },
+    }
 
-STORAGES = {
-    "default": {
-        "BACKEND": "storages.backends.s3boto3.S3Boto3Storage",
-    },
-    "staticfiles": {
-        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
-    },
-}
-
-MEDIA_URL = f"https://{AWS_S3_CUSTOM_DOMAIN}/"
+    MEDIA_URL = f"https://{AWS_S3_CUSTOM_DOMAIN}/"
 
 
 

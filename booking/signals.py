@@ -51,23 +51,26 @@ def send_enquiry_notification_to_host(sender, instance, created, **kwargs):
         # 2. Attach Property Image
         prop_img_obj = instance.property.images.filter(is_primary=True).first() or \
                        instance.property.images.first()
-        
-        img_path = None
-        if prop_img_obj and prop_img_obj.image:
-            img_path = prop_img_obj.image.path
-        
-        # Fallback to placeholder if media file is missing
-        if not img_path or not os.path.exists(img_path):
-            img_path = finders.find('img/property/placeholder-image.png')
 
-        if img_path and os.path.exists(img_path):
+        prop_img_bytes = None
+        if prop_img_obj and prop_img_obj.image:
             try:
-                with open(img_path, 'rb') as f:
-                    img = MIMEImage(f.read())
-                    img.add_header('Content-ID', '<property_image>')
-                    email.attach(img)
-            except Exception:
+                with prop_img_obj.image.open('rb') as f:
+                    prop_img_bytes = f.read()
+            except (ValueError, FileNotFoundError, OSError):
                 pass
+
+        # Fallback to placeholder if media file is missing
+        if prop_img_bytes is None:
+            placeholder_path = finders.find('img/property/placeholder-image.png')
+            if placeholder_path and os.path.exists(placeholder_path):
+                with open(placeholder_path, 'rb') as f:
+                    prop_img_bytes = f.read()
+
+        if prop_img_bytes is not None:
+            img = MIMEImage(prop_img_bytes)
+            img.add_header('Content-ID', '<property_image>')
+            email.attach(img)
         
         # Use on_commit to ensure the email is only sent if the database transaction succeeds
         transaction.on_commit(lambda: email.send(fail_silently=False))
