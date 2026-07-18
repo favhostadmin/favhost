@@ -568,7 +568,7 @@
     'tripadvisor': '#34e0a1',
     'agoda': '#af38b0',
     'personal website': '#6b5b95',
-    'others': '#999999',
+    'others': '#f48fb1',
   };
   function getChannelColor(channelName) {
     if (!channelName) return null;
@@ -2263,7 +2263,8 @@
         const today = new Date(); const todayStr = today.toISOString().split('T')[0];
         const fmt = (d, s) => d.toLocaleDateString('en-US', { month: s || 'short', day: 'numeric', year: 'numeric' });
         const fmtShort = (d) => d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
-        const money = n => '$' + Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        // Stored payment amounts are USD; render in the viewer's display currency.
+        const money = n => (window.fmtMoney ? window.fmtMoney(Number(n || 0)) : '$' + Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
         const esc = s => { let d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; };
         const isToday = d => d === todayStr;
 
@@ -3372,13 +3373,13 @@
     });
 
     if (paymentInfo) {
-      const amount = Number(paymentInfo.amount || 0).toFixed(2);
+      const amount = window.fmtMoney(Number(paymentInfo.amount || 0));
       cardsHtml.push(`
         <div class="day-item-card" onclick="closeDayItemsModal();openPaymentDetailModal(event,'${paymentBooking.id}','${dateStr}')">
           <div class="day-item-badge" style="background-color:#3b82f6;"><img src="${paymentIconUrl}" alt="" /></div>
           <div class="day-item-info">
             <div class="day-item-title">Payment</div>
-            <div class="day-item-sub">${paymentInfo.type || 'Payment'} &middot; $${amount}${paymentInfo.is_paid ? ' (Paid)' : ''}</div>
+            <div class="day-item-sub">${paymentInfo.type || 'Payment'} &middot; ${amount}${paymentInfo.is_paid ? ' (Paid)' : ''}</div>
           </div>
         </div>
       `);
@@ -3421,8 +3422,8 @@
     const statusText = info.is_paid ? 'Paid' : 'Unpaid';
 
     document.getElementById('paymentModalStatus').textContent = statusText;
-    document.getElementById('paymentModalDetails').textContent = `${info.type || 'Payment'} of $${info.amount.toFixed(2)}`;
-    document.getElementById('paymentModalAmount').textContent = `$${info.amount.toFixed(2)}`;
+    document.getElementById('paymentModalDetails').textContent = `${info.type || 'Payment'} of ${window.fmtMoney(info.amount)}`;
+    document.getElementById('paymentModalAmount').textContent = window.fmtMoney(info.amount);
     document.getElementById('paymentModalDate').textContent = formattedDate;
     document.getElementById('paymentModalGuest').textContent = b.guestName || '-';
     document.getElementById('paymentModalBooking').textContent = b.bookingId || '-';
