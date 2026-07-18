@@ -18,6 +18,10 @@
   .fd-icon-defs{position:absolute;overflow:hidden}
 
   .fd-wrap{margin:0 auto;padding:0 24px;width:100%;
+    /* Cap the content width on very large screens so the KPI strip and the
+       three columns don't stretch edge-to-edge and become sparse; centered
+       via margin:auto. Below this width it's fluid (width:100%). */
+    max-width:1600px;
     display:flex;flex-direction:column;flex:1 0 auto}
 
   /* The site-wide top nav (.custom-header, in header.html) normally uses
@@ -43,8 +47,24 @@
     overflow-y:auto;overflow-x:hidden;
     padding:20px 0 0;background:#fafafa;
     display:flex;flex-direction:column;
+    /* Keep it scrollable but hide the visible scrollbar (Firefox / IE). */
+    scrollbar-width:none;
+    -ms-overflow-style:none;
   }
-  .fd-body .footer{margin-top:24px;flex-shrink:0}
+  /* Hide the scrollbar in WebKit/Blink (Chrome, Edge, Safari) too. */
+  .fd-body::-webkit-scrollbar{width:0;height:0;display:none}
+  .fd-body .footer{margin-top:auto;flex-shrink:0}
+  /* Small gap above the footer without adding page-scroll: use the footer's
+     own top margin (auto pins it to the bottom; a min gap is added via
+     padding on the footer partial). Keep it modest so the fixed-viewport
+     columns still fit without an extra scrollbar. */
+  .fd-body > .fd-wrap{margin-bottom:12px}
+
+  /* .fd-page a{color:inherit} (above) was overriding the footer's white
+     social-icon links, making them dark/invisible on the dark footer.
+     Restore the shared footer look (white icons) inside the footer. */
+  .fd-body .footer .social-icon,
+  .fd-body .footer .social-icon:hover{color:#fff}
 
   .fd-page-header{
     position:fixed;top:58px;left:0;right:0;height:52px;z-index:999;
@@ -380,16 +400,50 @@
     background-size:200% 100%;animation:shimmer 1.4s infinite;border-radius:6px}
   @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
 
+  /* Small-desktop / large-tablet (901–1100px): the three columns become
+     two, with Housekeeping spanning full width below. The 9-item KPI grid
+     is still one row here — allow it to wrap so long labels never clip. */
   @media (max-width:1100px){
     .columns{grid-template-columns:1fr 1fr}
     .col-hk{grid-column:1/-1}
     .hk-list{max-height:none}
+    .kpi-grid{flex-wrap:wrap}
+    .kpi{flex:1 1 18%;border-left:0}
   }
   @media (max-width:900px){
     .kpi-strip{grid-template-columns:1fr}
-    .date-card{flex-direction:row;align-items:center;gap:16px;min-width:auto}
+    .date-card{flex-direction:row;align-items:center;gap:16px;min-width:auto;padding:14px 40px;min-height:88px}
     .metrics-card{flex-wrap:wrap}
-    .kpi-grid{display:grid;grid-template-columns:repeat(5,1fr)}
+    /* Grid of KPIs wraps to 2 rows (5 + 4) on tablet — row-gap keeps the two
+       rows from touching, and the per-cell left borders are dropped since a
+       wrapped grid divider grid looks cleaner without them. */
+    .kpi-grid{display:grid;grid-template-columns:repeat(5,1fr);row-gap:12px;column-gap:4px}
+    .kpi{border-left:0}
+    .date-card .dc-header-actions{top:6px;right:6px;bottom:auto}
+    .date-card .dc-nav-btn{width:22px;height:22px}
+
+    /* Cap the column height at 420px and scroll the list inside when there
+       are many rows, but let a column with only a few rows SHRINK to fit
+       its content (no empty white space). height:auto + max-height does
+       both; the inner list scrolls only once the card hits the cap. */
+    .col-card{height:auto;max-height:420px}
+    .guest-list,
+    .hk-list{max-height:none;overflow-y:auto;flex:1 1 auto;min-height:0}
+
+    .col-hk .hk-status-filter{
+      flex:1 0 100%;
+      order:3;
+      justify-content:flex-start;
+      flex-wrap:wrap;
+      overflow-x:visible;
+      gap:6px;
+      margin-top:4px;
+    }
+    .col-hk .hk-status-filter .hk-filter-dot{
+      flex:1 1 0;
+      min-width:0;
+    }
+    .col-hk .hk-filter-word{font-size:9px}
   }
   @media (max-width:720px){
     .columns{grid-template-columns:1fr}
@@ -412,7 +466,9 @@
     width: 100%;
     height: 100%;
     background: rgba(0, 0, 0, 0.55);
-    z-index: 16000;
+    /* Above the frontdesk's fixed app header (z-index:99999) so the modal
+       backdrop covers the whole screen, matching the calendar page. */
+    z-index: 100000;
     display: none;
     justify-content: center;
     align-items: center;
@@ -421,7 +477,13 @@
   .task-modal-overlay.open {
     display: flex;
   }
+  /* ── Reservation details modal — identical UI to the Calendar page's
+     modal (copied from css/calender/calendar-page.css) so the Frontdesk
+     modal looks & behaves exactly the same on all screen sizes. The
+     header bar is hidden and the close button floats over the sticky
+     Action bar, matching the calendar. ── */
   .reservation-modal {
+    position: relative;
     background: #ffffff;
     border-radius: 16px;
     width: 100%;
@@ -435,16 +497,13 @@
     animation: taskModalIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   }
   .reservation-modal-header {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    padding: 6px 12px;
-    border: none;
-    flex-shrink: 0;
-    background: #fff;
-    min-height: 0;
+    display: none;
   }
   .reservation-modal-close {
+    position: absolute;
+    /* Vertically centered against the header bar / Action button row. */
+    top: 22px;
+    right: 30px;
     background: none;
     border: none;
     font-size: 22px;
@@ -452,50 +511,59 @@
     cursor: pointer;
     padding: 0 4px;
     line-height: 1;
+    /* Must paint above the sticky action bar (z-index: 50) inside the body. */
+    z-index: 60;
   }
   .reservation-modal-close:hover {
     color: #111827;
   }
   .reservation-modal-body {
+    position: relative;
     overflow-y: auto;
     padding: 0;
     flex: 1;
   }
+  /* --- Minimal modal adjustments — preserve full page appearance --- */
   .reservation-modal-body .action-buttons {
     margin: 0 !important;
     border-radius: 0;
-    /* Pinned while the modal body scrolls; !important beats the partial's
-       mobile position:static/top:auto rules on this bar. */
     position: sticky !important;
     top: 0 !important;
     z-index: 50;
+    padding-right: 56px !important;
   }
   .reservation-modal-body .payment-partial-shell {
     padding: 0;
   }
   .reservation-modal-body .reservation-row {
-    margin: 0 !important;
     max-width: 1200px;
     margin: 0 auto !important;
-    padding: 0 32px 24px !important;
   }
-  .reservation-modal-body .details-col {
-    padding: 0 !important;
+
+  /* Guest Receipt / Rental Agreement sub-modals — opened from inside the
+     reservation modal. They must sit ABOVE the reservation overlay (which
+     is z-index:100000 on this page) or they open behind it. Same centering
+     + backdrop as the calendar page. */
+  #guestReceiptModal,
+  #rentalAgreementModal {
+    position: fixed !important;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 100010 !important;
+    background: rgba(0, 0, 0, 0.55);
+    justify-content: center;
+    align-items: center;
   }
-  .reservation-modal-body .booking-card {
-    border: none !important;
-    border-bottom: 1px solid #f0f0f0 !important;
-    border-radius: 0 !important;
-    padding: 20px 24px !important;
-    margin: 0 !important;
-    box-shadow: none !important;
-    overflow: visible;
+  #guestReceiptModal .modal-content {
+    max-width: calc(100vw - 24px);
+    overflow-x: auto;
   }
-  .reservation-modal-body .booking-card:first-child {
-    padding-top: 20px !important;
-  }
-  .reservation-modal-body .booking-card:last-child {
-    border-bottom: none !important;
+  #rentalAgreementModal .modal-content {
+    max-width: calc(100vw - 24px);
+    max-height: calc(100vh - 24px);
+    overflow-y: auto;
   }
   @keyframes taskModalIn {
     from { opacity: 0; transform: scale(0.92) translateY(20px); }
@@ -536,12 +604,9 @@
 
   /* ── Mobile responsiveness additions ── */
   @media (max-width:900px){
-    /* .custom-header is forced position:fixed above (all breakpoints), so it
-       no longer reserves its 58px in normal flow — compensate here now that
-       .fd-page-header drops back into flow on mobile. */
-    .fd-page-header{position:static;top:auto;left:auto;right:auto;height:auto;margin-top:58px}
-    .fd-body{position:static;top:auto;right:auto;bottom:auto;overflow:visible;padding-top:20px}
-    .fd-ph-inner{height:auto;padding:14px 20px}
+    .fd-page-header{position:fixed;top:58px;left:0;right:0;height:52px;z-index:999;margin-top:0}
+    .fd-body{position:fixed;top:110px;left:0;right:0;bottom:0;overflow-y:auto;overflow-x:hidden;padding:16px 0 0;min-height:0}
+    .fd-ph-inner{height:100%;padding:0 20px}
     .fd-ph-right{justify-content:flex-end}
   }
 
@@ -568,15 +633,50 @@
     .kpi-grid{width:100%}
   }
 
-  @media (max-width:576px){
-    .reservation-modal{margin:12px;max-width:100%}
-    /* The partial's .payment-details-wrapper already carries the page's
-       responsive side padding — don't stack another layer on the row. */
-    .reservation-modal-body .reservation-row{padding:0 !important}
+  /* Reservation modal — mobile rules copied from the Calendar page
+     (calendar-page.css @ max-width:992px) so the Frontdesk modal matches
+     it exactly on tablets and phones. */
+  @media (max-width:992px){
+    .reservation-modal{margin:8px !important}
+    .reservation-modal-body .action-buttons{
+      padding-top:16px !important;
+      padding-bottom:12px !important;
+    }
+    .reservation-modal-close{top:16px;right:26px}
     /* Space between the pinned header bar and the first card. */
     .reservation-modal-body .payment-details-wrapper{padding-top:12px !important}
+    .reservation-modal-body .reservation-row{padding:0 !important}
     .reservation-modal-body .booking-card{padding:16px !important}
-    .reservation-modal-body .booking-card:first-child{padding-top:16px !important}
+    .reservation-modal-body .mobile-booking-title,
+    .reservation-modal-body .desktop-property-title,
+    .reservation-modal-body .guest-name,
+    .reservation-modal-body .contact-item span{
+      overflow-wrap:break-word !important;
+      white-space:normal !important;
+      min-width:0 !important;
+    }
+    .reservation-modal-body .contact-item{min-width:0 !important}
+    .reservation-modal-body .notes-section.row{display:block !important}
+    .reservation-modal-body .notes-section.row > [class*="col-"]{
+      width:100% !important;
+      max-width:100% !important;
+      flex:none !important;
+      margin-bottom:12px !important;
+    }
+    .reservation-modal-body .notes-section.row > [class*="col-"]:last-child{
+      margin-bottom:0 !important;
+    }
+    .bc-date-inputs{grid-template-columns:1fr;gap:12px}
+  }
+
+  @media (max-width:576px){
+    .reservation-modal{max-width:100%}
+    .reservation-modal-body .booking-card{padding:16px 16px !important}
+    .bc-header-title{font-size:17px}
+    .reservation-modal-close{
+      display:inline-flex;align-items:center;justify-content:center;
+      width:40px;height:40px;padding:0;
+    }
   }
 
   @media (max-width:480px){
