@@ -28,19 +28,22 @@ def _attach_inline_images(email, booking):
     # Property thumbnail (primary image -> any image -> placeholder)
     prop_img_obj = booking.property.images.filter(is_primary=True).first() or \
                    booking.property.images.first()
-    img_path = None
+    prop_img_bytes = None
     if prop_img_obj and prop_img_obj.image:
-        img_path = prop_img_obj.image.path
-    if not img_path or not os.path.exists(img_path):
-        img_path = finders.find('img/property/placeholder-image.png')
-    if img_path and os.path.exists(img_path):
         try:
-            with open(img_path, 'rb') as f:
-                img = MIMEImage(f.read())
-                img.add_header('Content-ID', '<property_image>')
-                email.attach(img)
-        except Exception:
+            with prop_img_obj.image.open('rb') as f:
+                prop_img_bytes = f.read()
+        except (ValueError, FileNotFoundError, OSError):
             pass
+    if prop_img_bytes is None:
+        placeholder_path = finders.find('img/property/placeholder-image.png')
+        if placeholder_path and os.path.exists(placeholder_path):
+            with open(placeholder_path, 'rb') as f:
+                prop_img_bytes = f.read()
+    if prop_img_bytes is not None:
+        img = MIMEImage(prop_img_bytes)
+        img.add_header('Content-ID', '<property_image>')
+        email.attach(img)
 
     # Contact icons
     for icon_path_rel, icon_cid in [
@@ -57,19 +60,22 @@ def _attach_inline_images(email, booking):
 
     # Host avatar (profile picture -> default icon)
     host_user = booking.property.created_by
-    host_avatar_path = None
+    host_avatar_bytes = None
     if host_user and host_user.profile_picture:
         try:
-            host_avatar_path = host_user.profile_picture.path
-        except ValueError:
+            with host_user.profile_picture.open('rb') as f:
+                host_avatar_bytes = f.read()
+        except (ValueError, FileNotFoundError, OSError):
             pass
-    if not host_avatar_path or not os.path.exists(host_avatar_path):
-        host_avatar_path = finders.find('img/common/default_user_icon_1.png')
-    if host_avatar_path and os.path.exists(host_avatar_path):
-        with open(host_avatar_path, 'rb') as f:
-            img = MIMEImage(f.read())
-            img.add_header('Content-ID', '<host_avatar>')
-            email.attach(img)
+    if host_avatar_bytes is None:
+        default_icon_path = finders.find('img/common/default_user_icon_1.png')
+        if default_icon_path and os.path.exists(default_icon_path):
+            with open(default_icon_path, 'rb') as f:
+                host_avatar_bytes = f.read()
+    if host_avatar_bytes is not None:
+        img = MIMEImage(host_avatar_bytes)
+        img.add_header('Content-ID', '<host_avatar>')
+        email.attach(img)
 
 
 def _send_instruction_email(booking, kind):
