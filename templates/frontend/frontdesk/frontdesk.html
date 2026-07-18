@@ -352,11 +352,30 @@
   {% include 'frontend/base/footer.html' %}
 </div>
 
+<!-- Reusable confirm dialog (currently used by the cleaner-roster "×" delete) -->
+<div class="hk-confirm-overlay" id="hkConfirmOverlay">
+  <div class="hk-confirm-modal" role="alertdialog" aria-modal="true" aria-labelledby="hkConfirmTitle" aria-describedby="hkConfirmMessage">
+    <div class="hk-confirm-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+    </div>
+    <div class="hk-confirm-title" id="hkConfirmTitle">Remove cleaner?</div>
+    <div class="hk-confirm-message" id="hkConfirmMessage"></div>
+    <div class="hk-confirm-actions">
+      <button class="hk-confirm-btn hk-confirm-cancel" type="button" id="hkConfirmCancel">Cancel</button>
+      <button class="hk-confirm-btn hk-confirm-danger" type="button" id="hkConfirmOk">Remove</button>
+    </div>
+  </div>
+</div>
+
+</div><!-- .fd-page -->
+
+<!-- Reservation-details modals are placed OUTSIDE .fd-page on purpose: the
+     .fd-page button/link resets would otherwise flatten the styling of the
+     reservation partial's Action bar / buttons. This matches the Calendar
+     page (its modal is outside any scoped container). -->
 <div class="task-modal-overlay" id="reservationModalOverlay" onclick="closeReservationPanel(event)">
   <div class="reservation-modal" id="reservationModal" onclick="event.stopPropagation()">
-    <div class="reservation-modal-header">
-      <button class="reservation-modal-close" onclick="closeReservationPanel()">&times;</button>
-    </div>
+    <button class="reservation-modal-close" onclick="closeReservationPanel()" style="font-size:22px;">&times;</button>
     <div class="reservation-modal-body" id="reservationModalContent">
       <div class="fd-center-box">
         <div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div>
@@ -374,25 +393,19 @@
   </div>
 </div>
 
-<!-- Reusable confirm dialog (currently used by the cleaner-roster "×" delete) -->
-<div class="hk-confirm-overlay" id="hkConfirmOverlay">
-  <div class="hk-confirm-modal" role="alertdialog" aria-modal="true" aria-labelledby="hkConfirmTitle" aria-describedby="hkConfirmMessage">
-    <div class="hk-confirm-icon">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
-    </div>
-    <div class="hk-confirm-title" id="hkConfirmTitle">Remove cleaner?</div>
-    <div class="hk-confirm-message" id="hkConfirmMessage"></div>
-    <div class="hk-confirm-actions">
-      <button class="hk-confirm-btn hk-confirm-cancel" type="button" id="hkConfirmCancel">Cancel</button>
-      <button class="hk-confirm-btn hk-confirm-danger" type="button" id="hkConfirmOk">Remove</button>
+<!-- Rental Agreement Modal (used by reservation sidebar actions) -->
+<div id="rentalAgreementModal" class="modal" style="display: none;">
+  <div class="modal-content" style="width: 90%; max-width: 960px; max-height: 90vh; padding: 0; overflow: hidden;">
+    <div class="modal-body" style="padding: 0; max-height: none; overflow: visible;">
+      <div id="rental-agreement-content-placeholder">Loading...</div>
     </div>
   </div>
 </div>
-
-</div><!-- .fd-page -->
 {% endblock content %}
 
 {% block extra_script %}
+<!-- Used by the rental-agreement modal's "Download PDF" action (same as the calendar page). -->
+<script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"></script>
 <script>
 (function(){
   'use strict';
@@ -1142,28 +1155,173 @@
       });
     }
 
-    // 3. Guest Receipt button
-    const receiptBtns = sidebarRoot.querySelectorAll('.guest-receipt-btn');
-    if (receiptBtns.length > 0) {
-      const receiptModal = document.getElementById('guestReceiptModal');
-      if (receiptModal) {
-        receiptBtns.forEach(function(btn) {
-          btn.addEventListener('click', function(e) {
-            e.preventDefault();
-            const receiptUrl = this.dataset.receiptUrl;
-            const placeholder = document.getElementById('guest-receipt-content-placeholder');
-            if (receiptUrl && placeholder) {
-              placeholder.innerHTML = '<div class="fd-loading-text">Loading receipt...</div>';
-              receiptModal.style.display = 'block';
-              fetch(receiptUrl).then(function(r) { return r.text(); }).then(function(html) {
-                placeholder.innerHTML = html;
-              }).catch(function() {
-                placeholder.innerHTML = '<div class="fd-error-text">Failed to load receipt.</div>';
-              });
-            }
-            const closeReceiptBtn = receiptModal.querySelector('.close-receipt-modal');
-            if (closeReceiptBtn) closeReceiptBtn.onclick = function() { receiptModal.style.display = 'none'; };
+    // 3. Guest Receipt button — same as the Calendar page: load the receipt
+    //    in its compact modal layout (is_modal=true) and wire its own
+    //    Download-PDF / Print / Close buttons so both work here too.
+    const guestReceiptModal = document.getElementById('guestReceiptModal');
+    const guestReceiptPlaceholder = document.getElementById('guest-receipt-content-placeholder');
+
+    function initGuestReceiptActions(scope) {
+      if (!scope) return;
+      const downloadBtn = scope.querySelector('#downloadReceiptPdf');
+      const printBtn = scope.querySelector('#printReceipt');
+      const closeBtn = scope.querySelector('#closeReceiptBtn');
+      const receiptRoot = scope.querySelector('#guest-receipt-root');
+
+      function triggerPrint(e) {
+        if (e) e.preventDefault();
+        if (receiptRoot) receiptRoot.classList.add('receipt-export');
+        window.print();
+      }
+
+      function triggerPdfDownload(e) {
+        if (e) e.preventDefault();
+        if (!receiptRoot || typeof html2pdf === 'undefined') { window.print(); return; }
+        const options = {
+          margin: [0.5, 0.5, 0.5, 0.5],
+          filename: 'guest-receipt.pdf',
+          image: { type: 'jpeg', quality: 0.98 },
+          html2canvas: { scale: 2, useCORS: true },
+          jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+        };
+        receiptRoot.classList.add('receipt-export');
+        html2pdf().set(options).from(receiptRoot).save().finally(function () {
+          receiptRoot.classList.remove('receipt-export');
+        });
+      }
+
+      if (downloadBtn) downloadBtn.addEventListener('click', triggerPdfDownload);
+      if (printBtn) printBtn.addEventListener('click', triggerPrint);
+      if (closeBtn) closeBtn.addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        guestReceiptModal.style.display = 'none';
+        guestReceiptPlaceholder.innerHTML = '';
+      });
+
+      if (!window.__fdReceiptAfterprintBound) {
+        window.__fdReceiptAfterprintBound = true;
+        window.addEventListener('afterprint', function () {
+          const root = document.querySelector('#guest-receipt-root');
+          if (root) root.classList.remove('receipt-export');
+        });
+      }
+    }
+
+    const guestReceiptBtns = sidebarRoot.querySelectorAll('.guest-receipt-btn');
+    if (guestReceiptModal && guestReceiptPlaceholder && guestReceiptBtns.length > 0) {
+      guestReceiptBtns.forEach(function(btn) {
+        btn.addEventListener('click', function (e) {
+          e.preventDefault();
+          let url = this.dataset.receiptUrl;
+          if (!url) return;
+          url += (url.includes('?') ? '&' : '?') + 'is_modal=true';
+          guestReceiptPlaceholder.innerHTML = '<div style="text-align: center; padding: 40px;">Loading...</div>';
+          guestReceiptModal.style.display = 'flex';
+
+          fetch(url)
+            .then(function(response) { return response.text(); })
+            .then(function(html) {
+              guestReceiptPlaceholder.innerHTML = html;
+              initGuestReceiptActions(guestReceiptPlaceholder);
+            })
+            .catch(function(error) {
+              guestReceiptPlaceholder.innerHTML = '<p style="text-align: center; padding: 40px; color: red;">Error loading guest receipt. Please try again.</p>';
+              console.error('Error fetching guest receipt:', error);
+            });
+        });
+      });
+
+      if (!window.__fdReceiptOutsideClickBound) {
+        window.__fdReceiptOutsideClickBound = true;
+        window.addEventListener('click', function(e) {
+          if (e.target == guestReceiptModal) {
+            guestReceiptModal.style.display = 'none';
+            guestReceiptPlaceholder.innerHTML = '';
+          }
+        });
+      }
+    }
+
+    // 4. Rental Agreement button — same pattern as the Calendar page so the
+    //    rental agreement opens ABOVE the reservation modal (not behind it).
+    const rentalAgreementModal = document.getElementById('rentalAgreementModal');
+    const rentalAgreementPlaceholder = document.getElementById('rental-agreement-content-placeholder');
+
+    function initRentalAgreementActions(scope) {
+      if (!scope) return;
+      const root = scope.querySelector('#rental-agreement-root');
+      const printBtn = scope.querySelector('#ra-print');
+      const pdfBtn = scope.querySelector('#ra-pdf');
+      const closeBtn = scope.querySelector('#ra-close');
+
+      if (printBtn) printBtn.addEventListener('click', function (e) { e.preventDefault(); window.print(); });
+
+      if (pdfBtn) pdfBtn.addEventListener('click', function (e) {
+        e.preventDefault();
+        if (!root || typeof html2pdf === 'undefined') { window.print(); return; }
+        pdfBtn.setAttribute('disabled', '');
+        const opt = {
+          margin: [12, 12, 14, 12],
+          filename: 'Rental-Stay-Agreement.pdf',
+          image: { type: 'jpeg', quality: 0.98 },
+          html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', scrollX: 0, scrollY: 0 },
+          jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' },
+          pagebreak: { mode: ['css', 'legacy'], avoid: ['tr', '.sig-card', '.section-head'] }
+        };
+        const clone = root.cloneNode(true);
+        clone.classList.add('ra-export');
+        const holder = document.createElement('div');
+        holder.style.cssText = 'position:fixed;left:-10000px;top:0;width:820px;background:#ffffff;z-index:-1;';
+        holder.appendChild(clone);
+        document.body.appendChild(holder);
+        const ready = (document.fonts && document.fonts.ready) ? document.fonts.ready : Promise.resolve();
+        ready.then(function () { return html2pdf().set(opt).from(clone).save(); })
+          .catch(function () { window.print(); })
+          .finally(function () {
+            holder.remove();
+            pdfBtn.removeAttribute('disabled');
           });
+      });
+
+      if (closeBtn) closeBtn.addEventListener('click', function (e) {
+        e.preventDefault();
+        rentalAgreementModal.style.display = 'none';
+        rentalAgreementPlaceholder.innerHTML = '';
+      });
+    }
+
+    const rentalAgreementBtns = sidebarRoot.querySelectorAll('.rental-agreement-btn');
+    if (rentalAgreementModal && rentalAgreementPlaceholder && rentalAgreementBtns.length > 0) {
+      rentalAgreementBtns.forEach(function(btn) {
+        btn.addEventListener('click', function (e) {
+          e.preventDefault();
+          let url = this.dataset.agreementUrl;
+          if (!url) return;
+          url += (url.includes('?') ? '&' : '?') + 'is_modal=true';
+          rentalAgreementPlaceholder.innerHTML = '<div style="text-align: center; padding: 40px;">Loading...</div>';
+          rentalAgreementModal.style.display = 'flex';
+
+          fetch(url)
+            .then(function(response) { return response.text(); })
+            .then(function(html) {
+              rentalAgreementPlaceholder.innerHTML = html;
+              initRentalAgreementActions(rentalAgreementPlaceholder);
+            })
+            .catch(function(error) {
+              rentalAgreementPlaceholder.innerHTML = '<p style="text-align: center; padding: 40px; color: red;">Error loading rental agreement. Please try again.</p>';
+              console.error('Error fetching rental agreement:', error);
+            });
+        });
+      });
+
+      if (!window.__fdAgreementOutsideClickBound) {
+        window.__fdAgreementOutsideClickBound = true;
+        window.addEventListener('click', function(e) {
+          if (e.target == rentalAgreementModal) {
+            rentalAgreementModal.style.display = 'none';
+            rentalAgreementPlaceholder.innerHTML = '';
+          }
         });
       }
     }
