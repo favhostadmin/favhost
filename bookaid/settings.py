@@ -253,7 +253,9 @@ if DEBUG:
     }
 else:
     # AWS S3 settings for media storage
-    AWS_STORAGE_BUCKET_NAME = "favhost-media-prod"
+    # Prod server's .env leaves this unset (defaults to the prod bucket); the
+    # dev server's .env sets AWS_STORAGE_BUCKET_NAME=favhost-media-dev.
+    AWS_STORAGE_BUCKET_NAME = os.getenv('AWS_STORAGE_BUCKET_NAME', 'favhost-media-prod')
     AWS_S3_REGION_NAME = "us-east-1"
     AWS_S3_CUSTOM_DOMAIN = f"{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com"
 
