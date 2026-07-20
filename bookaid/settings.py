@@ -237,9 +237,37 @@ STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_DIRS = [ BASE_DIR / 'static' ]
 
-if DEBUG:
-    # Local dev: media lives on disk, so no AWS credentials are needed
-    # and nobody touches the production bucket by accident.
+# Which storage backend to use is decided by AWS_STORAGE_BUCKET_NAME, not
+# DEBUG — dev.favhost.com runs with DEBUG=True but still needs S3, so DEBUG
+# alone can't tell "your laptop" apart from "a real server". Each server's
+# own .env sets this to its bucket (favhost-media-dev / favhost-media-prod);
+# a local checkout simply leaves it unset and falls back to disk.
+AWS_STORAGE_BUCKET_NAME = os.getenv('AWS_STORAGE_BUCKET_NAME')
+
+if AWS_STORAGE_BUCKET_NAME:
+    AWS_S3_REGION_NAME = "us-east-1"
+
+    # No AWS_S3_CUSTOM_DOMAIN here on purpose: django-storages always returns
+    # an unsigned URL for a custom domain, ignoring AWS_QUERYSTRING_AUTH below
+    # — that only works against a public bucket, which these are not. Without
+    # a custom domain, it builds a proper signed (presigned) S3 URL instead,
+    # using the EC2 instance's IAM role credentials, so the bucket can stay
+    # private.
+    AWS_DEFAULT_ACL = None
+    AWS_QUERYSTRING_AUTH = True
+    AWS_QUERYSTRING_EXPIRE = 3600  # seconds a signed media URL stays valid
+
+    STORAGES = {
+        "default": {
+            "BACKEND": "storages.backends.s3boto3.S3Boto3Storage",
+        },
+        "staticfiles": {
+            "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+        },
+    }
+else:
+    # Local machine: no bucket configured, media lives on disk so no AWS
+    # credentials are needed and nobody touches a real bucket by accident.
     MEDIA_ROOT = BASE_DIR / 'media'
     MEDIA_URL = '/media/'
 
@@ -251,26 +279,6 @@ if DEBUG:
             "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
         },
     }
-else:
-    # AWS S3 settings for media storage
-    AWS_STORAGE_BUCKET_NAME = "favhost-media-prod"
-    AWS_S3_REGION_NAME = "us-east-1"
-    AWS_S3_CUSTOM_DOMAIN = f"{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com"
-
-    # Since instance uses IAM role, do not set access key/secret here
-    AWS_DEFAULT_ACL = None
-    AWS_QUERYSTRING_AUTH = True
-
-    STORAGES = {
-        "default": {
-            "BACKEND": "storages.backends.s3boto3.S3Boto3Storage",
-        },
-        "staticfiles": {
-            "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
-        },
-    }
-
-    MEDIA_URL = f"https://{AWS_S3_CUSTOM_DOMAIN}/"
 
 
 
