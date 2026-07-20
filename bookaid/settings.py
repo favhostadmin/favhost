@@ -246,11 +246,16 @@ AWS_STORAGE_BUCKET_NAME = os.getenv('AWS_STORAGE_BUCKET_NAME')
 
 if AWS_STORAGE_BUCKET_NAME:
     AWS_S3_REGION_NAME = "us-east-1"
-    AWS_S3_CUSTOM_DOMAIN = f"{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com"
 
-    # Since instance uses IAM role, do not set access key/secret here
+    # No AWS_S3_CUSTOM_DOMAIN here on purpose: django-storages always returns
+    # an unsigned URL for a custom domain, ignoring AWS_QUERYSTRING_AUTH below
+    # — that only works against a public bucket, which these are not. Without
+    # a custom domain, it builds a proper signed (presigned) S3 URL instead,
+    # using the EC2 instance's IAM role credentials, so the bucket can stay
+    # private.
     AWS_DEFAULT_ACL = None
     AWS_QUERYSTRING_AUTH = True
+    AWS_QUERYSTRING_EXPIRE = 3600  # seconds a signed media URL stays valid
 
     STORAGES = {
         "default": {
@@ -260,8 +265,6 @@ if AWS_STORAGE_BUCKET_NAME:
             "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
         },
     }
-
-    MEDIA_URL = f"https://{AWS_S3_CUSTOM_DOMAIN}/"
 else:
     # Local machine: no bucket configured, media lives on disk so no AWS
     # credentials are needed and nobody touches a real bucket by accident.
