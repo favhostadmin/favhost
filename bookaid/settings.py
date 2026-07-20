@@ -237,25 +237,14 @@ STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_DIRS = [ BASE_DIR / 'static' ]
 
-if DEBUG:
-    # Local dev: media lives on disk, so no AWS credentials are needed
-    # and nobody touches the production bucket by accident.
-    MEDIA_ROOT = BASE_DIR / 'media'
-    MEDIA_URL = '/media/'
+# Which storage backend to use is decided by AWS_STORAGE_BUCKET_NAME, not
+# DEBUG — dev.favhost.com runs with DEBUG=True but still needs S3, so DEBUG
+# alone can't tell "your laptop" apart from "a real server". Each server's
+# own .env sets this to its bucket (favhost-media-dev / favhost-media-prod);
+# a local checkout simply leaves it unset and falls back to disk.
+AWS_STORAGE_BUCKET_NAME = os.getenv('AWS_STORAGE_BUCKET_NAME')
 
-    STORAGES = {
-        "default": {
-            "BACKEND": "django.core.files.storage.FileSystemStorage",
-        },
-        "staticfiles": {
-            "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
-        },
-    }
-else:
-    # AWS S3 settings for media storage
-    # Prod server's .env leaves this unset (defaults to the prod bucket); the
-    # dev server's .env sets AWS_STORAGE_BUCKET_NAME=favhost-media-dev.
-    AWS_STORAGE_BUCKET_NAME = os.getenv('AWS_STORAGE_BUCKET_NAME', 'favhost-media-prod')
+if AWS_STORAGE_BUCKET_NAME:
     AWS_S3_REGION_NAME = "us-east-1"
     AWS_S3_CUSTOM_DOMAIN = f"{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com"
 
@@ -273,6 +262,20 @@ else:
     }
 
     MEDIA_URL = f"https://{AWS_S3_CUSTOM_DOMAIN}/"
+else:
+    # Local machine: no bucket configured, media lives on disk so no AWS
+    # credentials are needed and nobody touches a real bucket by accident.
+    MEDIA_ROOT = BASE_DIR / 'media'
+    MEDIA_URL = '/media/'
+
+    STORAGES = {
+        "default": {
+            "BACKEND": "django.core.files.storage.FileSystemStorage",
+        },
+        "staticfiles": {
+            "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+        },
+    }
 
 
 
