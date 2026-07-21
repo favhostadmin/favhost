@@ -7,9 +7,12 @@ from django.utils.decorators import method_decorator
 from django.db.models import Q
 from django.db.models import Prefetch
 from django.db.models.functions import Concat
-from django.http import JsonResponse, HttpResponse
+from django.http import JsonResponse, HttpResponse, StreamingHttpResponse, HttpResponseNotFound
+from django.utils.http import http_date
 import datetime
 import calendar
+import os
+import re
 from collections import defaultdict
 
 from booking.models import Booking, BookingChannel, Payment, Enquiry, Expense
@@ -2245,3 +2248,47 @@ def delete_expense(request, pk):
     expense.delete()
     messages.success(request, 'Expense deleted successfully.')
     return _redirect_to_accounting(request)
+
+
+# Django's dev static server does not honour HTTP Range requests, so the
+# browser cannot seek the demo video (dragging the timeline snaps it back to 0).
+# This view serves the video with Range / 206 Partial Content support.
+def _demo_video_chunks(file_handle, remaining, block=8192):
+    try:
+        while remaining > 0:
+            data = file_handle.read(min(block, remaining))
+            if not data:
+                break
+            remaining -= len(data)
+            yield data
+    finally:
+        file_handle.close()
+
+
+def demo_video(request):
+    video_path = next((path for path in [
+        settings.BASE_DIR / 'static' / 'website' / 'img' / 'video.mp4',
+        settings.STATIC_ROOT / 'website' / 'img' / 'video.mp4',
+    ] if os.path.exists(path)), None)
+    if not video_path:
+        return HttpResponseNotFound('Demo video not found.')
+
+    file_size = os.path.getsize(video_path)
+    range_match = re.match(r'bytes=(\d+)-(\d*)', request.META.get('HTTP_RANGE', '').strip())
+
+    if range_match:
+        start = int(range_match.group(1))
+        end = min(int(range_match.group(2)) if range_match.group(2) else file_size - 1, file_size - 1)
+        file_handle = open(video_path, 'rb')
+        file_handle.seek(start)
+        response = StreamingHttpResponse(_demo_video_chunks(file_handle, end - start + 1), status=206, content_type='video/mp4')
+        response['Content-Length'] = str(end - start + 1)
+        response['Content-Range'] = f'bytes {start}-{end}/{file_size}'
+    else:
+        response = StreamingHttpResponse(_demo_video_chunks(open(video_path, 'rb'), file_size), content_type='video/mp4')
+        response['Content-Length'] = str(file_size)
+
+    response['Accept-Ranges'] = 'bytes'
+    response['Last-Modified'] = http_date(os.path.getmtime(video_path))
+    response['Cache-Control'] = 'public, max-age=86400'
+    return response
