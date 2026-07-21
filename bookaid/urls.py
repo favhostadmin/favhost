@@ -32,6 +32,8 @@ urlpatterns = [
     path('robots.txt', TemplateView.as_view(template_name='robots.txt', content_type='text/plain'), name='robots'),
 
     path('', WebsiteIndexView.as_view(), name='index'),
+    # Demo video served with HTTP Range support so the landing-page player can seek.
+    path('media/demo-video.mp4', demo_video, name='demo-video'),
     path('resources/', WebsiteBlogView.as_view(), name='blog'),
     path('resources/<slug:slug>/', WebsiteBlogDetailsView.as_view(), name='blog-details'),
     path('contact/', WebsiteContactView.as_view(), name='contact'),

@@ -401,6 +401,219 @@
                 scroll-margin-top: calc(var(--header-h, 0px) - 30px);
             }
         }
+
+        /* ── Custom Video Player Controls ── */
+        .demo-card {
+            position: relative;
+            background: #000;
+            overflow: hidden;
+            border-radius: 24px;
+        }
+
+        .video-controls-container {
+            user-select: none;
+            -webkit-user-select: none;
+            position: absolute;
+            bottom: 16px;
+            left: 16px;
+            right: 16px;
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 14px;
+            padding: 12px 16px 8px 16px;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(8px);
+            transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                        visibility 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                        transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            pointer-events: none;
+        }
+
+        .video-controls-container.visible {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+            pointer-events: auto;
+        }
+
+        .progress-bar-container {
+            position: relative;
+            width: 100%;
+            height: 6px;
+            cursor: pointer;
+            padding: 6px 0;
+            margin-bottom: 8px;
+        }
+
+        .progress-bar-rail {
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 2px;
+            transform: translateY(-50%);
+            transition: height 0.1s ease;
+        }
+
+        .progress-bar-buffer {
+            position: absolute;
+            top: 50%;
+            left: 0;
+            width: 0%;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.25);
+            border-radius: 2px;
+            transform: translateY(-50%);
+            transition: width 0.2s ease;
+        }
+
+        .progress-bar-filled {
+            position: absolute;
+            top: 50%;
+            left: 0;
+            width: 0%;
+            height: 4px;
+            background: #EB5310;
+            border-radius: 2px;
+            transform: translateY(-50%);
+            transition: height 0.1s ease;
+        }
+
+        .progress-bar-handle {
+            position: absolute;
+            top: 50%;
+            left: 0%;
+            width: 12px;
+            height: 12px;
+            background: #EB5310;
+            border-radius: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+            transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .progress-bar-container:hover .progress-bar-rail,
+        .progress-bar-container:hover .progress-bar-filled,
+        .progress-bar-container:hover .progress-bar-buffer {
+            height: 6px;
+        }
+
+        .progress-bar-container:hover .progress-bar-handle,
+        .progress-bar-container.dragging .progress-bar-handle {
+            transform: translate(-50%, -50%) scale(1.2);
+        }
+
+        .controls-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .controls-left, .controls-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .control-btn {
+            background: transparent;
+            border: none;
+            color: #ffffff;
+            cursor: pointer;
+            padding: 6px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.2s ease, color 0.2s ease, transform 0.1s ease;
+        }
+
+        .control-btn:hover {
+            background-color: rgba(255, 255, 255, 0.15);
+            color: #EB5310;
+        }
+
+        .control-btn:active {
+            transform: scale(0.92);
+        }
+
+        .control-btn svg {
+            transition: fill 0.2s ease;
+        }
+
+        .time-display {
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.85);
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-weight: 500;
+            margin-left: 6px;
+        }
+
+        .time-separator {
+            color: rgba(255, 255, 255, 0.4);
+            margin: 0 2px;
+        }
+
+        #videoWrapper.is-fullscreen {
+            border-radius: 0 !important;
+            box-shadow: none !important;
+            border: none !important;
+            background: #000;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        #videoWrapper.is-fullscreen .ratio {
+            height: 100%;
+            width: 100%;
+        }
+
+        #videoWrapper.is-fullscreen .video-controls-container {
+            bottom: 24px;
+            left: 24px;
+            right: 24px;
+        }
+
+        .demo-overlay {
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+            z-index: 5;
+        }
+
+        .demo-overlay.hide {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+        }
+
+        @media (max-width: 576px) {
+            .video-controls-container {
+                bottom: 8px;
+                left: 8px;
+                right: 8px;
+                padding: 8px 12px 6px 12px;
+                border-radius: 10px;
+            }
+            .time-display {
+                font-size: 0.75rem;
+            }
+            .control-btn {
+                padding: 4px;
+            }
+            .control-btn svg {
+                width: 16px;
+                height: 16px;
+            }
+        }
     </style>
 
     <script type="application/ld+json">
@@ -517,10 +730,7 @@
         <div class="ul-sidebar-auth-links" style="padding: 20px 24px 16px; border-bottom: 1px solid rgba(0,0,0,0.1); margin-bottom: 4px; display: flex; gap: 12px;">
             <a href="{% url 'accounts:login' %}" style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 11px 16px; font-size: 0.95rem; font-weight: 700; color: #EB5310; background: transparent; border: 2px solid #EB5310; border-radius: 999px; text-decoration: none; transition: all 0.2s;">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
-                Login
-            </a>
-            <a href="{% url 'register' %}" style="flex: 1; display: flex; align-items: center; justify-content: center; padding: 11px 16px; font-size: 0.95rem; font-weight: 700; color: #fff; background: #EB5310; border: 2px solid #EB5310; border-radius: 999px; text-decoration: none; transition: all 0.2s;">
-                Sign Up
+                Login / Signup
             </a>
         </div>
 
@@ -946,10 +1156,10 @@
                     </div>
 
                     <div class="col-md-12">
-                        <div class="demo-card" data-anim="zoom-in">
+                        <div class="demo-card" id="videoWrapper" data-anim="zoom-in">
                             <div class="ratio ratio-16x9">
-                                <video id="demoVideo" src="{% static 'website/img/videoo.mp4' %}" playsinline
-                                    preload="metadata"></video>
+                                <video id="demoVideo" src="{% url 'demo-video' %}" playsinline
+                                    preload="metadata" poster="{% static 'website/img/Thumbnail.png' %}"></video>
                             </div>
                             <div class="demo-overlay" id="demoOverlay">
                                 <div class="demo-play-btn" id="playBtn">
@@ -957,6 +1167,50 @@
                                         <i class="flaticon-play"></i>
                                     </div>
                                     <span>Watch Demo</span>
+                                </div>
+                            </div>
+                            <!-- Custom HTML5 Video Controls -->
+                            <div class="video-controls-container" id="videoControls">
+                                <div class="progress-bar-container" id="progressBarContainer">
+                                    <div class="progress-bar-rail"></div>
+                                    <div class="progress-bar-buffer" id="progressBarBuffer"></div>
+                                    <div class="progress-bar-filled" id="progressBarFilled"></div>
+                                    <div class="progress-bar-handle" id="progressBarHandle"></div>
+                                </div>
+                                <div class="controls-row">
+                                    <div class="controls-left">
+                                        <button class="control-btn" id="controlPlayPause" aria-label="Play or Pause">
+                                            <svg class="icon-play" viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                                                <path d="M8 5v14l11-7z"/>
+                                            </svg>
+                                            <svg class="icon-pause d-none" viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                                                <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
+                                            </svg>
+                                        </button>
+                                        <button class="control-btn" id="controlMute" aria-label="Mute or Unmute">
+                                            <svg class="icon-volume-up" viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                                                <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+                                            </svg>
+                                            <svg class="icon-mute d-none" viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                                                <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.21.05-.42.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/>
+                                            </svg>
+                                        </button>
+                                        <div class="time-display">
+                                            <span id="currentTime">0:00</span>
+                                            <span class="time-separator">/</span>
+                                            <span id="durationTime">0:00</span>
+                                        </div>
+                                    </div>
+                                    <div class="controls-right">
+                                        <button class="control-btn" id="controlFullscreen" aria-label="Toggle Fullscreen">
+                                            <svg class="icon-fullscreen-enter" viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                                                <path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/>
+                                            </svg>
+                                            <svg class="icon-fullscreen-exit d-none" viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                                                <path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"/>
+                                            </svg>
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -2060,24 +2314,298 @@
     <script src="{% static 'website/js/progressbar.js' %}"></script>
     <script src="{% static 'website/js/donate-form.js' %}"></script>
     <script>
+        (function() {
+            const video = document.getElementById('demoVideo');
+            const wrapper = document.getElementById('videoWrapper');
+            const overlay = document.getElementById('demoOverlay');
+            const controls = document.getElementById('videoControls');
 
-        const video = document.getElementById('demoVideo');
-        const overlay = document.getElementById('demoOverlay');
-        const playBtn = document.getElementById('playBtn');
+            const progressBarContainer = document.getElementById('progressBarContainer');
+            const progressBarFilled = document.getElementById('progressBarFilled');
+            const progressBarBuffer = document.getElementById('progressBarBuffer');
+            const progressBarHandle = document.getElementById('progressBarHandle');
 
-        if (playBtn) {
-            playBtn.addEventListener('click', () => {
-                overlay.style.display = 'none';
-                video.play();
+            const controlPlayPause = document.getElementById('controlPlayPause');
+            const playIcon = controlPlayPause.querySelector('.icon-play');
+            const pauseIcon = controlPlayPause.querySelector('.icon-pause');
+
+            const controlMute = document.getElementById('controlMute');
+            const volumeUpIcon = controlMute.querySelector('.icon-volume-up');
+            const muteIcon = controlMute.querySelector('.icon-mute');
+
+            const currentTimeSpan = document.getElementById('currentTime');
+            const durationTimeSpan = document.getElementById('durationTime');
+
+            const controlFullscreen = document.getElementById('controlFullscreen');
+            const fullscreenEnterIcon = controlFullscreen.querySelector('.icon-fullscreen-enter');
+            const fullscreenExitIcon = controlFullscreen.querySelector('.icon-fullscreen-exit');
+
+            let isDragging = false;
+            let wasPlaying = false;
+            let dragPercentage = 0;
+            let controlsTimeout;
+
+            if (!video || !wrapper || !controls) return;
+
+            function formatTime(seconds) {
+                if (isNaN(seconds) || seconds === Infinity || seconds === null) return '0:00';
+                const minutes = Math.floor(seconds / 60);
+                const secs = Math.floor(seconds % 60);
+                return `${minutes}:${secs < 10 ? '0' : ''}${secs}`;
+            }
+
+            function updateDuration() {
+                if (durationTimeSpan && video.duration) {
+                    durationTimeSpan.textContent = formatTime(video.duration);
+                }
+            }
+            video.addEventListener('loadedmetadata', updateDuration);
+            video.addEventListener('durationchange', updateDuration);
+            if (video.readyState >= 1) {
+                updateDuration();
+            }
+
+            function togglePlay() {
+                if (video.paused) {
+                    video.play();
+                } else {
+                    video.pause();
+                }
+            }
+
+            // Clicking the video or the "Watch Demo" overlay toggles play/pause.
+            video.addEventListener('click', togglePlay);
+            overlay.addEventListener('click', togglePlay);
+
+            // Prevent control clicks from bubbling up to the video click handler.
+            controls.addEventListener('click', (e) => {
+                e.stopPropagation();
             });
-            video.addEventListener('click', () => {
-                if (!video.paused) { video.pause(); overlay.style.display = 'flex'; }
+            controls.addEventListener('touchstart', (e) => {
+                e.stopPropagation();
+            }, { passive: true });
+
+            controlPlayPause.addEventListener('click', (e) => {
+                e.stopPropagation();
+                togglePlay();
             });
+
+            video.addEventListener('play', () => {
+                overlay.classList.add('hide');
+                playIcon.classList.add('d-none');
+                pauseIcon.classList.remove('d-none');
+                showControls();
+            });
+
+            video.addEventListener('pause', () => {
+                overlay.classList.remove('hide');
+                playIcon.classList.remove('d-none');
+                pauseIcon.classList.add('d-none');
+                showControls();
+            });
+
             video.addEventListener('ended', () => {
-                overlay.style.display = 'flex';
+                overlay.classList.remove('hide');
+                playIcon.classList.remove('d-none');
+                pauseIcon.classList.add('d-none');
                 video.currentTime = 0;
+                showControls();
             });
-        }
+
+            controlMute.addEventListener('click', (e) => {
+                e.stopPropagation();
+                video.muted = !video.muted;
+                if (video.muted) {
+                    volumeUpIcon.classList.add('d-none');
+                    muteIcon.classList.remove('d-none');
+                } else {
+                    volumeUpIcon.classList.remove('d-none');
+                    muteIcon.classList.add('d-none');
+                }
+            });
+
+            function updateVisualProgress(clientX) {
+                const rect = progressBarContainer.getBoundingClientRect();
+                let percentage = (clientX - rect.left) / rect.width;
+                percentage = Math.max(0, Math.min(1, percentage));
+                dragPercentage = percentage;
+
+                progressBarFilled.style.width = (percentage * 100) + '%';
+                progressBarHandle.style.left = (percentage * 100) + '%';
+
+                if (video.duration && !isNaN(video.duration) && currentTimeSpan) {
+                    currentTimeSpan.textContent = formatTime(percentage * video.duration);
+                }
+            }
+
+            progressBarContainer.addEventListener('mousedown', (e) => {
+                e.stopPropagation();
+                isDragging = true;
+                wasPlaying = !video.paused;
+                if (wasPlaying) {
+                    video.pause();
+                }
+                progressBarContainer.classList.add('dragging');
+                updateVisualProgress(e.clientX);
+            });
+
+            window.addEventListener('mousemove', (e) => {
+                if (isDragging) {
+                    updateVisualProgress(e.clientX);
+                }
+            });
+
+            window.addEventListener('mouseup', (e) => {
+                if (isDragging) {
+                    isDragging = false;
+                    progressBarContainer.classList.remove('dragging');
+                    if (video.duration && !isNaN(video.duration)) {
+                        // Seek the video to the dragged position — let the browser
+                        // handle it natively (it requests the needed byte range).
+                        video.currentTime = dragPercentage * video.duration;
+                        const percentage = dragPercentage * 100;
+                        progressBarFilled.style.width = percentage + '%';
+                        progressBarHandle.style.left = percentage + '%';
+                    }
+                    if (wasPlaying) {
+                        video.play();
+                    }
+                }
+            });
+
+            progressBarContainer.addEventListener('touchstart', (e) => {
+                e.stopPropagation();
+                isDragging = true;
+                wasPlaying = !video.paused;
+                if (wasPlaying) {
+                    video.pause();
+                }
+                progressBarContainer.classList.add('dragging');
+                updateVisualProgress(e.touches[0].clientX);
+            }, { passive: true });
+
+            window.addEventListener('touchmove', (e) => {
+                if (isDragging) {
+                    updateVisualProgress(e.touches[0].clientX);
+                }
+            }, { passive: true });
+
+            window.addEventListener('touchend', (e) => {
+                if (isDragging) {
+                    isDragging = false;
+                    progressBarContainer.classList.remove('dragging');
+                    if (video.duration && !isNaN(video.duration)) {
+                        // Seek the video to the dragged position — let the browser
+                        // handle it natively (it requests the needed byte range).
+                        video.currentTime = dragPercentage * video.duration;
+                        const percentage = dragPercentage * 100;
+                        progressBarFilled.style.width = percentage + '%';
+                        progressBarHandle.style.left = percentage + '%';
+                    }
+                    if (wasPlaying) {
+                        video.play();
+                    }
+                }
+            });
+
+            video.addEventListener('timeupdate', () => {
+                if (!isDragging && video.duration && !isNaN(video.duration)) {
+                    const percentage = (video.currentTime / video.duration) * 100;
+                    progressBarFilled.style.width = percentage + '%';
+                    progressBarHandle.style.left = percentage + '%';
+                    if (currentTimeSpan) {
+                        currentTimeSpan.textContent = formatTime(video.currentTime);
+                    }
+                }
+            });
+
+            video.addEventListener('progress', () => {
+                if (video.buffered.length > 0 && video.duration) {
+                    const bufferedEnd = video.buffered.end(video.buffered.length - 1);
+                    const percentage = (bufferedEnd / video.duration) * 100;
+                    progressBarBuffer.style.width = percentage + '%';
+                }
+            });
+
+            function toggleFullscreen() {
+                const isFullscreen = document.fullscreenElement ||
+                                     document.webkitFullscreenElement ||
+                                     document.mozFullScreenElement ||
+                                     document.msFullscreenElement;
+
+                if (!isFullscreen) {
+                    if (wrapper.requestFullscreen) {
+                        wrapper.requestFullscreen();
+                    } else if (wrapper.webkitRequestFullscreen) {
+                        wrapper.webkitRequestFullscreen();
+                    } else if (wrapper.mozRequestFullScreen) {
+                        wrapper.mozRequestFullScreen();
+                    } else if (wrapper.msRequestFullscreen) {
+                        wrapper.msRequestFullscreen();
+                    } else if (video.webkitEnterFullscreen) {
+                        video.webkitEnterFullscreen();
+                    }
+                } else {
+                    if (document.exitFullscreen) {
+                        document.exitFullscreen();
+                    } else if (document.webkitExitFullscreen) {
+                        document.webkitExitFullscreen();
+                    } else if (document.mozCancelFullScreen) {
+                        document.mozCancelFullScreen();
+                    } else if (document.msExitFullscreen) {
+                        document.msExitFullscreen();
+                    }
+                }
+            }
+
+            controlFullscreen.addEventListener('click', (e) => {
+                e.stopPropagation();
+                toggleFullscreen();
+            });
+
+            function onFullscreenChange() {
+                const isFullscreen = document.fullscreenElement ||
+                                     document.webkitFullscreenElement ||
+                                     document.mozFullScreenElement ||
+                                     document.msFullscreenElement;
+
+                if (isFullscreen) {
+                    wrapper.classList.add('is-fullscreen');
+                    fullscreenEnterIcon.classList.add('d-none');
+                    fullscreenExitIcon.classList.remove('d-none');
+                } else {
+                    wrapper.classList.remove('is-fullscreen');
+                    fullscreenEnterIcon.classList.remove('d-none');
+                    fullscreenExitIcon.classList.add('d-none');
+                }
+            }
+
+            document.addEventListener('fullscreenchange', onFullscreenChange);
+            document.addEventListener('webkitfullscreenchange', onFullscreenChange);
+            document.addEventListener('mozfullscreenchange', onFullscreenChange);
+            document.addEventListener('MSFullscreenChange', onFullscreenChange);
+
+            function showControls() {
+                controls.classList.add('visible');
+                wrapper.style.cursor = 'default';
+                clearTimeout(controlsTimeout);
+                if (!video.paused) {
+                    controlsTimeout = setTimeout(() => {
+                        controls.classList.remove('visible');
+                        wrapper.style.cursor = 'none';
+                    }, 3000);
+                }
+            }
+
+            wrapper.addEventListener('mousemove', showControls);
+            wrapper.addEventListener('click', showControls);
+            wrapper.addEventListener('touchstart', showControls, { passive: true });
+
+            if (video.muted) {
+                volumeUpIcon.classList.add('d-none');
+                muteIcon.classList.remove('d-none');
+            }
+        })();
     </script>
 
 
