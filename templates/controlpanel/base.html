@@ -1,0 +1,96 @@
+{% load static %}
+{% load humanize %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title>{% block page_title %}Control Center{% endblock %} · FavHost</title>
+  <link href="{% static 'website/img/fev.png' %}" rel="icon" type="image/png">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css" />
+  <link href="{% static 'css/controlpanel/console.css' %}" rel="stylesheet">
+  {% block extra_head %}{% endblock %}
+</head>
+
+<body class="cp-body">
+  <div class="cp-shell">
+
+    <!-- ── Sidebar ─────────────────────────────────────────────── -->
+    <aside class="cp-sidebar" id="cpSidebar">
+      <div class="cp-brand">
+        <img src="{% static 'img/auth/logo.png' %}" alt="FavHost">
+        <span class="cp-brand-badge">Owner</span>
+      </div>
+      <nav class="cp-nav">
+        <div class="cp-nav-section">Overview</div>
+        <a href="{% url 'controlpanel:dashboard' %}" class="cp-nav-item {% if active_nav == 'dashboard' %}active{% endif %}">
+          <i class="ti ti-layout-dashboard"></i> Dashboard</a>
+
+        <div class="cp-nav-section">Manage</div>
+        <a href="{% url 'controlpanel:users' %}" class="cp-nav-item {% if active_nav == 'users' %}active{% endif %}">
+          <i class="ti ti-users"></i> Hosts &amp; Users</a>
+        <a href="{% url 'controlpanel:properties' %}" class="cp-nav-item {% if active_nav == 'properties' %}active{% endif %}">
+          <i class="ti ti-building-community"></i> Properties</a>
+        <a href="{% url 'controlpanel:bookings' %}" class="cp-nav-item {% if active_nav == 'bookings' %}active{% endif %}">
+          <i class="ti ti-calendar-check"></i> Bookings</a>
+        <a href="{% url 'controlpanel:enquiries' %}" class="cp-nav-item {% if active_nav == 'enquiries' %}active{% endif %}">
+          <i class="ti ti-message-dots"></i> Enquiries</a>
+
+        <div class="cp-nav-section">Revenue</div>
+        <a href="{% url 'controlpanel:subscriptions' %}" class="cp-nav-item {% if active_nav == 'subscriptions' %}active{% endif %}">
+          <i class="ti ti-crown"></i> Subscriptions</a>
+        <a href="{% url 'controlpanel:payments' %}" class="cp-nav-item {% if active_nav == 'payments' %}active{% endif %}">
+          <i class="ti ti-cash"></i> Payments</a>
+
+        <div class="cp-nav-section">System</div>
+        <a href="{% url 'controlpanel:settings' %}" class="cp-nav-item {% if active_nav == 'settings' %}active{% endif %}">
+          <i class="ti ti-settings"></i> Platform Settings</a>
+        <a href="{% url 'controlpanel:logout' %}" class="cp-nav-item">
+          <i class="ti ti-logout"></i> Sign out</a>
+      </nav>
+    </aside>
+
+    <!-- ── Main ────────────────────────────────────────────────── -->
+    <div class="cp-main">
+      <header class="cp-topbar">
+        <button class="cp-hamburger" onclick="document.getElementById('cpSidebar').classList.toggle('open')" aria-label="Menu">
+          <i class="ti ti-menu-2"></i>
+        </button>
+        <div>
+          <h1>{% block heading %}Dashboard{% endblock %}</h1>
+          {% block subheading %}{% endblock %}
+        </div>
+        <div class="cp-spacer"></div>
+        <div class="cp-admin-chip">
+          <span class="cp-avatar">{{ request.user.username|slice:":1"|upper }}</span>
+          <span>{{ request.user.email }}</span>
+        </div>
+      </header>
+
+      <main class="cp-content">
+        {% if messages %}
+        <div style="margin-bottom:18px;">
+          {% for message in messages %}
+          <div class="cp-card cp-card-pad" style="border-left:4px solid {% if 'success' in message.tags %}var(--cp-green){% elif 'error' in message.tags or 'danger' in message.tags %}var(--cp-red){% else %}var(--cp-accent){% endif %};padding:12px 18px;margin-bottom:8px;font-size:13.5px;">
+            {{ message }}
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+
+        {% block content %}{% endblock %}
+      </main>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  {% block extra_script %}{% endblock %}
+</body>
+
+</html>

@@ -1,0 +1,317 @@
+{% extends 'controlpanel/base.html' %}
+{% load humanize %}
+
+{% block page_title %}Dashboard{% endblock %}
+{% block heading %}Platform Overview{% endblock %}
+{% block subheading %}<div class="cp-sub">Everything happening across FavHost — live, in USD</div>{% endblock %}
+
+{% block content %}
+
+<!-- ── Attention required ────────────────────────────────────────── -->
+{% if attention.total %}
+<div class="cp-card cp-mb" style="border-color:#f3ddb8;">
+  <div class="cp-card-head" style="border-color:#f3ddb8;background:var(--cp-amber-soft);border-radius:14px 14px 0 0;">
+    <i class="ti ti-alert-triangle" style="color:var(--cp-amber);font-size:20px;"></i>
+    <h3>Needs your attention</h3>
+    <span class="cp-badge b-amber no-dot" style="margin-left:8px;">{{ attention.total }}</span>
+    <div class="cp-spacer"></div>
+    <a href="{% url 'controlpanel:users' %}?attention=1" class="cp-link" style="font-size:13px;">Review all →</a>
+  </div>
+  <div class="cp-card-pad">
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;">
+      <a href="{% url 'controlpanel:subscriptions' %}?state=trialing" class="cp-att-chip"><span class="cp-att-n" style="color:var(--cp-amber);">{{ attention.trials_ending|length }}</span><span>Trials ending ≤7d</span></a>
+      <a href="{% url 'controlpanel:subscriptions' %}?state=past_due" class="cp-att-chip"><span class="cp-att-n" style="color:var(--cp-red);">{{ attention.past_due|length }}</span><span>Payments past due</span></a>
+      <a href="{% url 'controlpanel:users' %}?attention=1" class="cp-att-chip"><span class="cp-att-n" style="color:var(--cp-amber);">{{ attention.no_listing|length }}</span><span>No listings yet</span></a>
+      <a href="{% url 'controlpanel:users' %}?attention=1" class="cp-att-chip"><span class="cp-att-n" style="color:var(--cp-muted);">{{ attention.dormant|length }}</span><span>Dormant hosts</span></a>
+      <a href="{% url 'controlpanel:users' %}?status=blocked" class="cp-att-chip"><span class="cp-att-n" style="color:var(--cp-red);">{{ attention.blocked|length }}</span><span>Blocked accounts</span></a>
+    </div>
+    {% if attention.trials_ending %}
+    <div style="margin-top:16px;border-top:1px solid var(--cp-border);padding-top:14px;">
+      <div style="font-size:12px;color:var(--cp-muted);font-weight:600;text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px;">Trials expiring soonest</div>
+      {% for item in attention.trials_ending|slice:":5" %}
+      <div style="display:flex;align-items:center;gap:10px;padding:6px 0;font-size:13.5px;">
+        <span class="cp-badge {% if item.days_left <= 2 %}b-red{% else %}b-amber{% endif %} no-dot">{{ item.days_left }}d left</span>
+        <a class="cp-link" href="{% url 'controlpanel:user_detail' item.user.id %}">{{ item.user.get_full_name|default:item.user.username }}</a>
+        <span style="color:var(--cp-muted);">{{ item.user.email }}</span>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+
+<!-- ── The subscription business (what the owner earns) ───────────── -->
+<div class="cp-section-label">Subscription business</div>
+<div class="cp-kpi-grid">
+  <div class="cp-kpi">
+    <div class="cp-kpi-ico cp-ico-indigo"><i class="ti ti-repeat"></i></div>
+    <div class="cp-kpi-label">Monthly Recurring Revenue</div>
+    <div class="cp-kpi-value">${{ kpis.mrr|floatformat:2|intcomma }}</div>
+    <div class="cp-kpi-foot">${{ kpis.arr|floatformat:0|intcomma }} ARR · {{ monthly_price_display }}/host</div>
+  </div>
+  <div class="cp-kpi">
+    <div class="cp-kpi-ico cp-ico-green"><i class="ti ti-crown"></i></div>
+    <div class="cp-kpi-label">Paying Hosts</div>
+    <div class="cp-kpi-value">{{ kpis.active_subscriptions|intcomma }}</div>
+    <div class="cp-kpi-foot">
+      {% if kpis.new_paid_this_month %}<span class="cp-trend-up">+{{ kpis.new_paid_this_month }} new</span>{% endif %}
+      {% if kpis.churned_this_month %} <span class="cp-trend-down">−{{ kpis.churned_this_month }} churned</span>{% endif %}
+      {% if not kpis.new_paid_this_month and not kpis.churned_this_month %}no change this month{% endif %}
+    </div>
+  </div>
+  <div class="cp-kpi">
+    <div class="cp-kpi-ico cp-ico-orange"><i class="ti ti-hourglass-high"></i></div>
+    <div class="cp-kpi-label">On Free Trial</div>
+    <div class="cp-kpi-value">{{ kpis.trialing|intcomma }}</div>
+    <div class="cp-kpi-foot">potential conversions</div>
+  </div>
+  <div class="cp-kpi">
+    <div class="cp-kpi-ico cp-ico-blue"><i class="ti ti-target-arrow"></i></div>
+    <div class="cp-kpi-label">Trial → Paid Conversion</div>
+    <div class="cp-kpi-value">{% if kpis.trial_conversion is not None %}{{ kpis.trial_conversion }}%{% else %}—{% endif %}</div>
+    <div class="cp-kpi-foot">of hosts past their trial</div>
+  </div>
+</div>
+
+<!-- ── Growth & engagement ───────────────────────────────────────── -->
+<div class="cp-section-label">Growth &amp; engagement</div>
+<div class="cp-kpi-grid">
+  <div class="cp-kpi">
+    <div class="cp-kpi-ico cp-ico-orange"><i class="ti ti-user-plus"></i></div>
+    <div class="cp-kpi-label">New Hosts This Month</div>
+    <div class="cp-kpi-value">{{ kpis.new_users_this_month|intcomma }}</div>
+    <div class="cp-kpi-foot">{% if kpis.new_users_growth is not None %}{% if kpis.new_users_growth >= 0 %}<span class="cp-trend-up">▲ {{ kpis.new_users_growth }}%</span>{% else %}<span class="cp-trend-down">▼ {{ kpis.new_users_growth }}%</span>{% endif %} vs last month{% else %}—{% endif %}</div>
+  </div>
+  <div class="cp-kpi">
+    <div class="cp-kpi-ico cp-ico-green"><i class="ti ti-users"></i></div>
+    <div class="cp-kpi-label">Total Hosts</div>
+    <div class="cp-kpi-value">{{ kpis.total_users|intcomma }}</div>
+    <div class="cp-kpi-foot">{{ kpis.active_users }} active{% if kpis.blocked_users %} · {{ kpis.blocked_users }} blocked{% endif %}</div>
+  </div>
+  <div class="cp-kpi">
+    <div class="cp-kpi-ico cp-ico-blue"><i class="ti ti-rocket"></i></div>
+    <div class="cp-kpi-label">Activation Rate</div>
+    <div class="cp-kpi-value">{% if kpis.activation_rate is not None %}{{ kpis.activation_rate }}%{% else %}—{% endif %}</div>
+    <div class="cp-kpi-foot">hosts with ≥1 listing</div>
+  </div>
+  <div class="cp-kpi">
+    <div class="cp-kpi-ico cp-ico-indigo"><i class="ti ti-building-community"></i></div>
+    <div class="cp-kpi-label">Platform Activity</div>
+    <div class="cp-kpi-value">{{ kpis.total_bookings|intcomma }}</div>
+    <div class="cp-kpi-foot">bookings · {{ kpis.total_props }} listings · ${{ kpis.gross_booking_value|floatformat:0|intcomma }} processed</div>
+  </div>
+</div>
+
+<!-- ── Revenue + subscription mix ────────────────────────────────── -->
+<div class="cp-grid cp-grid-2 cp-mb">
+  <div class="cp-card">
+    <div class="cp-card-head"><h3>Booking Revenue</h3><div class="cp-spacer"></div>
+      <span class="cp-badge b-orange no-dot">Last 12 months · USD</span></div>
+    <div class="cp-chart-wrap"><canvas id="chartRevenue"></canvas></div>
+  </div>
+  <div class="cp-card">
+    <div class="cp-card-head"><h3>Subscription Mix</h3></div>
+    <div class="cp-chart-wrap cp-chart-sm"><canvas id="chartSubs"></canvas></div>
+  </div>
+</div>
+
+<!-- ── Signups + bookings ────────────────────────────────────────── -->
+<div class="cp-grid cp-grid-3 cp-mb">
+  <div class="cp-card">
+    <div class="cp-card-head"><h3>New Host Signups</h3></div>
+    <div class="cp-chart-wrap cp-chart-sm"><canvas id="chartSignups"></canvas></div>
+  </div>
+  <div class="cp-card">
+    <div class="cp-card-head"><h3>Bookings Created</h3></div>
+    <div class="cp-chart-wrap cp-chart-sm"><canvas id="chartBookings"></canvas></div>
+  </div>
+  <div class="cp-card">
+    <div class="cp-card-head"><h3>Booking Channels</h3></div>
+    <div class="cp-chart-wrap cp-chart-sm"><canvas id="chartChannels"></canvas></div>
+  </div>
+</div>
+
+<!-- ── Distributions ─────────────────────────────────────────────── -->
+<div class="cp-grid cp-grid-3 cp-mb">
+  <div class="cp-card">
+    <div class="cp-card-head"><h3>Property Types</h3></div>
+    <div class="cp-chart-wrap cp-chart-sm"><canvas id="chartPropTypes"></canvas></div>
+  </div>
+  <div class="cp-card">
+    <div class="cp-card-head"><h3>Booking Status</h3></div>
+    <div class="cp-chart-wrap cp-chart-sm"><canvas id="chartBookingStatus"></canvas></div>
+  </div>
+  <div class="cp-card">
+    <div class="cp-card-head"><h3>Payments Collected</h3></div>
+    <div class="cp-chart-wrap cp-chart-sm"><canvas id="chartPayments"></canvas></div>
+  </div>
+</div>
+
+<!-- ── Top hosts + recent activity ───────────────────────────────── -->
+<div class="cp-grid cp-grid-2 cp-mb">
+  <div class="cp-card">
+    <div class="cp-card-head"><h3>Top Hosts by Revenue</h3></div>
+    <div class="cp-table-wrap">
+      <table class="cp-table">
+        <thead><tr><th>Host</th><th>Bookings</th><th style="text-align:right;">Revenue</th></tr></thead>
+        <tbody>
+          {% for h in top_hosts %}
+          <tr>
+            <td><a class="cp-link" href="{% url 'controlpanel:user_detail' h.user.id %}">{{ h.name }}</a></td>
+            <td>{{ h.bookings }}</td>
+            <td style="text-align:right;font-weight:700;">${{ h.revenue|floatformat:0|intcomma }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="3" class="cp-empty" style="padding:30px;"><i class="ti ti-chart-bar"></i><p>No booking revenue yet</p></td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="cp-card">
+    <div class="cp-card-head"><h3>Newest Hosts</h3><div class="cp-spacer"></div>
+      <a href="{% url 'controlpanel:users' %}" class="cp-link" style="font-size:13px;">View all →</a></div>
+    <div class="cp-card-pad" style="padding-top:6px;">
+      {% for u in recent_users %}
+      <div class="cp-action-row">
+        <div class="cp-user-cell">
+          <span class="cp-ava">{% if u.profile_picture_url %}<img src="{{ u.profile_picture_url }}">{% else %}{{ u.username|slice:":1"|upper }}{% endif %}</span>
+          <div>
+            <div class="cp-uname"><a class="cp-link" href="{% url 'controlpanel:user_detail' u.id %}">{{ u.get_full_name|default:u.username }}</a></div>
+            <div class="cp-uemail">{{ u.email }}</div>
+          </div>
+        </div>
+        <div class="cp-spacer" style="flex:1;"></div>
+        <span style="font-size:12px;color:var(--cp-muted);">{{ u.created_at|date:"M j, Y" }}</span>
+      </div>
+      {% empty %}
+      <div class="cp-empty"><i class="ti ti-user-off"></i><p>No hosts yet</p></div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<div class="cp-grid cp-grid-2">
+  <div class="cp-card">
+    <div class="cp-card-head"><h3>Recent Bookings</h3><div class="cp-spacer"></div>
+      <a href="{% url 'controlpanel:bookings' %}" class="cp-link" style="font-size:13px;">View all →</a></div>
+    <div class="cp-table-wrap">
+      <table class="cp-table">
+        <thead><tr><th>Guest</th><th>Property</th><th>Status</th><th style="text-align:right;">Total</th></tr></thead>
+        <tbody>
+          {% for b in recent_bookings %}
+          <tr>
+            <td><a class="cp-link" href="{% url 'controlpanel:booking_detail' b.id %}">{{ b.first_name }} {{ b.last_name }}</a></td>
+            <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ b.property.title }}</td>
+            <td>
+              {% if b.status == 'confirmed' %}<span class="cp-badge b-green">Confirmed</span>
+              {% elif b.status == 'cancelled' %}<span class="cp-badge b-red">Cancelled</span>
+              {% else %}<span class="cp-badge b-gray">{{ b.get_status_display }}</span>{% endif %}
+            </td>
+            <td style="text-align:right;font-weight:700;">${{ b.price|floatformat:0|intcomma }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="4" class="cp-empty" style="padding:30px;"><i class="ti ti-calendar-off"></i><p>No bookings yet</p></td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="cp-card">
+    <div class="cp-card-head"><h3>Recent Enquiries</h3><div class="cp-spacer"></div>
+      <a href="{% url 'controlpanel:enquiries' %}" class="cp-link" style="font-size:13px;">View all →</a></div>
+    <div class="cp-table-wrap">
+      <table class="cp-table">
+        <thead><tr><th>Guest</th><th>Property</th><th>Dates</th></tr></thead>
+        <tbody>
+          {% for e in recent_enquiries %}
+          <tr>
+            <td>{{ e.first_name }} {{ e.last_name }}</td>
+            <td style="max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ e.property.title }}</td>
+            <td style="font-size:12px;color:var(--cp-muted);">{{ e.check_in_date|date:"M j" }} – {{ e.check_out_date|date:"M j" }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="3" class="cp-empty" style="padding:30px;"><i class="ti ti-message-off"></i><p>No enquiries yet</p></td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_script %}
+<script id="cp-charts-data" type="application/json">{{ charts_json|safe }}</script>
+<script>
+  const CP = JSON.parse(document.getElementById('cp-charts-data').textContent);
+  const ACCENT = '#EB5310', GRID = 'rgba(17,24,39,.06)', MUTED = '#9ca3af';
+  Chart.defaults.font.family = 'Heebo, sans-serif';
+  Chart.defaults.color = '#6b7280';
+  Chart.defaults.plugins.legend.display = false;
+
+  const money = (v) => '$' + Number(v).toLocaleString(undefined, { maximumFractionDigits: 0 });
+  const axis = (fmt) => ({
+    x: { grid: { display: false }, ticks: { maxRotation: 0, autoSkip: true, maxTicksLimit: 8 } },
+    y: { beginAtZero: true, grid: { color: GRID }, ticks: fmt ? { callback: fmt } : {} }
+  });
+
+  // Revenue (area line)
+  (function () {
+    const c = document.getElementById('chartRevenue').getContext('2d');
+    const g = c.createLinearGradient(0, 0, 0, 300);
+    g.addColorStop(0, 'rgba(235,83,16,.28)'); g.addColorStop(1, 'rgba(235,83,16,0)');
+    new Chart(c, {
+      type: 'line',
+      data: { labels: CP.revenue.labels, datasets: [{ data: CP.revenue.values, borderColor: ACCENT, backgroundColor: g, fill: true, tension: .35, borderWidth: 2.5, pointRadius: 0, pointHoverRadius: 5 }] },
+      options: { responsive: true, maintainAspectRatio: false, scales: axis(money), plugins: { tooltip: { callbacks: { label: (i) => money(i.raw) } } } }
+    });
+  })();
+
+  // Subscriptions doughnut
+  new Chart(document.getElementById('chartSubs'), {
+    type: 'doughnut',
+    data: { labels: CP.subscriptions.labels, datasets: [{ data: CP.subscriptions.values, backgroundColor: CP.subscriptions.colors, borderWidth: 2, borderColor: '#fff' }] },
+    options: { responsive: true, maintainAspectRatio: false, cutout: '62%', plugins: { legend: { display: true, position: 'bottom', labels: { boxWidth: 10, boxHeight: 10, padding: 12, font: { size: 11 } } } } }
+  });
+
+  // Signups bar
+  new Chart(document.getElementById('chartSignups'), {
+    type: 'bar',
+    data: { labels: CP.signups.labels, datasets: [{ data: CP.signups.values, backgroundColor: ACCENT, borderRadius: 5, maxBarThickness: 26 }] },
+    options: { responsive: true, maintainAspectRatio: false, scales: axis() }
+  });
+
+  // Bookings line
+  new Chart(document.getElementById('chartBookings'), {
+    type: 'line',
+    data: { labels: CP.bookings.labels, datasets: [{ data: CP.bookings.values, borderColor: '#2563eb', backgroundColor: 'rgba(37,99,235,.08)', fill: true, tension: .35, borderWidth: 2.5, pointRadius: 0, pointHoverRadius: 5 }] },
+    options: { responsive: true, maintainAspectRatio: false, scales: axis() }
+  });
+
+  // Channels horizontal bar
+  new Chart(document.getElementById('chartChannels'), {
+    type: 'bar',
+    data: { labels: CP.channels.labels, datasets: [{ data: CP.channels.values, backgroundColor: '#6366f1', borderRadius: 5, maxBarThickness: 20 }] },
+    options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, scales: { x: { beginAtZero: true, grid: { color: GRID } }, y: { grid: { display: false } } } }
+  });
+
+  const pie = (id, d, colors) => new Chart(document.getElementById(id), {
+    type: 'doughnut',
+    data: { labels: d.labels, datasets: [{ data: d.values, backgroundColor: colors, borderWidth: 2, borderColor: '#fff' }] },
+    options: { responsive: true, maintainAspectRatio: false, cutout: '58%', plugins: { legend: { display: true, position: 'bottom', labels: { boxWidth: 10, boxHeight: 10, padding: 10, font: { size: 11 } } } } }
+  });
+  pie('chartPropTypes', CP.property_types, ['#EB5310', '#2563eb', '#16a34a', '#9ca3af']);
+  pie('chartBookingStatus', CP.booking_status, ['#16a34a', '#dc2626', '#9ca3af']);
+
+  // Payments collected bar
+  new Chart(document.getElementById('chartPayments'), {
+    type: 'bar',
+    data: { labels: CP.payments.labels, datasets: [{ data: CP.payments.values, backgroundColor: '#16a34a', borderRadius: 5, maxBarThickness: 26 }] },
+    options: { responsive: true, maintainAspectRatio: false, scales: axis(money), plugins: { tooltip: { callbacks: { label: (i) => money(i.raw) } } } }
+  });
+</script>
+{% endblock %}

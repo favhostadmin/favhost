@@ -1,0 +1,61 @@
+{% extends 'controlpanel/base.html' %}
+{% load humanize %}
+
+{% block page_title %}Subscriptions{% endblock %}
+{% block heading %}Subscriptions{% endblock %}
+{% block subheading %}<div class="cp-sub">Billing status for every host</div>{% endblock %}
+
+{% block content %}
+<div class="cp-kpi-grid" style="grid-template-columns:repeat(auto-fill,minmax(200px,1fr));margin-bottom:18px;">
+  <div class="cp-kpi"><div class="cp-kpi-ico cp-ico-indigo"><i class="ti ti-repeat"></i></div>
+    <div class="cp-kpi-label">Estimated MRR</div><div class="cp-kpi-value">${{ mrr|floatformat:2|intcomma }}</div>
+    <div class="cp-kpi-foot">at {{ setting.amount_display }}/{{ setting.subscription_interval }}</div></div>
+  <div class="cp-kpi"><div class="cp-kpi-ico cp-ico-green"><i class="ti ti-crown"></i></div>
+    <div class="cp-kpi-label">Monthly price</div><div class="cp-kpi-value">{{ setting.amount_display }}</div>
+    <div class="cp-kpi-foot">Yearly {{ setting.amount_display_yearly }}</div></div>
+  <div class="cp-kpi"><div class="cp-kpi-ico cp-ico-orange"><i class="ti ti-hourglass"></i></div>
+    <div class="cp-kpi-label">Default trial</div><div class="cp-kpi-value">{{ setting.free_trial_days }}d</div>
+    <div class="cp-kpi-foot"><a class="cp-link" href="{% url 'controlpanel:settings' %}">Edit pricing →</a></div></div>
+</div>
+
+<form method="get" class="cp-toolbar">
+  <select name="state" class="cp-select" onchange="this.form.submit()">
+    <option value="">All states</option>
+    {% for key, label in sub_labels.items %}
+    <option value="{{ key }}" {% if state == key %}selected{% endif %}>{{ label }}</option>
+    {% endfor %}
+  </select>
+  <span class="cp-count-pill">{{ total_count|intcomma }} account{{ total_count|pluralize }}</span>
+</form>
+
+<div class="cp-card">
+  <div class="cp-table-wrap">
+    <table class="cp-table">
+      <thead><tr><th>Host</th><th>State</th><th>Stripe status</th><th>Renews / ends</th><th>Trial ends</th><th></th></tr></thead>
+      <tbody>
+        {% for r in page_obj %}
+        <tr>
+          <td><div class="cp-user-cell"><span class="cp-ava">{{ r.user.username|slice:":1"|upper }}</span>
+            <div><div class="cp-uname">{{ r.user.get_full_name|default:r.user.username }}</div><div class="cp-uemail">{{ r.user.email }}</div></div></div></td>
+          <td>
+            {% if r.state == 'active' %}<span class="cp-badge b-green">{{ r.label }}</span>
+            {% elif r.state == 'trialing' %}<span class="cp-badge b-orange">{{ r.label }}</span>
+            {% elif r.state == 'past_due' %}<span class="cp-badge b-amber">{{ r.label }}</span>
+            {% elif r.state == 'free' %}<span class="cp-badge b-indigo">{{ r.label }}</span>
+            {% elif r.state == 'expired' %}<span class="cp-badge b-red">{{ r.label }}</span>
+            {% else %}<span class="cp-badge b-gray">{{ r.label }}</span>{% endif %}
+          </td>
+          <td style="font-size:12.5px;">{{ r.stripe.subscription_status|default:"—" }}</td>
+          <td style="font-size:12.5px;color:var(--cp-muted);">{{ r.stripe.current_period_end|date:"M j, Y"|default:"—" }}</td>
+          <td style="font-size:12.5px;color:var(--cp-muted);">{{ r.trial_end|date:"M j, Y"|default:"—" }}</td>
+          <td style="text-align:right;"><a class="cp-btn cp-btn-sm" href="{% url 'controlpanel:user_detail' r.user.id %}">Manage</a></td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="6"><div class="cp-empty"><i class="ti ti-crown-off"></i><p>No accounts in this state</p></div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% include 'controlpanel/_pagination.html' %}
+{% endblock %}
