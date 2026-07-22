@@ -104,7 +104,7 @@ SUBSCRIPTION_LABELS = OrderedDict([
 
 SUBSCRIPTION_COLORS = {
     'active': '#16a34a',
-    'trialing': '#EB5310',
+    'trialing': '#e05c2a',
     'past_due': '#f59e0b',
     'free': '#6366f1',
     'canceled': '#9ca3af',
