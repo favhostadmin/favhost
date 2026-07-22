@@ -445,6 +445,7 @@
                 </span>
                 <input id="cohostPhone" name="cohostPhone" type="tel" placeholder="Phone number" required>
               </div>
+              <span class="cohost-field-error" id="cohostPhoneError">Please enter a valid phone number.</span>
             </div>
           </div>
           <div class="cohost-modal-divider"></div>
@@ -485,6 +486,7 @@
       const passwordToggle = document.getElementById('cohostPasswordToggle');
       const fullnameInput = document.getElementById('cohostFullname');
       const phoneInput = document.getElementById('cohostPhone');
+      const phoneField = phoneInput.closest('.cohost-field');
 
       // Eye icons shared by the modal toggle and the table reveal buttons.
       const EYE_ICON = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
@@ -545,6 +547,23 @@
         return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
       }
 
+      function clearPhoneError() {
+        phoneField.classList.remove('has-error');
+      }
+
+      function showPhoneError(message) {
+        var errorEl = document.getElementById('cohostPhoneError');
+        if (errorEl && message) errorEl.textContent = message;
+        phoneField.classList.add('has-error');
+        phoneInput.focus();
+      }
+
+      function isValidPhone(value) {
+        // Allow an optional leading + and common separators; require 7–15 digits.
+        var cleaned = value.replace(/[\s\-().]/g, '');
+        return /^\+?\d{7,15}$/.test(cleaned);
+      }
+
       function resetForm() {
         formAction.value = 'add';
         formCohostId.value = '';
@@ -554,19 +573,27 @@
         phoneInput.value = '';
         passwordInput.required = true;
         clearEmailError();
+        clearPhoneError();
         setModalTitle('Add Co-host');
       }
 
-      // Clear the error as soon as the user edits the email.
+      // Clear each error as soon as the user edits that field.
       emailInput.addEventListener('input', clearEmailError);
+      phoneInput.addEventListener('input', clearPhoneError);
 
-      // Validate the email in-place so the error stays inside the modal
-      // (red box + inline message) instead of reloading the page.
+      // Validate in-place so errors stay inside the modal (red box + inline
+      // message) instead of reloading the page. Focus the first invalid field.
       form.addEventListener('submit', function (event) {
         var email = emailInput.value.trim();
         if (!isValidEmail(email)) {
           event.preventDefault();
           showEmailError('Please enter a valid email address.');
+          return;
+        }
+        var phone = phoneInput.value.trim();
+        if (!isValidPhone(phone)) {
+          event.preventDefault();
+          showPhoneError('Please enter a valid phone number.');
         }
       });
 
