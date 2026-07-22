@@ -38,7 +38,7 @@ ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '*').split(',')
 DATA_UPLOAD_MAX_NUMBER_FIELDS = 20000
 CORS_ALLOW_ALL_ORIGINS = True
 SECURE_CROSS_ORIGIN_OPENER_POLICY = None
-CSRF_TRUSTED_ORIGINS = [
+CSRF_TRUSTED_ORIGINS = ['https://favhost.com',
 
     'https://dev.favhost.com',
     # 'http://34.207.186.12:8000',
