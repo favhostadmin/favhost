@@ -1,8 +1,18 @@
+from django.conf import settings
 from booking.models import Enquiry, Expense
 from property.models import Property
 from django.db.models import Q
 from accounts.utils import get_visible_user_ids, get_effective_user
 from accounts.models import CoHost
+
+
+def google_analytics(request):
+    """
+    Exposes the GA4 measurement ID to every template so base.html can render
+    the tracking snippet site-wide. Only sent when DEBUG is off, so local
+    development traffic doesn't get counted in production analytics.
+    """
+    return {'google_analytics_id': '' if settings.DEBUG else settings.GOOGLE_ANALYTICS_ID}
 
 
 def enquiry_counts(request):
