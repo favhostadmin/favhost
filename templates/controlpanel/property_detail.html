@@ -1,0 +1,104 @@
+{% extends 'controlpanel/base.html' %}
+{% load humanize %}
+
+{% block page_title %}{{ p.title }}{% endblock %}
+{% block heading %}Property{% endblock %}
+
+{% block content %}
+<a href="{% url 'controlpanel:properties' %}" class="cp-back"><i class="ti ti-arrow-left"></i> Back to properties</a>
+
+<div class="cp-detail-head">
+  <div class="cp-ava-lg" style="background:var(--cp-blue-soft);color:var(--cp-blue);"><i class="ti ti-building-community"></i></div>
+  <div style="flex:1;min-width:200px;">
+    <h2>{{ p.title }}</h2>
+    <div class="cp-detail-meta">{{ p.city }}, {{ p.state }}, {{ p.country }}
+      {% if p.created_by %} · hosted by <a class="cp-link" href="{% url 'controlpanel:user_detail' p.created_by.id %}">{{ p.created_by.get_full_name|default:p.created_by.username }}</a>{% endif %}</div>
+    <div style="margin-top:8px;">
+      {% if p.status == 'Active' %}<span class="cp-badge b-green">Active</span>{% else %}<span class="cp-badge b-gray">{{ p.status }}</span>{% endif %}
+      <span class="cp-badge b-gray no-dot">{{ p.get_property_type_display }}</span>
+    </div>
+  </div>
+</div>
+
+<div class="cp-kpi-grid" style="grid-template-columns:repeat(auto-fill,minmax(180px,1fr));">
+  <div class="cp-kpi"><div class="cp-kpi-ico cp-ico-orange"><i class="ti ti-calendar-check"></i></div>
+    <div class="cp-kpi-label">Bookings</div><div class="cp-kpi-value">{{ n_bookings }}</div></div>
+  <div class="cp-kpi"><div class="cp-kpi-ico cp-ico-blue"><i class="ti ti-cash-banknote"></i></div>
+    <div class="cp-kpi-label">Gross Revenue</div><div class="cp-kpi-value">${{ revenue|floatformat:0|intcomma }}</div></div>
+  <div class="cp-kpi"><div class="cp-kpi-ico cp-ico-green"><i class="ti ti-users"></i></div>
+    <div class="cp-kpi-label">Max Guests</div><div class="cp-kpi-value">{{ p.guest }}</div></div>
+  <div class="cp-kpi"><div class="cp-kpi-ico cp-ico-indigo"><i class="ti ti-moon"></i></div>
+    <div class="cp-kpi-label">Min Nights</div><div class="cp-kpi-value">{{ p.minimum_booking }}</div></div>
+</div>
+
+<div class="cp-grid cp-grid-2">
+  <div style="display:flex;flex-direction:column;gap:16px;">
+    <div class="cp-card">
+      <div class="cp-card-head"><h3>Details</h3><span class="cp-badge b-gray no-dot" style="margin-left:auto;">Read-only</span></div>
+      <div class="cp-card-pad">
+        <dl class="cp-def">
+          <dt>Address</dt><dd>{{ p.street_address }}, {{ p.city }} {{ p.zip }}</dd>
+          <dt>Bed type</dt><dd>{{ p.get_bed_type_display }}</dd>
+          <dt>Bathroom</dt><dd>{{ p.get_bathroom_type_display }}</dd>
+          <dt>Check-in</dt><dd>{{ p.check_in_time }}</dd>
+          <dt>Check-out</dt><dd>{{ p.check_out_time }}</dd>
+          <dt>Created</dt><dd>{{ p.created_at|date:"M j, Y" }}</dd>
+        </dl>
+      </div>
+    </div>
+    <div class="cp-card">
+      <div class="cp-card-head"><h3>Pricing (USD)</h3></div>
+      <div class="cp-card-pad">
+        <dl class="cp-def">
+          <dt>Price / night</dt><dd>${{ p.price_per_night|floatformat:2|intcomma }}</dd>
+          <dt>Cleaning fee</dt><dd>${{ p.cleaning_fee|floatformat:2|intcomma }}</dd>
+          <dt>Taxes</dt><dd>${{ p.taxes|floatformat:2|intcomma }}</dd>
+          <dt>Application fee</dt><dd>${{ p.application_fees|floatformat:2|intcomma }}</dd>
+          <dt>Other fees</dt><dd>${{ p.other_fees|floatformat:2|intcomma }}</dd>
+          <dt>Deposit</dt><dd>${{ p.refundable_deposit|floatformat:2|intcomma }}</dd>
+        </dl>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:16px;">
+    <div class="cp-card">
+      <div class="cp-card-head"><h3>Recent Bookings</h3></div>
+      <div class="cp-table-wrap">
+        <table class="cp-table">
+          <thead><tr><th>Guest</th><th>Dates</th><th>Status</th><th style="text-align:right;">Total</th></tr></thead>
+          <tbody>
+            {% for b in bookings %}
+            <tr>
+              <td><a class="cp-link" href="{% url 'controlpanel:booking_detail' b.id %}">{{ b.first_name }} {{ b.last_name }}</a></td>
+              <td style="font-size:12px;color:var(--cp-muted);">{{ b.check_in_date|date:"M j" }}–{{ b.check_out_date|date:"M j" }}</td>
+              <td>{% if b.status == 'confirmed' %}<span class="cp-badge b-green">Confirmed</span>{% elif b.status == 'cancelled' %}<span class="cp-badge b-red">Cancelled</span>{% else %}<span class="cp-badge b-gray">{{ b.get_status_display }}</span>{% endif %}</td>
+              <td style="text-align:right;font-weight:600;">${{ b.price|floatformat:0|intcomma }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="4"><div class="cp-empty" style="padding:26px;"><i class="ti ti-calendar-off"></i><p>No bookings</p></div></td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="cp-card">
+      <div class="cp-card-head"><h3>Recent Enquiries</h3></div>
+      <div class="cp-table-wrap">
+        <table class="cp-table">
+          <thead><tr><th>Guest</th><th>Dates</th><th>Guests</th></tr></thead>
+          <tbody>
+            {% for e in enquiries %}
+            <tr><td>{{ e.first_name }} {{ e.last_name }}</td>
+              <td style="font-size:12px;color:var(--cp-muted);">{{ e.check_in_date|date:"M j" }}–{{ e.check_out_date|date:"M j" }}</td>
+              <td>{{ e.adults }}</td></tr>
+            {% empty %}
+            <tr><td colspan="3"><div class="cp-empty" style="padding:26px;"><i class="ti ti-message-off"></i><p>No enquiries</p></div></td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

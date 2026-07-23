@@ -1261,6 +1261,14 @@
 
 <!-- Profile Completion Modal -->
 <style>
+    /* Pin the dialog width so it doesn't depend on Bootstrap's default
+       .modal-dialog max-width, which some pages (e.g. Listing) override. */
+    #headerProfileCompleteModal .modal-dialog {
+        max-width: 480px;
+        width: 100%;
+        margin-left: auto;
+        margin-right: auto;
+    }
     #headerProfileCompleteModal .modal-content.pcm-content {
         border: none;
         border-radius: 16px;
@@ -1556,4 +1564,29 @@
             if (el) new bootstrap.Modal(el).show();
         });
     }
+
+    // Global guard: any "Create" link anywhere in the app (empty-state buttons,
+    // per-listing dropdowns, calendar/enquiry menus, etc.) is intercepted here so
+    // an incomplete profile always shows the completion modal instead of navigating.
+    // Paths are rendered from the same url tags the links use, so they match.
+    const HEADER_CREATE_PATHS = [
+        "{% url 'property:property-create' %}",
+        "{% url 'booking:booking-create' %}",
+        "{% url 'tasks:task-create' %}",
+    ];
+    document.addEventListener('click', function (e) {
+        if (HEADER_PROFILE_COMPLETE) return;               // profile OK, nothing to guard
+        const link = e.target.closest('a[href]');
+        if (!link) return;
+        const href = link.getAttribute('href') || '';
+        if (href.indexOf('javascript:') === 0) return;     // onclick-handled links guard themselves
+        let path;
+        try { path = new URL(href, window.location.origin).pathname; }
+        catch (_) { return; }
+        const isCreate = HEADER_CREATE_PATHS.indexOf(path) !== -1 || href.indexOf('add_expense=1') !== -1;
+        if (!isCreate) return;
+        e.preventDefault();
+        e.stopPropagation();
+        showHeaderProfileModal();
+    }, true);  // capture phase so we win before the link's own navigation/handlers
 </script>
