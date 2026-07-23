@@ -12,7 +12,9 @@ def google_analytics(request):
     the tracking snippet site-wide. Only sent when DEBUG is off, so local
     development traffic doesn't get counted in production analytics.
     """
-    return {'google_analytics_id': '' if settings.DEBUG else settings.GOOGLE_ANALYTICS_ID}
+    return {
+        "google_analytics_id": settings.GOOGLE_ANALYTICS_ID
+    }
 
 
 def enquiry_counts(request):
