@@ -57,12 +57,19 @@ CSRF_TRUSTED_ORIGINS = [
     'http://127.0.0.1:8000',
 ]
 
+# Trust the X-Forwarded-Proto header set by nginx / the load balancer so
+# Django knows the original request was HTTPS (request.scheme, request.build_absolute_uri(),
+# etc. all depend on this). Kept outside the `if not DEBUG` block below because
+# dev.favhost.com runs with DEBUG=True but is still behind an HTTPS-terminating
+# proxy — same reasoning as AWS_STORAGE_BUCKET_NAME above, DEBUG alone can't
+# tell "behind a proxy" apart from "plain local runserver". Harmless locally:
+# a direct connection to runserver never sends this header, so request.scheme
+# just reflects the real (http) connection as before.
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
 # ── Production security hardening (only active when DEBUG=False) ──
 # Kept off in local dev so plain http://localhost keeps working.
 if not DEBUG:
-    # Trust the X-Forwarded-Proto header set by nginx / the load balancer
-    # so Django knows the original request was HTTPS.
-    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
     SECURE_SSL_REDIRECT = True
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
@@ -84,6 +91,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.humanize',
 
     # third party
     'rest_framework',
@@ -99,6 +107,9 @@ INSTALLED_APPS = [
     'frontdesk',
     'shared',
     'storages',
+
+    # Hidden platform-owner admin console (separate from Django's /admin/).
+    'controlpanel',
 
 ]
 
@@ -368,6 +379,13 @@ JAZZMIN_SETTINGS = {
 LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = 'frontdesk:index'
 LOGOUT_REDIRECT_URL = 'login'
+
+# ── Hidden platform-owner admin console (controlpanel app) ──
+# The console lives at /console/ and is locked to exactly ONE predefined
+# account — no other user can ever reach it, regardless of is_staff/is_admin.
+# Change the email here (or via the env var) if the owner account changes.
+PLATFORM_ADMIN_EMAIL = os.getenv('PLATFORM_ADMIN_EMAIL', 'bookaid@gmail.com')
+PLATFORM_ADMIN_DEFAULT_PASSWORD = os.getenv('PLATFORM_ADMIN_PASSWORD', 'bookaid123')
 
 # Base URL for generating absolute URLs in emails
 BASE_URL = os.getenv('BASE_URL', 'http://favhost.com')
