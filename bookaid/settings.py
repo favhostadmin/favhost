@@ -31,6 +31,10 @@ DEBUG = os.getenv('DEBUG', 'True') == 'True'
 
 ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '*').split(',')
 
+# Google Analytics (GA4) — only sent to templates when DEBUG is off, so local
+# development traffic doesn't pollute production analytics.
+GOOGLE_ANALYTICS_ID = os.getenv('GOOGLE_ANALYTICS_ID', '')
+
 # The CountryAndState admin list (and other large tables) can have several
 # thousand rows selected at once via "select all across pages" bulk actions,
 # which POSTs one field per selected row. Django's default cap (1000) is too
@@ -138,6 +142,7 @@ TEMPLATES = [
                 'django.contrib.messages.context_processors.messages',
                 'property.context_processors.property_context',
                 'bookaid.context_processors.enquiry_counts',
+                'bookaid.context_processors.google_analytics',
                 'billing.context_processors.subscription_status',
                 'accounts.context_processors.currency_context',
                 'django.template.context_processors.static',
