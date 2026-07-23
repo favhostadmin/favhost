@@ -1,0 +1,87 @@
+{% extends 'controlpanel/base.html' %}
+{% load humanize %}
+
+{% block page_title %}Booking #{{ b.booking_id }}{% endblock %}
+{% block heading %}Booking Detail{% endblock %}
+
+{% block content %}
+<a href="{% url 'controlpanel:bookings' %}" class="cp-back"><i class="ti ti-arrow-left"></i> Back to bookings</a>
+
+<div class="cp-detail-head">
+  <div class="cp-ava-lg" style="background:var(--cp-accent-soft);color:var(--cp-accent);"><i class="ti ti-calendar-check"></i></div>
+  <div style="flex:1;min-width:200px;">
+    <h2>{{ b.first_name }} {{ b.last_name }}</h2>
+    <div class="cp-detail-meta">Booking #{{ b.booking_id|default:"—" }} · {{ b.property.title }}</div>
+    <div style="margin-top:8px;">
+      {% if b.status == 'confirmed' %}<span class="cp-badge b-green">Confirmed</span>{% elif b.status == 'cancelled' %}<span class="cp-badge b-red">Cancelled</span>{% else %}<span class="cp-badge b-gray">{{ b.get_status_display }}</span>{% endif %}
+      <span class="cp-badge b-gray no-dot">{{ b.channel.name|default:"Direct" }}</span>
+    </div>
+  </div>
+</div>
+
+<div class="cp-grid cp-grid-2">
+  <div style="display:flex;flex-direction:column;gap:16px;">
+    <div class="cp-card">
+      <div class="cp-card-head"><h3>Guest &amp; Stay</h3></div>
+      <div class="cp-card-pad">
+        <dl class="cp-def">
+          <dt>Guest</dt><dd>{{ b.first_name }} {{ b.last_name }}</dd>
+          <dt>Email</dt><dd>{{ b.email|default:"—" }}</dd>
+          <dt>Phone</dt><dd>{{ b.country_code }} {{ b.phone|default:"—" }}</dd>
+          <dt>Guests</dt><dd>{{ b.guest_count }}</dd>
+          <dt>Check-in</dt><dd>{{ b.check_in_date|date:"M j, Y" }} {{ b.check_in_time|default:"" }}</dd>
+          <dt>Check-out</dt><dd>{{ b.check_out_date|date:"M j, Y" }} {{ b.check_out_time|default:"" }}</dd>
+          <dt>Nights</dt><dd>{{ b.total_nights }}</dd>
+          <dt>Property</dt><dd><a class="cp-link" href="{% url 'controlpanel:property_detail' b.property.id %}">{{ b.property.title }}</a></dd>
+          <dt>Host</dt><dd>{% if b.property.created_by %}<a class="cp-link" href="{% url 'controlpanel:user_detail' b.property.created_by.id %}">{{ b.property.created_by.get_full_name|default:b.property.created_by.username }}</a>{% else %}—{% endif %}</dd>
+          <dt>Created</dt><dd>{{ b.created_at|date:"M j, Y H:i" }}</dd>
+        </dl>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:16px;">
+    <div class="cp-card">
+      <div class="cp-card-head"><h3>Charges (USD)</h3></div>
+      <div class="cp-card-pad">
+        <dl class="cp-def">
+          <dt>Price / night</dt><dd>${{ b.price_per_night|floatformat:2|intcomma }}</dd>
+          <dt>Cleaning fee</dt><dd>${{ b.cleaning_fee|floatformat:2|intcomma }}</dd>
+          <dt>Application fee</dt><dd>${{ b.application_fee|floatformat:2|intcomma }}</dd>
+          <dt>Taxes</dt><dd>${{ b.taxes|floatformat:2|intcomma }}</dd>
+          <dt>Other fees</dt><dd>${{ b.other_fees|floatformat:2|intcomma }}</dd>
+          <dt>Deposit</dt><dd>${{ b.deposit_fee|floatformat:2|intcomma }}</dd>
+        </dl>
+        <hr style="border:0;border-top:1px solid var(--cp-border);margin:14px 0;">
+        <div style="display:flex;justify-content:space-between;font-weight:800;font-size:18px;">
+          <span>Total</span><span>${{ b.price|floatformat:2|intcomma }}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-top:8px;font-size:13.5px;color:var(--cp-green);">
+          <span>Collected</span><span>${{ paid|floatformat:2|intcomma }}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="cp-card">
+      <div class="cp-card-head"><h3>Payments</h3></div>
+      <div class="cp-table-wrap">
+        <table class="cp-table">
+          <thead><tr><th>Type</th><th>Date</th><th>Status</th><th style="text-align:right;">Amount</th></tr></thead>
+          <tbody>
+            {% for pay in payments %}
+            <tr>
+              <td>{{ pay.type|default:"Payment" }}</td>
+              <td style="font-size:12px;color:var(--cp-muted);">{{ pay.payment_date|date:"M j, Y"|default:"—" }}</td>
+              <td>{% if pay.is_paid %}<span class="cp-badge b-green">Paid</span>{% else %}<span class="cp-badge b-amber">Pending</span>{% endif %}</td>
+              <td style="text-align:right;font-weight:600;">${{ pay.amount|floatformat:2|intcomma }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="4"><div class="cp-empty" style="padding:26px;"><i class="ti ti-cash-off"></i><p>No payments recorded</p></div></td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -169,6 +169,7 @@
                                     {{ form.repeat_till }}
                                     <span class="field-icon">&#128197;</span>
                                 </div>
+                                <div class="no-end-date-hint" id="noEndDateHint" style="display:none;font-size:12px;color:#9aa0a6;margin-top:6px;"></div>
                             </div>
 
                             <!-- Assigned to -->
@@ -208,6 +209,8 @@
                                         </svg>
                                     </button>
                                 </div>
+                                <div class="task-attach-hint" style="font-size:12px;color:#9aa0a6;margin-top:6px;">Up to 10 images, 5&nbsp;MB each.</div>
+                                <div class="task-attach-error" id="attachError" style="display:none;color:#dc3545;font-size:12.5px;margin-top:6px;"></div>
                                 <div class="task-preview-scroll" id="taskPreviewScroll" style="display:none;">
                                     <div class="task-preview-grid" id="taskPreviewGrid"></div>
                                 </div>
@@ -256,6 +259,17 @@ document.addEventListener('DOMContentLoaded', function () {
     const repeatOptionSelect = document.getElementById('repeatOption');
     const repeatTillInput    = document.getElementById('repeatTill');
     const noEndDateCheck     = document.getElementById('noEndDateCheck');
+    const noEndDateHint      = document.getElementById('noEndDateHint');
+
+    // How far ahead tasks are generated per frequency when "No end date" is on.
+    // Must match NO_END_HORIZON in tasks/views.py.
+    const NO_END_HORIZON_LABEL = {
+        'Daily': '3 months',
+        'Weekly': '6 months',
+        'Monthly': '2 years',
+        'Quarterly': '3 years',
+        'Yearly': '5 years',
+    };
 
     function toggleRepeatTill() {
         const hasRepeat = repeatOptionSelect.value && repeatOptionSelect.value !== 'None';
@@ -265,6 +279,17 @@ document.addEventListener('DOMContentLoaded', function () {
         }
         repeatTillInput.disabled = !hasRepeat || noEndDateCheck.checked;
         repeatTillInput.required = hasRepeat && !noEndDateCheck.checked;
+
+        // Tell the user how far ahead occurrences will be created when there's no end date.
+        if (noEndDateHint) {
+            if (hasRepeat && noEndDateCheck.checked) {
+                const span = NO_END_HORIZON_LABEL[repeatOptionSelect.value] || '1 year';
+                noEndDateHint.textContent = 'No end date — tasks will be created for the next ' + span + '.';
+                noEndDateHint.style.display = 'block';
+            } else {
+                noEndDateHint.style.display = 'none';
+            }
+        }
     }
 
     repeatOptionSelect.addEventListener('change', toggleRepeatTill);
@@ -382,7 +407,26 @@ document.addEventListener('DOMContentLoaded', function () {
     const taskPreviewGrid   = document.getElementById('taskPreviewGrid');
     const attachLabel       = document.getElementById('attachLabel');
     const taskPreviewScroll = document.getElementById('taskPreviewScroll');
+    const attachError       = document.getElementById('attachError');
     let selectedFiles = [];
+
+    /* Attachment limits (kept in sync with the server-side cap). */
+    const MAX_ATTACHMENTS = 10;
+    const MAX_ATTACH_SIZE = 5 * 1024 * 1024; // 5 MB per image
+
+    let attachErrorTimer = null;
+    function showAttachError(message) {
+        if (!attachError) return;
+        attachError.textContent = message;
+        attachError.style.display = 'block';
+        clearTimeout(attachErrorTimer);
+        attachErrorTimer = setTimeout(function () { attachError.style.display = 'none'; }, 4000);
+    }
+
+    // Existing (already-saved) images still shown in edit mode count toward the cap.
+    function existingImageCount() {
+        return document.querySelectorAll('#taskExistingGrid .task-preview-item').length;
+    }
 
     taskUploadArea.addEventListener('click', () => taskImagesInput.click());
 
@@ -418,8 +462,18 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function handleFiles(fileList) {
+        let hitLimit = false;
         Array.from(fileList).forEach(function (file) {
             if (!file.type.startsWith('image/')) return;
+            if (file.size > MAX_ATTACH_SIZE) {
+                showAttachError('"' + file.name + '" is larger than 5 MB and was skipped.');
+                return;
+            }
+            // Running total = already-saved images + files queued so far.
+            if (existingImageCount() + selectedFiles.length >= MAX_ATTACHMENTS) {
+                hitLimit = true;
+                return;
+            }
             selectedFiles.push(file);
             const reader = new FileReader();
             reader.onload = function (e) {
@@ -434,6 +488,9 @@ document.addEventListener('DOMContentLoaded', function () {
             };
             reader.readAsDataURL(file);
         });
+        if (hitLimit) {
+            showAttachError('You can attach up to ' + MAX_ATTACHMENTS + ' images.');
+        }
     }
 
     taskPreviewGrid.addEventListener('click', function (e) {

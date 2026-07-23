@@ -1438,7 +1438,7 @@
 
     <!-- Sidebar: Add Expense -->
     <aside class="acc-sidebar" aria-label="Add expense">
-      <button class="acc-add-btn" type="button" data-bs-toggle="modal" data-bs-target="#accAddModal">
+      <button class="acc-add-btn" type="button" onclick="headerCreateGuard(function(){ var el=document.getElementById('accAddModal'); if(el) new bootstrap.Modal(el).show(); })">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
           <line x1="12" y1="5" x2="12" y2="19" />
           <line x1="5" y1="12" x2="19" y2="12" />
@@ -1896,7 +1896,13 @@
       if (params.get('add_expense') !== '1') return;
       var addModalEl = document.getElementById('accAddModal');
       if (!addModalEl || typeof bootstrap === 'undefined' || !bootstrap.Modal) return;
-      new bootstrap.Modal(addModalEl).show();
+      // Same profile gate as every other Create action (covers a direct
+      // ?add_expense=1 URL when the profile isn't complete).
+      if (typeof HEADER_PROFILE_COMPLETE !== 'undefined' && !HEADER_PROFILE_COMPLETE) {
+        if (typeof showHeaderProfileModal === 'function') showHeaderProfileModal();
+      } else {
+        new bootstrap.Modal(addModalEl).show();
+      }
       // Clean the URL so a refresh doesn't reopen the modal.
       params.delete('add_expense');
       var clean = window.location.pathname + (params.toString() ? '?' + params.toString() : '');

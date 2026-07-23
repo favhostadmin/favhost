@@ -91,6 +91,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.humanize',
 
     # third party
     'rest_framework',
@@ -106,6 +107,9 @@ INSTALLED_APPS = [
     'frontdesk',
     'shared',
     'storages',
+
+    # Hidden platform-owner admin console (separate from Django's /admin/).
+    'controlpanel',
 
 ]
 
@@ -375,6 +379,13 @@ JAZZMIN_SETTINGS = {
 LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = 'frontdesk:index'
 LOGOUT_REDIRECT_URL = 'login'
+
+# ── Hidden platform-owner admin console (controlpanel app) ──
+# The console lives at /console/ and is locked to exactly ONE predefined
+# account — no other user can ever reach it, regardless of is_staff/is_admin.
+# Change the email here (or via the env var) if the owner account changes.
+PLATFORM_ADMIN_EMAIL = os.getenv('PLATFORM_ADMIN_EMAIL', 'bookaid@gmail.com')
+PLATFORM_ADMIN_DEFAULT_PASSWORD = os.getenv('PLATFORM_ADMIN_PASSWORD', 'bookaid123')
 
 # Base URL for generating absolute URLs in emails
 BASE_URL = os.getenv('BASE_URL', 'http://favhost.com')

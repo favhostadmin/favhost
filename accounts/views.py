@@ -1008,6 +1008,10 @@ def profile_edit_view(request):
         # Handle Profile Picture
         if 'profile_picture' in request.FILES:
             user.profile_picture = request.FILES['profile_picture']
+        elif request.POST.get('remove_profile_picture') == '1':
+            if user.profile_picture:
+                user.profile_picture.delete(save=False)
+            user.profile_picture = None
 
         user.save()
 
