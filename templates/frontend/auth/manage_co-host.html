@@ -196,6 +196,54 @@
     .cohost-field.has-error .cohost-input-icon {
       color: #e74c3c !important;
     }
+
+    /* Show/hide password eye toggle inside the modal field */
+    .cohost-modal-overlay .cohost-pw-toggle {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 30px;
+      height: 30px;
+      padding: 0;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      color: #9aa0a6;
+      line-height: 0;
+      transition: color 0.15s;
+    }
+    .cohost-modal-overlay .cohost-pw-toggle:hover { color: #e05c2a; }
+    /* Room for the toggle so text doesn't run under it */
+    .cohost-modal-overlay #cohostPassword { padding-right: 44px; }
+
+    /* Masked password cell in the co-host table, with reveal toggle */
+    .pw-cell {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .pw-cell .pw-value {
+      font-variant-numeric: tabular-nums;
+      letter-spacing: 0.5px;
+    }
+    .pw-reveal {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: transparent;
+      border: none;
+      padding: 2px;
+      cursor: pointer;
+      color: #9aa0a6;
+      line-height: 0;
+      transition: color 0.15s;
+    }
+    .pw-reveal:hover { color: #e05c2a; }
+    .pw-reveal svg { width: 18px; height: 18px; display: block; }
   </style>
 </head>
 
@@ -268,7 +316,19 @@
                   </span>
                 </div>
               </td>
-              <td data-label="Cohost Password">{{ cohost.display_password|default:'••••••••' }}</td>
+              <td data-label="Cohost Password">
+                <div class="pw-cell">
+                  <span class="pw-value" data-password="{{ cohost.display_password|default:'' }}">••••••••</span>
+                  {% if cohost.display_password %}
+                  <button type="button" class="pw-reveal" aria-label="Show password" aria-pressed="false">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                      <circle cx="12" cy="12" r="3" />
+                    </svg>
+                  </button>
+                  {% endif %}
+                </div>
+              </td>
               <td data-label="Full name">{{ cohost.co_host.get_full_name|default:'' }}</td>
               <td data-label="Phone">{{ cohost.co_host.phone|default:'' }}</td>
               <td class="actions" data-label="Actions">
@@ -351,7 +411,13 @@
                     <path d="M7 11V7a5 5 0 0 1 10 0v4" />
                   </svg>
                 </span>
-                <input id="cohostPassword" name="cohostPassword" type="text" placeholder="Set a password" required>
+                <input id="cohostPassword" name="cohostPassword" type="password" placeholder="Set a password" required>
+                <button type="button" class="cohost-pw-toggle" id="cohostPasswordToggle" aria-label="Show password" aria-pressed="false">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                    <circle cx="12" cy="12" r="3" />
+                  </svg>
+                </button>
               </div>
             </div>
             <div class="cohost-field">
@@ -379,6 +445,7 @@
                 </span>
                 <input id="cohostPhone" name="cohostPhone" type="tel" placeholder="Phone number" required>
               </div>
+              <span class="cohost-field-error" id="cohostPhoneError">Please enter a valid phone number.</span>
             </div>
           </div>
           <div class="cohost-modal-divider"></div>
@@ -416,11 +483,32 @@
       const emailInput = document.getElementById('cohostEmail');
       const emailField = emailInput.closest('.cohost-field');
       const passwordInput = document.getElementById('cohostPassword');
+      const passwordToggle = document.getElementById('cohostPasswordToggle');
       const fullnameInput = document.getElementById('cohostFullname');
       const phoneInput = document.getElementById('cohostPhone');
+      const phoneField = phoneInput.closest('.cohost-field');
+
+      // Eye icons shared by the modal toggle and the table reveal buttons.
+      const EYE_ICON = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
+      const EYE_OFF_ICON = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
+
+      // Modal password show/hide toggle.
+      function setPasswordVisible(visible) {
+        if (!passwordToggle) return;
+        passwordInput.type = visible ? 'text' : 'password';
+        passwordToggle.innerHTML = visible ? EYE_OFF_ICON : EYE_ICON;
+        passwordToggle.setAttribute('aria-pressed', visible ? 'true' : 'false');
+        passwordToggle.setAttribute('aria-label', visible ? 'Hide password' : 'Show password');
+      }
+      if (passwordToggle) {
+        passwordToggle.addEventListener('click', function () {
+          setPasswordVisible(passwordInput.type === 'password');
+        });
+      }
 
       function openModal() {
         clearEmailError();
+        setPasswordVisible(false);   // always open with the password hidden
         overlay.classList.add('show');
         overlay.setAttribute('aria-hidden', 'false');
         document.body.style.overflow = 'hidden';
@@ -459,6 +547,23 @@
         return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
       }
 
+      function clearPhoneError() {
+        phoneField.classList.remove('has-error');
+      }
+
+      function showPhoneError(message) {
+        var errorEl = document.getElementById('cohostPhoneError');
+        if (errorEl && message) errorEl.textContent = message;
+        phoneField.classList.add('has-error');
+        phoneInput.focus();
+      }
+
+      function isValidPhone(value) {
+        // Allow an optional leading + and common separators; require 7–15 digits.
+        var cleaned = value.replace(/[\s\-().]/g, '');
+        return /^\+?\d{7,15}$/.test(cleaned);
+      }
+
       function resetForm() {
         formAction.value = 'add';
         formCohostId.value = '';
@@ -468,19 +573,27 @@
         phoneInput.value = '';
         passwordInput.required = true;
         clearEmailError();
+        clearPhoneError();
         setModalTitle('Add Co-host');
       }
 
-      // Clear the error as soon as the user edits the email.
+      // Clear each error as soon as the user edits that field.
       emailInput.addEventListener('input', clearEmailError);
+      phoneInput.addEventListener('input', clearPhoneError);
 
-      // Validate the email in-place so the error stays inside the modal
-      // (red box + inline message) instead of reloading the page.
+      // Validate in-place so errors stay inside the modal (red box + inline
+      // message) instead of reloading the page. Focus the first invalid field.
       form.addEventListener('submit', function (event) {
         var email = emailInput.value.trim();
         if (!isValidEmail(email)) {
           event.preventDefault();
           showEmailError('Please enter a valid email address.');
+          return;
+        }
+        var phone = phoneInput.value.trim();
+        if (!isValidPhone(phone)) {
+          event.preventDefault();
+          showPhoneError('Please enter a valid phone number.');
         }
       });
 
@@ -513,6 +626,21 @@
           phoneInput.value = btn.getAttribute('data-phone');
           setModalTitle('Edit Co-host');
           openModal();
+        });
+      });
+
+      // Reveal / hide a co-host password in the table.
+      document.querySelectorAll('.pw-reveal').forEach(function (btn) {
+        var cell = btn.closest('.pw-cell');
+        var valueEl = cell ? cell.querySelector('.pw-value') : null;
+        if (!valueEl) return;
+        var real = valueEl.getAttribute('data-password') || '';
+        btn.addEventListener('click', function () {
+          var revealed = btn.getAttribute('aria-pressed') === 'true';
+          valueEl.textContent = revealed ? '••••••••' : real;
+          btn.innerHTML = revealed ? EYE_ICON : EYE_OFF_ICON;
+          btn.setAttribute('aria-pressed', revealed ? 'false' : 'true');
+          btn.setAttribute('aria-label', revealed ? 'Show password' : 'Hide password');
         });
       });
 
