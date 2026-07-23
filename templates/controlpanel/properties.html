@@ -1,0 +1,44 @@
+{% extends 'controlpanel/base.html' %}
+{% load humanize %}
+
+{% block page_title %}Properties{% endblock %}
+{% block heading %}Properties{% endblock %}
+{% block subheading %}<div class="cp-sub">Every listing across all hosts</div>{% endblock %}
+
+{% block content %}
+<form method="get" class="cp-toolbar">
+  <div class="cp-search"><i class="ti ti-search"></i>
+    <input type="text" name="q" value="{{ q }}" placeholder="Search title, city, country or host…"></div>
+  <select name="status" class="cp-select" onchange="this.form.submit()">
+    <option value="">All statuses</option>
+    <option value="Active" {% if status == 'Active' %}selected{% endif %}>Active</option>
+    <option value="Inactive" {% if status == 'Inactive' %}selected{% endif %}>Inactive</option>
+  </select>
+  <button class="cp-btn cp-btn-primary" type="submit"><i class="ti ti-filter"></i> Filter</button>
+  <span class="cp-count-pill">{{ total_count|intcomma }} propert{{ total_count|pluralize:"y,ies" }}</span>
+</form>
+
+<div class="cp-card">
+  <div class="cp-table-wrap">
+    <table class="cp-table">
+      <thead><tr><th>Property</th><th>Host</th><th>Location</th><th>Type</th><th>Bookings</th><th>Status</th><th style="text-align:right;">Price/night</th></tr></thead>
+      <tbody>
+        {% for p in page_obj %}
+        <tr>
+          <td><a class="cp-link" href="{% url 'controlpanel:property_detail' p.id %}">{{ p.title }}</a>{% if p.nick_name %}<div style="font-size:12px;color:var(--cp-muted);">{{ p.nick_name }}</div>{% endif %}</td>
+          <td>{% if p.created_by %}<a class="cp-link" href="{% url 'controlpanel:user_detail' p.created_by.id %}" style="color:var(--cp-text);">{{ p.created_by.get_full_name|default:p.created_by.username }}</a>{% else %}—{% endif %}</td>
+          <td style="font-size:12.5px;color:var(--cp-muted);">{{ p.city }}, {{ p.country }}</td>
+          <td style="font-size:12.5px;">{{ p.get_property_type_display }}</td>
+          <td>{{ p.n_bookings }}</td>
+          <td>{% if p.status == 'Active' %}<span class="cp-badge b-green">Active</span>{% else %}<span class="cp-badge b-gray">{{ p.status }}</span>{% endif %}</td>
+          <td style="text-align:right;font-weight:600;">${{ p.price_per_night|floatformat:0|intcomma }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7"><div class="cp-empty"><i class="ti ti-home-off"></i><p>No properties match your filters</p></div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% include 'controlpanel/_pagination.html' %}
+{% endblock %}

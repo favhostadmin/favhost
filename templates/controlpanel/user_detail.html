@@ -1,0 +1,256 @@
+{% extends 'controlpanel/base.html' %}
+{% load humanize %}
+
+{% block page_title %}{{ u.get_full_name|default:u.username }}{% endblock %}
+{% block heading %}Host Profile{% endblock %}
+
+{% block content %}
+<a href="{% url 'controlpanel:users' %}" class="cp-back"><i class="ti ti-arrow-left"></i> Back to hosts</a>
+
+<div class="cp-detail-head">
+  <div class="cp-ava-lg">{% if u.profile_picture_url %}<img src="{{ u.profile_picture_url }}">{% else %}{{ u.username|slice:":1"|upper }}{% endif %}</div>
+  <div style="flex:1;min-width:200px;">
+    <h2>{{ u.get_full_name|default:u.username }}</h2>
+    <div class="cp-detail-meta">{{ u.email|default:"no email" }} · joined {{ u.created_at|date:"M j, Y" }}</div>
+    <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;">
+      {% if u.is_active %}<span class="cp-badge b-green">Active account</span>{% else %}<span class="cp-badge b-red">Blocked</span>{% endif %}
+      {% if sub_state == 'active' %}<span class="cp-badge b-green">{{ sub_label }}</span>
+      {% elif sub_state == 'trialing' %}<span class="cp-badge b-orange">{{ sub_label }}</span>
+      {% elif sub_state == 'past_due' %}<span class="cp-badge b-amber">{{ sub_label }}</span>
+      {% elif sub_state == 'free' %}<span class="cp-badge b-indigo">{{ sub_label }}</span>
+      {% elif sub_state == 'expired' %}<span class="cp-badge b-red">{{ sub_label }}</span>
+      {% else %}<span class="cp-badge b-gray">{{ sub_label }}</span>{% endif %}
+      {% if u.is_subscription_free %}<span class="cp-badge b-indigo no-dot">Comped</span>{% endif %}
+    </div>
+  </div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;">
+    {% if not is_owner_account %}
+    {% if u.is_active %}
+    <form method="post" action="{% url 'controlpanel:user_action' u.id %}">
+      {% csrf_token %}<input type="hidden" name="action" value="block">
+      <button class="cp-btn cp-btn-danger"><i class="ti ti-ban"></i> Block</button>
+    </form>
+    {% else %}
+    <form method="post" action="{% url 'controlpanel:user_action' u.id %}">
+      {% csrf_token %}<input type="hidden" name="action" value="unblock">
+      <button class="cp-btn cp-btn-primary"><i class="ti ti-lock-open"></i> Unblock</button>
+    </form>
+    {% endif %}
+    {% endif %}
+  </div>
+</div>
+
+<!-- KPIs -->
+<div class="cp-kpi-grid" style="grid-template-columns:repeat(auto-fill,minmax(180px,1fr));">
+  <div class="cp-kpi"><div class="cp-kpi-ico cp-ico-green"><i class="ti ti-building-community"></i></div>
+    <div class="cp-kpi-label">Listings</div><div class="cp-kpi-value">{{ n_properties }}</div></div>
+  <div class="cp-kpi"><div class="cp-kpi-ico cp-ico-orange"><i class="ti ti-calendar-check"></i></div>
+    <div class="cp-kpi-label">Bookings</div><div class="cp-kpi-value">{{ n_bookings }}</div></div>
+  <div class="cp-kpi"><div class="cp-kpi-ico cp-ico-blue"><i class="ti ti-cash-banknote"></i></div>
+    <div class="cp-kpi-label">Gross Revenue</div><div class="cp-kpi-value">${{ revenue|floatformat:0|intcomma }}</div></div>
+  <div class="cp-kpi"><div class="cp-kpi-ico cp-ico-indigo"><i class="ti ti-wallet"></i></div>
+    <div class="cp-kpi-label">Collected</div><div class="cp-kpi-value">${{ collected|floatformat:0|intcomma }}</div></div>
+</div>
+
+<div class="cp-grid cp-grid-2 cp-mb">
+  <!-- Left: profile + business (read-only) -->
+  <div style="display:flex;flex-direction:column;gap:16px;">
+    <div class="cp-card">
+      <div class="cp-card-head"><h3>Profile</h3><span class="cp-badge b-gray no-dot" style="margin-left:auto;">Read-only</span></div>
+      <div class="cp-card-pad">
+        <dl class="cp-def">
+          <dt>Full name</dt><dd>{{ u.get_full_name|default:"—" }}</dd>
+          <dt>Email</dt><dd>{{ u.email|default:"—" }}</dd>
+          <dt>Phone</dt><dd>{{ u.phone|default:"—" }}</dd>
+          <dt>Location</dt><dd>{{ u.get_full_address|default:"—" }}</dd>
+        </dl>
+      </div>
+    </div>
+
+    <div class="cp-card">
+      <div class="cp-card-head"><h3>Listings ({{ n_properties }})</h3></div>
+      <div class="cp-table-wrap">
+        <table class="cp-table">
+          <thead><tr><th>Property</th><th>Location</th><th>Status</th><th style="text-align:right;">Price/night</th></tr></thead>
+          <tbody>
+            {% for p in properties %}
+            <tr>
+              <td><a class="cp-link" href="{% url 'controlpanel:property_detail' p.id %}">{{ p.title }}</a></td>
+              <td style="font-size:12.5px;color:var(--cp-muted);">{{ p.city }}, {{ p.country }}</td>
+              <td>{% if p.status == 'Active' %}<span class="cp-badge b-green">Active</span>{% else %}<span class="cp-badge b-gray">{{ p.status }}</span>{% endif %}</td>
+              <td style="text-align:right;">${{ p.price_per_night|floatformat:0|intcomma }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="4"><div class="cp-empty" style="padding:26px;"><i class="ti ti-home-off"></i><p>No listings</p></div></td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="cp-card">
+      <div class="cp-card-head"><h3>Recent Bookings</h3></div>
+      <div class="cp-table-wrap">
+        <table class="cp-table">
+          <thead><tr><th>Guest</th><th>Property</th><th>Status</th><th style="text-align:right;">Total</th></tr></thead>
+          <tbody>
+            {% for b in recent_bookings %}
+            <tr>
+              <td><a class="cp-link" href="{% url 'controlpanel:booking_detail' b.id %}">{{ b.first_name }} {{ b.last_name }}</a></td>
+              <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ b.property.title }}</td>
+              <td>{% if b.status == 'confirmed' %}<span class="cp-badge b-green">Confirmed</span>{% elif b.status == 'cancelled' %}<span class="cp-badge b-red">Cancelled</span>{% else %}<span class="cp-badge b-gray">{{ b.get_status_display }}</span>{% endif %}</td>
+              <td style="text-align:right;font-weight:600;">${{ b.price|floatformat:0|intcomma }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="4"><div class="cp-empty" style="padding:26px;"><i class="ti ti-calendar-off"></i><p>No bookings</p></div></td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right: account management -->
+  <div style="display:flex;flex-direction:column;gap:16px;">
+    <!-- Account health: the signals an owner actually acts on -->
+    <div class="cp-card">
+      <div class="cp-card-head"><h3>Account Health</h3></div>
+      <div class="cp-card-pad">
+        {% if health.flags %}
+        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;">
+          {% for label, color in health.flags %}
+          <span class="cp-badge {% if color == 'red' %}b-red{% elif color == 'amber' %}b-amber{% else %}b-gray{% endif %}">{{ label }}</span>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;color:var(--cp-green);font-weight:600;font-size:14px;">
+          <i class="ti ti-circle-check"></i> Healthy account — no action needed
+        </div>
+        {% endif %}
+        <dl class="cp-def" style="grid-template-columns:150px 1fr;">
+          <dt>Last active</dt>
+          <dd>{% if health.last_login %}{{ health.last_login|date:"M j, Y" }} <span style="color:var(--cp-muted);">({{ health.days_since_login }}d ago)</span>{% else %}<span style="color:var(--cp-amber);">Never signed in</span>{% endif %}</dd>
+          {% if health.subscriber_since %}
+          <dt>Subscriber since</dt><dd>{{ health.subscriber_since|date:"M j, Y" }} <span style="color:var(--cp-muted);">({{ health.months_subscribed }} mo)</span></dd>
+          <dt>Est. paid to date</dt><dd style="font-weight:700;">${{ health.ltv|floatformat:2|intcomma }}</dd>
+          {% endif %}
+        </dl>
+      </div>
+    </div>
+
+    <div class="cp-card">
+      <div class="cp-card-head"><h3>Subscription &amp; Access</h3></div>
+      <div class="cp-card-pad">
+        <dl class="cp-def" style="grid-template-columns:130px 1fr;">
+          <dt>State</dt><dd>{{ sub_label }}</dd>
+          {% if stripe %}
+          <dt>Stripe status</dt><dd>{{ stripe.subscription_status|default:"—" }}</dd>
+          <dt>Renews / ends</dt><dd>{{ stripe.current_period_end|date:"M j, Y"|default:"—" }}</dd>
+          <dt>Cancel at end</dt><dd>{{ stripe.cancel_at_period_end|yesno:"Yes,No" }}</dd>
+          {% endif %}
+          <dt>Trial length</dt><dd>{{ u.trial_days }} days</dd>
+          <dt>Trial ends</dt><dd>{{ trial_end|date:"M j, Y"|default:"—" }}{% if trial_days_left is not None %} <span style="color:var(--cp-muted);">({{ trial_days_left }}d left)</span>{% endif %}</dd>
+        </dl>
+
+        {% if not is_owner_account %}
+        <hr style="border:0;border-top:1px solid var(--cp-border);margin:16px 0;">
+
+        <!-- Comp free access -->
+        <div class="cp-action-row">
+          <div class="cp-action-txt"><strong>Free (comped) access</strong><span>Bypass the paywall without paying</span></div>
+          <form method="post" action="{% url 'controlpanel:user_action' u.id %}">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="{% if u.is_subscription_free %}revoke_free{% else %}grant_free{% endif %}">
+            <button class="cp-btn cp-btn-sm {% if u.is_subscription_free %}cp-btn-danger{% else %}cp-btn-primary{% endif %}">
+              {% if u.is_subscription_free %}Revoke{% else %}Grant{% endif %}
+            </button>
+          </form>
+        </div>
+
+        <!-- Trial length -->
+        <form method="post" action="{% url 'controlpanel:user_action' u.id %}" class="cp-action-row">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="set_trial">
+          <div class="cp-action-txt"><strong>Adjust trial length</strong><span>Applies to this account's trial window</span></div>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <input type="number" name="trial_days" value="{{ u.trial_days }}" min="0" style="width:76px;padding:7px 10px;border:1px solid var(--cp-border);border-radius:8px;font-family:inherit;">
+            <button class="cp-btn cp-btn-sm cp-btn-primary">Save</button>
+          </div>
+        </form>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Co-hosts -->
+    <div class="cp-card">
+      <div class="cp-card-head"><h3>Co-hosts</h3></div>
+      <div class="cp-card-pad" style="padding-top:8px;">
+        {% for c in my_cohosts %}
+        <div class="cp-action-row">
+          <div class="cp-user-cell"><span class="cp-ava">{{ c.co_host.username|slice:":1"|upper }}</span>
+            <div><div class="cp-uname">{{ c.co_host.get_full_name|default:c.co_host.username }}</div><div class="cp-uemail">{{ c.co_host.email }}</div></div></div>
+        </div>
+        {% empty %}
+        <p style="color:var(--cp-muted);font-size:13px;margin:6px 0;">No co-hosts on this account.</p>
+        {% endfor %}
+        {% if hosted_by %}
+        <hr style="border:0;border-top:1px solid var(--cp-border);margin:12px 0;">
+        <p style="font-size:12px;color:var(--cp-muted);margin:0 0 8px;">This user is a co-host for:</p>
+        {% for c in hosted_by %}
+        <div style="font-size:13px;margin:4px 0;"><a class="cp-link" href="{% url 'controlpanel:user_detail' c.host.id %}">{{ c.host.get_full_name|default:c.host.username }}</a></div>
+        {% endfor %}
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Documents -->
+    <div class="cp-card">
+      <div class="cp-card-head"><h3>Documents</h3></div>
+      <div class="cp-card-pad" style="padding-top:8px;">
+        {% for d in documents %}
+        <div class="cp-action-row">
+          <i class="ti ti-file-text" style="font-size:20px;color:var(--cp-muted);"></i>
+          <div class="cp-action-txt"><strong>{{ d.get_doc_type_display }}</strong><span>{{ d.name|default:d.document.name }}</span></div>
+          <a class="cp-btn cp-btn-sm" href="{{ d.document.url }}" target="_blank">View</a>
+        </div>
+        {% empty %}
+        <p style="color:var(--cp-muted);font-size:13px;margin:6px 0;">No documents uploaded.</p>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Danger zone -->
+    {% if not is_owner_account %}
+    <div class="cp-card" style="border-color:#f3c8c8;">
+      <div class="cp-card-head" style="border-color:#f3c8c8;"><h3 style="color:var(--cp-red);">Danger Zone</h3></div>
+      <div class="cp-card-pad">
+        <p style="font-size:13px;color:var(--cp-muted);margin:0 0 12px;">Permanently delete this account and <strong>all</strong> of its listings, bookings and data. This cannot be undone.</p>
+        <button class="cp-btn cp-btn-danger cp-btn-block" onclick="document.getElementById('cpDeleteModal').classList.add('open')"><i class="ti ti-trash"></i> Delete account permanently</button>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Delete confirmation modal -->
+{% if not is_owner_account %}
+<div class="cp-modal-overlay" id="cpDeleteModal">
+  <div class="cp-modal">
+    <div class="cp-modal-head" style="color:var(--cp-red);">Delete this account?</div>
+    <form method="post" action="{% url 'controlpanel:user_action' u.id %}">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="delete">
+      <div class="cp-modal-body">
+        This will permanently remove <strong>{{ u.get_full_name|default:u.username }}</strong>, their {{ n_properties }} listing{{ n_properties|pluralize }} and {{ n_bookings }} booking{{ n_bookings|pluralize }}.
+        Type <strong>{{ u.username }}</strong> below to confirm.
+        <input type="text" name="confirm_username" placeholder="{{ u.username }}" autocomplete="off">
+      </div>
+      <div class="cp-modal-foot">
+        <button type="button" class="cp-btn" onclick="document.getElementById('cpDeleteModal').classList.remove('open')">Cancel</button>
+        <button type="submit" class="cp-btn cp-btn-danger"><i class="ti ti-trash"></i> Delete forever</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
