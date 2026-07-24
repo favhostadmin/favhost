@@ -25,7 +25,8 @@ def load_secrets(secret_name="favhost/prod/env", region="us-east-1"):
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-load_dotenv(BASE_DIR / '.env')
+ENV_FILE = BASE_DIR / '.env'
+load_dotenv(ENV_FILE)
 
 
 # Quick-start development settings - unsuitable for production
@@ -34,13 +35,11 @@ load_dotenv(BASE_DIR / '.env')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DEBUG', 'True') == 'True'
 
-# Whether to pull config from AWS Secrets Manager is a separate switch from
-# DEBUG — dev.favhost.com runs with DEBUG=True but is a real deployed server
-# that still needs S3/secrets (see AWS_STORAGE_BUCKET_NAME below), so DEBUG
-# can't be used to detect "local machine vs. real server". Each real server
-# sets USE_SECRETS_MANAGER=True explicitly; a local checkout leaves it unset
-# and falls back to .env / os.getenv, same as before.
-USE_SECRETS_MANAGER = os.getenv('USE_SECRETS_MANAGER', 'False') == 'True'
+# Real servers (EC2 instances) are provisioned without a .env file at all and
+# pull every config value from AWS Secrets Manager instead; only a local
+# checkout has a .env file, so its presence is what tells the two apart —
+# DEBUG can't be used for this (a real server may still run DEBUG=True).
+USE_SECRETS_MANAGER = not ENV_FILE.exists()
 secrets = load_secrets() if USE_SECRETS_MANAGER else {}
 
 
