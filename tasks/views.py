@@ -17,6 +17,38 @@ from types import SimpleNamespace
 from accounts.utils import get_visible_user_ids, get_effective_user
 
 
+# Attachment limits (kept in sync with the client-side cap in create.html).
+MAX_TASK_IMAGES = 10
+MAX_TASK_IMAGE_SIZE = 5 * 1024 * 1024  # 5 MB per image
+
+# How far ahead to generate occurrences when a repeating task has no end date.
+# An unbounded series can't be pre-created, so each frequency gets a sensible
+# horizon that keeps the number of generated rows reasonable.
+NO_END_HORIZON = {
+    'Daily': relativedelta(months=3),
+    'Weekly': relativedelta(months=6),
+    'Monthly': relativedelta(years=2),
+    'Quarterly': relativedelta(years=3),
+    'Yearly': relativedelta(years=5),
+}
+# Hard safety cap on generated occurrences, regardless of horizon/frequency.
+MAX_TASK_OCCURRENCES = 366
+
+
+def save_task_images(task, files, already_saved=0):
+    """Save uploaded images to a task, enforcing the count and size caps."""
+    remaining = max(0, MAX_TASK_IMAGES - already_saved)
+    saved = 0
+    for img_file in files:
+        if saved >= remaining:
+            break
+        if img_file.size > MAX_TASK_IMAGE_SIZE:
+            continue
+        TaskImage.objects.create(task=task, image=img_file)
+        saved += 1
+    return saved
+
+
 class TaskListView(LoginRequiredMixin, ListView):
     template_name = 'frontend/tasks/list.html'
     model = Task
@@ -161,22 +193,26 @@ class TaskCreateView(LoginRequiredMixin, View):
 
             img_files = request.FILES.getlist('task_images')
 
-            if repeat_option and repeat_option != 'None' and start_date and end_date:
+            delta_map = {
+                'Daily': relativedelta(days=1),
+                'Weekly': relativedelta(weeks=1),
+                'Monthly': relativedelta(months=1),
+                'Quarterly': relativedelta(months=3),
+                'Yearly': relativedelta(years=1),
+            }
+            delta = delta_map.get(repeat_option)
+
+            if repeat_option and repeat_option != 'None' and start_date and delta:
+                # "No end date" (repeat_till left empty) → generate a bounded
+                # horizon instead of skipping recurrence entirely. The stored
+                # repeat_till stays as the user set it (None = no end date).
+                loop_end = end_date or (start_date + NO_END_HORIZON.get(repeat_option, relativedelta(years=1)))
+
                 tasks_to_create = []
                 current_date = start_date
-
-                delta_map = {
-                    'Daily': relativedelta(days=1),
-                    'Weekly': relativedelta(weeks=1),
-                    'Monthly': relativedelta(months=1),
-                    'Quarterly': relativedelta(months=3),
-                    'Yearly': relativedelta(years=1),
-                }
-                delta = delta_map.get(repeat_option)
-
                 recurrence_id = str(uuid.uuid4())
-                while current_date <= end_date:
-                    new_task = Task(
+                while current_date <= loop_end and len(tasks_to_create) < MAX_TASK_OCCURRENCES:
+                    tasks_to_create.append(Task(
                         property=base_task.property,
                         title=base_task.title,
                         details=base_task.details,
@@ -192,20 +228,17 @@ class TaskCreateView(LoginRequiredMixin, View):
                         email=base_task.email,
                         created_by=effective_user,
                         recurrence_id=recurrence_id,
-                    )
-                    tasks_to_create.append(new_task)
+                    ))
                     current_date += delta
-                created_tasks = Task.objects.bulk_create(tasks_to_create)
+                Task.objects.bulk_create(tasks_to_create)
                 if img_files:
                     # bulk_create may not set PKs on SQLite; query explicitly
                     first_task = Task.objects.filter(recurrence_id=recurrence_id).order_by('date').first()
                     if first_task:
-                        for img_file in img_files:
-                            TaskImage.objects.create(task=first_task, image=img_file)
+                        save_task_images(first_task, img_files)
             else:
                 base_task.save()
-                for img_file in img_files:
-                    TaskImage.objects.create(task=base_task, image=img_file)
+                save_task_images(base_task, img_files)
 
             messages.success(request, 'Task created successfully!')
             return redirect(reverse('tasks:task-list'))
@@ -259,8 +292,8 @@ class TaskEditView(LoginRequiredMixin, View):
         form = self.form_class(post_data, request.FILES, instance=task, user=request.user)
         if form.is_valid():
             form.save()
-            for img_file in request.FILES.getlist('task_images'):
-                TaskImage.objects.create(task=task, image=img_file)
+            save_task_images(task, request.FILES.getlist('task_images'),
+                             already_saved=task.images.count())
             messages.success(request, 'Task updated successfully!')
             return redirect(reverse('tasks:task-list'))
         else:

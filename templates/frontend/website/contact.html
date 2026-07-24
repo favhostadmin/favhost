@@ -46,6 +46,11 @@
 
     <!-- custom CSS -->
     <link rel="stylesheet" href="{% static 'website/css/style.css' %}">
+
+    <!-- Inter: matches the FavHost app UI used by the contact form -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         .ul-header-bottom.to-be-sticky {
             position: fixed !important;
@@ -336,6 +341,190 @@
             .ul-inner-contact.ul-section-spacing {
                 padding-top: 60px;
             }
+
+            /* ════════════════════════════════════════════════════════════════
+               Contact form — rebuilt to match the FavHost app design system
+               (same tokens as the profile / co-host modals): Inter type,
+               #e05c2a accent, 1.5px #e5e7eb inputs on #f9fafb, left-icon
+               fields, soft card. Single-column, compact, minimal — per modern
+               form-UX guidance (subtle separation, inline validation).
+               ════════════════════════════════════════════════════════════════ */
+            .cf-form {
+                --cf-accent: #e05c2a;
+                --cf-accent-dark: #c94e22;
+                max-width: 760px;
+                margin: 0 auto;
+                background: #ffffff;
+                border: 1px solid #eef0f3;
+                border-radius: 18px;
+                padding: clamp(22px, 3.5vw, 40px);
+                box-shadow: 0 12px 40px rgba(17, 24, 39, 0.06);
+                font-family: 'Inter', -apple-system, 'Segoe UI', Roboto, sans-serif;
+            }
+            .cf-grid {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 18px 16px;
+            }
+            .cf-col-2 { grid-column: 1 / -1; }
+            @media (max-width: 640px) {
+                .cf-grid { grid-template-columns: 1fr; }
+            }
+            .cf-field { display: flex; flex-direction: column; min-width: 0; }
+            .cf-label {
+                font-size: 13px;
+                font-weight: 600;
+                color: #374151;
+                margin-bottom: 7px;
+                letter-spacing: 0.1px;
+            }
+            .cf-req { color: var(--cf-accent); }
+            .cf-input-wrap { position: relative; display: flex; align-items: center; }
+            .cf-icon {
+                position: absolute;
+                left: 14px;
+                top: 50%;
+                transform: translateY(-50%);
+                color: #9aa0a6;
+                display: inline-flex;
+                pointer-events: none;
+                transition: color 0.18s ease;
+            }
+            .cf-icon svg { width: 16px; height: 16px; display: block; }
+            .cf-icon.cf-icon-top { top: 15px; transform: none; }
+
+            .cf-form .cf-input-wrap input,
+            .cf-form .cf-input-wrap textarea {
+                width: 100%;
+                font-family: inherit;
+                font-size: 14.5px;
+                color: #111827;
+                background: #f9fafb;
+                border: 1.5px solid #e5e7eb;
+                border-radius: 10px;
+                height: 48px;
+                padding: 0 14px 0 42px;
+                transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+                box-sizing: border-box;
+            }
+            .cf-form .cf-input-wrap textarea {
+                height: auto;
+                min-height: 148px;
+                padding: 13px 14px 13px 42px;
+                line-height: 1.55;
+                resize: vertical;
+            }
+            .cf-form .cf-input-wrap input::placeholder,
+            .cf-form .cf-input-wrap textarea::placeholder { color: #b8bdc7; }
+            .cf-form .cf-input-wrap input:hover,
+            .cf-form .cf-input-wrap textarea:hover { border-color: #d7dbe0; }
+            .cf-form .cf-input-wrap input:focus,
+            .cf-form .cf-input-wrap textarea:focus {
+                outline: none;
+                background: #ffffff;
+                border-color: var(--cf-accent);
+                box-shadow: 0 0 0 3.5px rgba(224, 92, 42, 0.13);
+            }
+            .cf-input-wrap:focus-within .cf-icon { color: var(--cf-accent); }
+
+            /* Captcha — re-skinned to sit flush with the fields above */
+            .rb-captcha {
+                border: 1.5px solid #e5e7eb;
+                border-radius: 10px;
+                background: #f9fafb;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                gap: 8px;
+                padding: 10px 12px;
+                min-height: 92px;
+                box-sizing: border-box;
+            }
+            .rb-captcha-box { display: flex; align-items: center; gap: 10px; }
+            #rb-captcha-canvas {
+                border-radius: 8px;
+                background: #eef1f4;
+                user-select: none;
+                flex: 1;
+                min-width: 0;
+                height: 34px;
+            }
+            .rb-captcha-refresh {
+                background: #ffffff;
+                border: 1.5px solid #e5e7eb;
+                border-radius: 8px;
+                width: 40px;
+                height: 36px;
+                font-size: 18px;
+                line-height: 1;
+                cursor: pointer;
+                color: #6b7280;
+                display: grid;
+                place-items: center;
+                flex-shrink: 0;
+                transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+            }
+            .rb-captcha-refresh:hover { background: #fff; color: var(--cf-accent); border-color: #e0c4b8; }
+            .rb-captcha-answer {
+                width: 100%;
+                font-family: inherit;
+                letter-spacing: 3px;
+                font-size: 15px;
+                font-weight: 600;
+                text-transform: uppercase;
+                padding: 11px 14px;
+                border: 1.5px solid #e5e7eb;
+                border-radius: 8px;
+                box-sizing: border-box;
+                background: #fff;
+                color: #111827;
+                transition: border-color 0.18s ease, box-shadow 0.18s ease;
+            }
+            .rb-captcha-answer::placeholder { letter-spacing: normal; text-transform: none; font-weight: 400; color: #b8bdc7; }
+            .rb-captcha-answer:focus {
+                outline: none;
+                border-color: var(--cf-accent);
+                box-shadow: 0 0 0 3.5px rgba(224, 92, 42, 0.13);
+            }
+            .rb-captcha-status { font-size: 12.5px; font-weight: 600; margin-top: 6px; }
+            .rb-captcha-status.is-ok { color: #1a9c4c; }
+            .rb-captcha-status.is-err { color: #e11d48; }
+
+            /* Actions */
+            .cf-actions {
+                margin-top: 26px;
+                display: flex;
+                justify-content: center;
+            }
+            .cf-btn {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                gap: 10px;
+                font-family: inherit;
+                font-size: 15px;
+                font-weight: 700;
+                letter-spacing: 0.2px;
+                color: #fff;
+                background: var(--cf-accent);
+                border: none;
+                border-radius: 999px;
+                padding: 14px 42px;
+                cursor: pointer;
+                transition: background 0.18s ease, transform 0.15s ease, box-shadow 0.2s ease, opacity 0.18s ease;
+            }
+            .cf-btn svg { width: 16px; height: 16px; }
+            .cf-btn:hover:not(:disabled) {
+                background: var(--cf-accent-dark);
+                transform: translateY(-2px);
+                box-shadow: 0 12px 26px rgba(224, 92, 42, 0.32);
+            }
+            .cf-btn:active:not(:disabled) { transform: translateY(0) scale(0.99); }
+            .cf-btn:disabled {
+                background: #cbd0d6;
+                cursor: not-allowed;
+                box-shadow: none;
+            }
         </style>
         <div class="ul-contact-infos">
             <div class="ul-section-spacing ul-container">
@@ -405,33 +594,77 @@
                     {% endfor %}
                 </div>
                 {% endif %}
-                <form action="{% url 'contact' %}" method="post" class="ul-contact-form ul-form">
+                <form action="{% url 'contact' %}" method="post" class="ul-contact-form cf-form">
                     {% csrf_token %}
-                    <div class="row row-cols-2 row-cols-xxs-1 ul-bs-row">
-                        <div class="col">
-                            <div class="form-group">
-                                <input type="text" name="name" id="ul-contact-name" placeholder="Your Name" required>
+                    <div class="cf-grid">
+                        <!-- Name -->
+                        <div class="cf-field">
+                            <label class="cf-label" for="ul-contact-name">Full name <span class="cf-req">*</span></label>
+                            <div class="cf-input-wrap">
+                                <span class="cf-icon">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" />
+                                    </svg>
+                                </span>
+                                <input type="text" name="name" id="ul-contact-name" placeholder="Your name" required>
                             </div>
                         </div>
-                        <div class="col">
-                            <div class="form-group">
-                                <input type="email" name="email" id="ul-contact-email" placeholder="Email Address" required>
+                        <!-- Email -->
+                        <div class="cf-field">
+                            <label class="cf-label" for="ul-contact-email">Email address <span class="cf-req">*</span></label>
+                            <div class="cf-input-wrap">
+                                <span class="cf-icon">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M20 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z" /><polyline points="22,6 12,13 2,6" />
+                                    </svg>
+                                </span>
+                                <input type="email" name="email" id="ul-contact-email" placeholder="you@email.com" required>
                             </div>
                         </div>
-                        <div class="col-12">
-                            <div class="form-group">
-                                <input type="text" name="subject" id="ul-contact-subject" placeholder="Subject">
+                        <!-- Subject -->
+                        <div class="cf-field cf-col-2">
+                            <label class="cf-label" for="ul-contact-subject">Subject</label>
+                            <div class="cf-input-wrap">
+                                <span class="cf-icon">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" /><line x1="7" y1="7" x2="7.01" y2="7" />
+                                    </svg>
+                                </span>
+                                <input type="text" name="subject" id="ul-contact-subject" placeholder="How can we help?">
                             </div>
                         </div>
-                        <div class="col-12">
-                            <div class="form-group">
-                                <textarea name="message" id="ul-contact-msg" placeholder="Type your message" required></textarea>
+                        <!-- Message -->
+                        <div class="cf-field cf-col-2">
+                            <label class="cf-label" for="ul-contact-msg">Message <span class="cf-req">*</span></label>
+                            <div class="cf-input-wrap">
+                                <span class="cf-icon cf-icon-top">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                                    </svg>
+                                </span>
+                                <textarea name="message" id="ul-contact-msg" placeholder="Type your message..." required></textarea>
                             </div>
                         </div>
-                        <div class="col-12 text-center">
-                            <button type="submit" class="ul-btn"><i class="flaticon-fast-forward-double-right-arrows-symbol"></i> Get
-                                in Touch</button>
+                        <!-- Captcha -->
+                        <div class="cf-field cf-col-2">
+                            <label class="cf-label" for="rb-captcha-input">Captcha verification <span class="cf-req">*</span></label>
+                            <div class="rb-captcha">
+                                <div class="rb-captcha-box">
+                                    <canvas id="rb-captcha-canvas" width="300" height="60" aria-label="Captcha image"></canvas>
+                                    <button type="button" id="rb-captcha-refresh" class="rb-captcha-refresh" title="Get a new code" aria-label="Get a new captcha code">&#x21bb;</button>
+                                </div>
+                                <input id="rb-captcha-input" class="rb-captcha-answer" type="text" autocomplete="off" spellcheck="false" maxlength="6" placeholder="Type the code shown" aria-label="Enter the captcha code">
+                            </div>
+                            <div class="rb-captcha-status" id="rb-captcha-status" aria-live="polite"></div>
                         </div>
+                    </div>
+                    <div class="cf-actions">
+                        <button type="submit" id="ul-contact-submit" class="cf-btn" disabled>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" />
+                            </svg>
+                            Get in Touch
+                        </button>
                     </div>
                 </form>
             </div>
@@ -634,6 +867,112 @@
             window.addEventListener('scroll', function () {
                 header.classList.toggle('scrolled', window.scrollY > 50);
             }, { passive: true });
+        })();
+    </script>
+
+    <!-- Contact captcha (self-contained canvas challenge, identical to the request-to-book page).
+         The "Get in Touch" button stays disabled until the typed code matches. -->
+    <script>
+        (function () {
+            const captchaCanvas = document.getElementById('rb-captcha-canvas');
+            const captchaInput = document.getElementById('rb-captcha-input');
+            const captchaRefresh = document.getElementById('rb-captcha-refresh');
+            const captchaStatus = document.getElementById('rb-captcha-status');
+            const submitBtn = document.getElementById('ul-contact-submit');
+            const contactForm = document.querySelector('.ul-contact-form');
+            let captchaCode = '';
+
+            function rnd(min, max) {
+                return Math.floor(Math.random() * (max - min + 1)) + min;
+            }
+
+            function generateCaptchaCode() {
+                const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // omit confusing 0/O/1/I
+                let code = '';
+                for (let i = 0; i < 5; i++) {
+                    code += chars.charAt(Math.floor(Math.random() * chars.length));
+                }
+                return code;
+            }
+
+            function drawCaptcha() {
+                if (!captchaCanvas) return;
+                const ctx = captchaCanvas.getContext('2d');
+                const w = captchaCanvas.width, h = captchaCanvas.height;
+                ctx.clearRect(0, 0, w, h);
+                ctx.fillStyle = '#f2f3f5';
+                ctx.fillRect(0, 0, w, h);
+
+                // interference lines
+                for (let i = 0; i < 5; i++) {
+                    ctx.strokeStyle = `rgba(${rnd(80,180)},${rnd(80,180)},${rnd(80,180)},0.5)`;
+                    ctx.beginPath();
+                    ctx.moveTo(rnd(0, w), rnd(0, h));
+                    ctx.lineTo(rnd(0, w), rnd(0, h));
+                    ctx.stroke();
+                }
+                // noise dots
+                for (let i = 0; i < 30; i++) {
+                    ctx.fillStyle = `rgba(${rnd(80,180)},${rnd(80,180)},${rnd(80,180)},0.6)`;
+                    ctx.beginPath();
+                    ctx.arc(rnd(0, w), rnd(0, h), 1, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                // characters
+                const startX = 20;
+                const step = (w - 34) / captchaCode.length;
+                for (let i = 0; i < captchaCode.length; i++) {
+                    ctx.save();
+                    ctx.translate(startX + i * step, h / 2 + rnd(-4, 4));
+                    ctx.rotate((rnd(-25, 25) * Math.PI) / 180);
+                    ctx.font = `bold ${rnd(26, 32)}px Georgia, serif`;
+                    ctx.fillStyle = `rgb(${rnd(20,90)},${rnd(20,90)},${rnd(60,120)})`;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(captchaCode[i], 0, 0);
+                    ctx.restore();
+                }
+            }
+
+            function isCaptchaValid() {
+                return !!captchaInput && captchaInput.value.trim().toUpperCase() === captchaCode;
+            }
+
+            function updateSubmitState() {
+                const ok = isCaptchaValid();
+                if (submitBtn) submitBtn.disabled = !ok;
+                if (!captchaStatus) return;
+                if (captchaInput && captchaInput.value.trim()) {
+                    captchaStatus.textContent = ok ? 'Verified ✓' : 'Code does not match';
+                    captchaStatus.className = 'rb-captcha-status ' + (ok ? 'is-ok' : 'is-err');
+                } else {
+                    captchaStatus.textContent = '';
+                    captchaStatus.className = 'rb-captcha-status';
+                }
+            }
+
+            function refreshCaptcha() {
+                captchaCode = generateCaptchaCode();
+                drawCaptcha();
+                if (captchaInput) captchaInput.value = '';
+                updateSubmitState();
+            }
+
+            if (captchaCanvas) {
+                if (captchaInput) captchaInput.addEventListener('input', updateSubmitState);
+                if (captchaRefresh) captchaRefresh.addEventListener('click', refreshCaptcha);
+                refreshCaptcha(); // initial draw; leaves the submit button disabled
+            }
+
+            if (contactForm) {
+                contactForm.addEventListener('submit', function (e) {
+                    if (!isCaptchaValid()) {
+                        e.preventDefault();
+                        if (captchaInput) captchaInput.focus();
+                        updateSubmitState();
+                    }
+                });
+            }
         })();
     </script>
 

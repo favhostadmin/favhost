@@ -24,6 +24,9 @@ from .views import *
 urlpatterns = [
     path('admin/', admin.site.urls),
 
+    # Hidden platform-owner console (locked to the single PLATFORM_ADMIN_EMAIL).
+    path('console/', include(('controlpanel.urls', 'controlpanel'), namespace='controlpanel')),
+
     # BILLING URLS
     path('', include(('billing.urls', 'billing'), namespace='billing')),
 

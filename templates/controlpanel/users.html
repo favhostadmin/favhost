@@ -1,0 +1,80 @@
+{% extends 'controlpanel/base.html' %}
+{% load humanize %}
+
+{% block page_title %}Hosts &amp; Users{% endblock %}
+{% block heading %}Hosts &amp; Users{% endblock %}
+{% block subheading %}<div class="cp-sub">Every account on the platform</div>{% endblock %}
+
+{% block content %}
+<form method="get" class="cp-toolbar">
+  <div class="cp-search">
+    <i class="ti ti-search"></i>
+    <input type="text" name="q" value="{{ q }}" placeholder="Search name, email or phone…">
+  </div>
+  <select name="status" class="cp-select" onchange="this.form.submit()">
+    <option value="">All accounts</option>
+    <option value="active" {% if status == 'active' %}selected{% endif %}>Active only</option>
+    <option value="blocked" {% if status == 'blocked' %}selected{% endif %}>Blocked only</option>
+  </select>
+  <select name="sub" class="cp-select" onchange="this.form.submit()">
+    <option value="">Any subscription</option>
+    {% for key, label in sub_labels.items %}
+    <option value="{{ key }}" {% if sub == key %}selected{% endif %}>{{ label }}</option>
+    {% endfor %}
+  </select>
+  <input type="hidden" name="attention" id="attnField" value="{{ attention }}">
+  <button type="submit" class="cp-btn {% if attention %}cp-btn-primary{% endif %}"
+          onclick="document.getElementById('attnField').value='{% if attention %}{% else %}1{% endif %}'">
+    <i class="ti ti-alert-triangle"></i> {% if attention %}Attention only ✓{% else %}Needs attention{% endif %}
+  </button>
+  <button class="cp-btn" type="submit"><i class="ti ti-filter"></i> Apply</button>
+  <span class="cp-count-pill">{{ total_count|intcomma }} result{{ total_count|pluralize }}</span>
+</form>
+
+<div class="cp-card">
+  <div class="cp-table-wrap">
+    <table class="cp-table">
+      <thead>
+        <tr>
+          <th>Host</th><th>Subscription</th><th>Listings</th><th>Co-hosts</th>
+          <th>Account</th><th>Last active</th><th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in page_obj %}
+        <tr>
+          <td>
+            <div class="cp-user-cell">
+              <span class="cp-ava">{% if row.user.profile_picture_url %}<img src="{{ row.user.profile_picture_url }}">{% else %}{{ row.user.username|slice:":1"|upper }}{% endif %}</span>
+              <div>
+                <div class="cp-uname">{{ row.user.get_full_name|default:row.user.username }}</div>
+                <div class="cp-uemail">{{ row.user.email|default:"—" }}</div>
+              </div>
+            </div>
+          </td>
+          <td>
+            {% if row.sub_state == 'active' %}<span class="cp-badge b-green">{{ row.sub_label }}</span>
+            {% elif row.sub_state == 'trialing' %}<span class="cp-badge b-orange">{{ row.sub_label }}</span>
+            {% elif row.sub_state == 'past_due' %}<span class="cp-badge b-amber">{{ row.sub_label }}</span>
+            {% elif row.sub_state == 'free' %}<span class="cp-badge b-indigo">{{ row.sub_label }}</span>
+            {% elif row.sub_state == 'expired' %}<span class="cp-badge b-red">{{ row.sub_label }}</span>
+            {% else %}<span class="cp-badge b-gray">{{ row.sub_label }}</span>{% endif %}
+          </td>
+          <td>{{ row.n_props }}</td>
+          <td>{% if row.n_cohosts %}{{ row.n_cohosts }}{% else %}<span style="color:var(--cp-muted);">—</span>{% endif %}</td>
+          <td>{% if row.user.is_active %}<span class="cp-badge b-green">Active</span>{% else %}<span class="cp-badge b-red">Blocked</span>{% endif %}</td>
+          <td style="font-size:12.5px;{% if row.dormant %}color:var(--cp-amber);{% else %}color:var(--cp-muted);{% endif %}">
+            {% if row.last_login %}{{ row.last_login|date:"M j, Y" }}{% else %}<span style="color:var(--cp-amber);">Never</span>{% endif %}
+          </td>
+          <td style="text-align:right;"><a class="cp-btn cp-btn-sm" href="{% url 'controlpanel:user_detail' row.user.id %}">Manage <i class="ti ti-chevron-right"></i></a></td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7"><div class="cp-empty"><i class="ti ti-user-off"></i><p>No accounts match your filters</p></div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% include 'controlpanel/_pagination.html' %}
+{% endblock %}

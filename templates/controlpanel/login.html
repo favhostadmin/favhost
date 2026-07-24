@@ -1,0 +1,129 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>FavHost — Control Center</title>
+    <link href="{% static 'website/img/fev.png' %}" rel="icon" type="image/png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/login.css' %}">
+    <style>
+        /* A couple of console-specific accents layered on top of the shared login.css */
+        .cc-tag {
+            display: inline-flex; align-items: center; gap: 7px;
+            font-size: 11px; font-weight: 700; letter-spacing: .6px; text-transform: uppercase;
+            color: #EB5310; background: rgba(235, 83, 16, .12);
+            padding: 5px 11px; border-radius: 20px; margin-bottom: 14px;
+        }
+        .cc-tag::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: #EB5310; }
+        .login-subtitle .cc-lock { vertical-align: middle; }
+    </style>
+</head>
+
+<body>
+    <img class="page-bg" src="{% static 'img/auth/bg_img.jpg' %}" alt="Luxury home background">
+    <div class="page-overlay" aria-hidden="true"></div>
+
+    {% if messages %}
+    <div class="toast-container">
+        {% for message in messages %}
+        <div class="toast-message {{ message.tags }}">
+            {{ message }}
+            <button class="toast-close" onclick="this.parentElement.style.display='none';" aria-label="Close">&times;</button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <section class="auth-card">
+        <aside class="brand-panel">
+            <img class="panel-bg" src="{% static 'img/auth/bg_img.jpg' %}" alt="Luxury home panel background">
+            <div class="panel-overlay" aria-hidden="true"></div>
+            <div class="panel-content">
+                <div class="logo-wrap" aria-label="FavHost logo">
+                    <img class="logo-img" src="{% static 'img/auth/logo.png' %}" alt="FavHost logo">
+                </div>
+                <div class="hero-copy">
+                    <h1>Control Center</h1>
+                    <p>Platform Administration</p>
+                    <small>Oversee every host, booking, and dollar<br>across the entire platform</small>
+                </div>
+                <div class="brand-footer">
+                    <div>@ {% now "Y" %} Favhost LLC. All rights reserved.</div>
+                </div>
+            </div>
+        </aside>
+
+        <div class="form-panel login-mode" id="formPanel">
+            <div class="login-view">
+                <span class="cc-tag">Restricted · Owner access</span>
+                <h2 class="login-title">Administrator Login</h2>
+                <p class="login-subtitle">Sign in to the platform control center</p>
+
+                <form id="loginForm" method="POST" action="{% url 'controlpanel:login' %}" novalidate>
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="{{ next }}">
+
+                    <div>
+                        <label for="loginEmail">Email</label>
+                        <input id="loginEmail" name="username" type="email" placeholder="admin@favhost.com" autocomplete="username">
+                        <div class="field-error" id="loginEmailError"></div>
+                    </div>
+
+                    <div>
+                        <label for="loginPassword">Password</label>
+                        <div class="password-wrap">
+                            <input id="loginPassword" name="password" type="password" placeholder=".........." autocomplete="current-password">
+                            <button type="button" class="password-toggle" aria-label="Show password">
+                                <svg class="eye-icon eye-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                                    <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z" />
+                                    <circle cx="12" cy="12" r="3" />
+                                </svg>
+                                <svg class="eye-icon eye-closed" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true" style="display:none;">
+                                    <path d="M3 3l18 18" />
+                                    <path d="M10.6 10.6a2 2 0 0 0 2.8 2.8" />
+                                    <path d="M9.9 4.2A10.9 10.9 0 0 1 12 4c7 0 11 8 11 8a15.2 15.2 0 0 1-4.2 5.3" />
+                                    <path d="M6.1 6.1A15.1 15.1 0 0 0 1 12s4 8 11 8a10.9 10.9 0 0 0 5-1.2" />
+                                </svg>
+                            </button>
+                        </div>
+                        <div class="field-error" id="loginPasswordError"></div>
+                    </div>
+
+                    <button class="continue-btn" type="submit" style="margin-top:8px;">Sign in to Control Center</button>
+                </form>
+            </div>
+        </div>
+    </section>
+
+    <script>
+        document.querySelectorAll('.toast-message').forEach(function (toast) {
+            setTimeout(function () {
+                toast.style.opacity = '0';
+                toast.style.transition = 'opacity 0.5s';
+                setTimeout(() => toast.style.display = 'none', 500);
+            }, 4500);
+        });
+        document.querySelectorAll(".password-toggle").forEach((btn) => {
+            btn.addEventListener("click", () => {
+                const input = btn.closest(".password-wrap")?.querySelector("input");
+                if (!input) return;
+                const isHidden = input.type === "password";
+                input.type = isHidden ? "text" : "password";
+                const openIcon = btn.querySelector(".eye-open");
+                const closedIcon = btn.querySelector(".eye-closed");
+                if (openIcon && closedIcon) {
+                    openIcon.style.display = isHidden ? "none" : "block";
+                    closedIcon.style.display = isHidden ? "block" : "none";
+                }
+            });
+        });
+    </script>
+</body>
+
+</html>
