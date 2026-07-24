@@ -18,7 +18,9 @@ from celery.schedules import crontab
 from dotenv import load_dotenv
 
 
-def load_secrets(secret_name="favhost/dev/env", region="us-east-1"):
+def load_secrets(secret_name=None, region="us-east-1"):
+    if secret_name is None:
+        secret_name = os.getenv('SECRETS_NAME', 'favhost/dev/env')
     client = boto3.client("secretsmanager", region_name=region)
     response = client.get_secret_value(SecretId=secret_name)
     return json.loads(response["SecretString"])
