@@ -2292,3 +2292,23 @@ def demo_video(request):
     response['Last-Modified'] = http_date(os.path.getmtime(video_path))
     response['Cache-Control'] = 'public, max-age=86400'
     return response
+
+
+# Written-guide partials fetched client-side by the tutorials page's TOPICS array.
+# Allowlisted by filename (no user-supplied path is ever opened) to rule out traversal.
+TUTORIAL_ARTICLES = {
+    'update_profile_guide',
+    'property_listing_guide',
+    'manage_cohosts_guide',
+    'property_calendar_guide',
+    'manual_reservation_guide',
+    'reservations_reports_guide',
+    'dashboard_housekeeping_guide',
+    'income_expenses_guide',
+}
+
+
+def tutorial_article(request, article):
+    if article not in TUTORIAL_ARTICLES:
+        return HttpResponseNotFound('Tutorial article not found.')
+    return render(request, f'frontend/tutorials/{article}.html')
