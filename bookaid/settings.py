@@ -32,18 +32,20 @@ load_dotenv(BASE_DIR / '.env')
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: don't run with debug turned on in production!
-# Must come from os.getenv directly (not get_env below) — it decides whether
-# we're even allowed to call AWS, so it can't depend on secrets having loaded.
 DEBUG = os.getenv('DEBUG', 'True') == 'True'
 
-# In production (DEBUG=False) every config value below is pulled from AWS
-# Secrets Manager; locally it falls back to .env / os.getenv so no AWS access
-# is required.
-secrets = load_secrets() if not DEBUG else {}
+# Whether to pull config from AWS Secrets Manager is a separate switch from
+# DEBUG — dev.favhost.com runs with DEBUG=True but is a real deployed server
+# that still needs S3/secrets (see AWS_STORAGE_BUCKET_NAME below), so DEBUG
+# can't be used to detect "local machine vs. real server". Each real server
+# sets USE_SECRETS_MANAGER=True explicitly; a local checkout leaves it unset
+# and falls back to .env / os.getenv, same as before.
+USE_SECRETS_MANAGER = os.getenv('USE_SECRETS_MANAGER', 'False') == 'True'
+secrets = load_secrets() if USE_SECRETS_MANAGER else {}
 
 
 def get_env(key, default=None):
-    if not DEBUG:
+    if USE_SECRETS_MANAGER:
         return secrets.get(key, default)
     return os.getenv(key, default)
 
