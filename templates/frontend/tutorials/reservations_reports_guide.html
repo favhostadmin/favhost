@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="generator" content="Clevera Article Editor">
+  <title>Managing Reservations and Reports in FavRent</title>
+  <link href="/static/website/img/fev.png" rel="icon" type="image/png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+    }
+  </script>
+  <style>
+
+/* Prose Article Stylesheet - Dark Mode */
+.prose-article {
+  font-family: "Inter", sans-serif;
+  font-weight: 400;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-optical-sizing: auto;
+  font-size: 1rem;
+  line-height: 1.75;
+  color: #18181b;
+  max-width: 65ch;
+}
+
+.prose-article strong,
+.prose-article .prose-strong {
+  color: #09090b;
+  font-weight: 600;
+}
+
+.prose-article-dark strong,
+.prose-article-dark .prose-strong {
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.prose-article p,
+.prose-article .prose-p {
+  color: #18181b;
+}
+
+.prose-article-dark p,
+.prose-article-dark .prose-p {
+  color: #fafafa;
+}
+
+.prose-article li,
+.prose-article .prose-li {
+  color: #18181b;
+}
+
+.prose-article-dark li,
+.prose-article-dark .prose-li {
+  color: #fafafa;
+}
+
+/* Details/Toggle */
+.prose-details.is-open .prose-details-content,
+.prose-details[open] .prose-details-content {
+  display: block !important;
+}
+
+.prose-details.is-open .prose-details-caret,
+.prose-details[open] .prose-details-caret {
+  transform: rotate(90deg);
+}
+
+/* Callout icons */
+.prose-callout [data-callout-icon] svg,
+.prose-callout .callout-icon-svg {
+  width: inherit;
+  height: inherit;
+}
+
+/* Callout content colors */
+.prose-callout-info .prose-callout-content {
+  color: #09090b !important;
+}
+
+.dark .prose-callout-info .prose-callout-content {
+  color: #e4e4e7 !important;
+}
+
+.prose-callout-warning .prose-callout-content {
+  color: #78350f !important;
+}
+
+.dark .prose-callout-warning .prose-callout-content {
+  color: #fef3c7 !important;
+}
+
+.prose-callout-note .prose-callout-content {
+  color: #082f49 !important;
+}
+
+.dark .prose-callout-note .prose-callout-content {
+  color: #bae6fd !important;
+}
+
+.prose-callout-tip .prose-callout-content {
+  color: #065f46 !important;
+}
+
+.dark .prose-callout-tip .prose-callout-content {
+  color: #a7f3d0 !important;
+}
+
+.prose-callout-success .prose-callout-content {
+  color: #065f46 !important;
+}
+
+.dark .prose-callout-success .prose-callout-content {
+  color: #bbf7d0 !important;
+}
+
+.prose-callout-danger .prose-callout-content {
+  color: #7f1d1d !important;
+}
+
+.dark .prose-callout-danger .prose-callout-content {
+  color: #fecaca !important;
+}
+
+.prose-callout strong {
+  font-weight: 600;
+  color: inherit;
+  filter: brightness(0.85);
+}
+
+.dark .prose-callout strong {
+  filter: brightness(1.15);
+}
+
+/* Code block syntax highlighting */
+.prose-pre code {
+  .hljs-comment, .hljs-quote { color: #6a9955; font-style: italic; }
+  .hljs-keyword, .hljs-selector-tag, .hljs-addition { color: #c586c0; font-weight: 500; }
+  .hljs-built_in, .hljs-section { color: #c586c0; }
+  .hljs-string, .hljs-meta .hljs-string { color: #ce9178; }
+  .hljs-function .hljs-title, .hljs-title.function_, .hljs-title.class_, .hljs-title { color: #dcdcaa; }
+  .hljs-number, .hljs-literal { color: #b5cea8; }
+  .hljs-operator, .hljs-deletion { color: #d4d4d4; }
+  .hljs-variable, .hljs-template-variable, .hljs-link, .hljs-params { color: #9cdcfe; }
+  .hljs-class, .hljs-type { color: #4ec9b0; font-weight: 500; }
+  .hljs-tag, .hljs-name { color: #569cd6; }
+  .hljs-attr, .hljs-attribute, .hljs-property { color: #9cdcfe; }
+  .hljs-constant, .hljs-symbol { color: #4fc1ff; }
+  .hljs-regexp { color: #d16969; }
+  .hljs-emphasis { font-style: italic; }
+  .hljs-strong { font-weight: bold; }
+}
+
+/* Task list checkbox */
+.prose-task-checkbox {
+  appearance: none;
+  -webkit-appearance: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.prose-task-checkbox[data-checked="true"] {
+  background-color: #18181b;
+  border-color: #18181b;
+}
+
+.prose-task-checkbox[data-checked="true"]::after {
+  content: "";
+  display: block;
+  width: 0.75em;
+  height: 0.75em;
+  background-color: white;
+  mask: url("data:image/svg+xml,%3Csvg width='24' height='24' viewBox='0 0 24 24' fill='currentColor' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill-rule='evenodd' clip-rule='evenodd' d='M21.4142 4.58579C22.1953 5.36683 22.1953 6.63317 21.4142 7.41421L10.4142 18.4142C9.63317 19.1953 8.36684 19.1953 7.58579 18.4142L2.58579 13.4142C1.80474 12.6332 1.80474 11.3668 2.58579 10.5858C3.36683 9.80474 4.63317 9.80474 5.41421 10.5858L9 14.1716L18.5858 4.58579C19.3668 3.80474 20.6332 3.80474 21.4142 4.58579Z' fill='currentColor'/%3E%3C/svg%3E") center/contain no-repeat;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg width='24' height='24' viewBox='0 0 24 24' fill='currentColor' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill-rule='evenodd' clip-rule='evenodd' d='M21.4142 4.58579C22.1953 5.36683 22.1953 6.63317 21.4142 7.41421L10.4142 18.4142C9.63317 19.1953 8.36684 19.1953 7.58579 18.4142L2.58579 13.4142C1.80474 12.6332 1.80474 11.3668 2.58579 10.5858C3.36683 9.80474 4.63317 9.80474 5.41421 10.5858L9 14.1716L18.5858 4.58579C19.3668 3.80474 20.6332 3.80474 21.4142 4.58579Z' fill='currentColor'/%3E%3C/svg%3E") center/contain no-repeat;
+}
+
+.dark .prose-task-checkbox[data-checked="true"] {
+  background-color: #e4e4e7;
+  border-color: #e4e4e7;
+}
+
+.dark .prose-task-checkbox[data-checked="true"]::after {
+  background-color: #18181b;
+}
+
+/* Image responsive */
+.prose-article img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Emoji styling - match editor size */
+.prose-article [data-type="emoji"] img,
+.prose-article img[data-emoji-name] {
+  display: inline-block;
+  width: 1.25em;
+  height: 1.25em;
+  vertical-align: middle;
+}
+
+.prose-image[data-align="left"] .prose-image-frame { margin-right: auto; }
+.prose-image[data-align="center"] .prose-image-frame { margin-left: auto; margin-right: auto; }
+.prose-image[data-align="right"] .prose-image-frame { margin-left: auto; }
+
+.prose-image-frame { position: relative; }
+.prose-image-frame-border { position: absolute; inset: 0; pointer-events: none; z-index: 1; }
+.prose-image-container { position: relative; z-index: 0; }
+
+.prose-image-caption:empty::before {
+  content: attr(data-placeholder);
+  color: #9ca3af;
+  opacity: 0.5;
+}
+
+.dark .prose-image-caption:empty::before {
+  color: #6b7280;
+}
+
+/* Table responsive */
+.prose-article .prose-table {
+  display: block;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (min-width: 768px) {
+  .prose-article .prose-table {
+    display: table;
+  }
+}
+
+/* YouTube responsive */
+.prose-youtube {
+  position: relative;
+  padding-bottom: 56.25%;
+  height: 0;
+  overflow: hidden;
+}
+
+.prose-youtube iframe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.prose-youtube[style*="width"] {
+  padding-bottom: 0;
+  height: auto;
+}
+
+.prose-youtube[style*="width"] iframe {
+  position: static;
+}
+
+/* Clevera Video responsive */
+.prose-cleveravideo {
+  position: relative;
+  padding-bottom: 56.25%;
+  height: 0;
+  overflow: hidden;
+}
+
+.prose-cleveravideo iframe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.prose-cleveravideo[style*="width"] {
+  padding-bottom: 0;
+  height: auto;
+}
+
+.prose-cleveravideo[style*="width"] iframe {
+  position: static;
+}
+
+/* Print styles */
+@media print {
+  .prose-article {
+    color: #000;
+    background: #fff;
+  }
+  .prose-callout {
+    border: 1px solid #ccc;
+    background: #f9f9f9 !important;
+  }
+  .prose-pre {
+    background: #f5f5f5 !important;
+    border: 1px solid #ddd;
+  }
+  .prose-youtube { display: none; }
+  .prose-cleveravideo { display: none; }
+  .prose-details { border: 1px solid #ccc; }
+  .prose-details-toggle { display: none; }
+  .prose-details-content { display: block !important; }
+}
+
+/* YouTube fallback styling */
+.prose-youtube-fallback {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.85);
+  color: white;
+  text-decoration: none;
+  z-index: 10;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  border-radius: 0.75rem;
+  backdrop-filter: blur(4px);
+}
+
+.prose-youtube-fallback:hover {
+  background: rgba(0, 0, 0, 0.9);
+}
+
+.prose-youtube-fallback.show {
+  opacity: 1;
+}
+
+.prose-youtube {
+  position: relative;
+}
+
+.prose-youtube:hover .prose-youtube-fallback {
+  opacity: 0.3;
+}
+
+.prose-youtube:hover .prose-youtube-fallback:hover {
+  opacity: 1;
+}
+  </style>
+  <script>
+    // Detect YouTube iframe failures (common with file:// protocol)
+    document.addEventListener('DOMContentLoaded', function() {
+      const youtubeContainers = document.querySelectorAll('[data-youtube-video]');
+      
+      youtubeContainers.forEach(function(container) {
+        const iframe = container.querySelector('iframe');
+        const fallback = container.querySelector('[data-youtube-fallback]');
+        
+        if (!iframe || !fallback) return;
+        
+        // Check if we're in file:// protocol (local file)
+        const isLocalFile = window.location.protocol === 'file:';
+        
+        // Function to show fallback
+        function showFallback() {
+          if (fallback) {
+            fallback.classList.add('show');
+          }
+        }
+        
+        // If local file, show fallback immediately (YouTube blocks file:// embeds)
+        if (isLocalFile) {
+          showFallback();
+          return;
+        }
+        
+        // For http/https, check if iframe loads successfully
+        let loadTimeout = setTimeout(function() {
+          // If iframe hasn't loaded after 3 seconds, show fallback
+          try {
+            // Try to access iframe content (will fail if blocked)
+            iframe.contentWindow;
+          } catch (e) {
+            // Cross-origin or blocked - show fallback
+            showFallback();
+          }
+        }, 3000);
+        
+        // If iframe loads successfully, clear timeout
+        iframe.addEventListener('load', function() {
+          clearTimeout(loadTimeout);
+          // Check for YouTube error by looking at the iframe content
+          setTimeout(function() {
+            try {
+              // If we can't access contentWindow, it might be blocked
+              iframe.contentWindow;
+            } catch (e) {
+              // This is normal for cross-origin, but check if fallback should show
+              // We'll rely on the timeout or user interaction
+            }
+          }, 1000);
+        });
+        
+        // Listen for error events
+        iframe.addEventListener('error', function() {
+          clearTimeout(loadTimeout);
+          showFallback();
+        });
+      });
+    });
+  </script>
+</head>
+<body class="dark bg-[#0e0e11] text-[#a3a3a8] min-h-screen">
+  <article class="prose-article prose-article-dark" style="max-width: 768px; width: 100%; margin: 0 auto; flex: 1; padding: 3rem 3rem 30vh;">
+<h2 class="prose-h2 text-2xl font-semibold mt-10 first:mt-0 text-zinc-900 dark:text-zinc-100">Introduction</h2><blockquote class="prose-blockquote pl-4 py-1.5 my-6 border-l-[3px] border-zinc-800 dark:border-zinc-200"><p class="prose-p text-base leading-relaxed my-4 first:mt-0 last:mb-0 text-zinc-900 dark:text-zinc-400">Efficiently managing short-term rental bookings requires a clear view of your guest data and payment schedules. The <strong class="prose-strong font-semibold text-zinc-950 dark:text-white">Favhost</strong> dashboard provides a comprehensive suite of tools to track, edit, and report on all your active and upcoming reservations.</p></blockquote><p class="prose-p text-base leading-relaxed my-4 first:mt-0 last:mb-0 text-zinc-900 dark:text-zinc-400">This guide walks you through the core reservation management workflows in <strong class="prose-strong font-semibold text-zinc-950 dark:text-white">Favhost</strong>, including viewing detailed reservation records, editing guest information, generating guest receipts, and exporting filtered reservation reports. Whether you are a property owner or a manager, these steps will help you maintain accurate records and provide professional documentation to your guests.</p><h2 class="prose-h2 text-2xl font-semibold mt-10 first:mt-0 text-zinc-900 dark:text-zinc-100">Managing Reservation Records</h2><p class="prose-p text-base leading-relaxed my-4 first:mt-0 last:mb-0 text-zinc-900 dark:text-zinc-400">The <strong class="prose-strong font-semibold text-zinc-950 dark:text-white">Reservations</strong> module is the central hub for tracking your occupancy. From here, you can drill down into specific booking details to review payment schedules and guest requirements.</p><h3 class="prose-h3 text-xl font-semibold mt-8 first:mt-0 text-zinc-900 dark:text-zinc-100">Step 1: Access the Reservations List</h3><p class="prose-p text-base leading-relaxed my-4 first:mt-0 last:mb-0 text-zinc-900 dark:text-zinc-400">Navigate to the top header and click on <strong class="prose-strong font-semibold text-zinc-950 dark:text-white">Reservations</strong>. This view organizes your bookings into several tabs: <strong class="prose-strong font-semibold text-zinc-950 dark:text-white">Past</strong>, <strong class="prose-strong font-semibold text-zinc-950 dark:text-white">Recent Booking</strong>, <strong class="prose-strong font-semibold text-zinc-950 dark:text-white">Upcoming</strong>, <strong class="prose-strong font-semibold text-zinc-950 dark:text-white">Executed</strong>, and <strong class="prose-strong font-semibold text-zinc-950 dark:text-white">No Show</strong>. By default, you can see a summary of each guest, including their name, check-in/check-out dates, and the assigned property.</p><figure class="prose-image my-8" data-align="center" src="https://d14xczjzvlshjn.cloudfront.net/screencasts/scrcst_nznasloobilhgyx1/processed/article_video_frames/frame-15500-ed100d29-5dec-4415-8c86-267bc3556e64.jpg?Expires=1816131665&amp;Signature=j0-9UOxBrRKRqjKiCgcvATalmkoItCEKxAUMlH1X4qM7gJJx64H3lDiuo7W1vDmM4T~-TO2ij0ZMUpgsy1pxDSNv34FO34j3E51jN2mkJnLnnk66aXD-VFVS-k62q0v1vvlOiJhstLSAmE7WWEePp-C76yLJV8cQ7v-KuybDwDUOy4WJoUX2QgMIwt0br25hGQ4HEOj21sjaA~bUtO1iDzVjEJ2-E5sKUsieRtwG4-hYeKpQzYdVMIvt13CyiW5~TW7Q-geNfmljPud3VnRuQYDYslmRfxhssp-0caVRG0jNtdDKSgep4TNhNysf9qGTP9tVOEsUIJ4Bxks4QTydtQ__&amp;Key-Pair-Id=APKA26BID7YIZU7LYRQT" alt="Reservations list view" data-show-caption="true"><div class="prose-image-frame relative inline-block max-w-full p-2 rounded-2xl bg-zinc-50/50 dark:bg-zinc-800/25 overflow-hidden mx-auto" style=""><div class="prose-image-frame-border absolute inset-0 pointer-events-none rounded-2xl border border-black/5 dark:border-white/5"></div><div class="prose-image-container relative rounded-2xl overflow-hidden flex justify-center"><div class="prose-image-content relative flex items-center max-w-full"><img class="prose-img tiptap-image-img max-w-full h-auto rounded-2xl block w-full" src="https://d14xczjzvlshjn.cloudfront.net/screencasts/scrcst_nznasloobilhgyx1/processed/article_video_frames/frame-15500-ed100d29-5dec-4415-8c86-267bc3556e64.jpg?Expires=1816131665&amp;Signature=j0-9UOxBrRKRqjKiCgcvATalmkoItCEKxAUMlH1X4qM7gJJx64H3lDiuo7W1vDmM4T~-TO2ij0ZMUpgsy1pxDSNv34FO34j3E51jN2mkJnLnnk66aXD-VFVS-k62q0v1vvlOiJhstLSAmE7WWEePp-C76yLJV8cQ7v-KuybDwDUOy4WJoUX2QgMIwt0br25hGQ4HEOj21sjaA~bUtO1iDzVjEJ2-E5sKUsieRtwG4-hYeKpQzYdVMIvt13CyiW5~TW7Q-geNfmljPud3VnRuQYDYslmRfxhssp-0caVRG0jNtdDKSgep4TNhNysf9qGTP9tVOEsUIJ4Bxks4QTydtQ__&amp;Key-Pair-Id=APKA26BID7YIZU7LYRQT" alt="Reservations list view"></div></div><figcaption class="prose-image-caption tiptap-image-caption mt-2 text-sm text-center text-zinc-600 dark:text-zinc-400 px-2">The Reservations page displays a categorized list of bookings with tabs for status and guest summaries for each entry.</figcaption></div></figure><h3 class="prose-h3 text-xl font-semibold mt-8 first:mt-0 text-zinc-900 dark:text-zinc-100">Step 2: View Detailed Reservation Information</h3><p class="prose-p text-base leading-relaxed my-4 first:mt-0 last:mb-0 text-zinc-900 dark:text-zinc-400">To see the full breakdown of a booking, find the guest in the list and click the three-dot menu icon on the far right of their entry. Select <strong class="prose-strong font-semibold text-zinc-950 dark:text-white">Reservation details</strong>. This opens a comprehensive view containing the <strong class="prose-strong font-semibold text-zinc-950 dark:text-white">Guest Details</strong>, <strong class="prose-strong font-semibold text-zinc-950 dark:text-white">Payment Schedule</strong> (showing due dates and amounts for deposits and fees), and a <strong class="prose-strong font-semibold text-zinc-950 dark:text-white">Payment Summary</strong> of the total stay.</p><figure class="prose-image my-8" data-align="center" src="https://d14xczjzvlshjn.cloudfront.net/screencasts/scrcst_nznasloobilhgyx1/processed/article_video_frames/frame-32500-5f381334-ffe0-4cc1-9c65-0ec02778291b.jpg?Expires=1816131665&amp;Signature=Qw6PJdECk~cAFp7QgbvPW-4Vgcxi~rGUBS9tlTF5ZU1SAPFXY3BgIZPlQXwWPQGJ2d7hjubu4-B8S1XvoKsMr5CO7d44rip6zzk14lDymQnCAqLv7fsthGAQK~3POmVafv2kG0SIBXz1V4LdIV4tFxApSjJm3KOQwqMrSbhxvGeSvo4R9~PnwxGUlO6cfmFAsx9BPEemiAA4ogn69LegUhHPRPtVcHQe2mbcxB6-invN-gWfAgFhfllV3aHu-cJxACnVZeVE4MHj2xzJ-KQQ1ozsDN5kKFg3bozCAWfiFYf4EBXMFNMB1PKysvpsRbMA9kI3dPnC413zeQvRbJY7zg__&amp;Key-Pair-Id=APKA26BID7YIZU7LYRQT" alt="Reservation details page" data-show-caption="true"><div class="prose-image-frame relative inline-block max-w-full p-2 rounded-2xl bg-zinc-50/50 dark:bg-zinc-800/25 overflow-hidden mx-auto" style=""><div class="prose-image-frame-border absolute inset-0 pointer-events-none rounded-2xl border border-black/5 dark:border-white/5"></div><div class="prose-image-container relative rounded-2xl overflow-hidden flex justify-center"><div class="prose-image-content relative flex items-center max-w-full"><img class="prose-img tiptap-image-img max-w-full h-auto rounded-2xl block w-full" src="https://d14xczjzvlshjn.cloudfront.net/screencasts/scrcst_nznasloobilhgyx1/processed/article_video_frames/frame-32500-5f381334-ffe0-4cc1-9c65-0ec02778291b.jpg?Expires=1816131665&amp;Signature=Qw6PJdECk~cAFp7QgbvPW-4Vgcxi~rGUBS9tlTF5ZU1SAPFXY3BgIZPlQXwWPQGJ2d7hjubu4-B8S1XvoKsMr5CO7d44rip6zzk14lDymQnCAqLv7fsthGAQK~3POmVafv2kG0SIBXz1V4LdIV4tFxApSjJm3KOQwqMrSbhxvGeSvo4R9~PnwxGUlO6cfmFAsx9BPEemiAA4ogn69LegUhHPRPtVcHQe2mbcxB6-invN-gWfAgFhfllV3aHu-cJxACnVZeVE4MHj2xzJ-KQQ1ozsDN5kKFg3bozCAWfiFYf4EBXMFNMB1PKysvpsRbMA9kI3dPnC413zeQvRbJY7zg__&amp;Key-Pair-Id=APKA26BID7YIZU7LYRQT" alt="Reservation details page"></div></div><figcaption class="prose-image-caption tiptap-image-caption mt-2 text-sm text-center text-zinc-600 dark:text-zinc-400 px-2">The Reservation details view provides a granular breakdown of guest info, payment schedules for deposits, and the overall financial summary.</figcaption></div></figure><h3 class="prose-h3 text-xl font-semibold mt-8 first:mt-0 text-zinc-900 dark:text-zinc-100">Step 3: Modify Existing Reservations</h3><p class="prose-p text-base leading-relaxed my-4 first:mt-0 last:mb-0 text-zinc-900 dark:text-zinc-400">If guest details or booking notes need to be updated, return to the <strong class="prose-strong font-semibold text-zinc-950 dark:text-white">Reservations</strong> list and select <strong class="prose-strong font-semibold text-zinc-950 dark:text-white">Edit</strong> from the three-dot menu. The <strong class="prose-strong font-semibold text-zinc-950 dark:text-white">Edit Reservation</strong> interface allows you to update <strong class="prose-strong font-semibold text-zinc-950 dark:text-white">Guest Details</strong>, change the <strong class="prose-strong font-semibold text-zinc-950 dark:text-white">Booking source</strong>, or adjust the <strong class="prose-strong font-semibold text-zinc-950 dark:text-white">Number of guests</strong>.</p><figure class="prose-image my-8" data-align="center" src="https://d14xczjzvlshjn.cloudfront.net/screencasts/scrcst_nznasloobilhgyx1/processed/article_video_frames/frame-45500-2e750698-6dd9-4e04-a322-39c50e075ba4.jpg?Expires=1816131666&amp;Signature=Ps0x5V5MOaneUe9IrrYrcXpn2~KhLaIXZxYAVZyzRDqAq2UDyK0oV9vCKIKMowZyiu4ROh5QgqbO2ElQMe54sOyRKTGSVWnx-Gv7cMTH2uPZ0hNdPg1hrbssRX6GwzuhIAoKqIfC0v927FUpQsxxB~sd8B54VzHgl-XJovJl4GqMPhLFFNcgoWtFM6JAlT13c7fmHMfpm~mS~vvo5LT~2X99uvLyeejjVH4yXwPri0sB2HPF5zLgy-ixxpkWGn5h7CV34bh7bOaNgYJ~OTD2nE7iUALHIPPWemlnLBRXphs7c9B~4TeeibaknSoF0xLuHww5wpPfT9-GfsnW-9f5Mw__&amp;Key-Pair-Id=APKA26BID7YIZU7LYRQT" alt="Editing a reservation" data-show-caption="true"><div class="prose-image-frame relative inline-block max-w-full p-2 rounded-2xl bg-zinc-50/50 dark:bg-zinc-800/25 overflow-hidden mx-auto" style=""><div class="prose-image-frame-border absolute inset-0 pointer-events-none rounded-2xl border border-black/5 dark:border-white/5"></div><div class="prose-image-container relative rounded-2xl overflow-hidden flex justify-center"><div class="prose-image-content relative flex items-center max-w-full"><img class="prose-img tiptap-image-img max-w-full h-auto rounded-2xl block w-full" src="https://d14xczjzvlshjn.cloudfront.net/screencasts/scrcst_nznasloobilhgyx1/processed/article_video_frames/frame-45500-2e750698-6dd9-4e04-a322-39c50e075ba4.jpg?Expires=1816131666&amp;Signature=Ps0x5V5MOaneUe9IrrYrcXpn2~KhLaIXZxYAVZyzRDqAq2UDyK0oV9vCKIKMowZyiu4ROh5QgqbO2ElQMe54sOyRKTGSVWnx-Gv7cMTH2uPZ0hNdPg1hrbssRX6GwzuhIAoKqIfC0v927FUpQsxxB~sd8B54VzHgl-XJovJl4GqMPhLFFNcgoWtFM6JAlT13c7fmHMfpm~mS~vvo5LT~2X99uvLyeejjVH4yXwPri0sB2HPF5zLgy-ixxpkWGn5h7CV34bh7bOaNgYJ~OTD2nE7iUALHIPPWemlnLBRXphs7c9B~4TeeibaknSoF0xLuHww5wpPfT9-GfsnW-9f5Mw__&amp;Key-Pair-Id=APKA26BID7YIZU7LYRQT" alt="Editing a reservation"></div></div><figcaption class="prose-image-caption tiptap-image-caption mt-2 text-sm text-center text-zinc-600 dark:text-zinc-400 px-2">The Edit Reservation screen allows for manual updates to guest profiles, stay notes, and booking parameters.</figcaption></div></figure><div class="prose-callout flex gap-3 my-4 p-4 px-5 rounded-2xl border overflow-hidden prose-callout-info border-zinc-500/20 bg-zinc-50/50 dark:bg-zinc-500/10 dark:border-zinc-500/30" data-type="callout" data-callout-type="info"><div class="prose-callout-icon flex-shrink-0 mt-0.5 w-4 flex items-start justify-center text-zinc-500 dark:text-zinc-400 w-5 h-5" data-callout-icon="info"><svg class="callout-icon-svg" viewBox="0 0 20 20" fill="currentColor"><path d="M8 0C3.58125 0 0 3.58125 0 8C0 12.4187 3.58125 16 8 16C12.4187 16 16 12.4187 16 8C16 3.58125 12.4187 0 8 0ZM8 14.5C4.41563 14.5 1.5 11.5841 1.5 8C1.5 4.41594 4.41563 1.5 8 1.5C11.5844 1.5 14.5 4.41594 14.5 8C14.5 11.5841 11.5844 14.5 8 14.5ZM9.25 10.5H8.75V7.75C8.75 7.3375 8.41563 7 8 7H7C6.5875 7 6.25 7.3375 6.25 7.75C6.25 8.1625 6.5875 8.5 7 8.5H7.25V10.5H6.75C6.3375 10.5 6 10.8375 6 11.25C6 11.6625 6.3375 12 6.75 12H9.25C9.66406 12 10 11.6641 10 11.25C10 10.8359 9.66563 10.5 9.25 10.5ZM8 6C8.55219 6 9 5.55219 9 5C9 4.44781 8.55219 4 8 4C7.44781 4 7 4.44687 7 5C7 5.55313 7.44687 6 8 6Z"/></svg></div><div class="prose-callout-content flex-1 min-w-0 text-sm leading-relaxed [&amp;&gt;p]:m-0 [&amp;_a]:text-current [&amp;_a]:border-current [&amp;_code]:text-current text-zinc-950 dark:text-zinc-200"><p class="prose-p text-base leading-relaxed my-4 first:mt-0 last:mb-0 text-zinc-900 dark:text-zinc-400">Changes made in the Edit Reservation screen are reflected immediately across the dashboard and in any generated reports.</p></div></div><h2 class="prose-h2 text-2xl font-semibold mt-10 first:mt-0 text-zinc-900 dark:text-zinc-100">Generating Guest Documentation and Receipts</h2><p class="prose-p text-base leading-relaxed my-4 first:mt-0 last:mb-0 text-zinc-900 dark:text-zinc-400">Providing guests with professional documentation is essential for clear communication regarding their stay and financial obligations. <strong class="prose-strong font-semibold text-zinc-950 dark:text-white">Favhost</strong> allows you to generate and export these documents with a few clicks.</p><h3 class="prose-h3 text-xl font-semibold mt-8 first:mt-0 text-zinc-900 dark:text-zinc-100">Step 1: Open the Guest Receipt</h3><p class="prose-p text-base leading-relaxed my-4 first:mt-0 last:mb-0 text-zinc-900 dark:text-zinc-400">From the main <strong class="prose-strong font-semibold text-zinc-950 dark:text-white">Reservations</strong> list, locate the specific booking you need a receipt for. Open the three-dot menu on the right and select <strong class="prose-strong font-semibold text-zinc-950 dark:text-white">Guest Receipt</strong>. This generates a branded receipt modal.</p><figure class="prose-image my-8" data-align="center" src="https://d14xczjzvlshjn.cloudfront.net/screencasts/scrcst_nznasloobilhgyx1/processed/article_video_frames/frame-59500-d305219f-a7da-4c90-87c6-ca01854f867c.jpg?Expires=1816131666&amp;Signature=AoNrcG75XwbNF~bgd~awAG6I-P3Ri7vJnTYK8zAdh5hJ7gnajFt5JSlRXPE9v8SMIIpmGRCkMF4uStUQ6oQBo1Ka~UpOAei9E7MWjnvNcHBUSmbtZzSCYsX3wr5mxpcfD3EuGU7gK6dx3WeGyAVHXQCd1i8bhLh9ihNXTmB~tuLnjEctoSl8LVrHi83giQtzL2vDU6ceB2v3kUNcpwp3yORqyrpwBija3QuXKWXsF8J8JYZEQ1cyUEZRvv8CwKv3v18tfDMkSHsZZNl8nU9iEf4slnERMCIaHC17E5YogoMcDtzinWmb3mLxOZLXMo9IzShjXytuHmNBqp3Ui2ajGQ__&amp;Key-Pair-Id=APKA26BID7YIZU7LYRQT" alt="Guest receipt modal" data-show-caption="true"><div class="prose-image-frame relative inline-block max-w-full p-2 rounded-2xl bg-zinc-50/50 dark:bg-zinc-800/25 overflow-hidden mx-auto" style=""><div class="prose-image-frame-border absolute inset-0 pointer-events-none rounded-2xl border border-black/5 dark:border-white/5"></div><div class="prose-image-container relative rounded-2xl overflow-hidden flex justify-center"><div class="prose-image-content relative flex items-center max-w-full"><img class="prose-img tiptap-image-img max-w-full h-auto rounded-2xl block w-full" src="https://d14xczjzvlshjn.cloudfront.net/screencasts/scrcst_nznasloobilhgyx1/processed/article_video_frames/frame-59500-d305219f-a7da-4c90-87c6-ca01854f867c.jpg?Expires=1816131666&amp;Signature=AoNrcG75XwbNF~bgd~awAG6I-P3Ri7vJnTYK8zAdh5hJ7gnajFt5JSlRXPE9v8SMIIpmGRCkMF4uStUQ6oQBo1Ka~UpOAei9E7MWjnvNcHBUSmbtZzSCYsX3wr5mxpcfD3EuGU7gK6dx3WeGyAVHXQCd1i8bhLh9ihNXTmB~tuLnjEctoSl8LVrHi83giQtzL2vDU6ceB2v3kUNcpwp3yORqyrpwBija3QuXKWXsF8J8JYZEQ1cyUEZRvv8CwKv3v18tfDMkSHsZZNl8nU9iEf4slnERMCIaHC17E5YogoMcDtzinWmb3mLxOZLXMo9IzShjXytuHmNBqp3Ui2ajGQ__&amp;Key-Pair-Id=APKA26BID7YIZU7LYRQT" alt="Guest receipt modal"></div></div><figcaption class="prose-image-caption tiptap-image-caption mt-2 text-sm text-center text-zinc-600 dark:text-zinc-400 px-2">The Guest Receipt modal displays a detailed price breakdown, including daily rates, cleaning fees, and the balance due.</figcaption></div></figure><h3 class="prose-h3 text-xl font-semibold mt-8 first:mt-0 text-zinc-900 dark:text-zinc-100">Step 2: Print or Save as PDF</h3><p class="prose-p text-base leading-relaxed my-4 first:mt-0 last:mb-0 text-zinc-900 dark:text-zinc-400">Inside the receipt modal, you will see a summary of the stay, including the host information, price breakdown (cleaning fee, refundable deposit, application fee), and payment status. To save a copy for your records or send it to the guest, click the <strong class="prose-strong font-semibold text-zinc-950 dark:text-white">Print</strong> icon at the top of the modal.</p><figure class="prose-image my-8" data-align="center" src="https://d14xczjzvlshjn.cloudfront.net/screencasts/scrcst_nznasloobilhgyx1/processed/article_video_frames/frame-65500-90bf6299-3b3f-4abd-83d1-528a84853d3a.jpg?Expires=1816131666&amp;Signature=cCAZ6RQafDE3byxZU0pAaHzxDuUyx2VZia152cF0Lqy74p9M1wJIMskqDSFeR2qxqPSmsMfAJyIrTLHSCZFNdMIQUazBvPUJ4fueo3uPJySS31-3lmDVric123PRO716~v2~UXwFchOXRuCfXrlgz2R8ueu2KP7wuaEF9Q~Oad9GU3fCJb0DhrqapU-d5OW~RnUM0P6nS2fAn23PHuDblH47mrMWFTNtXSa0BvtQlZfNtCuwZOQqZCFDVxf6Jec~OxIsye6EghGufAVB9f4Cjb9cqQFg7hIT2tLY5VSNSdeeaVh~09pchH8HoVk3~UeBXLP8XwUBEazH0gdTjk3xdg__&amp;Key-Pair-Id=APKA26BID7YIZU7LYRQT" alt="Printing the guest receipt" data-show-caption="true"><div class="prose-image-frame relative inline-block max-w-full p-2 rounded-2xl bg-zinc-50/50 dark:bg-zinc-800/25 overflow-hidden mx-auto" style=""><div class="prose-image-frame-border absolute inset-0 pointer-events-none rounded-2xl border border-black/5 dark:border-white/5"></div><div class="prose-image-container relative rounded-2xl overflow-hidden flex justify-center"><div class="prose-image-content relative flex items-center max-w-full"><img class="prose-img tiptap-image-img max-w-full h-auto rounded-2xl block w-full" src="https://d14xczjzvlshjn.cloudfront.net/screencasts/scrcst_nznasloobilhgyx1/processed/article_video_frames/frame-65500-90bf6299-3b3f-4abd-83d1-528a84853d3a.jpg?Expires=1816131666&amp;Signature=cCAZ6RQafDE3byxZU0pAaHzxDuUyx2VZia152cF0Lqy74p9M1wJIMskqDSFeR2qxqPSmsMfAJyIrTLHSCZFNdMIQUazBvPUJ4fueo3uPJySS31-3lmDVric123PRO716~v2~UXwFchOXRuCfXrlgz2R8ueu2KP7wuaEF9Q~Oad9GU3fCJb0DhrqapU-d5OW~RnUM0P6nS2fAn23PHuDblH47mrMWFTNtXSa0BvtQlZfNtCuwZOQqZCFDVxf6Jec~OxIsye6EghGufAVB9f4Cjb9cqQFg7hIT2tLY5VSNSdeeaVh~09pchH8HoVk3~UeBXLP8XwUBEazH0gdTjk3xdg__&amp;Key-Pair-Id=APKA26BID7YIZU7LYRQT" alt="Printing the guest receipt"></div></div><figcaption class="prose-image-caption tiptap-image-caption mt-2 text-sm text-center text-zinc-600 dark:text-zinc-400 px-2">The print preview interface allows you to save the generated receipt as a PDF or send it directly to a connected printer.</figcaption></div></figure><h2 class="prose-h2 text-2xl font-semibold mt-10 first:mt-0 text-zinc-900 dark:text-zinc-100">Exporting Reservation Reports</h2><p class="prose-p text-base leading-relaxed my-4 first:mt-0 last:mb-0 text-zinc-900 dark:text-zinc-400">For high-level management and bookkeeping, you may need to export data for multiple reservations at once. The <strong class="prose-strong font-semibold text-zinc-950 dark:text-white">Print Report</strong> feature serves this purpose by consolidating booking data and guest documents into a single file.</p><h3 class="prose-h3 text-xl font-semibold mt-8 first:mt-0 text-zinc-900 dark:text-zinc-100">Step 1: Filter Your View</h3><p class="prose-p text-base leading-relaxed my-4 first:mt-0 last:mb-0 text-zinc-900 dark:text-zinc-400">Before generating a report, use the status tabs (e.g., <strong class="prose-strong font-semibold text-zinc-950 dark:text-white">Upcoming</strong>, <strong class="prose-strong font-semibold text-zinc-950 dark:text-white">Executed</strong>) to filter the list to the specific set of reservations you want to include. For example, selecting the <strong class="prose-strong font-semibold text-zinc-950 dark:text-white">Upcoming</strong> tab will isolate bookings that haven't started yet.</p><figure class="prose-image my-8" data-align="center" src="https://d14xczjzvlshjn.cloudfront.net/screencasts/scrcst_nznasloobilhgyx1/processed/article_video_frames/frame-83500-ab8c7faf-b409-41e0-851f-51bb74f3cfb7.jpg?Expires=1816131666&amp;Signature=gtHUOzC7XdjLnr87UEUSOoi5byb1A-fIi1dhLslc~0XBKsE0umd~l-VXaQR6MYdMkY4ILRzF5wrVlFFxyOzQumwIwS2h7iPfO8qpGuUl6iseliPaEuINyRxX3~AyxruNzCT4YKsgt5yjDm1UCg54L~RPIH4nwAsxlWYR5DPSjG3gLccn644oie4WWBMzerh33byT0fxPXJTXO4x23Fw1pnqkFX2bjVRFR1fxSUh4ElP4NR9Io1C4SQRqfjvglQjJV0MF966RPk6vsQ~AQ~YenA7-2U3qcIBDSXKydpIV~fekcx2zd22iNIHLZozHyb31IPVd4ZDs7Otk~V-Ufm9HYw__&amp;Key-Pair-Id=APKA26BID7YIZU7LYRQT" alt="Filtering upcoming reservations" data-show-caption="true"><div class="prose-image-frame relative inline-block max-w-full p-2 rounded-2xl bg-zinc-50/50 dark:bg-zinc-800/25 overflow-hidden mx-auto" style=""><div class="prose-image-frame-border absolute inset-0 pointer-events-none rounded-2xl border border-black/5 dark:border-white/5"></div><div class="prose-image-container relative rounded-2xl overflow-hidden flex justify-center"><div class="prose-image-content relative flex items-center max-w-full"><img class="prose-img tiptap-image-img max-w-full h-auto rounded-2xl block w-full" src="https://d14xczjzvlshjn.cloudfront.net/screencasts/scrcst_nznasloobilhgyx1/processed/article_video_frames/frame-83500-ab8c7faf-b409-41e0-851f-51bb74f3cfb7.jpg?Expires=1816131666&amp;Signature=gtHUOzC7XdjLnr87UEUSOoi5byb1A-fIi1dhLslc~0XBKsE0umd~l-VXaQR6MYdMkY4ILRzF5wrVlFFxyOzQumwIwS2h7iPfO8qpGuUl6iseliPaEuINyRxX3~AyxruNzCT4YKsgt5yjDm1UCg54L~RPIH4nwAsxlWYR5DPSjG3gLccn644oie4WWBMzerh33byT0fxPXJTXO4x23Fw1pnqkFX2bjVRFR1fxSUh4ElP4NR9Io1C4SQRqfjvglQjJV0MF966RPk6vsQ~AQ~YenA7-2U3qcIBDSXKydpIV~fekcx2zd22iNIHLZozHyb31IPVd4ZDs7Otk~V-Ufm9HYw__&amp;Key-Pair-Id=APKA26BID7YIZU7LYRQT" alt="Filtering upcoming reservations"></div></div><figcaption class="prose-image-caption tiptap-image-caption mt-2 text-sm text-center text-zinc-600 dark:text-zinc-400 px-2">Filtering the reservations list by status ensures that only relevant bookings are included in the generated report.</figcaption></div></figure><h3 class="prose-h3 text-xl font-semibold mt-8 first:mt-0 text-zinc-900 dark:text-zinc-100">Step 2: Generate the Print Report</h3><p class="prose-p text-base leading-relaxed my-4 first:mt-0 last:mb-0 text-zinc-900 dark:text-zinc-400">Click the <strong class="prose-strong font-semibold text-zinc-950 dark:text-white">Print Report</strong> button located at the top right of the Reservations page. A dropdown will appear with options such as <strong class="prose-strong font-semibold text-zinc-950 dark:text-white">All Reservations</strong>, <strong class="prose-strong font-semibold text-zinc-950 dark:text-white">Current Month</strong>, or <strong class="prose-strong font-semibold text-zinc-950 dark:text-white">Upcoming Reservations</strong>. Choosing <strong class="prose-strong font-semibold text-zinc-950 dark:text-white">Upcoming Reservations</strong> will open a new formatted view ready for export.</p><figure class="prose-image my-8" data-align="center" src="https://d14xczjzvlshjn.cloudfront.net/screencasts/scrcst_nznasloobilhgyx1/processed/article_video_frames/frame-91500-4eb7bbb6-c4e9-4fd8-afca-ae28383d3d0c.jpg?Expires=1816131667&amp;Signature=h1qIW8c53c1~SjyEzGgOKedTFSIGNtYqajBX5A-l1RGHtqYWZgk9Lgfef0fTAncruwcLBFUcucz81t5FB9GBVr-DlZWFhwpjic4~VUFZC~2JR61CvjstMdihxRhZGWFudySRWPVzlxPHuaLEQPTixBwd-goFCFN95E1LhgQGHg5SBteUYEIZCQspdZjAOv8xIiLLNv2N0AaaPUUqPaSH0Ff~Ei65FAYVVAH1ChtjyEB6~duacu~wVhYNoTHT78ChJaAAWPSjvz1a7bFkCV~FY-umPFCWFQc9pNl~a~p5VsOiTqpb~JRrSZcmrbko88HjdMVstDJjmupUZg6YyaUSnA__&amp;Key-Pair-Id=APKA26BID7YIZU7LYRQT" alt="Selecting report type" data-show-caption="true"><div class="prose-image-frame relative inline-block max-w-full p-2 rounded-2xl bg-zinc-50/50 dark:bg-zinc-800/25 overflow-hidden mx-auto" style=""><div class="prose-image-frame-border absolute inset-0 pointer-events-none rounded-2xl border border-black/5 dark:border-white/5"></div><div class="prose-image-container relative rounded-2xl overflow-hidden flex justify-center"><div class="prose-image-content relative flex items-center max-w-full"><img class="prose-img tiptap-image-img max-w-full h-auto rounded-2xl block w-full" src="https://d14xczjzvlshjn.cloudfront.net/screencasts/scrcst_nznasloobilhgyx1/processed/article_video_frames/frame-91500-4eb7bbb6-c4e9-4fd8-afca-ae28383d3d0c.jpg?Expires=1816131667&amp;Signature=h1qIW8c53c1~SjyEzGgOKedTFSIGNtYqajBX5A-l1RGHtqYWZgk9Lgfef0fTAncruwcLBFUcucz81t5FB9GBVr-DlZWFhwpjic4~VUFZC~2JR61CvjstMdihxRhZGWFudySRWPVzlxPHuaLEQPTixBwd-goFCFN95E1LhgQGHg5SBteUYEIZCQspdZjAOv8xIiLLNv2N0AaaPUUqPaSH0Ff~Ei65FAYVVAH1ChtjyEB6~duacu~wVhYNoTHT78ChJaAAWPSjvz1a7bFkCV~FY-umPFCWFQc9pNl~a~p5VsOiTqpb~JRrSZcmrbko88HjdMVstDJjmupUZg6YyaUSnA__&amp;Key-Pair-Id=APKA26BID7YIZU7LYRQT" alt="Selecting report type"></div></div><figcaption class="prose-image-caption tiptap-image-caption mt-2 text-sm text-center text-zinc-600 dark:text-zinc-400 px-2">The Print Report menu provides options to export all records or specific categories like current month or upcoming stays.</figcaption></div></figure><h3 class="prose-h3 text-xl font-semibold mt-8 first:mt-0 text-zinc-900 dark:text-zinc-100">Step 3: Review and Export the Consolidated Report</h3><p class="prose-p text-base leading-relaxed my-4 first:mt-0 last:mb-0 text-zinc-900 dark:text-zinc-400">The generated report includes a summary table of <strong class="prose-strong font-semibold text-zinc-950 dark:text-white">Upcoming Reservations</strong> with columns for reservation ID, guest name, property, check-in/out dates, and status. Below the table, the report also compiles <strong class="prose-strong font-semibold text-zinc-950 dark:text-white">Guest photos &amp; documents</strong>, such as ID uploads or profile pictures, providing a complete packet of information.</p><figure class="prose-image my-8" data-align="center" src="https://d14xczjzvlshjn.cloudfront.net/screencasts/scrcst_nznasloobilhgyx1/processed/article_video_frames/frame-98500-9c2ad54b-662e-4c3c-a91f-96f152dd2ab1.jpg?Expires=1816131667&amp;Signature=TIlFYxCDmEWf3NcPukcB-6WqcZy3y3n5RSIg~W4bsMYRxD1U~9uf9O5sJgjjP6h79zE5kYBq8wNYHXjGYVJettYsiMVK~jdd0tZW3ORimqIp-KeZc6~d~WPAe6zPwxproQi6LYbObLL52aW~uTXW8a5vlH9ln2l9FL04-U5PPs6QMuEYG7IozJCTkrOJZpoPli3ZRP7cmUY8TbgJ~0fGwVoHz~X4nSrjOVaDvsufzFBZaD7Y~Isr~0mT8m-Vq6gyGPS-D5JT2aMWqJNwOsfETRPHwKWCWJlETvBcJ-J7vVG8wOtXXV1WXOZOmb0klkYqba9q~2Og7i5Pild3VvZkUQ__&amp;Key-Pair-Id=APKA26BID7YIZU7LYRQT" alt="Consolidated reservation report" data-show-caption="true"><div class="prose-image-frame relative inline-block max-w-full p-2 rounded-2xl bg-zinc-50/50 dark:bg-zinc-800/25 overflow-hidden mx-auto" style=""><div class="prose-image-frame-border absolute inset-0 pointer-events-none rounded-2xl border border-black/5 dark:border-white/5"></div><div class="prose-image-container relative rounded-2xl overflow-hidden flex justify-center"><div class="prose-image-content relative flex items-center max-w-full"><img class="prose-img tiptap-image-img max-w-full h-auto rounded-2xl block w-full" src="https://d14xczjzvlshjn.cloudfront.net/screencasts/scrcst_nznasloobilhgyx1/processed/article_video_frames/frame-98500-9c2ad54b-662e-4c3c-a91f-96f152dd2ab1.jpg?Expires=1816131667&amp;Signature=TIlFYxCDmEWf3NcPukcB-6WqcZy3y3n5RSIg~W4bsMYRxD1U~9uf9O5sJgjjP6h79zE5kYBq8wNYHXjGYVJettYsiMVK~jdd0tZW3ORimqIp-KeZc6~d~WPAe6zPwxproQi6LYbObLL52aW~uTXW8a5vlH9ln2l9FL04-U5PPs6QMuEYG7IozJCTkrOJZpoPli3ZRP7cmUY8TbgJ~0fGwVoHz~X4nSrjOVaDvsufzFBZaD7Y~Isr~0mT8m-Vq6gyGPS-D5JT2aMWqJNwOsfETRPHwKWCWJlETvBcJ-J7vVG8wOtXXV1WXOZOmb0klkYqba9q~2Og7i5Pild3VvZkUQ__&amp;Key-Pair-Id=APKA26BID7YIZU7LYRQT" alt="Consolidated reservation report"></div></div><figcaption class="prose-image-caption tiptap-image-caption mt-2 text-sm text-center text-zinc-600 dark:text-zinc-400 px-2">The final report view aggregates booking details and guest-uploaded documentation into a structured, printable format.</figcaption></div></figure><div class="prose-callout flex gap-3 my-4 p-4 px-5 rounded-2xl border overflow-hidden prose-callout-tip border-emerald-500/20 bg-emerald-50/50 dark:bg-emerald-500/10 dark:border-emerald-500/30" data-type="callout" data-callout-type="tip"><div class="prose-callout-icon flex-shrink-0 mt-0.5 w-4 flex items-start justify-center text-emerald-600 dark:text-emerald-400/80 w-3.5 h-auto" data-callout-icon="tip"><svg class="callout-icon-svg" viewBox="0 0 11 14" fill="currentColor"><path d="M3.12794 12.4232C3.12794 12.5954 3.1776 12.7634 3.27244 12.907L3.74114 13.6095C3.88471 13.8248 4.21067 14 4.46964 14H6.15606C6.41415 14 6.74017 13.825 6.88373 13.6095L7.3508 12.9073C7.43114 12.7859 7.49705 12.569 7.49705 12.4232L7.50055 11.3513H3.12521L3.12794 12.4232ZM5.31288 0C2.52414 0.00875889 0.5 2.26889 0.5 4.78826C0.5 6.00188 0.949566 7.10829 1.69119 7.95492C2.14321 8.47011 2.84901 9.54727 3.11919 10.4557C3.12005 10.4625 3.12175 10.4698 3.12261 10.4771H7.50342C7.50427 10.4698 7.50598 10.463 7.50684 10.4557C7.77688 9.54727 8.48281 8.47011 8.93484 7.95492C9.67728 7.13181 10.1258 6.02703 10.1258 4.78826C10.1258 2.15486 7.9709 0.000106649 5.31288 0ZM7.94902 7.11267C7.52078 7.60079 6.99082 8.37878 6.6077 9.18794H4.02051C3.63739 8.37878 3.10743 7.60079 2.67947 7.11294C2.11997 6.47551 1.8126 5.63599 1.8126 4.78826C1.8126 3.09829 3.12794 1.31944 5.28827 1.3126C7.2435 1.3126 8.81315 2.88226 8.81315 4.78826C8.81315 5.63599 8.50688 6.47551 7.94902 7.11267ZM4.87534 2.18767C3.66939 2.18767 2.68767 3.16939 2.68767 4.37534C2.68767 4.61719 2.88336 4.81288 3.12521 4.81288C3.36705 4.81288 3.56274 4.61599 3.56274 4.37534C3.56274 3.6515 4.1515 3.06274 4.87534 3.06274C5.11719 3.06274 5.31288 2.86727 5.31288 2.62548C5.31288 2.38369 5.11599 2.18767 4.87534 2.18767Z"/></svg></div><div class="prose-callout-content flex-1 min-w-0 text-sm leading-relaxed [&amp;&gt;p]:m-0 [&amp;_a]:text-current [&amp;_a]:border-current [&amp;_code]:text-current text-emerald-950 dark:text-emerald-100"><p class="prose-p text-base leading-relaxed my-4 first:mt-0 last:mb-0 text-zinc-900 dark:text-zinc-400">When exporting reports, you can use the <strong class="prose-strong font-semibold text-zinc-950 dark:text-white">Print / Save as PDF</strong> button at the top of the report preview to generate a digital file for offline use or physical filing.</p></div></div><h2 class="prose-h2 text-2xl font-semibold mt-10 first:mt-0 text-zinc-900 dark:text-zinc-100">Conclusion</h2><p class="prose-p text-base leading-relaxed my-4 first:mt-0 last:mb-0 text-zinc-900 dark:text-zinc-400">Mastering the reservation management tools in <strong class="prose-strong font-semibold text-zinc-950 dark:text-white">Favhost</strong> ensures that your rental business operates smoothly and professionally. By utilizing the detailed reservation views, editing capabilities, and guest receipt generation, you can provide high-quality service to your guests while maintaining precise financial records. The ability to export filtered reports further simplifies your administrative tasks, giving you a clear overview of your performance and upcoming occupancy at any time.</p><p class="prose-p text-base leading-relaxed my-4 first:mt-0 last:mb-0 text-zinc-900 dark:text-zinc-400">As a next step, consider exploring the <strong class="prose-strong font-semibold text-zinc-950 dark:text-white">Calendar</strong> view to manage your property availability alongside these reservation records.</p><h2 class="prose-h2 text-2xl font-semibold mt-10 first:mt-0 text-zinc-900 dark:text-zinc-100">FAQ</h2><ul class="prose-ul list-disc pl-6 my-6 space-y-1"><li class="prose-li text-zinc-700 dark:text-zinc-300"><p class="prose-p text-base leading-relaxed my-4 first:mt-0 last:mb-0 text-zinc-900 dark:text-zinc-400"><strong class="prose-strong font-semibold text-zinc-950 dark:text-white">How do I find a specific guest's payment history?</strong></p><p class="prose-p text-base leading-relaxed my-4 first:mt-0 last:mb-0 text-zinc-900 dark:text-zinc-400">Navigate to the <strong class="prose-strong font-semibold text-zinc-950 dark:text-white">Reservations</strong> tab, find the guest, and click on <strong class="prose-strong font-semibold text-zinc-950 dark:text-white">Reservation details</strong>. The <strong class="prose-strong font-semibold text-zinc-950 dark:text-white">Payment Schedule</strong> section provides a complete history of due dates and amounts for that specific booking.</p></li><li class="prose-li text-zinc-700 dark:text-zinc-300"><p class="prose-p text-base leading-relaxed my-4 first:mt-0 last:mb-0 text-zinc-900 dark:text-zinc-400"><strong class="prose-strong font-semibold text-zinc-950 dark:text-white">Can I update a guest's contact information after they have booked?</strong></p><p class="prose-p text-base leading-relaxed my-4 first:mt-0 last:mb-0 text-zinc-900 dark:text-zinc-400">Yes. Use the <strong class="prose-strong font-semibold text-zinc-950 dark:text-white">Edit</strong> option in the three-dot menu for any reservation to modify guest names, phone numbers, and email addresses.</p></li><li class="prose-li text-zinc-700 dark:text-zinc-300"><p class="prose-p text-base leading-relaxed my-4 first:mt-0 last:mb-0 text-zinc-900 dark:text-zinc-400"><strong class="prose-strong font-semibold text-zinc-950 dark:text-white">What is the difference between the 'Executed' and 'No Show' tabs?</strong></p><p class="prose-p text-base leading-relaxed my-4 first:mt-0 last:mb-0 text-zinc-900 dark:text-zinc-400">The <strong class="prose-strong font-semibold text-zinc-950 dark:text-white">Executed</strong> tab contains completed stays where the guest checked in and out as planned. The <strong class="prose-strong font-semibold text-zinc-950 dark:text-white">No Show</strong> tab is for reservations where the guest failed to arrive.</p></li><li class="prose-li text-zinc-700 dark:text-zinc-300"><p class="prose-p text-base leading-relaxed my-4 first:mt-0 last:mb-0 text-zinc-900 dark:text-zinc-400"><strong class="prose-strong font-semibold text-zinc-950 dark:text-white">Can I export a report for just one specific property?</strong></p><p class="prose-p text-base leading-relaxed my-4 first:mt-0 last:mb-0 text-zinc-900 dark:text-zinc-400">While the <strong class="prose-strong font-semibold text-zinc-950 dark:text-white">Print Report</strong> feature defaults to the current filtered list, you can use the search bar or property filters (if available in your specific dashboard configuration) to isolate a property before clicking <strong class="prose-strong font-semibold text-zinc-950 dark:text-white">Print Report</strong>.</p></li><li class="prose-li text-zinc-700 dark:text-zinc-300"><p class="prose-p text-base leading-relaxed my-4 first:mt-0 last:mb-0 text-zinc-900 dark:text-zinc-400"><strong class="prose-strong font-semibold text-zinc-950 dark:text-white">Are guest documents included in the printed reports?</strong></p><p class="prose-p text-base leading-relaxed my-4 first:mt-0 last:mb-0 text-zinc-900 dark:text-zinc-400">Yes, the consolidated reports automatically include guest photos and uploaded identification documents at the bottom of the summary table.</p></li><li class="prose-li text-zinc-700 dark:text-zinc-300"><p class="prose-p text-base leading-relaxed my-4 first:mt-0 last:mb-0 text-zinc-900 dark:text-zinc-400"><strong class="prose-strong font-semibold text-zinc-950 dark:text-white">How can I send a receipt to a guest?</strong></p><p class="prose-p text-base leading-relaxed my-4 first:mt-0 last:mb-0 text-zinc-900 dark:text-zinc-400">Open the <strong class="prose-strong font-semibold text-zinc-950 dark:text-white">Guest Receipt</strong> from the reservation's menu, then use the <strong class="prose-strong font-semibold text-zinc-950 dark:text-white">Print</strong> icon to save the receipt as a PDF. You can then email this PDF file directly to your guest.</p></li><li class="prose-li text-zinc-700 dark:text-zinc-300"><p class="prose-p text-base leading-relaxed my-4 first:mt-0 last:mb-0 text-zinc-900 dark:text-zinc-400"><strong class="prose-strong font-semibold text-zinc-950 dark:text-white">What should I do if a reservation is incorrectly categorized?</strong></p><p class="prose-p text-base leading-relaxed my-4 first:mt-0 last:mb-0 text-zinc-900 dark:text-zinc-400">You can use the <strong class="prose-strong font-semibold text-zinc-950 dark:text-white">Edit</strong> function to adjust booking details, or use status-specific actions in the menu (like marking a no-show) to move the reservation to the correct tab.</p></li></ul><p class="prose-p text-base leading-relaxed my-4 first:mt-0 last:mb-0 text-zinc-900 dark:text-zinc-400"></p>
+  </article>
+</body>
+</html>
