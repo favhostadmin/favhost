@@ -1,0 +1,887 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FavHost Tutorials</title>
+<meta name="description" content="Video walkthroughs and written guides for FavHost — the property management platform that keeps your listings, bookings, and finances in sync.">
+<link href="/static/website/img/fev.png" rel="icon" type="image/png">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700&family=IBM+Plex+Mono:wght@400;500&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+
+<style>
+/* ============================================================
+   FAVHOST TUTORIALS — all styles live in this one block
+   Palette is taken from the product's own booking-status colours:
+   synced teal, pending amber, blocked grey.
+   ============================================================ */
+
+:root{
+  --ink:        #12232B;   /* deep slate-teal — sidebar + headings */
+  --ink-soft:   #1B3038;   /* raised surface inside sidebar        */
+  --synced:     #1F6F6B;   /* primary — "synced / confirmed"       */
+  --synced-lit: #43A29B;   /* lighter teal for dark backgrounds    */
+  --pending:    #E8A33D;   /* accent — active state, highlights    */
+  --surface:    #FAFAFA;   /* page background                      */
+  --paper:      #FFFFFF;   /* cards + article sheet                */
+  --line:       #DAE4E2;   /* hairlines                            */
+  --body:       #33474C;   /* body copy                            */
+  --muted:      #6A807D;   /* secondary copy                       */
+
+  --display: "Bricolage Grotesque", "Trebuchet MS", system-ui, sans-serif;
+  --text:    "Source Sans 3", -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono:    "IBM Plex Mono", ui-monospace, "SF Mono", Consolas, monospace;
+
+  --sidebar-w: 320px;
+  --radius: 12px;
+  --shadow: 0 1px 2px rgba(18,35,43,.05), 0 8px 24px -12px rgba(18,35,43,.18);
+}
+
+*,*::before,*::after{ box-sizing:border-box; }
+
+html{ scroll-behavior:smooth; width:100%; }
+
+body{
+  margin:0;
+  width:100%;
+  min-width:0;
+  background:var(--surface);
+  color:var(--body);
+  font-family:var(--text);
+  font-size:17px;
+  line-height:1.65;
+  -webkit-font-smoothing:antialiased;
+}
+
+a{ color:var(--synced); }
+
+.skip{
+  position:absolute; left:-9999px;
+  background:var(--ink); color:#fff;
+  padding:12px 18px; border-radius:0 0 8px 0; z-index:99;
+}
+.skip:focus{ left:0; top:0; }
+
+:focus-visible{
+  outline:2px solid var(--pending);
+  outline-offset:2px;
+  border-radius:4px;
+}
+
+/* ---------- top bar ---------- */
+.topbar{
+  display:flex; align-items:center; gap:16px;
+  padding:0 26px; height:64px;
+  background:#313131;
+  color:#fff;
+  position:sticky; top:0; z-index:40;
+}
+
+.brand{
+  display:flex; align-items:center;
+  text-decoration:none;
+}
+.brand img{
+  height:32px; width:auto; display:block;
+}
+
+.topbar .divider{
+  width:1px; height:22px;
+  background:rgba(255,255,255,.16);
+}
+
+.topbar .section-name{
+  font-family:var(--mono);
+  font-size:11.5px; letter-spacing:.16em; text-transform:uppercase;
+  color:rgba(255,255,255,.62);
+}
+
+.topbar .spacer{ flex:1; }
+
+/* mobile menu button — hidden on desktop */
+.menu-btn{
+  display:none;
+  font-family:var(--mono); font-size:12px; letter-spacing:.08em;
+  text-transform:uppercase;
+  background:rgba(255,255,255,.09);
+  color:#fff; border:1px solid rgba(255,255,255,.18);
+  padding:8px 13px; border-radius:7px; cursor:pointer;
+}
+
+/* ---------- shell ---------- */
+.shell{
+  display:grid;
+  grid-template-columns:var(--sidebar-w) minmax(0,1fr);
+  align-items:start;
+  min-height:calc(100vh - 64px);
+  width:100%;
+}
+
+/* ---------- sidebar index ---------- */
+.sidebar{
+  background:var(--ink);
+  color:#fff;
+  padding:30px 20px 40px;
+  position:sticky; top:64px;
+  align-self:stretch;
+  height:calc(100vh - 64px);
+  overflow-y:auto;
+}
+
+.sidebar .eyebrow{
+  font-family:var(--mono);
+  font-size:11px; letter-spacing:.18em; text-transform:uppercase;
+  color:rgba(255,255,255,.45);
+  margin:0 0 6px 4px;
+}
+
+.sidebar .sidebar-title{
+  font-family:var(--display);
+  font-size:24px; font-weight:600; letter-spacing:-.02em;
+  color:#fff; margin:0 0 4px 4px; line-height:1.2;
+}
+
+.sidebar .sidebar-note{
+  font-size:14px; color:rgba(255,255,255,.5);
+  margin:0 4px 24px; line-height:1.5;
+}
+
+.topic-list{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:6px; }
+
+/* Each topic sits in the sidebar like a booked date-range in the
+   calendar grid: a status rail on the left, a date-cell number,
+   then the label. Active = a solid, filled block. */
+.topic{
+  position:relative;
+  display:grid;
+  grid-template-columns:30px minmax(0,1fr);
+  gap:13px; align-items:start;
+  width:100%; text-align:left;
+  padding:13px 14px 14px 18px;
+  background:transparent; border:0;
+  border-radius:10px;
+  color:rgba(255,255,255,.8);
+  font-family:var(--text); font-size:16px;
+  cursor:pointer;
+  transition:background .18s ease, color .18s ease;
+}
+.topic::before{
+  content:"";
+  position:absolute; left:6px; top:12px; bottom:12px;
+  width:3px; border-radius:3px;
+  background:rgba(255,255,255,.16);
+  transition:background .18s ease, top .18s ease, bottom .18s ease;
+}
+.topic:hover{ background:rgba(255,255,255,.055); color:#fff; }
+.topic:hover::before{ background:var(--synced-lit); }
+
+.topic[aria-current="true"]{
+  background:var(--ink-soft);
+  color:#fff;
+}
+.topic[aria-current="true"]::before{
+  background:var(--pending);
+  top:6px; bottom:6px;
+}
+
+.topic .cell{
+  font-family:var(--mono);
+  font-size:12px; font-weight:500;
+  display:grid; place-items:center;
+  height:30px; width:30px;
+  border:1px solid rgba(255,255,255,.18);
+  border-radius:7px;
+  color:rgba(255,255,255,.6);
+  transition:border-color .18s ease, color .18s ease, background .18s ease;
+}
+.topic[aria-current="true"] .cell{
+  background:var(--pending);
+  border-color:var(--pending);
+  color:var(--ink);
+}
+
+.topic .label{ font-weight:600; line-height:1.35; }
+.topic .blurb{
+  display:block;
+  font-size:13.5px; font-weight:400; line-height:1.45;
+  color:rgba(255,255,255,.48);
+  margin-top:3px;
+}
+.topic[aria-current="true"] .blurb{ color:rgba(255,255,255,.62); }
+
+.legend{
+  margin-top:28px; padding-top:20px;
+  border-top:1px solid rgba(255,255,255,.1);
+  font-size:13px; color:rgba(255,255,255,.42);
+  line-height:1.6;
+  padding-left:4px;
+}
+.legend strong{
+  display:block;
+  font-family:var(--mono); font-size:10.5px;
+  letter-spacing:.16em; text-transform:uppercase;
+  color:rgba(255,255,255,.35); font-weight:400;
+  margin-bottom:7px;
+}
+
+/* ---------- main column ---------- */
+.main{ padding:34px 40px 72px; max-width:1000px; width:100%; min-width:0; margin:0 auto; }
+
+.crumb{
+  font-family:var(--mono);
+  font-size:11.5px; letter-spacing:.14em; text-transform:uppercase;
+  color:var(--muted); margin-bottom:12px;
+}
+
+.lesson-title{
+  font-family:var(--display);
+  font-size:clamp(28px, 3.6vw, 40px);
+  font-weight:600; letter-spacing:-.025em; line-height:1.12;
+  color:var(--ink);
+  margin:0 0 26px;
+}
+
+/* video stage */
+.stage{
+  background:var(--ink);
+  border-radius:var(--radius);
+  overflow:hidden;
+  box-shadow:var(--shadow);
+}
+.frame{
+  position:relative;
+  width:100%; aspect-ratio:16/9;
+  background:#000;
+}
+.frame iframe{
+  position:absolute; inset:0;
+  width:100%; height:100%; border:0;
+}
+.stage-bar{
+  display:flex; align-items:center; gap:14px; flex-wrap:wrap;
+  padding:13px 18px;
+}
+.stage-bar .tag{
+  font-family:var(--mono);
+  font-size:11px; letter-spacing:.14em; text-transform:uppercase;
+  color:rgba(255,255,255,.5);
+}
+/* second video (for topics with a bonus companion clip) */
+.stage-secondary{
+  margin-top:16px;
+}
+.stage-secondary .stage-label{
+  font-family:var(--mono);
+  font-size:11px; letter-spacing:.14em; text-transform:uppercase;
+  color:var(--muted);
+  margin:0 0 10px;
+}
+
+/* article sheet */
+.article-head{
+  display:flex; align-items:center; gap:14px;
+  margin:44px 0 0;
+}
+.article-head h2{
+  font-family:var(--mono);
+  font-size:11.5px; font-weight:500; letter-spacing:.18em; text-transform:uppercase;
+  color:var(--muted);
+  margin:0; white-space:nowrap;
+}
+.article-head .rule{ flex:1; height:1px; background:var(--line); }
+
+.article{
+  background:var(--paper);
+  border:1px solid var(--line);
+  border-radius:var(--radius);
+  padding:38px 44px 42px;
+  margin-top:18px;
+  box-shadow:var(--shadow);
+  max-width:100%;
+  overflow-x:hidden;
+}
+.article *{ max-width:100%; }
+
+/* The source files wrap their content in their own <article class="prose-article">
+   with an inline style (max-width:768px; margin:0 auto; padding:3rem 3rem 30vh) —
+   nested one level inside our .article card, that stacks on top of the card's own
+   padding and adds a huge empty gap at the bottom. Neutralise it so our card owns
+   the spacing instead. */
+.article .prose-article{
+  max-width:none !important;
+  width:auto !important;
+  margin:0 !important;
+  padding:0 !important;
+}
+
+/* typography for whatever markup the article files bring with them */
+.article > :first-child{ margin-top:0; }
+.article > :last-child{ margin-bottom:0; }
+.article .prose-article > :first-child{ margin-top:0 !important; }
+.article .prose-article > :last-child{ margin-bottom:0 !important; }
+.article h1,.article h2,.article h3,.article h4{
+  font-family:var(--display);
+  color:var(--ink) !important;
+  letter-spacing:-.02em; line-height:1.25;
+  margin:2em 0 .55em;
+  font-weight:600;
+}
+.article h1{ font-size:29px; }
+.article h2{ font-size:23px; }
+.article h3{ font-size:19px; }
+.article h4{ font-size:17px; }
+.article p{ margin:0 0 1.15em; color:var(--body) !important; }
+.article ul,.article ol{ margin:0 0 1.25em; padding-left:1.35em; }
+.article li{ margin-bottom:.5em; color:var(--body) !important; }
+.article li::marker{ color:var(--synced); font-weight:600; }
+.article a{ color:var(--synced); text-underline-offset:3px; }
+.article a:hover{ color:var(--ink); }
+.article strong{ color:var(--ink) !important; font-weight:700; }
+.article blockquote strong{ color:var(--ink) !important; }
+.article img{
+  max-width:100%; height:auto;
+  border:1px solid var(--line); border-radius:8px;
+  margin:.6em 0 1.4em;
+  display:block;
+}
+.article figure{ margin:0 0 1.4em; background:none !important; padding:0 !important; }
+.article figure > div{ background:none !important; padding:0 !important; }
+.article figure > div > div{ border-radius:8px !important; }
+.article figcaption{ font-size:14px; color:var(--muted) !important; margin-top:8px; text-align:center; }
+.article blockquote{
+  margin:0 0 1.3em;
+  padding:4px 0 4px 20px;
+  border-left:3px solid var(--pending);
+  color:var(--ink) !important;
+}
+.article blockquote p{ color:var(--ink) !important; }
+.article code{
+  font-family:var(--mono); font-size:.87em;
+  background:var(--surface); border:1px solid var(--line);
+  padding:2px 6px; border-radius:5px;
+}
+.article pre{
+  background:var(--ink); color:#E6EFED;
+  padding:18px 20px; border-radius:9px;
+  overflow-x:auto; margin:0 0 1.4em;
+}
+.article pre code{ background:none; border:0; padding:0; color:inherit; }
+.article table{
+  width:100%; border-collapse:collapse;
+  margin:0 0 1.5em; font-size:16px;
+}
+.article th,.article td{
+  border:1px solid var(--line);
+  padding:10px 13px; text-align:left; vertical-align:top;
+}
+.article th{
+  background:var(--surface);
+  font-family:var(--mono); font-size:12px;
+  letter-spacing:.08em; text-transform:uppercase;
+  color:var(--ink); font-weight:500;
+}
+.article hr{ border:0; border-top:1px solid var(--line); margin:2em 0; }
+.article hr + h1,.article hr + h2,.article hr + h3,.article hr + h4{ margin-top:.65em; }
+.article iframe{
+  width:100%; min-height:720px;
+  border:0; display:block;
+}
+/* callouts (tip / warning / info notes) brought in from the source articles.
+   Their color + icon sizing relies on Tailwind utility classes (w-4, h-5, w-3.5,
+   h-auto, text-emerald-600…) that do nothing here since Tailwind isn't loaded on
+   this page — without explicit styling they rendered as oversized plain-text SVGs
+   indistinguishable from ordinary paragraphs. Give each type its own tint so it
+   reads as a callout, not body copy. */
+.article [data-type="callout"]{
+  display:flex; align-items:flex-start; gap:12px;
+  border-radius:8px !important;
+  border:1px solid var(--line);
+  border-left-width:3px;
+  padding:14px 16px !important;
+  margin:0 0 1.4em;
+  background:var(--surface);
+}
+.article [data-callout-icon]{
+  flex:0 0 auto;
+  width:20px; height:20px;
+  border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  margin-top:1px;
+}
+.article [data-callout-icon] svg,
+.article .prose-callout-icon svg,
+.article .callout-icon-svg{
+  width:13px !important; height:13px !important;
+  display:block;
+}
+.article .prose-callout-content{
+  flex:1 1 auto; min-width:0;
+  font-size:15px; line-height:1.55;
+}
+.article .prose-callout-content p{ margin:0; }
+
+.article .prose-callout-tip{
+  background:#ECF6F4; border-color:rgba(31,111,107,.25); border-left-color:var(--synced);
+}
+.article .prose-callout-tip [data-callout-icon]{ background:rgba(31,111,107,.14); color:var(--synced); }
+.article .prose-callout-tip .prose-callout-content{ color:#0F3D3A; }
+
+.article .prose-callout-warning{
+  background:#FDF4E3; border-color:rgba(232,163,61,.35); border-left-color:var(--pending);
+}
+.article .prose-callout-warning [data-callout-icon]{ background:rgba(232,163,61,.2); color:#966016; }
+.article .prose-callout-warning .prose-callout-content{ color:#6B4A0F; }
+
+.article .prose-callout-info{
+  background:#EEF1F2; border-color:rgba(106,128,125,.3); border-left-color:var(--muted);
+}
+.article .prose-callout-info [data-callout-icon]{ background:rgba(106,128,125,.18); color:var(--muted); }
+.article .prose-callout-info .prose-callout-content{ color:var(--ink); }
+
+/* loading + error states */
+.skeleton{ padding:6px 0; }
+.skeleton i{
+  display:block; height:13px; border-radius:6px;
+  background:linear-gradient(90deg,var(--surface),#E9EFEE,var(--surface));
+  background-size:200% 100%;
+  animation:shimmer 1.3s linear infinite;
+  margin-bottom:13px;
+}
+.skeleton i:nth-child(1){ width:52%; height:22px; margin-bottom:22px; }
+.skeleton i:nth-child(4){ width:78%; }
+.skeleton i:nth-child(5){ width:64%; }
+@keyframes shimmer{ from{background-position:200% 0;} to{background-position:-200% 0;} }
+
+.notice{
+  border:1px solid var(--line);
+  border-left:3px solid var(--pending);
+  background:var(--surface);
+  border-radius:8px;
+  padding:18px 22px;
+  font-size:15.5px;
+}
+.notice h3{
+  font-family:var(--display); font-size:17px; font-weight:600;
+  color:var(--ink); margin:0 0 7px;
+}
+.notice p{ margin:0 0 9px; }
+.notice p:last-child{ margin:0; }
+.notice code{
+  font-family:var(--mono); font-size:13.5px;
+  background:var(--paper); border:1px solid var(--line);
+  padding:2px 6px; border-radius:5px;
+  word-break:break-all;
+}
+
+/* prev / next */
+.pager{
+  display:grid; grid-template-columns:1fr 1fr; gap:14px;
+  margin-top:32px;
+}
+.pager button{
+  font-family:var(--text);
+  background:var(--paper);
+  border:1px solid var(--line);
+  border-radius:var(--radius);
+  padding:16px 20px;
+  text-align:left; cursor:pointer;
+  color:var(--ink);
+  min-width:0;
+  transition:border-color .18s ease, transform .18s ease;
+}
+.pager button:hover{ border-color:var(--synced); transform:translateY(-1px); }
+.pager button:disabled{ opacity:.4; cursor:default; transform:none; border-color:var(--line); }
+.pager .dir{
+  display:block;
+  font-family:var(--mono); font-size:10.5px;
+  letter-spacing:.16em; text-transform:uppercase;
+  color:var(--muted); margin-bottom:5px;
+}
+.pager .name{
+  font-weight:600; font-size:15.5px; line-height:1.35;
+  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;
+  overflow:hidden;
+}
+.pager .next{ text-align:right; }
+
+/* ---------- responsive ---------- */
+@media (max-width:960px){
+  .shell{ grid-template-columns:1fr; }
+  .menu-btn{ display:block; }
+  .sidebar{
+    position:fixed;
+    top:64px; left:0; right:0;
+    height:calc(100vh - 64px); max-height:none;
+    overflow-y:auto;
+    align-self:auto;
+    padding:22px 18px 26px;
+    display:none;
+    z-index:39;
+    box-shadow:0 12px 24px rgba(0,0,0,.25);
+  }
+  .sidebar.open{ display:block; }
+  html.menu-open, body.menu-open{ overflow:hidden; height:100%; }
+  .main{ padding:26px 22px 60px; }
+  .article{ padding:26px 22px 30px; }
+  .topbar{ padding:0 18px; }
+  .topbar .section-name,.topbar .divider{ display:none; }
+}
+
+@media (max-width:700px){
+  .main{ padding:20px 14px 48px; }
+  .article{ padding:18px 14px 22px; }
+  .lesson-title{ margin-bottom:18px; }
+  .article-head{ margin-top:32px; }
+}
+
+@media (max-width:560px){
+  body{ font-size:16px; }
+  .pager{ grid-template-columns:1fr 1fr; gap:10px; }
+  .pager button{ padding:12px 14px; }
+  .pager .name{ font-size:14px; }
+  .pager .next{ text-align:right; }
+  .stage-bar{ padding:12px 14px; }
+  .article iframe{ min-height:420px; }
+  .main{ padding:16px 14px 40px; }
+  .article{ padding:18px 16px 22px; border-radius:9px; }
+  .article h1{ font-size:24px; }
+  .article h2{ font-size:20px; }
+  .article h3{ font-size:17px; }
+  .topbar{ height:56px; padding:0 14px; }
+  .brand img{ height:26px; }
+  .sidebar{ top:56px; height:calc(100vh - 56px); }
+}
+
+@media (max-width:400px){
+  .main{ padding:14px 10px 36px; }
+  .article{ padding:16px 12px 18px; }
+  .pager{ grid-template-columns:1fr 1fr; gap:8px; }
+  .pager button{ padding:10px 12px; }
+  .pager .dir{ font-size:9.5px; }
+  .pager .name{ font-size:13px; -webkit-line-clamp:3; }
+}
+
+@media (prefers-reduced-motion:reduce){
+  html{ scroll-behavior:auto; }
+  *,*::before,*::after{
+    animation-duration:.01ms !important;
+    transition-duration:.01ms !important;
+  }
+}
+</style>
+</head>
+
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="topbar">
+  <a class="brand" href="/">
+    <img src="/static/img/header/favhost.png" alt="FavHost">
+  </a>
+  <div class="divider"></div>
+  <div class="section-name">Tutorials</div>
+  <div class="spacer"></div>
+  <button class="menu-btn" id="menuBtn" aria-expanded="false" aria-controls="sidebar">Topics</button>
+</header>
+
+<div class="shell">
+
+  <aside class="sidebar" id="sidebar">
+    <p class="eyebrow">Start here</p>
+    <p class="sidebar-title">Learn FavHost</p>
+    <p class="sidebar-note">Watch the walkthrough, then follow the written steps for the same task.</p>
+    <ul class="topic-list" id="topicList"></ul>
+    <div class="legend">
+      <strong>How to use this</strong>
+      Each topic pairs a short video with the full written guide. Work through them in order the first time — start with your profile, then set up a property before moving on to day-to-day operations.
+    </div>
+  </aside>
+
+  <main class="main" id="main">
+    <p class="crumb" id="crumb">Tutorials</p>
+    <h1 class="lesson-title" id="lessonTitle">Loading…</h1>
+
+    <section class="stage">
+      <div class="frame">
+        <iframe id="player"
+                title="FavHost tutorial video"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                referrerpolicy="strict-origin-when-cross-origin"
+                allowfullscreen></iframe>
+      </div>
+      <div class="stage-bar">
+        <span class="tag">Video walkthrough</span>
+      </div>
+    </section>
+
+    <section class="stage stage-secondary" id="secondaryStage" hidden>
+      <p class="stage-label" id="secondaryLabel">Related video</p>
+      <div class="stage" style="background:var(--ink);">
+        <div class="frame">
+          <iframe id="player2"
+                  title="FavHost related tutorial video"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  referrerpolicy="strict-origin-when-cross-origin"
+                  allowfullscreen></iframe>
+        </div>
+        <div class="stage-bar">
+          <span class="tag" id="secondaryTag">Video walkthrough</span>
+        </div>
+      </div>
+    </section>
+
+    <div class="article-head">
+      <h2>Written guide</h2>
+      <span class="rule"></span>
+    </div>
+
+    <article class="article" id="article"></article>
+
+    <nav class="pager" aria-label="Tutorial navigation">
+      <button id="prevBtn" type="button">
+        <span class="dir">← Previous</span>
+        <span class="name" id="prevName">—</span>
+      </button>
+      <button id="nextBtn" type="button" class="next">
+        <span class="dir">Next →</span>
+        <span class="name" id="nextName">—</span>
+      </button>
+    </nav>
+  </main>
+
+</div>
+
+<script>
+/* ============================================================
+   ADD A NEW TUTORIAL BY ADDING ONE ENTRY TO THIS LIST.
+   Nothing else needs to change.
+
+   id        – short slug, becomes the #link in the address bar
+   title     – heading shown above the video
+   blurb     – one line under the topic in the left panel
+   videoId   – the part of the YouTube URL after "v="/after youtu.be/
+   article   – the .html file, sitting in the same folder as this page
+   videoId2  – optional companion video id (e.g. a related daily-ops clip)
+   video2Tag – label shown above the companion video
+   ============================================================ */
+const TOPICS = [
+  {
+    id: 'update-profile',
+    title: 'Update your user profile',
+    blurb: 'Set your name, contact details, bio and social links first.',
+    videoId: 'vyFUHNsmdpk',
+    article: 'update_profile_guide.html'
+  },
+  {
+    id: 'create-listing',
+    title: 'Create a property listing',
+    blurb: 'Add a property, its photos, amenities, pricing and policies.',
+    videoId: '1PIkQdzEpwE',
+    article: 'property_listing_guide.html'
+  },
+  {
+    id: 'manage-co-hosts',
+    title: 'Manage co-hosts',
+    blurb: 'Delegate tasks and share system access without sharing your login.',
+    videoId: 'NMPCndIuQYc',
+    article: 'manage_cohosts_guide.html'
+  },
+  {
+    id: 'calendar',
+    title: 'Manage property calendars and reports',
+    blurb: 'View availability, switch calendar views, export and print reports.',
+    videoId: 'kk8V-yIciIY',
+    article: 'property_calendar_guide.html'
+  },
+  {
+    id: 'manual-reservation',
+    title: 'Create a manual reservation',
+    blurb: 'Check availability and book a guest directly from the dashboard.',
+    videoId: '_JHYxQbyQ-8',
+    article: 'manual_reservation_guide.html'
+  },
+  {
+    id: 'reservations-reports',
+    title: 'Manage reservations and reports',
+    blurb: 'Track, edit and report on every active and upcoming booking.',
+    videoId: 'JtmCyKwMXjo',
+    article: 'reservations_reports_guide.html'
+  },
+  {
+    id: 'dashboard-housekeeping',
+    title: 'Dashboard operations and housekeeping',
+    blurb: 'Track guest and cleaning status and generate housekeeping reports.',
+    videoId: '8P-0OvRjE8M',
+    article: 'dashboard_housekeeping_guide.html'
+  },
+  {
+    id: 'income-expenses',
+    title: 'Manage income and expenses',
+    blurb: 'Navigate financial reports and track property-specific costs.',
+    videoId: '6gC_0qHe8Aw',
+    article: 'income_expenses_guide.html'
+  }
+];
+
+const el = {
+  list:        document.getElementById('topicList'),
+  player:      document.getElementById('player'),
+  title:       document.getElementById('lessonTitle'),
+  crumb:       document.getElementById('crumb'),
+  article:     document.getElementById('article'),
+  prevBtn:     document.getElementById('prevBtn'),
+  nextBtn:     document.getElementById('nextBtn'),
+  prevName:    document.getElementById('prevName'),
+  nextName:    document.getElementById('nextName'),
+  sidebar:     document.getElementById('sidebar'),
+  menuBtn:     document.getElementById('menuBtn'),
+  secondary:   document.getElementById('secondaryStage'),
+  secondaryLabel: document.getElementById('secondaryLabel'),
+  secondaryTag: document.getElementById('secondaryTag'),
+  player2:     document.getElementById('player2')
+};
+
+let current = 0;
+
+/* ---------- build the left panel ---------- */
+TOPICS.forEach((topic, i) => {
+  const li = document.createElement('li');
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'topic';
+  btn.dataset.index = i;
+  btn.innerHTML =
+    '<span class="cell">' + String(i + 1).padStart(2, '0') + '</span>' +
+    '<span><span class="label"></span><span class="blurb"></span></span>';
+  btn.querySelector('.label').textContent = topic.title;
+  btn.querySelector('.blurb').textContent = topic.blurb;
+  btn.addEventListener('click', () => {
+    location.hash = topic.id;
+    if (window.innerWidth <= 960) closeMenu();
+  });
+  li.appendChild(btn);
+  el.list.appendChild(li);
+});
+
+const buttons = Array.from(el.list.querySelectorAll('.topic'));
+
+/* ---------- swap to a topic ---------- */
+function show(index) {
+  const topic = TOPICS[index];
+  if (!topic) return;
+  current = index;
+
+  buttons.forEach((b, i) => b.setAttribute('aria-current', i === index ? 'true' : 'false'));
+
+  el.title.textContent = topic.title;
+  el.crumb.textContent = 'Tutorials / ' + String(index + 1).padStart(2, '0');
+  el.player.src = 'https://www.youtube.com/embed/' + topic.videoId + '?rel=0&modestbranding=1';
+  document.title = topic.title + ' — FavHost Tutorials';
+
+  if (topic.videoId2) {
+    el.secondary.hidden = false;
+    el.secondaryLabel.textContent = topic.video2Tag || 'Related video';
+    el.player2.src = 'https://www.youtube.com/embed/' + topic.videoId2 + '?rel=0&modestbranding=1';
+  } else {
+    el.secondary.hidden = true;
+    el.player2.src = '';
+  }
+
+  const prev = TOPICS[index - 1];
+  const next = TOPICS[index + 1];
+  el.prevBtn.disabled = !prev;
+  el.nextBtn.disabled = !next;
+  el.prevName.textContent = prev ? prev.title : 'You are at the start';
+  el.nextName.textContent = next ? next.title : 'You are at the end';
+
+  loadArticle(topic);
+}
+
+/* ---------- pull in the article file ---------- */
+async function loadArticle(topic) {
+  el.article.innerHTML =
+    '<div class="skeleton"><i></i><i></i><i></i><i></i><i></i></div>';
+
+  let res;
+  try {
+    res = await fetch(topic.article, { cache: 'no-cache' });
+  } catch (err) {
+    /* The request never left the browser — this is what happens when the
+       page is opened straight off the disk. Load the file in a frame instead. */
+    showFallback(topic);
+    return;
+  }
+
+  /* The server answered, so it knows whether the file exists. */
+  if (!res.ok) { showMissing(topic); return; }
+
+  const raw = await res.text();
+  const doc = new DOMParser().parseFromString(raw, 'text/html');
+  doc.querySelectorAll('script').forEach(n => n.remove());
+
+  const inner = doc.body ? doc.body.innerHTML.trim() : '';
+  if (!inner) { showMissing(topic); return; }
+
+  el.article.innerHTML = inner;
+}
+
+function showFallback(topic) {
+  el.article.innerHTML = '';
+
+  const frame = document.createElement('iframe');
+  frame.title = topic.title + ' — written guide';
+  frame.src = topic.article;
+  frame.addEventListener('load', () => {
+    try {
+      const h = frame.contentDocument.body.scrollHeight;
+      if (h > 200) frame.style.minHeight = (h + 48) + 'px';
+    } catch (e) { /* cross-origin, keep the default height */ }
+  });
+  frame.addEventListener('error', () => showMissing(topic));
+  el.article.appendChild(frame);
+}
+
+function showMissing(topic) {
+  el.article.innerHTML =
+    '<div class="notice">' +
+      '<h3>This guide has not been found</h3>' +
+      '<p>Save <code>' + topic.article + '</code> in the same folder as this page, then reload.</p>' +
+      '<p>If the file is already there, open this page through your web server rather than double-clicking it — browsers block file access on pages opened straight from the disk.</p>' +
+    '</div>';
+}
+
+/* ---------- routing, so every topic has its own link ---------- */
+function fromHash() {
+  const id = location.hash.replace('#', '');
+  const found = TOPICS.findIndex(t => t.id === id);
+  show(found >= 0 ? found : 0);
+}
+
+window.addEventListener('hashchange', () => {
+  fromHash();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+});
+
+el.prevBtn.addEventListener('click', () => { location.hash = TOPICS[current - 1].id; });
+el.nextBtn.addEventListener('click', () => { location.hash = TOPICS[current + 1].id; });
+
+/* ---------- mobile topic drawer ---------- */
+function closeMenu() {
+  el.sidebar.classList.remove('open');
+  el.menuBtn.setAttribute('aria-expanded', 'false');
+  document.body.classList.remove('menu-open');
+  document.documentElement.classList.remove('menu-open');
+}
+el.menuBtn.addEventListener('click', () => {
+  const open = el.sidebar.classList.toggle('open');
+  el.menuBtn.setAttribute('aria-expanded', String(open));
+  document.body.classList.toggle('menu-open', open);
+  document.documentElement.classList.toggle('menu-open', open);
+});
+
+fromHash();
+</script>
+</body>
+</html>
