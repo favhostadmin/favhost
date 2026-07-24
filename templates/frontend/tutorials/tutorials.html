@@ -511,11 +511,18 @@ a{ color:var(--synced); }
   .shell{ grid-template-columns:1fr; }
   .menu-btn{ display:block; }
   .sidebar{
-    position:static; max-height:none;
+    position:fixed;
+    top:64px; left:0; right:0;
+    height:calc(100vh - 64px); max-height:none;
+    overflow-y:auto;
+    align-self:auto;
     padding:22px 18px 26px;
     display:none;
+    z-index:39;
+    box-shadow:0 12px 24px rgba(0,0,0,.25);
   }
   .sidebar.open{ display:block; }
+  html.menu-open, body.menu-open{ overflow:hidden; height:100%; }
   .main{ padding:26px 22px 60px; }
   .article{ padding:26px 22px 30px; }
   .topbar{ padding:0 18px; }
@@ -544,6 +551,7 @@ a{ color:var(--synced); }
   .article h3{ font-size:17px; }
   .topbar{ height:56px; padding:0 14px; }
   .brand img{ height:26px; }
+  .sidebar{ top:56px; height:calc(100vh - 56px); }
 }
 
 @media (max-width:400px){
@@ -706,9 +714,7 @@ const TOPICS = [
     title: 'Dashboard operations and housekeeping',
     blurb: 'Track guest and cleaning status and generate housekeeping reports.',
     videoId: '8P-0OvRjE8M',
-    article: 'dashboard_housekeeping_guide.html',
-    videoId2: 'zOGwW2HWbZ4',
-    video2Tag: 'Related: task management with FavHost'
+    article: 'dashboard_housekeeping_guide.html'
   },
   {
     id: 'income-expenses',
@@ -865,10 +871,14 @@ el.nextBtn.addEventListener('click', () => { location.hash = TOPICS[current + 1]
 function closeMenu() {
   el.sidebar.classList.remove('open');
   el.menuBtn.setAttribute('aria-expanded', 'false');
+  document.body.classList.remove('menu-open');
+  document.documentElement.classList.remove('menu-open');
 }
 el.menuBtn.addEventListener('click', () => {
   const open = el.sidebar.classList.toggle('open');
   el.menuBtn.setAttribute('aria-expanded', String(open));
+  document.body.classList.toggle('menu-open', open);
+  document.documentElement.classList.toggle('menu-open', open);
 });
 
 fromHash();
