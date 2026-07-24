@@ -12,8 +12,16 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 from pathlib import Path
 import os
+import json
+import boto3
 from celery.schedules import crontab
 from dotenv import load_dotenv
+
+
+def load_secrets(secret_name="favhost/prod/env", region="us-east-1"):
+    client = boto3.client("secretsmanager", region_name=region)
+    response = client.get_secret_value(SecretId=secret_name)
+    return json.loads(response["SecretString"])
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -23,17 +31,31 @@ load_dotenv(BASE_DIR / '.env')
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-+m!dtn=()j@rs%01t#c^c&(s3lku25v$+avwnzy$an73tq+t#p')
-
 # SECURITY WARNING: don't run with debug turned on in production!
+# Must come from os.getenv directly (not get_env below) — it decides whether
+# we're even allowed to call AWS, so it can't depend on secrets having loaded.
 DEBUG = os.getenv('DEBUG', 'True') == 'True'
 
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '*').split(',')
+# In production (DEBUG=False) every config value below is pulled from AWS
+# Secrets Manager; locally it falls back to .env / os.getenv so no AWS access
+# is required.
+secrets = load_secrets() if not DEBUG else {}
+
+
+def get_env(key, default=None):
+    if not DEBUG:
+        return secrets.get(key, default)
+    return os.getenv(key, default)
+
+
+# SECURITY WARNING: keep the secret key used in production secret!
+SECRET_KEY = get_env('SECRET_KEY', 'django-insecure-+m!dtn=()j@rs%01t#c^c&(s3lku25v$+avwnzy$an73tq+t#p')
+
+ALLOWED_HOSTS = get_env('ALLOWED_HOSTS', '*').split(',')
 
 # Google Analytics (GA4) — only sent to templates when DEBUG is off, so local
 # development traffic doesn't pollute production analytics.
-GOOGLE_ANALYTICS_ID = os.getenv('GOOGLE_ANALYTICS_ID', '')
+GOOGLE_ANALYTICS_ID = get_env('GOOGLE_ANALYTICS_ID', '')
 
 # The CountryAndState admin list (and other large tables) can have several
 # thousand rows selected at once via "select all across pages" bulk actions,
@@ -173,13 +195,12 @@ WSGI_APPLICATION = 'bookaid.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': os.getenv('DB_ENGINE', 'django.db.backends.postgresql_psycopg2'),
-        'NAME': os.getenv('DB_NAME', 'favhost'),
-        'USER': os.getenv('DB_USER', 'postgres'),
-        'PASSWORD': os.getenv('DB_PASSWORD', 'postgres'),
-        # 'HOST': 'localhost',
-        'HOST': os.getenv('DB_HOST', '127.0.0.1'),
-        'PORT': os.getenv('DB_PORT', '5432'),
+        'ENGINE': get_env('DB_ENGINE', 'django.db.backends.postgresql_psycopg2'),
+        'NAME': get_env('DB_NAME', 'favhost'),
+        'USER': get_env('DB_USER', 'postgres'),
+        'PASSWORD': get_env('DB_PASSWORD', 'postgres'),
+        'HOST': get_env('DB_HOST', '127.0.0.1'),
+        'PORT': get_env('DB_PORT', '5432'),
     }
 }
 
@@ -258,7 +279,7 @@ STATICFILES_DIRS = [ BASE_DIR / 'static' ]
 # alone can't tell "your laptop" apart from "a real server". Each server's
 # own .env sets this to its bucket (favhost-media-dev / favhost-media-prod);
 # a local checkout simply leaves it unset and falls back to disk.
-AWS_STORAGE_BUCKET_NAME = os.getenv('AWS_STORAGE_BUCKET_NAME')
+AWS_STORAGE_BUCKET_NAME = get_env('AWS_STORAGE_BUCKET_NAME')
 
 if AWS_STORAGE_BUCKET_NAME:
     AWS_S3_REGION_NAME = "us-east-1"
@@ -299,56 +320,56 @@ else:
 
 
 # Email Settings
-EMAIL_BACKEND = os.getenv('EMAIL_BACKEND', 'django.core.mail.backends.smtp.EmailBackend')
-EMAIL_HOST = os.getenv('EMAIL_HOST', 'smtp.gmail.com')
-EMAIL_PORT = int(os.getenv('EMAIL_PORT', 587))
-EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'True') == 'True'
-EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
-EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
-DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', EMAIL_HOST_USER)
+EMAIL_BACKEND = get_env('EMAIL_BACKEND', 'django.core.mail.backends.smtp.EmailBackend')
+EMAIL_HOST = get_env('EMAIL_HOST', 'smtp.gmail.com')
+EMAIL_PORT = int(get_env('EMAIL_PORT', 587))
+EMAIL_USE_TLS = get_env('EMAIL_USE_TLS', 'True') == 'True'
+EMAIL_HOST_USER = get_env('EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = get_env('EMAIL_HOST_PASSWORD')
+DEFAULT_FROM_EMAIL = get_env('DEFAULT_FROM_EMAIL', EMAIL_HOST_USER)
 # Address used for Reply-To and the List-Unsubscribe mailto on outgoing emails.
-SUPPORT_EMAIL = os.getenv('SUPPORT_EMAIL', 'support@favhost.com')
+SUPPORT_EMAIL = get_env('SUPPORT_EMAIL', 'support@favhost.com')
 
 # --- Dedicated Zoho SMTP for the public contact form ---------------------- #
 # The default EMAIL_* account above (Namecheap/noreply) keeps sending every
 # other platform email. The contact form uses this separate Zoho account so
 # messages are delivered straight into the support@favhost.com inbox.
-SUPPORT_EMAIL_HOST = os.getenv('SUPPORT_EMAIL_HOST', 'smtp.zoho.com')
-SUPPORT_EMAIL_PORT = int(os.getenv('SUPPORT_EMAIL_PORT', 587))
-SUPPORT_EMAIL_USE_TLS = os.getenv('SUPPORT_EMAIL_USE_TLS', 'True') == 'True'
-SUPPORT_EMAIL_HOST_USER = os.getenv('SUPPORT_EMAIL_HOST_USER', SUPPORT_EMAIL)
-SUPPORT_EMAIL_HOST_PASSWORD = os.getenv('SUPPORT_EMAIL_HOST_PASSWORD')
+SUPPORT_EMAIL_HOST = get_env('SUPPORT_EMAIL_HOST', 'smtp.zoho.com')
+SUPPORT_EMAIL_PORT = int(get_env('SUPPORT_EMAIL_PORT', 587))
+SUPPORT_EMAIL_USE_TLS = get_env('SUPPORT_EMAIL_USE_TLS', 'True') == 'True'
+SUPPORT_EMAIL_HOST_USER = get_env('SUPPORT_EMAIL_HOST_USER', SUPPORT_EMAIL)
+SUPPORT_EMAIL_HOST_PASSWORD = get_env('SUPPORT_EMAIL_HOST_PASSWORD')
 
 # --- Tutorials / YouTube channel ---
 # Set this to your real YouTube channel (or on-site tutorials page) URL.
 # Used by the "Watch tutorials" button in the welcome email.
-TUTORIALS_URL = os.getenv('TUTORIALS_URL', 'https://www.youtube.com/@YOUR_CHANNEL')
+TUTORIALS_URL = get_env('TUTORIALS_URL', 'https://www.youtube.com/@YOUR_CHANNEL')
 
 # --- Stripe Configuration ---
-STRIPE_PUBLISHABLE_KEY = os.getenv('STRIPE_PUBLISHABLE_KEY', '')
-STRIPE_SECRET_KEY = os.getenv('STRIPE_SECRET_KEY', '')
-STRIPE_PRICE_ID = os.getenv('STRIPE_PRICE_ID', '')
-STRIPE_PRICE_ID_YEARLY = os.getenv('STRIPE_PRICE_ID_YEARLY', '')
-STRIPE_WEBHOOK_SECRET = os.getenv('STRIPE_WEBHOOK_SECRET', '')
-DOMAIN_URL = os.getenv('DOMAIN_URL', 'http://localhost:8000')
+STRIPE_PUBLISHABLE_KEY = get_env('STRIPE_PUBLISHABLE_KEY', '')
+STRIPE_SECRET_KEY = get_env('STRIPE_SECRET_KEY', '')
+STRIPE_PRICE_ID = get_env('STRIPE_PRICE_ID', '')
+STRIPE_PRICE_ID_YEARLY = get_env('STRIPE_PRICE_ID_YEARLY', '')
+STRIPE_WEBHOOK_SECRET = get_env('STRIPE_WEBHOOK_SECRET', '')
+DOMAIN_URL = get_env('DOMAIN_URL', 'http://localhost:8000')
 
 # --- Firebase Configuration ---
-FIREBASE_API_KEY = os.getenv('FIREBASE_API_KEY', '')
-FIREBASE_AUTH_DOMAIN = os.getenv('FIREBASE_AUTH_DOMAIN', '')
-FIREBASE_PROJECT_ID = os.getenv('FIREBASE_PROJECT_ID', '')
-FIREBASE_STORAGE_BUCKET = os.getenv('FIREBASE_STORAGE_BUCKET', '')
-FIREBASE_MESSAGING_SENDER_ID = os.getenv('FIREBASE_MESSAGING_SENDER_ID', '')
-FIREBASE_APP_ID = os.getenv('FIREBASE_APP_ID', '')
-FIREBASE_MEASUREMENT_ID = os.getenv('FIREBASE_MEASUREMENT_ID', '')
-FIREBASE_ADMIN_PRIVATE_KEY = os.getenv('FIREBASE_ADMIN_PRIVATE_KEY', '')
-FIREBASE_ADMIN_CLIENT_EMAIL = os.getenv('FIREBASE_ADMIN_CLIENT_EMAIL', '')
+FIREBASE_API_KEY = get_env('FIREBASE_API_KEY', '')
+FIREBASE_AUTH_DOMAIN = get_env('FIREBASE_AUTH_DOMAIN', '')
+FIREBASE_PROJECT_ID = get_env('FIREBASE_PROJECT_ID', '')
+FIREBASE_STORAGE_BUCKET = get_env('FIREBASE_STORAGE_BUCKET', '')
+FIREBASE_MESSAGING_SENDER_ID = get_env('FIREBASE_MESSAGING_SENDER_ID', '')
+FIREBASE_APP_ID = get_env('FIREBASE_APP_ID', '')
+FIREBASE_MEASUREMENT_ID = get_env('FIREBASE_MEASUREMENT_ID', '')
+FIREBASE_ADMIN_PRIVATE_KEY = get_env('FIREBASE_ADMIN_PRIVATE_KEY', '')
+FIREBASE_ADMIN_CLIENT_EMAIL = get_env('FIREBASE_ADMIN_CLIENT_EMAIL', '')
 
 # Google Identity Services (GIS) — used for "Continue with Google".
 # This is the OAuth 2.0 Web client ID from Google Cloud Console (the same one
 # Firebase auto-created for this project). GIS avoids the Firebase redirect flow
 # that breaks on iOS due to WebKit storage partitioning.
-GOOGLE_OAUTH_CLIENT_ID = os.getenv('GOOGLE_OAUTH_CLIENT_ID', '')
-GOOGLE_MAPS_API_KEY = os.getenv('GOOGLE_MAPS_API_KEY', '')
+GOOGLE_OAUTH_CLIENT_ID = get_env('GOOGLE_OAUTH_CLIENT_ID', '')
+GOOGLE_MAPS_API_KEY = get_env('GOOGLE_MAPS_API_KEY', '')
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
@@ -388,7 +409,7 @@ PLATFORM_ADMIN_EMAIL = os.getenv('PLATFORM_ADMIN_EMAIL', 'bookaid@gmail.com')
 PLATFORM_ADMIN_DEFAULT_PASSWORD = os.getenv('PLATFORM_ADMIN_PASSWORD', 'bookaid123')
 
 # Base URL for generating absolute URLs in emails
-BASE_URL = os.getenv('BASE_URL', 'http://favhost.com')
+BASE_URL = get_env('BASE_URL', 'http://favhost.com')
 
 # Allow same-origin framing (needed for detail modal on list page)
 X_FRAME_OPTIONS = 'SAMEORIGIN'
