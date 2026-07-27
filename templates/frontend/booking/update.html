@@ -275,6 +275,10 @@
                                     <span class="summary-label" id="summary-price-calc" data-price="0.00">{{ currency_symbol }}0.00 x 0 nights</span>
                                     <span class="summary-value" id="summary-subtotal">{{ currency_symbol }}0.00</span>
                                 </div>
+                                <div class="summary-item" id="summary-monthly-payment-row" style="display:none;">
+                                    <span class="summary-label">Monthly Payment</span>
+                                    <span class="summary-value" id="summary-monthly-payment">{{ currency_symbol }}0.00</span>
+                                </div>
                                 <div class="summary-item mt-1 fee-muted">
                                     <span class="summary-label">Cleaning fee:</span>
                                     <span class="fee-value-group">
@@ -716,6 +720,8 @@
                 }
 
                 const subtotal = pricePerNight * nights;
+                // Total always uses the full stay rent (nights * daily rate), not just
+                // one month's payment. The Monthly Payment line is informational only.
                 const total = subtotal + cleaningFee + refundableDeposit + taxesFee + otherFeesFee;
 
                 // Update UI
@@ -723,6 +729,15 @@
                 document.getElementById('summary-price-calc').textContent = `${window.CURRENCY.symbol}${pricePerNight.toFixed(2)} x ${nights} night${nights !== 1 ? 's' : ''}`;
                 document.getElementById('summary-subtotal').textContent = window.CURRENCY.symbol + subtotal.toFixed(2);
                 document.getElementById('summary-nights').textContent = nights;
+
+                const monthlyPaymentRow = document.getElementById('summary-monthly-payment-row');
+                if (nights > 30) {
+                    const monthlyPayment = pricePerNight * 30;
+                    document.getElementById('summary-monthly-payment').textContent = window.CURRENCY.symbol + monthlyPayment.toFixed(2);
+                    monthlyPaymentRow.style.display = '';
+                } else {
+                    monthlyPaymentRow.style.display = 'none';
+                }
                 document.getElementById('summary-guests').textContent = guests || 0;
                 document.getElementById('summary-total-display').textContent = window.CURRENCY.symbol + total.toFixed(2);
                 document.getElementById('id_price').value = total.toFixed(2);

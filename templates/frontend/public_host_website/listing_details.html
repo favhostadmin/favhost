@@ -586,6 +586,10 @@
                                 <span id="ld-stay-label">{% money property.price_per_night %} x 0 nights</span>
                                 <strong id="ld-stay-total">{{ currency_symbol }}0.00</strong>
                             </div>
+                            <div class="ld-cost-row" id="ld-monthly-payment-row" style="display:none;">
+                                <span>Monthly Payment</span>
+                                <strong id="ld-monthly-payment">{{ currency_symbol }}0.00</strong>
+                            </div>
                             <div class="ld-cost-row">
                                 <span>Cleaning fee</span>
                                 <strong>{% money property.cleaning_fee %}</strong>
@@ -673,6 +677,10 @@
                     <div class="ld-cost-row">
                         <span id="ld-stay-label-mobile">{% money property.price_per_night %} x 0 nights</span>
                         <strong id="ld-stay-total-mobile">{{ currency_symbol }}0.00</strong>
+                    </div>
+                    <div class="ld-cost-row" id="ld-monthly-payment-row-mobile" style="display:none;">
+                        <span>Monthly Payment</span>
+                        <strong id="ld-monthly-payment-mobile">{{ currency_symbol }}0.00</strong>
                     </div>
                     <div class="ld-cost-row">
                         <span>Cleaning fee</span>
@@ -1284,13 +1292,25 @@
             const nights = Math.max(0, Math.round((d2 - d1) / (1000 * 60 * 60 * 24)));
             if (nights <= 0) { summary.style.display = 'none'; return; }
             const stayTotal = ldPricePerNight * nights;
+            // Total always uses the full stay rent (nights * daily rate), not just
+            // one month's payment. The Monthly Payment line is informational only.
             const totalDue  = stayTotal + ldCleaningFee + ldTaxes + ldOtherFees + ldDepositFee;
             const stayLabel = document.getElementById(ids.stayLabel);
             const stayTotal_ = document.getElementById(ids.stayTotal);
             const totalDueEl = document.getElementById(ids.totalDue);
+            const monthlyPaymentRow = document.getElementById(ids.monthlyPaymentRow);
+            const monthlyPaymentEl = document.getElementById(ids.monthlyPayment);
             if (stayLabel)  stayLabel.textContent  = `{{ currency_symbol }}${ldPricePerNight.toFixed(2)} x ${nights} night${nights !== 1 ? 's' : ''}`;
             if (stayTotal_) stayTotal_.textContent  = `{{ currency_symbol }}${stayTotal.toFixed(2)}`;
             if (totalDueEl) totalDueEl.textContent  = `{{ currency_symbol }}${totalDue.toFixed(2)}`;
+            if (monthlyPaymentRow) {
+                if (nights > 30) {
+                    if (monthlyPaymentEl) monthlyPaymentEl.textContent = `{{ currency_symbol }}${(ldPricePerNight * 30).toFixed(2)}`;
+                    monthlyPaymentRow.style.display = '';
+                } else {
+                    monthlyPaymentRow.style.display = 'none';
+                }
+            }
             summary.style.display = 'block';
         }
 
@@ -1298,7 +1318,7 @@
             updatePaymentSummary(
                 checkinEl ? checkinEl.value : '',
                 checkoutEl ? checkoutEl.value : '',
-                { summary: 'ld-payment-summary', stayLabel: 'ld-stay-label', stayTotal: 'ld-stay-total', totalDue: 'ld-total-due' }
+                { summary: 'ld-payment-summary', stayLabel: 'ld-stay-label', stayTotal: 'ld-stay-total', totalDue: 'ld-total-due', monthlyPaymentRow: 'ld-monthly-payment-row', monthlyPayment: 'ld-monthly-payment' }
             );
         }
 
@@ -1306,7 +1326,7 @@
             updatePaymentSummary(
                 checkinElMobile ? checkinElMobile.value : '',
                 checkoutElMobile ? checkoutElMobile.value : '',
-                { summary: 'ld-payment-summary-mobile', stayLabel: 'ld-stay-label-mobile', stayTotal: 'ld-stay-total-mobile', totalDue: 'ld-total-due-mobile' }
+                { summary: 'ld-payment-summary-mobile', stayLabel: 'ld-stay-label-mobile', stayTotal: 'ld-stay-total-mobile', totalDue: 'ld-total-due-mobile', monthlyPaymentRow: 'ld-monthly-payment-row-mobile', monthlyPayment: 'ld-monthly-payment-mobile' }
             );
         }
 

@@ -72,6 +72,18 @@
                                         <div class="preview-container" id="image-preview-container">
                                             <div class="preview-grid" id="preview-grid"></div>
                                         </div>
+                                        {% if enquiry_images %}
+                                        <div class="mt-3">
+                                            <p class="form-label" style="font-size: 12px; color: #6b7280;">From Enquiry:</p>
+                                            <div class="preview-grid">
+                                                {% for img in enquiry_images %}
+                                                <div class="preview-item">
+                                                    <img src="{{ img.image.url }}" alt="Enquiry Photo">
+                                                </div>
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+                                        {% endif %}
                                     </div>
                                     <div>
                                         <label class="booking-field-label">Guest ID/Documents</label>
@@ -84,42 +96,30 @@
                                         <div class="attachment-preview-container" id="attachment-preview-container">
                                             <div class="preview-grid" id="attachmentPreview"></div>
                                         </div>
+                                        {% if enquiry_documents %}
+                                        <div class="mt-3">
+                                            <p class="form-label" style="font-size: 12px; color: #6b7280;">From Enquiry:</p>
+                                            <div class="preview-grid">
+                                                {% for doc in enquiry_documents %}
+                                                {% with file_extension=doc.document.name|lower|slice:"-4:" %}
+                                                {% with long_file_extension=doc.document.name|lower|slice:"-5:" %}
+                                                <div class="{% if file_extension == '.jpg' or file_extension == '.png' or file_extension == '.gif' or long_file_extension == '.jpeg' %}preview-item{% else %}preview-doc-item{% endif %}">
+                                                    {% if file_extension == '.jpg' or file_extension == '.png' or file_extension == '.gif' or long_file_extension == '.jpeg' %}
+                                                        <img src="{{ doc.document.url }}" alt="Enquiry Attachment">
+                                                    {% else %}
+                                                        <div class="doc-link"><span>📄</span> {{ doc.name }}</div>
+                                                    {% endif %}
+                                                </div>
+                                                {% endwith %}
+                                                {% endwith %}
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+                                        {% endif %}
                                     </div>
                                 </div>
                                 <input type="file" name="guest_images" accept="image/*" style="display: none;" id="id_guest_images">
                                 <input type="file" name="guest_attachments" style="display: none;" id="id_guest_attachments" multiple>
-                                {% if enquiry_images %}
-                                <div class="mt-3">
-                                    <p class="form-label" style="font-size: 12px; color: #6b7280;">From Enquiry:</p>
-                                    <div class="preview-grid">
-                                        {% for img in enquiry_images %}
-                                        <div class="preview-item">
-                                            <img src="{{ img.image.url }}" alt="Enquiry Photo">
-                                        </div>
-                                        {% endfor %}
-                                    </div>
-                                </div>
-                                {% endif %}
-                                {% if enquiry_documents %}
-                                <div class="mt-3">
-                                    <p class="form-label" style="font-size: 12px; color: #6b7280;">From Enquiry:</p>
-                                    <div class="preview-grid">
-                                        {% for doc in enquiry_documents %}
-                                        {% with file_extension=doc.document.name|lower|slice:"-4:" %}
-                                        {% with long_file_extension=doc.document.name|lower|slice:"-5:" %}
-                                        <div class="{% if file_extension == '.jpg' or file_extension == '.png' or file_extension == '.gif' or long_file_extension == '.jpeg' %}preview-item{% else %}preview-doc-item{% endif %}">
-                                            {% if file_extension == '.jpg' or file_extension == '.png' or file_extension == '.gif' or long_file_extension == '.jpeg' %}
-                                                <img src="{{ doc.document.url }}" alt="Enquiry Attachment">
-                                            {% else %}
-                                                <div class="doc-link"><span>📄</span> {{ doc.name }}</div>
-                                            {% endif %}
-                                        </div>
-                                        {% endwith %}
-                                        {% endwith %}
-                                        {% endfor %}
-                                    </div>
-                                </div>
-                                {% endif %}
                             </div>
 
                             <div class="booking-field full-width">
@@ -274,6 +274,10 @@
                                     <div class="summary-item">
                                         <span class="summary-label" id="summary-price-calc" data-price="0.00">{{ currency_symbol }}0.00 x 0 nights</span>
                                         <span class="summary-value" id="summary-subtotal">{{ currency_symbol }}0.00</span>
+                                    </div>
+                                    <div class="summary-item" id="summary-monthly-payment-row" style="display:none;">
+                                        <span class="summary-label">Monthly Payment</span>
+                                        <span class="summary-value" id="summary-monthly-payment">{{ currency_symbol }}0.00</span>
                                     </div>
                                     <div class="summary-item mt-1 fee-muted">
                                         <span class="summary-label">Cleaning fee:</span>
@@ -708,6 +712,8 @@
                 }
 
                 const subtotal = pricePerNight * nights;
+                // Total always uses the full stay rent (nights * daily rate), not just
+                // one month's payment. The Monthly Payment line is informational only.
                 const total = subtotal + cleaningFee + refundableDeposit + taxesFee + otherFeesFee;
 
                 // Update UI
@@ -715,6 +721,15 @@
                 document.getElementById('summary-price-calc').textContent = `${window.CURRENCY.symbol}${pricePerNight.toFixed(2)} x ${nights} night${nights !== 1 ? 's' : ''}`;
                 document.getElementById('summary-subtotal').textContent = window.CURRENCY.symbol + subtotal.toFixed(2);
                 document.getElementById('summary-nights').textContent = nights;
+
+                const monthlyPaymentRow = document.getElementById('summary-monthly-payment-row');
+                if (nights > 30) {
+                    const monthlyPayment = pricePerNight * 30;
+                    document.getElementById('summary-monthly-payment').textContent = window.CURRENCY.symbol + monthlyPayment.toFixed(2);
+                    monthlyPaymentRow.style.display = '';
+                } else {
+                    monthlyPaymentRow.style.display = 'none';
+                }
                 document.getElementById('summary-guests').textContent = guests || 0;
                 document.getElementById('summary-total-display').textContent = window.CURRENCY.symbol + total.toFixed(2);
                 document.getElementById('id_price').value = total.toFixed(2);
@@ -844,6 +859,12 @@
         let selectedGuestPhotos = [];
         let selectedAttachments = [];
 
+        // Files already attached to the source enquiry count toward the same
+        // totals as newly uploaded files, so the combined count never exceeds
+        // the limits shown to the guest (1 photo, 5 attachments).
+        const ENQUIRY_PHOTO_COUNT = {{ enquiry_images|length }};
+        const ENQUIRY_ATTACHMENT_COUNT = {{ enquiry_documents|length }};
+
         function setupUpload(uploadArea, fileInput, fileHandler) {
             uploadArea.addEventListener('click', () => fileInput.click());
             fileInput.addEventListener('change', fileHandler);
@@ -925,9 +946,16 @@
         setupUpload(guestPhotoUploadArea, guestPhotoInput, handleGuestPhotoFiles);
         setupUpload(attachmentUploadArea, attachmentInput, handleAttachmentFiles);
 
+        const MAX_GUEST_PHOTOS = 1;
+
         async function handleGuestPhotoFiles(e) {
             const files = Array.from(e.target.files);
             if (files.length === 0) return;
+            if (ENQUIRY_PHOTO_COUNT >= MAX_GUEST_PHOTOS) {
+                showError(guestPhotoErrorMessage, 'A guest photo was already provided with this enquiry — remove it before uploading a new one.');
+                guestPhotoInput.value = '';
+                return;
+            }
             selectedGuestPhotos = [];
             guestPhotoPreviewGrid.innerHTML = '';
             await handleFileSelection({ target: { files: [files[0]] } }, selectedGuestPhotos, validateGuestPhoto, createGuestPhotoPreview, guestPhotoErrorMessage, true);
@@ -965,14 +993,14 @@
 
         async function handleAttachmentFiles(e) {
             const files = Array.from(e.target.files);
-            const remaining = MAX_ATTACHMENTS - selectedAttachments.length;
+            const remaining = MAX_ATTACHMENTS - ENQUIRY_ATTACHMENT_COUNT - selectedAttachments.length;
             const accepted = files.slice(0, Math.max(0, remaining));
             if (accepted.length) {
                 await handleFileSelection({ target: { files: accepted } }, selectedAttachments, validateAttachment, createAttachmentPreview, attachmentErrorMessage);
             }
             updateFileInput(attachmentInput, selectedAttachments);
             if (files.length > remaining) {
-                showError(attachmentErrorMessage, `You can upload a maximum of ${MAX_ATTACHMENTS} documents.`);
+                showError(attachmentErrorMessage, `You can upload a maximum of ${MAX_ATTACHMENTS} documents in total, including any already attached from the enquiry.`);
             }
         }
 
