@@ -2302,8 +2302,10 @@ TUTORIAL_ARTICLES = {
     'manage_cohosts_guide',
     'property_calendar_guide',
     'manual_reservation_guide',
+    'create_property_reservation_guide',
     'reservations_reports_guide',
-    'dashboard_housekeeping_guide',
+    'frontdesk_housekeeping_guide',
+    'create_assign_tasks_guide',
     'income_expenses_guide',
 }
 
