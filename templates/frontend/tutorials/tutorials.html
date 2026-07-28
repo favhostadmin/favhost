@@ -603,7 +603,7 @@ a{ color:var(--synced); }
     <p class="crumb" id="crumb">Tutorials</p>
     <h1 class="lesson-title" id="lessonTitle">Loading…</h1>
 
-    <section class="stage">
+    <section class="stage" id="primaryStage">
       <div class="frame">
         <iframe id="player"
                 title="FavHost tutorial video"
@@ -714,7 +714,8 @@ const TOPICS = [
     title: 'Manage reservations and reports',
     blurb: 'Track, edit and report on every active and upcoming booking.',
     videoId: 'J0PHGrnM-oQ',
-    article: 'reservations_reports_guide.html'
+    article: 'reservations_reports_guide.html',
+    hideVideo: true // No suitable walkthrough video yet — show the written guide only.
   },
   {
     id: 'frontdesk-housekeeping',
@@ -751,6 +752,7 @@ const el = {
   nextName:    document.getElementById('nextName'),
   sidebar:     document.getElementById('sidebar'),
   menuBtn:     document.getElementById('menuBtn'),
+  primary:     document.getElementById('primaryStage'),
   secondary:   document.getElementById('secondaryStage'),
   secondaryLabel: document.getElementById('secondaryLabel'),
   secondaryTag: document.getElementById('secondaryTag'),
@@ -791,8 +793,15 @@ function show(index) {
 
   el.title.textContent = topic.title;
   el.crumb.textContent = 'Tutorials / ' + String(index + 1).padStart(2, '0');
-  el.player.src = 'https://www.youtube.com/embed/' + topic.videoId + '?rel=0&modestbranding=1';
   document.title = topic.title + ' — FavHost Tutorials';
+
+  if (topic.hideVideo) {
+    el.primary.hidden = true;
+    el.player.src = '';
+  } else {
+    el.primary.hidden = false;
+    el.player.src = 'https://www.youtube.com/embed/' + topic.videoId + '?rel=0&modestbranding=1';
+  }
 
   if (topic.videoId2) {
     el.secondary.hidden = false;
