@@ -1206,13 +1206,15 @@ class EnquiryDetailView(LoginRequiredMixin, View):
         cleaning_fee = prop.cleaning_fee or 0
         deposit_fee = prop.refundable_deposit or 0
         application_fee = prop.application_fees or 0
+        taxes = prop.taxes or 0
+        other_fees = prop.other_fees or 0
 
         monthly_payment = 0
         if nights >= 30:
             monthly_payment = price_per_night * 30
         # Total always uses the full stay rent (nights * daily rate), not just
         # one month's payment. The "Monthly Payment" line is informational only.
-        total_price = subtotal + cleaning_fee + deposit_fee + application_fee
+        total_price = subtotal + cleaning_fee + deposit_fee + application_fee + taxes + other_fees
 
         context = {
             'enquiry': enquiry,
@@ -1226,6 +1228,8 @@ class EnquiryDetailView(LoginRequiredMixin, View):
             'cleaning_fee': cleaning_fee,
             'deposit_fee': deposit_fee,
             'application_fee': application_fee,
+            'taxes': taxes,
+            'other_fees': other_fees,
         }
         return render(request, self.template_name, context)
 
