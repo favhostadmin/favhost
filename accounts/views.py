@@ -427,7 +427,9 @@ def _send_welcome_email(email, first_name, request=None):
                 img.add_header('X-Attachment-Id', 'logo')
                 email_msg.attach(img)
 
-        email_msg.send(fail_silently=True)
+        # fail_silently=False so real SMTP problems get logged below instead of
+        # vanishing. The surrounding try/except keeps signup working regardless.
+        email_msg.send(fail_silently=False)
     except Exception:
         logger.exception("Failed to send welcome email to %s", email)
 
