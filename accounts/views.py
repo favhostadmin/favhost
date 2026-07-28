@@ -364,14 +364,14 @@ def _send_welcome_email(email, first_name, request=None):
             terms_url = request.build_absolute_uri(reverse('terms'))
             privacy_url = request.build_absolute_uri(reverse('privacy'))
             contact_url = request.build_absolute_uri(reverse('contact'))
+            tutorials_url = request.build_absolute_uri(reverse('tutorials'))
         else:
             dashboard_url = 'https://favhost.com/dashboard/'
             pricing_url = 'https://favhost.com/upgrade/'
             terms_url = 'https://favhost.com/terms/'
             privacy_url = 'https://favhost.com/privacy-policy/'
             contact_url = 'https://favhost.com/contact/'
-
-        tutorials_url = getattr(settings, 'TUTORIALS_URL', 'https://www.youtube.com/@YOUR_CHANNEL')
+            tutorials_url = 'https://favhost.com/tutorials/'
 
         try:
             from billing.models import PlatformSetting

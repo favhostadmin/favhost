@@ -39,6 +39,8 @@ urlpatterns = [
     path('media/demo-video.mp4', demo_video, name='demo-video'),
     path('resources/', WebsiteBlogView.as_view(), name='blog'),
     path('resources/<slug:slug>/', WebsiteBlogDetailsView.as_view(), name='blog-details'),
+    path('tutorials/', TemplateView.as_view(template_name='frontend/tutorials/tutorials.html'), name='tutorials'),
+    path('tutorials/<str:article>.html', tutorial_article, name='tutorial-article'),
     path('contact/', WebsiteContactView.as_view(), name='contact'),
     path('terms-and-conditions/', WebsiteTermsView.as_view(), name='terms'),
     path('privacy-policy/', WebsitePrivacyView.as_view(), name='privacy'),

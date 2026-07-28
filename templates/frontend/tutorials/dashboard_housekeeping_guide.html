@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="generator" content="Clevera Article Editor">
+  <title>Managing Dashboard Operations and Housekeeping Reports in FavHost</title>
+  <link href="/static/website/img/fev.png" rel="icon" type="image/png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+    }
+  </script>
+  <style>
+
+/* Prose Article Stylesheet - Dark Mode */
+.prose-article {
+  font-family: "Inter", sans-serif;
+  font-weight: 400;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-optical-sizing: auto;
+  font-size: 1rem;
+  line-height: 1.75;
+  color: #18181b;
+  max-width: 65ch;
+}
+
+.prose-article strong,
+.prose-article .prose-strong {
+  color: #09090b;
+  font-weight: 600;
+}
+
+.prose-article-dark strong,
+.prose-article-dark .prose-strong {
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.prose-article p,
+.prose-article .prose-p {
+  color: #18181b;
+}
+
+.prose-article-dark p,
+.prose-article-dark .prose-p {
+  color: #fafafa;
+}
+
+.prose-article li,
+.prose-article .prose-li {
+  color: #18181b;
+}
+
+.prose-article-dark li,
+.prose-article-dark .prose-li {
+  color: #fafafa;
+}
+
+/* Details/Toggle */
+.prose-details.is-open .prose-details-content,
+.prose-details[open] .prose-details-content {
+  display: block !important;
+}
+
+.prose-details.is-open .prose-details-caret,
+.prose-details[open] .prose-details-caret {
+  transform: rotate(90deg);
+}
+
+/* Callout icons */
+.prose-callout [data-callout-icon] svg,
+.prose-callout .callout-icon-svg {
+  width: inherit;
+  height: inherit;
+}
+
+/* Callout content colors */
+.prose-callout-info .prose-callout-content {
+  color: #09090b !important;
+}
+
+.dark .prose-callout-info .prose-callout-content {
+  color: #e4e4e7 !important;
+}
+
+.prose-callout-warning .prose-callout-content {
+  color: #78350f !important;
+}
+
+.dark .prose-callout-warning .prose-callout-content {
+  color: #fef3c7 !important;
+}
+
+.prose-callout-note .prose-callout-content {
+  color: #082f49 !important;
+}
+
+.dark .prose-callout-note .prose-callout-content {
+  color: #bae6fd !important;
+}
+
+.prose-callout-tip .prose-callout-content {
+  color: #065f46 !important;
+}
+
+.dark .prose-callout-tip .prose-callout-content {
+  color: #a7f3d0 !important;
+}
+
+.prose-callout-success .prose-callout-content {
+  color: #065f46 !important;
+}
+
+.dark .prose-callout-success .prose-callout-content {
+  color: #bbf7d0 !important;
+}
+
+.prose-callout-danger .prose-callout-content {
+  color: #7f1d1d !important;
+}
+
+.dark .prose-callout-danger .prose-callout-content {
+  color: #fecaca !important;
+}
+
+.prose-callout strong {
+  font-weight: 600;
+  color: inherit;
+  filter: brightness(0.85);
+}
+
+.dark .prose-callout strong {
+  filter: brightness(1.15);
+}
+
+/* Code block syntax highlighting */
+.prose-pre code {
+  .hljs-comment, .hljs-quote { color: #6a9955; font-style: italic; }
+  .hljs-keyword, .hljs-selector-tag, .hljs-addition { color: #c586c0; font-weight: 500; }
+  .hljs-built_in, .hljs-section { color: #c586c0; }
+  .hljs-string, .hljs-meta .hljs-string { color: #ce9178; }
+  .hljs-function .hljs-title, .hljs-title.function_, .hljs-title.class_, .hljs-title { color: #dcdcaa; }
+  .hljs-number, .hljs-literal { color: #b5cea8; }
+  .hljs-operator, .hljs-deletion { color: #d4d4d4; }
+  .hljs-variable, .hljs-template-variable, .hljs-link, .hljs-params { color: #9cdcfe; }
+  .hljs-class, .hljs-type { color: #4ec9b0; font-weight: 500; }
+  .hljs-tag, .hljs-name { color: #569cd6; }
+  .hljs-attr, .hljs-attribute, .hljs-property { color: #9cdcfe; }
+  .hljs-constant, .hljs-symbol { color: #4fc1ff; }
+  .hljs-regexp { color: #d16969; }
+  .hljs-emphasis { font-style: italic; }
+  .hljs-strong { font-weight: bold; }
+}
+
+/* Task list checkbox */
+.prose-task-checkbox {
+  appearance: none;
+  -webkit-appearance: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.prose-task-checkbox[data-checked="true"] {
+  background-color: #18181b;
+  border-color: #18181b;
+}
+
+.prose-task-checkbox[data-checked="true"]::after {
+  content: "";
+  display: block;
+  width: 0.75em;
+  height: 0.75em;
+  background-color: white;
+  mask: url("data:image/svg+xml,%3Csvg width='24' height='24' viewBox='0 0 24 24' fill='currentColor' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill-rule='evenodd' clip-rule='evenodd' d='M21.4142 4.58579C22.1953 5.36683 22.1953 6.63317 21.4142 7.41421L10.4142 18.4142C9.63317 19.1953 8.36684 19.1953 7.58579 18.4142L2.58579 13.4142C1.80474 12.6332 1.80474 11.3668 2.58579 10.5858C3.36683 9.80474 4.63317 9.80474 5.41421 10.5858L9 14.1716L18.5858 4.58579C19.3668 3.80474 20.6332 3.80474 21.4142 4.58579Z' fill='currentColor'/%3E%3C/svg%3E") center/contain no-repeat;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg width='24' height='24' viewBox='0 0 24 24' fill='currentColor' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill-rule='evenodd' clip-rule='evenodd' d='M21.4142 4.58579C22.1953 5.36683 22.1953 6.63317 21.4142 7.41421L10.4142 18.4142C9.63317 19.1953 8.36684 19.1953 7.58579 18.4142L2.58579 13.4142C1.80474 12.6332 1.80474 11.3668 2.58579 10.5858C3.36683 9.80474 4.63317 9.80474 5.41421 10.5858L9 14.1716L18.5858 4.58579C19.3668 3.80474 20.6332 3.80474 21.4142 4.58579Z' fill='currentColor'/%3E%3C/svg%3E") center/contain no-repeat;
+}
+
+.dark .prose-task-checkbox[data-checked="true"] {
+  background-color: #e4e4e7;
+  border-color: #e4e4e7;
+}
+
+.dark .prose-task-checkbox[data-checked="true"]::after {
+  background-color: #18181b;
+}
+
+/* Image responsive */
+.prose-article img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Emoji styling - match editor size */
+.prose-article [data-type="emoji"] img,
+.prose-article img[data-emoji-name] {
+  display: inline-block;
+  width: 1.25em;
+  height: 1.25em;
+  vertical-align: middle;
+}
+
+.prose-image[data-align="left"] .prose-image-frame { margin-right: auto; }
+.prose-image[data-align="center"] .prose-image-frame { margin-left: auto; margin-right: auto; }
+.prose-image[data-align="right"] .prose-image-frame { margin-left: auto; }
+
+.prose-image-frame { position: relative; }
+.prose-image-frame-border { position: absolute; inset: 0; pointer-events: none; z-index: 1; }
+.prose-image-container { position: relative; z-index: 0; }
+
+.prose-image-caption:empty::before {
+  content: attr(data-placeholder);
+  color: #9ca3af;
+  opacity: 0.5;
+}
+
+.dark .prose-image-caption:empty::before {
+  color: #6b7280;
+}
+
+/* Table responsive */
+.prose-article .prose-table {
+  display: block;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (min-width: 768px) {
+  .prose-article .prose-table {
+    display: table;
+  }
+}
+
+/* YouTube responsive */
+.prose-youtube {
+  position: relative;
+  padding-bottom: 56.25%;
+  height: 0;
+  overflow: hidden;
+}
+
+.prose-youtube iframe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.prose-youtube[style*="width"] {
+  padding-bottom: 0;
+  height: auto;
+}
+
+.prose-youtube[style*="width"] iframe {
+  position: static;
+}
+
+/* Clevera Video responsive */
+.prose-cleveravideo {
+  position: relative;
+  padding-bottom: 56.25%;
+  height: 0;
+  overflow: hidden;
+}
+
+.prose-cleveravideo iframe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.prose-cleveravideo[style*="width"] {
+  padding-bottom: 0;
+  height: auto;
+}
+
+.prose-cleveravideo[style*="width"] iframe {
+  position: static;
+}
+
+/* Print styles */
+@media print {
+  .prose-article {
+    color: #000;
+    background: #fff;
+  }
+  .prose-callout {
+    border: 1px solid #ccc;
+    background: #f9f9f9 !important;
+  }
+  .prose-pre {
+    background: #f5f5f5 !important;
+    border: 1px solid #ddd;
+  }
+  .prose-youtube { display: none; }
+  .prose-cleveravideo { display: none; }
+  .prose-details { border: 1px solid #ccc; }
+  .prose-details-toggle { display: none; }
+  .prose-details-content { display: block !important; }
+}
+
+/* YouTube fallback styling */
+.prose-youtube-fallback {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.85);
+  color: white;
+  text-decoration: none;
+  z-index: 10;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  border-radius: 0.75rem;
+  backdrop-filter: blur(4px);
+}
+
+.prose-youtube-fallback:hover {
+  background: rgba(0, 0, 0, 0.9);
+}
+
+.prose-youtube-fallback.show {
+  opacity: 1;
+}
+
+.prose-youtube {
+  position: relative;
+}
+
+.prose-youtube:hover .prose-youtube-fallback {
+  opacity: 0.3;
+}
+
+.prose-youtube:hover .prose-youtube-fallback:hover {
+  opacity: 1;
+}
+  </style>
+  <script>
+    // Detect YouTube iframe failures (common with file:// protocol)
+    document.addEventListener('DOMContentLoaded', function() {
+      const youtubeContainers = document.querySelectorAll('[data-youtube-video]');
+      
+      youtubeContainers.forEach(function(container) {
+        const iframe = container.querySelector('iframe');
+        const fallback = container.querySelector('[data-youtube-fallback]');
+        
+        if (!iframe || !fallback) return;
+        
+        // Check if we're in file:// protocol (local file)
+        const isLocalFile = window.location.protocol === 'file:';
+        
+        // Function to show fallback
+        function showFallback() {
+          if (fallback) {
+            fallback.classList.add('show');
+          }
+        }
+        
+        // If local file, show fallback immediately (YouTube blocks file:// embeds)
+        if (isLocalFile) {
+          showFallback();
+          return;
+        }
+        
+        // For http/https, check if iframe loads successfully
+        let loadTimeout = setTimeout(function() {
+          // If iframe hasn't loaded after 3 seconds, show fallback
+          try {
+            // Try to access iframe content (will fail if blocked)
+            iframe.contentWindow;
+          } catch (e) {
+            // Cross-origin or blocked - show fallback
+            showFallback();
+          }
+        }, 3000);
+        
+        // If iframe loads successfully, clear timeout
+        iframe.addEventListener('load', function() {
+          clearTimeout(loadTimeout);
+          // Check for YouTube error by looking at the iframe content
+          setTimeout(function() {
+            try {
+              // If we can't access contentWindow, it might be blocked
+              iframe.contentWindow;
+            } catch (e) {
+              // This is normal for cross-origin, but check if fallback should show
+              // We'll rely on the timeout or user interaction
+            }
+          }, 1000);
+        });
+        
+        // Listen for error events
+        iframe.addEventListener('error', function() {
+          clearTimeout(loadTimeout);
+          showFallback();
+        });
+      });
+    });
+  </script>
+</head>
+<body class="dark bg-[#0e0e11] text-[#a3a3a8] min-h-screen">
+  <article class="prose-article prose-article-dark" style="max-width: 768px; width: 100%; margin: 0 auto; flex: 1; padding: 3rem 3rem 30vh;">
+<h2 class="prose-h2 text-2xl font-semibold mt-10 first:mt-0 text-zinc-900 dark:text-zinc-100">Introduction</h2><blockquote class="prose-blockquote pl-4 py-1.5 my-6 border-l-[3px] border-zinc-800 dark:border-zinc-200"><p class="prose-p text-base leading-relaxed my-4 first:mt-0 last:mb-0 text-zinc-900 dark:text-zinc-400">Efficiently manage your property's daily operations by viewing guest details, tracking cleaning statuses, and generating comprehensive reports for your housekeeping team.</p></blockquote><p class="prose-p text-base leading-relaxed my-4 first:mt-0 last:mb-0 text-zinc-900 dark:text-zinc-400">Managing a hospitality property requires tight coordination between guest arrivals and room maintenance. This guide demonstrates how to navigate the <strong class="prose-strong font-semibold text-zinc-950 dark:text-white">FavHost</strong> dashboard to oversee current bookings and prepare housekeeping schedules. By the end of this article, you will know how to access detailed guest itineraries and export a professional <strong class="prose-strong font-semibold text-zinc-950 dark:text-white">Housekeeping Report</strong> to ensure your staff has the most up-to-date information for their daily rounds.</p><p class="prose-p text-base leading-relaxed my-4 first:mt-0 last:mb-0 text-zinc-900 dark:text-zinc-400">This workflow is essential for property managers and operations leads who need to maintain high service standards while managing multiple units. Before starting, ensure you have active listings and upcoming reservations populated in your <strong class="prose-strong font-semibold text-zinc-950 dark:text-white">FavHost</strong> account.</p><h2 class="prose-h2 text-2xl font-semibold mt-10 first:mt-0 text-zinc-900 dark:text-zinc-100">Managing Daily Operations</h2><p class="prose-p text-base leading-relaxed my-4 first:mt-0 last:mb-0 text-zinc-900 dark:text-zinc-400">The <strong class="prose-strong font-semibold text-zinc-950 dark:text-white">FavHost</strong> dashboard serves as the central hub for your property's daily activity. From here, you can get a high-level overview of your occupancy and dive into the specifics of individual bookings to handle guest requests or check-in logistics.</p><h3 class="prose-h3 text-xl font-semibold mt-8 first:mt-0 text-zinc-900 dark:text-zinc-100">Step 1: Navigating the Dashboard</h3><p class="prose-p text-base leading-relaxed my-4 first:mt-0 last:mb-0 text-zinc-900 dark:text-zinc-400">Upon logging in, you are presented with a summary of your property's status. The top navigation bar allows you to switch between different modules like <strong class="prose-strong font-semibold text-zinc-950 dark:text-white">Bookings</strong>, <strong class="prose-strong font-semibold text-zinc-950 dark:text-white">Dashboard</strong>, and <strong class="prose-strong font-semibold text-zinc-950 dark:text-white">Housekeeping</strong>. Use the date selector in the top-left corner to view operations for a specific day, which is crucial for planning ahead or reviewing past performance.</p><figure class="prose-image my-8" data-align="center" src="https://d14xczjzvlshjn.cloudfront.net/screencasts/scrcst_zuwgcnvobgblid7q/processed/article_video_frames/frame-12500-03b06279-299c-4706-af58-c9ed348ce880.jpg?Expires=1816130959&amp;Signature=TrszHNNpxZNbd4yGouyVYE3vmOwzG1y~SLZH~2XixLgr9YbL1my-iSIdmfq6gUpJNp4a2jUMy2kIBBrCgqNEowUENpc4Y79a7wKk-nyRPm6mDEAnrw7exIVL18mh4ABCagpXNUHEXQVw1y-rcvTWkpvAX1FnOwqIICb0EVxsvfW6f8cx-vs9PfVinNgn7J2gcFU9O~p7slU-QS-pmKRDsHKMyTW2lPvYshRsn-FHJTUqEuLwA-Nx4fCQPf0LBANiiYe2sXR2Vaw1gs~zYObhhcLOlSxvBN1bSxM7ODEl9Iz-gnFUbDjWxag~Oa8l7WzO3LYR781OBvAjCDJb9KfGLg__&amp;Key-Pair-Id=APKA26BID7YIZU7LYRQT" alt="Main dashboard view" data-show-caption="true"><div class="prose-image-frame relative inline-block max-w-full p-2 rounded-2xl bg-zinc-50/50 dark:bg-zinc-800/25 overflow-hidden mx-auto" style=""><div class="prose-image-frame-border absolute inset-0 pointer-events-none rounded-2xl border border-black/5 dark:border-white/5"></div><div class="prose-image-container relative rounded-2xl overflow-hidden flex justify-center"><div class="prose-image-content relative flex items-center max-w-full"><img class="prose-img tiptap-image-img max-w-full h-auto rounded-2xl block w-full" src="https://d14xczjzvlshjn.cloudfront.net/screencasts/scrcst_zuwgcnvobgblid7q/processed/article_video_frames/frame-12500-03b06279-299c-4706-af58-c9ed348ce880.jpg?Expires=1816130959&amp;Signature=TrszHNNpxZNbd4yGouyVYE3vmOwzG1y~SLZH~2XixLgr9YbL1my-iSIdmfq6gUpJNp4a2jUMy2kIBBrCgqNEowUENpc4Y79a7wKk-nyRPm6mDEAnrw7exIVL18mh4ABCagpXNUHEXQVw1y-rcvTWkpvAX1FnOwqIICb0EVxsvfW6f8cx-vs9PfVinNgn7J2gcFU9O~p7slU-QS-pmKRDsHKMyTW2lPvYshRsn-FHJTUqEuLwA-Nx4fCQPf0LBANiiYe2sXR2Vaw1gs~zYObhhcLOlSxvBN1bSxM7ODEl9Iz-gnFUbDjWxag~Oa8l7WzO3LYR781OBvAjCDJb9KfGLg__&amp;Key-Pair-Id=APKA26BID7YIZU7LYRQT" alt="Main dashboard view"></div></div><figcaption class="prose-image-caption tiptap-image-caption mt-2 text-sm text-center text-zinc-600 dark:text-zinc-400 px-2">The FavHost dashboard displays key metrics including total bookings, arrivals, and cleaning status for the selected date.</figcaption></div></figure><h3 class="prose-h3 text-xl font-semibold mt-8 first:mt-0 text-zinc-900 dark:text-zinc-100">Step 2: Accessing Guest Details</h3><p class="prose-p text-base leading-relaxed my-4 first:mt-0 last:mb-0 text-zinc-900 dark:text-zinc-400">To view the specifics of a particular stay, click on a booking entry within the <strong class="prose-strong font-semibold text-zinc-950 dark:text-white">Check-ins</strong> or <strong class="prose-strong font-semibold text-zinc-950 dark:text-white">Check-outs</strong> list. This opens a detailed guest profile and itinerary view. This panel provides vital information such as the guest's contact details, vehicle information, purpose of stay, and a breakdown of their payment schedule and summary.</p><figure class="prose-image my-8" data-align="center" src="https://d14xczjzvlshjn.cloudfront.net/screencasts/scrcst_zuwgcnvobgblid7q/processed/article_video_frames/frame-34500-810f6009-e2b0-4edf-a9f4-fa503cb52102.jpg?Expires=1816130959&amp;Signature=IgoJZgGLRmIe487F1MndFJWf2Aboz1VCg0jeaxCrhqcaw3RNpZbTSAaOSGei-Tc7cegYEYvQx-yKlXCBoIfDMJjJURW2dSnxzEUz-SGuyjEb0otI~Jw8qcx7KNKxQkeQ-2dY3KefbPaIPDV4zD2SpvANa8XR3Vs2-UHieqFkAgiLtWz41Eu8aUlEEJArLha1E1fkpVxzprPXouq8yt0xAmzkJucfPm8~5sevupsDENkFwEz~dUNKmaK8FcIJ2qFdPtjHO68c~sY3x2ur6PnAzE0b1Ya0KyB4Jvh8z0efFvXpsFUi9FpcAizoTVZkVqP7z2E4WtCoGnYSI7fYexiNYg__&amp;Key-Pair-Id=APKA26BID7YIZU7LYRQT" alt="Guest booking details panel" data-show-caption="true"><div class="prose-image-frame relative inline-block max-w-full p-2 rounded-2xl bg-zinc-50/50 dark:bg-zinc-800/25 overflow-hidden mx-auto" style=""><div class="prose-image-frame-border absolute inset-0 pointer-events-none rounded-2xl border border-black/5 dark:border-white/5"></div><div class="prose-image-container relative rounded-2xl overflow-hidden flex justify-center"><div class="prose-image-content relative flex items-center max-w-full"><img class="prose-img tiptap-image-img max-w-full h-auto rounded-2xl block w-full" src="https://d14xczjzvlshjn.cloudfront.net/screencasts/scrcst_zuwgcnvobgblid7q/processed/article_video_frames/frame-34500-810f6009-e2b0-4edf-a9f4-fa503cb52102.jpg?Expires=1816130959&amp;Signature=IgoJZgGLRmIe487F1MndFJWf2Aboz1VCg0jeaxCrhqcaw3RNpZbTSAaOSGei-Tc7cegYEYvQx-yKlXCBoIfDMJjJURW2dSnxzEUz-SGuyjEb0otI~Jw8qcx7KNKxQkeQ-2dY3KefbPaIPDV4zD2SpvANa8XR3Vs2-UHieqFkAgiLtWz41Eu8aUlEEJArLha1E1fkpVxzprPXouq8yt0xAmzkJucfPm8~5sevupsDENkFwEz~dUNKmaK8FcIJ2qFdPtjHO68c~sY3x2ur6PnAzE0b1Ya0KyB4Jvh8z0efFvXpsFUi9FpcAizoTVZkVqP7z2E4WtCoGnYSI7fYexiNYg__&amp;Key-Pair-Id=APKA26BID7YIZU7LYRQT" alt="Guest booking details panel"></div></div><figcaption class="prose-image-caption tiptap-image-caption mt-2 text-sm text-center text-zinc-600 dark:text-zinc-400 px-2">Opening a booking reveals the guest's profile, stay dates, vehicle details, and a complete financial breakdown.</figcaption></div></figure><div class="prose-callout flex gap-3 my-4 p-4 px-5 rounded-2xl border overflow-hidden prose-callout-tip border-emerald-500/20 bg-emerald-50/50 dark:bg-emerald-500/10 dark:border-emerald-500/30" data-type="callout" data-callout-type="tip"><div class="prose-callout-icon flex-shrink-0 mt-0.5 w-4 flex items-start justify-center text-emerald-600 dark:text-emerald-400/80 w-3.5 h-auto" data-callout-icon="tip"><svg class="callout-icon-svg" viewBox="0 0 11 14" fill="currentColor"><path d="M3.12794 12.4232C3.12794 12.5954 3.1776 12.7634 3.27244 12.907L3.74114 13.6095C3.88471 13.8248 4.21067 14 4.46964 14H6.15606C6.41415 14 6.74017 13.825 6.88373 13.6095L7.3508 12.9073C7.43114 12.7859 7.49705 12.569 7.49705 12.4232L7.50055 11.3513H3.12521L3.12794 12.4232ZM5.31288 0C2.52414 0.00875889 0.5 2.26889 0.5 4.78826C0.5 6.00188 0.949566 7.10829 1.69119 7.95492C2.14321 8.47011 2.84901 9.54727 3.11919 10.4557C3.12005 10.4625 3.12175 10.4698 3.12261 10.4771H7.50342C7.50427 10.4698 7.50598 10.463 7.50684 10.4557C7.77688 9.54727 8.48281 8.47011 8.93484 7.95492C9.67728 7.13181 10.1258 6.02703 10.1258 4.78826C10.1258 2.15486 7.9709 0.000106649 5.31288 0ZM7.94902 7.11267C7.52078 7.60079 6.99082 8.37878 6.6077 9.18794H4.02051C3.63739 8.37878 3.10743 7.60079 2.67947 7.11294C2.11997 6.47551 1.8126 5.63599 1.8126 4.78826C1.8126 3.09829 3.12794 1.31944 5.28827 1.3126C7.2435 1.3126 8.81315 2.88226 8.81315 4.78826C8.81315 5.63599 8.50688 6.47551 7.94902 7.11267ZM4.87534 2.18767C3.66939 2.18767 2.68767 3.16939 2.68767 4.37534C2.68767 4.61719 2.88336 4.81288 3.12521 4.81288C3.36705 4.81288 3.56274 4.61599 3.56274 4.37534C3.56274 3.6515 4.1515 3.06274 4.87534 3.06274C5.11719 3.06274 5.31288 2.86727 5.31288 2.62548C5.31288 2.38369 5.11599 2.18767 4.87534 2.18767Z"/></svg></div><div class="prose-callout-content flex-1 min-w-0 text-sm leading-relaxed [&amp;&gt;p]:m-0 [&amp;_a]:text-current [&amp;_a]:border-current [&amp;_code]:text-current text-emerald-950 dark:text-emerald-100"><p class="prose-p text-base leading-relaxed my-4 first:mt-0 last:mb-0 text-zinc-900 dark:text-zinc-400">Reviewing the <strong class="prose-strong font-semibold text-zinc-950 dark:text-white">Purpose of Stay</strong> and <strong class="prose-strong font-semibold text-zinc-950 dark:text-white">Vehicle Information</strong> in the guest details panel helps you personalize the guest experience and manage parking resources effectively.</p></div></div><h2 class="prose-h2 text-2xl font-semibold mt-10 first:mt-0 text-zinc-900 dark:text-zinc-100">Tracking Housekeeping and Cleaning Status</h2><p class="prose-p text-base leading-relaxed my-4 first:mt-0 last:mb-0 text-zinc-900 dark:text-zinc-400">Efficient turnover between guests depends on real-time tracking of room readiness. The <strong class="prose-strong font-semibold text-zinc-950 dark:text-white">Housekeeping</strong> section provides a specialized view to manage these tasks across all your listings.</p><h3 class="prose-h3 text-xl font-semibold mt-8 first:mt-0 text-zinc-900 dark:text-zinc-100">Step 1: Monitoring Room Readiness</h3><p class="prose-p text-base leading-relaxed my-4 first:mt-0 last:mb-0 text-zinc-900 dark:text-zinc-400">Navigate to the <strong class="prose-strong font-semibold text-zinc-950 dark:text-white">Housekeeping</strong> tab from the top menu. This view categorizes your properties by their current status, such as <strong class="prose-strong font-semibold text-zinc-950 dark:text-white">Dirty</strong>, <strong class="prose-strong font-semibold text-zinc-950 dark:text-white">In Progress</strong>, <strong class="prose-strong font-semibold text-zinc-950 dark:text-white">Clean/Ready</strong>, or <strong class="prose-strong font-semibold text-zinc-950 dark:text-white">Not Available</strong>. You can see at a glance how many units are ready for incoming guests and which ones still require attention.</p><figure class="prose-image my-8" data-align="center" src="https://d14xczjzvlshjn.cloudfront.net/screencasts/scrcst_zuwgcnvobgblid7q/processed/article_video_frames/frame-45500-32448c1c-d728-416b-9d0e-593012793568.jpg?Expires=1816130959&amp;Signature=GfyBI79XdhHQuN707gzVmN9gj2Pa88ugdhZYGxa1eJjxq6T2lhwJWmYIMebgEvzuaTD7IbHfeaf3BKH~Dn~CplUxmuUBX~JTyGUonWE1pn21uVdlF8jAy1tAIP123SvfRbZDTI1KHOcaS-njA9YyTRIaDc0m1nKbGBGUwpGlP~ydBzuQ1OGUE35RRwdljy97R-cqtQQ6EToucRpsMRgk5Qf1oKfeg~r2McjJnHOWSDQPKUORcgZHnMUuVR0JtAYthRnYrGCJXszQPxu9A~30dFd08wFv1J~osfFvylHgpheVWhcNDXwP1NtakK0W8G~J3GwmEUZxRpEoQzqFznQaCw__&amp;Key-Pair-Id=APKA26BID7YIZU7LYRQT" alt="Housekeeping status overview" data-show-caption="true"><div class="prose-image-frame relative inline-block max-w-full p-2 rounded-2xl bg-zinc-50/50 dark:bg-zinc-800/25 overflow-hidden mx-auto" style=""><div class="prose-image-frame-border absolute inset-0 pointer-events-none rounded-2xl border border-black/5 dark:border-white/5"></div><div class="prose-image-container relative rounded-2xl overflow-hidden flex justify-center"><div class="prose-image-content relative flex items-center max-w-full"><img class="prose-img tiptap-image-img max-w-full h-auto rounded-2xl block w-full" src="https://d14xczjzvlshjn.cloudfront.net/screencasts/scrcst_zuwgcnvobgblid7q/processed/article_video_frames/frame-45500-32448c1c-d728-416b-9d0e-593012793568.jpg?Expires=1816130959&amp;Signature=GfyBI79XdhHQuN707gzVmN9gj2Pa88ugdhZYGxa1eJjxq6T2lhwJWmYIMebgEvzuaTD7IbHfeaf3BKH~Dn~CplUxmuUBX~JTyGUonWE1pn21uVdlF8jAy1tAIP123SvfRbZDTI1KHOcaS-njA9YyTRIaDc0m1nKbGBGUwpGlP~ydBzuQ1OGUE35RRwdljy97R-cqtQQ6EToucRpsMRgk5Qf1oKfeg~r2McjJnHOWSDQPKUORcgZHnMUuVR0JtAYthRnYrGCJXszQPxu9A~30dFd08wFv1J~osfFvylHgpheVWhcNDXwP1NtakK0W8G~J3GwmEUZxRpEoQzqFznQaCw__&amp;Key-Pair-Id=APKA26BID7YIZU7LYRQT" alt="Housekeeping status overview"></div></div><figcaption class="prose-image-caption tiptap-image-caption mt-2 text-sm text-center text-zinc-600 dark:text-zinc-400 px-2">The Housekeeping dashboard organizes listings by cleaning status, providing a clear visual of operational progress.</figcaption></div></figure><h3 class="prose-h3 text-xl font-semibold mt-8 first:mt-0 text-zinc-900 dark:text-zinc-100">Step 2: Customizing the Housekeeping View</h3><p class="prose-p text-base leading-relaxed my-4 first:mt-0 last:mb-0 text-zinc-900 dark:text-zinc-400">Depending on your team's workflow, you may prefer different display modes. Use the view toggles on the right side of the housekeeping header to switch between a detailed list view and a more visual card view. The card view often provides large thumbnails of the properties, making it easier to identify specific units quickly.</p><figure class="prose-image my-8" data-align="center" src="https://d14xczjzvlshjn.cloudfront.net/screencasts/scrcst_zuwgcnvobgblid7q/processed/article_video_frames/frame-56500-3a5bc3c2-0da9-485c-8657-5128cd927ccd.jpg?Expires=1816130960&amp;Signature=ZQI5aIgf79FSokRP7tuOZlsGYIlxDSH9CpOlXCGjFdBbABFW4kWPJOLp7KeVKLybZlJgh-YzRFlrQ4RAW9OykTlLHMAgZb7wFg0iV0F8yUScPXtzbG487tkST7tKbTlSBuPt07cUBIzSYdKdKqIYRvTCsWgnf3A9n1Ns0X1I9fKFEI6bHOP-MmoD9FVX7K2y~Ny3JJMLKm163ORuXKHAJnl2HcljCN~hynb1BHS2rH7bxmJZQhlTwln9II4fyHUC6RlEDqo~kIh6JId~KIfhmwRyIvNIGnVkfKgCKOOcOgf-7~Ty0u1WMno6KdRF66RSxKuyIyav7VFZ7R4376SCYQ__&amp;Key-Pair-Id=APKA26BID7YIZU7LYRQT" alt="Switching to card view" data-show-caption="true"><div class="prose-image-frame relative inline-block max-w-full p-2 rounded-2xl bg-zinc-50/50 dark:bg-zinc-800/25 overflow-hidden mx-auto" style=""><div class="prose-image-frame-border absolute inset-0 pointer-events-none rounded-2xl border border-black/5 dark:border-white/5"></div><div class="prose-image-container relative rounded-2xl overflow-hidden flex justify-center"><div class="prose-image-content relative flex items-center max-w-full"><img class="prose-img tiptap-image-img max-w-full h-auto rounded-2xl block w-full" src="https://d14xczjzvlshjn.cloudfront.net/screencasts/scrcst_zuwgcnvobgblid7q/processed/article_video_frames/frame-56500-3a5bc3c2-0da9-485c-8657-5128cd927ccd.jpg?Expires=1816130960&amp;Signature=ZQI5aIgf79FSokRP7tuOZlsGYIlxDSH9CpOlXCGjFdBbABFW4kWPJOLp7KeVKLybZlJgh-YzRFlrQ4RAW9OykTlLHMAgZb7wFg0iV0F8yUScPXtzbG487tkST7tKbTlSBuPt07cUBIzSYdKdKqIYRvTCsWgnf3A9n1Ns0X1I9fKFEI6bHOP-MmoD9FVX7K2y~Ny3JJMLKm163ORuXKHAJnl2HcljCN~hynb1BHS2rH7bxmJZQhlTwln9II4fyHUC6RlEDqo~kIh6JId~KIfhmwRyIvNIGnVkfKgCKOOcOgf-7~Ty0u1WMno6KdRF66RSxKuyIyav7VFZ7R4376SCYQ__&amp;Key-Pair-Id=APKA26BID7YIZU7LYRQT" alt="Switching to card view"></div></div><figcaption class="prose-image-caption tiptap-image-caption mt-2 text-sm text-center text-zinc-600 dark:text-zinc-400 px-2">Toggling to the card view displays property images and statuses in a grid format for faster visual recognition.</figcaption></div></figure><figure class="prose-image my-8" data-align="center" src="https://d14xczjzvlshjn.cloudfront.net/screencasts/scrcst_zuwgcnvobgblid7q/processed/article_video_frames/frame-65500-057329b8-6326-4f3a-b5e9-fa3f911c3dd5.jpg?Expires=1816130960&amp;Signature=NWdzVWzBrJZ2VgaSmLgrVvHDgW9jKkHCSI9TK75z1iLNA8jdSHel42yws001IRmwjO6NoeP4AkLjjyxx-8nIPyTS8NL6-0U9j0sP8KThJ3CLW8GRPzbdn8ZO0CvdHEm8q6i~jiCSY712jWikInbggvnfdWM3M1l76VOIyjEoTQbgFdzVKAT8ZG7MDayyV0YuwXUjGJ8Thu7JqYLXWglD0QOWyOnvgCgr05nobHnxEBWbCl6IG6H1Th4Id0Xpe8QHTqEfFQ0mNgw0O8T2EKvY7H2stO7qE1F0Qz5quAU25yaDBBbTbaU67SdesstzNJO3cQJhnWlbMkd-8SsNen8Izw__&amp;Key-Pair-Id=APKA26BID7YIZU7LYRQT" alt="Detailed property status grid" data-show-caption="true"><div class="prose-image-frame relative inline-block max-w-full p-2 rounded-2xl bg-zinc-50/50 dark:bg-zinc-800/25 overflow-hidden mx-auto" style=""><div class="prose-image-frame-border absolute inset-0 pointer-events-none rounded-2xl border border-black/5 dark:border-white/5"></div><div class="prose-image-container relative rounded-2xl overflow-hidden flex justify-center"><div class="prose-image-content relative flex items-center max-w-full"><img class="prose-img tiptap-image-img max-w-full h-auto rounded-2xl block w-full" src="https://d14xczjzvlshjn.cloudfront.net/screencasts/scrcst_zuwgcnvobgblid7q/processed/article_video_frames/frame-65500-057329b8-6326-4f3a-b5e9-fa3f911c3dd5.jpg?Expires=1816130960&amp;Signature=NWdzVWzBrJZ2VgaSmLgrVvHDgW9jKkHCSI9TK75z1iLNA8jdSHel42yws001IRmwjO6NoeP4AkLjjyxx-8nIPyTS8NL6-0U9j0sP8KThJ3CLW8GRPzbdn8ZO0CvdHEm8q6i~jiCSY712jWikInbggvnfdWM3M1l76VOIyjEoTQbgFdzVKAT8ZG7MDayyV0YuwXUjGJ8Thu7JqYLXWglD0QOWyOnvgCgr05nobHnxEBWbCl6IG6H1Th4Id0Xpe8QHTqEfFQ0mNgw0O8T2EKvY7H2stO7qE1F0Qz5quAU25yaDBBbTbaU67SdesstzNJO3cQJhnWlbMkd-8SsNen8Izw__&amp;Key-Pair-Id=APKA26BID7YIZU7LYRQT" alt="Detailed property status grid"></div></div><figcaption class="prose-image-caption tiptap-image-caption mt-2 text-sm text-center text-zinc-600 dark:text-zinc-400 px-2">The grid view provides a high-level visual summary of every property's cleaning and availability status.</figcaption></div></figure><h2 class="prose-h2 text-2xl font-semibold mt-10 first:mt-0 text-zinc-900 dark:text-zinc-100">Generating the Housekeeping Report</h2><p class="prose-p text-base leading-relaxed my-4 first:mt-0 last:mb-0 text-zinc-900 dark:text-zinc-400">When it's time for your staff to begin their shift, you can generate a consolidated report. This document ensures everyone is aligned on the day's priorities without needing to access the digital dashboard.</p><h3 class="prose-h3 text-xl font-semibold mt-8 first:mt-0 text-zinc-900 dark:text-zinc-100">Step 1: Previewing the Report</h3><p class="prose-p text-base leading-relaxed my-4 first:mt-0 last:mb-0 text-zinc-900 dark:text-zinc-400">Click the <strong class="prose-strong font-semibold text-zinc-950 dark:text-white">Print</strong> icon or the report generation button located in the top-right corner of the Housekeeping dashboard. This opens the <strong class="prose-strong font-semibold text-zinc-950 dark:text-white">Print Panel</strong>, where you can see a live preview of the <strong class="prose-strong font-semibold text-zinc-950 dark:text-white">Housekeeping Report</strong>.</p><figure class="prose-image my-8" data-align="center" src="https://d14xczjzvlshjn.cloudfront.net/screencasts/scrcst_zuwgcnvobgblid7q/processed/article_video_frames/frame-71500-25c50a75-5ce8-4392-bb82-1c6c584238ca.jpg?Expires=1816130960&amp;Signature=Kg-OQAIQS~Izr-cYHqvjXFYvDNi876u7AAORSTcVmy5wIFjblDcD5iTJ97UeAu5OW7QZkKBiUH7wzZKfTsUiWrvtX3~rjOUUq79hrQqC3Fm75buFWARul~FapKq~nBofhV97mJSHT4kmLmB-F2xN6gFUj2Ym2sniictOEILetEPcgk-wI60tbNOdPGcun4iPiWv5MLZySrgwuB7tPqRkqH4mSRQNRMgC20mH-8nU9nG8yXQjjnRF49I0QmPx8dhuy8CCQzOgeJS0tWHQfj0T8cq-KN4fsbJ6gYUkzhWZ0Wh1NAKsfdGS4-Q90pUfq1UwB2lAfCvCJP08lCiCnZBbBw__&amp;Key-Pair-Id=APKA26BID7YIZU7LYRQT" alt="Report preview screen" data-show-caption="true"><div class="prose-image-frame relative inline-block max-w-full p-2 rounded-2xl bg-zinc-50/50 dark:bg-zinc-800/25 overflow-hidden mx-auto" style=""><div class="prose-image-frame-border absolute inset-0 pointer-events-none rounded-2xl border border-black/5 dark:border-white/5"></div><div class="prose-image-container relative rounded-2xl overflow-hidden flex justify-center"><div class="prose-image-content relative flex items-center max-w-full"><img class="prose-img tiptap-image-img max-w-full h-auto rounded-2xl block w-full" src="https://d14xczjzvlshjn.cloudfront.net/screencasts/scrcst_zuwgcnvobgblid7q/processed/article_video_frames/frame-71500-25c50a75-5ce8-4392-bb82-1c6c584238ca.jpg?Expires=1816130960&amp;Signature=Kg-OQAIQS~Izr-cYHqvjXFYvDNi876u7AAORSTcVmy5wIFjblDcD5iTJ97UeAu5OW7QZkKBiUH7wzZKfTsUiWrvtX3~rjOUUq79hrQqC3Fm75buFWARul~FapKq~nBofhV97mJSHT4kmLmB-F2xN6gFUj2Ym2sniictOEILetEPcgk-wI60tbNOdPGcun4iPiWv5MLZySrgwuB7tPqRkqH4mSRQNRMgC20mH-8nU9nG8yXQjjnRF49I0QmPx8dhuy8CCQzOgeJS0tWHQfj0T8cq-KN4fsbJ6gYUkzhWZ0Wh1NAKsfdGS4-Q90pUfq1UwB2lAfCvCJP08lCiCnZBbBw__&amp;Key-Pair-Id=APKA26BID7YIZU7LYRQT" alt="Report preview screen"></div></div><figcaption class="prose-image-caption tiptap-image-caption mt-2 text-sm text-center text-zinc-600 dark:text-zinc-400 px-2">The Housekeeping Report preview organizes cleaning tasks by property and includes guest counts and bed types.</figcaption></div></figure><h3 class="prose-h3 text-xl font-semibold mt-8 first:mt-0 text-zinc-900 dark:text-zinc-100">Step 2: Exporting and Printing</h3><p class="prose-p text-base leading-relaxed my-4 first:mt-0 last:mb-0 text-zinc-900 dark:text-zinc-400">The report includes critical details for your cleaning crew, such as the number of guests expected, the bed configuration (e.g., King, Pet Friendly), and specific flags or notes. Once you have reviewed the preview, use the side panel to <strong class="prose-strong font-semibold text-zinc-950 dark:text-white">Download PDF</strong> or <strong class="prose-strong font-semibold text-zinc-950 dark:text-white">Print</strong> the document directly.</p><figure class="prose-image my-8" data-align="center" src="https://d14xczjzvlshjn.cloudfront.net/screencasts/scrcst_zuwgcnvobgblid7q/processed/article_video_frames/frame-81500-61720046-ffb4-45bf-959c-365b9ff0e6cf.jpg?Expires=1816130960&amp;Signature=TeeqLhyLwfV0TZj0uAVOEf9DRus49Eqs1P5r9ztLoix9z3JaTfmQHkelpx4PYapOyrILJrwiTikVcAI0uhia-VPP2nyZGgAvUco8b~6lnpyoV8ol~MYTXMSGK03epVpy9rEqmOCmaMfcPkdRDd7Y4PvWSKoCmDgfkHhNh3Fc52A~UvO4yWa3lsBlJXkVNTgZvg~VDr9SxxkG28~vwY3X1HAAlgw8JynRAgGQpFrDtgkvK2OzdxjG7X-wnETmzNfCQU~~5FBgsXzDAequ-w-lUwmvTC53H5OOgejx6BcTlhddjE2InTnbbJ~KrpOKTKW~wWvbRuM6N2PtVqnyIdSkag__&amp;Key-Pair-Id=APKA26BID7YIZU7LYRQT" alt="Downloading the report" data-show-caption="true"><div class="prose-image-frame relative inline-block max-w-full p-2 rounded-2xl bg-zinc-50/50 dark:bg-zinc-800/25 overflow-hidden mx-auto" style=""><div class="prose-image-frame-border absolute inset-0 pointer-events-none rounded-2xl border border-black/5 dark:border-white/5"></div><div class="prose-image-container relative rounded-2xl overflow-hidden flex justify-center"><div class="prose-image-content relative flex items-center max-w-full"><img class="prose-img tiptap-image-img max-w-full h-auto rounded-2xl block w-full" src="https://d14xczjzvlshjn.cloudfront.net/screencasts/scrcst_zuwgcnvobgblid7q/processed/article_video_frames/frame-81500-61720046-ffb4-45bf-959c-365b9ff0e6cf.jpg?Expires=1816130960&amp;Signature=TeeqLhyLwfV0TZj0uAVOEf9DRus49Eqs1P5r9ztLoix9z3JaTfmQHkelpx4PYapOyrILJrwiTikVcAI0uhia-VPP2nyZGgAvUco8b~6lnpyoV8ol~MYTXMSGK03epVpy9rEqmOCmaMfcPkdRDd7Y4PvWSKoCmDgfkHhNh3Fc52A~UvO4yWa3lsBlJXkVNTgZvg~VDr9SxxkG28~vwY3X1HAAlgw8JynRAgGQpFrDtgkvK2OzdxjG7X-wnETmzNfCQU~~5FBgsXzDAequ-w-lUwmvTC53H5OOgejx6BcTlhddjE2InTnbbJ~KrpOKTKW~wWvbRuM6N2PtVqnyIdSkag__&amp;Key-Pair-Id=APKA26BID7YIZU7LYRQT" alt="Downloading the report"></div></div><figcaption class="prose-image-caption tiptap-image-caption mt-2 text-sm text-center text-zinc-600 dark:text-zinc-400 px-2">Use the Print Panel controls to download a PDF version of the report for offline use or distribution.</figcaption></div></figure><div class="prose-callout flex gap-3 my-4 p-4 px-5 rounded-2xl border overflow-hidden prose-callout-info border-zinc-500/20 bg-zinc-50/50 dark:bg-zinc-500/10 dark:border-zinc-500/30" data-type="callout" data-callout-type="info"><div class="prose-callout-icon flex-shrink-0 mt-0.5 w-4 flex items-start justify-center text-zinc-500 dark:text-zinc-400 w-5 h-5" data-callout-icon="info"><svg class="callout-icon-svg" viewBox="0 0 20 20" fill="currentColor"><path d="M8 0C3.58125 0 0 3.58125 0 8C0 12.4187 3.58125 16 8 16C12.4187 16 16 12.4187 16 8C16 3.58125 12.4187 0 8 0ZM8 14.5C4.41563 14.5 1.5 11.5841 1.5 8C1.5 4.41594 4.41563 1.5 8 1.5C11.5844 1.5 14.5 4.41594 14.5 8C14.5 11.5841 11.5844 14.5 8 14.5ZM9.25 10.5H8.75V7.75C8.75 7.3375 8.41563 7 8 7H7C6.5875 7 6.25 7.3375 6.25 7.75C6.25 8.1625 6.5875 8.5 7 8.5H7.25V10.5H6.75C6.3375 10.5 6 10.8375 6 11.25C6 11.6625 6.3375 12 6.75 12H9.25C9.66406 12 10 11.6641 10 11.25C10 10.8359 9.66563 10.5 9.25 10.5ZM8 6C8.55219 6 9 5.55219 9 5C9 4.44781 8.55219 4 8 4C7.44781 4 7 4.44687 7 5C7 5.55313 7.44687 6 8 6Z"/></svg></div><div class="prose-callout-content flex-1 min-w-0 text-sm leading-relaxed [&amp;&gt;p]:m-0 [&amp;_a]:text-current [&amp;_a]:border-current [&amp;_code]:text-current text-zinc-950 dark:text-zinc-200"><p class="prose-p text-base leading-relaxed my-4 first:mt-0 last:mb-0 text-zinc-900 dark:text-zinc-400">The Housekeeping Report automatically groups properties by status (e.g., Unassigned, In Progress) to help your team prioritize rooms that need immediate attention for early arrivals.</p></div></div><h2 class="prose-h2 text-2xl font-semibold mt-10 first:mt-0 text-zinc-900 dark:text-zinc-100">Conclusion</h2><p class="prose-p text-base leading-relaxed my-4 first:mt-0 last:mb-0 text-zinc-900 dark:text-zinc-400">By mastering the dashboard and housekeeping tools in FavHost, you can significantly streamline your daily operations. You are now equipped to navigate guest arrivals, review detailed booking information, and generate professional reports that keep your cleaning staff organized and efficient. Regularly utilizing these features ensures that your properties are always guest-ready and your team has the information they need to succeed. As a next step, consider setting up automated status updates for your housekeeping team to further optimize your workflow.</p><h2 class="prose-h2 text-2xl font-semibold mt-10 first:mt-0 text-zinc-900 dark:text-zinc-100">FAQ</h2><ul class="prose-ul list-disc pl-6 my-6 space-y-1"><li class="prose-li text-zinc-700 dark:text-zinc-300"><p class="prose-p text-base leading-relaxed my-4 first:mt-0 last:mb-0 text-zinc-900 dark:text-zinc-400"><strong class="prose-strong font-semibold text-zinc-950 dark:text-white">How do I change the date for the Housekeeping Report?</strong></p><p class="prose-p text-base leading-relaxed my-4 first:mt-0 last:mb-0 text-zinc-900 dark:text-zinc-400">Use the date picker in the top-left corner of the main dashboard or housekeeping view before clicking the print icon. The report will automatically generate based on the date currently selected in your view.</p></li><li class="prose-li text-zinc-700 dark:text-zinc-300"><p class="prose-p text-base leading-relaxed my-4 first:mt-0 last:mb-0 text-zinc-900 dark:text-zinc-400"><strong class="prose-strong font-semibold text-zinc-950 dark:text-white">Can I see which specific guests are checking out today?</strong></p><p class="prose-p text-base leading-relaxed my-4 first:mt-0 last:mb-0 text-zinc-900 dark:text-zinc-400">Yes, the main dashboard features a "Check-outs" column that lists all departures for the selected date. Clicking on any guest in this list will provide their full stay details.</p></li><li class="prose-li text-zinc-700 dark:text-zinc-300"><p class="prose-p text-base leading-relaxed my-4 first:mt-0 last:mb-0 text-zinc-900 dark:text-zinc-400"><strong class="prose-strong font-semibold text-zinc-950 dark:text-white">What information is included in the 'Bed Type' column of the report?</strong></p><p class="prose-p text-base leading-relaxed my-4 first:mt-0 last:mb-0 text-zinc-900 dark:text-zinc-400">This column pulls information from your listing settings to show cleaners exactly how to stage the room, such as "King" or "Pet Friendly" configurations.</p></li><li class="prose-li text-zinc-700 dark:text-zinc-300"><p class="prose-p text-base leading-relaxed my-4 first:mt-0 last:mb-0 text-zinc-900 dark:text-zinc-400"><strong class="prose-strong font-semibold text-zinc-950 dark:text-white">How do I update the cleaning status of a room?</strong></p><p class="prose-p text-base leading-relaxed my-4 first:mt-0 last:mb-0 text-zinc-900 dark:text-zinc-400">In the Housekeeping list or grid view, look for the status drop-down menu next to each property. You can manually select statuses like "Clean/Ready" or "In Progress" as work is completed.</p></li><li class="prose-li text-zinc-700 dark:text-zinc-300"><p class="prose-p text-base leading-relaxed my-4 first:mt-0 last:mb-0 text-zinc-900 dark:text-zinc-400"><strong class="prose-strong font-semibold text-zinc-950 dark:text-white">Is it possible to filter the Housekeeping view by property manager?</strong></p><p class="prose-p text-base leading-relaxed my-4 first:mt-0 last:mb-0 text-zinc-900 dark:text-zinc-400">Yes, the dashboard allows you to filter listings by different team members or managers, which is particularly useful if you have a large portfolio of properties assigned to different staff.</p></li><li class="prose-li text-zinc-700 dark:text-zinc-300"><p class="prose-p text-base leading-relaxed my-4 first:mt-0 last:mb-0 text-zinc-900 dark:text-zinc-400"><strong class="prose-strong font-semibold text-zinc-950 dark:text-white">Can I include custom notes for the cleaning crew on the report?</strong></p><p class="prose-p text-base leading-relaxed my-4 first:mt-0 last:mb-0 text-zinc-900 dark:text-zinc-400">Any notes added to the "Notes" section of a booking or property profile will typically be consolidated and displayed in the flags or notes section of the generated report.</p></li><li class="prose-li text-zinc-700 dark:text-zinc-300"><p class="prose-p text-base leading-relaxed my-4 first:mt-0 last:mb-0 text-zinc-900 dark:text-zinc-400"><strong class="prose-strong font-semibold text-zinc-950 dark:text-white">What format is the downloaded report?</strong></p><p class="prose-p text-base leading-relaxed my-4 first:mt-0 last:mb-0 text-zinc-900 dark:text-zinc-400">The report is generated as a standard PDF file, making it easy to share via email, messaging apps, or to print for physical distribution.</p></li></ul>
+  </article>
+</body>
+</html>
