@@ -1629,8 +1629,9 @@ class WebsiteContactView(TemplateView):
             f'{message}\n'
         )
 
-        # Dedicated Zoho SMTP connection for the contact form. Everything else
-        # on the platform keeps using the default Namecheap/noreply account.
+        # Dedicated Zoho SMTP connection (support@) for the contact form.
+        # Everything else on the platform uses the default noreply@ account,
+        # which is also on Zoho.
         support_conn = get_connection(
             backend='django.core.mail.backends.smtp.EmailBackend',
             host=getattr(settings, 'SUPPORT_EMAIL_HOST', None),
@@ -2302,8 +2303,10 @@ TUTORIAL_ARTICLES = {
     'manage_cohosts_guide',
     'property_calendar_guide',
     'manual_reservation_guide',
+    'create_property_reservation_guide',
     'reservations_reports_guide',
-    'dashboard_housekeeping_guide',
+    'frontdesk_housekeeping_guide',
+    'create_assign_tasks_guide',
     'income_expenses_guide',
 }
 

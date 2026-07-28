@@ -138,7 +138,8 @@ def send_subscription_confirmation_email(
                 img.add_header('X-Attachment-Id', 'logo')
                 email_msg.attach(img)
 
-        email_msg.send(fail_silently=True)
+        # fail_silently=False so SMTP problems are logged by the except below.
+        email_msg.send(fail_silently=False)
     except Exception as e:
         logger.warning(f"Could not send subscription confirmation email to {email}: {e}")
 
@@ -218,6 +219,7 @@ def send_subscription_cancelled_email(*, email, first_name, access_until=None):
                 img.add_header('X-Attachment-Id', 'logo')
                 email_msg.attach(img)
 
-        email_msg.send(fail_silently=True)
+        # fail_silently=False so SMTP problems are logged by the except below.
+        email_msg.send(fail_silently=False)
     except Exception as e:
         logger.warning(f"Could not send subscription cancelled email to {email}: {e}")
