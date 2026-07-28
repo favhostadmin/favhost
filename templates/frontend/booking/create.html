@@ -73,12 +73,13 @@
                                             <div class="preview-grid" id="preview-grid"></div>
                                         </div>
                                         {% if enquiry_images %}
-                                        <div class="mt-3">
+                                        <div class="mt-3" id="enquiry-images-block">
                                             <p class="form-label" style="font-size: 12px; color: #6b7280;">From Enquiry:</p>
                                             <div class="preview-grid">
                                                 {% for img in enquiry_images %}
-                                                <div class="preview-item">
+                                                <div class="preview-item" data-enquiry-image-id="{{ img.id }}">
                                                     <img src="{{ img.image.url }}" alt="Enquiry Photo">
+                                                    <button type="button" class="remove-btn" onclick="removeEnquiryFile(this, 'image', {{ img.id }})">×</button>
                                                 </div>
                                                 {% endfor %}
                                             </div>
@@ -97,18 +98,19 @@
                                             <div class="preview-grid" id="attachmentPreview"></div>
                                         </div>
                                         {% if enquiry_documents %}
-                                        <div class="mt-3">
+                                        <div class="mt-3" id="enquiry-documents-block">
                                             <p class="form-label" style="font-size: 12px; color: #6b7280;">From Enquiry:</p>
                                             <div class="preview-grid">
                                                 {% for doc in enquiry_documents %}
                                                 {% with file_extension=doc.document.name|lower|slice:"-4:" %}
                                                 {% with long_file_extension=doc.document.name|lower|slice:"-5:" %}
-                                                <div class="{% if file_extension == '.jpg' or file_extension == '.png' or file_extension == '.gif' or long_file_extension == '.jpeg' %}preview-item{% else %}preview-doc-item{% endif %}">
+                                                <div class="{% if file_extension == '.jpg' or file_extension == '.png' or file_extension == '.gif' or long_file_extension == '.jpeg' %}preview-item{% else %}preview-doc-item{% endif %}" data-enquiry-document-id="{{ doc.id }}">
                                                     {% if file_extension == '.jpg' or file_extension == '.png' or file_extension == '.gif' or long_file_extension == '.jpeg' %}
                                                         <img src="{{ doc.document.url }}" alt="Enquiry Attachment">
                                                     {% else %}
                                                         <div class="doc-link"><span>📄</span> {{ doc.name }}</div>
                                                     {% endif %}
+                                                    <button type="button" class="remove-btn" onclick="removeEnquiryFile(this, 'document', {{ doc.id }})">×</button>
                                                 </div>
                                                 {% endwith %}
                                                 {% endwith %}
@@ -120,6 +122,8 @@
                                 </div>
                                 <input type="file" name="guest_images" accept="image/*" style="display: none;" id="id_guest_images">
                                 <input type="file" name="guest_attachments" style="display: none;" id="id_guest_attachments" multiple>
+                                <input type="hidden" name="excluded_enquiry_images" id="id_excluded_enquiry_images" value="">
+                                <input type="hidden" name="excluded_enquiry_documents" id="id_excluded_enquiry_documents" value="">
                             </div>
 
                             <div class="booking-field full-width">
@@ -231,6 +235,10 @@
                                         <option value="{{ channel.id }}" data-icon="{% if channel.icon %}{{ channel.icon.url }}{% else %}{% static 'img/booking/other_browser.svg' %}{% endif %}" {% if channel.name == 'Personal Website' %}selected{% endif %}>{{ channel.name }}</option>
                                     {% endfor %}
                                 </select>
+                                <div class="native-style-tooltip" id="channel-error-message" style="display:none;">
+                                    <span class="native-style-tooltip-icon">!</span>
+                                    <span>Please select a booking source.</span>
+                                </div>
                             </div>
 
                             <div class="booking-field full-width">
@@ -654,6 +662,44 @@
                 document.getElementById('id_country_code').value = phoneInput.getSelectedCountryData().iso2;
             });
 
+            // Select2 hides the real <select id="id_channel"> off-screen, so the
+            // browser's own "Please select an item in the list" bubble anchors to
+            // that hidden element and renders in an unrelated spot on the page.
+            // The native constraint check runs (and blocks submission) *before* the
+            // form's "submit" event ever fires, so the replacement has to live in
+            // the "invalid" handler itself — that's the one guaranteed to run.
+            const channelSelectEl = document.getElementById('id_channel');
+            const channelErrorMessage = document.getElementById('channel-error-message');
+            if (channelSelectEl) {
+                channelSelectEl.addEventListener('invalid', function(e) {
+                    e.preventDefault();
+
+                    // The browser fires "invalid" on every invalid field in one submit
+                    // attempt, but only shows its native bubble on the first one (in DOM
+                    // order) and scrolls to that — the rest stay silent until the user
+                    // fixes the earlier ones and resubmits. Mirror that here: only show
+                    // (and scroll to) our tooltip when this field is the current one the
+                    // browser would actually be reporting on.
+                    const form = channelSelectEl.form;
+                    const firstInvalid = form ? form.querySelector(':invalid') : null;
+                    if (firstInvalid === channelSelectEl) {
+                        channelErrorMessage.style.display = 'flex';
+                        const channelContainer = channelSelectEl.closest('.booking-field') || channelSelectEl.parentElement;
+                        // "center" forces the browser to scroll the field to the middle of the
+                        // viewport even when there isn't enough page below it to do so, which
+                        // over-scrolls past the document's real bottom and exposes blank space
+                        // beyond the page (and the fixed header along with it). "nearest" only
+                        // scrolls the minimum needed to bring it into view.
+                        channelContainer?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    } else {
+                        channelErrorMessage.style.display = 'none';
+                    }
+                });
+                channelSelectEl.addEventListener('change', function() {
+                    if (channelSelectEl.value) channelErrorMessage.style.display = 'none';
+                });
+            }
+
             document.getElementById('propertyForm').addEventListener('submit', function(e) {
                 const propertySelect = document.getElementById('id_property');
                 const selectedOption = propertySelect.options[propertySelect.selectedIndex];
@@ -862,8 +908,8 @@
         // Files already attached to the source enquiry count toward the same
         // totals as newly uploaded files, so the combined count never exceeds
         // the limits shown to the guest (1 photo, 5 attachments).
-        const ENQUIRY_PHOTO_COUNT = {{ enquiry_images|length }};
-        const ENQUIRY_ATTACHMENT_COUNT = {{ enquiry_documents|length }};
+        let ENQUIRY_PHOTO_COUNT = {{ enquiry_images|length }};
+        let ENQUIRY_ATTACHMENT_COUNT = {{ enquiry_documents|length }};
 
         function setupUpload(uploadArea, fileInput, fileHandler) {
             uploadArea.addEventListener('click', () => fileInput.click());
@@ -1049,6 +1095,35 @@
             }
         }
         window.removeFile = removeFile;
+
+        // Enquiry-sourced photos/documents are pre-existing records, not files
+        // picked in this session, so removing one doesn't touch selectedGuestPhotos/
+        // selectedAttachments — it just records the id to exclude on submit and lets
+        // the server skip copying it onto the new reservation.
+        function removeEnquiryFile(button, type, id) {
+            const item = button.closest('.preview-item, .preview-doc-item');
+            const wrapperId = type === 'image' ? 'enquiry-images-block' : 'enquiry-documents-block';
+            const hiddenInputId = type === 'image' ? 'id_excluded_enquiry_images' : 'id_excluded_enquiry_documents';
+
+            const hiddenInput = document.getElementById(hiddenInputId);
+            const ids = hiddenInput.value ? hiddenInput.value.split(',') : [];
+            if (!ids.includes(String(id))) ids.push(String(id));
+            hiddenInput.value = ids.join(',');
+
+            item?.remove();
+
+            if (type === 'image' && ENQUIRY_PHOTO_COUNT > 0) {
+                ENQUIRY_PHOTO_COUNT -= 1;
+            } else if (type === 'document' && ENQUIRY_ATTACHMENT_COUNT > 0) {
+                ENQUIRY_ATTACHMENT_COUNT -= 1;
+            }
+
+            const wrapper = document.getElementById(wrapperId);
+            if (wrapper && !wrapper.querySelector('.preview-item, .preview-doc-item')) {
+                wrapper.style.display = 'none';
+            }
+        }
+        window.removeEnquiryFile = removeEnquiryFile;
 
         function showError(container, message) { container.textContent = message; container.style.display = 'block'; }
         function hideError(container) { container.style.display = 'none'; }
@@ -1259,6 +1334,15 @@
                 dropdownAutoWidth: true,
                 width: '100%',
                 minimumResultsForSearch: 0
+            });
+
+            // Select2 selection doesn't reliably reach the plain addEventListener('change', ...)
+            // registered earlier, so hide the "Please select a booking source" tooltip here too.
+            channelSelect.on('change', function() {
+                if (this.value) {
+                    const channelErrorMessage = document.getElementById('channel-error-message');
+                    if (channelErrorMessage) channelErrorMessage.style.display = 'none';
+                }
             });
 
             // Handle property selection change (triggered by sidebar)
