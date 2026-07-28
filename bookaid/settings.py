@@ -34,9 +34,6 @@ load_dotenv(ENV_FILE)
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.getenv('DEBUG', 'True') == 'True'
-
 # Real servers (EC2 instances) are provisioned without a .env file at all and
 # pull every config value from AWS Secrets Manager instead; only a local
 # checkout has a .env file, so its presence is what tells the two apart —
@@ -50,6 +47,10 @@ def get_env(key, default=None):
         return secrets.get(key, default)
     return os.getenv(key, default)
 
+
+# SECURITY WARNING: don't run with debug turned on in production!
+# Declared after get_env() so servers read this from Secrets Manager too.
+DEBUG = get_env('DEBUG', 'True') == 'True'
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = get_env('SECRET_KEY', 'django-insecure-+m!dtn=()j@rs%01t#c^c&(s3lku25v$+avwnzy$an73tq+t#p')
@@ -323,8 +324,11 @@ else:
 
 
 # Email Settings
+# Transactional mail (noreply@favhost.com) is sent through Zoho SMTP.
+# The old Namecheap/PrivateEmail account ('mail.privateemail.com') is retired --
+# its credentials are kept commented out in .env for reference.
 EMAIL_BACKEND = get_env('EMAIL_BACKEND', 'django.core.mail.backends.smtp.EmailBackend')
-EMAIL_HOST = get_env('EMAIL_HOST', 'smtp.gmail.com')
+EMAIL_HOST = get_env('EMAIL_HOST', 'smtp.zoho.com')
 EMAIL_PORT = int(get_env('EMAIL_PORT', 587))
 EMAIL_USE_TLS = get_env('EMAIL_USE_TLS', 'True') == 'True'
 EMAIL_HOST_USER = get_env('EMAIL_HOST_USER')
@@ -334,9 +338,10 @@ DEFAULT_FROM_EMAIL = get_env('DEFAULT_FROM_EMAIL', EMAIL_HOST_USER)
 SUPPORT_EMAIL = get_env('SUPPORT_EMAIL', 'support@favhost.com')
 
 # --- Dedicated Zoho SMTP for the public contact form ---------------------- #
-# The default EMAIL_* account above (Namecheap/noreply) keeps sending every
-# other platform email. The contact form uses this separate Zoho account so
-# messages are delivered straight into the support@favhost.com inbox.
+# Both mailboxes now live on Zoho. The default EMAIL_* account above
+# (noreply@favhost.com) keeps sending every other platform email; the contact
+# form uses this separate Zoho account so messages are delivered straight into
+# the support@favhost.com inbox.
 SUPPORT_EMAIL_HOST = get_env('SUPPORT_EMAIL_HOST', 'smtp.zoho.com')
 SUPPORT_EMAIL_PORT = int(get_env('SUPPORT_EMAIL_PORT', 587))
 SUPPORT_EMAIL_USE_TLS = get_env('SUPPORT_EMAIL_USE_TLS', 'True') == 'True'
@@ -408,8 +413,8 @@ LOGOUT_REDIRECT_URL = 'login'
 # The console lives at /console/ and is locked to exactly ONE predefined
 # account — no other user can ever reach it, regardless of is_staff/is_admin.
 # Change the email here (or via the env var) if the owner account changes.
-PLATFORM_ADMIN_EMAIL = os.getenv('PLATFORM_ADMIN_EMAIL', 'bookaid@gmail.com')
-PLATFORM_ADMIN_DEFAULT_PASSWORD = os.getenv('PLATFORM_ADMIN_PASSWORD', 'bookaid123')
+PLATFORM_ADMIN_EMAIL = get_env('PLATFORM_ADMIN_EMAIL', 'bookaid@gmail.com')
+PLATFORM_ADMIN_DEFAULT_PASSWORD = get_env('PLATFORM_ADMIN_PASSWORD', 'bookaid123')
 
 # Base URL for generating absolute URLs in emails
 BASE_URL = get_env('BASE_URL', 'http://favhost.com')
