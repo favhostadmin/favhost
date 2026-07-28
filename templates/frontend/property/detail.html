@@ -1938,6 +1938,10 @@
                                 <span class="detail-summary-label" id="detail-summary-price-calc">{% money property.price_per_night %} x 0 nights</span>
                                 <span class="detail-summary-value" id="detail-summary-subtotal">{{ currency_symbol }}0.00</span>
                             </div>
+                            <div class="detail-summary-item" id="detail-summary-monthly-payment-row" style="display:none;">
+                                <span class="detail-summary-label">Monthly Payment</span>
+                                <span class="detail-summary-value" id="detail-summary-monthly-payment">{{ currency_symbol }}0.00</span>
+                            </div>
                             <div class="detail-summary-item">
                                 <span class="detail-summary-label">Cleaning fee:</span>
                                 <span class="detail-summary-value" id="detail-summary-cleaning-fee">{% money property.cleaning_fee %}</span>
@@ -2458,6 +2462,8 @@
         const detailSummaryOtherFees = document.getElementById('detail-summary-other-fees');
         const detailSummaryTaxes = document.getElementById('detail-summary-taxes');
         const detailSummaryTotal = document.getElementById('detail-summary-total');
+        const detailSummaryMonthlyPaymentRow = document.getElementById('detail-summary-monthly-payment-row');
+        const detailSummaryMonthlyPayment = document.getElementById('detail-summary-monthly-payment');
         const propertyPricePerNight = parseFloat("{% money_raw property.price_per_night %}") || 0;
         const propertyCleaningFee = parseFloat("{% money_raw property.cleaning_fee %}") || 0;
         const propertyRefundableDeposit = parseFloat("{% money_raw property.refundable_deposit %}") || 0;
@@ -2598,9 +2604,22 @@
 
             const nights = Math.ceil((checkoutDate - checkinDate) / (1000 * 60 * 60 * 24));
             const subtotal = propertyPricePerNight * nights;
+            // Total always uses the full stay rent (nights * daily rate), not just
+            // one month's payment. The Monthly Payment line is informational only.
             const total = subtotal + propertyCleaningFee + propertyRefundableDeposit + propertyOtherFees + propertyTaxes;
 
             detailSummarySection.style.display = 'block';
+            if (detailSummaryMonthlyPaymentRow) {
+                if (nights > 30) {
+                    const monthlyPayment = propertyPricePerNight * 30;
+                    if (detailSummaryMonthlyPayment) {
+                        detailSummaryMonthlyPayment.textContent = `{{ currency_symbol }}${monthlyPayment.toFixed(2)}`;
+                    }
+                    detailSummaryMonthlyPaymentRow.style.display = '';
+                } else {
+                    detailSummaryMonthlyPaymentRow.style.display = 'none';
+                }
+            }
             if (detailSummaryDailyRate) {
                 detailSummaryDailyRate.textContent = `{{ currency_symbol }}${propertyPricePerNight.toFixed(2)}`;
             }

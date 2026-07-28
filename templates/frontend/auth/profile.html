@@ -983,7 +983,12 @@
 
       // Init inactive class
       socialBtns.forEach(function (btn) {
-        if (!btn.hasAttribute("data-active")) btn.classList.add("inactive");
+        if (!btn.hasAttribute("data-active")) {
+          btn.classList.add("inactive");
+          btn.title = "Add " + (btn.getAttribute("aria-label") || "link");
+        } else {
+          btn.title = "Open " + (btn.getAttribute("aria-label") || "link");
+        }
       });
 
       function openSocialModal(platform, url) {
@@ -1007,10 +1012,31 @@
         currentPlatform = null;
       }
 
+      // Build the outgoing link for a saved value.
+      // WhatsApp is stored as a phone number, everything else as a full URL.
+      function socialHref(platform, raw) {
+        var value = (raw || "").trim();
+        if (!value) return "";
+        if (platform === "whatsapp") {
+          if (/^https?:\/\//i.test(value)) return value;
+          var digits = value.replace(/[^0-9]/g, "");
+          return digits ? "https://wa.me/" + digits : "";
+        }
+        if (/^https?:\/\//i.test(value)) return value;
+        return "https://" + value.replace(/^\/+/, "");
+      }
+
       socialBtns.forEach(function (btn) {
         btn.addEventListener("click", function () {
           const platform = btn.getAttribute("data-platform");
           const url = btn.getAttribute("data-url");
+          const href = socialHref(platform, url);
+          if (href) {
+            // Saved link -> go straight to the social media page
+            window.open(href, "_blank", "noopener");
+            return;
+          }
+          // Nothing saved yet -> let the host add it
           openSocialModal(platform, url);
         });
       });

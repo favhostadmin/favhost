@@ -93,7 +93,9 @@ def send_trial_ending_email(user, trial_end, days_left, price_display='$9.99/mon
                 img.add_header('X-Attachment-Id', 'logo')
                 email_msg.attach(img)
 
-        email_msg.send(fail_silently=True)
+        # fail_silently=False so SMTP problems reach the except below instead of
+        # being reported as a successful send.
+        email_msg.send(fail_silently=False)
         logger.info("Trial-ending email sent to %s (%s days left)", user.email, days_left)
     except Exception as e:
         logger.warning("Could not send trial-ending email to %s: %s", getattr(user, 'email', '?'), e)
