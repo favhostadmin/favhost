@@ -182,6 +182,28 @@ def google_auth_view(request):
 # ─────────────────────────────────────────────
 # LOGIN
 # ─────────────────────────────────────────────
+def _google_signin_context():
+    """
+    Config the "Continue with Google" buttons need. Every render of login.html
+    (login view *and* signup view) must include this, otherwise the buttons come
+    back disabled when the page is re-rendered after a form/OTP error.
+    """
+    return {
+        # Pass Firebase config to template for Google sign-in
+        'firebase_api_key': settings.FIREBASE_API_KEY,
+        'firebase_auth_domain': settings.FIREBASE_AUTH_DOMAIN,
+        'firebase_project_id': settings.FIREBASE_PROJECT_ID,
+        'firebase_storage_bucket': settings.FIREBASE_STORAGE_BUCKET,
+        'firebase_messaging_sender_id': settings.FIREBASE_MESSAGING_SENDER_ID,
+        'firebase_app_id': settings.FIREBASE_APP_ID,
+        'firebase_measurement_id': settings.FIREBASE_MEASUREMENT_ID,
+        'firebase_configured': bool(settings.FIREBASE_API_KEY),
+        # Google Identity Services (preferred for "Continue with Google")
+        'google_client_id': settings.GOOGLE_OAUTH_CLIENT_ID,
+        'google_configured': bool(settings.GOOGLE_OAUTH_CLIENT_ID),
+    }
+
+
 class CustomLoginView(LoginView):
     template_name = 'frontend/auth/login.html'
     redirect_authenticated_user = True
@@ -190,18 +212,7 @@ class CustomLoginView(LoginView):
         context = super().get_context_data(**kwargs)
         # Default to login mode; ?mode=signup shows signup view
         context['show_signup'] = self.request.GET.get('mode') == 'signup'
-        # Pass Firebase config to template for Google sign-in
-        context['firebase_api_key'] = settings.FIREBASE_API_KEY
-        context['firebase_auth_domain'] = settings.FIREBASE_AUTH_DOMAIN
-        context['firebase_project_id'] = settings.FIREBASE_PROJECT_ID
-        context['firebase_storage_bucket'] = settings.FIREBASE_STORAGE_BUCKET
-        context['firebase_messaging_sender_id'] = settings.FIREBASE_MESSAGING_SENDER_ID
-        context['firebase_app_id'] = settings.FIREBASE_APP_ID
-        context['firebase_measurement_id'] = settings.FIREBASE_MEASUREMENT_ID
-        context['firebase_configured'] = bool(settings.FIREBASE_API_KEY)
-        # Google Identity Services (preferred for "Continue with Google")
-        context['google_client_id'] = settings.GOOGLE_OAUTH_CLIENT_ID
-        context['google_configured'] = bool(settings.GOOGLE_OAUTH_CLIENT_ID)
+        context.update(_google_signin_context())
         return context
 
     def form_valid(self, form):
@@ -456,6 +467,7 @@ def register_view(request):
             return render(request, 'frontend/auth/login.html', {
                 'show_signup': True,
                 'signup_data': {'first_name': first_name, 'last_name': last_name, 'email': email},
+                **_google_signin_context(),
             })
 
         # Generate OTP and store in session
@@ -487,6 +499,7 @@ def register_view(request):
             'show_signup': True,
             'show_otp_modal': True,
             'otp_email': email,
+            **_google_signin_context(),
         })
 
     return redirect('login')
@@ -512,6 +525,7 @@ def verify_otp_view(request):
                 'show_signup': True,
                 'show_otp_modal': True,
                 'otp_email': email,
+                **_google_signin_context(),
             })
 
         # Create the user

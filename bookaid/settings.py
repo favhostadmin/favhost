@@ -299,8 +299,11 @@ else:
 
 
 # Email Settings
+# Transactional mail (noreply@favhost.com) is sent through Zoho SMTP.
+# The old Namecheap/PrivateEmail account ('mail.privateemail.com') is retired --
+# its credentials are kept commented out in .env for reference.
 EMAIL_BACKEND = os.getenv('EMAIL_BACKEND', 'django.core.mail.backends.smtp.EmailBackend')
-EMAIL_HOST = os.getenv('EMAIL_HOST', 'smtp.gmail.com')
+EMAIL_HOST = os.getenv('EMAIL_HOST', 'smtp.zoho.com')
 EMAIL_PORT = int(os.getenv('EMAIL_PORT', 587))
 EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'True') == 'True'
 EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
@@ -310,9 +313,10 @@ DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', EMAIL_HOST_USER)
 SUPPORT_EMAIL = os.getenv('SUPPORT_EMAIL', 'support@favhost.com')
 
 # --- Dedicated Zoho SMTP for the public contact form ---------------------- #
-# The default EMAIL_* account above (Namecheap/noreply) keeps sending every
-# other platform email. The contact form uses this separate Zoho account so
-# messages are delivered straight into the support@favhost.com inbox.
+# Both mailboxes now live on Zoho. The default EMAIL_* account above
+# (noreply@favhost.com) keeps sending every other platform email; the contact
+# form uses this separate Zoho account so messages are delivered straight into
+# the support@favhost.com inbox.
 SUPPORT_EMAIL_HOST = os.getenv('SUPPORT_EMAIL_HOST', 'smtp.zoho.com')
 SUPPORT_EMAIL_PORT = int(os.getenv('SUPPORT_EMAIL_PORT', 587))
 SUPPORT_EMAIL_USE_TLS = os.getenv('SUPPORT_EMAIL_USE_TLS', 'True') == 'True'
