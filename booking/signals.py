@@ -15,8 +15,13 @@ from .models import Enquiry
 def send_enquiry_notification_to_host(sender, instance, created, **kwargs):
     """Sends an email notification to the host when a new inquiry is created."""
     if created:
-        # The host is the user who created the property associated with the inquiry
-        host_email = instance.property.created_by.email
+        # The host is the user who created the property associated with the inquiry.
+        # A property with no owner has nobody to notify -- bail out instead of
+        # letting an AttributeError bubble up and break the enquiry's save().
+        host = instance.property.created_by
+        host_email = getattr(host, 'email', None)
+        if not host_email:
+            return
         subject = f"New Inquiry for {instance.property.title} from {instance.first_name}"
         
         context = {

@@ -288,7 +288,7 @@
                             <div class="rb-upload">
                                 <!-- <span class="rb-upload-icon">⌃</span> -->
                                 <span class="rb-upload-title">Click to upload or drag and drop</span>
-                                <span class="rb-upload-sub">PNG, JPG, GIF up to 2MB each</span>
+                                <span class="rb-upload-sub">PNG, JPG, GIF up to 5MB each</span>
                             </div>
                         </label>
                         <div class="rb-upload-filename" id="guest_photo_name" aria-live="polite"></div>
@@ -320,7 +320,7 @@
                             <div class="rb-upload">
                                 <!-- <span class="rb-upload-icon">⌃</span> -->
                                 <span class="rb-upload-title">Click to upload or drag and drop</span>
-                                <span class="rb-upload-sub">PNG, JPG, GIF up to 2MB each</span>
+                                <span class="rb-upload-sub">PNG, JPG, GIF up to 5MB each</span>
                             </div>
                         </label>
                         <div class="rb-upload-filename" id="attachments_name" aria-live="polite"></div>
@@ -384,6 +384,10 @@
                     <div class="rb-cost-row">
                         <span id="cost-stay-label">{% money property.price_per_night %} x 0 nights</span>
                         <strong id="cost-stay-total">{{ currency_symbol }}0.00</strong>
+                    </div>
+                    <div class="rb-cost-row" id="cost-monthly-payment-row" style="display:none;">
+                        <span>Monthly Payment</span>
+                        <strong id="cost-monthly-payment">{{ currency_symbol }}0.00</strong>
                     </div>
                     <div class="rb-cost-row">
                         <span>Cleaning fee</span>
@@ -599,14 +603,14 @@
             const input = document.getElementById(inputId);
             const output = document.getElementById(outputId);
             if (!input || !output) return;
-            const MAX_FILE_SIZE_BYTES = 2 * 1024 * 1024;
+            const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024;
 
             function render() {
                 output.innerHTML = '';
                 const file = input.files && input.files[0] ? input.files[0] : null;
                 if (!file) return;
                 if (file.size > MAX_FILE_SIZE_BYTES) {
-                    showAlertModal(`"${file.name}" exceeds 2MB. Maximum file size is 2MB.`);
+                    showAlertModal(`"${file.name}" exceeds 5MB. Maximum file size is 5MB.`);
                     input.value = '';
                     return;
                 }
@@ -647,7 +651,8 @@
             const input = document.getElementById(inputId);
             const output = document.getElementById(outputId);
             if (!input || !output) return;
-            const MAX_FILE_SIZE_BYTES = 2 * 1024 * 1024;
+            const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024;
+            const MAX_ATTACHMENTS = 5;
 
             let selectedFiles = [];
 
@@ -690,8 +695,15 @@
                 const files = Array.from(input.files || []);
                 const oversizedFile = files.find((file) => file.size > MAX_FILE_SIZE_BYTES);
                 if (oversizedFile) {
-                    showAlertModal(`"${oversizedFile.name}" exceeds 2MB. Maximum file size is 2MB.`);
+                    showAlertModal(`"${oversizedFile.name}" exceeds 5MB. Maximum file size is 5MB.`);
                     selectedFiles = [];
+                    syncInputFiles();
+                    renderFiles();
+                    return;
+                }
+                if (files.length > MAX_ATTACHMENTS) {
+                    showAlertModal(`You can upload a maximum of ${MAX_ATTACHMENTS} attachments.`);
+                    selectedFiles = files.slice(0, MAX_ATTACHMENTS);
                     syncInputFiles();
                     renderFiles();
                     return;
@@ -747,15 +759,27 @@
             const dFee = parseFloat("{% money_raw property.refundable_deposit %}");
 
             const stayTotal = pNight * nights;
+            // Total always uses the full stay rent (nights * daily rate), not just
+            // one month's payment. The Monthly Payment line is informational only.
             const totalDue = stayTotal + cFee + tax + oFee + dFee;
 
             const stayLabel = document.getElementById('cost-stay-label');
             const stayTotalEl = document.getElementById('cost-stay-total');
             const totalDueEl = document.getElementById('cost-total-due');
+            const monthlyPaymentRow = document.getElementById('cost-monthly-payment-row');
+            const monthlyPaymentEl = document.getElementById('cost-monthly-payment');
 
             if (stayLabel) stayLabel.textContent = `{{ currency_symbol }}${pNight.toFixed(2)} x ${nights} night${nights !== 1 ? 's' : ''}`;
             if (stayTotalEl) stayTotalEl.textContent = `{{ currency_symbol }}${stayTotal.toFixed(2)}`;
             if (totalDueEl) totalDueEl.textContent = `{{ currency_symbol }}${totalDue.toFixed(2)}`;
+            if (monthlyPaymentRow) {
+                if (nights > 30) {
+                    if (monthlyPaymentEl) monthlyPaymentEl.textContent = `{{ currency_symbol }}${(pNight * 30).toFixed(2)}`;
+                    monthlyPaymentRow.style.display = '';
+                } else {
+                    monthlyPaymentRow.style.display = 'none';
+                }
+            }
         }
 
         // Total Guests is editable: clamp to the property max and keep the
@@ -909,19 +933,25 @@
                 }
                 syncCountryCode();
 
-                const MAX_FILE_SIZE_BYTES = 2 * 1024 * 1024;
+                const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024;
+                const MAX_ATTACHMENTS = 5;
                 const guestPhotoInput = document.getElementById('guest_photo');
                 const attachmentsInput = document.getElementById('attachments');
                 const guestPhotoFile = guestPhotoInput && guestPhotoInput.files ? guestPhotoInput.files[0] : null;
                 if (guestPhotoFile && guestPhotoFile.size > MAX_FILE_SIZE_BYTES) {
-                    showAlertModal("Guest photo exceeds 2MB. Maximum file size is 2MB.");
+                    showAlertModal("Guest photo exceeds 5MB. Maximum file size is 5MB.");
                     guestPhotoInput.focus();
                     return;
                 }
                 if (attachmentsInput && attachmentsInput.files && attachmentsInput.files.length) {
+                    if (attachmentsInput.files.length > MAX_ATTACHMENTS) {
+                        showAlertModal(`You can upload a maximum of ${MAX_ATTACHMENTS} attachments.`);
+                        attachmentsInput.focus();
+                        return;
+                    }
                     for (const file of attachmentsInput.files) {
                         if (file.size > MAX_FILE_SIZE_BYTES) {
-                            showAlertModal(`"${file.name}" exceeds 2MB. Maximum file size is 2MB.`);
+                            showAlertModal(`"${file.name}" exceeds 5MB. Maximum file size is 5MB.`);
                             attachmentsInput.focus();
                             return;
                         }

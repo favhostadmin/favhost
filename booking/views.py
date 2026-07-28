@@ -510,19 +510,28 @@ class BookingCreateView(LoginRequiredMixin, View):
                 if enquiry_id:
                     enquiry = Enquiry.objects.filter(unique_id=enquiry_id).first()
                     if enquiry:
+                        # Files the host removed from the "From Enquiry" preview in
+                        # the form (via the × button) should not be copied over.
+                        excluded_image_ids = {
+                            v for v in request.POST.get('excluded_enquiry_images', '').split(',') if v
+                        }
+                        excluded_document_ids = {
+                            v for v in request.POST.get('excluded_enquiry_documents', '').split(',') if v
+                        }
+
                         # Copy Enquiry Images to Guest Images
-                        for enq_img in enquiry.images.all():
+                        for enq_img in enquiry.images.exclude(id__in=excluded_image_ids):
                             # Create a new GuestImage by copying the file
                             guest_img = GuestImage(reservation=booking)
                             # Copy the file content
                             with enq_img.image.open() as src_file:
                                 guest_img.image.save(
-                                    os.path.basename(enq_img.image.name), 
-                                    src_file, 
+                                    os.path.basename(enq_img.image.name),
+                                    src_file,
                                     save=True)
 
                         # Copy Enquiry Documents to Guest Documents
-                        for enq_doc in enquiry.documents.all():
+                        for enq_doc in enquiry.documents.exclude(id__in=excluded_document_ids):
                             # Create a new GuestDocument by copying the file
                             guest_doc = GuestDocument(
                                 reservation=booking,
@@ -532,8 +541,8 @@ class BookingCreateView(LoginRequiredMixin, View):
                             # Copy the file content
                             with enq_doc.document.open() as src_file:
                                 guest_doc.document.save(
-                                    os.path.basename(enq_doc.document.name), 
-                                    src_file, 
+                                    os.path.basename(enq_doc.document.name),
+                                    src_file,
                                     save=True)
 
                         # Archive the enquiry as it's now a reservation
@@ -1206,13 +1215,15 @@ class EnquiryDetailView(LoginRequiredMixin, View):
         cleaning_fee = prop.cleaning_fee or 0
         deposit_fee = prop.refundable_deposit or 0
         application_fee = prop.application_fees or 0
+        taxes = prop.taxes or 0
+        other_fees = prop.other_fees or 0
 
         monthly_payment = 0
         if nights >= 30:
             monthly_payment = price_per_night * 30
         # Total always uses the full stay rent (nights * daily rate), not just
         # one month's payment. The "Monthly Payment" line is informational only.
-        total_price = subtotal + cleaning_fee + deposit_fee + application_fee
+        total_price = subtotal + cleaning_fee + deposit_fee + application_fee + taxes + other_fees
 
         context = {
             'enquiry': enquiry,
@@ -1226,6 +1237,8 @@ class EnquiryDetailView(LoginRequiredMixin, View):
             'cleaning_fee': cleaning_fee,
             'deposit_fee': deposit_fee,
             'application_fee': application_fee,
+            'taxes': taxes,
+            'other_fees': other_fees,
         }
         return render(request, self.template_name, context)
 

@@ -51,6 +51,10 @@
    border-radius: var(--radius);
    display: grid;
    grid-template-columns: 1.2fr 1fr;
+   /* Pin the row to the card height. Without this an auto row grows to the
+      tallest panel's content, which stretched the brand panel past 640px on the
+      signup view and made its cover image render zoomed-in vs. the login view. */
+   grid-template-rows: minmax(0, 1fr);
    overflow: hidden;
    box-shadow: 0 14px 40px rgba(0, 0, 0, 0.24);
  }
@@ -173,8 +177,13 @@
    padding: 40px 26px 24px;
    flex-direction: column;
    justify-content: center;
+   /* "safe" keeps the top reachable if the form ever outgrows the card;
+      browsers without it fall back to the plain `center` above. */
+   justify-content: safe center;
    position: relative;
    height: 100%;
+   min-height: 0;
+   overflow-y: auto;
  }
 
  .form-panel h2 {
@@ -313,6 +322,26 @@
  .signup-view,
  .login-view {
    width: 100%;
+ }
+
+ /* The signup view carries four more fields than the login view, so tighten its
+    vertical rhythm to keep it inside the fixed-height card now that it also has
+    the "Continue with Google" button. */
+ .signup-view h2 {
+   margin-bottom: 10px;
+ }
+
+ .signup-view form {
+   gap: 8px;
+ }
+
+ .signup-view .divider {
+   margin: 10px 0 12px;
+ }
+
+ .signup-view .terms,
+ .signup-view .continue-btn {
+   margin-top: 6px;
  }
 
  .login-view {
@@ -588,6 +617,7 @@
  
     .auth-card {
       grid-template-columns: 1fr;
+      grid-template-rows: auto;
       max-width: 620px;
       height: auto;
       margin: 20px 0;
@@ -614,8 +644,9 @@
       padding-top: 30px;
       min-height: 520px;
       height: auto;
+      overflow-y: visible;
     }
- 
+
     .login-title {
       font-size: 42px;
     }
