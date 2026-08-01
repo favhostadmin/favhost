@@ -247,11 +247,11 @@ CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = TIME_ZONE
 
 CELERY_BEAT_SCHEDULE = {
-    'sync-bookings-every-4-hours': {
+    'sync-bookings-every-minute': {
         'task': 'booking.utils.trigger_sync_all_channels',
         # 'schedule': crontab(minute=0, hour='*/4'),  # Runs at minute 0 past every 4th hour
-        # 'schedule': crontab(minute='*/2'),  # Runs at minute 0 past every 4th hour
-        'schedule': crontab(minute='*/15'),  # Runs every 15 minutes
+        # 'schedule': crontab(minute='*/15'),  # Runs every 15 minutes
+        'schedule': crontab(minute='*/1'),  # Runs every minute
     },
     # Runs every hour at :01. The task itself decides which properties are at
     # their local midnight, so guests are emailed at the *hotel's* midnight
