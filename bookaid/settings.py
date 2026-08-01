@@ -20,7 +20,7 @@ from dotenv import load_dotenv
 
 def load_secrets(secret_name=None, region="us-east-1"):
     if secret_name is None:
-        secret_name = os.getenv('SECRETS_NAME')
+        secret_name = os.getenv('SECRETS_NAME', 'favhost/prod/env')
     client = boto3.client("secretsmanager", region_name=region)
     response = client.get_secret_value(SecretId=secret_name)
     return json.loads(response["SecretString"])
