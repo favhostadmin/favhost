@@ -18,19 +18,10 @@ from celery.schedules import crontab
 from dotenv import load_dotenv
 
 
-def _detect_environment(region):
-    # No SECRETS_NAME override was given, so fall back to whichever secret
-    # matches the IAM role this EC2 instance is actually running as —
-    # Favhost-Dev-EC2-S3-Role vs Favhost-EC2-S3-Role — so dev and prod
-    # servers pull the right secret automatically, without either one
-    # needing SECRETS_NAME exported by hand.
-    arn = boto3.client("sts", region_name=region).get_caller_identity()["Arn"]
-    return 'dev' if '-Dev-' in arn else 'prod'
-
-
 def load_secrets(secret_name=None, region="us-east-1"):
     if secret_name is None:
-        secret_name = os.getenv('SECRETS_NAME') or f"favhost/{_detect_environment(region)}/env"
+        secret_name = os.getenv('SECRETS_NAME', 'favhost/dev/env')
+        # secret_name = os.getenv('SECRETS_NAME', 'favhost/prod/env')
     client = boto3.client("secretsmanager", region_name=region)
     response = client.get_secret_value(SecretId=secret_name)
     return json.loads(response["SecretString"])
@@ -257,11 +248,11 @@ CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = TIME_ZONE
 
 CELERY_BEAT_SCHEDULE = {
-    'sync-bookings-every-minute': {
+    'sync-bookings-every-4-hours': {
         'task': 'booking.utils.trigger_sync_all_channels',
         # 'schedule': crontab(minute=0, hour='*/4'),  # Runs at minute 0 past every 4th hour
-        # 'schedule': crontab(minute='*/15'),  # Runs every 15 minutes
-        'schedule': crontab(minute='*/1'),  # Runs every minute
+        # 'schedule': crontab(minute='*/2'),  # Runs at minute 0 past every 4th hour
+        'schedule': crontab(minute='*/15'),  # Runs every 15 minutes
     },
     # Runs every hour at :01. The task itself decides which properties are at
     # their local midnight, so guests are emailed at the *hotel's* midnight
