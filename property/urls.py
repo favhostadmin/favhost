@@ -16,6 +16,9 @@ urlpatterns = [
     path('ajax/get-available-properties/', AvailablePropertiesAjaxView.as_view(), name='ajax-get-available-properties'),
     path('ajax/block-dates/', BlockPropertyDateView.as_view(), name='ajax-block-dates'),
     path('ical/<uuid:pk>.ics', export_property_ical, name='ical-export'),
+    # Public, signed link used by the guest check-in / check-out emails.
+    path('document/<str:token>/', open_document, name='open-document'),
+    path('policy/<uuid:pk>/<str:kind>/', property_policy, name='property-policy'),
 
     path('ajax-unblock-dates/', ajax_unblock_dates, name='ajax-unblock-dates'),
 
