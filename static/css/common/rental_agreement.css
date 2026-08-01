@@ -278,8 +278,19 @@
     white-space:pre-line;
     overflow-wrap:break-word;
     word-break:break-word;
+    /* Keep at least 3 lines together at the top/bottom of a page break so a
+       clause heading (e.g. "9. Cancellation") never ends up alone at the
+       bottom of a page with its body text stranded on the next one. */
+    orphans:3;
+    widows:3;
   }
   #rental-agreement-root .policy-text.empty{color:var(--muted);font-style:italic;}
+
+  /* html2pdf's own page-break marker: invisible in the live modal/page (kept
+     in normal flow, not display:none, since html2pdf reads its position to
+     find the break point during PDF export). Print gets its own forced break
+     on .sig-section directly below, so the marker is hidden there too. */
+  #rental-agreement-root .html2pdf__page-break{height:0;margin:0;padding:0;border:0;overflow:hidden;}
 
   /* ---------- Signatures ---------- */
   #rental-agreement-root .sig-intro{margin:6px 0 26px;color:var(--body);}
@@ -407,7 +418,10 @@
   #rental-agreement-root.ra-export .sig-card,
   #rental-agreement-root.ra-export .kv tr,
   #rental-agreement-root.ra-export .pay tr,
-  #rental-agreement-root.ra-export .section-head{break-inside:avoid;}
+  #rental-agreement-root.ra-export .section-head,
+  #rental-agreement-root.ra-export .sig-section{break-inside:avoid;}
+  /* Signatures always starts a fresh page, never shares a page with section 7. */
+  #rental-agreement-root.ra-export .sig-section{break-before:page;page-break-before:always;}
 
   /* ---------- Print ---------- */
   @page{size:letter;margin:0.25in 0.6in 0.4in;}
@@ -419,20 +433,34 @@
     html, body, .container-fluid, .content, .main-content-body, .page-content-wrap{
       height:auto !important;max-height:none !important;overflow:visible !important;
     }
-    /* Lift the modal out of any constraining ancestor to the page top-left. */
+    /* Lift the modal out of any constraining ancestor to the page top-left.
+       Deliberately NOT position:absolute/fixed here — Chrome's print engine
+       does not reliably propagate page-break/break-before/break-after rules
+       through descendants of an out-of-flow positioned ancestor, which is
+       why the Signatures section kept ignoring its forced page break. Normal
+       flow (position:static, the default) lets pagination work correctly;
+       body > * is already hidden, so nothing else competes for page space. */
     #rentalAgreementModal{
-      position:absolute !important;
+      position:static !important;
       display:block !important;
       background:#ffffff !important;
-      top:0 !important;left:0 !important;right:auto !important;bottom:auto !important;
       width:100% !important;height:auto !important;
       margin:0 !important;padding:0 !important;
       overflow:visible !important;
     }
+    /* display:block on every wrapper between the modal and the document.
+       .modal is display:flex when open, which makes .modal-content a flex
+       item — Chrome silently drops forced page breaks inside a flex
+       formatting context, so the Signatures break was being ignored. The
+       placeholder div the agreement is injected into needs the same reset. */
     #rentalAgreementModal .modal-content,
-    #rentalAgreementModal .modal-body{
+    #rentalAgreementModal .modal-body,
+    #rentalAgreementModal #rental-agreement-content-placeholder{
+      display:block !important;
+      position:static !important;
       width:100% !important;max-width:none !important;
-      max-height:none !important;overflow:visible !important;
+      height:auto !important;max-height:none !important;overflow:visible !important;
+      background:#ffffff !important;
       border:0 !important;box-shadow:none !important;border-radius:0 !important;
       padding:0 !important;margin:0 !important;
     }
@@ -454,6 +482,25 @@
     #rental-agreement-root .kv,#rental-agreement-root .pay{box-shadow:none;}
     #rental-agreement-root .sig-card,#rental-agreement-root .kv tr,#rental-agreement-root .pay tr,#rental-agreement-root .section-head{page-break-inside:avoid;break-inside:avoid;}
     #rental-agreement-root .section{page-break-inside:auto;}
+    /* The Signatures section (heading, intro line, both signature cards) must
+       always land together on one page rather than splitting after the
+       heading — unlike other sections, which are fine to paginate normally.
+       It also always starts a brand-new page rather than sharing a page
+       with whatever content precedes it. */
+    #rental-agreement-root .sig-section{page-break-inside:avoid;break-inside:avoid;page-break-before:always;break-before:page;}
+    /* Belt-and-suspenders: force the break on the element *before* Signatures
+       too. break-before on .sig-section alone was unreliable in Chrome print
+       preview when the modal is repositioned (position:absolute) at print
+       time — forcing break-after on the preceding marker sidesteps that. */
+    /* The marker is height:0 in normal flow; Chrome ignores break-after on a
+       zero-height, overflow:hidden box, so give it a real block presence in
+       print (1px tall, no visible ink) for the break to take. */
+    #rental-agreement-root .html2pdf__page-break{
+      display:block !important;
+      height:1px !important;
+      overflow:visible !important;
+      page-break-after:always;break-after:page;
+    }
     #rental-agreement-root h2.section-title,#rental-agreement-root .section-head{page-break-after:avoid;}
     #rental-agreement-root .pay thead th{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
     #rental-agreement-root .pay tr.total td,#rental-agreement-root .kv th{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
