@@ -72,8 +72,8 @@ SECURE_CROSS_ORIGIN_OPENER_POLICY = None
 CSRF_TRUSTED_ORIGINS = [
 
     'https://dev.favhost.com',
-    # 'http://34.207.186.12:8000',
-    'http://107.22.56.63:8000',
+    # 'http://34.207.186.12:8000',s
+    'http://34.228.225.110:8000',
     'http://98.85.225.195:8000',    
     'https://*.ngrok-free.app',
     'https://*.ngrok.io',
