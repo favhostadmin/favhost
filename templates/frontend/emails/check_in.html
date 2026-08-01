@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+{% load currency_tags %}<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -75,27 +75,21 @@
                   style="color:#111111;text-decoration:none;">{{ property.title }}</a>
               </h2>
 
+              <!-- Full address + map. Host phone/email intentionally live only in
+                   the "Contact host" card below, so they are not repeated here. -->
               <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 24px 0;">
                 <tr>
                   <td valign="top" style="width:26px;padding:3px 0;"><img alt="" src="{{ location_icon_url }}"
                       style="width:18px;height:auto;display:block;" /></td>
                   <td valign="top"
-                    style="font-size:15px;line-height:1.4;color:#374151;font-family:Arial,sans-serif;font-weight:700;padding:3px 0;">
-                    {{ property.location_display }}</td>
-                </tr>
-                <tr>
-                  <td valign="top" style="width:26px;padding:3px 0;"><img alt="" src="{{ phone_icon_url }}"
-                      style="width:18px;height:auto;display:block;" /></td>
-                  <td valign="top"
-                    style="font-size:15px;line-height:1.4;color:#374151;font-family:Arial,sans-serif;padding:3px 0;">
-                    {{ property.created_by.phone|default:"" }}</td>
-                </tr>
-                <tr>
-                  <td valign="top" style="width:26px;padding:3px 0;"><img alt="" src="{{ email_icon_url }}"
-                      style="width:18px;height:auto;display:block;" /></td>
-                  <td valign="top"
-                    style="font-size:15px;line-height:1.4;color:#374151;font-family:Arial,sans-serif;padding:3px 0;">
-                    {{ property.created_by.email }}</td>
+                    style="font-size:15px;line-height:1.5;color:#374151;font-family:Arial,sans-serif;font-weight:700;padding:3px 0;">
+                    {{ full_address|default:property.location_display }}
+                    {% if map_url %}<br />
+                    <a href="{{ map_url }}" target="_blank"
+                      style="font-size:14px;font-weight:700;color:#005ecf;text-decoration:none;">View on Google Maps
+                      &rsaquo;</a>
+                    {% endif %}
+                  </td>
                 </tr>
               </table>
 
@@ -141,16 +135,103 @@
                           style="font-size:15px;color:#ffffff;font-weight:700;font-family:Arial,sans-serif;padding:6px 0;border-top:1px solid #3d4046;">
                           {{ booking.guest_count }}</td>
                       </tr>
+                      <!-- Access details -->
                       <tr>
                         <td
-                          style="font-size:15px;color:#ffffff;font-weight:700;font-family:Arial,sans-serif;padding:12px 0 0 0;border-top:1px solid #5a6270;">
+                          style="font-size:15px;color:#ffffff;font-weight:700;font-family:Arial,sans-serif;padding:12px 0 6px 0;border-top:1px solid #5a6270;">
                           Room password</td>
                         <td align="right"
-                          style="font-size:15px;color:#e5500f;font-weight:700;font-family:Arial,sans-serif;padding:12px 0 0 0;border-top:1px solid #5a6270;">
+                          style="font-size:15px;color:#e5500f;font-weight:700;font-family:Arial,sans-serif;padding:12px 0 6px 0;border-top:1px solid #5a6270;">
                           {{ property.room_password|default:"—" }}</td>
+                      </tr>
+                      <tr>
+                        <td style="font-size:15px;color:#ffffff;font-weight:700;font-family:Arial,sans-serif;padding:6px 0;">
+                          Wi-Fi network</td>
+                        <td align="right"
+                          style="font-size:15px;color:#e5500f;font-weight:700;font-family:Arial,sans-serif;padding:6px 0;">
+                          {{ property.network_name|default:"—" }}</td>
+                      </tr>
+                      <tr>
+                        <td style="font-size:15px;color:#ffffff;font-weight:700;font-family:Arial,sans-serif;padding:6px 0 0 0;">
+                          Wi-Fi password</td>
+                        <td align="right"
+                          style="font-size:15px;color:#e5500f;font-weight:700;font-family:Arial,sans-serif;padding:6px 0 0 0;">
+                          {{ property.wifi_password|default:"—" }}</td>
                       </tr>
                     </table>
 
+                  </td>
+                </tr>
+              </table>
+
+              <!-- ── Price details (mirrors the Reservation payment details) ── -->
+              <p
+                style="font-size:13px;line-height:1.4;margin:0 0 14px 0;color:#111827;font-family:Arial,sans-serif;letter-spacing:0.8px;text-transform:uppercase;font-weight:700;">
+                Price details
+              </p>
+              <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 24px 0;">
+                <tr>
+                  <td style="border:1px solid #e5e7eb;border-radius:12px;background:#ffffff;padding:18px 22px;">
+                    <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                      <tr>
+                        <td style="font-size:15px;color:#374151;font-family:Arial,sans-serif;padding:5px 0;">Daily rate
+                        </td>
+                        <td align="right"
+                          style="font-size:15px;color:#111827;font-weight:700;font-family:Arial,sans-serif;padding:5px 0;">
+                          {% money booking.price_per_night %}</td>
+                      </tr>
+                      <tr>
+                        <td style="font-size:15px;color:#374151;font-family:Arial,sans-serif;padding:5px 0;">
+                          {% money booking.price_per_night %} &times; {{ nights }} night{{ nights|pluralize }}</td>
+                        <td align="right"
+                          style="font-size:15px;color:#111827;font-weight:700;font-family:Arial,sans-serif;padding:5px 0;">
+                          {% money subtotal %}</td>
+                      </tr>
+                      {% if nights > 30 %}
+                      <tr>
+                        <td style="font-size:15px;color:#374151;font-family:Arial,sans-serif;padding:5px 0;">Monthly
+                          Payment</td>
+                        <td align="right"
+                          style="font-size:15px;color:#111827;font-weight:700;font-family:Arial,sans-serif;padding:5px 0;">
+                          {% money monthly_payment %}</td>
+                      </tr>
+                      {% endif %}
+                      <tr>
+                        <td style="font-size:15px;color:#6b7280;font-family:Arial,sans-serif;padding:5px 0;">Cleaning fee
+                        </td>
+                        <td align="right"
+                          style="font-size:15px;color:#374151;font-family:Arial,sans-serif;padding:5px 0;">
+                          {% money booking.cleaning_fee %}</td>
+                      </tr>
+                      <tr>
+                        <td style="font-size:15px;color:#6b7280;font-family:Arial,sans-serif;padding:5px 0;">Refundable
+                          deposit</td>
+                        <td align="right"
+                          style="font-size:15px;color:#374151;font-family:Arial,sans-serif;padding:5px 0;">
+                          {% money booking.deposit_fee %}</td>
+                      </tr>
+                      <tr>
+                        <td style="font-size:15px;color:#6b7280;font-family:Arial,sans-serif;padding:5px 0;">Taxes</td>
+                        <td align="right"
+                          style="font-size:15px;color:#374151;font-family:Arial,sans-serif;padding:5px 0;">
+                          {% money booking.taxes %}</td>
+                      </tr>
+                      <tr>
+                        <td style="font-size:15px;color:#6b7280;font-family:Arial,sans-serif;padding:5px 0;">Other fees
+                        </td>
+                        <td align="right"
+                          style="font-size:15px;color:#374151;font-family:Arial,sans-serif;padding:5px 0;">
+                          {% money booking.other_fees %}</td>
+                      </tr>
+                      <tr>
+                        <td
+                          style="font-size:17px;color:#111111;font-weight:700;font-family:Arial,sans-serif;padding:12px 0 0 0;border-top:1px solid #e5e7eb;">
+                          Total</td>
+                        <td align="right"
+                          style="font-size:17px;color:#e5500f;font-weight:700;font-family:Arial,sans-serif;padding:12px 0 0 0;border-top:1px solid #e5e7eb;">
+                          {% money total_price %}</td>
+                      </tr>
+                    </table>
                   </td>
                 </tr>
               </table>
@@ -165,7 +246,7 @@
                 {% for doc in documents %}
                 <tr>
                   <td style="padding-bottom:12px;">
-                    <a class="fh-doc" href="{{ base_url }}{{ doc.document.url }}" download="{{ doc.name }}" target="_blank"
+                    <a class="fh-doc" href="{{ doc.open_url }}" target="_blank"
                       style="display:block;text-decoration:none;color:#111827;border:1px solid #e5e7eb;border-radius:12px;background:#ffffff;padding:14px 16px;box-sizing:border-box;font-family:Arial,sans-serif;">
                       <table width="100%" cellpadding="0" cellspacing="0" border="0">
                         <tr>
@@ -201,6 +282,49 @@
               </table>
               {% endif %}
 
+              {% if house_rules_url or cancellation_policy_url or rental_contract_url %}
+              <!-- ── Rules & policies (deep links into the public listing page) ── -->
+              <p
+                style="font-size:13px;line-height:1.4;margin:0 0 14px 0;color:#111827;font-family:Arial,sans-serif;letter-spacing:0.8px;text-transform:uppercase;font-weight:700;">
+                Rules &amp; policies
+              </p>
+              <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 26px 0;">
+                {% if house_rules_url %}
+                <tr>
+                  <td style="padding-bottom:10px;">
+                    <a class="fh-doc" href="{{ house_rules_url }}" target="_blank"
+                      style="display:block;text-decoration:none;border:1px solid #e5e7eb;border-radius:12px;background:#ffffff;padding:14px 16px;box-sizing:border-box;font-family:Arial,sans-serif;font-size:15px;font-weight:700;color:#111827;">
+                      House Rules and Policies
+                      <span style="float:right;color:#005ecf;font-weight:700;">View &rsaquo;</span>
+                    </a>
+                  </td>
+                </tr>
+                {% endif %}
+                {% if cancellation_policy_url %}
+                <tr>
+                  <td style="padding-bottom:10px;">
+                    <a class="fh-doc" href="{{ cancellation_policy_url }}" target="_blank"
+                      style="display:block;text-decoration:none;border:1px solid #e5e7eb;border-radius:12px;background:#ffffff;padding:14px 16px;box-sizing:border-box;font-family:Arial,sans-serif;font-size:15px;font-weight:700;color:#111827;">
+                      Cancellation Policy
+                      <span style="float:right;color:#005ecf;font-weight:700;">View &rsaquo;</span>
+                    </a>
+                  </td>
+                </tr>
+                {% endif %}
+                {% if rental_contract_url %}
+                <tr>
+                  <td style="padding-bottom:10px;">
+                    <a class="fh-doc" href="{{ rental_contract_url }}" target="_blank"
+                      style="display:block;text-decoration:none;border:1px solid #e5e7eb;border-radius:12px;background:#ffffff;padding:14px 16px;box-sizing:border-box;font-family:Arial,sans-serif;font-size:15px;font-weight:700;color:#111827;">
+                      Rental Contract Terms and Conditions
+                      <span style="float:right;color:#005ecf;font-weight:700;">View &rsaquo;</span>
+                    </a>
+                  </td>
+                </tr>
+                {% endif %}
+              </table>
+              {% endif %}
+
               <!-- ── Contact host box ── -->
               <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 26px 0;">
                 <tr>
@@ -216,9 +340,27 @@
                             style="font-size:12px;line-height:1.4;margin:0 0 3px 0;color:#6b7280;font-family:Arial,sans-serif;letter-spacing:0.8px;text-transform:uppercase;font-weight:700;">
                             Contact host</p>
                           <p style="font-size:15px;line-height:1.4;margin:0 0 2px 0;color:#111111;font-family:Arial,sans-serif;font-weight:700;">
-                            {% if property.created_by %}{{ property.created_by.get_full_name|default:property.created_by.username }}{% endif %}</p>
-                          <p style="font-size:14px;line-height:1.4;margin:0;color:#4b5563;font-family:Arial,sans-serif;">
-                            {{ property.created_by.phone|default:"" }}<br />{{ property.created_by.email }}</p>
+                            {% if host %}{{ host.get_full_name|default:host.username }}{% endif %}</p>
+                          <table cellpadding="0" cellspacing="0" border="0" style="margin:4px 0 0 0;">
+                            {% if host.phone %}
+                            <tr>
+                              <td valign="middle" style="width:24px;padding:2px 0;"><img alt="" src="{{ phone_icon_url }}"
+                                  style="width:15px;height:auto;display:block;" /></td>
+                              <td valign="middle"
+                                style="font-size:14px;line-height:1.4;color:#4b5563;font-family:Arial,sans-serif;padding:2px 0;">
+                                <a href="tel:{{ host.phone }}"
+                                  style="color:#4b5563;text-decoration:none;">{{ host.phone }}</a></td>
+                            </tr>
+                            {% endif %}
+                            <tr>
+                              <td valign="middle" style="width:24px;padding:2px 0;"><img alt="" src="{{ email_icon_url }}"
+                                  style="width:15px;height:auto;display:block;" /></td>
+                              <td valign="middle"
+                                style="font-size:14px;line-height:1.4;color:#4b5563;font-family:Arial,sans-serif;padding:2px 0;">
+                                <a href="mailto:{{ host.email }}"
+                                  style="color:#4b5563;text-decoration:none;">{{ host.email }}</a></td>
+                            </tr>
+                          </table>
                         </td>
                       </tr>
                     </table>

@@ -1,17 +1,91 @@
 import os
 from email.mime.image import MIMEImage
 from datetime import timedelta
+from urllib.parse import quote_plus
 import logging
 from django.utils import timezone
 from django.core.mail import EmailMultiAlternatives
+from django.core.mail.message import SafeMIMEMultipart
 from django.template.loader import render_to_string
 from django.utils.html import strip_tags
 from django.conf import settings
 from django.contrib.staticfiles import finders
+from django.urls import reverse
 from celery import shared_task
+from accounts import currency
+from property.tokens import sign_document_token
+from property.policies import policy_path
 from .models import Booking
 
 logger = logging.getLogger(__name__)
+
+
+#: Skip attaching host documents beyond this combined size so the message is not
+#: rejected by the receiving mail server. The email still links to them.
+MAX_ATTACHMENT_BYTES = 15 * 1024 * 1024
+
+
+class InstructionEmail(EmailMultiAlternatives):
+    """Email that keeps inline (cid:) images inline while still delivering the
+    host's check-in / check-out documents as real, openable attachments.
+
+    Builds ``multipart/mixed[ multipart/related[ alternative, images ], docs ]``.
+    Putting the images in their own ``related`` part is what stops mail clients
+    from listing the logo and icons as attachments, and stops the documents from
+    being swallowed as inline parts (which is why they could not be opened).
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.inline_images = []
+
+    def attach_inline(self, mime_image):
+        self.inline_images.append(mime_image)
+
+    def _create_message(self, msg):
+        msg = self._create_alternatives(msg)
+        if self.inline_images:
+            related = SafeMIMEMultipart(_subtype='related', encoding=self.encoding)
+            related.attach(msg)
+            for img in self.inline_images:
+                related.attach(img)
+            msg = related
+        return self._create_attachments(msg)
+
+
+def _attach_documents(email, docs):
+    """Attach the host's instruction documents as regular file attachments.
+
+    Returns the number of documents attached. Unreadable files are skipped and
+    logged; the email body still links to every document either way.
+    """
+    attached = 0
+    total = 0
+    for doc in docs:
+        if not doc.document:
+            continue
+        try:
+            with doc.document.open('rb') as f:
+                content = f.read()
+        except (ValueError, FileNotFoundError, OSError) as exc:
+            logger.warning(f"Could not read document {doc.pk} ({doc.name}): {exc}")
+            continue
+
+        if total + len(content) > MAX_ATTACHMENT_BYTES:
+            logger.warning(
+                f"Skipping document {doc.pk} ({doc.name}): attachment size limit reached."
+            )
+            continue
+
+        filename = doc.name or os.path.basename(doc.document.name)
+        if not os.path.splitext(filename)[1]:
+            # Without an extension clients cannot tell what to open the file with.
+            filename += os.path.splitext(doc.document.name)[1]
+
+        email.attach(filename, content, doc.file_type or None)
+        total += len(content)
+        attached += 1
+    return attached
 
 
 def _attach_inline_images(email, booking):
@@ -23,7 +97,8 @@ def _attach_inline_images(email, booking):
         with open(logo_path, 'rb') as f:
             img = MIMEImage(f.read())
             img.add_header('Content-ID', '<logo>')
-            email.attach(img)
+            img.add_header('Content-Disposition', 'inline', filename='logo.png')
+            email.attach_inline(img)
 
     # Property thumbnail (primary image -> any image -> placeholder)
     prop_img_obj = booking.property.images.filter(is_primary=True).first() or \
@@ -43,7 +118,8 @@ def _attach_inline_images(email, booking):
     if prop_img_bytes is not None:
         img = MIMEImage(prop_img_bytes)
         img.add_header('Content-ID', '<property_image>')
-        email.attach(img)
+        img.add_header('Content-Disposition', 'inline', filename='property.png')
+        email.attach_inline(img)
 
     # Contact icons
     for icon_path_rel, icon_cid in [
@@ -56,7 +132,8 @@ def _attach_inline_images(email, booking):
             with open(icon_path, 'rb') as f:
                 img = MIMEImage(f.read())
                 img.add_header('Content-ID', f'<{icon_cid}>')
-                email.attach(img)
+                img.add_header('Content-Disposition', 'inline', filename=f'{icon_cid}.png')
+                email.attach_inline(img)
 
     # Host avatar (profile picture -> default icon)
     host_user = booking.property.created_by
@@ -75,7 +152,28 @@ def _attach_inline_images(email, booking):
     if host_avatar_bytes is not None:
         img = MIMEImage(host_avatar_bytes)
         img.add_header('Content-ID', '<host_avatar>')
-        email.attach(img)
+        img.add_header('Content-Disposition', 'inline', filename='host_avatar.png')
+        email.attach_inline(img)
+
+
+def _policy_url(prop, kind):
+    """Absolute URL of a policy page, or '' when the host left that policy blank."""
+    path = policy_path(prop, kind)
+    return f"{settings.BASE_URL}{path}" if path else ''
+
+
+def _full_address(prop):
+    """The property's full postal address on one line, skipping blank parts."""
+    parts = [prop.street_address, prop.city, prop.state, prop.zip, prop.country]
+    return ', '.join(str(p).strip() for p in parts if p and str(p).strip())
+
+
+def _map_url(prop):
+    """A Google Maps link for the property, or '' if there is no address to map."""
+    address = _full_address(prop)
+    if not address:
+        return ''
+    return 'https://www.google.com/maps/search/?api=1&query=' + quote_plus(address)
 
 
 def _send_instruction_email(booking, kind):
@@ -87,11 +185,49 @@ def _send_instruction_email(booking, kind):
         logger.warning(f"No email found for booking {booking.booking_id}. Skipping.")
         return False
 
-    docs = booking.property.documents.filter(document_type=kind)
+    prop = booking.property
+    host = prop.created_by
+    docs = list(prop.documents.filter(document_type=kind))
+    # A permanent signed link, not `document.url`: on a real server media sits in
+    # a private S3 bucket whose presigned URLs expire in an hour, long before the
+    # guest opens an email sent at local midnight. Resolving the token re-signs
+    # at click time. (Absolute, since `.url` may already be a full S3 URL and
+    # must never be concatenated onto BASE_URL.)
+    for doc in docs:
+        doc.open_url = settings.BASE_URL + reverse(
+            'property:open-document', kwargs={'token': sign_document_token(doc.pk)}
+        )
+
+    # Price breakdown — mirrors the Reservation "Payment details" page exactly
+    # (booking.views.payment_details) so the guest sees the same figures.
+    nights = booking.total_nights
+    subtotal = (booking.price_per_night or 0) * nights
+    total_price = subtotal + (booking.cleaning_fee or 0) + (booking.deposit_fee or 0) \
+        + (booking.taxes or 0) + (booking.other_fees or 0)
+    monthly_payment = (booking.price_per_night or 0) * 30 if nights >= 30 else 0
+
+    listing_url = f"{settings.BASE_URL}{prop.get_absolute_url()}"
+
     context = {
         'booking': booking,
-        'property': booking.property,
+        'property': prop,
         'documents': docs,
+        'host': host,
+        # Address + map
+        'full_address': _full_address(prop),
+        'map_url': _map_url(prop),
+        # Pricing (stored USD; rendered by {% money %} in the host's currency)
+        'nights': nights,
+        'subtotal': subtotal,
+        'monthly_payment': monthly_payment,
+        'total_price': total_price,
+        # Standalone public policy pages (no login required for guests). Each is
+        # '' when the host left that policy blank, so the email hides the row
+        # rather than linking to a page that would 404.
+        'listing_url': listing_url,
+        'house_rules_url': _policy_url(prop, 'house-rules'),
+        'cancellation_policy_url': _policy_url(prop, 'cancellation-policy'),
+        'rental_contract_url': _policy_url(prop, 'rental-contract'),
         'logo_url': 'cid:logo',
         'location_icon_url': 'cid:location_icon',
         'phone_icon_url': 'cid:phone_icon',
@@ -103,6 +239,12 @@ def _send_instruction_email(booking, kind):
         'check_out_time': booking.check_out_time or booking.property.check_out_time,
     }
 
+    # No request/cookie in an email, so amounts render in the host's own currency
+    # — the same default the public listing page falls back to.
+    context.update(currency.display_context(
+        currency.resolve_display_currency(None, getattr(host, 'currency', None))
+    ))
+
     if kind == 'check_in':
         template = 'frontend/emails/check_in.html'
         subject = f"Check-in Instructions for {booking.property.title}"
@@ -113,12 +255,12 @@ def _send_instruction_email(booking, kind):
     html_content = render_to_string(template, context)
     text_content = strip_tags(html_content)
 
-    email = EmailMultiAlternatives(
+    email = InstructionEmail(
         subject, text_content, settings.DEFAULT_FROM_EMAIL, [booking.email]
     )
     email.attach_alternative(html_content, "text/html")
-    email.mixed_subtype = 'related'
     _attach_inline_images(email, booking)
+    _attach_documents(email, docs)
     email.send()
     return True
 
