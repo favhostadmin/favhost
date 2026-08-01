@@ -21,6 +21,7 @@ from dotenv import load_dotenv
 def load_secrets(secret_name=None, region="us-east-1"):
     if secret_name is None:
         secret_name = os.getenv('SECRETS_NAME', 'favhost/dev/env')
+        # secret_name = os.getenv('SECRETS_NAME', 'favhost/prod/env')
     client = boto3.client("secretsmanager", region_name=region)
     response = client.get_secret_value(SecretId=secret_name)
     return json.loads(response["SecretString"])
@@ -71,8 +72,8 @@ SECURE_CROSS_ORIGIN_OPENER_POLICY = None
 CSRF_TRUSTED_ORIGINS = [
 
     'https://dev.favhost.com',
-    # 'http://34.207.186.12:8000',
-    'http://107.22.56.63:8000',
+    # 'http://34.207.186.12:8000',s
+    'http://34.228.225.110:8000',
     'http://98.85.225.195:8000',    
     'https://*.ngrok-free.app',
     'https://*.ngrok.io',
