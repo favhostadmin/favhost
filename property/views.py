@@ -1,4 +1,5 @@
 from django.conf import settings
+from django.core.signing import BadSignature, SignatureExpired
 from django.shortcuts import render, redirect, get_object_or_404
 import requests as http_requests
 from django.views.generic import CreateView, UpdateView, DeleteView, ListView, DetailView
@@ -25,6 +26,8 @@ from django.core.files import File
 from django.contrib.auth.mixins import LoginRequiredMixin
 from accounts.utils import get_visible_user_ids, get_effective_user
 from accounts import currency
+from .tokens import unsign_document_token
+from .policies import PROPERTY_POLICIES, has_policy
 
 # Property money fields are stored in USD but entered/shown in the host's currency.
 PROPERTY_PRICE_FIELDS = ('price_per_night', 'cleaning_fee', 'application_fees', 'refundable_deposit', 'taxes', 'other_fees')
@@ -1135,3 +1138,66 @@ def geocode_proxy(request):
         return JsonResponse({'lat': None, 'lng': None})
     except Exception:
         return JsonResponse({'lat': None, 'lng': None})
+
+
+# ── Guest-facing document links ────────────────────────────────────────────
+#
+# See property/tokens.py for why the emails carry a signed token instead of a
+# direct media URL.
+
+
+def open_document(request, token):
+    """Public: resolve a signed token and redirect to the document itself.
+
+    Deliberately unauthenticated — the guest receiving the email has no account.
+    The signature is the access control: it cannot be forged or enumerated.
+    """
+    try:
+        document_id = unsign_document_token(token)
+    except SignatureExpired:
+        raise Http404("This document link has expired.")
+    except BadSignature:
+        raise Http404("Invalid document link.")
+
+    document = get_object_or_404(PropertyDocument, pk=document_id)
+    # Re-evaluated per click, so S3 presigning happens now rather than at send.
+    return redirect(document.document.url)
+
+
+# ── Guest-facing policy pages ──────────────────────────────────────────────
+#
+# The check-in email links to these. They can't link into listing_details.html:
+# there the policy text is injected by JS into an empty <p data-full="..."> and
+# collapsed behind a "Show more" button, so an anchor jump lands on truncated,
+# script-dependent content. These standalone pages render the full text as real
+# HTML, which is what a guest following a link from an email needs.
+
+def property_policy(request, pk, kind):
+    """Public: render one policy for a property in full.
+
+    Unauthenticated on purpose — the guest following the link from a check-in
+    email has no account, and the listing itself is already public. 404s when the
+    host has not written that policy, so a link can never lead to a blank page.
+    """
+    try:
+        field, heading = PROPERTY_POLICIES[kind]
+    except KeyError:
+        raise Http404("Unknown policy.")
+
+    property_obj = get_object_or_404(Property, pk=pk)
+    text = getattr(property_obj, field, None)
+    if not text or not str(text).strip():
+        raise Http404("This policy has not been set for this listing.")
+
+    return render(request, 'frontend/property/policy.html', {
+        'property': property_obj,
+        'heading': heading,
+        'policy_text': text,
+        # Sibling policies, so a guest can move between them without going back
+        # to the email. Only those the host actually filled in are offered.
+        'other_policies': [
+            {'kind': k, 'heading': h}
+            for k, (f, h) in PROPERTY_POLICIES.items()
+            if k != kind and has_policy(property_obj, k)
+        ],
+    })
