@@ -18,11 +18,19 @@ from celery.schedules import crontab
 from dotenv import load_dotenv
 
 
+def _detect_environment(region):
+    # No SECRETS_NAME override was given, so fall back to whichever secret
+    # matches the IAM role this EC2 instance is actually running as —
+    # Favhost-Dev-EC2-S3-Role vs Favhost-EC2-S3-Role — so dev and prod
+    # servers pull the right secret automatically, without either one
+    # needing SECRETS_NAME exported by hand.
+    arn = boto3.client("sts", region_name=region).get_caller_identity()["Arn"]
+    return 'dev' if '-Dev-' in arn else 'prod'
+
+
 def load_secrets(secret_name=None, region="us-east-1"):
     if secret_name is None:
-        secret_name = os.getenv('SECRETS_NAME')
-    if not secret_name:
-        raise RuntimeError("SECRETS_NAME environment variable must be set (e.g. 'favhost/dev/env' or 'favhost/prod/env').")
+        secret_name = os.getenv('SECRETS_NAME') or f"favhost/{_detect_environment(region)}/env"
     client = boto3.client("secretsmanager", region_name=region)
     response = client.get_secret_value(SecretId=secret_name)
     return json.loads(response["SecretString"])
