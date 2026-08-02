@@ -1296,6 +1296,197 @@
         from { opacity: 0; transform: translateY(-16px); }
         to { opacity: 1; transform: translateY(0); }
     }
+
+    /* ============================================================
+       Tile / List view switch
+       Purely presentational: the same cards, same data, same markup
+       are re-arranged with CSS when #property-results carries
+       .pl-view-list. Nothing here leaks outside that scope.
+       ============================================================ */
+    .pl-view-toggle {
+        display: inline-flex;
+        align-items: center;
+        gap: 2px;
+        background: #ffffff;
+        border: 1px solid #d9dbdf;
+        border-radius: 999px;
+        padding: 2px;
+    }
+
+    .pl-view-btn {
+        border: 0;
+        background: transparent;
+        width: 30px;
+        height: 26px;
+        padding: 0;
+        border-radius: 999px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: #6b7280;
+        cursor: pointer;
+        transition: background-color 0.18s ease, color 0.18s ease;
+    }
+
+    .pl-view-btn svg {
+        width: 15px;
+        height: 15px;
+        display: block;
+    }
+
+    .pl-view-btn:hover {
+        color: #111827;
+    }
+
+    .pl-view-btn.is-active {
+        background: #111827;
+        color: #ffffff;
+    }
+
+    /* The injected "View details" link exists in every card but is only ever
+       shown by the list-view rules below, so tile view is untouched. */
+    .pl-view-details {
+        display: none;
+    }
+
+    /* The <=991px card layout is already a list, so the switch only
+       changes the desktop grid. */
+    @media (min-width: 992px) {
+        #property-results.pl-view-list .property-card-col {
+            flex: 0 0 100%;
+            max-width: 100%;
+            padding: 8px 2px !important;
+        }
+
+        #property-results.pl-view-list .listing-card {
+            flex-direction: row;
+            align-items: stretch;
+            height: auto;
+            min-height: 190px;
+            border-radius: 14px;
+            /* keep the options dropdown from being clipped by the shorter card */
+            overflow: visible;
+        }
+
+        #property-results.pl-view-list .listing-card-link {
+            flex: 0 0 268px;
+            width: 268px;
+            align-self: stretch;
+            display: block;
+        }
+
+        #property-results.pl-view-list .listing-image-container {
+            height: 100%;
+            min-height: 190px;
+            border-radius: 14px 0 0 14px;
+        }
+
+        #property-results.pl-view-list .listing-info {
+            flex: 1;
+            min-width: 0;
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            align-content: center;
+            column-gap: 24px;
+            row-gap: 0;
+            padding: 18px 20px;
+        }
+
+        #property-results.pl-view-list .listing-info > * {
+            grid-column: 1;
+            min-width: 0;
+        }
+
+        /* .listing-info children, in template order:
+             1  title + options button
+             2  location
+             3  bed type + price          (rendered empty when no date range)
+             4  bed type                  (no date range only)
+             5  price + availability pill (no date range only)
+           "View details" is appended by script to row 5, or to row 3 when a
+           date range is active. */
+
+        /* Date range active: one wide row — bed type on the left, price pill
+           and the details button pushed to the right. */
+        #property-results.pl-view-list .listing-info > div:nth-child(3) {
+            gap: 12px;
+        }
+
+        #property-results.pl-view-list .listing-info > div:nth-child(3) > * {
+            margin-top: 10px;
+        }
+
+        #property-results.pl-view-list .listing-info > div:nth-child(3) > *:first-child {
+            margin-right: auto;
+        }
+
+        /* No date range: price, availability and the details button stack in a
+           right-hand column, separated by a soft divider. */
+        #property-results.pl-view-list .listing-info > div:nth-child(5) {
+            grid-column: 2;
+            grid-row: 1 / span 5;
+            align-self: center;
+            flex-direction: column;
+            align-items: flex-end !important;
+            justify-content: center;
+            gap: 12px !important;
+            margin-top: 0 !important;
+            margin-left: 20px;
+            padding-left: 22px;
+            border-left: 1px dashed #e5e7eb;
+            text-align: right;
+        }
+
+        #property-results.pl-view-list .listing-info > div:nth-child(5) > a {
+            flex-shrink: 1 !important;
+        }
+
+        /* Goes to the same place, and by the same route, as clicking the photo:
+           the delegated a[data-open-property-preview] handler below. */
+        #property-results.pl-view-list .pl-view-details {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex: 0 0 auto;
+            border: 1px solid #EB5310;
+            background: #EB5310;
+            color: #ffffff;
+            font-size: 13.5px;
+            font-weight: 600;
+            line-height: 1;
+            padding: 10px 18px;
+            border-radius: 10px;
+            text-decoration: none;
+            white-space: nowrap;
+            box-shadow: 0 8px 16px -8px rgba(235, 83, 16, 0.6);
+            transition: background-color 0.18s ease, border-color 0.18s ease;
+        }
+
+        #property-results.pl-view-list .pl-view-details:hover,
+        #property-results.pl-view-list .pl-view-details:focus {
+            background: #d1490e;
+            border-color: #d1490e;
+            color: #ffffff;
+        }
+
+        #property-results.pl-view-list .listing-title {
+            font-size: 17px;
+        }
+
+        #property-results.pl-view-list .listing-location {
+            font-size: 13.5px;
+            margin-top: 6px !important;
+        }
+
+        #property-results.pl-view-list .listing-price {
+            font-size: 20px;
+            white-space: nowrap;
+        }
+
+        #property-results.pl-view-list .listing-availability-text {
+            font-size: 12.5px;
+        }
+    }
 </style>
 {% endblock extra_head %}
 
@@ -1372,6 +1563,25 @@
         <div class="header-filter-logo-section header-filter-right">
 
             <!-- <a href="javascript:void(0);" onclick="checkProfileAndCreateListing()" class="btn" style="background-color: #ffffff; color: #1D74B2; padding: 4px 11px;">Create</a> -->
+
+            <!-- Tile / List view switch (display only — same listings, same data) -->
+            <div class="pl-view-toggle" role="group" aria-label="Change listing layout">
+                <button type="button" class="pl-view-btn is-active" data-pl-view="grid" aria-pressed="true" aria-label="Tile view" title="Tile view">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <rect x="3" y="3" width="7" height="7" rx="1.5"></rect>
+                        <rect x="14" y="3" width="7" height="7" rx="1.5"></rect>
+                        <rect x="3" y="14" width="7" height="7" rx="1.5"></rect>
+                        <rect x="14" y="14" width="7" height="7" rx="1.5"></rect>
+                    </svg>
+                </button>
+                <button type="button" class="pl-view-btn" data-pl-view="list" aria-pressed="false" aria-label="List view" title="List view">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <rect x="3" y="4" width="5" height="5" rx="1.2"></rect>
+                        <rect x="3" y="15" width="5" height="5" rx="1.2"></rect>
+                        <path d="M11 5.5h10M11 8h7M11 16.5h10M11 19h7"></path>
+                    </svg>
+                </button>
+            </div>
 
             <div class="search-box">
                 <input type="text" name="search" placeholder="Search" value="{{ search_query|default:'' }}">
@@ -2571,6 +2781,7 @@
                 }
                 loadDeferredListingImages();
                 applyNightsAndTotalPricing();
+                if (window.plSetupListViewCards) window.plSetupListViewCards();
             })
             .catch(() => { window.location.href = url; });
     }
@@ -2950,6 +3161,87 @@
     }
 
     document.addEventListener('DOMContentLoaded', applyNightsAndTotalPricing);
+</script>
+
+<script>
+    // Tile / List view switch.
+    // Only toggles a class on the results container, so it survives the AJAX
+    // search swap (which replaces the container's innerHTML, not the container)
+    // and never touches the data, the URL or the backend.
+    (function () {
+        const STORAGE_KEY = 'favhost.listingView';
+
+        // Adds a "View details" link to every card. It carries the same href and
+        // the same data-open-property-preview flag as the photo link, so it is
+        // picked up by the existing delegated handler and opens the very same
+        // preview — no new navigation path, no backend involvement.
+        function addViewDetailsButtons() {
+            document.querySelectorAll('#property-results .listing-card').forEach(function (card) {
+                if (card.querySelector('.pl-view-details')) return;
+
+                const photoLink = card.querySelector('a.listing-card-link[href]');
+                const info = card.querySelector('.listing-info');
+                if (!photoLink || !info) return;
+
+                // Row 5 (price + availability) exists only when no date range is
+                // applied; with dates, row 3 is the one carrying the price.
+                const host = info.children[4] || info.children[2];
+                if (!host) return;
+
+                const link = document.createElement('a');
+                link.className = 'pl-view-details';
+                link.href = photoLink.getAttribute('href');
+                link.setAttribute('data-open-property-preview', 'true');
+                link.setAttribute('rel', 'noopener noreferrer');
+                const previewTitle = photoLink.getAttribute('data-preview-title');
+                if (previewTitle) link.setAttribute('data-preview-title', previewTitle);
+                link.textContent = 'View details';
+
+                host.appendChild(link);
+            });
+        }
+
+        // Re-run after the AJAX search swap, which replaces the cards.
+        window.plSetupListViewCards = addViewDetailsButtons;
+
+        function initViewToggle() {
+            const results = document.getElementById('property-results');
+            const buttons = document.querySelectorAll('.pl-view-btn');
+            if (!results || !buttons.length) return false;
+
+            function applyView(view) {
+                results.classList.toggle('pl-view-list', view === 'list');
+                buttons.forEach(function (btn) {
+                    const isActive = btn.dataset.plView === view;
+                    btn.classList.toggle('is-active', isActive);
+                    btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+                });
+            }
+
+            let saved = 'grid';
+            try {
+                saved = localStorage.getItem(STORAGE_KEY) || 'grid';
+            } catch (err) {}
+            applyView(saved === 'list' ? 'list' : 'grid');
+            addViewDetailsButtons();
+
+            buttons.forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    const view = this.dataset.plView === 'list' ? 'list' : 'grid';
+                    applyView(view);
+                    try {
+                        localStorage.setItem(STORAGE_KEY, view);
+                    } catch (err) {}
+                });
+            });
+
+            return true;
+        }
+
+        if (!initViewToggle()) {
+            document.addEventListener('DOMContentLoaded', initViewToggle);
+        }
+    })();
 </script>
 
 {% endblock extra_script %}
