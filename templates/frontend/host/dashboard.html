@@ -421,7 +421,47 @@
 
 {% block extra_script %}
     <script src="https://unpkg.com/lucide@latest"></script>
-    
+
+    <script>
+        // Stat cards: shrink the four numbers until the longest one fits its
+        // card. A large currency total (e.g. ₹2,160,744.38) would otherwise
+        // overflow, since .stat-number is nowrap. All four share one size so
+        // the row still reads as a set.
+        (function () {
+            var MAX = 32, MIN = 12;
+
+            function fitStatNumbers() {
+                var grid = document.querySelector('.stats-grid');
+                if (!grid) return;
+                var numbers = grid.querySelectorAll('.stat-number');
+                if (!numbers.length) return;
+
+                // Measure at the largest size, then scale down by the worst
+                // overflow ratio instead of looping a size at a time.
+                grid.style.setProperty('--stat-fs', MAX + 'px');
+
+                var ratio = 1;
+                numbers.forEach(function (el) {
+                    var available = el.clientWidth;
+                    if (!available) return;
+                    // scrollWidth ignores the parent's width for nowrap text.
+                    ratio = Math.min(ratio, available / el.scrollWidth);
+                });
+
+                var size = Math.max(MIN, Math.floor(MAX * ratio));
+                grid.style.setProperty('--stat-fs', size + 'px');
+            }
+
+            window.addEventListener('resize', fitStatNumbers);
+            document.addEventListener('DOMContentLoaded', fitStatNumbers);
+            // Re-run once webfonts land, since metrics change after swap.
+            if (document.fonts && document.fonts.ready) {
+                document.fonts.ready.then(fitStatNumbers);
+            }
+            fitStatNumbers();
+        })();
+    </script>
+
     <script>
         // Archive Enquiry Functionality
         function getCookie(name) {
