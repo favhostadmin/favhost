@@ -1343,9 +1343,9 @@
         color: #ffffff;
     }
 
-    /* The injected "View details" link exists in every card but is only ever
+    /* The injected "Book now" link exists in every card but is only ever
        shown by the list-view rules below, so tile view is untouched. */
-    .pl-view-details {
+    .pl-book-btn {
         display: none;
     }
 
@@ -1366,6 +1366,54 @@
             border-radius: 14px;
             /* keep the options dropdown from being clipped by the shorter card */
             overflow: visible;
+            /* the whole card opens the property preview — see the delegated
+               handler in the view-switch script */
+            cursor: pointer;
+            /* anchor for the three-dots button in the corner */
+            position: relative;
+        }
+
+        /* The three-dots menu moves out of the title row and into the card's
+           top-right corner. Taking it out of flow also lets the title use the
+           full width of its column. */
+        #property-results.pl-view-list .listing-info .listing-actions {
+            position: absolute;
+            top: 10px;
+            right: 12px;
+            z-index: 3;
+        }
+
+        /* The desktop .options-btn is 32px with an svg that has no intrinsic
+           size, so it fills the button — both are pinned smaller here. */
+        #property-results.pl-view-list .listing-info .listing-actions .options-btn {
+            width: 22px;
+            height: 22px;
+            padding: 0;
+        }
+
+        #property-results.pl-view-list .listing-info .listing-actions .options-dots-icon {
+            width: 12px;
+            height: 12px;
+            display: block;
+            fill: #111827;
+        }
+
+        /* the menu is a .dropup, which would open off the top of the card now
+           that the button sits at the very top — same override the <=991px
+           rules already apply, Popper's inline styles need the !important */
+        #property-results.pl-view-list .listing-info .listing-actions .dropdown-menu {
+            top: 100% !important;
+            bottom: auto !important;
+            right: 0 !important;
+            left: auto !important;
+            transform: none !important;
+            margin-top: 6px !important;
+            margin-bottom: 0 !important;
+        }
+
+        /* keep a long title from running under the button */
+        #property-results.pl-view-list .listing-info > div:nth-child(1) {
+            padding-right: 28px;
         }
 
         #property-results.pl-view-list .listing-card-link {
@@ -1403,11 +1451,11 @@
              3  bed type + price          (rendered empty when no date range)
              4  bed type                  (no date range only)
              5  price + availability pill (no date range only)
-           "View details" is appended by script to row 5, or to row 3 when a
+           "Book now" is appended by script to row 5, or to row 3 when a
            date range is active. */
 
         /* Date range active: one wide row — bed type on the left, price pill
-           and the details button pushed to the right. */
+           and the booking button pushed to the right. */
         #property-results.pl-view-list .listing-info > div:nth-child(3) {
             gap: 12px;
         }
@@ -1420,7 +1468,7 @@
             margin-right: auto;
         }
 
-        /* No date range: price, availability and the details button stack in a
+        /* No date range: price, availability and the booking button stack in a
            right-hand column, separated by a soft divider. */
         #property-results.pl-view-list .listing-info > div:nth-child(5) {
             grid-column: 2;
@@ -1441,9 +1489,9 @@
             flex-shrink: 1 !important;
         }
 
-        /* Goes to the same place, and by the same route, as clicking the photo:
-           the delegated a[data-open-property-preview] handler below. */
-        #property-results.pl-view-list .pl-view-details {
+        /* Real navigation to the reservation form for this listing — it must not
+           be swallowed by the card-wide preview handler, hence the plain link. */
+        #property-results.pl-view-list .pl-book-btn {
             display: inline-flex;
             align-items: center;
             justify-content: center;
@@ -1462,8 +1510,8 @@
             transition: background-color 0.18s ease, border-color 0.18s ease;
         }
 
-        #property-results.pl-view-list .pl-view-details:hover,
-        #property-results.pl-view-list .pl-view-details:focus {
+        #property-results.pl-view-list .pl-book-btn:hover,
+        #property-results.pl-view-list .pl-book-btn:focus {
             background: #d1490e;
             border-color: #d1490e;
             color: #ffffff;
@@ -3170,18 +3218,18 @@
     // and never touches the data, the URL or the backend.
     (function () {
         const STORAGE_KEY = 'favhost.listingView';
+        const BOOKING_CREATE_URL = "{% url 'booking:booking-create' %}";
 
-        // Adds a "View details" link to every card. It carries the same href and
-        // the same data-open-property-preview flag as the photo link, so it is
-        // picked up by the existing delegated handler and opens the very same
-        // preview — no new navigation path, no backend involvement.
-        function addViewDetailsButtons() {
+        // Adds a "Book now" link to every card, pointing at the reservation form
+        // pre-filled with this listing — the same target the card's "Create a
+        // Reservation" menu item already uses.
+        function addBookingButtons() {
             document.querySelectorAll('#property-results .listing-card').forEach(function (card) {
-                if (card.querySelector('.pl-view-details')) return;
+                if (card.querySelector('.pl-book-btn')) return;
 
-                const photoLink = card.querySelector('a.listing-card-link[href]');
+                const propertyId = card.dataset.propertyId;
                 const info = card.querySelector('.listing-info');
-                if (!photoLink || !info) return;
+                if (!propertyId || !info) return;
 
                 // Row 5 (price + availability) exists only when no date range is
                 // applied; with dates, row 3 is the one carrying the price.
@@ -3189,20 +3237,99 @@
                 if (!host) return;
 
                 const link = document.createElement('a');
-                link.className = 'pl-view-details';
-                link.href = photoLink.getAttribute('href');
-                link.setAttribute('data-open-property-preview', 'true');
-                link.setAttribute('rel', 'noopener noreferrer');
-                const previewTitle = photoLink.getAttribute('data-preview-title');
-                if (previewTitle) link.setAttribute('data-preview-title', previewTitle);
-                link.textContent = 'View details';
+                link.className = 'pl-book-btn';
+                link.href = BOOKING_CREATE_URL + '?property_id=' + encodeURIComponent(propertyId);
+                link.textContent = 'Book now';
 
                 host.appendChild(link);
             });
         }
 
+        // The href is built when the card is rendered, so a date range picked
+        // afterwards would be lost. Read the filter bar at click time instead —
+        // same sources, and the same desktop/mobile split, that performSearch()
+        // uses — so the reservation form opens on the dates on screen.
+        function currentFilterValues() {
+            const scope = window.innerWidth < 992 ? '.mobile-filter-section' : '.desktop-header';
+
+            function fieldValue(name) {
+                const el = document.querySelector(scope + ' input[name="' + name + '"]');
+                return el && el.value ? el.value : '';
+            }
+
+            const checkIn = fieldValue('check_in');
+            let checkOut = fieldValue('check_out');
+
+            // a check-out on or before check-in is a half-finished range
+            if (checkIn && checkOut && new Date(checkOut) <= new Date(checkIn)) {
+                checkOut = '';
+            }
+
+            return { checkIn: checkIn, checkOut: checkOut, guests: fieldValue('guests') };
+        }
+
+        function initBookNowClick() {
+            const results = document.getElementById('property-results');
+            if (!results || results.dataset.plBookClickBound === 'true') return;
+            results.dataset.plBookClickBound = 'true';
+
+            results.addEventListener('click', function (event) {
+                const btn = event.target.closest('.pl-book-btn');
+                if (!btn) return;
+                if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button === 1) {
+                    return;
+                }
+
+                event.preventDefault();
+
+                const url = new URL(btn.getAttribute('href'), window.location.origin);
+                const filters = currentFilterValues();
+
+                if (filters.checkIn) {
+                    url.searchParams.set('check_in', filters.checkIn);
+                } else {
+                    url.searchParams.delete('check_in');
+                }
+
+                if (filters.checkOut) {
+                    url.searchParams.set('check_out', filters.checkOut);
+                } else {
+                    url.searchParams.delete('check_out');
+                }
+
+                if (filters.guests) url.searchParams.set('guests', filters.guests);
+
+                window.location.href = url.pathname + url.search;
+            });
+        }
+
+        // The whole card acts as the "show details" button in list view. Clicks
+        // that land on a link, a button or the options menu keep their own
+        // behaviour; anything else forwards to the photo link, which the
+        // existing a[data-open-property-preview] handler turns into the preview.
+        function initCardClick() {
+            const results = document.getElementById('property-results');
+            if (!results || results.dataset.plCardClickBound === 'true') return;
+            results.dataset.plCardClickBound = 'true';
+
+            results.addEventListener('click', function (event) {
+                if (!results.classList.contains('pl-view-list')) return;
+                if (event.defaultPrevented) return;
+                if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+
+                const card = event.target.closest('.listing-card');
+                if (!card) return;
+                if (event.target.closest('a, button, input, .dropdown-menu')) return;
+
+                const photoLink = card.querySelector('a.listing-card-link[href]');
+                if (!photoLink) return;
+
+                photoLink.click();
+            });
+        }
+
         // Re-run after the AJAX search swap, which replaces the cards.
-        window.plSetupListViewCards = addViewDetailsButtons;
+        window.plSetupListViewCards = addBookingButtons;
 
         function initViewToggle() {
             const results = document.getElementById('property-results');
@@ -3223,7 +3350,9 @@
                 saved = localStorage.getItem(STORAGE_KEY) || 'grid';
             } catch (err) {}
             applyView(saved === 'list' ? 'list' : 'grid');
-            addViewDetailsButtons();
+            addBookingButtons();
+            initCardClick();
+            initBookNowClick();
 
             buttons.forEach(function (btn) {
                 btn.addEventListener('click', function () {
