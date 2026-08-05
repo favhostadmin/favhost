@@ -13,7 +13,7 @@ from django.utils import timezone
 from datetime import datetime, timedelta
 
 from booking.models import Booking
-from accounts.models import MyUser
+from accounts.models import MyUser, CoHost
 from shared.models import CountryAndState
 from .models import Property, PropertyImage, PropertyDocument, Amenities, PropertyBlockDate
 from icalendar import Calendar, Event
@@ -940,6 +940,12 @@ class ListingPageView(ListView):
             context['host'] = self.request.user
         else:
             raise Http404("Host or properties not found.")
+
+        # Contact details in the hero belong to the account owner only. A co-host's
+        # public site shows the same listings, but never the contact block.
+        context['show_host_contact'] = not CoHost.objects.filter(
+            co_host=context['host']
+        ).exists()
 
         # Public pages: guests can pick a currency; default to the host's currency.
         context.update(currency.display_context(currency.resolve_display_currency(
