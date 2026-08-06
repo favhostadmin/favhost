@@ -160,6 +160,10 @@ MIDDLEWARE = [
     # Prevents browsers caching authenticated HTML pages, so the subscription
     # paywall is re-checked on every navigation (not only on a hard refresh).
     'bookaid.middleware.NoCacheAuthenticatedHTMLMiddleware',
+
+    # Logs anonymous public page views for the owner console's audience report.
+    # Last in the list so it sees the final response and an resolved request.user.
+    'controlpanel.middleware.PageViewMiddleware',
 ]
 
 ROOT_URLCONF = 'bookaid.urls'

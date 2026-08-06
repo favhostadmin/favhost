@@ -2,159 +2,302 @@
 {% load humanize %}
 
 {% block page_title %}Dashboard{% endblock %}
-{% block heading %}Platform Overview{% endblock %}
-{% block subheading %}<div class="cp-sub">Everything happening across FavHost — live, in USD</div>{% endblock %}
+{% block heading %}Dashboard{% endblock %}
+{% block subheading %}<div class="cp-sub">How FavHost is doing today — all money in USD</div>{% endblock %}
 
 {% block content %}
 
-<!-- ── Attention required ────────────────────────────────────────── -->
+{# ── 1. Anything wrong? A single slim strip, not a wall. ─────────────── #}
 {% if attention.total %}
-<div class="cp-card cp-mb" style="border-color:#f3ddb8;">
-  <div class="cp-card-head" style="border-color:#f3ddb8;background:var(--cp-amber-soft);border-radius:14px 14px 0 0;">
-    <i class="ti ti-alert-triangle" style="color:var(--cp-amber);font-size:20px;"></i>
-    <h3>Needs your attention</h3>
-    <span class="cp-badge b-amber no-dot" style="margin-left:8px;">{{ attention.total }}</span>
-    <div class="cp-spacer"></div>
-    <a href="{% url 'controlpanel:users' %}?attention=1" class="cp-link" style="font-size:13px;">Review all →</a>
-  </div>
-  <div class="cp-card-pad">
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;">
-      <a href="{% url 'controlpanel:subscriptions' %}?state=trialing" class="cp-att-chip"><span class="cp-att-n" style="color:var(--cp-amber);">{{ attention.trials_ending|length }}</span><span>Trials ending ≤7d</span></a>
-      <a href="{% url 'controlpanel:subscriptions' %}?state=past_due" class="cp-att-chip"><span class="cp-att-n" style="color:var(--cp-red);">{{ attention.past_due|length }}</span><span>Payments past due</span></a>
-      <a href="{% url 'controlpanel:users' %}?attention=1" class="cp-att-chip"><span class="cp-att-n" style="color:var(--cp-amber);">{{ attention.no_listing|length }}</span><span>No listings yet</span></a>
-      <a href="{% url 'controlpanel:users' %}?attention=1" class="cp-att-chip"><span class="cp-att-n" style="color:var(--cp-muted);">{{ attention.dormant|length }}</span><span>Dormant hosts</span></a>
-      <a href="{% url 'controlpanel:users' %}?status=blocked" class="cp-att-chip"><span class="cp-att-n" style="color:var(--cp-red);">{{ attention.blocked|length }}</span><span>Blocked accounts</span></a>
-    </div>
-    {% if attention.trials_ending %}
-    <div style="margin-top:16px;border-top:1px solid var(--cp-border);padding-top:14px;">
-      <div style="font-size:12px;color:var(--cp-muted);font-weight:600;text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px;">Trials expiring soonest</div>
-      {% for item in attention.trials_ending|slice:":5" %}
-      <div style="display:flex;align-items:center;gap:10px;padding:6px 0;font-size:13.5px;">
-        <span class="cp-badge {% if item.days_left <= 2 %}b-red{% else %}b-amber{% endif %} no-dot">{{ item.days_left }}d left</span>
-        <a class="cp-link" href="{% url 'controlpanel:user_detail' item.user.id %}">{{ item.user.get_full_name|default:item.user.username }}</a>
-        <span style="color:var(--cp-muted);">{{ item.user.email }}</span>
+<a class="cp-alert" href="{% url 'controlpanel:users' %}?attention=1">
+  <i class="ti ti-alert-triangle"></i>
+  <b>{{ attention.total }} account{{ attention.total|pluralize }} need{{ attention.total|pluralize:"s," }} a look</b>
+  <span class="cp-alert-items">
+    {% if attention.trials_ending %}{{ attention.trials_ending|length }} trial{{ attention.trials_ending|length|pluralize }} ending soon{% endif %}
+    {% if attention.past_due %}<em>·</em> {{ attention.past_due|length }} payment{{ attention.past_due|length|pluralize }} overdue{% endif %}
+    {% if attention.no_listing %}<em>·</em> {{ attention.no_listing|length }} never published a listing{% endif %}
+    {% if attention.dormant %}<em>·</em> {{ attention.dormant|length }} gone quiet{% endif %}
+    {% if attention.blocked %}<em>·</em> {{ attention.blocked|length }} blocked{% endif %}
+  </span>
+  <span class="cp-alert-go">Review <i class="ti ti-arrow-right"></i></span>
+</a>
+{% endif %}
+
+{# ── 2. Who is visiting? The hero report. ───────────────────────────── #}
+<section class="cp-ga">
+  <div class="cp-ga-head">
+    <div>
+      <h2 class="cp-ga-title">Website traffic</h2>
+      {% comment %}
+        The year is only dropped from the opening date when both ends share it —
+        otherwise a range like Aug 2025 → Aug 2026 reads as a single day.
+        ({# #} is single-line only; a multi-line one prints to the page.)
+      {% endcomment %}
+      <div class="cp-ga-dates">
+        <b>{% if traffic.start|date:"Y" == traffic.end|date:"Y" %}{{ traffic.start|date:"M j" }}{% else %}{{ traffic.start|date:"M j, Y" }}{% endif %} – {{ traffic.end|date:"M j, Y" }}</b>
+        · compared with the {{ traffic.days }} days before
+        ({% if traffic.prev_start|date:"Y" == traffic.prev_end|date:"Y" %}{{ traffic.prev_start|date:"M j" }}{% else %}{{ traffic.prev_start|date:"M j, Y" }}{% endif %} – {{ traffic.prev_end|date:"M j, Y" }})
       </div>
+    </div>
+    <div class="cp-spacer"></div>
+
+    <div class="cp-range-tools">
+      <div class="cp-seg" role="group" aria-label="Quick date ranges">
+        <a href="?range=7" class="{% if not traffic.is_custom and traffic.days == 7 %}is-active{% endif %}">7 days</a>
+        <a href="?range=28" class="{% if not traffic.is_custom and traffic.days == 28 %}is-active{% endif %}">28 days</a>
+        <a href="?range=90" class="{% if not traffic.is_custom and traffic.days == 90 %}is-active{% endif %}">90 days</a>
+      </div>
+
+      <details class="cp-picker" id="cpPicker">
+        <summary class="cp-picker-btn {% if traffic.is_custom %}is-active{% endif %}"
+                 aria-label="Pick a date range" title="Pick a date range">
+          <i class="ti ti-calendar"></i>
+        </summary>
+
+        <div class="cp-picker-panel">
+          <form method="get" class="cp-picker-block">
+            <label class="cp-picker-label" for="cpMonth">Month</label>
+            <div class="cp-picker-row">
+              <span class="cp-field">
+                <i class="ti ti-calendar-month"></i>
+                <input type="month" id="cpMonth" name="month" value="{{ selected_month }}"
+                       max="{{ traffic.end|date:'Y-m' }}">
+              </span>
+              <button type="submit" class="cp-picker-go">Show</button>
+            </div>
+          </form>
+
+          <div class="cp-picker-div"><span>or</span></div>
+
+          <form method="get" class="cp-picker-block">
+            <label class="cp-picker-label">Date range</label>
+            <div class="cp-picker-row">
+              <span class="cp-field">
+                <i class="ti ti-calendar-event"></i>
+                <input type="date" name="from" value="{{ traffic.start|date:'Y-m-d' }}"
+                       max="{{ traffic.end|date:'Y-m-d' }}" aria-label="From date">
+              </span>
+              <span class="cp-picker-to">→</span>
+              <span class="cp-field">
+                <i class="ti ti-calendar-event"></i>
+                <input type="date" name="to" value="{{ traffic.end|date:'Y-m-d' }}"
+                       aria-label="To date">
+              </span>
+            </div>
+            <button type="submit" class="cp-picker-go cp-picker-go-wide">Show</button>
+            <p class="cp-picker-help">Up to 366 days at a time.</p>
+          </form>
+
+          {% if traffic.is_custom %}
+          <a class="cp-picker-reset" href="?range=28"><i class="ti ti-rotate-2"></i> Back to 28 days</a>
+          {% endif %}
+        </div>
+      </details>
+    </div>
+  </div>
+
+  <div class="cp-ga-card">
+    <div class="cp-metric-row" role="tablist" aria-label="Choose what the chart shows">
+      {% for m in traffic.metrics %}
+      <button type="button" role="tab"
+              class="cp-metric{% if forloop.first %} is-active{% endif %}"
+              data-metric="{{ m.key }}"
+              aria-selected="{% if forloop.first %}true{% else %}false{% endif %}">
+        <span class="cp-metric-label">{{ m.label }}</span>
+        <span class="cp-metric-value">{% if m.format == 'money' %}${{ m.total|floatformat:0|intcomma }}{% else %}{{ m.total|intcomma }}{% endif %}</span>
+        <span class="cp-metric-delta {% if m.delta is None %}cp-delta-flat{% elif m.delta >= 0 %}cp-delta-up{% else %}cp-delta-down{% endif %}">
+          {% if m.delta is None %}<i class="ti ti-minus"></i> <span>nothing to compare</span>
+          {% else %}<i class="ti ti-trending-{% if m.delta >= 0 %}up{% else %}down{% endif %}"></i> {{ m.delta_abs }}% <span>vs previous</span>{% endif %}
+        </span>
+        <span class="cp-metric-hint">{{ m.hint }}</span>
+        <svg class="cp-metric-spark" data-spark="{{ m.key }}" aria-hidden="true"></svg>
+      </button>
       {% endfor %}
     </div>
-    {% endif %}
+
+    <div class="cp-ga-plot"><canvas id="chartTraffic"></canvas></div>
+    <div class="cp-ga-foot">
+      <span class="cp-ga-key"><i></i> <span id="gaKeyCurrent">{{ traffic.metrics.0.label }} · these {{ traffic.days }} days</span></span>
+      <span class="cp-ga-key is-prev"><i></i> The {{ traffic.days }} days before</span>
+    </div>
+  </div>
+
+  {% if not traffic.tracking_covers_window %}
+  <div class="cp-ga-note">
+    <i class="ti ti-progress-check"></i>
+    <div>
+      {% if traffic.tracking_since %}
+      <b>Visitor tracking started {{ traffic.tracking_since|date:"M j, Y" }}.</b>
+      Visitor and page-view numbers only cover the days since then, so they are not
+      yet comparable with bookings and enquiries — which reach further back. This
+      note disappears once a full {{ traffic.days }} days have been recorded.
+      {% else %}
+      <b>No visits recorded yet.</b> Traffic is counted from the moment someone
+      opens a public listing page. Numbers will appear here within minutes of the
+      first visitor.
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+</section>
+
+{# ── 3. Where do they come from, what do they look at? ──────────────── #}
+<div class="cp-grid cp-mb cp-grid-even">
+  <div class="cp-card">
+    <div class="cp-card-head">
+      <div>
+        <h3>Where visitors come from</h3>
+        <p class="cp-card-sub">The site that sent them to you</p>
+      </div>
+    </div>
+    <div class="cp-rank">
+      {% for s in traffic.sources %}
+      <div class="cp-rank-row">
+        <div class="cp-rank-top">
+          <span class="cp-rank-no">{{ forloop.counter }}</span>
+          <span class="cp-rank-name">{{ s.label }}</span>
+          <span class="cp-rank-val">{{ s.value|intcomma }}</span>
+        </div>
+        <div class="cp-rank-track">
+          <div class="cp-rank-fill" style="width:{% widthratio s.value traffic.sources.0.value 100 %}%"></div>
+        </div>
+      </div>
+      {% empty %}
+      <div class="cp-empty" style="padding:38px 20px;"><i class="ti ti-world-off"></i><p>No visits recorded in this period</p></div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="cp-card">
+    <div class="cp-card-head">
+      <div>
+        <h3>Most visited pages</h3>
+        <p class="cp-card-sub">Page views, and how many people made them</p>
+      </div>
+    </div>
+    <div class="cp-rank">
+      {% for p in traffic.top_pages %}
+      <div class="cp-rank-row">
+        <div class="cp-rank-top">
+          <span class="cp-rank-no">{{ forloop.counter }}</span>
+          <span class="cp-rank-name">{{ p.name }}{% if p.sub %} <span class="cp-rank-sub">{{ p.sub }}</span>{% endif %}</span>
+          <span class="cp-rank-sub">{{ p.people|intcomma }} {{ p.people|pluralize:"person,people" }}</span>
+          <span class="cp-rank-val">{{ p.value|intcomma }}</span>
+        </div>
+        <div class="cp-rank-track">
+          <div class="cp-rank-fill" style="width:{% widthratio p.value traffic.top_pages.0.value 100 %}%"></div>
+        </div>
+      </div>
+      {% empty %}
+      <div class="cp-empty" style="padding:38px 20px;"><i class="ti ti-file-off"></i><p>No page views recorded in this period</p></div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+{# ── 4. Do visits turn into business? ───────────────────────────────── #}
+{% if traffic.funnel.covered %}
+<div class="cp-card cp-mb">
+  <div class="cp-card-head">
+    <div>
+      <h3>From visitor to booking</h3>
+      <p class="cp-card-sub">What happened to the {{ traffic.funnel.visitors|intcomma }} people who visited in the last {{ traffic.days }} days</p>
+    </div>
+  </div>
+  <div class="cp-funnel">
+    <div class="cp-funnel-step">
+      <span class="cp-funnel-n">{{ traffic.funnel.visitors|intcomma }}</span>
+      <span class="cp-funnel-l">Visited the site</span>
+      <div class="cp-funnel-bar"><span style="width:100%"></span></div>
+    </div>
+    <div class="cp-funnel-step">
+      <span class="cp-funnel-n">{{ traffic.funnel.enquiries|intcomma }}</span>
+      <span class="cp-funnel-l">Sent an enquiry <b>{{ traffic.funnel.enquiry_rate }}%</b></span>
+      <div class="cp-funnel-bar"><span style="width:{% widthratio traffic.funnel.enquiries traffic.funnel.visitors 100 %}%"></span></div>
+    </div>
+    <div class="cp-funnel-step">
+      <span class="cp-funnel-n">{{ traffic.funnel.bookings|intcomma }}</span>
+      <span class="cp-funnel-l">Booked a stay <b>{{ traffic.funnel.booking_rate }}%</b></span>
+      <div class="cp-funnel-bar"><span style="width:{% widthratio traffic.funnel.bookings traffic.funnel.visitors 100 %}%"></span></div>
+    </div>
   </div>
 </div>
 {% endif %}
 
-<!-- ── The subscription business (what the owner earns) ───────────── -->
-<div class="cp-section-label">Subscription business</div>
-<div class="cp-kpi-grid">
-  <div class="cp-kpi">
-    <div class="cp-kpi-ico cp-ico-indigo"><i class="ti ti-repeat"></i></div>
-    <div class="cp-kpi-label">Monthly Recurring Revenue</div>
-    <div class="cp-kpi-value">${{ kpis.mrr|floatformat:2|intcomma }}</div>
-    <div class="cp-kpi-foot">${{ kpis.arr|floatformat:0|intcomma }} ARR · {{ monthly_price_display }}/host</div>
+{# ── 5. Am I earning? Plain words, no finance jargon. ───────────────── #}
+<div class="cp-section-head">
+  <h2>Your income</h2>
+  <p>What hosts pay you to use FavHost</p>
+</div>
+<div class="cp-stat-row cp-mb">
+  <div class="cp-stat">
+    <span class="cp-stat-label">Income per month</span>
+    <span class="cp-stat-value">${{ kpis.mrr|floatformat:0|intcomma }}</span>
+    <span class="cp-stat-hint">${{ kpis.arr|floatformat:0|intcomma }} a year if nothing changes · {{ monthly_price_display }} per host</span>
   </div>
-  <div class="cp-kpi">
-    <div class="cp-kpi-ico cp-ico-green"><i class="ti ti-crown"></i></div>
-    <div class="cp-kpi-label">Paying Hosts</div>
-    <div class="cp-kpi-value">{{ kpis.active_subscriptions|intcomma }}</div>
-    <div class="cp-kpi-foot">
-      {% if kpis.new_paid_this_month %}<span class="cp-trend-up">+{{ kpis.new_paid_this_month }} new</span>{% endif %}
-      {% if kpis.churned_this_month %} <span class="cp-trend-down">−{{ kpis.churned_this_month }} churned</span>{% endif %}
+  <div class="cp-stat">
+    <span class="cp-stat-label">Paying hosts</span>
+    <span class="cp-stat-value">{{ kpis.active_subscriptions|intcomma }}</span>
+    <span class="cp-stat-hint">
+      {% if kpis.new_paid_this_month %}<b class="cp-delta-up">+{{ kpis.new_paid_this_month }} joined</b>{% endif %}
+      {% if kpis.churned_this_month %}<b class="cp-delta-down">−{{ kpis.churned_this_month }} left</b>{% endif %}
       {% if not kpis.new_paid_this_month and not kpis.churned_this_month %}no change this month{% endif %}
+    </span>
+  </div>
+  <div class="cp-stat">
+    <span class="cp-stat-label">On a free trial</span>
+    <span class="cp-stat-value">{{ kpis.trialing|intcomma }}</span>
+    <span class="cp-stat-hint">{% if kpis.trial_conversion is not None %}{{ kpis.trial_conversion }}% of finished trials became paying{% else %}no trials have finished yet{% endif %}</span>
+  </div>
+  <div class="cp-stat">
+    <span class="cp-stat-label">Hosts in total</span>
+    <span class="cp-stat-value">{{ kpis.total_users|intcomma }}</span>
+    <span class="cp-stat-hint">
+      {{ kpis.new_users_this_month }} joined this month{% if kpis.new_users_growth is not None %}
+      <b class="{% if kpis.new_users_growth >= 0 %}cp-delta-up{% else %}cp-delta-down{% endif %}">{{ kpis.new_users_growth }}%</b> vs last month{% endif %}
+    </span>
+  </div>
+</div>
+
+{# ── 6. What hosts are doing with the platform ──────────────────────── #}
+<div class="cp-section-head">
+  <h2>What hosts are doing</h2>
+  <p>Their business, running on your platform</p>
+</div>
+<div class="cp-stat-row cp-mb">
+  <div class="cp-stat">
+    <span class="cp-stat-label">Money booked through hosts</span>
+    <span class="cp-stat-value">${{ kpis.gross_booking_value|floatformat:0|intcomma }}</span>
+    <span class="cp-stat-hint">${{ kpis.collected|floatformat:0|intcomma }} collected · ${{ kpis.outstanding|floatformat:0|intcomma }} still owed</span>
+  </div>
+  <div class="cp-stat">
+    <span class="cp-stat-label">Bookings</span>
+    <span class="cp-stat-value">{{ kpis.total_bookings|intcomma }}</span>
+    <span class="cp-stat-hint">{{ kpis.bookings_this_month }} this month · {{ kpis.cancelled_bookings }} cancelled overall</span>
+  </div>
+  <div class="cp-stat">
+    <span class="cp-stat-label">Listings</span>
+    <span class="cp-stat-value">{{ kpis.total_props|intcomma }}</span>
+    <span class="cp-stat-hint">{{ kpis.active_props }} taking bookings right now</span>
+  </div>
+  <div class="cp-stat">
+    <span class="cp-stat-label">Hosts who published</span>
+    <span class="cp-stat-value">{% if kpis.activation_rate is not None %}{{ kpis.activation_rate }}%{% else %}—{% endif %}</span>
+    <span class="cp-stat-hint">have at least one listing online</span>
+  </div>
+</div>
+
+{# ── 7. The recent record ───────────────────────────────────────────── #}
+<div class="cp-grid cp-mb cp-grid-even">
+  <div class="cp-card">
+    <div class="cp-card-head">
+      <div><h3>Biggest hosts</h3><p class="cp-card-sub">By money booked, all time</p></div>
+      <div class="cp-spacer"></div>
+      <a href="{% url 'controlpanel:users' %}" class="cp-link">View all</a>
     </div>
-  </div>
-  <div class="cp-kpi">
-    <div class="cp-kpi-ico cp-ico-orange"><i class="ti ti-hourglass-high"></i></div>
-    <div class="cp-kpi-label">On Free Trial</div>
-    <div class="cp-kpi-value">{{ kpis.trialing|intcomma }}</div>
-    <div class="cp-kpi-foot">potential conversions</div>
-  </div>
-  <div class="cp-kpi">
-    <div class="cp-kpi-ico cp-ico-blue"><i class="ti ti-target-arrow"></i></div>
-    <div class="cp-kpi-label">Trial → Paid Conversion</div>
-    <div class="cp-kpi-value">{% if kpis.trial_conversion is not None %}{{ kpis.trial_conversion }}%{% else %}—{% endif %}</div>
-    <div class="cp-kpi-foot">of hosts past their trial</div>
-  </div>
-</div>
-
-<!-- ── Growth & engagement ───────────────────────────────────────── -->
-<div class="cp-section-label">Growth &amp; engagement</div>
-<div class="cp-kpi-grid">
-  <div class="cp-kpi">
-    <div class="cp-kpi-ico cp-ico-orange"><i class="ti ti-user-plus"></i></div>
-    <div class="cp-kpi-label">New Hosts This Month</div>
-    <div class="cp-kpi-value">{{ kpis.new_users_this_month|intcomma }}</div>
-    <div class="cp-kpi-foot">{% if kpis.new_users_growth is not None %}{% if kpis.new_users_growth >= 0 %}<span class="cp-trend-up">▲ {{ kpis.new_users_growth }}%</span>{% else %}<span class="cp-trend-down">▼ {{ kpis.new_users_growth }}%</span>{% endif %} vs last month{% else %}—{% endif %}</div>
-  </div>
-  <div class="cp-kpi">
-    <div class="cp-kpi-ico cp-ico-green"><i class="ti ti-users"></i></div>
-    <div class="cp-kpi-label">Total Hosts</div>
-    <div class="cp-kpi-value">{{ kpis.total_users|intcomma }}</div>
-    <div class="cp-kpi-foot">{{ kpis.active_users }} active{% if kpis.blocked_users %} · {{ kpis.blocked_users }} blocked{% endif %}</div>
-  </div>
-  <div class="cp-kpi">
-    <div class="cp-kpi-ico cp-ico-blue"><i class="ti ti-rocket"></i></div>
-    <div class="cp-kpi-label">Activation Rate</div>
-    <div class="cp-kpi-value">{% if kpis.activation_rate is not None %}{{ kpis.activation_rate }}%{% else %}—{% endif %}</div>
-    <div class="cp-kpi-foot">hosts with ≥1 listing</div>
-  </div>
-  <div class="cp-kpi">
-    <div class="cp-kpi-ico cp-ico-indigo"><i class="ti ti-building-community"></i></div>
-    <div class="cp-kpi-label">Platform Activity</div>
-    <div class="cp-kpi-value">{{ kpis.total_bookings|intcomma }}</div>
-    <div class="cp-kpi-foot">bookings · {{ kpis.total_props }} listings · ${{ kpis.gross_booking_value|floatformat:0|intcomma }} processed</div>
-  </div>
-</div>
-
-<!-- ── Revenue + subscription mix ────────────────────────────────── -->
-<div class="cp-grid cp-grid-2 cp-mb">
-  <div class="cp-card">
-    <div class="cp-card-head"><h3>Booking Revenue</h3><div class="cp-spacer"></div>
-      <span class="cp-badge b-orange no-dot">Last 12 months · USD</span></div>
-    <div class="cp-chart-wrap"><canvas id="chartRevenue"></canvas></div>
-  </div>
-  <div class="cp-card">
-    <div class="cp-card-head"><h3>Subscription Mix</h3></div>
-    <div class="cp-chart-wrap cp-chart-sm"><canvas id="chartSubs"></canvas></div>
-  </div>
-</div>
-
-<!-- ── Signups + bookings ────────────────────────────────────────── -->
-<div class="cp-grid cp-grid-3 cp-mb">
-  <div class="cp-card">
-    <div class="cp-card-head"><h3>New Host Signups</h3></div>
-    <div class="cp-chart-wrap cp-chart-sm"><canvas id="chartSignups"></canvas></div>
-  </div>
-  <div class="cp-card">
-    <div class="cp-card-head"><h3>Bookings Created</h3></div>
-    <div class="cp-chart-wrap cp-chart-sm"><canvas id="chartBookings"></canvas></div>
-  </div>
-  <div class="cp-card">
-    <div class="cp-card-head"><h3>Booking Channels</h3></div>
-    <div class="cp-chart-wrap cp-chart-sm"><canvas id="chartChannels"></canvas></div>
-  </div>
-</div>
-
-<!-- ── Distributions ─────────────────────────────────────────────── -->
-<div class="cp-grid cp-grid-3 cp-mb">
-  <div class="cp-card">
-    <div class="cp-card-head"><h3>Property Types</h3></div>
-    <div class="cp-chart-wrap cp-chart-sm"><canvas id="chartPropTypes"></canvas></div>
-  </div>
-  <div class="cp-card">
-    <div class="cp-card-head"><h3>Booking Status</h3></div>
-    <div class="cp-chart-wrap cp-chart-sm"><canvas id="chartBookingStatus"></canvas></div>
-  </div>
-  <div class="cp-card">
-    <div class="cp-card-head"><h3>Payments Collected</h3></div>
-    <div class="cp-chart-wrap cp-chart-sm"><canvas id="chartPayments"></canvas></div>
-  </div>
-</div>
-
-<!-- ── Top hosts + recent activity ───────────────────────────────── -->
-<div class="cp-grid cp-grid-2 cp-mb">
-  <div class="cp-card">
-    <div class="cp-card-head"><h3>Top Hosts by Revenue</h3></div>
     <div class="cp-table-wrap">
       <table class="cp-table">
-        <thead><tr><th>Host</th><th>Bookings</th><th style="text-align:right;">Revenue</th></tr></thead>
+        <thead><tr><th>Host</th><th>Bookings</th><th style="text-align:right;">Money booked</th></tr></thead>
         <tbody>
           {% for h in top_hosts %}
           <tr>
@@ -163,7 +306,7 @@
             <td style="text-align:right;font-weight:700;">${{ h.revenue|floatformat:0|intcomma }}</td>
           </tr>
           {% empty %}
-          <tr><td colspan="3" class="cp-empty" style="padding:30px;"><i class="ti ti-chart-bar"></i><p>No booking revenue yet</p></td></tr>
+          <tr><td colspan="3" class="cp-empty" style="padding:34px;"><i class="ti ti-chart-bar"></i><p>No bookings yet</p></td></tr>
           {% endfor %}
         </tbody>
       </table>
@@ -171,10 +314,13 @@
   </div>
 
   <div class="cp-card">
-    <div class="cp-card-head"><h3>Newest Hosts</h3><div class="cp-spacer"></div>
-      <a href="{% url 'controlpanel:users' %}" class="cp-link" style="font-size:13px;">View all →</a></div>
-    <div class="cp-card-pad" style="padding-top:6px;">
-      {% for u in recent_users %}
+    <div class="cp-card-head">
+      <div><h3>Newest hosts</h3><p class="cp-card-sub">Who signed up most recently</p></div>
+      <div class="cp-spacer"></div>
+      <a href="{% url 'controlpanel:users' %}" class="cp-link">View all</a>
+    </div>
+    <div class="cp-card-pad" style="padding-top:8px;">
+      {% for u in recent_users|slice:":6" %}
       <div class="cp-action-row">
         <div class="cp-user-cell">
           <span class="cp-ava">{% if u.profile_picture_url %}<img src="{{ u.profile_picture_url }}">{% else %}{{ u.username|slice:":1"|upper }}{% endif %}</span>
@@ -193,15 +339,18 @@
   </div>
 </div>
 
-<div class="cp-grid cp-grid-2">
+<div class="cp-grid cp-grid-even">
   <div class="cp-card">
-    <div class="cp-card-head"><h3>Recent Bookings</h3><div class="cp-spacer"></div>
-      <a href="{% url 'controlpanel:bookings' %}" class="cp-link" style="font-size:13px;">View all →</a></div>
+    <div class="cp-card-head">
+      <div><h3>Latest bookings</h3><p class="cp-card-sub">Across every host</p></div>
+      <div class="cp-spacer"></div>
+      <a href="{% url 'controlpanel:bookings' %}" class="cp-link">View all</a>
+    </div>
     <div class="cp-table-wrap">
       <table class="cp-table">
-        <thead><tr><th>Guest</th><th>Property</th><th>Status</th><th style="text-align:right;">Total</th></tr></thead>
+        <thead><tr><th>Guest</th><th>Listing</th><th>Status</th><th style="text-align:right;">Total</th></tr></thead>
         <tbody>
-          {% for b in recent_bookings %}
+          {% for b in recent_bookings|slice:":6" %}
           <tr>
             <td><a class="cp-link" href="{% url 'controlpanel:booking_detail' b.id %}">{{ b.first_name }} {{ b.last_name }}</a></td>
             <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ b.property.title }}</td>
@@ -213,7 +362,7 @@
             <td style="text-align:right;font-weight:700;">${{ b.price|floatformat:0|intcomma }}</td>
           </tr>
           {% empty %}
-          <tr><td colspan="4" class="cp-empty" style="padding:30px;"><i class="ti ti-calendar-off"></i><p>No bookings yet</p></td></tr>
+          <tr><td colspan="4" class="cp-empty" style="padding:34px;"><i class="ti ti-calendar-off"></i><p>No bookings yet</p></td></tr>
           {% endfor %}
         </tbody>
       </table>
@@ -221,20 +370,23 @@
   </div>
 
   <div class="cp-card">
-    <div class="cp-card-head"><h3>Recent Enquiries</h3><div class="cp-spacer"></div>
-      <a href="{% url 'controlpanel:enquiries' %}" class="cp-link" style="font-size:13px;">View all →</a></div>
+    <div class="cp-card-head">
+      <div><h3>Latest enquiries</h3><p class="cp-card-sub">Guests asking about a stay</p></div>
+      <div class="cp-spacer"></div>
+      <a href="{% url 'controlpanel:enquiries' %}" class="cp-link">View all</a>
+    </div>
     <div class="cp-table-wrap">
       <table class="cp-table">
-        <thead><tr><th>Guest</th><th>Property</th><th>Dates</th></tr></thead>
+        <thead><tr><th>Guest</th><th>Listing</th><th>Dates</th></tr></thead>
         <tbody>
-          {% for e in recent_enquiries %}
+          {% for e in recent_enquiries|slice:":6" %}
           <tr>
             <td>{{ e.first_name }} {{ e.last_name }}</td>
             <td style="max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ e.property.title }}</td>
             <td style="font-size:12px;color:var(--cp-muted);">{{ e.check_in_date|date:"M j" }} – {{ e.check_out_date|date:"M j" }}</td>
           </tr>
           {% empty %}
-          <tr><td colspan="3" class="cp-empty" style="padding:30px;"><i class="ti ti-message-off"></i><p>No enquiries yet</p></td></tr>
+          <tr><td colspan="3" class="cp-empty" style="padding:34px;"><i class="ti ti-message-off"></i><p>No enquiries yet</p></td></tr>
           {% endfor %}
         </tbody>
       </table>
@@ -245,73 +397,151 @@
 {% endblock %}
 
 {% block extra_script %}
-<script id="cp-charts-data" type="application/json">{{ charts_json|safe }}</script>
+<script id="cp-traffic-data" type="application/json">{{ traffic_json|safe }}</script>
+
 <script>
-  const CP = JSON.parse(document.getElementById('cp-charts-data').textContent);
-  const ACCENT = '#e05c2a', GRID = 'rgba(17,24,39,.06)', MUTED = '#9ca3af';
-  Chart.defaults.font.family = 'Heebo, sans-serif';
-  Chart.defaults.color = '#6b7280';
-  Chart.defaults.plugins.legend.display = false;
-
-  const money = (v) => '$' + Number(v).toLocaleString(undefined, { maximumFractionDigits: 0 });
-  const axis = (fmt) => ({
-    x: { grid: { display: false }, ticks: { maxRotation: 0, autoSkip: true, maxTicksLimit: 8 } },
-    y: { beginAtZero: true, grid: { color: GRID }, ticks: fmt ? { callback: fmt } : {} }
-  });
-
-  // Revenue (area line)
+  // Date picker: a <details> popover, so it works without JS. This only adds
+  // the dismiss behaviour a popover is expected to have.
   (function () {
-    const c = document.getElementById('chartRevenue').getContext('2d');
-    const g = c.createLinearGradient(0, 0, 0, 300);
-    g.addColorStop(0, 'rgba(224,82,42,.28)'); g.addColorStop(1, 'rgba(224,82,42,0)');
-    new Chart(c, {
-      type: 'line',
-      data: { labels: CP.revenue.labels, datasets: [{ data: CP.revenue.values, borderColor: ACCENT, backgroundColor: g, fill: true, tension: .35, borderWidth: 2.5, pointRadius: 0, pointHoverRadius: 5 }] },
-      options: { responsive: true, maintainAspectRatio: false, scales: axis(money), plugins: { tooltip: { callbacks: { label: (i) => money(i.raw) } } } }
+    const picker = document.getElementById('cpPicker');
+    if (!picker) return;
+    document.addEventListener('click', function (e) {
+      if (picker.open && !picker.contains(e.target)) picker.open = false;
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && picker.open) picker.open = false;
     });
   })();
+</script>
 
-  // Subscriptions doughnut
-  new Chart(document.getElementById('chartSubs'), {
-    type: 'doughnut',
-    data: { labels: CP.subscriptions.labels, datasets: [{ data: CP.subscriptions.values, backgroundColor: CP.subscriptions.colors, borderWidth: 2, borderColor: '#fff' }] },
-    options: { responsive: true, maintainAspectRatio: false, cutout: '62%', plugins: { legend: { display: true, position: 'bottom', labels: { boxWidth: 10, boxHeight: 10, padding: 12, font: { size: 11 } } } } }
-  });
+<script>
+  // ── Website traffic report ───────────────────────────────────────────────
+  (function () {
+    const T = JSON.parse(document.getElementById('cp-traffic-data').textContent);
+    const canvas = document.getElementById('chartTraffic');
+    if (!canvas || !T.metrics.length) return;
 
-  // Signups bar
-  new Chart(document.getElementById('chartSignups'), {
-    type: 'bar',
-    data: { labels: CP.signups.labels, datasets: [{ data: CP.signups.values, backgroundColor: ACCENT, borderRadius: 5, maxBarThickness: 26 }] },
-    options: { responsive: true, maintainAspectRatio: false, scales: axis() }
-  });
+    const byKey = {};
+    T.metrics.forEach(function (m) { byKey[m.key] = m; });
 
-  // Bookings line
-  new Chart(document.getElementById('chartBookings'), {
-    type: 'line',
-    data: { labels: CP.bookings.labels, datasets: [{ data: CP.bookings.values, borderColor: '#2563eb', backgroundColor: 'rgba(37,99,235,.08)', fill: true, tension: .35, borderWidth: 2.5, pointRadius: 0, pointHoverRadius: 5 }] },
-    options: { responsive: true, maintainAspectRatio: false, scales: axis() }
-  });
+    const ACCENT = '#e05c2a', PREV = '#b9b8b3';
+    const count = function (v) { return Number(v).toLocaleString(); };
+    const money = function (v) { return '$' + Number(v).toLocaleString(undefined, { maximumFractionDigits: 0 }); };
+    const formatFor = function (m) { return m.format === 'money' ? money : count; };
 
-  // Channels horizontal bar
-  new Chart(document.getElementById('chartChannels'), {
-    type: 'bar',
-    data: { labels: CP.channels.labels, datasets: [{ data: CP.channels.values, backgroundColor: '#6366f1', borderRadius: 5, maxBarThickness: 20 }] },
-    options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, scales: { x: { beginAtZero: true, grid: { color: GRID } }, y: { grid: { display: false } } } }
-  });
+    function axisTick(v) {
+      if (active.format !== 'money') return v;
+      if (Math.abs(v) >= 1000) return '$' + (v / 1000).toFixed(Math.abs(v) >= 10000 ? 0 : 1) + 'k';
+      return '$' + v;
+    }
 
-  const pie = (id, d, colors) => new Chart(document.getElementById(id), {
-    type: 'doughnut',
-    data: { labels: d.labels, datasets: [{ data: d.values, backgroundColor: colors, borderWidth: 2, borderColor: '#fff' }] },
-    options: { responsive: true, maintainAspectRatio: false, cutout: '58%', plugins: { legend: { display: true, position: 'bottom', labels: { boxWidth: 10, boxHeight: 10, padding: 10, font: { size: 11 } } } } }
-  });
-  pie('chartPropTypes', CP.property_types, ['#e05c2a', '#2563eb', '#16a34a', '#9ca3af']);
-  pie('chartBookingStatus', CP.booking_status, ['#16a34a', '#dc2626', '#9ca3af']);
+    // A sparkline per tile, as a plain polyline — no second chart library, and
+    // it inherits the tile's own colour so the selected one lights up.
+    T.metrics.forEach(function (m) {
+      const svg = document.querySelector('svg[data-spark="' + m.key + '"]');
+      if (!svg) return;
+      const W = 100, H = 26, PAD = 2.5;
+      const vals = m.values.length ? m.values : [0];
+      const max = Math.max.apply(null, vals.concat([0]));
+      const min = Math.min.apply(null, vals.concat([0]));
+      const span = (max - min) || 1;
+      const xy = vals.map(function (v, i) {
+        const x = vals.length === 1 ? W / 2 : (i / (vals.length - 1)) * W;
+        const y = H - PAD - ((v - min) / span) * (H - PAD * 2);
+        return [x, y];
+      });
+      const pts = xy.map(function (p) { return p[0].toFixed(2) + ',' + p[1].toFixed(2); }).join(' ');
+      // A filled area under the line reads far richer than a bare stroke.
+      const area = 'M' + xy[0][0].toFixed(2) + ',' + H +
+        xy.map(function (p) { return 'L' + p[0].toFixed(2) + ',' + p[1].toFixed(2); }).join('') +
+        'L' + xy[xy.length - 1][0].toFixed(2) + ',' + H + 'Z';
+      svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+      svg.setAttribute('preserveAspectRatio', 'none');
+      svg.innerHTML =
+        '<path d="' + area + '" fill="currentColor" opacity=".14"/>' +
+        '<polyline points="' + pts + '" fill="none" stroke="currentColor" ' +
+        'stroke-width="1.75" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/>';
+    });
 
-  // Payments collected bar
-  new Chart(document.getElementById('chartPayments'), {
-    type: 'bar',
-    data: { labels: CP.payments.labels, datasets: [{ data: CP.payments.values, backgroundColor: '#16a34a', borderRadius: 5, maxBarThickness: 26 }] },
-    options: { responsive: true, maintainAspectRatio: false, scales: axis(money), plugins: { tooltip: { callbacks: { label: (i) => money(i.raw) } } } }
-  });
+    let active = T.metrics[0];
+
+    const ctx = canvas.getContext('2d');
+    const fill = ctx.createLinearGradient(0, 0, 0, 300);
+    fill.addColorStop(0, 'rgba(224,92,42,.18)');
+    fill.addColorStop(1, 'rgba(224,92,42,0)');
+
+    const chart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: T.labels,
+        datasets: [
+          {
+            label: 'Selected period', data: active.values,
+            borderColor: ACCENT, backgroundColor: fill, fill: true,
+            borderWidth: 2, tension: .32,
+            pointRadius: 0, pointHoverRadius: 5, pointHoverBorderWidth: 2,
+            pointHoverBackgroundColor: '#fff', pointHoverBorderColor: ACCENT
+          },
+          {
+            label: 'Previous period', data: active.previous,
+            borderColor: PREV, borderDash: [5, 4], borderWidth: 1.8, fill: false,
+            tension: .32, pointRadius: 0, pointHoverRadius: 4,
+            pointHoverBackgroundColor: '#fff', pointHoverBorderColor: PREV
+          }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: '#16181d', padding: 12, cornerRadius: 9,
+            titleFont: { size: 12.5, weight: '700' }, bodyFont: { size: 12.5 },
+            bodySpacing: 5, displayColors: true, boxWidth: 8, boxHeight: 8, usePointStyle: true,
+            callbacks: {
+              label: function (item) {
+                const f = formatFor(active);
+                if (item.datasetIndex === 0) return ' ' + active.label + ': ' + f(item.raw);
+                const when = T.prevLabels[item.dataIndex] || 'earlier';
+                return ' Same day before (' + when + '): ' + f(item.raw);
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            grid: { display: false }, border: { color: '#e9e9e7' },
+            ticks: { color: '#9ca3af', font: { size: 11 }, maxRotation: 0, autoSkip: true, maxTicksLimit: 9 }
+          },
+          y: {
+            beginAtZero: true, border: { display: false },
+            grid: { color: 'rgba(17,24,39,.055)' },
+            ticks: { color: '#9ca3af', font: { size: 11 }, maxTicksLimit: 5, precision: 0, callback: axisTick }
+          }
+        }
+      }
+    });
+
+    const keyLabel = document.getElementById('gaKeyCurrent');
+    document.querySelectorAll('.cp-metric').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        const m = byKey[btn.dataset.metric];
+        if (!m || m === active) return;
+        active = m;
+
+        document.querySelectorAll('.cp-metric').forEach(function (b) {
+          const on = b === btn;
+          b.classList.toggle('is-active', on);
+          b.setAttribute('aria-selected', on ? 'true' : 'false');
+        });
+
+        chart.data.datasets[0].data = m.values;
+        chart.data.datasets[1].data = m.previous;
+        chart.update();
+        if (keyLabel) keyLabel.textContent = m.label + ' · these ' + T.days + ' days';
+      });
+    });
+  })();
 </script>
 {% endblock %}

@@ -10,7 +10,7 @@ block/unblock, comp free access, adjust trial length, delete account, and edit
 platform pricing.
 """
 import json
-from datetime import timedelta
+from datetime import date, datetime, timedelta
 from decimal import Decimal, InvalidOperation
 
 from django.conf import settings
@@ -73,10 +73,57 @@ def logout_view(request):
 
 # ── dashboard ────────────────────────────────────────────────────────────────
 
+def _parse_day(value):
+    try:
+        return datetime.strptime((value or '').strip(), '%Y-%m-%d').date()
+    except (TypeError, ValueError):
+        return None
+
+
+def _parse_month(value):
+    """'2026-03' -> (first day, last day). Clipped to today for this month."""
+    try:
+        first = datetime.strptime((value or '').strip(), '%Y-%m').date()
+    except (TypeError, ValueError):
+        return None, None
+    nxt = date(first.year + 1, 1, 1) if first.month == 12 else date(first.year, first.month + 1, 1)
+    return first, nxt - timedelta(days=1)
+
+
 @admin_required
 def dashboard(request):
+    """The owner overview.
+
+    The window can be given three ways: a preset (?range=7|28|90), a whole
+    month (?month=2026-03), or exact dates (?from=&to=). Anything unparseable
+    silently falls back to the 28-day preset rather than erroring — a bad URL
+    should never leave the owner staring at a stack trace.
+    """
+    start = end = None
+
+    month_start, month_end = _parse_month(request.GET.get('month'))
+    if month_start:
+        start, end = month_start, month_end
+    else:
+        start = _parse_day(request.GET.get('from'))
+        end = _parse_day(request.GET.get('to'))
+        if not (start and end):
+            start = end = None
+
+    try:
+        days = int(request.GET.get('range') or 28)
+    except (TypeError, ValueError):
+        days = 28
+
     ctx = analytics.dashboard_context()
-    ctx['charts_json'] = json.dumps(ctx['charts'])
+    ctx['traffic'] = analytics.traffic_context(days, start=start, end=end)
+    ctx['selected_month'] = request.GET.get('month') or ''
+    ctx['traffic_json'] = json.dumps({
+        'labels': ctx['traffic']['labels'],
+        'prevLabels': ctx['traffic']['prev_labels'],
+        'metrics': ctx['traffic']['metrics'],
+        'days': ctx['traffic']['days'],
+    })
     ctx['active_nav'] = 'dashboard'
     return render(request, 'controlpanel/dashboard.html', ctx)
 
