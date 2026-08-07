@@ -118,7 +118,6 @@
     <div class="cp-ga-plot"><canvas id="chartTraffic"></canvas></div>
     <div class="cp-ga-foot">
       <span class="cp-ga-key"><i></i> <span id="gaKeyCurrent">{{ traffic.metrics.0.label }} · these {{ traffic.days }} days</span></span>
-      <span class="cp-ga-key is-prev"><i></i> The {{ traffic.days }} days before</span>
     </div>
   </div>
 
@@ -201,7 +200,7 @@
   <div class="cp-card-head">
     <div>
       <h3>From visitor to booking</h3>
-      <p class="cp-card-sub">What happened to the {{ traffic.funnel.visitors|intcomma }} people who visited in the last {{ traffic.days }} days</p>
+      <p class="cp-card-sub">What came of the {{ traffic.funnel.visitors|intcomma }} people who visited over these {{ traffic.days }} days</p>
     </div>
   </div>
   <div class="cp-funnel">
@@ -253,8 +252,9 @@
     <span class="cp-stat-label">Hosts in total</span>
     <span class="cp-stat-value">{{ kpis.total_users|intcomma }}</span>
     <span class="cp-stat-hint">
-      {{ kpis.new_users_this_month }} joined this month{% if kpis.new_users_growth is not None %}
-      <b class="{% if kpis.new_users_growth >= 0 %}cp-delta-up{% else %}cp-delta-down{% endif %}">{{ kpis.new_users_growth }}%</b> vs last month{% endif %}
+      {{ kpis.new_users_this_month }} joined so far this month{% if kpis.new_users_growth is not None %}
+      <b class="{% if kpis.new_users_growth >= 0 %}cp-delta-up{% else %}cp-delta-down{% endif %}">{{ kpis.new_users_growth }}%</b>
+      vs the same {{ kpis.mtd_days }} day{{ kpis.mtd_days|pluralize }} of last month{% endif %}
     </span>
   </div>
 </div>
@@ -268,12 +268,12 @@
   <div class="cp-stat">
     <span class="cp-stat-label">Money booked through hosts</span>
     <span class="cp-stat-value">${{ kpis.gross_booking_value|floatformat:0|intcomma }}</span>
-    <span class="cp-stat-hint">${{ kpis.collected|floatformat:0|intcomma }} collected · ${{ kpis.outstanding|floatformat:0|intcomma }} still owed</span>
+    <span class="cp-stat-hint">${{ kpis.collected|floatformat:0|intcomma }} collected · ${{ kpis.outstanding|floatformat:0|intcomma }} still owed{% if kpis.cancelled_value %}<br>excludes ${{ kpis.cancelled_value|floatformat:0|intcomma }} from {{ kpis.cancelled_bookings }} cancelled booking{{ kpis.cancelled_bookings|pluralize }}{% endif %}</span>
   </div>
   <div class="cp-stat">
-    <span class="cp-stat-label">Bookings</span>
-    <span class="cp-stat-value">{{ kpis.total_bookings|intcomma }}</span>
-    <span class="cp-stat-hint">{{ kpis.bookings_this_month }} this month · {{ kpis.cancelled_bookings }} cancelled overall</span>
+    <span class="cp-stat-label">Bookings that stand</span>
+    <span class="cp-stat-value">{{ kpis.live_bookings|intcomma }}</span>
+    <span class="cp-stat-hint">{{ kpis.bookings_this_month }} made this month · {{ kpis.cancelled_bookings }} cancelled and not counted</span>
   </div>
   <div class="cp-stat">
     <span class="cp-stat-label">Listings</span>
@@ -424,7 +424,7 @@
     const byKey = {};
     T.metrics.forEach(function (m) { byKey[m.key] = m; });
 
-    const ACCENT = '#e05c2a', PREV = '#b9b8b3';
+    const ACCENT = '#e05c2a';
     const count = function (v) { return Number(v).toLocaleString(); };
     const money = function (v) { return '$' + Number(v).toLocaleString(undefined, { maximumFractionDigits: 0 }); };
     const formatFor = function (m) { return m.format === 'money' ? money : count; };
@@ -466,27 +466,20 @@
     let active = T.metrics[0];
 
     const ctx = canvas.getContext('2d');
-    const fill = ctx.createLinearGradient(0, 0, 0, 300);
-    fill.addColorStop(0, 'rgba(224,92,42,.18)');
-    fill.addColorStop(1, 'rgba(224,92,42,0)');
 
+    // One bar per day — a day is a discrete bucket, so bars read more honestly
+    // than a line, which implies values in between.
     const chart = new Chart(ctx, {
-      type: 'line',
+      type: 'bar',
       data: {
         labels: T.labels,
         datasets: [
           {
             label: 'Selected period', data: active.values,
-            borderColor: ACCENT, backgroundColor: fill, fill: true,
-            borderWidth: 2, tension: .32,
-            pointRadius: 0, pointHoverRadius: 5, pointHoverBorderWidth: 2,
-            pointHoverBackgroundColor: '#fff', pointHoverBorderColor: ACCENT
-          },
-          {
-            label: 'Previous period', data: active.previous,
-            borderColor: PREV, borderDash: [5, 4], borderWidth: 1.8, fill: false,
-            tension: .32, pointRadius: 0, pointHoverRadius: 4,
-            pointHoverBackgroundColor: '#fff', pointHoverBorderColor: PREV
+            backgroundColor: ACCENT,
+            hoverBackgroundColor: '#c94e22',
+            borderRadius: 4, borderSkipped: false,
+            maxBarThickness: 34, categoryPercentage: .82, barPercentage: .9
           }
         ]
       },
@@ -501,10 +494,7 @@
             bodySpacing: 5, displayColors: true, boxWidth: 8, boxHeight: 8, usePointStyle: true,
             callbacks: {
               label: function (item) {
-                const f = formatFor(active);
-                if (item.datasetIndex === 0) return ' ' + active.label + ': ' + f(item.raw);
-                const when = T.prevLabels[item.dataIndex] || 'earlier';
-                return ' Same day before (' + when + '): ' + f(item.raw);
+                return ' ' + active.label + ': ' + formatFor(active)(item.raw);
               }
             }
           }
@@ -537,7 +527,6 @@
         });
 
         chart.data.datasets[0].data = m.values;
-        chart.data.datasets[1].data = m.previous;
         chart.update();
         if (keyLabel) keyLabel.textContent = m.label + ' · these ' + T.days + ' days';
       });

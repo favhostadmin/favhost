@@ -144,12 +144,15 @@
     }
 
     .book-now-btn {
+      /* List view only — tile view shows the photo unobstructed, and the whole
+         card is already a link to the listing. The list-view rule below opts
+         it back in. */
+      display: none;
       position: absolute;
       top: 50%;
       right: 14px;
       transform: translateY(-50%);
       z-index: 2;
-      display: inline-flex;
       align-items: center;
       justify-content: center;
       border: 0;
@@ -171,19 +174,6 @@
       background: #d1490e;
       color: #ffffff;
       outline: none;
-    }
-
-    /* Below 992px the card is a 130px thumbnail plus a narrow text column —
-       a right-centred button would land on top of the price row, so it stays
-       over the thumbnail on the left there. */
-    @media (max-width: 991.98px) {
-      .book-now-btn {
-        right: auto;
-        left: 8px;
-        font-size: 12px;
-        padding: 8px 12px;
-        border-radius: 8px;
-      }
     }
 
     /* ============================================================
@@ -248,36 +238,6 @@
       }
     }
 
-    /* Tile view: the button leaves the photo and flows inside the body,
-       right-aligned directly above the price / availability row.
-       It is the body's first child in the markup, so the stack is reordered
-       with flex `order` rather than by repeating the markup in both the
-       with-dates and without-dates branches of the template. */
-    @media (min-width: 992px) {
-      #listingCards:not(.pl-view-list) .card-body {
-        display: flex;
-        flex-direction: column;
-      }
-
-      #listingCards:not(.pl-view-list) .book-now-btn {
-        order: 1;
-        position: static;
-        width: fit-content;
-        margin: 10px 0 2px auto;
-        font-size: 12.5px;
-        font-weight: 600;
-        padding: 8px 15px;
-        border-radius: 8px;
-        transform: none;
-        box-shadow: 0 4px 10px -4px rgba(235, 83, 16, 0.7);
-      }
-
-      /* the price + "Avl." row, which stays below the button */
-      #listingCards:not(.pl-view-list) .card-body > .card-stay-info:last-of-type {
-        order: 2;
-      }
-    }
-
     @media (min-width: 992px) {
       #listingCards.pl-view-list {
         display: flex;
@@ -336,6 +296,11 @@
 
       #listingCards.pl-view-list .card-stay-info + .card-stay-info {
         margin-top: 8px;
+      }
+
+      /* the only place the button appears */
+      #listingCards.pl-view-list .book-now-btn {
+        display: inline-flex;
       }
 
       /* In a row the button sits over the right of the body — keep long

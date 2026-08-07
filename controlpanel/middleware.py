@@ -24,11 +24,19 @@ def client_ip(request):
 
 
 def visitor_key(request):
-    """A per-day pseudonymous id: same visitor today, unlinkable tomorrow."""
+    """A stable pseudonymous id for one visitor.
+
+    Derived from IP + device, hashed one-way with the site secret so it can
+    never be turned back into an address. It does NOT rotate, so the same
+    person keeps the same id across days — which is what makes "unique
+    visitors" a true count over any period rather than visits-per-day added up.
+
+    Still no cookie and no stored personal data, but note this IS a persistent
+    identifier: it is the deliberate trade for an accurate visitor count.
+    """
     raw = '|'.join([
         client_ip(request),
         request.META.get('HTTP_USER_AGENT', '')[:200],
-        timezone.localdate().isoformat(),
         settings.SECRET_KEY,
     ])
     return hashlib.sha256(raw.encode('utf-8', 'ignore')).hexdigest()[:32]

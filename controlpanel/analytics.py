@@ -149,6 +149,19 @@ def daily_distinct(qs, date_field, distinct_field, start, end):
     return list(buckets.values())
 
 
+def distinct_over(qs, date_field, distinct_field, start, end):
+    """One count of DISTINCT values across the whole window.
+
+    Not the same as summing the per-day distincts: a person who visits on five
+    days counts once here and five times there. This is the true "unique
+    people" figure, which only works because the visitor id is stable.
+    """
+    return (
+        qs.filter(**{f'{date_field}__date__gte': start, f'{date_field}__date__lte': end})
+        .values(distinct_field).distinct().count()
+    )
+
+
 def _delta_pct(current, previous):
     """Percent change, or None when there is no baseline to compare against."""
     if not previous:
@@ -227,9 +240,11 @@ def traffic_context(days=28, start=None, end=None):
     enquiries = Enquiry.objects.all()
     views = PageView.objects.all()
 
-    def add(metrics, key, label, hint, fmt, current, previous):
-        total = sum(current)
-        prev_total = sum(previous)
+    def add(metrics, key, label, hint, fmt, current, previous, total=None, prev_total=None):
+        # Most metrics total by adding the daily bars up; visitors can't, so it
+        # passes its own window-wide distinct count in.
+        total = sum(current) if total is None else total
+        prev_total = sum(previous) if prev_total is None else prev_total
         delta = _delta_pct(total, prev_total)
         metrics.append({
             'key': key,
@@ -246,10 +261,14 @@ def traffic_context(days=28, start=None, end=None):
         })
 
     metrics = []
-    add(metrics, 'visitors', 'Visitors', 'people who opened a page',
+    # Bars are unique people per day; the headline is unique people across the
+    # whole window — someone who visits every day counts once in the headline.
+    add(metrics, 'visitors', 'Visitors', 'different people who visited',
         'count',
         daily_distinct(views, 'created_at', 'visitor_key', start, end),
-        daily_distinct(views, 'created_at', 'visitor_key', prev_start, prev_end))
+        daily_distinct(views, 'created_at', 'visitor_key', prev_start, prev_end),
+        total=distinct_over(views, 'created_at', 'visitor_key', start, end),
+        prev_total=distinct_over(views, 'created_at', 'visitor_key', prev_start, prev_end))
     add(metrics, 'views', 'Page views', 'pages they looked at',
         'count',
         daily_buckets(views, 'created_at', start, end),
@@ -492,9 +511,16 @@ def dashboard_context():
     total_users = hosts.count()
     blocked_users = hosts.filter(is_active=False).count()
     active_users = total_users - blocked_users
+    # Month-to-date vs the SAME days of last month. Comparing 6 days of August
+    # against all 31 days of July would report a collapse every month until the
+    # 31st — a partial period must only ever be compared with a partial period.
+    mtd_days = (today - month_start).days + 1
+    prev_month_end = month_start - timedelta(days=1)
+    prev_cutoff = min(prev_month_start + timedelta(days=mtd_days - 1), prev_month_end)
+
     new_users_this_month = hosts.filter(created_at__date__gte=month_start).count()
     new_users_prev_month = hosts.filter(
-        created_at__date__gte=prev_month_start, created_at__date__lt=month_start
+        created_at__date__gte=prev_month_start, created_at__date__lte=prev_cutoff
     ).count()
 
     props = Property.objects.all()
@@ -507,9 +533,16 @@ def dashboard_context():
     confirmed_bookings = bookings.filter(status='confirmed').count()
     cancelled_bookings = bookings.filter(status='cancelled').count()
 
-    gross_booking_value = bookings.aggregate(t=Sum('price'))['t'] or Decimal('0')
-    collected = Payment.objects.filter(is_paid=True).aggregate(t=Sum('amount'))['t'] or Decimal('0')
-    outstanding = Payment.objects.filter(is_paid=False).aggregate(t=Sum('amount'))['t'] or Decimal('0')
+    # Money that was actually booked — a cancelled booking is not revenue, and
+    # reporting it as such overstates the platform. Cancelled value is carried
+    # separately so the dashboard can disclose it rather than hide it.
+    live_bookings = bookings.exclude(status='cancelled')
+    gross_booking_value = live_bookings.aggregate(t=Sum('price'))['t'] or Decimal('0')
+    cancelled_value = bookings.filter(status='cancelled').aggregate(t=Sum('price'))['t'] or Decimal('0')
+
+    live_payments = Payment.objects.exclude(booking__status='cancelled')
+    collected = live_payments.filter(is_paid=True).aggregate(t=Sum('amount'))['t'] or Decimal('0')
+    outstanding = live_payments.filter(is_paid=False).aggregate(t=Sum('amount'))['t'] or Decimal('0')
 
     enquiries = Enquiry.objects.all()
     total_enquiries = enquiries.count()
@@ -521,6 +554,16 @@ def dashboard_context():
     listing_counts = dict(
         Property.objects.values_list('created_by').annotate(n=Count('id'))
     )
+    # A listing published by a co-host belongs to that host's account. Counting
+    # only created_by == host marked such hosts as "never published a listing".
+    cohosts_of = {}
+    for host_id, co_host_id in CoHost.objects.values_list('host_id', 'co_host_id'):
+        cohosts_of.setdefault(host_id, []).append(co_host_id)
+
+    def listings_for(user_id):
+        return listing_counts.get(user_id, 0) + sum(
+            listing_counts.get(cid, 0) for cid in cohosts_of.get(user_id, ())
+        )
     sub_counts = OrderedDict((k, 0) for k in SUBSCRIPTION_LABELS)
     dormant_cutoff = now - timedelta(days=45)
 
@@ -532,7 +575,7 @@ def dashboard_context():
         sc = smap.get(u.id)
         state = classify_subscription(u, sc, now)
         sub_counts[state] += 1
-        n_listings = listing_counts.get(u.id, 0)
+        n_listings = listings_for(u.id)
         if n_listings > 0:
             activated += 1
 
@@ -642,8 +685,11 @@ def dashboard_context():
             'confirmed_bookings': confirmed_bookings,
             'cancelled_bookings': cancelled_bookings,
             'gross_booking_value': float(gross_booking_value),
+            'cancelled_value': float(cancelled_value),
             'collected': float(collected),
             'outstanding': float(outstanding),
+            'live_bookings': live_bookings.count(),
+            'mtd_days': mtd_days,
             'total_enquiries': total_enquiries,
             'open_enquiries': open_enquiries,
         },
