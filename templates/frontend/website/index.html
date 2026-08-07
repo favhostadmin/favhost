@@ -236,6 +236,22 @@
                 object-fit: cover;
                 margin: 0 !important;
             }
+
+            /* Phone view: hide the hero slideshow image block entirely */
+            .ul-banner .ul-banner-img-col,
+            .ul-banner .ul-banner-img {
+                display: none !important;
+            }
+
+            /* ...and start the banner text below the header instead of under the logo */
+            .ul-banner .ul-banner-txt {
+                padding-top: calc(var(--header-h, 90px) + 30px) !important;
+            }
+
+            /* Phone view: let the description wrap naturally as one paragraph */
+            .ul-banner-descr br {
+                display: none;
+            }
         }
 
         /* ── Pricing section: dynamic mobile text ── */
@@ -885,7 +901,7 @@
                     </div>
 
                     <!-- img -->
-                    <div class="col align-self-start">
+                    <div class="col align-self-start ul-banner-img-col">
                         <div class="ul-banner-img">
                             <div class="img-wrapper zoom-container overflow-hidden">
                                 <div class="hero-slideshow">
@@ -2612,12 +2628,31 @@
         (function () {
             var slides = document.querySelectorAll('.hero-slideshow .hero-slide');
             if (!slides.length) return;
+
+            // Slideshow runs on desktop/tablet only - on phones a single static image is shown.
+            var mq = window.matchMedia('(min-width: 992px)');
             var current = 0;
-            setInterval(function () {
+            var timer = null;
+
+            function start() {
+                if (timer) return;
+                timer = setInterval(function () {
+                    slides[current].classList.remove('active');
+                    current = (current + 1) % slides.length;
+                    slides[current].classList.add('active');
+                }, 3200);
+            }
+
+            function stop() {
+                if (timer) { clearInterval(timer); timer = null; }
                 slides[current].classList.remove('active');
-                current = (current + 1) % slides.length;
-                slides[current].classList.add('active');
-            }, 3200);
+                current = 0;
+                slides[0].classList.add('active');
+            }
+
+            function sync() { mq.matches ? start() : stop(); }
+            sync();
+            mq.addEventListener ? mq.addEventListener('change', sync) : mq.addListener(sync);
         })();
     </script>
 
