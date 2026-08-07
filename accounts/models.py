@@ -216,6 +216,41 @@ class CoHost(models.Model):
         return f"{self.co_host.get_full_name() or self.co_host.email} (co-host of {self.host.get_full_name() or self.host.email})"
 
 
+class CoAdmin(models.Model):
+    """A platform co-administrator: a delegate of the owner console.
+
+    Deliberately mirrors :class:`CoHost`, one level up:
+
+    * a co-host is a dependent sub-account a *host* creates and can delete;
+    * a co-admin is a dependent sub-account the *platform owner* creates and
+      can delete.
+
+    Consequences of that "dependent sub-account" nature, both here and for
+    co-hosts: the account is never a standalone host (it is excluded from every
+    host listing/count in the console) and removing the role **deletes the
+    underlying ``MyUser`` row**, which frees the email so that person can later
+    sign up as an ordinary host from scratch.
+
+    The single ``settings.PLATFORM_ADMIN_EMAIL`` owner is *not* stored here —
+    it is the immutable root of the console and can never be revoked from the
+    UI. Today a co-admin has the same console powers as the owner; the model is
+    kept separate from the owner check so permissions can diverge later without
+    a data migration.
+    """
+    user = models.OneToOneField(MyUser, on_delete=models.CASCADE, related_name='coadmin_role')
+    display_password = models.CharField(max_length=255, null=True, blank=True, help_text="Plain text password for UI display only")
+    created_by = models.ForeignKey(
+        MyUser, on_delete=models.SET_NULL, null=True, blank=True, related_name='coadmins_created'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.user.get_full_name() or self.user.email} (platform co-admin)"
+
+
 class UserDocument(models.Model):
     DOCUMENT_TYPES = [
         ('govt_id', 'Government ID'),

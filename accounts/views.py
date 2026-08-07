@@ -23,7 +23,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST, require_http_methods
 from django.contrib.staticfiles import finders
 from .models import MyUser, UserDocument, CoHost
-from .utils import get_effective_user
+from .utils import get_effective_user, is_console_account
 from shared.models import CountryAndState
 
 logger = logging.getLogger(__name__)
@@ -93,6 +93,9 @@ def firebase_auth_view(request):
     last_name = parts[1] if len(parts) > 1 else ''
 
     user = MyUser.objects.filter(email=email).first()
+    if user and is_console_account(user):
+        # Console-only account — no host side to sign into.
+        return JsonResponse({'error': 'This account cannot sign in here.'}, status=403)
     if not user:
         user = MyUser.objects.create_user(
             username=email,
@@ -159,6 +162,9 @@ def google_auth_view(request):
         last_name = parts[1] if len(parts) > 1 else ''
 
     user = MyUser.objects.filter(email__iexact=email).first()
+    if user and is_console_account(user):
+        # Console-only account — no host side to sign into.
+        return JsonResponse({'error': 'This account cannot sign in here.'}, status=403)
     if not user:
         user = MyUser.objects.create_user(username=email, email=email)
         user.first_name = first_name
@@ -216,6 +222,12 @@ class CustomLoginView(LoginView):
         return context
 
     def form_valid(self, form):
+        # Platform co-admins are console-only accounts — they have no host side
+        # to log into. Kept deliberately generic so this page never hints that a
+        # separate console exists.
+        if is_console_account(form.get_user()):
+            messages.error(self.request, 'This account cannot sign in here.')
+            return redirect('login')
         self.request.session.set_expiry(settings.SESSION_COOKIE_AGE)
         return super().form_valid(form)
 

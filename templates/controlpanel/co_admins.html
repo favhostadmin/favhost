@@ -1,0 +1,183 @@
+{% extends 'controlpanel/base.html' %}
+
+{% block page_title %}Co-admins{% endblock %}
+{% block heading %}Co-admins{% endblock %}
+{% block subheading %}<div class="cp-sub">People who share access to this console</div>{% endblock %}
+
+{% block content %}
+
+<div class="cp-card cp-card-pad" style="background:var(--cp-accent-soft);border-color:#f6d3c3;margin-bottom:18px;font-size:13px;color:#7c2d12;">
+  <i class="ti ti-shield-lock"></i>
+  A co-admin signs in at <code>/console/login/</code> and currently has the
+  <strong>same powers as the owner</strong>. Removing someone here
+  <strong>permanently deletes their login</strong> — they lose console access immediately and
+  their email becomes free to register as an ordinary host.
+</div>
+
+<div class="cp-card">
+  <div class="cp-card-head">
+    <h3>Console members</h3>
+    <span class="cp-badge b-gray no-dot">{{ total_count }} co-admin{{ total_count|pluralize }}</span>
+    <div class="cp-spacer"></div>
+    <button class="cp-btn cp-btn-primary" onclick="cpOpenAdd()">
+      <i class="ti ti-user-plus"></i> Add co-admin</button>
+  </div>
+
+  <div class="cp-table-wrap">
+    <table class="cp-table">
+      <thead>
+        <tr>
+          <th>Name</th><th>Email</th><th>Password</th><th>Role</th><th>Added</th><th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>{{ owner_email }}</strong></td>
+          <td>{{ owner_email }}</td>
+          <td class="cp-muted">—</td>
+          <td><span class="cp-badge b-orange">Owner</span></td>
+          <td class="cp-muted">—</td>
+          <td class="cp-muted" style="text-align:right;font-size:12.5px;">Permanent</td>
+        </tr>
+        {% for c in coadmins %}
+        <tr>
+          <td><strong>{{ c.user.get_full_name|default:"—" }}</strong>{% if c.user_id == me_id %}
+            <span class="cp-badge b-blue no-dot" style="margin-left:6px;">You</span>{% endif %}</td>
+          <td>{{ c.user.email }}</td>
+          <td>
+            {% if c.display_password %}
+              <span class="cp-pw" data-pw="{{ c.display_password }}">••••••••</span>
+              <button type="button" class="cp-btn cp-btn-sm" onclick="cpTogglePw(this)"
+                      style="padding:3px 7px;margin-left:6px;"><i class="ti ti-eye"></i></button>
+            {% else %}<span class="cp-muted">—</span>{% endif %}
+          </td>
+          <td><span class="cp-badge b-indigo">Co-admin</span></td>
+          <td class="cp-muted">{{ c.created_at|date:"M j, Y" }}</td>
+          <td style="text-align:right;white-space:nowrap;">
+            {% if c.user_id == me_id %}
+              <span class="cp-muted" style="font-size:12.5px;">Your own access</span>
+            {% else %}
+              <button class="cp-btn cp-btn-sm"
+                      onclick="cpOpenEdit('{{ c.id }}', '{{ c.user.get_full_name|escapejs }}', '{{ c.user.email|escapejs }}', '{{ c.user.phone|default:''|escapejs }}')">
+                <i class="ti ti-pencil"></i> Edit</button>
+              <button class="cp-btn cp-btn-sm cp-btn-danger"
+                      onclick="cpOpenDelete('{{ c.id }}', '{{ c.user.email|escapejs }}')">
+                <i class="ti ti-trash"></i> Remove</button>
+            {% endif %}
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="6">
+            <div class="cp-empty">
+              <i class="ti ti-user-shield"></i>
+              <p>No co-admins yet. Only the owner account can reach this console.</p>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Add / edit modal (one form, two modes) -->
+<div class="cp-modal-overlay" id="cpFormModal">
+  <div class="cp-modal">
+    <div class="cp-modal-head" id="cpFormTitle">Add co-admin</div>
+    <form method="post" action="{% url 'controlpanel:co_admins' %}">
+      {% csrf_token %}
+      <input type="hidden" name="action" id="cpFormAction" value="add">
+      <input type="hidden" name="coadmin_id" id="cpFormId" value="">
+      <div class="cp-modal-body">
+        <label style="font-size:13px;font-weight:600;">Full name
+          <input type="text" name="full_name" id="cpFormName" placeholder="Jane Doe" autocomplete="off"></label>
+        <label style="font-size:13px;font-weight:600;display:block;margin-top:14px;">Email
+          <input type="email" name="email" id="cpFormEmail" placeholder="person@example.com" autocomplete="off" required></label>
+        <label style="font-size:13px;font-weight:600;display:block;margin-top:14px;">Phone
+          <input type="text" name="phone" id="cpFormPhone" placeholder="Optional" autocomplete="off"></label>
+        <label style="font-size:13px;font-weight:600;display:block;margin-top:14px;">Password
+          <input type="text" name="password" id="cpFormPassword" placeholder="Set a password" autocomplete="new-password"></label>
+        <div id="cpFormHint" style="margin-top:10px;font-size:12.5px;color:var(--cp-muted);">
+          Use an email that is not registered on the platform yet.
+        </div>
+      </div>
+      <div class="cp-modal-foot">
+        <button type="button" class="cp-btn" onclick="cpClose('cpFormModal')">Cancel</button>
+        <button type="submit" class="cp-btn cp-btn-primary" id="cpFormSubmit">
+          <i class="ti ti-check"></i> Add co-admin</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Remove confirmation -->
+<div class="cp-modal-overlay" id="cpDeleteModal">
+  <div class="cp-modal">
+    <div class="cp-modal-head" style="color:var(--cp-red);">Remove this co-admin?</div>
+    <form method="post" action="{% url 'controlpanel:co_admins' %}">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="delete">
+      <input type="hidden" name="coadmin_id" id="cpDeleteId" value="">
+      <div class="cp-modal-body">
+        <strong id="cpDeleteEmail"></strong> will lose console access immediately and their
+        login will be <strong>permanently deleted</strong>. The email becomes free again —
+        they can sign up as a normal host afterwards. This cannot be undone.
+      </div>
+      <div class="cp-modal-foot">
+        <button type="button" class="cp-btn" onclick="cpClose('cpDeleteModal')">Cancel</button>
+        <button type="submit" class="cp-btn cp-btn-danger"><i class="ti ti-trash"></i> Remove &amp; delete</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  function cpClose(id) { document.getElementById(id).classList.remove('open'); }
+
+  function cpOpenAdd() {
+    document.getElementById('cpFormTitle').textContent = 'Add co-admin';
+    document.getElementById('cpFormAction').value = 'add';
+    document.getElementById('cpFormId').value = '';
+    ['cpFormName', 'cpFormEmail', 'cpFormPhone', 'cpFormPassword'].forEach(function (i) {
+      document.getElementById(i).value = '';
+    });
+    document.getElementById('cpFormPassword').required = true;
+    document.getElementById('cpFormHint').textContent = 'Use an email that is not registered on the platform yet.';
+    document.getElementById('cpFormSubmit').innerHTML = '<i class="ti ti-check"></i> Add co-admin';
+    document.getElementById('cpFormModal').classList.add('open');
+  }
+
+  function cpOpenEdit(id, name, email, phone) {
+    document.getElementById('cpFormTitle').textContent = 'Edit co-admin';
+    document.getElementById('cpFormAction').value = 'edit';
+    document.getElementById('cpFormId').value = id;
+    document.getElementById('cpFormName').value = name;
+    document.getElementById('cpFormEmail').value = email;
+    document.getElementById('cpFormPhone').value = phone;
+    document.getElementById('cpFormPassword').value = '';
+    document.getElementById('cpFormPassword').required = false;
+    document.getElementById('cpFormHint').textContent = 'Leave the password blank to keep the current one.';
+    document.getElementById('cpFormSubmit').innerHTML = '<i class="ti ti-check"></i> Save changes';
+    document.getElementById('cpFormModal').classList.add('open');
+  }
+
+  function cpOpenDelete(id, email) {
+    document.getElementById('cpDeleteId').value = id;
+    document.getElementById('cpDeleteEmail').textContent = email;
+    document.getElementById('cpDeleteModal').classList.add('open');
+  }
+
+  function cpTogglePw(btn) {
+    var el = btn.previousElementSibling;
+    var hidden = el.textContent.indexOf('•') !== -1;
+    el.textContent = hidden ? el.dataset.pw : '••••••••';
+    btn.innerHTML = hidden ? '<i class="ti ti-eye-off"></i>' : '<i class="ti ti-eye"></i>';
+  }
+
+  // Click the dark backdrop (not the dialog) to dismiss.
+  document.querySelectorAll('.cp-modal-overlay').forEach(function (o) {
+    o.addEventListener('click', function (e) { if (e.target === o) o.classList.remove('open'); });
+  });
+</script>
+{% endblock %}
