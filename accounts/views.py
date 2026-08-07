@@ -504,7 +504,11 @@ def register_view(request):
             **_google_signin_context(),
         })
 
-    return redirect('login')
+    # GET: show the login page with the signup panel open
+    return render(request, 'frontend/auth/login.html', {
+        'show_signup': True,
+        **_google_signin_context(),
+    })
 
 
 @require_http_methods(["GET", "POST"])
