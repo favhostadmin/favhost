@@ -18,11 +18,16 @@ Being ``is_staff`` / ``is_admin`` in the main app is still NOT enough — only t
 owner and current co-admins may enter. This keeps the console separate from
 Django's own ``/admin/`` and from any host who happens to have staff flags.
 
-Today a co-admin has exactly the same powers as the owner, with one structural
-exception: only console members may be managed, and neither the owner account
-nor your own account can be edited or removed by a co-admin. The role check is
-kept as its own function (``is_console_owner``) so that permissions can diverge
-later without touching every view.
+The owner can reach everything. A co-admin reaches only the sections granted to
+them (``CoAdmin.permissions``, keys defined in ``controlpanel.permissions``) —
+so someone hired for SEO can be given Properties alone and sees nothing else.
+Two sections are never grantable and stay owner-only: ``co_admins`` (whoever can
+appoint co-admins could otherwise grant themselves everything) and ``settings``
+(platform pricing).
+
+Enforcement lives in the ``section_required`` / ``owner_required`` decorators on
+every view. The sidebar hides links a viewer cannot use, but that is cosmetic —
+typing the URL directly hits the same check and 404s.
 """
 from functools import wraps
 
@@ -31,6 +36,8 @@ from django.contrib.auth import get_user_model
 from django.http import Http404
 from django.shortcuts import redirect
 from django.urls import reverse
+
+from .permissions import GRANTABLE, SECTION_URLS
 
 
 def admin_email():
@@ -73,6 +80,46 @@ def console_role(user):
     return None
 
 
+def allowed_sections(user):
+    """Section keys this viewer may open.
+
+    Owner → every grantable section. Co-admin → their stored grants, filtered
+    through ``GRANTABLE`` so a key that was removed from the registry (or was
+    never legitimate) can never widen access. Anyone else → nothing.
+    """
+    if is_console_owner(user):
+        return set(GRANTABLE)
+    if not is_co_admin(user):
+        return set()
+    from accounts.models import CoAdmin
+    rel = CoAdmin.objects.filter(user_id=user.pk).only('permissions').first()
+    stored = (rel.permissions if rel and isinstance(rel.permissions, list) else [])
+    return {key for key in stored if key in GRANTABLE}
+
+
+def has_section(user, section):
+    """True if ``user`` may open ``section``.
+
+    Owner-only sections are not in ``GRANTABLE``, so they resolve to False for
+    every co-admin without needing a special case here.
+    """
+    return section in allowed_sections(user)
+
+
+def console_home_url(user):
+    """First page this viewer can actually open.
+
+    A co-admin granted only Payments must not be dropped on the dashboard and
+    shown a 404 the moment they log in.
+    """
+    allowed = allowed_sections(user)
+    for key, url_name in SECTION_URLS.items():
+        if key in allowed:
+            return reverse(url_name)
+    # Granted nothing yet — the owner still needs somewhere to land them.
+    return reverse('controlpanel:no_access')
+
+
 def co_admin_user_ids():
     """PKs of every current co-admin, for excluding them from host listings."""
     from accounts.models import CoAdmin
@@ -105,11 +152,33 @@ def admin_required(view_func):
     return _wrapped
 
 
+def section_required(section):
+    """Gate a console view to holders of one section grant.
+
+    This is the real permission boundary — the hidden nav link is only a
+    courtesy. A co-admin who types ``/console/payments/`` without the grant
+    gets the same 404 as a stranger, which also avoids confirming that the
+    section exists.
+    """
+    def _decorator(view_func):
+        @wraps(view_func)
+        def _wrapped(request, *args, **kwargs):
+            user = request.user
+            if not user.is_authenticated:
+                login_url = reverse('controlpanel:login')
+                return redirect(f'{login_url}?next={request.path}')
+            if not is_platform_admin(user) or not has_section(user, section):
+                raise Http404()
+            return view_func(request, *args, **kwargs)
+        return _wrapped
+    return _decorator
+
+
 def owner_required(view_func):
     """Gate a console view to the owner alone.
 
-    Unused today (co-admins share every power), but kept as the hook for the
-    first owner-only action so it does not have to be invented under pressure.
+    Used by the two never-grantable sections: Platform Settings and the
+    Co-admins page itself.
     """
     @wraps(view_func)
     def _wrapped(request, *args, **kwargs):

@@ -239,6 +239,10 @@ class CoAdmin(models.Model):
     """
     user = models.OneToOneField(MyUser, on_delete=models.CASCADE, related_name='coadmin_role')
     display_password = models.CharField(max_length=255, null=True, blank=True, help_text="Plain text password for UI display only")
+    permissions = models.JSONField(
+        default=list, blank=True,
+        help_text="Console section keys this co-admin may open (see controlpanel.permissions).",
+    )
     created_by = models.ForeignKey(
         MyUser, on_delete=models.SET_NULL, null=True, blank=True, related_name='coadmins_created'
     )

@@ -2,13 +2,23 @@
 
 Security model
 --------------
-Every view except the login page is wrapped in ``@admin_required``, which permits
-ONLY the predefined owner account plus the co-admins it has appointed (see
-``controlpanel.access``). Host business data (listings, bookings, prices) is
-presented read-only — the console oversees and manages *accounts*, but never
-edits a host's own data. The mutating actions are strictly account-level:
-block/unblock, comp free access, adjust trial length, delete account, edit
-platform pricing, and appoint/revoke co-admins.
+Every view except the login page carries one of three gates (see
+``controlpanel.access``):
+
+``@section_required('<key>')``
+    The data sections. The owner holds them all; a co-admin holds only what was
+    granted on the Co-admins page, so an ungranted section 404s even if the URL
+    is typed directly.
+``@owner_required``
+    Platform Settings and the Co-admins page — never grantable.
+``@admin_required``
+    Any console member, used for role-neutral pages (logout, no-access).
+
+Host business data (listings, bookings, prices) is presented read-only — the
+console oversees and manages *accounts*, but never edits a host's own data. The
+mutating actions are strictly account-level: block/unblock, comp free access,
+adjust trial length, delete account, edit platform pricing, and appoint/revoke
+co-admins.
 """
 import json
 from datetime import timedelta
@@ -33,8 +43,10 @@ from billing.models import StripeCustomer, PlatformSetting
 
 from . import analytics
 from .access import (
-    admin_required, is_platform_admin, is_console_owner, console_role, admin_email,
+    admin_required, owner_required, section_required, is_platform_admin,
+    admin_email, console_home_url,
 )
+from .permissions import SECTIONS, SECTION_LABELS, clean_permissions
 
 BACKEND = 'accounts.backends.EmailOrUsernameBackend'
 
@@ -54,7 +66,7 @@ def login_view(request):
     current cookie — avoiding spurious 403s after logging in on another tab.
     """
     if is_platform_admin(request.user):
-        return redirect('controlpanel:dashboard')
+        return redirect(console_home_url(request.user))
 
     next_url = request.GET.get('next') or request.POST.get('next') or ''
     if request.method == 'POST':
@@ -66,7 +78,9 @@ def login_view(request):
             request.session.set_expiry(settings.SESSION_COOKIE_AGE)
             if next_url and next_url.startswith('/console'):
                 return redirect(next_url)
-            return redirect('controlpanel:dashboard')
+            # Land on the first section they hold — a co-admin granted only
+            # Payments must not be dropped on a dashboard they cannot open.
+            return redirect(console_home_url(user))
         # Deliberately generic — never reveal whether the email exists or that
         # this is the owner-only gate.
         messages.error(request, 'Invalid credentials or insufficient access.')
@@ -80,9 +94,20 @@ def logout_view(request):
     return redirect('controlpanel:login')
 
 
+@admin_required
+def no_access(request):
+    """Landing page for a co-admin who holds no section grants yet.
+
+    Without this they would log in successfully and immediately hit a 404,
+    which reads as "the console is broken" rather than "you have not been given
+    anything yet".
+    """
+    return render(request, 'controlpanel/no_access.html', {'owner_email': admin_email()})
+
+
 # ── dashboard ────────────────────────────────────────────────────────────────
 
-@admin_required
+@section_required('dashboard')
 def dashboard(request):
     ctx = analytics.dashboard_context()
     ctx['charts_json'] = json.dumps(ctx['charts'])
@@ -97,7 +122,7 @@ def _paginate(request, qs, per_page=25):
     return paginator.get_page(request.GET.get('page'))
 
 
-@admin_required
+@section_required('users')
 def users_list(request):
     q = (request.GET.get('q') or '').strip()
     status = request.GET.get('status') or ''
@@ -160,7 +185,7 @@ def users_list(request):
     })
 
 
-@admin_required
+@section_required('users')
 def user_detail(request, pk):
     user = get_object_or_404(analytics.hosts_queryset(), pk=pk)
     now = timezone.now()
@@ -202,7 +227,7 @@ def user_detail(request, pk):
     })
 
 
-@admin_required
+@section_required('users')
 @require_POST
 def user_action(request, pk):
     user = get_object_or_404(MyUser, pk=pk)
@@ -260,7 +285,7 @@ def user_action(request, pk):
 
 # ── properties ───────────────────────────────────────────────────────────────
 
-@admin_required
+@section_required('properties')
 def properties_list(request):
     q = (request.GET.get('q') or '').strip()
     status = request.GET.get('status') or ''
@@ -282,7 +307,7 @@ def properties_list(request):
     })
 
 
-@admin_required
+@section_required('properties')
 def property_detail(request, pk):
     prop = get_object_or_404(Property.objects.select_related('created_by'), pk=pk)
     bookings = Booking.objects.filter(property=prop).select_related('channel').order_by('-created_at')
@@ -300,7 +325,7 @@ def property_detail(request, pk):
 
 # ── bookings ─────────────────────────────────────────────────────────────────
 
-@admin_required
+@section_required('bookings')
 def bookings_list(request):
     q = (request.GET.get('q') or '').strip()
     status = request.GET.get('status') or ''
@@ -319,7 +344,7 @@ def bookings_list(request):
     })
 
 
-@admin_required
+@section_required('bookings')
 def booking_detail(request, pk):
     booking = get_object_or_404(
         Booking.objects.select_related('property', 'property__created_by', 'channel'), pk=pk
@@ -333,7 +358,7 @@ def booking_detail(request, pk):
 
 # ── enquiries ────────────────────────────────────────────────────────────────
 
-@admin_required
+@section_required('enquiries')
 def enquiries_list(request):
     q = (request.GET.get('q') or '').strip()
     qs = Enquiry.objects.select_related('property', 'property__created_by').order_by('-created_at')
@@ -350,7 +375,7 @@ def enquiries_list(request):
 
 # ── subscriptions ────────────────────────────────────────────────────────────
 
-@admin_required
+@section_required('subscriptions')
 def subscriptions_list(request):
     now = timezone.now()
     smap = analytics.stripe_map()
@@ -380,7 +405,7 @@ def subscriptions_list(request):
 
 # ── payments / finance ───────────────────────────────────────────────────────
 
-@admin_required
+@section_required('payments')
 def payments_list(request):
     status = request.GET.get('status') or ''
     qs = Payment.objects.select_related('booking', 'booking__property').order_by('-payment_date', '-id')
@@ -401,7 +426,7 @@ def payments_list(request):
 
 # ── platform settings (pricing / trial) ──────────────────────────────────────
 
-@admin_required
+@owner_required
 def platform_settings(request):
     setting = PlatformSetting.load()
     if request.method == 'POST':
@@ -426,14 +451,13 @@ def platform_settings(request):
     return render(request, 'controlpanel/settings.html', {
         'active_nav': 'settings', 'setting': setting,
         'admin_email': settings.PLATFORM_ADMIN_EMAIL,
-        'console_role': console_role(request.user),
         'coadmin_count': CoAdmin.objects.count(),
     })
 
 
 # ── co-admins (console delegates) ────────────────────────────────────────────
 
-@admin_required
+@owner_required
 def co_admins(request):
     """Appoint, edit and revoke platform co-admins.
 
@@ -503,8 +527,19 @@ def co_admins(request):
             user.is_active = True
             user.save()
 
-            CoAdmin.objects.create(user=user, display_password=password, created_by=me)
-            messages.success(request, f'Co-admin {email} added successfully.')
+            perms = clean_permissions(request.POST.getlist('permissions'))
+            CoAdmin.objects.create(
+                user=user, display_password=password, created_by=me, permissions=perms,
+            )
+            if perms:
+                granted = ', '.join(SECTION_LABELS[p] for p in perms)
+                messages.success(request, f'Co-admin {email} added with access to {granted}.')
+            else:
+                messages.success(
+                    request,
+                    f'Co-admin {email} added with no sections yet — they can sign in but will '
+                    f'see nothing until you grant access.',
+                )
             return redirect('controlpanel:co_admins')
 
         elif action == 'edit':
@@ -540,6 +575,7 @@ def co_admins(request):
             if password:
                 user.set_password(password)
                 rel.display_password = password
+            rel.permissions = clean_permissions(request.POST.getlist('permissions'))
             user.save()
             rel.save()
 
@@ -562,13 +598,23 @@ def co_admins(request):
             messages.success(request, f'Co-admin {email} removed and account deleted.')
             return redirect('controlpanel:co_admins')
 
-    rows = CoAdmin.objects.select_related('user', 'created_by')
+    rows = []
+    for rel in CoAdmin.objects.select_related('user', 'created_by'):
+        granted = clean_permissions(rel.permissions)
+        rows.append({
+            'rel': rel,
+            'user': rel.user,
+            # Labels for the table, and the raw keys for the edit modal so it
+            # can re-check the right boxes.
+            'granted_labels': [SECTION_LABELS[k] for k in granted],
+            'granted_keys': ','.join(granted),
+            'n_granted': len(granted),
+        })
+
     return render(request, 'controlpanel/co_admins.html', {
         'active_nav': 'co_admins',
-        'coadmins': rows,
+        'rows': rows,
+        'sections': SECTIONS,
         'owner_email': admin_email(),
-        'console_role': console_role(request.user),
-        'is_owner': is_console_owner(request.user),
-        'me_id': request.user.pk,
-        'total_count': rows.count(),
+        'total_count': len(rows),
     })

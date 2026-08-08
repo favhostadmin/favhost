@@ -8,10 +8,10 @@
 
 <div class="cp-card cp-card-pad" style="background:var(--cp-accent-soft);border-color:#f6d3c3;margin-bottom:18px;font-size:13px;color:#7c2d12;">
   <i class="ti ti-shield-lock"></i>
-  A co-admin signs in at <code>/console/login/</code> and currently has the
-  <strong>same powers as the owner</strong>. Removing someone here
-  <strong>permanently deletes their login</strong> — they lose console access immediately and
-  their email becomes free to register as an ordinary host.
+  Each co-admin sees <strong>only the sections you grant them</strong> — everything else is hidden
+  and blocked. Platform Settings and this page stay owner-only and can never be granted.
+  Removing someone here <strong>permanently deletes their login</strong>; their email becomes free
+  to register as an ordinary host.
 </div>
 
 <div class="cp-card">
@@ -27,43 +27,49 @@
     <table class="cp-table">
       <thead>
         <tr>
-          <th>Name</th><th>Email</th><th>Password</th><th>Role</th><th>Added</th><th></th>
+          <th>Name</th><th>Email</th><th>Access</th><th>Password</th><th>Added</th><th></th>
         </tr>
       </thead>
       <tbody>
         <tr>
-          <td><strong>{{ owner_email }}</strong></td>
+          <td><strong>{{ owner_email }}</strong>
+            <span class="cp-badge b-orange" style="margin-left:6px;">Owner</span></td>
           <td>{{ owner_email }}</td>
+          <td class="cp-muted" style="font-size:12.5px;">Full access · everything</td>
           <td class="cp-muted">—</td>
-          <td><span class="cp-badge b-orange">Owner</span></td>
           <td class="cp-muted">—</td>
           <td class="cp-muted" style="text-align:right;font-size:12.5px;">Permanent</td>
         </tr>
-        {% for c in coadmins %}
+        {% for r in rows %}
         <tr>
-          <td><strong>{{ c.user.get_full_name|default:"—" }}</strong>{% if c.user_id == me_id %}
-            <span class="cp-badge b-blue no-dot" style="margin-left:6px;">You</span>{% endif %}</td>
-          <td>{{ c.user.email }}</td>
+          <td><strong>{{ r.user.get_full_name|default:"—" }}</strong></td>
+          <td>{{ r.user.email }}</td>
           <td>
-            {% if c.display_password %}
-              <span class="cp-pw" data-pw="{{ c.display_password }}">••••••••</span>
+            {% if r.granted_labels %}
+              <div style="display:flex;flex-wrap:wrap;gap:5px;max-width:280px;">
+                {% for label in r.granted_labels %}
+                  <span class="cp-badge b-indigo no-dot">{{ label }}</span>
+                {% endfor %}
+              </div>
+            {% else %}
+              <span class="cp-badge b-amber no-dot">No access granted</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if r.rel.display_password %}
+              <span class="cp-pw" data-pw="{{ r.rel.display_password }}">••••••••</span>
               <button type="button" class="cp-btn cp-btn-sm" onclick="cpTogglePw(this)"
                       style="padding:3px 7px;margin-left:6px;"><i class="ti ti-eye"></i></button>
             {% else %}<span class="cp-muted">—</span>{% endif %}
           </td>
-          <td><span class="cp-badge b-indigo">Co-admin</span></td>
-          <td class="cp-muted">{{ c.created_at|date:"M j, Y" }}</td>
+          <td class="cp-muted">{{ r.rel.created_at|date:"M j, Y" }}</td>
           <td style="text-align:right;white-space:nowrap;">
-            {% if c.user_id == me_id %}
-              <span class="cp-muted" style="font-size:12.5px;">Your own access</span>
-            {% else %}
-              <button class="cp-btn cp-btn-sm"
-                      onclick="cpOpenEdit('{{ c.id }}', '{{ c.user.get_full_name|escapejs }}', '{{ c.user.email|escapejs }}', '{{ c.user.phone|default:''|escapejs }}')">
-                <i class="ti ti-pencil"></i> Edit</button>
-              <button class="cp-btn cp-btn-sm cp-btn-danger"
-                      onclick="cpOpenDelete('{{ c.id }}', '{{ c.user.email|escapejs }}')">
-                <i class="ti ti-trash"></i> Remove</button>
-            {% endif %}
+            <button class="cp-btn cp-btn-sm"
+                    onclick="cpOpenEdit('{{ r.rel.id }}', '{{ r.user.get_full_name|escapejs }}', '{{ r.user.email|escapejs }}', '{{ r.user.phone|default:''|escapejs }}', '{{ r.granted_keys }}')">
+              <i class="ti ti-pencil"></i> Edit</button>
+            <button class="cp-btn cp-btn-sm cp-btn-danger"
+                    onclick="cpOpenDelete('{{ r.rel.id }}', '{{ r.user.email|escapejs }}')">
+              <i class="ti ti-trash"></i> Remove</button>
           </td>
         </tr>
         {% empty %}
@@ -101,6 +107,27 @@
         <div id="cpFormHint" style="margin-top:10px;font-size:12.5px;color:var(--cp-muted);">
           Use an email that is not registered on the platform yet.
         </div>
+
+        <div style="margin-top:20px;padding-top:18px;border-top:1px solid var(--cp-border);">
+          <div style="display:flex;align-items:baseline;gap:10px;">
+            <strong style="font-size:13px;">Access</strong>
+            <button type="button" class="cp-btn cp-btn-sm" style="margin-left:auto;padding:3px 9px;"
+                    onclick="cpToggleAll()" id="cpToggleAllBtn">Select all</button>
+          </div>
+          <p style="margin:6px 0 12px;font-size:12.5px;color:var(--cp-muted);">
+            Tick only what this person needs. Anything unticked is hidden from their sidebar
+            and blocked if they try the URL directly.
+          </p>
+          {% for key, label, icon, desc in sections %}
+          <label class="cp-perm">
+            <input type="checkbox" name="permissions" value="{{ key }}" class="cp-perm-box">
+            <span>
+              <span class="cp-perm-label"><i class="ti {{ icon }}"></i> {{ label }}</span>
+              <span class="cp-perm-desc">{{ desc }}</span>
+            </span>
+          </label>
+          {% endfor %}
+        </div>
       </div>
       <div class="cp-modal-foot">
         <button type="button" class="cp-btn" onclick="cpClose('cpFormModal')">Cancel</button>
@@ -135,6 +162,29 @@
 <script>
   function cpClose(id) { document.getElementById(id).classList.remove('open'); }
 
+  function cpBoxes() { return document.querySelectorAll('.cp-perm-box'); }
+
+  function cpSetPerms(csv) {
+    var on = csv ? csv.split(',') : [];
+    cpBoxes().forEach(function (b) { b.checked = on.indexOf(b.value) !== -1; });
+    cpSyncToggleLabel();
+  }
+
+  function cpSyncToggleLabel() {
+    var all = Array.prototype.every.call(cpBoxes(), function (b) { return b.checked; });
+    document.getElementById('cpToggleAllBtn').textContent = all ? 'Clear all' : 'Select all';
+  }
+
+  function cpToggleAll() {
+    var all = Array.prototype.every.call(cpBoxes(), function (b) { return b.checked; });
+    cpBoxes().forEach(function (b) { b.checked = !all; });
+    cpSyncToggleLabel();
+  }
+
+  document.addEventListener('change', function (e) {
+    if (e.target.classList && e.target.classList.contains('cp-perm-box')) cpSyncToggleLabel();
+  });
+
   function cpOpenAdd() {
     document.getElementById('cpFormTitle').textContent = 'Add co-admin';
     document.getElementById('cpFormAction').value = 'add';
@@ -145,10 +195,11 @@
     document.getElementById('cpFormPassword').required = true;
     document.getElementById('cpFormHint').textContent = 'Use an email that is not registered on the platform yet.';
     document.getElementById('cpFormSubmit').innerHTML = '<i class="ti ti-check"></i> Add co-admin';
+    cpSetPerms('');   // start from nothing granted, never from the last person edited
     document.getElementById('cpFormModal').classList.add('open');
   }
 
-  function cpOpenEdit(id, name, email, phone) {
+  function cpOpenEdit(id, name, email, phone, perms) {
     document.getElementById('cpFormTitle').textContent = 'Edit co-admin';
     document.getElementById('cpFormAction').value = 'edit';
     document.getElementById('cpFormId').value = id;
@@ -159,6 +210,7 @@
     document.getElementById('cpFormPassword').required = false;
     document.getElementById('cpFormHint').textContent = 'Leave the password blank to keep the current one.';
     document.getElementById('cpFormSubmit').innerHTML = '<i class="ti ti-check"></i> Save changes';
+    cpSetPerms(perms);
     document.getElementById('cpFormModal').classList.add('open');
   }
 

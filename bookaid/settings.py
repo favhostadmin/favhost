@@ -179,6 +179,7 @@ TEMPLATES = [
                 'bookaid.context_processors.google_analytics',
                 'billing.context_processors.subscription_status',
                 'accounts.context_processors.currency_context',
+                'controlpanel.context_processors.console_identity',
                 'django.template.context_processors.static',
             ],
         },
