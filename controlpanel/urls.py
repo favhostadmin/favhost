@@ -8,6 +8,7 @@ urlpatterns = [
     # Auth
     path('login/', views.login_view, name='login'),
     path('logout/', views.logout_view, name='logout'),
+    path('no-access/', views.no_access, name='no_access'),
 
     # Dashboard
     path('', views.dashboard, name='dashboard'),
@@ -32,6 +33,7 @@ urlpatterns = [
     path('subscriptions/', views.subscriptions_list, name='subscriptions'),
     path('payments/', views.payments_list, name='payments'),
 
-    # Platform settings
+    # Platform settings & console delegates
     path('settings/', views.platform_settings, name='settings'),
+    path('co-admins/', views.co_admins, name='co_admins'),
 ]

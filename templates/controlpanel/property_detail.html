@@ -62,25 +62,44 @@
   </div>
 
   <div style="display:flex;flex-direction:column;gap:16px;">
-    <div class="cp-card">
-      <div class="cp-card-head"><h3>Recent Bookings</h3></div>
+    <div class="cp-card" id="bookings">
+      <div class="cp-card-head">
+        <div>
+          <h3>Bookings for this listing</h3>
+          <p class="cp-card-sub">
+            {{ n_bookings }} in total{% if n_cancelled %} · {{ n_cancelled }} cancelled{% endif %}{% if status %} · showing {{ n_shown }}{% endif %}
+          </p>
+        </div>
+        <div class="cp-spacer"></div>
+        <form method="get" class="cp-inline-filter">
+          <select name="status" class="cp-select cp-select-sm" onchange="this.form.submit()" aria-label="Filter by status">
+            <option value="">All statuses</option>
+            {% for key, label in status_choices %}
+            <option value="{{ key }}" {% if status == key %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </form>
+      </div>
       <div class="cp-table-wrap">
         <table class="cp-table">
-          <thead><tr><th>Guest</th><th>Dates</th><th>Status</th><th style="text-align:right;">Total</th></tr></thead>
+          <thead><tr><th>#</th><th>Guest</th><th>Channel</th><th>Dates</th><th>Status</th><th style="text-align:right;">Total</th></tr></thead>
           <tbody>
-            {% for b in bookings %}
-            <tr>
+            {% for b in page_obj %}
+            <tr class="cp-row-link" data-href="{% url 'controlpanel:booking_detail' b.id %}">
+              <td style="color:var(--cp-faint);font-size:12px;">#{{ b.booking_id|default:"—" }}</td>
               <td><a class="cp-link" href="{% url 'controlpanel:booking_detail' b.id %}">{{ b.first_name }} {{ b.last_name }}</a></td>
-              <td style="font-size:12px;color:var(--cp-muted);">{{ b.check_in_date|date:"M j" }}–{{ b.check_out_date|date:"M j" }}</td>
+              <td style="font-size:12.5px;color:var(--cp-muted);">{{ b.channel.name|default:"Direct" }}</td>
+              <td style="font-size:12px;color:var(--cp-muted);white-space:nowrap;">{{ b.check_in_date|date:"M j" }}–{{ b.check_out_date|date:"M j, y" }}</td>
               <td>{% if b.status == 'confirmed' %}<span class="cp-badge b-green">Confirmed</span>{% elif b.status == 'cancelled' %}<span class="cp-badge b-red">Cancelled</span>{% else %}<span class="cp-badge b-gray">{{ b.get_status_display }}</span>{% endif %}</td>
-              <td style="text-align:right;font-weight:600;">${{ b.price|floatformat:0|intcomma }}</td>
+              <td style="text-align:right;font-weight:700;">${{ b.price|floatformat:0|intcomma }}</td>
             </tr>
             {% empty %}
-            <tr><td colspan="4"><div class="cp-empty" style="padding:26px;"><i class="ti ti-calendar-off"></i><p>No bookings</p></div></td></tr>
+            <tr><td colspan="6"><div class="cp-empty" style="padding:30px;"><i class="ti ti-calendar-off"></i><p>{% if status %}No bookings with this status{% else %}No bookings for this listing yet{% endif %}</p></div></td></tr>
             {% endfor %}
           </tbody>
         </table>
       </div>
+      {% include 'controlpanel/_pagination.html' %}
     </div>
     <div class="cp-card">
       <div class="cp-card-head"><h3>Recent Enquiries</h3></div>
