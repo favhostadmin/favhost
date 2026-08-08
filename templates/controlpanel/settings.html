@@ -38,29 +38,28 @@
         <div style="margin-top:12px;font-size:12.5px;color:var(--cp-muted);">
           Yearly works out to <strong>{{ setting.yearly_monthly_equivalent_display }}/mo</strong>{% if setting.yearly_savings_percent %} · saves {{ setting.yearly_savings_percent }}%{% endif %}.
         </div>
-        <button class="cp-btn cp-btn-primary" style="margin-top:18px;"><i class="ti ti-device-floppy"></i> Save settings</button>
+        <div style="display:flex;align-items:center;gap:14px;margin-top:18px;">
+          <button class="cp-btn cp-btn-primary"><i class="ti ti-device-floppy"></i> Save settings</button>
+          <span style="font-size:12.5px;color:var(--cp-muted);">
+            Last saved {{ setting.updated_at|date:"M j, Y H:i"|default:"—" }}
+          </span>
+        </div>
       </form>
     </div>
   </div>
 
-  <div style="display:flex;flex-direction:column;gap:16px;">
+  <div>
     <div class="cp-card">
       <div class="cp-card-head"><h3>Console Access</h3></div>
       <div class="cp-card-pad">
         <dl class="cp-def" style="grid-template-columns:130px 1fr;">
           <dt>Owner account</dt><dd>{{ admin_email }}</dd>
-          <dt>Console URL</dt><dd><code>/console/</code></dd>
-          <dt>Login URL</dt><dd><code>/console/login/</code></dd>
+          <dt>Your role</dt><dd>{% if console_role == 'owner' %}<span class="cp-badge b-orange">Owner</span>{% else %}<span class="cp-badge b-indigo">Co-admin</span>{% endif %}</dd>
+          <dt>Co-admins</dt><dd>{{ coadmin_count }} appointed</dd>
         </dl>
-        <div class="cp-card cp-card-pad" style="background:var(--cp-accent-soft);border-color:#f6d3c3;margin-top:14px;font-size:12.5px;color:#7c2d12;">
-          <i class="ti ti-shield-lock"></i> This console is locked to a single predefined owner account. No other user — even one flagged as staff/admin — can sign in here.
-        </div>
-      </div>
-    </div>
-    <div class="cp-card">
-      <div class="cp-card-head"><h3>Last updated</h3></div>
-      <div class="cp-card-pad" style="font-size:13.5px;color:var(--cp-muted);">
-        Settings last saved {{ setting.updated_at|date:"M j, Y H:i"|default:"—" }}.
+        <a href="{% url 'controlpanel:co_admins' %}" class="cp-btn cp-btn-block" style="margin-top:16px;">
+          <i class="ti ti-user-shield"></i> Manage co-admins
+        </a>
       </div>
     </div>
   </div>
