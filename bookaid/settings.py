@@ -20,8 +20,8 @@ from dotenv import load_dotenv
 
 def load_secrets(secret_name=None, region="us-east-1"):
     if secret_name is None:
-        secret_name = os.getenv('SECRETS_NAME', 'favhost/dev/env')
-        #secret_name = os.getenv('SECRETS_NAME', 'favhost/prod/env')
+        #secret_name = os.getenv('SECRETS_NAME', 'favhost/dev/env')
+        secret_name = os.getenv('SECRETS_NAME', 'favhost/prod/env')
     client = boto3.client("secretsmanager", region_name=region)
     response = client.get_secret_value(SecretId=secret_name)
     return json.loads(response["SecretString"])
@@ -183,6 +183,7 @@ TEMPLATES = [
                 'bookaid.context_processors.google_analytics',
                 'billing.context_processors.subscription_status',
                 'accounts.context_processors.currency_context',
+                'controlpanel.context_processors.console_identity',
                 'django.template.context_processors.static',
             ],
         },

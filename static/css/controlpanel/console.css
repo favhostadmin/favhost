@@ -103,6 +103,12 @@ a { text-decoration: none; color: inherit; }
   padding: 3px 8px;
   border-radius: 6px;
 }
+/* Co-admins get a distinct colour so the role is unmistakable at a glance,
+   on a dark sidebar, without reading the word. */
+.cp-brand .cp-brand-badge.is-coadmin {
+  color: #a5b4fc;
+  background: rgba(99, 102, 241, .18);
+}
 
 .cp-nav { padding: 14px 12px 20px; overflow-y: auto; flex: 1; }
 .cp-nav::-webkit-scrollbar { width: 6px; }
@@ -326,6 +332,27 @@ a { text-decoration: none; color: inherit; }
 .cp-btn-dark { background: var(--cp-nav-bg); border-color: var(--cp-nav-bg); color: #fff; }
 .cp-btn-dark:hover { background: var(--cp-nav-bg-2); border-color: var(--cp-nav-bg-2); }
 .cp-btn-sm { padding: 6px 12px; font-size: 12.5px; }
+.cp-muted { color: var(--cp-muted); }
+/* Permission checklist (co-admin grants) — whole row is the click target */
+.cp-perm {
+  display: flex; align-items: flex-start; gap: 11px;
+  padding: 9px 11px; border: 1px solid var(--cp-border); border-radius: 10px;
+  margin-bottom: 7px; cursor: pointer; transition: background .12s, border-color .12s;
+}
+.cp-perm:hover { background: #fbfaf9; border-color: #ddd9d4; }
+.cp-perm:has(.cp-perm-box:checked) { background: var(--cp-accent-tint); border-color: #f0c4b0; }
+/* Scoped under .cp-modal-body to outrank its blanket `input { width: 100% }`,
+   which would otherwise stretch each checkbox across the row. */
+.cp-modal-body .cp-perm input[type="checkbox"] {
+  width: 16px; height: 16px; min-width: 16px; margin: 1px 0 0;
+  accent-color: var(--cp-accent); flex: none;
+}
+.cp-perm-label { display: block; font-size: 13px; font-weight: 600; color: var(--cp-heading); }
+.cp-perm-label i { margin-right: 5px; opacity: .65; }
+.cp-perm-desc { display: block; font-size: 11.5px; color: var(--cp-muted); margin-top: 2px; }
+
+/* Revealable stored password (co-admins list) */
+.cp-pw { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px; letter-spacing: .5px; }
 .cp-btn-block { width: 100%; justify-content: center; }
 
 /* ── Filters / toolbar ────────────────────────────────────────────────────*/
@@ -420,10 +447,15 @@ a { text-decoration: none; color: inherit; }
 .cp-modal {
   background: #fff; border-radius: var(--cp-radius); max-width: 460px; width: 100%;
   box-shadow: var(--cp-shadow-lg); overflow: hidden; animation: cpPop .2s cubic-bezier(.34,1.56,.64,1);
+  /* Tall forms (the permission checklist) scroll inside the dialog instead of
+     growing past the viewport and stranding the footer buttons off-screen. */
+  max-height: 92vh; display: flex; flex-direction: column;
 }
+.cp-modal form { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; }
+.cp-modal-head, .cp-modal-foot { flex: none; }
 @keyframes cpPop { from { transform: translateY(8px) scale(.98); opacity: 0; } to { transform: none; opacity: 1; } }
 .cp-modal-head { padding: 18px 22px; border-bottom: 1px solid var(--cp-border); font-weight: 700; font-size: 16px; color: var(--cp-heading); }
-.cp-modal-body { padding: 22px; font-size: 14px; color: #374151; line-height: 1.55; }
+.cp-modal-body { padding: 22px; font-size: 14px; color: #374151; line-height: 1.55; overflow-y: auto; min-height: 0; }
 .cp-modal-body input {
   width: 100%; padding: 10px 12px; border: 1px solid var(--cp-border);
   border-radius: 9px; font-size: 14px; margin-top: 10px; font-family: inherit;

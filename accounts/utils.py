@@ -1,4 +1,17 @@
-from .models import CoHost
+from .models import CoHost, CoAdmin
+
+
+def is_console_account(user):
+    """True if this account exists only to staff the platform console.
+
+    Platform co-admins are not hosts: they own no listings and carry no
+    subscription, and the console excludes them from every host listing. So
+    they must not be able to sign in on the host-facing side at all — their
+    entry point is ``/console/login/``.
+    """
+    if not user or not getattr(user, 'pk', None):
+        return False
+    return CoAdmin.objects.filter(user_id=user.pk).exists()
 
 
 def get_visible_user_ids(user):
