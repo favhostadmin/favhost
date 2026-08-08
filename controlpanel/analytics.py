@@ -11,12 +11,15 @@ from decimal import Decimal
 
 from django.conf import settings
 from django.db.models import Count, Sum
+from django.db.models.functions import TruncDate
 from django.utils import timezone
 
 from accounts.models import MyUser, CoHost, CoAdmin
 from property.models import Property
 from booking.models import Booking, Payment, Enquiry
 from billing.models import StripeCustomer, PlatformSetting
+
+from .models import PageView
 
 
 # ── small utilities ─────────────────────────────────────────────────────────
@@ -88,6 +91,279 @@ def monthly_sum(qs, date_field, value_field, n=12):
     return {
         'labels': [m['label'] for m in months],
         'values': [float(buckets[m['key']]) for m in months],
+    }
+
+
+# ── daily series (the traffic / audience report) ─────────────────────────────
+
+def _local_date(dt):
+    """Normalise a datetime (or date) coming out of the ORM to a local date."""
+    if not dt:
+        return None
+    if timezone.is_aware(dt):
+        return timezone.localtime(dt).date()
+    return dt.date() if hasattr(dt, 'date') else dt
+
+
+def daily_buckets(qs, date_field, start, end, value_field=None):
+    """Count rows (or sum ``value_field``) per calendar day across [start, end].
+
+    Returns a list of one number per day, gaps included as zeroes — a report
+    that silently skips quiet days misreads as "no data" rather than "none".
+    """
+    span = (end - start).days + 1
+    zero = Decimal('0') if value_field else 0
+    buckets = OrderedDict((start + timedelta(days=i), zero) for i in range(span))
+
+    fields = [date_field] + ([value_field] if value_field else [])
+    rows = qs.filter(**{
+        f'{date_field}__date__gte': start,
+        f'{date_field}__date__lte': end,
+    }).values_list(*fields)
+
+    for row in rows:
+        day = _local_date(row[0])
+        if day not in buckets:
+            continue
+        buckets[day] += (row[1] or Decimal('0')) if value_field else 1
+
+    if value_field:
+        return [float(v) for v in buckets.values()]
+    return list(buckets.values())
+
+
+def daily_distinct(qs, date_field, distinct_field, start, end):
+    """Per-day count of DISTINCT ``distinct_field`` — unique visitors, not hits."""
+    span = (end - start).days + 1
+    buckets = OrderedDict((start + timedelta(days=i), 0) for i in range(span))
+    rows = (
+        qs.filter(**{f'{date_field}__date__gte': start, f'{date_field}__date__lte': end})
+        .annotate(_day=TruncDate(date_field))
+        .values('_day')
+        .annotate(n=Count(distinct_field, distinct=True))
+        .values_list('_day', 'n')
+    )
+    for day, n in rows:
+        if day in buckets:
+            buckets[day] = n
+    return list(buckets.values())
+
+
+def distinct_over(qs, date_field, distinct_field, start, end):
+    """One count of DISTINCT values across the whole window.
+
+    Not the same as summing the per-day distincts: a person who visits on five
+    days counts once here and five times there. This is the true "unique
+    people" figure, which only works because the visitor id is stable.
+    """
+    return (
+        qs.filter(**{f'{date_field}__date__gte': start, f'{date_field}__date__lte': end})
+        .values(distinct_field).distinct().count()
+    )
+
+
+def _delta_pct(current, previous):
+    """Percent change, or None when there is no baseline to compare against."""
+    if not previous:
+        return None
+    return round((current - previous) / previous * 100)
+
+
+def _friendly_page(path, titles):
+    """Turn a raw path into something an owner can read at a glance."""
+    if path in titles:
+        return titles[path], 'Listing page'
+    parts = [p for p in path.split('/') if p]
+    if not parts:
+        return 'Home page', path
+    if parts[0] == 'property' and len(parts) >= 2:
+        if parts[1] == 'listing':
+            return 'Host storefront', path
+        if parts[1] == 'listing-details':
+            return 'Listing page', path
+        if parts[1] == 'request-book':
+            return 'Booking request', path
+    return path, ''
+
+
+def _listing_titles_for(paths):
+    """Map listing-detail paths to their property titles in one query."""
+    wanted = {}
+    for p in paths:
+        parts = [x for x in p.split('/') if x]
+        if len(parts) >= 4 and parts[0] == 'property' and parts[1] == 'listing-details':
+            wanted[p] = parts[3]
+    if not wanted:
+        return {}
+    found = dict(Property.objects.filter(slug__in=set(wanted.values())).values_list('slug', 'title'))
+    return {path: found[slug] for path, slug in wanted.items() if slug in found}
+
+
+MAX_RANGE_DAYS = 366
+
+
+def traffic_context(days=28, start=None, end=None):
+    """A Google-Analytics-style daily report over the metrics we actually hold.
+
+    Every metric is a real first-party count from our own tables — signups,
+    bookings, enquiries, booking value. Each carries a day-by-day series for the
+    selected window plus the immediately preceding window of equal length, so
+    the UI can draw the period-over-period comparison GA leads with.
+
+    NOTE: site *visitors* are deliberately absent — nothing in this project
+    records page views, so there is no honest number to show. See the console
+    docs / dashboard footnote for the two ways to light that up.
+    """
+    today = timezone.localdate()
+    custom = bool(start and end)
+
+    if custom:
+        # Tolerate a range typed backwards, and never report a future window.
+        if start > end:
+            start, end = end, start
+        end = min(end, today)
+        if start > end:
+            start = end
+        days = (end - start).days + 1
+        if days > MAX_RANGE_DAYS:
+            start = end - timedelta(days=MAX_RANGE_DAYS - 1)
+            days = MAX_RANGE_DAYS
+    else:
+        days = days if days in (7, 28, 90) else 28
+        end = today
+        start = end - timedelta(days=days - 1)
+
+    prev_end = start - timedelta(days=1)
+    prev_start = prev_end - timedelta(days=days - 1)
+
+    bookings = Booking.objects.all()
+    enquiries = Enquiry.objects.all()
+    views = PageView.objects.all()
+
+    def add(metrics, key, label, hint, fmt, current, previous, total=None, prev_total=None):
+        # Most metrics total by adding the daily bars up; visitors can't, so it
+        # passes its own window-wide distinct count in.
+        total = sum(current) if total is None else total
+        prev_total = sum(previous) if prev_total is None else prev_total
+        delta = _delta_pct(total, prev_total)
+        metrics.append({
+            'key': key,
+            'label': label,
+            'hint': hint,          # plain-English gloss, shown under the tile
+            'format': fmt,
+            'total': total,
+            'prev_total': prev_total,
+            'delta': delta,
+            # the arrow already carries the sign — the template shows magnitude
+            'delta_abs': abs(delta) if delta is not None else None,
+            'values': current,
+            'previous': previous,
+        })
+
+    metrics = []
+    # Bars are unique people per day; the headline is unique people across the
+    # whole window — someone who visits every day counts once in the headline.
+    add(metrics, 'visitors', 'Visitors', 'different people who visited',
+        'count',
+        daily_distinct(views, 'created_at', 'visitor_key', start, end),
+        daily_distinct(views, 'created_at', 'visitor_key', prev_start, prev_end),
+        total=distinct_over(views, 'created_at', 'visitor_key', start, end),
+        prev_total=distinct_over(views, 'created_at', 'visitor_key', prev_start, prev_end))
+    add(metrics, 'views', 'Page views', 'pages they looked at',
+        'count',
+        daily_buckets(views, 'created_at', start, end),
+        daily_buckets(views, 'created_at', prev_start, prev_end))
+    add(metrics, 'enquiries', 'Enquiries', 'visitors who asked about a stay',
+        'count',
+        daily_buckets(enquiries, 'created_at', start, end),
+        daily_buckets(enquiries, 'created_at', prev_start, prev_end))
+    add(metrics, 'bookings', 'Bookings', 'stays actually booked',
+        'count',
+        daily_buckets(bookings, 'created_at', start, end),
+        daily_buckets(bookings, 'created_at', prev_start, prev_end))
+
+    # Built by hand rather than with strftime('%b %-d') — the no-pad %-d flag
+    # is glibc-only and blows up on Windows.
+    labels = []
+    iso = []
+    for i in range(days):
+        d = start + timedelta(days=i)
+        labels.append(f'{d.strftime("%b")} {d.day}')
+        iso.append(d.isoformat())
+
+    prev_labels = []
+    for i in range(days):
+        d = prev_start + timedelta(days=i)
+        prev_labels.append(f'{d.strftime("%b")} {d.day}')
+
+    period_views = views.filter(created_at__date__gte=start, created_at__date__lte=end)
+
+    # "Where visitors come from" — GA's acquisition report.
+    source_rows = (
+        period_views.values('referrer_host')
+        .annotate(n=Count('visitor_key', distinct=True))
+        .order_by('-n')[:6]
+    )
+    sources = [{
+        'label': r['referrer_host'] or 'Direct — typed in or bookmarked',
+        'value': r['n'],
+    } for r in source_rows]
+
+    # "Most visited pages" — GA's top-pages report, with readable names.
+    page_rows = (
+        period_views.values('path')
+        .annotate(n=Count('id'), people=Count('visitor_key', distinct=True))
+        .order_by('-n')[:6]
+    )
+    titles = _listing_titles_for([r['path'] for r in page_rows])
+    top_pages = []
+    for r in page_rows:
+        name, sub = _friendly_page(r['path'], titles)
+        top_pages.append({
+            'name': name,
+            'sub': sub,
+            'value': r['n'],
+            'people': r['people'],
+        })
+
+    # Conversion — the one ratio a non-technical owner actually needs.
+    #
+    # Only meaningful once visitor tracking has covered the WHOLE window:
+    # bookings reach back through the old data, visitors only start the day
+    # tracking was switched on, so mixing them early yields absurdities like
+    # "800% of visitors booked". Suppress the rates until the window is clean.
+    tracking_since = views.order_by('created_at').values_list('created_at', flat=True).first()
+    covered = bool(tracking_since) and timezone.localtime(tracking_since).date() <= start
+
+    visitors_total = metrics[0]['total']
+    enquiries_total = metrics[2]['total']
+    bookings_total = metrics[3]['total']
+    funnel = {
+        'visitors': visitors_total,
+        'enquiries': enquiries_total,
+        'bookings': bookings_total,
+        'covered': covered,
+        'enquiry_rate': round(enquiries_total / visitors_total * 100, 1) if covered and visitors_total else None,
+        'booking_rate': round(bookings_total / visitors_total * 100, 1) if covered and visitors_total else None,
+    }
+
+    return {
+        'days': days,
+        'start': start,
+        'end': end,
+        'is_custom': custom,
+        'is_today': end == today,
+        'prev_start': prev_start,
+        'prev_end': prev_end,
+        'labels': labels,
+        'iso': iso,
+        'prev_labels': prev_labels,
+        'metrics': metrics,
+        'sources': sources,
+        'top_pages': top_pages,
+        'funnel': funnel,
+        'tracking_since': tracking_since,
+        'tracking_covers_window': covered,
     }
 
 
@@ -237,9 +513,16 @@ def dashboard_context():
     total_users = hosts.count()
     blocked_users = hosts.filter(is_active=False).count()
     active_users = total_users - blocked_users
+    # Month-to-date vs the SAME days of last month. Comparing 6 days of August
+    # against all 31 days of July would report a collapse every month until the
+    # 31st — a partial period must only ever be compared with a partial period.
+    mtd_days = (today - month_start).days + 1
+    prev_month_end = month_start - timedelta(days=1)
+    prev_cutoff = min(prev_month_start + timedelta(days=mtd_days - 1), prev_month_end)
+
     new_users_this_month = hosts.filter(created_at__date__gte=month_start).count()
     new_users_prev_month = hosts.filter(
-        created_at__date__gte=prev_month_start, created_at__date__lt=month_start
+        created_at__date__gte=prev_month_start, created_at__date__lte=prev_cutoff
     ).count()
 
     props = Property.objects.all()
@@ -252,9 +535,16 @@ def dashboard_context():
     confirmed_bookings = bookings.filter(status='confirmed').count()
     cancelled_bookings = bookings.filter(status='cancelled').count()
 
-    gross_booking_value = bookings.aggregate(t=Sum('price'))['t'] or Decimal('0')
-    collected = Payment.objects.filter(is_paid=True).aggregate(t=Sum('amount'))['t'] or Decimal('0')
-    outstanding = Payment.objects.filter(is_paid=False).aggregate(t=Sum('amount'))['t'] or Decimal('0')
+    # Money that was actually booked — a cancelled booking is not revenue, and
+    # reporting it as such overstates the platform. Cancelled value is carried
+    # separately so the dashboard can disclose it rather than hide it.
+    live_bookings = bookings.exclude(status='cancelled')
+    gross_booking_value = live_bookings.aggregate(t=Sum('price'))['t'] or Decimal('0')
+    cancelled_value = bookings.filter(status='cancelled').aggregate(t=Sum('price'))['t'] or Decimal('0')
+
+    live_payments = Payment.objects.exclude(booking__status='cancelled')
+    collected = live_payments.filter(is_paid=True).aggregate(t=Sum('amount'))['t'] or Decimal('0')
+    outstanding = live_payments.filter(is_paid=False).aggregate(t=Sum('amount'))['t'] or Decimal('0')
 
     enquiries = Enquiry.objects.all()
     total_enquiries = enquiries.count()
@@ -266,6 +556,16 @@ def dashboard_context():
     listing_counts = dict(
         Property.objects.values_list('created_by').annotate(n=Count('id'))
     )
+    # A listing published by a co-host belongs to that host's account. Counting
+    # only created_by == host marked such hosts as "never published a listing".
+    cohosts_of = {}
+    for host_id, co_host_id in CoHost.objects.values_list('host_id', 'co_host_id'):
+        cohosts_of.setdefault(host_id, []).append(co_host_id)
+
+    def listings_for(user_id):
+        return listing_counts.get(user_id, 0) + sum(
+            listing_counts.get(cid, 0) for cid in cohosts_of.get(user_id, ())
+        )
     sub_counts = OrderedDict((k, 0) for k in SUBSCRIPTION_LABELS)
     dormant_cutoff = now - timedelta(days=45)
 
@@ -277,7 +577,7 @@ def dashboard_context():
         sc = smap.get(u.id)
         state = classify_subscription(u, sc, now)
         sub_counts[state] += 1
-        n_listings = listing_counts.get(u.id, 0)
+        n_listings = listings_for(u.id)
         if n_listings > 0:
             activated += 1
 
@@ -387,8 +687,11 @@ def dashboard_context():
             'confirmed_bookings': confirmed_bookings,
             'cancelled_bookings': cancelled_bookings,
             'gross_booking_value': float(gross_booking_value),
+            'cancelled_value': float(cancelled_value),
             'collected': float(collected),
             'outstanding': float(outstanding),
+            'live_bookings': live_bookings.count(),
+            'mtd_days': mtd_days,
             'total_enquiries': total_enquiries,
             'open_enquiries': open_enquiries,
         },

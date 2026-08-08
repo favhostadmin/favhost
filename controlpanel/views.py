@@ -21,7 +21,8 @@ adjust trial length, delete account, edit platform pricing, and appoint/revoke
 co-admins.
 """
 import json
-from datetime import timedelta
+import uuid
+from datetime import date, datetime, timedelta
 from decimal import Decimal, InvalidOperation
 
 from django.conf import settings
@@ -107,10 +108,58 @@ def no_access(request):
 
 # ── dashboard ────────────────────────────────────────────────────────────────
 
+def _parse_day(value):
+    try:
+        return datetime.strptime((value or '').strip(), '%Y-%m-%d').date()
+    except (TypeError, ValueError):
+        return None
+
+
+def _parse_month(value):
+    """'2026-03' -> (first day, last day). Clipped to today for this month."""
+    try:
+        first = datetime.strptime((value or '').strip(), '%Y-%m').date()
+    except (TypeError, ValueError):
+        return None, None
+    nxt = date(first.year + 1, 1, 1) if first.month == 12 else date(first.year, first.month + 1, 1)
+    return first, nxt - timedelta(days=1)
+
+
+@admin_required
 @section_required('dashboard')
 def dashboard(request):
+    """The owner overview.
+
+    The window can be given three ways: a preset (?range=7|28|90), a whole
+    month (?month=2026-03), or exact dates (?from=&to=). Anything unparseable
+    silently falls back to the 28-day preset rather than erroring — a bad URL
+    should never leave the owner staring at a stack trace.
+    """
+    start = end = None
+
+    month_start, month_end = _parse_month(request.GET.get('month'))
+    if month_start:
+        start, end = month_start, month_end
+    else:
+        start = _parse_day(request.GET.get('from'))
+        end = _parse_day(request.GET.get('to'))
+        if not (start and end):
+            start = end = None
+
+    try:
+        days = int(request.GET.get('range') or 28)
+    except (TypeError, ValueError):
+        days = 28
+
     ctx = analytics.dashboard_context()
-    ctx['charts_json'] = json.dumps(ctx['charts'])
+    ctx['traffic'] = analytics.traffic_context(days, start=start, end=end)
+    ctx['selected_month'] = request.GET.get('month') or ''
+    ctx['traffic_json'] = json.dumps({
+        'labels': ctx['traffic']['labels'],
+        'prevLabels': ctx['traffic']['prev_labels'],
+        'metrics': ctx['traffic']['metrics'],
+        'days': ctx['traffic']['days'],
+    })
     ctx['active_nav'] = 'dashboard'
     return render(request, 'controlpanel/dashboard.html', ctx)
 
@@ -309,14 +358,33 @@ def properties_list(request):
 
 @section_required('properties')
 def property_detail(request, pk):
+    """A listing and everything about it — including ALL of its bookings.
+
+    The bookings table is paginated and status-filterable here rather than
+    living on a separate page, so a listing's reservations are read where the
+    listing is.
+    """
     prop = get_object_or_404(Property.objects.select_related('created_by'), pk=pk)
-    bookings = Booking.objects.filter(property=prop).select_related('channel').order_by('-created_at')
-    revenue = bookings.aggregate(t=Sum('price'))['t'] or Decimal('0')
+
+    all_bookings = Booking.objects.filter(property=prop).select_related('channel').order_by('-created_at')
+    n_bookings = all_bookings.count()
+
+    # Money booked excludes cancellations, matching the dashboard's definition.
+    revenue = all_bookings.exclude(status='cancelled').aggregate(t=Sum('price'))['t'] or Decimal('0')
+    n_cancelled = all_bookings.filter(status='cancelled').count()
+
+    status = request.GET.get('status') or ''
+    shown = all_bookings.filter(status=status) if status in dict(Booking.STATUS_CHOICES) else all_bookings
+
     return render(request, 'controlpanel/property_detail.html', {
         'active_nav': 'properties',
         'p': prop,
-        'bookings': bookings[:20],
-        'n_bookings': bookings.count(),
+        'page_obj': _paginate(request, shown, 15),
+        'n_bookings': n_bookings,
+        'n_shown': shown.count(),
+        'n_cancelled': n_cancelled,
+        'status': status,
+        'status_choices': Booking.STATUS_CHOICES,
         'revenue': revenue,
         'enquiries': Enquiry.objects.filter(property=prop).order_by('-created_at')[:10],
         'images': prop.images.all() if hasattr(prop, 'images') else [],
@@ -327,9 +395,37 @@ def property_detail(request, pk):
 
 @section_required('bookings')
 def bookings_list(request):
+    """Bookings, optionally narrowed to one listing (?property_id=…).
+
+    Reached from a property rather than from its own nav entry, so the sidebar
+    keeps Properties highlighted. The unfiltered URL still works for anything
+    that links to it (the dashboard's "View all", for one).
+    """
     q = (request.GET.get('q') or '').strip()
     status = request.GET.get('status') or ''
+    property_id = (request.GET.get('property_id') or '').strip()
+
     qs = Booking.objects.select_related('property', 'property__created_by', 'channel').order_by('-created_at')
+
+    current_property = None
+    if property_id:
+        # Parse before querying — a non-UUID string reaching a UUID pk lookup
+        # raises, and a hand-edited URL must not 500.
+        try:
+            pk = uuid.UUID(property_id)
+        except (ValueError, AttributeError, TypeError):
+            pk = None
+
+        current_property = (
+            Property.objects.filter(pk=pk).select_related('created_by').first() if pk else None
+        )
+        if current_property:
+            qs = qs.filter(property=current_property)
+        else:
+            # An unknown id must not silently show every booking as if it were
+            # that listing's — show nothing and say so.
+            qs = qs.none()
+
     if q:
         qs = qs.filter(
             Q(first_name__icontains=q) | Q(last_name__icontains=q) | Q(email__icontains=q) |
@@ -337,10 +433,12 @@ def bookings_list(request):
         )
     if status in dict(Booking.STATUS_CHOICES):
         qs = qs.filter(status=status)
+
     page = _paginate(request, qs, 30)
     return render(request, 'controlpanel/bookings.html', {
-        'active_nav': 'bookings', 'page_obj': page, 'q': q, 'status': status,
+        'active_nav': 'properties', 'page_obj': page, 'q': q, 'status': status,
         'status_choices': Booking.STATUS_CHOICES, 'total_count': qs.count(),
+        'property_id': property_id, 'current_property': current_property,
     })
 
 
