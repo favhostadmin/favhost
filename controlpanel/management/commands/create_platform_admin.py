@@ -32,11 +32,30 @@ class Command(BaseCommand):
             self.stderr.write(self.style.ERROR('PLATFORM_ADMIN_EMAIL is not set.'))
             return
 
-        user = User.objects.filter(email__iexact=email).first()
+        # Match on username OR email. An account created earlier (e.g. through
+        # normal signup or createsuperuser) can hold the owner address in only
+        # one of the two columns; looking at email alone would miss it and then
+        # crash on the username unique constraint.
+        user = (
+            User.objects.filter(email__iexact=email).first()
+            or User.objects.filter(username__iexact=email).first()
+        )
         created = False
         if user is None:
             user = User.objects.create_user(username=email, email=email, password=password)
             created = True
+
+        # ``is_console_owner`` identifies the owner by the *email* column, so a
+        # row found by username alone must have its email filled in or it would
+        # be refused at the console login even though the account exists.
+        if (user.email or '').strip().lower() != email.lower():
+            clash = User.objects.filter(email__iexact=email).exclude(pk=user.pk).exists()
+            if clash:
+                self.stderr.write(self.style.ERROR(
+                    f'Cannot set email {email} on account "{user.username}" — another '
+                    f'account already uses that address. Resolve the duplicate first.'))
+                return
+            user.email = email
 
         # Make sure it can actually get in.
         user.is_active = True
