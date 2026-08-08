@@ -20,8 +20,8 @@ from dotenv import load_dotenv
 
 def load_secrets(secret_name=None, region="us-east-1"):
     if secret_name is None:
-        secret_name = os.getenv('SECRETS_NAME', 'favhost/dev/env')
-        #secret_name = os.getenv('SECRETS_NAME', 'favhost/prod/env')
+        #secret_name = os.getenv('SECRETS_NAME', 'favhost/dev/env')
+        secret_name = os.getenv('SECRETS_NAME', 'favhost/prod/env')
     client = boto3.client("secretsmanager", region_name=region)
     response = client.get_secret_value(SecretId=secret_name)
     return json.loads(response["SecretString"])
@@ -418,8 +418,13 @@ LOGOUT_REDIRECT_URL = 'login'
 # ── Hidden platform-owner admin console (controlpanel app) ──
 # The console lives at /console/ and is locked to exactly ONE predefined
 # account — no other user can ever reach it, regardless of is_staff/is_admin.
-# Change the email here (or via the env var) if the owner account changes.
-PLATFORM_ADMIN_EMAIL = get_env('PLATFORM_ADMIN_EMAIL', 'bookaid@gmail.com')
+# The owner email is deliberately NOT env-overridable: ownership is the root of
+# the console's trust chain, so a stray env var on one server must not be able
+# to hand it to a different address. Editing this line is the only way to move
+# it. Co-admins are the supported way to give someone else console access.
+PLATFORM_ADMIN_EMAIL = 'bookaid@gmail.com'
+# The password IS env-overridable — it's a secret and belongs in the server
+# .env, not in the repo. The fallback is a first-run convenience only.
 PLATFORM_ADMIN_DEFAULT_PASSWORD = get_env('PLATFORM_ADMIN_PASSWORD', 'bookaid123')
 
 # Base URL for generating absolute URLs in emails
