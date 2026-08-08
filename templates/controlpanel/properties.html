@@ -16,6 +16,9 @@
   </select>
   <button class="cp-btn cp-btn-primary" type="submit"><i class="ti ti-filter"></i> Filter</button>
   <span class="cp-count-pill">{{ total_count|intcomma }} propert{{ total_count|pluralize:"y,ies" }}</span>
+  <a class="cp-link cp-toolbar-link" href="{% url 'controlpanel:bookings' %}">
+    <i class="ti ti-calendar-check"></i> Bookings across every listing
+  </a>
 </form>
 
 <div class="cp-card">
@@ -24,12 +27,17 @@
       <thead><tr><th>Property</th><th>Host</th><th>Location</th><th>Type</th><th>Bookings</th><th>Status</th><th style="text-align:right;">Price/night</th></tr></thead>
       <tbody>
         {% for p in page_obj %}
-        <tr>
+        <tr class="cp-row-link" data-href="{% url 'controlpanel:property_detail' p.id %}">
           <td><a class="cp-link" href="{% url 'controlpanel:property_detail' p.id %}">{{ p.title }}</a>{% if p.nick_name %}<div style="font-size:12px;color:var(--cp-muted);">{{ p.nick_name }}</div>{% endif %}</td>
           <td>{% if p.created_by %}<a class="cp-link" href="{% url 'controlpanel:user_detail' p.created_by.id %}" style="color:var(--cp-text);">{{ p.created_by.get_full_name|default:p.created_by.username }}</a>{% else %}—{% endif %}</td>
           <td style="font-size:12.5px;color:var(--cp-muted);">{{ p.city }}, {{ p.country }}</td>
           <td style="font-size:12.5px;">{{ p.get_property_type_display }}</td>
-          <td>{{ p.n_bookings }}</td>
+          <td>
+            {% if p.n_bookings %}
+            <a class="cp-count-link" href="{% url 'controlpanel:property_detail' p.id %}#bookings"
+               title="See the bookings for {{ p.title }}">{{ p.n_bookings }} <i class="ti ti-arrow-right"></i></a>
+            {% else %}<span style="color:var(--cp-faint);">0</span>{% endif %}
+          </td>
           <td>{% if p.status == 'Active' %}<span class="cp-badge b-green">Active</span>{% else %}<span class="cp-badge b-gray">{{ p.status }}</span>{% endif %}</td>
           <td style="text-align:right;font-weight:600;">${{ p.price_per_night|floatformat:0|intcomma }}</td>
         </tr>
