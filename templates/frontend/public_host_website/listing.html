@@ -132,6 +132,184 @@
       font-weight: 600;
       cursor: pointer;
     }
+
+    /* ------------------------------------------------------------
+       "Book now" button, centred on the right edge of the card.
+       It sits inside the card's <a>, so it can't be a link itself —
+       the delegated handler cancels the card navigation and goes to
+       the reservation form instead.
+       ------------------------------------------------------------ */
+    .card {
+      position: relative;
+    }
+
+    .book-now-btn {
+      /* List view only — tile view shows the photo unobstructed, and the whole
+         card is already a link to the listing. The list-view rule below opts
+         it back in. */
+      display: none;
+      position: absolute;
+      top: 50%;
+      right: 14px;
+      transform: translateY(-50%);
+      z-index: 2;
+      align-items: center;
+      justify-content: center;
+      border: 0;
+      border-radius: 9px;
+      background: #EB5310;
+      color: #ffffff;
+      font-size: 14px;
+      font-weight: 600;
+      line-height: 1;
+      padding: 11px 20px;
+      white-space: nowrap;
+      cursor: pointer;
+      box-shadow: 0 8px 18px -6px rgba(235, 83, 16, 0.8);
+      transition: background-color 0.18s ease;
+    }
+
+    .book-now-btn:hover,
+    .book-now-btn:focus {
+      background: #d1490e;
+      color: #ffffff;
+      outline: none;
+    }
+
+    /* ============================================================
+       Tile / List view switch
+       Purely presentational: the same cards, same data, same markup
+       are re-arranged with CSS when #listingCards carries
+       .pl-view-list. Nothing here touches the backend or the URL.
+       ============================================================ */
+    .listing-section-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .pl-view-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 2px;
+      background: #ffffff;
+      border: 1px solid #d9dbdf;
+      border-radius: 999px;
+      padding: 2px;
+      flex: 0 0 auto;
+    }
+
+    .pl-view-btn {
+      border: 0;
+      background: transparent;
+      width: 32px;
+      height: 28px;
+      padding: 0;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: #6b7280;
+      cursor: pointer;
+      transition: background-color 0.18s ease, color 0.18s ease;
+    }
+
+    .pl-view-btn svg {
+      width: 16px;
+      height: 16px;
+      display: block;
+    }
+
+    .pl-view-btn:hover {
+      color: #111827;
+    }
+
+    .pl-view-btn.is-active {
+      background: #111827;
+      color: #ffffff;
+    }
+
+    /* Below 992px the cards are already laid out as a list, so the switch
+       has nothing to change there. */
+    @media (max-width: 991.98px) {
+      .pl-view-toggle {
+        display: none;
+      }
+    }
+
+    @media (min-width: 992px) {
+      #listingCards.pl-view-list {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
+
+      #listingCards.pl-view-list .card {
+        display: grid;
+        grid-template-columns: 288px minmax(0, 1fr);
+        align-items: stretch;
+        min-height: 200px;
+        border-radius: 14px;
+      }
+
+      /* Direct child only — the bed and nights icons are <img> too, and a
+         blanket `.card img` rule stretches them out of shape. The tile-view
+         rule sizes the photo by viewport height (30vh), which is far too tall
+         for a row; here it just fills its own column. */
+      #listingCards.pl-view-list .card > img {
+        width: 100%;
+        height: 100%;
+        min-height: 200px;
+        object-fit: cover;
+      }
+
+      #listingCards.pl-view-list .card-body {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        justify-content: center;
+        padding: 20px 26px;
+        font-size: 14px;
+      }
+
+      #listingCards.pl-view-list .card-title {
+        font-size: 21px;
+        margin: 0 0 6px;
+      }
+
+      #listingCards.pl-view-list .card-sub-title {
+        font-size: 15px;
+        font-weight: 500;
+        color: #4b5563;
+        margin: 0;
+      }
+
+      /* Tile view spreads these rows edge to edge, which on a full-width row
+         would leave the bed type and the price badge stranded at opposite
+         sides of the card. Keep them grouped on the left instead. */
+      #listingCards.pl-view-list .card-stay-info {
+        justify-content: flex-start;
+        gap: 14px;
+        margin-top: 12px;
+      }
+
+      #listingCards.pl-view-list .card-stay-info + .card-stay-info {
+        margin-top: 8px;
+      }
+
+      /* the only place the button appears */
+      #listingCards.pl-view-list .book-now-btn {
+        display: inline-flex;
+      }
+
+      /* In a row the button sits over the right of the body — keep long
+         titles from running underneath it. */
+      #listingCards.pl-view-list .card-title,
+      #listingCards.pl-view-list .card-sub-title {
+        padding-right: 140px;
+      }
+    }
   </style>
 </head>
 <body>
@@ -266,13 +444,37 @@
     <div class="sub_div">
 
       <!-- Property Listing Section Starts here -->
-      <h2 class="section-title">Listings ({{ paginator.count }})</h2>
+      <div class="listing-section-head">
+        <h2 class="section-title">Listings ({{ paginator.count }})</h2>
+
+        <!-- Tile / List view switch (display only — same listings, same data) -->
+        <div class="pl-view-toggle" role="group" aria-label="Change listing layout">
+          <button type="button" class="pl-view-btn is-active" data-pl-view="grid" aria-pressed="true" aria-label="Tile view" title="Tile view">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="3" y="3" width="7" height="7" rx="1.5"></rect>
+              <rect x="14" y="3" width="7" height="7" rx="1.5"></rect>
+              <rect x="3" y="14" width="7" height="7" rx="1.5"></rect>
+              <rect x="14" y="14" width="7" height="7" rx="1.5"></rect>
+            </svg>
+          </button>
+          <button type="button" class="pl-view-btn" data-pl-view="list" aria-pressed="false" aria-label="List view" title="List view">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="3" y="4" width="5" height="5" rx="1.2"></rect>
+              <rect x="3" y="15" width="5" height="5" rx="1.2"></rect>
+              <path d="M11 5.5h10M11 8h7M11 16.5h10M11 19h7"></path>
+            </svg>
+          </button>
+        </div>
+      </div>
 
       <section class="cards" id="listingCards">
         {% for property in properties %}
           <a class="card" href="{{ property.get_absolute_url }}?check_in={{ check_in|default:'' }}&check_out={{ check_out|default:'' }}&guests={{ guests|default:guests_count|default:'1' }}">
             <img src="{{ property.get_primary_image_url }}" alt="{{ property.title }}">
             <div class="card-body">
+              <span class="book-now-btn" role="button" tabindex="0"
+                    data-book-url="{% url 'booking:booking-create' %}?property_id={{ property.id }}{% if check_in %}&check_in={{ check_in }}{% endif %}{% if check_out %}&check_out={{ check_out }}{% endif %}&guests={{ guests|default:guests_count|default:'1' }}"
+                    aria-label="Book {{ property.title }}">Book now</span>
               <h3 class="card-title">{{ property.title }}</h3>
               <p class="card-sub-title">{{ property.city }}, {{ property.state }}</p>
               {% if num_nights %}
@@ -1195,6 +1397,115 @@
           submitBtn.innerHTML = originalBtnText;
         });
       });
+
+      // "Book now" corner button. Delegated, so cards appended by the infinite
+      // scroll are covered too. The button lives inside the card's link, so the
+      // card's own navigation has to be cancelled before redirecting.
+      if (listingsContainer) {
+        // The dates baked into data-book-url are the ones the page was rendered
+        // with, so a range picked in the calendar without pressing Search would
+        // be lost. Read the live selection instead, at click time.
+        function currentSearchDates() {
+          const isMobile = window.innerWidth <= 991;
+          const checkInHidden = document.getElementById("check_in_hidden");
+          const checkOutHidden = document.getElementById("check_out_hidden");
+
+          if (!isMobile) {
+            // flushes the flatpickr range into the hidden fields
+            syncDesktopRangeToHidden();
+          }
+
+          const desktopCi = normalizeIsoDate(checkInHidden ? checkInHidden.value : "");
+          const desktopCo = normalizeIsoDate(checkOutHidden ? checkOutHidden.value : "");
+          const mobileCi = normalizeIsoDate(checkinMobile ? checkinMobile.value : "");
+          const mobileCo = normalizeIsoDate(checkoutMobile ? checkoutMobile.value : "");
+
+          const checkIn = isMobile ? (mobileCi || desktopCi) : (desktopCi || mobileCi);
+          const checkOut = isMobile ? (mobileCo || desktopCo) : (desktopCo || mobileCo);
+
+          // an end before the start is not a range worth carrying over
+          if (checkIn && checkOut && new Date(checkOut) <= new Date(checkIn)) {
+            return { checkIn: checkIn, checkOut: "" };
+          }
+          return { checkIn: checkIn, checkOut: checkOut };
+        }
+
+        function goToReservation(trigger) {
+          if (!trigger.dataset.bookUrl) return;
+
+          const url = new URL(trigger.dataset.bookUrl, window.location.origin);
+          const dates = currentSearchDates();
+
+          if (dates.checkIn) {
+            url.searchParams.set("check_in", dates.checkIn);
+          } else {
+            url.searchParams.delete("check_in");
+          }
+
+          if (dates.checkOut) {
+            url.searchParams.set("check_out", dates.checkOut);
+          } else {
+            url.searchParams.delete("check_out");
+          }
+
+          const guests = guestsHiddenInput ? guestsHiddenInput.value : "";
+          if (guests) url.searchParams.set("guests", guests);
+
+          window.location.href = url.pathname + url.search;
+        }
+
+        listingsContainer.addEventListener("click", function (event) {
+          const trigger = event.target.closest(".book-now-btn");
+          if (!trigger) return;
+          event.preventDefault();
+          event.stopPropagation();
+          goToReservation(trigger);
+        });
+
+        listingsContainer.addEventListener("keydown", function (event) {
+          if (event.key !== "Enter" && event.key !== " ") return;
+          const trigger = event.target.closest(".book-now-btn");
+          if (!trigger) return;
+          event.preventDefault();
+          event.stopPropagation();
+          goToReservation(trigger);
+        });
+      }
+
+      // Tile / List view switch.
+      // Only toggles a class on the cards container, so cards appended later by
+      // the infinite scroll inherit the layout, and nothing in the URL, the
+      // query or the backend is involved.
+      (function initViewToggle() {
+        const VIEW_STORAGE_KEY = "favhost.publicListingView";
+        const viewButtons = document.querySelectorAll(".pl-view-btn");
+        if (!listingsContainer || !viewButtons.length) return;
+
+        function applyView(view) {
+          listingsContainer.classList.toggle("pl-view-list", view === "list");
+          viewButtons.forEach(function (btn) {
+            const isActive = btn.dataset.plView === view;
+            btn.classList.toggle("is-active", isActive);
+            btn.setAttribute("aria-pressed", isActive ? "true" : "false");
+          });
+        }
+
+        let saved = "grid";
+        try {
+          saved = localStorage.getItem(VIEW_STORAGE_KEY) || "grid";
+        } catch (error) {}
+        applyView(saved === "list" ? "list" : "grid");
+
+        viewButtons.forEach(function (btn) {
+          btn.addEventListener("click", function () {
+            const view = this.dataset.plView === "list" ? "list" : "grid";
+            applyView(view);
+            try {
+              localStorage.setItem(VIEW_STORAGE_KEY, view);
+            } catch (error) {}
+          });
+        });
+      })();
 
       if (captchaReload) {
         captchaReload.addEventListener("click", function () {

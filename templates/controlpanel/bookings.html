@@ -1,12 +1,29 @@
 {% extends 'controlpanel/base.html' %}
 {% load humanize %}
 
-{% block page_title %}Bookings{% endblock %}
-{% block heading %}Bookings{% endblock %}
-{% block subheading %}<div class="cp-sub">All reservations platform-wide</div>{% endblock %}
+{% block page_title %}{% if current_property %}{{ current_property.title }} · Bookings{% else %}Bookings{% endif %}{% endblock %}
+{% block heading %}{% if current_property %}{{ current_property.title }}{% else %}Bookings{% endif %}{% endblock %}
+{% block subheading %}<div class="cp-sub">{% if current_property %}Bookings for this listing{% else %}All reservations platform-wide{% endif %}</div>{% endblock %}
 
 {% block content %}
+{% if property_id %}
+<div class="cp-scope">
+  <a href="{% url 'controlpanel:properties' %}" class="cp-scope-back"><i class="ti ti-arrow-left"></i> All properties</a>
+  {% if current_property %}
+  <span class="cp-scope-sep">·</span>
+  <span class="cp-scope-name">Showing only <b>{{ current_property.title }}</b></span>
+  <a class="cp-link cp-scope-link" href="{% url 'controlpanel:property_detail' current_property.id %}">Listing details</a>
+  <a class="cp-link cp-scope-link" href="{% url 'controlpanel:bookings' %}">Show every booking</a>
+  {% else %}
+  <span class="cp-scope-sep">·</span>
+  <span class="cp-scope-name">That listing no longer exists</span>
+  <a class="cp-link cp-scope-link" href="{% url 'controlpanel:bookings' %}">Show every booking</a>
+  {% endif %}
+</div>
+{% endif %}
+
 <form method="get" class="cp-toolbar">
+  {% if property_id %}<input type="hidden" name="property_id" value="{{ property_id }}">{% endif %}
   <div class="cp-search"><i class="ti ti-search"></i>
     <input type="text" name="q" value="{{ q }}" placeholder="Search guest, email, property or booking #…"></div>
   <select name="status" class="cp-select" onchange="this.form.submit()">

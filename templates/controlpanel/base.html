@@ -25,32 +25,61 @@
     <aside class="cp-sidebar" id="cpSidebar">
       <div class="cp-brand">
         <img src="{% static 'img/auth/logo.png' %}" alt="FavHost">
-        <span class="cp-brand-badge">Owner</span>
+        <span class="cp-brand-badge{% if console_role == 'coadmin' %} is-coadmin{% endif %}">
+          {% if console_role == 'coadmin' %}Co-admin{% else %}Owner{% endif %}</span>
       </div>
+      {% comment %}
+        Links are hidden for sections the viewer wasn't granted. This is
+        cosmetic only — section_required on each view is the real gate.
+        Group headings disappear when every link inside them is hidden.
+        ({% comment %}, not {# #} — the latter is single-line only.)
+      {% endcomment %}
       <nav class="cp-nav">
+        {% if 'dashboard' in allowed_sections %}
         <div class="cp-nav-section">Overview</div>
         <a href="{% url 'controlpanel:dashboard' %}" class="cp-nav-item {% if active_nav == 'dashboard' %}active{% endif %}">
           <i class="ti ti-layout-dashboard"></i> Dashboard</a>
+        {% endif %}
 
+        {% if 'users' in allowed_sections or 'properties' in allowed_sections or 'bookings' in allowed_sections or 'enquiries' in allowed_sections %}
         <div class="cp-nav-section">Manage</div>
+        {% if 'users' in allowed_sections %}
         <a href="{% url 'controlpanel:users' %}" class="cp-nav-item {% if active_nav == 'users' %}active{% endif %}">
           <i class="ti ti-users"></i> Hosts &amp; Users</a>
+        {% endif %}
+        {% if 'properties' in allowed_sections %}
         <a href="{% url 'controlpanel:properties' %}" class="cp-nav-item {% if active_nav == 'properties' %}active{% endif %}">
           <i class="ti ti-building-community"></i> Properties</a>
+        {% endif %}
+        {% if 'bookings' in allowed_sections %}
         <a href="{% url 'controlpanel:bookings' %}" class="cp-nav-item {% if active_nav == 'bookings' %}active{% endif %}">
           <i class="ti ti-calendar-check"></i> Bookings</a>
+        {% endif %}
+        {% if 'enquiries' in allowed_sections %}
         <a href="{% url 'controlpanel:enquiries' %}" class="cp-nav-item {% if active_nav == 'enquiries' %}active{% endif %}">
           <i class="ti ti-message-dots"></i> Enquiries</a>
+        {% endif %}
+        {% endif %}
 
+        {% if 'subscriptions' in allowed_sections or 'payments' in allowed_sections %}
         <div class="cp-nav-section">Revenue</div>
+        {% if 'subscriptions' in allowed_sections %}
         <a href="{% url 'controlpanel:subscriptions' %}" class="cp-nav-item {% if active_nav == 'subscriptions' %}active{% endif %}">
           <i class="ti ti-crown"></i> Subscriptions</a>
+        {% endif %}
+        {% if 'payments' in allowed_sections %}
         <a href="{% url 'controlpanel:payments' %}" class="cp-nav-item {% if active_nav == 'payments' %}active{% endif %}">
           <i class="ti ti-cash"></i> Payments</a>
+        {% endif %}
+        {% endif %}
 
         <div class="cp-nav-section">System</div>
+        {% if is_console_owner %}
         <a href="{% url 'controlpanel:settings' %}" class="cp-nav-item {% if active_nav == 'settings' %}active{% endif %}">
           <i class="ti ti-settings"></i> Platform Settings</a>
+        <a href="{% url 'controlpanel:co_admins' %}" class="cp-nav-item {% if active_nav == 'co_admins' %}active{% endif %}">
+          <i class="ti ti-user-shield"></i> Co-admins</a>
+        {% endif %}
         <a href="{% url 'controlpanel:logout' %}" class="cp-nav-item">
           <i class="ti ti-logout"></i> Sign out</a>
       </nav>
@@ -89,6 +118,18 @@
     </div>
   </div>
 
+  <script>
+    // Whole-row navigation for tables marked .cp-row-link. Clicks that land on
+    // a real control keep their own behaviour, and modifier-clicks are left to
+    // the browser so "open in new tab" still works on the row's own link.
+    document.addEventListener('click', function (event) {
+      const row = event.target.closest('tr.cp-row-link[data-href]');
+      if (!row) return;
+      if (event.target.closest('a, button, input, select, label')) return;
+      if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button === 1) return;
+      window.location.href = row.dataset.href;
+    });
+  </script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   {% block extra_script %}{% endblock %}
 </body>

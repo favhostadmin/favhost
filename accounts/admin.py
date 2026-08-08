@@ -13,3 +13,8 @@ class MyUserAdmin(admin.ModelAdmin):
 class CoHostAdmin(admin.ModelAdmin):
     list_display = ('host', 'co_host', 'created_at')
     search_fields = ('host__email', 'co_host__email')
+
+@admin.register(CoAdmin)
+class CoAdminAdmin(admin.ModelAdmin):
+    list_display = ('user', 'created_by', 'created_at')
+    search_fields = ('user__email', 'created_by__email')
