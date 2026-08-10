@@ -500,6 +500,129 @@ def cohost_user_ids():
     return set(CoHost.objects.values_list('co_host_id', flat=True))
 
 
+# ── the subscription business (our own revenue) ─────────────────────────────
+
+def subscription_context(now=None):
+    """Everything the Subscriptions page needs: recurring revenue, movement,
+    trial funnel and the billing work queues.
+
+    Scope note — this is deliberately about **the platform's own income from
+    hosts**, not about hosts as accounts. Anything account-shaped (listings,
+    co-hosts, blocked, last active) belongs on Hosts & Users; repeating it here
+    is what made the two pages indistinguishable.
+
+    A caveat that has to travel with the numbers: ``StripeCustomer`` records a
+    status but not which plan was bought, so an active subscriber's interval is
+    unknowable from our tables. MRR therefore values every active subscription
+    at the monthly price. Where yearly subscribers exist the true figure is
+    lower, so the page states the assumption instead of implying precision we
+    do not have.
+    """
+    now = now or timezone.now()
+    today = now.date()
+    month_start = _month_start(today)
+
+    setting = PlatformSetting.load()
+    price = setting.subscription_price or Decimal('0')
+
+    smap = stripe_map()
+    counts = OrderedDict((k, 0) for k in SUBSCRIPTION_LABELS)
+
+    rows = []
+    trials_ending, past_due, cancelling, win_back, renewals = [], [], [], [], []
+    soon = today + timedelta(days=30)
+
+    for u in hosts_queryset().order_by('-created_at'):
+        sc = smap.get(u.id)
+        state = classify_subscription(u, sc, now)
+        counts[state] += 1
+        end = trial_end_for(u)
+        renews = sc.current_period_end if sc else None
+        pending_cancel = bool(sc and sc.cancel_at_period_end and state in ('active', 'past_due'))
+
+        rows.append({
+            'user': u,
+            'stripe': sc,
+            'state': state,
+            'label': SUBSCRIPTION_LABELS.get(state, state),
+            'trial_end': end,
+            'renews': renews,
+            'since': sc.created_at if sc else None,
+            'pending_cancel': pending_cancel,
+            # Only a live paid subscription can be cancelled or resumed; a
+            # trialing or already-expired account has no billing to stop.
+            'is_billable': state in ('active', 'past_due'),
+            # What this one account contributes to MRR — zero unless it pays.
+            'mrr': price if state == 'active' else Decimal('0'),
+        })
+
+        # Work queues: the accounts worth acting on, each for a different reason.
+        if state == 'past_due':
+            past_due.append({'user': u, 'renews': renews})
+        if pending_cancel:
+            cancelling.append({'user': u, 'renews': renews})
+        if state == 'trialing' and end:
+            days_left = (end.date() - today).days
+            if 0 <= days_left <= 7:
+                trials_ending.append({'user': u, 'days_left': days_left, 'trial_end': end})
+        if state == 'expired':
+            win_back.append({'user': u, 'trial_end': end})
+        if state == 'active' and renews and today <= renews.date() <= soon:
+            renewals.append({'user': u, 'renews': renews})
+
+    trials_ending.sort(key=lambda r: r['days_left'])
+    renewals.sort(key=lambda r: r['renews'])
+
+    active = counts['active']
+    mrr = price * active
+    # ARPA over paying accounts only. Averaging across trials and comped
+    # accounts would drag it below the list price for no useful reason.
+    arpa = (mrr / active) if active else Decimal('0')
+
+    new_paid = StripeCustomer.objects.filter(
+        subscription_status='active', created_at__date__gte=month_start
+    ).count()
+    churned = StripeCustomer.objects.filter(
+        subscription_status__in=['canceled', 'cancelled'], updated_at__date__gte=month_start
+    ).count()
+
+    # Trial conversion counts only trials that have RESOLVED. Including trials
+    # still running would depress the rate purely because they haven't finished.
+    decided = active + counts['expired'] + counts['canceled']
+    conversion = round(active / decided * 100) if decided else None
+
+    return {
+        'setting': setting,
+        'rows': rows,
+        'counts': counts,
+        'kpis': {
+            'mrr': mrr,
+            'arr': mrr * 12,
+            'arpa': arpa,
+            'active': active,
+            'trialing': counts['trialing'],
+            'past_due': counts['past_due'],
+            'free': counts['free'],
+            # Revenue that stops unless someone intervenes: failed payments plus
+            # subscriptions already flagged to cancel at period end.
+            'at_risk': price * (counts['past_due'] + len(cancelling)),
+            'new_paid': new_paid,
+            'churned': churned,
+            'net_paid': new_paid - churned,
+            'conversion': conversion,
+            'decided': decided,
+        },
+        'queues': {
+            'past_due': past_due,
+            'cancelling': cancelling,
+            'trials_ending': trials_ending,
+            'win_back': win_back,
+            'renewals': renewals,
+            'total': len(past_due) + len(cancelling) + len(trials_ending),
+        },
+    }
+
+
 # ── the big dashboard payload ───────────────────────────────────────────────
 
 def dashboard_context():

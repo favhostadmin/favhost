@@ -32,6 +32,7 @@ from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator
 from django.core.validators import validate_email
 from django.db.models import Count, Q, Sum
+from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.cache import never_cache
@@ -42,10 +43,10 @@ from property.models import Property
 from booking.models import Booking, Payment, Enquiry
 from billing.models import StripeCustomer, PlatformSetting
 
-from . import analytics
+from . import analytics, billing_ops
 from .access import (
     admin_required, owner_required, section_required, is_platform_admin,
-    admin_email, console_home_url,
+    is_console_owner, admin_email, console_home_url,
 )
 from .permissions import SECTIONS, SECTION_LABELS, clean_permissions
 
@@ -166,9 +167,40 @@ def dashboard(request):
 
 # ── users / hosts ────────────────────────────────────────────────────────────
 
+PER_PAGE_CHOICES = (10, 25, 50, 100)
+
+
 def _paginate(request, qs, per_page=25):
-    paginator = Paginator(qs, per_page)
-    return paginator.get_page(request.GET.get('page'))
+    """Paginate, honouring an optional ``?per_page=`` (including ``all``).
+
+    Two extras are attached to the returned page for the shared pagination
+    partial: ``elided_range`` gives numbered links that collapse to
+    ``1 2 … 7 8 9 … 20`` instead of printing hundreds of pages, and
+    ``show_all`` lets the control render its own state. Only sizes from
+    ``PER_PAGE_CHOICES`` are accepted — an arbitrary ``?per_page=100000`` is a
+    trivial way to make the server build an enormous page.
+    """
+    raw = (request.GET.get('per_page') or '').strip().lower()
+    total = len(qs) if isinstance(qs, (list, tuple)) else qs.count()
+    show_all = raw == 'all'
+
+    if show_all:
+        # Paginator rejects a zero page size, so an empty result still needs 1.
+        size = max(total, 1)
+    elif raw.isdigit() and int(raw) in PER_PAGE_CHOICES:
+        size = int(raw)
+    else:
+        size = per_page
+
+    paginator = Paginator(qs, size)
+    page = paginator.get_page(request.GET.get('page'))
+    page.elided_range = paginator.get_elided_page_range(
+        page.number, on_each_side=1, on_ends=1
+    )
+    page.show_all = show_all
+    page.per_page_choices = PER_PAGE_CHOICES
+    page.total_count = total
+    return page
 
 
 @section_required('users')
@@ -475,65 +507,37 @@ def enquiries_list(request):
 
 @section_required('subscriptions')
 def subscriptions_list(request):
-    now = timezone.now()
-    smap = analytics.stripe_map()
-    filt = request.GET.get('state') or ''
-    rows = []
-    for u in analytics.hosts_queryset().order_by('-created_at'):
-        sc = smap.get(u.id)
-        state = analytics.classify_subscription(u, sc, now)
-        if filt and state != filt:
-            continue
-        rows.append({
-            'user': u, 'stripe': sc, 'state': state,
-            'label': analytics.SUBSCRIPTION_LABELS.get(state, state),
-            'trial_end': analytics.trial_end_for(u),
-        })
-    setting = PlatformSetting.load()
-    active = sum(1 for r in rows if r['state'] == 'active') if not filt else \
-        sum(1 for u in analytics.hosts_queryset() if analytics.classify_subscription(u, smap.get(u.id), now) == 'active')
-    page = _paginate(request, rows, 30)
-    return render(request, 'controlpanel/subscriptions.html', {
-        'active_nav': 'subscriptions', 'page_obj': page, 'state': filt,
-        'sub_labels': analytics.SUBSCRIPTION_LABELS, 'total_count': len(rows),
-        'mrr': (setting.subscription_price or Decimal('0')) * active,
-        'setting': setting,
-    })
+    """The platform's own recurring-revenue page.
 
+    This is where the money WE earn is reported and steered, so it carries
+    three things a host-account list cannot: the revenue metrics, the billing
+    work queues (failed payments, pending cancellations, trials about to end),
+    and the pricing/trial controls that used to live on a separate Platform
+    Settings page. Those controls belong next to the numbers they move.
 
-# ── payments / finance ───────────────────────────────────────────────────────
+    Access is split on purpose: a co-admin granted ``subscriptions`` may READ
+    the revenue picture — that is the point of delegating billing support — but
+    only the owner may change what the platform charges. The form is hidden for
+    everyone else and the POST is refused server-side, so hiding it is never
+    the thing standing between a co-admin and the price list.
+    """
+    owner = is_console_owner(request.user)
 
-@section_required('payments')
-def payments_list(request):
-    status = request.GET.get('status') or ''
-    qs = Payment.objects.select_related('booking', 'booking__property').order_by('-payment_date', '-id')
-    if status == 'paid':
-        qs = qs.filter(is_paid=True)
-    elif status == 'unpaid':
-        qs = qs.filter(is_paid=False)
-    totals = {
-        'paid': Payment.objects.filter(is_paid=True).aggregate(t=Sum('amount'))['t'] or Decimal('0'),
-        'unpaid': Payment.objects.filter(is_paid=False).aggregate(t=Sum('amount'))['t'] or Decimal('0'),
-    }
-    page = _paginate(request, qs, 40)
-    return render(request, 'controlpanel/payments.html', {
-        'active_nav': 'payments', 'page_obj': page, 'status': status,
-        'totals': totals, 'total_count': qs.count(),
-    })
-
-
-# ── platform settings (pricing / trial) ──────────────────────────────────────
-
-@owner_required
-def platform_settings(request):
-    setting = PlatformSetting.load()
     if request.method == 'POST':
+        if not owner:
+            raise Http404()
+
+        setting = PlatformSetting.load()
+
         def _dec(name, current):
             raw = (request.POST.get(name) or '').strip()
             try:
-                return Decimal(raw)
+                value = Decimal(raw)
             except (InvalidOperation, TypeError):
                 return current
+            # A negative price would quietly invert every total on the page.
+            return value if value >= 0 else current
+
         setting.subscription_price = _dec('subscription_price', setting.subscription_price)
         setting.subscription_price_yearly = _dec('subscription_price_yearly', setting.subscription_price_yearly)
         setting.subscription_currency = (request.POST.get('subscription_currency') or setting.subscription_currency).strip()[:10]
@@ -544,13 +548,230 @@ def platform_settings(request):
         except (TypeError, ValueError):
             pass
         setting.save()
-        messages.success(request, 'Platform settings saved. (Stripe prices must be updated separately in the Stripe dashboard.)')
-        return redirect('controlpanel:settings')
-    return render(request, 'controlpanel/settings.html', {
-        'active_nav': 'settings', 'setting': setting,
-        'admin_email': settings.PLATFORM_ADMIN_EMAIL,
-        'coadmin_count': CoAdmin.objects.count(),
+        messages.success(request, 'Pricing updated. Stripe still bills the amounts configured in the Stripe dashboard — change them there too.')
+        return redirect('controlpanel:subscriptions')
+
+    ctx = analytics.subscription_context()
+
+    # The table is billing-shaped: plan state, money, dates. Account-shaped
+    # columns stay on Hosts & Users so the two pages answer different questions.
+    filt = request.GET.get('state') or ''
+    rows = [r for r in ctx['rows'] if not filt or r['state'] == filt]
+
+    # Flattened for the template: Django templates can't index a dict by a
+    # loop variable, so the label/count pairing is done here.
+    mix = [{'key': key, 'label': label, 'count': ctx['counts'].get(key, 0)}
+           for key, label in analytics.SUBSCRIPTION_LABELS.items()]
+
+    return render(request, 'controlpanel/subscriptions.html', {
+        'active_nav': 'subscriptions',
+        'page_obj': _paginate(request, rows, 10),
+        'state': filt,
+        'total_count': len(rows),
+        'sub_labels': analytics.SUBSCRIPTION_LABELS,
+        'setting': ctx['setting'],
+        'kpis': ctx['kpis'],
+        'mix': mix,
+        'queues': ctx['queues'],
+        # One flag for every mutation on this page: pricing and per-account
+        # billing actions are both owner-only, so a co-admin sees a clean
+        # read-only view rather than buttons that would 404.
+        'can_manage': owner,
     })
+
+
+@owner_required
+@require_POST
+def subscription_action(request, pk):
+    """Owner-only control over a single host's subscription.
+
+    Restricted to the owner rather than anyone holding the ``subscriptions``
+    grant: reading revenue is a support job, ending someone's paid plan is not.
+    A billing co-admin can see every number on the page and change none of it.
+
+    Actions:
+
+    ``cancel_now``
+        Ends billing immediately. Nothing further is ever charged. Access is
+        cut at the same moment (see below), because a host who is no longer
+        paying should not keep the product.
+    ``cancel_at_period_end``
+        Stops the next renewal only. They keep the period they already paid
+        for, and no further charge is taken — the humane default when the
+        account is simply leaving.
+    ``resume``
+        Clears a scheduled cancellation.
+
+    On the access cut: the host-side paywall already exists and triggers on
+    "no active subscription AND trial finished" (see
+    ``billing.context_processors.subscription_status``). A host cancelled mid
+    trial would otherwise keep coasting on trial days, so an immediate
+    cancellation also zeroes any trial time still remaining. That reuses the
+    existing overlay — no second lockout mechanism, no schema change — and the
+    host is met with the normal "resubscribe" popup on their next page load.
+    Deliberately NOT done for ``cancel_at_period_end``: they paid for that time.
+    """
+    user = get_object_or_404(MyUser, pk=pk)
+    if is_platform_admin(user):
+        messages.error(request, 'Console accounts do not hold host subscriptions.')
+        return redirect('controlpanel:subscriptions')
+
+    action = request.POST.get('action')
+    sc = StripeCustomer.objects.filter(user=user).first()
+    name = user.get_full_name() or user.username
+
+    if action == 'cancel_now':
+        ok, note = billing_ops.cancel_now(sc)
+        if not ok:
+            messages.error(request, f'Stripe refused the cancellation for {name}: {note} — nothing was changed.')
+            return redirect(request.POST.get('next') or 'controlpanel:subscriptions')
+        if sc:
+            sc.subscription_status = 'canceled'
+            sc.cancel_at_period_end = False
+            sc.save(update_fields=['subscription_status', 'cancel_at_period_end', 'updated_at'])
+        # Close any remaining trial so the paywall engages straight away.
+        if analytics.trial_end_for(user) and analytics.trial_end_for(user) > timezone.now():
+            user.trial_days = 0
+            user.save(update_fields=['trial_days'])
+        # A comped account would sail past the paywall regardless of billing.
+        if user.is_subscription_free:
+            user.is_subscription_free = False
+            user.save(update_fields=['is_subscription_free'])
+        messages.success(
+            request,
+            f'{name}: subscription cancelled immediately. No further payments will be taken '
+            f'and they will be asked to resubscribe on their next visit.'
+            + (f' ({note})' if note else '')
+        )
+
+    elif action == 'cancel_at_period_end':
+        ok, note = billing_ops.cancel_at_period_end(sc)
+        if not ok:
+            messages.error(request, f'Could not schedule cancellation for {name}: {note}')
+            return redirect(request.POST.get('next') or 'controlpanel:subscriptions')
+        sc.cancel_at_period_end = True
+        sc.save(update_fields=['cancel_at_period_end', 'updated_at'])
+        ends = sc.current_period_end.strftime('%b %d, %Y') if sc.current_period_end else 'the end of the period'
+        messages.success(request, f'{name}: will not renew. Access continues until {ends}, with no further charge.')
+
+    elif action == 'resume':
+        ok, note = billing_ops.resume(sc)
+        if not ok:
+            messages.error(request, f'Could not resume {name}: {note}')
+            return redirect(request.POST.get('next') or 'controlpanel:subscriptions')
+        sc.cancel_at_period_end = False
+        sc.save(update_fields=['cancel_at_period_end', 'updated_at'])
+        messages.success(request, f'{name}: cancellation reversed — the subscription will renew as normal.')
+
+    else:
+        messages.error(request, 'Unknown subscription action.')
+
+    return redirect(request.POST.get('next') or 'controlpanel:subscriptions')
+
+
+# ── payments / finance ───────────────────────────────────────────────────────
+
+@section_required('payments')
+def payments_list(request):
+    """Guest→host booking money moving across the platform.
+
+    Worth being precise about, because the name invites the wrong reading: this
+    is **not** the platform's income. It is what guests pay hosts — our GMV, an
+    indicator of how much business the product is carrying. What FavHost itself
+    earns is subscription revenue, which lives on the Subscriptions page. Both
+    matter; conflating them would misstate the business in either direction.
+
+    Cancelled bookings are excluded from the headline totals for the same
+    reason the dashboard excludes them: money attached to a cancelled stay was
+    never collected, and counting it inflates the platform.
+    """
+    status = request.GET.get('status') or ''
+    q = (request.GET.get('q') or '').strip()
+    start = (request.GET.get('start') or '').strip()
+    end = (request.GET.get('end') or '').strip()
+
+    qs = (Payment.objects
+          .select_related('booking', 'booking__property', 'booking__property__created_by')
+          .exclude(booking__status='cancelled'))
+
+    if status == 'paid':
+        qs = qs.filter(is_paid=True)
+    elif status == 'unpaid':
+        qs = qs.filter(is_paid=False)
+    if q:
+        # booking_id is an integer column — `icontains` against it is a type
+        # error on Postgres, so a numeric search matches it exactly and a text
+        # search skips it entirely.
+        lookup = (Q(booking__property__title__icontains=q) |
+                  Q(booking__property__created_by__email__icontains=q) |
+                  Q(booking__property__created_by__username__icontains=q))
+        if q.isdigit():
+            lookup |= Q(booking__booking_id=int(q))
+        qs = qs.filter(lookup)
+
+    def _date(raw):
+        try:
+            return datetime.strptime(raw, '%Y-%m-%d').date()
+        except (ValueError, TypeError):
+            return None
+
+    d_start, d_end = _date(start), _date(end)
+    if d_start:
+        qs = qs.filter(payment_date__date__gte=d_start)
+    if d_end:
+        qs = qs.filter(payment_date__date__lte=d_end)
+
+    qs = qs.order_by('-payment_date', '-id')
+
+    # Totals track the CURRENT filter, so a filtered view never shows
+    # whole-platform figures next to a narrowed table — the classic way a
+    # finance screen gets misread.
+    paid = qs.filter(is_paid=True).aggregate(t=Sum('amount'))['t'] or Decimal('0')
+    unpaid = qs.filter(is_paid=False).aggregate(t=Sum('amount'))['t'] or Decimal('0')
+    volume = paid + unpaid
+
+    month_start = timezone.localdate().replace(day=1)
+    this_month = (Payment.objects
+                  .exclude(booking__status='cancelled')
+                  .filter(is_paid=True, payment_date__date__gte=month_start)
+                  .aggregate(t=Sum('amount'))['t'] or Decimal('0'))
+
+    # Overdue: still unpaid after the guest has already checked out.
+    overdue = qs.filter(is_paid=False, booking__check_out_date__lt=timezone.localdate())
+    overdue_total = overdue.aggregate(t=Sum('amount'))['t'] or Decimal('0')
+
+    totals = {
+        'paid': paid,
+        'unpaid': unpaid,
+        'volume': volume,
+        'this_month': this_month,
+        'overdue': overdue_total,
+        'overdue_count': overdue.count(),
+        'collection_rate': round(paid / volume * 100) if volume else None,
+    }
+
+    return render(request, 'controlpanel/payments.html', {
+        'active_nav': 'payments', 'page_obj': _paginate(request, qs, 10),
+        'status': status, 'q': q, 'start': start, 'end': end,
+        'totals': totals, 'total_count': qs.count(),
+        'filtered': bool(status or q or d_start or d_end),
+        'today': timezone.localdate(),
+    })
+
+
+# ── platform settings (retired) ──────────────────────────────────────────────
+
+@owner_required
+def platform_settings(request):
+    """Kept only so old links and bookmarks don't 404.
+
+    The page held two cards and neither justified its own screen: pricing and
+    trial length now sit on Subscriptions, beside the revenue they determine,
+    and the "Console Access" card just restated what the Co-admins page shows
+    in full. Removing the URL outright would break anyone's saved link, so it
+    forwards instead.
+    """
+    return redirect('controlpanel:subscriptions')
 
 
 # ── co-admins (console delegates) ────────────────────────────────────────────
