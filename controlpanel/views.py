@@ -27,7 +27,10 @@ from decimal import Decimal, InvalidOperation
 
 from django.conf import settings
 from django.contrib import messages
-from django.contrib.auth import authenticate, login as auth_login, logout as auth_logout
+from django.contrib.auth import (
+    authenticate, login as auth_login, logout as auth_logout, update_session_auth_hash,
+)
+from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator
 from django.core.validators import validate_email
@@ -46,7 +49,7 @@ from billing.models import StripeCustomer, PlatformSetting
 from . import analytics, billing_ops
 from .access import (
     admin_required, owner_required, section_required, is_platform_admin,
-    is_console_owner, admin_email, console_home_url,
+    is_console_owner, admin_email, console_home_url, console_role, allowed_sections,
 )
 from .permissions import SECTIONS, SECTION_LABELS, clean_permissions
 
@@ -94,6 +97,80 @@ def login_view(request):
 def logout_view(request):
     auth_logout(request)
     return redirect('controlpanel:login')
+
+
+@admin_required
+def profile(request):
+    """The signed-in console member's own account page.
+
+    Scoped to *this* viewer on purpose: everything here reads or writes
+    ``request.user``, never a pk from the URL, so there is no version of this
+    page that can be pointed at somebody else's account. Managing other people
+    stays on Hosts & Users (hosts) and Co-admins (console staff).
+
+    Exactly one thing is editable: the password. A console login is not a host
+    profile — it has no name, phone or address to keep, and inventing fields to
+    fill a card would only create data nobody maintains. Everything else here
+    is a fact worth confirming (which account, what it can reach, when it was
+    last used) and is deliberately read-only.
+
+    The password form re-checks the current one before accepting a new one: a
+    console session left open on an unlocked laptop should not be enough to
+    take the account over.
+    """
+    user = request.user
+    role = console_role(user)
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+
+        if action == 'password':
+            current = request.POST.get('current_password') or ''
+            new1 = request.POST.get('new_password1') or ''
+            new2 = request.POST.get('new_password2') or ''
+
+            if not user.check_password(current):
+                messages.error(request, 'Your current password is not correct.')
+            elif new1 != new2:
+                messages.error(request, 'The two new passwords do not match.')
+            else:
+                try:
+                    # Run the project's configured password validators rather
+                    # than inventing a second, weaker standard here.
+                    validate_password(new1, user)
+                except ValidationError as exc:
+                    messages.error(request, ' '.join(exc.messages))
+                else:
+                    user.set_password(new1)
+                    user.save(update_fields=['password'])
+                    # Changing a password rotates the session hash, which would
+                    # otherwise sign the user out mid-action.
+                    update_session_auth_hash(request, user)
+                    # Keep a co-admin's stored copy truthful — the Co-admins
+                    # page displays it so the owner can pass it on, and a stale
+                    # value there is worse than none.
+                    CoAdmin.objects.filter(user=user).update(display_password=new1)
+                    messages.success(request, 'Your password was changed.')
+            return redirect('controlpanel:profile')
+
+        messages.error(request, 'Unknown action.')
+        return redirect('controlpanel:profile')
+
+    granted = allowed_sections(user)
+    sections = [{'label': label, 'desc': desc, 'icon': icon}
+                for key, label, icon, desc in SECTIONS if key in granted]
+
+    rel = CoAdmin.objects.select_related('created_by').filter(user=user).first()
+
+    return render(request, 'controlpanel/profile.html', {
+        'active_nav': 'profile',
+        'account': user,
+        'role': role,
+        'sections': sections,
+        'coadmin': rel,
+        'owner_email': admin_email(),
+        'is_owner': role == 'owner',
+    })
 
 
 @admin_required

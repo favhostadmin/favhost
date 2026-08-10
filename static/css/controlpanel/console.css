@@ -179,18 +179,22 @@ a { text-decoration: none; color: inherit; }
 .cp-topbar .cp-spacer { flex: 1; }
 .cp-hamburger { display: none; background: none; border: 0; font-size: 22px; color: var(--cp-text); cursor: pointer; }
 
+/* Avatar button in the topbar — the way into the viewer's own profile. */
 .cp-admin-chip {
-  display: flex; align-items: center; gap: 9px;
-  padding: 5px 12px 5px 6px; border: 1px solid var(--cp-border);
-  border-radius: 30px; font-size: 13px; background: #fff; color: var(--cp-text);
-  box-shadow: var(--cp-shadow);
+  display: flex; align-items: center; justify-content: center;
+  padding: 4px; border: 1px solid var(--cp-border);
+  border-radius: 50%; background: #fff;
+  box-shadow: var(--cp-shadow); transition: border-color .15s, box-shadow .15s;
 }
+.cp-admin-chip:hover { border-color: var(--cp-accent); }
+.cp-admin-chip.on { border-color: var(--cp-accent); box-shadow: 0 0 0 3px var(--cp-accent-soft); }
 .cp-admin-chip .cp-avatar {
-  width: 30px; height: 30px; border-radius: 50%;
+  width: 32px; height: 32px; border-radius: 50%; overflow: hidden;
   background: linear-gradient(135deg, var(--cp-accent), var(--cp-accent-dark));
   color: #fff; font-weight: 700;
-  display: flex; align-items: center; justify-content: center; font-size: 12.5px;
+  display: flex; align-items: center; justify-content: center; font-size: 13px;
 }
+.cp-admin-chip .cp-avatar img { width: 100%; height: 100%; object-fit: cover; }
 
 .cp-content { padding: 26px 28px; max-width: 1480px; width: 100%; }
 
@@ -435,6 +439,89 @@ a { text-decoration: none; color: inherit; }
 
 /* Caveats that must travel with the numbers, without shouting. */
 .cp-footnote { margin: 14px 4px 0; font-size: 12px; color: var(--cp-muted); line-height: 1.6; max-width: 90ch; }
+
+/* ── Profile page ─────────────────────────────────────────────────────────*/
+/* Deliberately restrained: structure, type and whitespace carry the design,
+   and colour is reserved for the one thing that is genuinely stateful (the
+   role). Filling this page with coloured tiles would signal importance that
+   an account-settings screen does not have. */
+
+.cp-prof-head {
+  display: flex; align-items: center; gap: 18px;
+  padding-bottom: 22px; margin-bottom: 26px;
+  border-bottom: 1px solid var(--cp-border);
+}
+.cp-prof-mark {
+  width: 52px; height: 52px; flex: none; border-radius: 14px; overflow: hidden;
+  background: var(--cp-bg-2, #f4f4f5); border: 1px solid var(--cp-border);
+  color: var(--cp-heading); font-size: 20px; font-weight: 600;
+  display: flex; align-items: center; justify-content: center;
+}
+.cp-prof-mark img { width: 100%; height: 100%; object-fit: cover; }
+.cp-prof-id { min-width: 0; }
+.cp-prof-id h2 {
+  margin: 0; font-size: 19px; font-weight: 600; letter-spacing: -.01em;
+  color: var(--cp-heading); overflow-wrap: anywhere;
+}
+.cp-prof-role {
+  display: inline-flex; align-items: center; gap: 6px; margin-top: 5px;
+  font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .09em;
+  color: var(--cp-muted);
+}
+.cp-prof-role::before {
+  content: ''; width: 6px; height: 6px; border-radius: 50%;
+  background: var(--cp-accent);
+}
+
+/* Facts strip — small caps label over the value, separated by hairlines. */
+.cp-facts {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1px; background: var(--cp-border); border: 1px solid var(--cp-border);
+  border-radius: 12px; overflow: hidden; margin-bottom: 26px;
+}
+.cp-fact { background: #fff; padding: 15px 18px; }
+.cp-fact dt {
+  font-size: 10.5px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: .08em; color: var(--cp-muted); margin-bottom: 6px;
+}
+.cp-fact dd {
+  margin: 0; font-size: 13.5px; font-weight: 500; color: var(--cp-heading);
+  overflow-wrap: anywhere;
+}
+.cp-fact dd.mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px; }
+
+/* Section headings that are type, not chrome. */
+.cp-prof-sec { margin-bottom: 26px; }
+.cp-prof-sec > h3 {
+  margin: 0 0 4px; font-size: 14px; font-weight: 600; color: var(--cp-heading);
+}
+.cp-prof-sec > .cp-prof-note { margin: 0 0 16px; font-size: 12.5px; color: var(--cp-muted); line-height: 1.6; max-width: 62ch; }
+
+/* Access list: hairline rows, muted glyphs, no coloured tiles. */
+.cp-access-row {
+  display: flex; gap: 12px; align-items: flex-start;
+  padding: 13px 0; border-bottom: 1px solid var(--cp-border-2);
+}
+.cp-access-row:last-child { border-bottom: 0; }
+.cp-access-row > i { font-size: 17px; color: var(--cp-muted); margin-top: 1px; }
+.cp-access-row strong { display: block; font-size: 13.5px; font-weight: 600; color: var(--cp-heading); }
+.cp-access-row span { font-size: 12.5px; color: var(--cp-muted); }
+
+/* Password fields: stacked, narrow, with the rules stated as plain text. */
+.cp-pw-form { max-width: 380px; }
+.cp-pw-form label { display: block; margin-bottom: 14px; }
+.cp-pw-form label > span {
+  display: block; margin-bottom: 6px;
+  font-size: 12px; font-weight: 600; color: var(--cp-heading);
+}
+.cp-pw-form input {
+  width: 100%; padding: 10px 12px; font-family: inherit; font-size: 13.5px;
+  border: 1px solid var(--cp-border); border-radius: 9px; background: #fff; color: var(--cp-text);
+  transition: border-color .15s, box-shadow .15s;
+}
+.cp-pw-form input:focus {
+  outline: none; border-color: var(--cp-accent); box-shadow: 0 0 0 3px var(--cp-accent-soft);
+}
 
 /* ── Empty state ──────────────────────────────────────────────────────────*/
 .cp-empty { text-align: center; padding: 60px 20px; color: var(--cp-muted); }
@@ -962,5 +1049,6 @@ tr.cp-row-link:hover .cp-count-link i { color: var(--cp-accent); }
   .cp-hamburger { display: block; }
   .cp-content { padding: 18px 15px; }
   .cp-topbar { padding: 0 16px; }
-  .cp-admin-chip span:not(.cp-avatar) { display: none; }
+  /* (The chip used to carry the email text beside the avatar and hid it here.
+     It is avatar-only at every width now, so nothing needs hiding.) */
 }
