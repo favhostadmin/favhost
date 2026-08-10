@@ -270,6 +270,64 @@
             }
         }
 
+        /* ── Desktop: hold the logos still, all eight on one line ──
+           On a wide screen every partner is shown at once, so the marquee is
+           switched off and the row becomes static. The duplicate group exists
+           only to make the scroll loop seamlessly, so it is hidden here —
+           otherwise every logo would appear twice. The right-edge fade goes
+           too: nothing is moving out of view to soften. Phones keep the
+           scrolling version untouched (max-width 991 below). */
+        @media screen and (min-width: 992px) {
+            /* The strip sits inside .ul-banner-btns, a wrapping flex row, so
+               .ul-banner-stat is sized by its content and — like any flex item
+               — refuses to shrink below it (min-width defaults to auto). Left
+               alone it simply grows to fit all eight logos and runs off under
+               the hero image. Forcing it onto its own full-width line and
+               clearing min-width gives the logos a real column width to fit
+               into, so the shrinking below can actually take effect. */
+            .ul-banner .ul-banner-stat {
+                flex: 1 1 100%;
+                width: 100%;
+                min-width: 0;
+            }
+
+            .ul-banner .partner-logos {
+                overflow: visible;
+                width: 100%;
+                min-width: 0;
+                -webkit-mask-image: none;
+                mask-image: none;
+            }
+
+            .ul-banner .partner-logos .logo-track {
+                display: block;
+                width: 100%;
+                animation: none;
+            }
+
+            .ul-banner .partner-logos .logo-group {
+                flex-wrap: nowrap;
+                justify-content: space-between;
+                gap: clamp(8px, 1.2vw, 18px);
+                padding-right: 0;
+            }
+
+            .ul-banner .partner-logos .logo-group[aria-hidden="true"] {
+                display: none;
+            }
+
+            /* All eight sit on one line, so the height has to follow the column
+               width rather than be a fixed number — clamp scales them down on a
+               1000px laptop and back up on a wide monitor. `min-width: 0` plus
+               `object-fit: contain` lets a logo give up width instead of
+               pushing the row into an overflow if space ever runs short. */
+            .ul-banner .partner-logos img {
+                height: clamp(20px, 2.1vw, 32px);
+                min-width: 0;
+                flex: 0 1 auto;
+            }
+        }
+
         @media screen and (max-width: 991px) {
             .ul-banner-img .img-wrapper.zoom-container {
                 background: none !important;
