@@ -40,6 +40,45 @@
     <div class="cp-kpi-foot">{{ kpis.free }} comped free</div></div>
 </div>
 
+{% comment %}
+  Two series, both measured rather than modelled. There is no MRR-over-time
+  chart because no history of subscription status is stored — see the footnote.
+{% endcomment %}
+<div class="cp-grid cp-grid-even cp-mb">
+  <div class="cp-card">
+    <div class="cp-card-head">
+      <h3>New subscriptions</h3>
+      <span class="cp-card-sub">last 12 months</span>
+    </div>
+    <div class="cp-chart"><canvas id="chartStarted"></canvas></div>
+  </div>
+  <div class="cp-card">
+    <div class="cp-card-head">
+      <h3>Renewals due</h3>
+      <span class="cp-card-sub">next 6 months, at today's price</span>
+    </div>
+    {% if renewals.total %}
+    <div class="cp-chart"><canvas id="chartRenewals"></canvas></div>
+    {% else %}
+    {% comment %}
+      An all-zero bar chart reads as "broken", not as "nothing due". State the
+      reason instead — and if subscriptions are still marked active with a
+      period that already ended, say so plainly: that is a sync problem, and
+      it is inflating the MRR shown above.
+    {% endcomment %}
+    <div class="cp-chart cp-chart-empty">
+      <i class="ti ti-calendar-off"></i>
+      <p>No renewals scheduled in the next 6 months.</p>
+      {% if renewals.stale %}
+      <p class="warn">{{ renewals.stale }} subscription{{ renewals.stale|pluralize }} still marked active with a
+        billing period that has already ended — likely a Stripe webhook that never
+        arrived. Until it syncs, those are counted in MRR above.</p>
+      {% endif %}
+    </div>
+    {% endif %}
+  </div>
+</div>
+
 {% if queues.total %}
 <div class="cp-card cp-mb">
   <div class="cp-card-head">
@@ -217,6 +256,92 @@
 <p class="cp-footnote">
   MRR values every active subscription at the monthly price — Stripe records a
   subscription's status but not its plan, so yearly subscribers cannot be told
-  apart in our data. Where they exist, real MRR is lower than shown.
+  apart in our data. Where they exist, real MRR is lower than shown. There is
+  no MRR-over-time chart for the same reason: only the current status of each
+  subscription is stored, so a historical curve could only be guessed at.
 </p>
+
+{{ charts|json_script:"subCharts" }}
+<script>
+  (function () {
+    const C = JSON.parse(document.getElementById('subCharts').textContent);
+    const ACCENT = '#e05c2a', GREEN = '#16a34a';
+
+    // Shared shell: bars (each month is a discrete bucket, so a line would
+    // imply values between months that do not exist), no legend on the
+    // single-series chart, and the dashboard's tooltip treatment.
+    function base(extra) {
+      return Object.assign({
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: '#16181d', padding: 11, cornerRadius: 9,
+            titleFont: { size: 12.5, weight: '700' }, bodyFont: { size: 12.5 },
+            displayColors: false
+          }
+        },
+        scales: {
+          x: { grid: { display: false }, border: { color: '#e9e9e7' },
+               ticks: { color: '#9ca3af', font: { size: 10.5 }, maxRotation: 0, autoSkip: true, maxTicksLimit: 7 } },
+          y: { beginAtZero: true, border: { display: false },
+               grid: { color: 'rgba(17,24,39,.055)' },
+               ticks: { color: '#9ca3af', font: { size: 10.5 }, maxTicksLimit: 4, precision: 0 } }
+        }
+      }, extra || {});
+    }
+
+    new Chart(document.getElementById('chartStarted'), {
+      type: 'bar',
+      data: {
+        labels: C.started.labels,
+        datasets: [{
+          data: C.started.values, backgroundColor: ACCENT, hoverBackgroundColor: '#c94e22',
+          borderRadius: 4, borderSkipped: false, maxBarThickness: 26
+        }]
+      },
+      options: base({
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: '#16181d', padding: 11, cornerRadius: 9,
+            titleFont: { size: 12.5, weight: '700' }, bodyFont: { size: 12.5 }, displayColors: false,
+            callbacks: { label: function (i) { return ' ' + i.raw + ' started'; } }
+          }
+        }
+      })
+    });
+
+    // Renewals carry two facts — how many and how much — so the bar is the
+    // count and the tooltip adds the money it represents. Absent when there is
+    // nothing due, where the card shows an explanation instead.
+    const rc = document.getElementById('chartRenewals');
+    if (rc) new Chart(rc, {
+      type: 'bar',
+      data: {
+        labels: C.renewals.labels,
+        datasets: [{
+          data: C.renewals.counts, backgroundColor: GREEN, hoverBackgroundColor: '#12833d',
+          borderRadius: 4, borderSkipped: false, maxBarThickness: 26
+        }]
+      },
+      options: base({
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: '#16181d', padding: 11, cornerRadius: 9,
+            titleFont: { size: 12.5, weight: '700' }, bodyFont: { size: 12.5 }, displayColors: false,
+            callbacks: {
+              label: function (i) {
+                const v = C.renewals.values[i.dataIndex] || 0;
+                return ' ' + i.raw + ' renewal' + (i.raw === 1 ? '' : 's') +
+                       ' · $' + v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+              }
+            }
+          }
+        }
+      })
+    });
+  })();
+</script>
 {% endblock %}

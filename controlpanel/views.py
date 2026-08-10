@@ -35,6 +35,7 @@ from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator
 from django.core.validators import validate_email
 from django.db.models import Count, Q, Sum
+from django.db.models.functions import Coalesce
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
@@ -640,6 +641,8 @@ def subscriptions_list(request):
     mix = [{'key': key, 'label': label, 'count': ctx['counts'].get(key, 0)}
            for key, label in analytics.SUBSCRIPTION_LABELS.items()]
 
+    chart_data = analytics.subscription_charts()
+
     return render(request, 'controlpanel/subscriptions.html', {
         'active_nav': 'subscriptions',
         'page_obj': _paginate(request, rows, 10),
@@ -650,6 +653,8 @@ def subscriptions_list(request):
         'kpis': ctx['kpis'],
         'mix': mix,
         'queues': ctx['queues'],
+        'charts': json.dumps(chart_data),
+        'renewals': chart_data['renewals'],
         # One flag for every mutation on this page: pricing and per-account
         # billing actions are both owner-only, so a co-admin sees a clean
         # read-only view rather than buttons that would 404.
@@ -792,13 +797,19 @@ def payments_list(request):
         except (ValueError, TypeError):
             return None
 
+    # ``payment_date`` is only written when a payment is actually recorded as
+    # settled, and much of the table has never had one — filtering or sorting
+    # on it alone hides most rows. ``expected_payment_date`` is the scheduled
+    # date and is always present, so the effective date falls back to it.
+    qs = qs.annotate(eff_date=Coalesce('payment_date', 'expected_payment_date'))
+
     d_start, d_end = _date(start), _date(end)
     if d_start:
-        qs = qs.filter(payment_date__date__gte=d_start)
+        qs = qs.filter(eff_date__date__gte=d_start)
     if d_end:
-        qs = qs.filter(payment_date__date__lte=d_end)
+        qs = qs.filter(eff_date__date__lte=d_end)
 
-    qs = qs.order_by('-payment_date', '-id')
+    qs = qs.order_by('-eff_date', '-id')
 
     # Totals track the CURRENT filter, so a filtered view never shows
     # whole-platform figures next to a narrowed table — the classic way a
@@ -810,7 +821,8 @@ def payments_list(request):
     month_start = timezone.localdate().replace(day=1)
     this_month = (Payment.objects
                   .exclude(booking__status='cancelled')
-                  .filter(is_paid=True, payment_date__date__gte=month_start)
+                  .annotate(eff_date=Coalesce('payment_date', 'expected_payment_date'))
+                  .filter(is_paid=True, eff_date__date__gte=month_start)
                   .aggregate(t=Sum('amount'))['t'] or Decimal('0'))
 
     # Overdue: still unpaid after the guest has already checked out.
@@ -833,6 +845,9 @@ def payments_list(request):
         'totals': totals, 'total_count': qs.count(),
         'filtered': bool(status or q or d_start or d_end),
         'today': timezone.localdate(),
+        # Built from the filtered queryset, so the chart always describes the
+        # same rows as the table beneath it.
+        'series': json.dumps(analytics.payment_series(qs)),
     })
 
 

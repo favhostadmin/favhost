@@ -11,7 +11,7 @@ from decimal import Decimal
 
 from django.conf import settings
 from django.db.models import Count, Sum
-from django.db.models.functions import TruncDate
+from django.db.models.functions import Coalesce, TruncDate
 from django.utils import timezone
 
 from accounts.models import MyUser, CoHost, CoAdmin
@@ -498,6 +498,91 @@ def hosts_queryset():
 
 def cohost_user_ids():
     return set(CoHost.objects.values_list('co_host_id', flat=True))
+
+
+# ── charts ──────────────────────────────────────────────────────────────────
+
+def subscription_charts(now=None):
+    """Two honest series for the Subscriptions page.
+
+    What is deliberately NOT here: an MRR-over-time line. Reconstructing it
+    would need a history of each subscription's status, and we store only the
+    current one — so any "MRR last 12 months" curve would be invented, not
+    measured. A fabricated trend on a revenue screen is worse than no trend.
+
+    ``started``  when subscriptions began, from ``StripeCustomer.created_at``.
+    ``renewals`` what is due to bill in the coming months, from
+                 ``current_period_end`` on live subscriptions — forward cash
+                 visibility, which no other page shows.
+    """
+    now = now or timezone.now()
+    today = now.date()
+    price = float(PlatformSetting.load().subscription_price or 0)
+
+    started = monthly_counts(StripeCustomer.objects.all(), 'created_at', 12)
+
+    # Six forward months, including the current one.
+    months, cur = [], _month_start(today)
+    for _ in range(6):
+        months.append(cur)
+        cur = _add_month(cur)
+    buckets = OrderedDict((f'{m.year}-{m.month:02d}', 0) for m in months)
+
+    live = StripeCustomer.objects.filter(
+        subscription_status__in=['active', 'past_due'],
+        current_period_end__isnull=False,
+        cancel_at_period_end=False,
+    ).values_list('current_period_end', flat=True)
+    for dt in live:
+        d = _local_date(dt)
+        if not d or d < today:
+            continue
+        key = f'{d.year}-{d.month:02d}'
+        if key in buckets:
+            buckets[key] += 1
+
+    # Subscriptions still marked active whose paid period ended in the past.
+    # They are counted in MRR but Stripe may already have moved on, so the
+    # likeliest cause is a webhook that never landed. Surfacing the count is
+    # the honest thing to do: it tells the reader how much to trust MRR.
+    stale = StripeCustomer.objects.filter(
+        subscription_status__in=['active', 'past_due'],
+        current_period_end__lt=now,
+    ).count()
+
+    counts = list(buckets.values())
+    renewals = {
+        'labels': [m.strftime('%b %Y') for m in months],
+        'counts': counts,
+        'values': [round(n * price, 2) for n in counts],
+        'total': sum(counts),
+        'stale': stale,
+    }
+    return {'started': started, 'renewals': renewals}
+
+
+def payment_series(qs, n=12):
+    """Collected vs still-outstanding per month for a (possibly filtered) set.
+
+    Bucketed on ``payment_date`` where the app recorded one and the scheduled
+    ``expected_payment_date`` otherwise. That fallback is not cosmetic: rows
+    with no ``payment_date`` are common, and keying on it alone silently drops
+    them from the chart — an empty column reads as "no business that month"
+    rather than "we never wrote that date down".
+
+    Showing both series together is the point. Collected alone says how much
+    came in; beside outstanding it says how much of what was owed came in,
+    which is the number that reveals a collection problem.
+    """
+    eff = Coalesce('payment_date', 'expected_payment_date')
+    dated = qs.annotate(eff_date=eff)
+    paid = monthly_sum(dated.filter(is_paid=True), 'eff_date', 'amount', n)
+    unpaid = monthly_sum(dated.filter(is_paid=False), 'eff_date', 'amount', n)
+    return {
+        'labels': paid['labels'],
+        'collected': paid['values'],
+        'outstanding': unpaid['values'],
+    }
 
 
 # ── the subscription business (our own revenue) ─────────────────────────────
