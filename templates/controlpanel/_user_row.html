@@ -1,0 +1,66 @@
+{% comment %}One account row. Shared by the grouped and flat views of the host list.{% endcomment %}
+<tr class="{% if row.needs_attention %}is-flagged{% endif %}">
+  <td>
+    <div class="cp-user-cell">
+      <span class="cp-ava">{% if row.user.profile_picture_url %}<img src="{{ row.user.profile_picture_url }}" alt="">{% else %}{{ row.user.username|slice:":1"|upper }}{% endif %}</span>
+      <div class="cp-user-txt">
+        <div class="cp-uname">
+          <a href="{% url 'controlpanel:user_detail' row.user.id %}">{{ row.user.get_full_name|default:row.user.username }}</a>
+          {% if row.trial_soon %}<span class="cp-tag t-amber" title="Free trial ends within 7 days">Trial ending</span>{% endif %}
+        </div>
+        <div class="cp-uemail">{{ row.user.email|default:"—" }}</div>
+      </div>
+    </div>
+  </td>
+
+  <td>
+    {% if row.location.country %}
+    <div class="cp-loc">
+      {% if not grouped and row.location.code %}<span class="cp-iso">{{ row.location.code }}</span>{% endif %}
+      <div class="cp-loc-txt">
+        {% comment %}Inside a country block the heading already names the country,
+        so the cell drops to the city and only falls back to the country name
+        when we hold nothing finer.{% endcomment %}
+        {% if grouped %}
+          {% if row.location.locality %}<div class="cp-loc-country">{{ row.location.locality }}</div>
+          {% else %}<span class="cp-none">No city recorded</span>{% endif %}
+        {% else %}
+          <div class="cp-loc-country">{{ row.location.country }}</div>
+          {% if row.location.locality %}<div class="cp-loc-city">{{ row.location.locality }}</div>{% endif %}
+        {% endif %}
+      </div>
+    </div>
+    {% else %}
+    <span class="cp-none" title="This host has not filled in their address">Not set</span>
+    {% endif %}
+  </td>
+
+  <td>
+    {% if row.sub_state == 'active' %}<span class="cp-badge b-green">{{ row.sub_label }}</span>
+    {% elif row.sub_state == 'trialing' %}<span class="cp-badge b-orange">{{ row.sub_label }}</span>
+    {% elif row.sub_state == 'past_due' %}<span class="cp-badge b-amber">{{ row.sub_label }}</span>
+    {% elif row.sub_state == 'free' %}<span class="cp-badge b-indigo">{{ row.sub_label }}</span>
+    {% elif row.sub_state == 'expired' %}<span class="cp-badge b-red">{{ row.sub_label }}</span>
+    {% else %}<span class="cp-badge b-gray">{{ row.sub_label }}</span>{% endif %}
+  </td>
+
+  <td class="cp-num">
+    {% if row.n_props %}{{ row.n_props }}{% else %}<span class="cp-none" title="Onboarding stalled — nothing published yet">0</span>{% endif %}
+  </td>
+  <td class="cp-num">
+    {% if row.n_cohosts %}{{ row.n_cohosts }}{% else %}<span class="cp-none">—</span>{% endif %}
+  </td>
+
+  <td>{% if row.user.is_active %}<span class="cp-badge b-green">Active</span>{% else %}<span class="cp-badge b-red">Blocked</span>{% endif %}</td>
+
+  <td class="cp-when {% if row.dormant %}is-stale{% endif %}">
+    {% if row.last_login %}{{ row.last_login|date:"M j, Y" }}{% else %}Never{% endif %}
+  </td>
+
+  <td class="cp-row-actions">
+    <a class="cp-icon-btn" href="{% url 'controlpanel:user_detail' row.user.id %}"
+       aria-label="Manage {{ row.user.get_full_name|default:row.user.username }}" title="Manage account">
+      <i class="ti ti-chevron-right"></i>
+    </a>
+  </td>
+</tr>

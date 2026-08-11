@@ -56,32 +56,18 @@
 
         <div class="cp-picker-panel">
           <form method="get" class="cp-picker-block">
-            <label class="cp-picker-label" for="cpMonth">Month</label>
-            <div class="cp-picker-row">
-              <span class="cp-field">
-                <i class="ti ti-calendar-month"></i>
-                <input type="month" id="cpMonth" name="month" value="{{ selected_month }}"
-                       max="{{ traffic.end|date:'Y-m' }}">
-              </span>
-              <button type="submit" class="cp-picker-go">Show</button>
-            </div>
-          </form>
-
-          <div class="cp-picker-div"><span>or</span></div>
-
-          <form method="get" class="cp-picker-block">
             <label class="cp-picker-label">Date range</label>
             <div class="cp-picker-row">
               <span class="cp-field">
                 <i class="ti ti-calendar-event"></i>
                 <input type="date" name="from" value="{{ traffic.start|date:'Y-m-d' }}"
-                       max="{{ traffic.end|date:'Y-m-d' }}" aria-label="From date">
+                       max="{{ today|date:'Y-m-d' }}" aria-label="From date">
               </span>
               <span class="cp-picker-to">→</span>
               <span class="cp-field">
                 <i class="ti ti-calendar-event"></i>
                 <input type="date" name="to" value="{{ traffic.end|date:'Y-m-d' }}"
-                       aria-label="To date">
+                       max="{{ today|date:'Y-m-d' }}" aria-label="To date">
               </span>
             </div>
             <button type="submit" class="cp-picker-go cp-picker-go-wide">Show</button>
@@ -128,7 +114,7 @@
       {% if traffic.tracking_since %}
       <b>Visitor tracking started {{ traffic.tracking_since|date:"M j, Y" }}.</b>
       Visitor and page-view numbers only cover the days since then, so they are not
-      yet comparable with bookings and enquiries — which reach further back. This
+      yet comparable with trials and paid hosts — which reach further back. This
       note disappears once a full {{ traffic.days }} days have been recorded.
       {% else %}
       <b>No visits recorded yet.</b> Traffic is counted from the moment someone
@@ -223,43 +209,7 @@
 </div>
 {% endif %}
 
-{# ── 5. Am I earning? Plain words, no finance jargon. ───────────────── #}
-<div class="cp-section-head">
-  <h2>Your income</h2>
-  <p>What hosts pay you to use FavHost</p>
-</div>
-<div class="cp-stat-row cp-mb">
-  <div class="cp-stat">
-    <span class="cp-stat-label">Income per month</span>
-    <span class="cp-stat-value">${{ kpis.mrr|floatformat:0|intcomma }}</span>
-    <span class="cp-stat-hint">${{ kpis.arr|floatformat:0|intcomma }} a year if nothing changes · {{ monthly_price_display }} per host</span>
-  </div>
-  <div class="cp-stat">
-    <span class="cp-stat-label">Paying hosts</span>
-    <span class="cp-stat-value">{{ kpis.active_subscriptions|intcomma }}</span>
-    <span class="cp-stat-hint">
-      {% if kpis.new_paid_this_month %}<b class="cp-delta-up">+{{ kpis.new_paid_this_month }} joined</b>{% endif %}
-      {% if kpis.churned_this_month %}<b class="cp-delta-down">−{{ kpis.churned_this_month }} left</b>{% endif %}
-      {% if not kpis.new_paid_this_month and not kpis.churned_this_month %}no change this month{% endif %}
-    </span>
-  </div>
-  <div class="cp-stat">
-    <span class="cp-stat-label">On a free trial</span>
-    <span class="cp-stat-value">{{ kpis.trialing|intcomma }}</span>
-    <span class="cp-stat-hint">{% if kpis.trial_conversion is not None %}{{ kpis.trial_conversion }}% of finished trials became paying{% else %}no trials have finished yet{% endif %}</span>
-  </div>
-  <div class="cp-stat">
-    <span class="cp-stat-label">Hosts in total</span>
-    <span class="cp-stat-value">{{ kpis.total_users|intcomma }}</span>
-    <span class="cp-stat-hint">
-      {{ kpis.new_users_this_month }} joined so far this month{% if kpis.new_users_growth is not None %}
-      <b class="{% if kpis.new_users_growth >= 0 %}cp-delta-up{% else %}cp-delta-down{% endif %}">{{ kpis.new_users_growth }}%</b>
-      vs the same {{ kpis.mtd_days }} day{{ kpis.mtd_days|pluralize }} of last month{% endif %}
-    </span>
-  </div>
-</div>
-
-{# ── 6. What hosts are doing with the platform ──────────────────────── #}
+{# ── 5. What hosts are doing with the platform ──────────────────────── #}
 <div class="cp-section-head">
   <h2>What hosts are doing</h2>
   <p>Their business, running on your platform</p>
@@ -287,7 +237,7 @@
   </div>
 </div>
 
-{# ── 7. The recent record ───────────────────────────────────────────── #}
+{# ── 6. The recent record ───────────────────────────────────────────── #}
 <div class="cp-grid cp-mb cp-grid-even">
   <div class="cp-card">
     <div class="cp-card-head">

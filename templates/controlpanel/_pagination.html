@@ -1,16 +1,18 @@
+{% load cp_extras %}
 {% if page_obj.paginator.num_pages > 1 %}
 <div class="cp-pagination">
-  {% with q=request.GET.q status=request.GET.status sub=request.GET.sub state=request.GET.state attention=request.GET.attention property_id=request.GET.property_id %}
-  {% comment %}Preserve active filters across page links.{% endcomment %}
+  {% comment %}
+    page_link keeps the whole current querystring, so any filter — including
+    ones added later — survives paging without being listed here.
+  {% endcomment %}
   {% if page_obj.has_previous %}
-  <a href="?page={{ page_obj.previous_page_number }}{% if q %}&q={{ q }}{% endif %}{% if status %}&status={{ status }}{% endif %}{% if sub %}&sub={{ sub }}{% endif %}{% if state %}&state={{ state }}{% endif %}{% if attention %}&attention={{ attention }}{% endif %}{% if property_id %}&property_id={{ property_id }}{% endif %}"><i class="ti ti-chevron-left"></i></a>
+  <a href="{% page_link page_obj.previous_page_number %}" aria-label="Previous page"><i class="ti ti-chevron-left"></i></a>
   {% else %}<span class="cp-disabled"><i class="ti ti-chevron-left"></i></span>{% endif %}
 
   <span class="cp-cur">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
 
   {% if page_obj.has_next %}
-  <a href="?page={{ page_obj.next_page_number }}{% if q %}&q={{ q }}{% endif %}{% if status %}&status={{ status }}{% endif %}{% if sub %}&sub={{ sub }}{% endif %}{% if state %}&state={{ state }}{% endif %}{% if attention %}&attention={{ attention }}{% endif %}{% if property_id %}&property_id={{ property_id }}{% endif %}"><i class="ti ti-chevron-right"></i></a>
+  <a href="{% page_link page_obj.next_page_number %}" aria-label="Next page"><i class="ti ti-chevron-right"></i></a>
   {% else %}<span class="cp-disabled"><i class="ti ti-chevron-right"></i></span>{% endif %}
-  {% endwith %}
 </div>
 {% endif %}

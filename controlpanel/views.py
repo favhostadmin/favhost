@@ -11,7 +11,8 @@ platform pricing.
 """
 import json
 import uuid
-from datetime import date, datetime, timedelta
+from collections import Counter
+from datetime import datetime, timedelta
 from decimal import Decimal, InvalidOperation
 
 from django.conf import settings
@@ -29,7 +30,7 @@ from property.models import Property
 from booking.models import Booking, Payment, Enquiry
 from billing.models import StripeCustomer, PlatformSetting
 
-from . import analytics
+from . import analytics, geo
 from .access import admin_required, is_platform_admin
 
 BACKEND = 'accounts.backends.EmailOrUsernameBackend'
@@ -81,35 +82,19 @@ def _parse_day(value):
         return None
 
 
-def _parse_month(value):
-    """'2026-03' -> (first day, last day). Clipped to today for this month."""
-    try:
-        first = datetime.strptime((value or '').strip(), '%Y-%m').date()
-    except (TypeError, ValueError):
-        return None, None
-    nxt = date(first.year + 1, 1, 1) if first.month == 12 else date(first.year, first.month + 1, 1)
-    return first, nxt - timedelta(days=1)
-
-
 @admin_required
 def dashboard(request):
     """The owner overview.
 
-    The window can be given three ways: a preset (?range=7|28|90), a whole
-    month (?month=2026-03), or exact dates (?from=&to=). Anything unparseable
-    silently falls back to the 28-day preset rather than erroring — a bad URL
-    should never leave the owner staring at a stack trace.
+    The window is given one of two ways: a preset (?range=7|28|90) or exact
+    dates (?from=&to=). Anything unparseable silently falls back to the 28-day
+    preset rather than erroring — a bad URL should never leave the owner
+    staring at a stack trace.
     """
-    start = end = None
-
-    month_start, month_end = _parse_month(request.GET.get('month'))
-    if month_start:
-        start, end = month_start, month_end
-    else:
-        start = _parse_day(request.GET.get('from'))
-        end = _parse_day(request.GET.get('to'))
-        if not (start and end):
-            start = end = None
+    start = _parse_day(request.GET.get('from'))
+    end = _parse_day(request.GET.get('to'))
+    if not (start and end):
+        start = end = None
 
     try:
         days = int(request.GET.get('range') or 28)
@@ -118,7 +103,7 @@ def dashboard(request):
 
     ctx = analytics.dashboard_context()
     ctx['traffic'] = analytics.traffic_context(days, start=start, end=end)
-    ctx['selected_month'] = request.GET.get('month') or ''
+    ctx['today'] = timezone.localdate()
     ctx['traffic_json'] = json.dumps({
         'labels': ctx['traffic']['labels'],
         'prevLabels': ctx['traffic']['prev_labels'],
@@ -136,28 +121,71 @@ def _paginate(request, qs, per_page=25):
     return paginator.get_page(request.GET.get('page'))
 
 
+# How the list may be ordered. Anything not in here falls back to 'recent', so
+# a hand-edited ?sort= can never blow up the page or leak an arbitrary field
+# into order_by().
+USER_SORTS = {
+    'recent':   ('-created_at', 'Newest first'),
+    'oldest':   ('created_at', 'Oldest first'),
+    'name':     ('first_name', 'Name A–Z'),
+    'listings': ('-n_props', 'Most listings'),
+    'active':   ('-last_login', 'Recently active'),
+}
+
+
+def _country_groups(rows):
+    """Split already-country-ordered rows into one block per country.
+
+    Built from the rows of the *current page* so that a header can never
+    promise hosts that are actually on the next page. A country whose hosts
+    straddle a page boundary simply gets its header again on the next page.
+    """
+    groups = []
+    for r in rows:
+        # Group on the stored value, not the display name — comparing the
+        # rendered label instead put every country-less host in a block of
+        # its own, since '' never equals 'No country set'.
+        key = (r['location']['country'] or '').lower()
+        if not groups or groups[-1]['key'] != key:
+            groups.append({
+                'key': key,
+                'name': r['location']['country'] or 'No country set',
+                'code': r['location']['code'],
+                'unknown': not key,
+                'rows': [],
+            })
+        groups[-1]['rows'].append(r)
+    return groups
+
+
 @admin_required
 def users_list(request):
     q = (request.GET.get('q') or '').strip()
     status = request.GET.get('status') or ''
     sub = request.GET.get('sub') or ''
     attention = request.GET.get('attention') or ''
+    country = (request.GET.get('country') or '').strip()
+    sort = request.GET.get('sort') if request.GET.get('sort') in USER_SORTS else 'recent'
+    grouped = request.GET.get('group', 'country') != 'none'
 
-    qs = analytics.hosts_queryset().annotate(
+    base = analytics.hosts_queryset()
+    qs = base.annotate(
         n_props=Count('properties_created', distinct=True),
         n_cohosts=Count('host_cohosts', distinct=True),
-    ).order_by('-created_at')
+    ).order_by(USER_SORTS[sort][0])
 
     if q:
         qs = qs.filter(
             Q(username__icontains=q) | Q(email__icontains=q) |
             Q(first_name__icontains=q) | Q(last_name__icontains=q) |
-            Q(phone__icontains=q)
+            Q(phone__icontains=q) | Q(country__icontains=q) | Q(city__icontains=q)
         )
     if status == 'active':
         qs = qs.filter(is_active=True)
     elif status == 'blocked':
         qs = qs.filter(is_active=False)
+    if country:
+        qs = qs.filter(country__iexact=country)
 
     smap = analytics.stripe_map()
     now = timezone.now()
@@ -187,14 +215,52 @@ def users_list(request):
             'last_login': u.last_login,
             'dormant': dormant,
             'needs_attention': needs_attention,
+            'trial_soon': trial_soon,
+            'location': geo.location_cell(u),
         })
 
+    # Counts describe the rows the filters actually produced, so the strip and
+    # the table can never tell the owner two different stories.
+    summary = {
+        'total': len(rows),
+        'paying': sum(1 for r in rows if r['sub_state'] == 'active'),
+        'trialing': sum(1 for r in rows if r['sub_state'] == 'trialing'),
+        'attention': sum(1 for r in rows if r['needs_attention']),
+        'countries': len({(r['location']['country'] or '').lower() for r in rows if r['location']['country']}),
+    }
+
+    # How many hosts each country holds across the WHOLE filtered set, so a
+    # group header can state the real total even when the page shows a slice.
+    per_country = Counter((r['location']['country'] or '').lower() for r in rows)
+
+    if grouped:
+        # Country-major, chosen sort within each country. Python's sort is
+        # stable, so the queryset's ordering survives inside every group, and
+        # hosts with no country recorded collect at the end rather than sorting
+        # to the top under an empty heading.
+        rows.sort(key=lambda r: (
+            not r['location']['country'], (r['location']['country'] or '').lower()
+        ))
+
     page = _paginate(request, rows, 25)
+    groups = _country_groups(list(page)) if grouped else []
+    for g in groups:
+        g['total'] = per_country[g['key']]
+        g['partial'] = g['total'] != len(g['rows'])
+
     return render(request, 'controlpanel/users.html', {
         'active_nav': 'users',
         'page_obj': page,
+        'groups': groups,
+        'grouped': grouped,
         'q': q, 'status': status, 'sub': sub, 'attention': attention,
+        'country': country, 'sort': sort,
+        'sort_label': USER_SORTS[sort][1],
+        'sort_options': [(k, v[1]) for k, v in USER_SORTS.items()],
         'sub_labels': analytics.SUBSCRIPTION_LABELS,
+        'countries': geo.countries_in_use(base),
+        'summary': summary,
+        'has_filters': bool(q or status or sub or attention or country),
         'total_count': len(rows),
     })
 

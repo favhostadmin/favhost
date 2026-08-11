@@ -283,15 +283,145 @@ a { text-decoration: none; color: inherit; }
 .cp-table a.cp-link { color: var(--cp-accent); font-weight: 600; }
 .cp-table a.cp-link:hover { color: var(--cp-accent-dark); text-decoration: underline; }
 
+/* Ruled rows: a register of accounts reads better with a visible grid than
+   with hover-only separation, once a table carries eight columns. */
+.cp-table-lined td { padding-top: 14px; padding-bottom: 14px; }
+.cp-table .cp-num { text-align: right; font-variant-numeric: tabular-nums; }
+.cp-table th.cp-num { text-align: right; }
+.cp-table .cp-none { color: var(--cp-faint); }
+.cp-table .cp-when { font-size: 12.5px; color: var(--cp-muted); white-space: nowrap; }
+.cp-table .cp-when.is-stale { color: var(--cp-amber); }
+
+/* Rows that need the owner's attention carry a hairline marker rather than a
+   tinted background — the badges already carry colour, and a coloured row on
+   top of them turns the table into noise. */
+.cp-table tbody tr.is-flagged td:first-child { box-shadow: inset 2px 0 0 var(--cp-amber); }
+
 .cp-user-cell { display: flex; align-items: center; gap: 11px; }
 .cp-user-cell .cp-ava {
-  width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0;
+  width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;
   background: #efeeeb; color: #6a6a6a; font-weight: 700; font-size: 13px;
   display: flex; align-items: center; justify-content: center; overflow: hidden;
+  box-shadow: 0 0 0 1px var(--cp-border), 0 0 0 3px #fff;
 }
 .cp-user-cell .cp-ava img { width: 100%; height: 100%; object-fit: cover; }
-.cp-user-cell .cp-uname { font-weight: 600; color: var(--cp-heading); }
-.cp-user-cell .cp-uemail { color: var(--cp-muted); font-size: 12px; }
+.cp-user-cell .cp-user-txt { min-width: 0; }
+.cp-user-cell .cp-uname {
+  font-weight: 600; color: var(--cp-heading); display: flex; align-items: center;
+  gap: 7px; letter-spacing: -.1px;
+}
+.cp-user-cell .cp-uname a { color: inherit; }
+.cp-user-cell .cp-uname a:hover { color: var(--cp-accent); }
+.cp-user-cell .cp-uemail {
+  color: var(--cp-muted); font-size: 12px; margin-top: 1px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 250px;
+}
+
+/* Inline qualifier next to a name (e.g. "Trial ending") — quieter than a badge
+   so it never competes with the subscription column. */
+.cp-tag {
+  font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px;
+  padding: 2px 6px; border-radius: 5px; white-space: nowrap;
+}
+.cp-tag.t-amber { background: var(--cp-amber-soft); color: var(--cp-amber-ink); }
+
+/* ── Location cell ────────────────────────────────────────────────────────*/
+.cp-loc { display: flex; align-items: center; gap: 9px; }
+.cp-iso {
+  flex-shrink: 0; min-width: 30px; text-align: center;
+  font-size: 10.5px; font-weight: 700; letter-spacing: .6px;
+  padding: 4px 6px; border-radius: 6px;
+  background: var(--cp-sunken); border: 1px solid var(--cp-border);
+  color: var(--cp-muted);
+}
+.cp-loc-country { font-weight: 500; color: var(--cp-text); white-space: nowrap; }
+.cp-loc-city { font-size: 12px; color: var(--cp-muted); white-space: nowrap; }
+
+/* ── Country groups ───────────────────────────────────────────────────────*/
+.cp-group + .cp-group .cp-group-row td { border-top: 1px solid var(--cp-border); }
+.cp-group-row td {
+  padding: 0 !important;
+  background: var(--cp-sunken);
+  border-bottom: 1px solid var(--cp-border);
+}
+.cp-table tbody.cp-group tr.cp-group-row:hover { background: var(--cp-sunken); }
+.cp-group-head {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 18px;
+}
+.cp-group-name {
+  font-size: 12.5px; font-weight: 700; color: var(--cp-heading); letter-spacing: -.1px;
+}
+.cp-group-count {
+  font-size: 11.5px; color: var(--cp-muted); font-variant-numeric: tabular-nums;
+}
+.cp-group-only {
+  margin-left: auto; font-size: 11.5px; font-weight: 600; color: var(--cp-muted);
+  opacity: 0; transition: opacity .14s, color .14s;
+}
+.cp-group-row:hover .cp-group-only { opacity: 1; }
+.cp-group-only:hover { color: var(--cp-accent); }
+.cp-group-only:focus-visible { opacity: 1; outline: 2px solid var(--cp-accent); outline-offset: 2px; }
+.cp-iso.is-empty { color: var(--cp-faint); }
+
+/* ── Row actions: present, but not shouting on every single row ───────────*/
+.cp-row-actions { text-align: right; width: 1%; white-space: nowrap; }
+.cp-icon-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 30px; height: 30px; border-radius: 8px;
+  border: 1px solid transparent; color: var(--cp-muted);
+  transition: background .14s, border-color .14s, color .14s;
+}
+.cp-icon-btn i { font-size: 17px; }
+.cp-table tbody tr:hover .cp-icon-btn { border-color: var(--cp-border); background: #fff; color: var(--cp-text); }
+.cp-icon-btn:hover { border-color: var(--cp-accent) !important; color: var(--cp-accent) !important; }
+.cp-icon-btn:focus-visible { outline: 2px solid var(--cp-accent); outline-offset: 2px; }
+
+/* ── Summary strip above a list ───────────────────────────────────────────*/
+.cp-summary {
+  display: flex; flex-wrap: wrap; align-items: stretch;
+  background: var(--cp-card); border: 1px solid var(--cp-border);
+  border-radius: var(--cp-radius); box-shadow: var(--cp-shadow);
+  padding: 4px 0; margin-bottom: 16px;
+}
+.cp-summary-item {
+  flex: 1; min-width: 118px; padding: 12px 22px;
+  border-right: 1px solid var(--cp-border-2);
+  display: flex; flex-direction: column; gap: 2px;
+}
+.cp-summary-item:last-child { border-right: 0; }
+.cp-summary-n {
+  font-size: 21px; font-weight: 700; color: var(--cp-heading);
+  letter-spacing: -.5px; line-height: 1.15; font-variant-numeric: tabular-nums;
+}
+.cp-summary-l {
+  font-size: 11px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: .6px; color: var(--cp-muted);
+}
+.cp-summary-item.is-warn .cp-summary-n { color: var(--cp-amber); }
+
+/* ── Filter bar ───────────────────────────────────────────────────────────*/
+.cp-filterbar {
+  display: flex; align-items: center; gap: 9px; flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+.cp-chip-toggle {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 13px; border-radius: 8px; font-size: 13px; font-weight: 600;
+  border: 1px solid var(--cp-border); background: #fff; color: var(--cp-muted);
+  cursor: pointer; font-family: inherit; transition: all .14s;
+}
+.cp-chip-toggle i { font-size: 16px; }
+.cp-chip-toggle:hover { border-color: #dcdcd9; color: var(--cp-text); }
+.cp-chip-toggle.is-on {
+  background: var(--cp-amber-soft); border-color: #f0d5a8; color: var(--cp-amber-ink);
+}
+.cp-clear-link {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 12.5px; font-weight: 600; color: var(--cp-muted);
+}
+.cp-clear-link:hover { color: var(--cp-accent); }
+.cp-clear-link i { font-size: 15px; }
 
 /* ── Badges ───────────────────────────────────────────────────────────────*/
 .cp-badge {
@@ -548,14 +678,6 @@ a { text-decoration: none; color: inherit; }
 .cp-picker-go-wide { display: block; width: 100%; margin-top: 9px; }
 .cp-picker-help { margin: 8px 0 0; font-size: 11px; color: var(--cp-faint); }
 
-.cp-picker-div {
-  display: flex; align-items: center; gap: 9px;
-  margin: 15px 0; color: var(--cp-faint); font-size: 10px; font-weight: 700;
-  text-transform: uppercase; letter-spacing: .8px;
-}
-.cp-picker-div::before, .cp-picker-div::after {
-  content: ''; flex: 1; height: 1px; background: var(--cp-border);
-}
 .cp-picker-reset {
   display: flex; align-items: center; gap: 7px;
   margin-top: 15px; padding-top: 13px;
@@ -861,6 +983,10 @@ tr.cp-row-link:hover .cp-count-link i { color: var(--cp-accent); }
   .cp-ga-plot { height: 250px; padding: 16px 12px 4px; }
   .cp-stat-row { grid-template-columns: 1fr; }
   .cp-ga-title { font-size: 17px; }
+  /* Two per line keeps the numbers readable instead of squeezing five across. */
+  .cp-summary-item { flex: 1 1 45%; min-width: 0; padding: 11px 16px; }
+  .cp-summary-item:nth-child(2n) { border-right: 0; }
+  .cp-filterbar .cp-select, .cp-filterbar .cp-chip-toggle { flex: 1 1 46%; }
 }
 @media (max-width: 860px) {
   .cp-sidebar { transform: translateX(-100%); box-shadow: 8px 0 32px rgba(0,0,0,.3); }

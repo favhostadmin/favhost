@@ -205,14 +205,15 @@ MAX_RANGE_DAYS = 366
 def traffic_context(days=28, start=None, end=None):
     """A Google-Analytics-style daily report over the metrics we actually hold.
 
-    Every metric is a real first-party count from our own tables — signups,
-    bookings, enquiries, booking value. Each carries a day-by-day series for the
-    selected window plus the immediately preceding window of equal length, so
-    the UI can draw the period-over-period comparison GA leads with.
+    Every metric is a real first-party count from our own tables — visitors,
+    page views, trials started, hosts converting to paid. Each carries a
+    day-by-day series for the selected window plus the immediately preceding
+    window of equal length, so the UI can draw the period-over-period
+    comparison GA leads with.
 
-    NOTE: site *visitors* are deliberately absent — nothing in this project
-    records page views, so there is no honest number to show. See the console
-    docs / dashboard footnote for the two ways to light that up.
+    The charted pair is deliberately the platform's OWN funnel (trials → paid)
+    rather than the hosts' booking activity; enquiries and bookings are still
+    computed here for the visitor→booking funnel card below the chart.
     """
     today = timezone.localdate()
     custom = bool(start and end)
@@ -239,6 +240,13 @@ def traffic_context(days=28, start=None, end=None):
     bookings = Booking.objects.all()
     enquiries = Enquiry.objects.all()
     views = PageView.objects.all()
+
+    # The two SaaS-side series the tiles chart: a host signing up starts a free
+    # trial (comped accounts never were on one, so they are excluded), and a
+    # host converting shows up as their StripeCustomer row going active.
+    hosts = hosts_queryset()
+    trials = hosts.filter(is_subscription_free=False)
+    paid = StripeCustomer.objects.filter(subscription_status='active', user__in=hosts)
 
     def add(metrics, key, label, hint, fmt, current, previous, total=None, prev_total=None):
         # Most metrics total by adding the daily bars up; visitors can't, so it
@@ -273,14 +281,14 @@ def traffic_context(days=28, start=None, end=None):
         'count',
         daily_buckets(views, 'created_at', start, end),
         daily_buckets(views, 'created_at', prev_start, prev_end))
-    add(metrics, 'enquiries', 'Enquiries', 'visitors who asked about a stay',
+    add(metrics, 'trials', 'Trials', 'hosts who started a free trial',
         'count',
-        daily_buckets(enquiries, 'created_at', start, end),
-        daily_buckets(enquiries, 'created_at', prev_start, prev_end))
-    add(metrics, 'bookings', 'Bookings', 'stays actually booked',
+        daily_buckets(trials, 'created_at', start, end),
+        daily_buckets(trials, 'created_at', prev_start, prev_end))
+    add(metrics, 'paid', 'Paid hosts', 'hosts who started paying',
         'count',
-        daily_buckets(bookings, 'created_at', start, end),
-        daily_buckets(bookings, 'created_at', prev_start, prev_end))
+        daily_buckets(paid, 'created_at', start, end),
+        daily_buckets(paid, 'created_at', prev_start, prev_end))
 
     # Built by hand rather than with strftime('%b %-d') — the no-pad %-d flag
     # is glibc-only and blows up on Windows.
@@ -335,9 +343,13 @@ def traffic_context(days=28, start=None, end=None):
     tracking_since = views.order_by('created_at').values_list('created_at', flat=True).first()
     covered = bool(tracking_since) and timezone.localtime(tracking_since).date() <= start
 
-    visitors_total = metrics[0]['total']
-    enquiries_total = metrics[2]['total']
-    bookings_total = metrics[3]['total']
+    # Read by key, not position — the tile order is a presentation choice and
+    # has changed before; the funnel keeps reporting enquiries and bookings
+    # whether or not either is charted above.
+    by_key = {m['key']: m for m in metrics}
+    visitors_total = by_key['visitors']['total']
+    enquiries_total = sum(daily_buckets(enquiries, 'created_at', start, end))
+    bookings_total = sum(daily_buckets(bookings, 'created_at', start, end))
     funnel = {
         'visitors': visitors_total,
         'enquiries': enquiries_total,
