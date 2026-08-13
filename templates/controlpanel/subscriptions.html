@@ -165,24 +165,18 @@
     <form method="post" action="{% url 'controlpanel:subscriptions' %}">
       {% csrf_token %}
       <div class="cp-form-grid">
-        <label>Monthly price
-          <input type="number" step="0.01" min="0" name="subscription_price" value="{{ setting.subscription_price }}"></label>
-        <label>Yearly price
-          <input type="number" step="0.01" min="0" name="subscription_price_yearly" value="{{ setting.subscription_price_yearly }}"></label>
-        <label>Currency
-          <input type="text" name="subscription_currency" value="{{ setting.subscription_currency }}"></label>
+        <label>Monthly Stripe Price ID
+          <input type="text" placeholder="price_..." name="stripe_price_id_monthly" value="{{ setting.stripe_price_id_monthly }}"></label>
+        <label>Yearly Stripe Price ID
+          <input type="text" placeholder="price_..." name="stripe_price_id_yearly" value="{{ setting.stripe_price_id_yearly }}"></label>
         <label>Free trial (days)
           <input type="number" min="0" name="free_trial_days" value="{{ setting.free_trial_days }}"></label>
-        <label>Monthly label
-          <input type="text" name="subscription_interval" value="{{ setting.subscription_interval }}"></label>
-        <label>Yearly label
-          <input type="text" name="subscription_interval_yearly" value="{{ setting.subscription_interval_yearly }}"></label>
       </div>
       <div class="cp-form-foot">
         <button class="cp-btn cp-btn-primary"><i class="ti ti-device-floppy"></i> Save</button>
-        <span>Yearly = {{ setting.yearly_monthly_equivalent_display }}/mo{% if setting.yearly_savings_percent %}, saves {{ setting.yearly_savings_percent }}%{% endif %}.
-          Display only — Stripe bills what its dashboard says. Trial length applies to new signups.
-          Last saved {{ setting.updated_at|date:"M j, Y H:i"|default:"—" }}.</span>
+        <span>Create the price in Stripe first, then paste its ID above — amount ({{ setting.full_display }}), currency and interval are fetched from Stripe automatically, so there's only one source of truth.
+          Yearly = {{ setting.full_display_yearly }} ({{ setting.yearly_monthly_equivalent_display }}/mo{% if setting.yearly_savings_percent %}, saves {{ setting.yearly_savings_percent }}%{% endif %}).
+          Trial length applies to new signups. Last saved {{ setting.updated_at|date:"M j, Y H:i"|default:"—" }}.</span>
       </div>
     </form>
   </div>

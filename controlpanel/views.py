@@ -607,26 +607,34 @@ def subscriptions_list(request):
 
         setting = PlatformSetting.load()
 
-        def _dec(name, current):
-            raw = (request.POST.get(name) or '').strip()
-            try:
-                value = Decimal(raw)
-            except (InvalidOperation, TypeError):
-                return current
-            # A negative price would quietly invert every total on the page.
-            return value if value >= 0 else current
+        # Price is no longer typed in — it's whatever Stripe says for the
+        # given Price ID. This is the only path that can change what's
+        # charged, so paste the ID here and the amount/currency/interval are
+        # fetched from Stripe automatically (see PlatformSetting.save()).
+        # Leaving a box blank keeps that plan's existing price ID untouched.
+        monthly_id = (request.POST.get('stripe_price_id_monthly') or '').strip()
+        yearly_id = (request.POST.get('stripe_price_id_yearly') or '').strip()
+        if monthly_id:
+            setting.stripe_price_id_monthly = monthly_id
+        if yearly_id:
+            setting.stripe_price_id_yearly = yearly_id
 
-        setting.subscription_price = _dec('subscription_price', setting.subscription_price)
-        setting.subscription_price_yearly = _dec('subscription_price_yearly', setting.subscription_price_yearly)
-        setting.subscription_currency = (request.POST.get('subscription_currency') or setting.subscription_currency).strip()[:10]
-        setting.subscription_interval = (request.POST.get('subscription_interval') or setting.subscription_interval).strip()[:20]
-        setting.subscription_interval_yearly = (request.POST.get('subscription_interval_yearly') or setting.subscription_interval_yearly).strip()[:20]
         try:
             setting.free_trial_days = max(0, int(request.POST.get('free_trial_days') or setting.free_trial_days))
         except (TypeError, ValueError):
             pass
-        setting.save()
-        messages.success(request, 'Pricing updated. Stripe still bills the amounts configured in the Stripe dashboard — change them there too.')
+
+        try:
+            setting.save()
+        except Exception as e:
+            # Stripe rejected the ID, it's inactive/archived, or the API call
+            # failed outright. Don't save anything — a half-applied form
+            # would leave the display cache out of sync with what Stripe
+            # actually charges, exactly the bug this replaces.
+            messages.error(request, f'Could not update pricing: {e} — nothing was saved.')
+            return redirect('controlpanel:subscriptions')
+
+        messages.success(request, 'Pricing updated — amount, currency and interval were fetched live from Stripe.')
         return redirect('controlpanel:subscriptions')
 
     ctx = analytics.subscription_context()
