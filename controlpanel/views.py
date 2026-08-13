@@ -2,12 +2,23 @@
 
 Security model
 --------------
-Every view except the login page is wrapped in ``@admin_required``, which permits
-ONLY the single predefined owner account. Host business data (listings, bookings,
-prices) is presented read-only — the owner oversees and manages *accounts*, but
-never edits a host's own data. The mutating actions are strictly account-level:
-block/unblock, comp free access, adjust trial length, delete account, and edit
-platform pricing.
+Every view except the login page carries one of three gates (see
+``controlpanel.access``):
+
+``@section_required('<key>')``
+    The data sections. The owner holds them all; a co-admin holds only what was
+    granted on the Co-admins page, so an ungranted section 404s even if the URL
+    is typed directly.
+``@owner_required``
+    Platform Settings and the Co-admins page — never grantable.
+``@admin_required``
+    Any console member, used for role-neutral pages (logout, no-access).
+
+Host business data (listings, bookings, prices) is presented read-only — the
+console oversees and manages *accounts*, but never edits a host's own data. The
+mutating actions are strictly account-level: block/unblock, comp free access,
+adjust trial length, delete account, edit platform pricing, and appoint/revoke
+co-admins.
 """
 import json
 import uuid
@@ -18,20 +29,26 @@ from decimal import Decimal, InvalidOperation
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import authenticate, login as auth_login, logout as auth_logout
+from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator
+from django.core.validators import validate_email
 from django.db.models import Count, Q, Sum
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_POST
 
-from accounts.models import MyUser, CoHost
+from accounts.models import MyUser, CoHost, CoAdmin
 from property.models import Property
 from booking.models import Booking, Payment, Enquiry
 from billing.models import StripeCustomer, PlatformSetting
 
 from . import analytics, geo
-from .access import admin_required, is_platform_admin
+from .access import (
+    admin_required, owner_required, section_required, is_platform_admin,
+    admin_email, console_home_url,
+)
+from .permissions import SECTIONS, SECTION_LABELS, clean_permissions
 
 BACKEND = 'accounts.backends.EmailOrUsernameBackend'
 
@@ -40,14 +57,18 @@ BACKEND = 'accounts.backends.EmailOrUsernameBackend'
 
 @never_cache
 def login_view(request):
-    """Console login. Only the predefined owner account is accepted.
+    """Console login. Only the owner account and live co-admins are accepted.
+
+    A co-admin whose role has just been revoked fails here exactly like any
+    stranger — the ``CoAdmin`` row is the entire grant, so removing it locks
+    them out on the next attempt (and their account is deleted with it).
 
     ``never_cache`` stops the browser (or bfcache/back-button) from re-serving a
     stale copy of this page, so the form always carries a CSRF token matching the
     current cookie — avoiding spurious 403s after logging in on another tab.
     """
     if is_platform_admin(request.user):
-        return redirect('controlpanel:dashboard')
+        return redirect(console_home_url(request.user))
 
     next_url = request.GET.get('next') or request.POST.get('next') or ''
     if request.method == 'POST':
@@ -59,7 +80,9 @@ def login_view(request):
             request.session.set_expiry(settings.SESSION_COOKIE_AGE)
             if next_url and next_url.startswith('/console'):
                 return redirect(next_url)
-            return redirect('controlpanel:dashboard')
+            # Land on the first section they hold — a co-admin granted only
+            # Payments must not be dropped on a dashboard they cannot open.
+            return redirect(console_home_url(user))
         # Deliberately generic — never reveal whether the email exists or that
         # this is the owner-only gate.
         messages.error(request, 'Invalid credentials or insufficient access.')
@@ -73,6 +96,17 @@ def logout_view(request):
     return redirect('controlpanel:login')
 
 
+@admin_required
+def no_access(request):
+    """Landing page for a co-admin who holds no section grants yet.
+
+    Without this they would log in successfully and immediately hit a 404,
+    which reads as "the console is broken" rather than "you have not been given
+    anything yet".
+    """
+    return render(request, 'controlpanel/no_access.html', {'owner_email': admin_email()})
+
+
 # ── dashboard ────────────────────────────────────────────────────────────────
 
 def _parse_day(value):
@@ -83,6 +117,7 @@ def _parse_day(value):
 
 
 @admin_required
+@section_required('dashboard')
 def dashboard(request):
     """The owner overview.
 
@@ -158,7 +193,7 @@ def _country_groups(rows):
     return groups
 
 
-@admin_required
+@section_required('users')
 def users_list(request):
     q = (request.GET.get('q') or '').strip()
     status = request.GET.get('status') or ''
@@ -265,7 +300,7 @@ def users_list(request):
     })
 
 
-@admin_required
+@section_required('users')
 def user_detail(request, pk):
     user = get_object_or_404(analytics.hosts_queryset(), pk=pk)
     now = timezone.now()
@@ -307,15 +342,19 @@ def user_detail(request, pk):
     })
 
 
-@admin_required
+@section_required('users')
 @require_POST
 def user_action(request, pk):
     user = get_object_or_404(MyUser, pk=pk)
     action = request.POST.get('action')
 
-    # Absolute guardrail: the owner account can never be acted upon.
+    # Absolute guardrail: console accounts (the owner and any co-admin) can
+    # never be acted upon from the Hosts pages. Co-admins are already excluded
+    # from every host listing; this is the belt-and-braces check behind it, and
+    # it keeps the only way to revoke a co-admin the Co-admins page, where
+    # removal also deletes the login.
     if is_platform_admin(user):
-        messages.error(request, 'The platform owner account cannot be modified here.')
+        messages.error(request, 'Console accounts cannot be modified here. Use the Co-admins page.')
         return redirect('controlpanel:user_detail', pk=pk)
 
     if action == 'block':
@@ -361,7 +400,7 @@ def user_action(request, pk):
 
 # ── properties ───────────────────────────────────────────────────────────────
 
-@admin_required
+@section_required('properties')
 def properties_list(request):
     q = (request.GET.get('q') or '').strip()
     status = request.GET.get('status') or ''
@@ -383,7 +422,7 @@ def properties_list(request):
     })
 
 
-@admin_required
+@section_required('properties')
 def property_detail(request, pk):
     """A listing and everything about it — including ALL of its bookings.
 
@@ -420,7 +459,7 @@ def property_detail(request, pk):
 
 # ── bookings ─────────────────────────────────────────────────────────────────
 
-@admin_required
+@section_required('bookings')
 def bookings_list(request):
     """Bookings, optionally narrowed to one listing (?property_id=…).
 
@@ -469,7 +508,7 @@ def bookings_list(request):
     })
 
 
-@admin_required
+@section_required('bookings')
 def booking_detail(request, pk):
     booking = get_object_or_404(
         Booking.objects.select_related('property', 'property__created_by', 'channel'), pk=pk
@@ -483,7 +522,7 @@ def booking_detail(request, pk):
 
 # ── enquiries ────────────────────────────────────────────────────────────────
 
-@admin_required
+@section_required('enquiries')
 def enquiries_list(request):
     q = (request.GET.get('q') or '').strip()
     qs = Enquiry.objects.select_related('property', 'property__created_by').order_by('-created_at')
@@ -500,7 +539,7 @@ def enquiries_list(request):
 
 # ── subscriptions ────────────────────────────────────────────────────────────
 
-@admin_required
+@section_required('subscriptions')
 def subscriptions_list(request):
     now = timezone.now()
     smap = analytics.stripe_map()
@@ -530,7 +569,7 @@ def subscriptions_list(request):
 
 # ── payments / finance ───────────────────────────────────────────────────────
 
-@admin_required
+@section_required('payments')
 def payments_list(request):
     status = request.GET.get('status') or ''
     qs = Payment.objects.select_related('booking', 'booking__property').order_by('-payment_date', '-id')
@@ -551,7 +590,7 @@ def payments_list(request):
 
 # ── platform settings (pricing / trial) ──────────────────────────────────────
 
-@admin_required
+@owner_required
 def platform_settings(request):
     setting = PlatformSetting.load()
     if request.method == 'POST':
@@ -576,4 +615,170 @@ def platform_settings(request):
     return render(request, 'controlpanel/settings.html', {
         'active_nav': 'settings', 'setting': setting,
         'admin_email': settings.PLATFORM_ADMIN_EMAIL,
+        'coadmin_count': CoAdmin.objects.count(),
+    })
+
+
+# ── co-admins (console delegates) ────────────────────────────────────────────
+
+@owner_required
+def co_admins(request):
+    """Appoint, edit and revoke platform co-admins.
+
+    Structured to match the host-side ``manage_cohost_view``: one page holding
+    the list plus add / edit / delete actions, the plain password kept only for
+    display so the appointer can hand it over, and — crucially — **revoking
+    deletes the user account**, which frees the email so that person can sign
+    up as an ordinary host afterwards.
+
+    Guards, in order of importance:
+
+    * the owner account can never be turned into, or removed as, a co-admin;
+    * a co-admin can never edit or revoke themselves (only the owner or a peer
+      can), so nobody can lock the console into an unrecoverable state by
+      accident;
+    * an email that already belongs to a host or a co-host is refused — those
+      are somebody else's accounts and must not be silently repurposed.
+    """
+    me = request.user
+
+    def _guard(rel):
+        """Reject acting on the owner or on your own row. Returns an error or None."""
+        if rel.user_id == me.pk:
+            return 'You cannot modify your own co-admin access.'
+        if (rel.user.email or '').strip().lower() == admin_email():
+            return 'The platform owner account cannot be modified here.'
+        return None
+
+    if request.method == 'POST':
+        action = request.POST.get('action', '')
+
+        if action == 'add':
+            email = (request.POST.get('email') or '').strip().lower()
+            password = (request.POST.get('password') or '').strip()
+            full_name = (request.POST.get('full_name') or '').strip()
+            phone = (request.POST.get('phone') or '').strip()
+
+            if not email or not password:
+                messages.error(request, 'Email and password are required.')
+                return redirect('controlpanel:co_admins')
+            try:
+                validate_email(email)
+            except ValidationError:
+                messages.error(request, 'Please enter a valid email address.')
+                return redirect('controlpanel:co_admins')
+            if email == admin_email():
+                messages.error(request, 'That is the platform owner account — it already has full access.')
+                return redirect('controlpanel:co_admins')
+
+            existing = MyUser.objects.filter(Q(email__iexact=email) | Q(username__iexact=email)).first()
+            if existing:
+                if CoAdmin.objects.filter(user=existing).exists():
+                    messages.error(request, 'This email is already a co-admin.')
+                else:
+                    messages.error(
+                        request,
+                        'That email already belongs to an existing account on the platform. '
+                        'Use an email that is not registered yet.',
+                    )
+                return redirect('controlpanel:co_admins')
+
+            parts = full_name.split(' ', 1)
+            user = MyUser.objects.create_user(username=email, email=email, password=password)
+            user.first_name = parts[0] if parts else ''
+            user.last_name = parts[1] if len(parts) > 1 else ''
+            user.phone = phone
+            user.is_active = True
+            user.save()
+
+            perms = clean_permissions(request.POST.getlist('permissions'))
+            CoAdmin.objects.create(
+                user=user, display_password=password, created_by=me, permissions=perms,
+            )
+            if perms:
+                granted = ', '.join(SECTION_LABELS[p] for p in perms)
+                messages.success(request, f'Co-admin {email} added with access to {granted}.')
+            else:
+                messages.success(
+                    request,
+                    f'Co-admin {email} added with no sections yet — they can sign in but will '
+                    f'see nothing until you grant access.',
+                )
+            return redirect('controlpanel:co_admins')
+
+        elif action == 'edit':
+            rel = get_object_or_404(CoAdmin.objects.select_related('user'), pk=request.POST.get('coadmin_id') or 0)
+            error = _guard(rel)
+            if error:
+                messages.error(request, error)
+                return redirect('controlpanel:co_admins')
+
+            user = rel.user
+            email = (request.POST.get('email') or '').strip().lower()
+            password = (request.POST.get('password') or '').strip()
+            full_name = (request.POST.get('full_name') or '').strip()
+
+            parts = full_name.split(' ', 1)
+            user.first_name = parts[0] if parts else ''
+            user.last_name = parts[1] if len(parts) > 1 else ''
+            user.phone = (request.POST.get('phone') or '').strip()
+
+            if email and email != (user.email or '').lower():
+                try:
+                    validate_email(email)
+                except ValidationError:
+                    messages.error(request, 'Please enter a valid email address.')
+                    return redirect('controlpanel:co_admins')
+                if email == admin_email() or MyUser.objects.exclude(pk=user.pk).filter(
+                    Q(email__iexact=email) | Q(username__iexact=email)
+                ).exists():
+                    messages.error(request, 'That email is already in use by another account.')
+                    return redirect('controlpanel:co_admins')
+                user.email = email
+                user.username = email
+            if password:
+                user.set_password(password)
+                rel.display_password = password
+            rel.permissions = clean_permissions(request.POST.getlist('permissions'))
+            user.save()
+            rel.save()
+
+            messages.success(request, 'Co-admin updated successfully.')
+            return redirect('controlpanel:co_admins')
+
+        elif action == 'delete':
+            rel = get_object_or_404(CoAdmin.objects.select_related('user'), pk=request.POST.get('coadmin_id') or 0)
+            error = _guard(rel)
+            if error:
+                messages.error(request, error)
+                return redirect('controlpanel:co_admins')
+
+            user = rel.user
+            email = user.email
+            rel.delete()
+            # Delete the account itself, exactly like removing a co-host: the
+            # email becomes available again so they can register as a host.
+            user.delete()
+            messages.success(request, f'Co-admin {email} removed and account deleted.')
+            return redirect('controlpanel:co_admins')
+
+    rows = []
+    for rel in CoAdmin.objects.select_related('user', 'created_by'):
+        granted = clean_permissions(rel.permissions)
+        rows.append({
+            'rel': rel,
+            'user': rel.user,
+            # Labels for the table, and the raw keys for the edit modal so it
+            # can re-check the right boxes.
+            'granted_labels': [SECTION_LABELS[k] for k in granted],
+            'granted_keys': ','.join(granted),
+            'n_granted': len(granted),
+        })
+
+    return render(request, 'controlpanel/co_admins.html', {
+        'active_nav': 'co_admins',
+        'rows': rows,
+        'sections': SECTIONS,
+        'owner_email': admin_email(),
+        'total_count': len(rows),
     })

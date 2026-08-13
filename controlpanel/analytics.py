@@ -14,7 +14,7 @@ from django.db.models import Count, Sum
 from django.db.models.functions import TruncDate
 from django.utils import timezone
 
-from accounts.models import MyUser, CoHost
+from accounts.models import MyUser, CoHost, CoAdmin
 from property.models import Property
 from booking.models import Booking, Payment, Enquiry
 from billing.models import StripeCustomer, PlatformSetting
@@ -493,14 +493,16 @@ def host_health(user, stripe=None, now=None):
 def hosts_queryset():
     """Primary host accounts only.
 
-    Excludes (a) the platform-owner account, and (b) **co-hosts** — co-hosts are
-    dependent sub-accounts a host creates and can delete; they don't own the
+    Excludes (a) the platform-owner account, (b) **co-hosts**, and
+    (c) **platform co-admins**. Co-hosts and co-admins are both dependent
+    sub-accounts someone else creates and can delete; they don't own the
     account or carry their own subscription, so they must never be counted or
-    listed as standalone accounts. They surface only nested under their host on
-    the host's detail page.
+    listed as standalone accounts. Co-hosts surface only nested under their
+    host on the host's detail page; co-admins only on the Co-admins page.
     """
     owner_email = (getattr(settings, 'PLATFORM_ADMIN_EMAIL', '') or '').strip()
-    qs = MyUser.objects.exclude(id__in=CoHost.objects.values('co_host_id'))
+    qs = MyUser.objects.exclude(id__in=CoHost.objects.values('co_host_id')) \
+                       .exclude(id__in=CoAdmin.objects.values('user_id'))
     if owner_email:
         qs = qs.exclude(email__iexact=owner_email)
     return qs

@@ -14,4 +14,8 @@ fi
 
 python manage.py migrate --noinput
 
+# Guarantee the /console/ owner account exists on every boot. Idempotent, and
+# it never touches an existing password, so it is safe to run on production.
+python manage.py create_platform_admin
+
 exec python manage.py runserver 0.0.0.0:8000
