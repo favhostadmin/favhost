@@ -568,8 +568,14 @@ def property_detail(request, pk):
 
 
 # ── bookings ─────────────────────────────────────────────────────────────────
+# No longer a console section of its own — the nav entry and the ``bookings``
+# grant are gone. These two views stay reachable to any console member because
+# Dashboard, Payments, Property detail and Host detail all link into them: a
+# booking is still worth opening *in context*, it just no longer warrants a
+# platform-wide list in the sidebar. Gating them on a section that no longer
+# exists would 404 every one of those links.
 
-@section_required('bookings')
+@admin_required
 def bookings_list(request):
     """Bookings, optionally narrowed to one listing (?property_id=…).
 
@@ -618,7 +624,7 @@ def bookings_list(request):
     })
 
 
-@section_required('bookings')
+@admin_required
 def booking_detail(request, pk):
     booking = get_object_or_404(
         Booking.objects.select_related('property', 'property__created_by', 'channel'), pk=pk
