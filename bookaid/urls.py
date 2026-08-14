@@ -65,6 +65,7 @@ urlpatterns = [
     path('calendar-grid-view/',CalenderAPIView.as_view(),name="calendar-grid-view"),
     path('calendar-timeline-view/',CalendarTimelineView.as_view(),name="calendar-timeline-view"),
     path('calendar-list-view/',CalendarListView.as_view(),name="calendar-list-view"),
+    path('calendar-availability-view/',CalendarAvailabilityView.as_view(),name="calendar-availability-view"),
 
     path('calendar/',CalenderAPIView.as_view(),name="calendar"),
     path('manage/<uuid:property_id>/', channel_integration, name='channel_integration'),
