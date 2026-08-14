@@ -1,38 +1,97 @@
+from decimal import Decimal
+
 from django.db import models
 from django.conf import settings
+
+
+def fetch_stripe_price_details(price_id):
+    """Fetch `price_id` from Stripe and return (amount, currency, interval).
+
+    amount is a Decimal in major units (e.g. 9.99), currency is upper-cased
+    (e.g. 'USD'), interval is Stripe's recurring interval (e.g. 'month').
+
+    Raises ValueError for a price that exists but isn't usable here (archived,
+    no fixed amount, not recurring), or stripe.error.StripeError for anything
+    Stripe itself rejects (unknown ID, wrong API key/mode, network failure).
+    """
+    import stripe
+    stripe.api_key = settings.STRIPE_SECRET_KEY
+    price = stripe.Price.retrieve(price_id)
+
+    if not price.get('active', True):
+        raise ValueError(f"Stripe price {price_id} is archived/inactive in Stripe.")
+    if price.get('unit_amount') is None:
+        raise ValueError(
+            f"Stripe price {price_id} has no fixed unit amount (metered or "
+            f"tiered prices aren't supported here)."
+        )
+    recurring = price.get('recurring')
+    if not recurring:
+        raise ValueError(f"Stripe price {price_id} is not a recurring price.")
+
+    amount = Decimal(price['unit_amount']) / Decimal(100)
+    currency = (price.get('currency') or 'usd').upper()
+    interval = recurring.get('interval') or 'month'
+    return amount, currency, interval
 
 
 class PlatformSetting(models.Model):
     """Site-wide, admin-editable settings for pricing and the free trial.
 
     This is a singleton (always exactly one row, pk=1). Edit it from the admin
-    panel to change the price shown across the platform and the free-trial
-    length applied to NEW signups. Existing accounts are unaffected: each user's
-    trial length is captured on their record at signup (see MyUser.trial_days),
-    and changing the price here only affects what is displayed — actual Stripe
-    billing must still be updated in the Stripe dashboard.
+    panel (or the owner console) to change the plan Stripe actually charges,
+    and the free-trial length applied to NEW signups.
+
+    Stripe price IDs (``stripe_price_id_monthly`` / ``stripe_price_id_yearly``)
+    are the single source of truth: they are not secrets (Stripe.js exposes
+    them client-side on Checkout anyway), they change far more often than a
+    deploy cycle, and they're business config — so they live here in the DB
+    instead of an env var / AWS Secrets Manager entry that needs a manual
+    EC2 + gunicorn restart every time the price changes.
+
+    The display fields (``subscription_price`` etc.) are NOT independently
+    editable — they are a cache, populated automatically from Stripe by
+    ``save()`` whenever a price ID changes. This keeps the UI-shown amount and
+    what Stripe actually bills structurally impossible to drift apart, which
+    is what used to happen when both were typed in by hand separately.
     """
+    stripe_price_id_monthly = models.CharField(
+        max_length=255, blank=True, default='',
+        help_text="Stripe Price ID for the monthly plan (e.g. price_1AbC...). "
+                  "This is what Stripe actually charges. Create it in the "
+                  "Stripe dashboard first, then paste it here — the amount, "
+                  "currency and interval below are fetched from Stripe "
+                  "automatically.",
+    )
+    stripe_price_id_yearly = models.CharField(
+        max_length=255, blank=True, default='',
+        help_text="Stripe Price ID for the yearly plan. Same rules as the "
+                  "monthly price ID above.",
+    )
     subscription_price = models.DecimalField(
         max_digits=8, decimal_places=2, default=9.99,
-        help_text="Monthly price shown across the platform (display only — "
-                  "update Stripe separately for real billing).",
+        help_text="Monthly price shown across the platform. Auto-filled from "
+                  "the Stripe price ID above — do not edit directly.",
     )
     subscription_currency = models.CharField(
         max_length=10, default='USD',
-        help_text="3-letter currency code, e.g. USD, EUR, GBP.",
+        help_text="3-letter currency code, e.g. USD, EUR, GBP. Auto-filled "
+                  "from Stripe.",
     )
     subscription_interval = models.CharField(
         max_length=20, default='month',
-        help_text="Billing interval label, e.g. month or year.",
+        help_text="Billing interval label, e.g. month or year. Auto-filled "
+                  "from Stripe.",
     )
     subscription_price_yearly = models.DecimalField(
         max_digits=8, decimal_places=2, default=99.99,
-        help_text="Yearly price shown across the platform (display only — "
-                  "update Stripe separately for real billing).",
+        help_text="Yearly price shown across the platform. Auto-filled from "
+                  "the Stripe price ID above — do not edit directly.",
     )
     subscription_interval_yearly = models.CharField(
         max_length=20, default='year',
-        help_text="Yearly billing interval label, e.g. year.",
+        help_text="Yearly billing interval label, e.g. year. Auto-filled "
+                  "from Stripe.",
     )
     free_trial_days = models.PositiveIntegerField(
         default=90,
@@ -51,7 +110,39 @@ class PlatformSetting(models.Model):
     def save(self, *args, **kwargs):
         # Enforce the singleton: there is only ever one row, pk=1.
         self.pk = 1
+
+        # Whenever a Stripe price ID changed, re-fetch its amount/currency/
+        # interval from Stripe so the display cache can never drift from what
+        # Stripe actually bills. Comparison is against the DB, not against
+        # `self`, so this only fires on an actual change — not on every save
+        # (e.g. just editing free_trial_days).
+        old = PlatformSetting.objects.filter(pk=1).first() if not self._state.adding else None
+        if self.stripe_price_id_monthly and self.stripe_price_id_monthly != (old.stripe_price_id_monthly if old else ''):
+            self._sync_stripe_price('monthly', self.stripe_price_id_monthly)
+        if self.stripe_price_id_yearly and self.stripe_price_id_yearly != (old.stripe_price_id_yearly if old else ''):
+            self._sync_stripe_price('yearly', self.stripe_price_id_yearly)
+
         super().save(*args, **kwargs)
+
+    def _sync_stripe_price(self, which, price_id):
+        """Fetch `price_id` from Stripe and populate the matching display
+        fields from it. Raises ValueError (bad/unsupported price) or
+        stripe.error.StripeError (network/API/auth problem, unknown ID) —
+        callers must catch these and must NOT save a half-applied form on
+        failure, so the display cache never shows an amount Stripe didn't
+        confirm.
+        """
+        amount, currency, interval = fetch_stripe_price_details(price_id)
+
+        # Both plans share one currency field on this model — keep it in
+        # sync with whichever price was just fetched.
+        self.subscription_currency = currency
+        if which == 'yearly':
+            self.subscription_price_yearly = amount
+            self.subscription_interval_yearly = interval
+        else:
+            self.subscription_price = amount
+            self.subscription_interval = interval
 
     def delete(self, *args, **kwargs):
         # Never delete the singleton.
