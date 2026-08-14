@@ -10,7 +10,7 @@ from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
-from .models import StripeCustomer
+from .models import StripeCustomer, PlatformSetting
 from .emails import format_price
 
 logger = logging.getLogger(__name__)
@@ -81,10 +81,16 @@ def create_checkout_session(request):
     # behaviour); yearly uses its own Stripe price. Everything downstream is
     # identical — only the Stripe price id differs.
     plan = request.POST.get('plan', 'monthly')
+    # The DB (PlatformSetting, editable from the owner console/admin) is now
+    # the source of truth for which Stripe price gets charged — it can be
+    # changed without touching env vars or restarting the app. The env vars
+    # remain only as a fallback for a fresh deploy before anything's been
+    # configured in the console yet.
+    ps = PlatformSetting.load()
     if plan == 'yearly':
-        price_id = settings.STRIPE_PRICE_ID_YEARLY or settings.STRIPE_PRICE_ID
+        price_id = ps.stripe_price_id_yearly or settings.STRIPE_PRICE_ID_YEARLY or settings.STRIPE_PRICE_ID
     else:
-        price_id = settings.STRIPE_PRICE_ID
+        price_id = ps.stripe_price_id_monthly or settings.STRIPE_PRICE_ID
 
     try:
         # Resolve existing Stripe customer, if any

@@ -767,7 +767,9 @@ def profile_view(request):
 
     now = timezone.now()
     trial_start = user.created_at
-    trial_end = trial_start + timedelta(days=(user.trial_days or 90))
+    # `is None` rather than `or` — a 0-day trial (set when the console cancels
+    # a subscription outright) must stay zero, not silently become 90.
+    trial_end = trial_start + timedelta(days=90 if user.trial_days is None else user.trial_days)
     trial_days_left = (trial_end - now).days
     if trial_days_left < 0:
         trial_days_left = 0

@@ -74,9 +74,12 @@
         {% endif %}
 
         <div class="cp-nav-section">System</div>
+        {% comment %}
+          Platform Settings was retired: pricing and trial length moved onto
+          Subscriptions (next to the revenue they drive) and its only other
+          card duplicated the Co-admins page. The URL still redirects.
+        {% endcomment %}
         {% if is_console_owner %}
-        <a href="{% url 'controlpanel:settings' %}" class="cp-nav-item {% if active_nav == 'settings' %}active{% endif %}">
-          <i class="ti ti-settings"></i> Platform Settings</a>
         <a href="{% url 'controlpanel:co_admins' %}" class="cp-nav-item {% if active_nav == 'co_admins' %}active{% endif %}">
           <i class="ti ti-user-shield"></i> Co-admins</a>
         {% endif %}
@@ -96,10 +99,21 @@
           {% block subheading %}{% endblock %}
         </div>
         <div class="cp-spacer"></div>
-        <div class="cp-admin-chip">
-          <span class="cp-avatar">{{ request.user.username|slice:":1"|upper }}</span>
-          <span>{{ request.user.email }}</span>
-        </div>
+        {% comment %}
+          The email used to sit here as static text. It is now an avatar button
+          into the viewer's own profile — the same place every other admin tool
+          puts it — which frees the width and gives the account settings a home.
+          `title` carries the address for anyone who needs to confirm which
+          account they are signed in as.
+        {% endcomment %}
+        <a href="{% url 'controlpanel:profile' %}"
+           class="cp-admin-chip {% if active_nav == 'profile' %}on{% endif %}"
+           title="{{ request.user.email }} — your profile">
+          <span class="cp-avatar">
+            {% if request.user.profile_picture_url %}<img src="{{ request.user.profile_picture_url }}" alt="">
+            {% else %}{{ request.user.username|slice:":1"|upper }}{% endif %}
+          </span>
+        </a>
       </header>
 
       <main class="cp-content">

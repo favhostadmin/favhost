@@ -179,18 +179,22 @@ a { text-decoration: none; color: inherit; }
 .cp-topbar .cp-spacer { flex: 1; }
 .cp-hamburger { display: none; background: none; border: 0; font-size: 22px; color: var(--cp-text); cursor: pointer; }
 
+/* Avatar button in the topbar — the way into the viewer's own profile. */
 .cp-admin-chip {
-  display: flex; align-items: center; gap: 9px;
-  padding: 5px 12px 5px 6px; border: 1px solid var(--cp-border);
-  border-radius: 30px; font-size: 13px; background: #fff; color: var(--cp-text);
-  box-shadow: var(--cp-shadow);
+  display: flex; align-items: center; justify-content: center;
+  padding: 4px; border: 1px solid var(--cp-border);
+  border-radius: 50%; background: #fff;
+  box-shadow: var(--cp-shadow); transition: border-color .15s, box-shadow .15s;
 }
+.cp-admin-chip:hover { border-color: var(--cp-accent); }
+.cp-admin-chip.on { border-color: var(--cp-accent); box-shadow: 0 0 0 3px var(--cp-accent-soft); }
 .cp-admin-chip .cp-avatar {
-  width: 30px; height: 30px; border-radius: 50%;
+  width: 32px; height: 32px; border-radius: 50%; overflow: hidden;
   background: linear-gradient(135deg, var(--cp-accent), var(--cp-accent-dark));
   color: #fff; font-weight: 700;
-  display: flex; align-items: center; justify-content: center; font-size: 12.5px;
+  display: flex; align-items: center; justify-content: center; font-size: 13px;
 }
+.cp-admin-chip .cp-avatar img { width: 100%; height: 100%; object-fit: cover; }
 
 .cp-content { padding: 26px 28px; max-width: 1480px; width: 100%; }
 
@@ -483,6 +487,23 @@ a { text-decoration: none; color: inherit; }
 
 /* Revealable stored password (co-admins list) */
 .cp-pw { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px; letter-spacing: .5px; }
+
+/* Password cell: a fixed slot, so revealing the value cannot resize the
+   column and shove everything to its right. A long password truncates with
+   an ellipsis rather than stretching the table. */
+.cp-pw-cell { display: flex; align-items: center; gap: 8px; }
+.cp-pw-cell .cp-pw {
+  display: inline-block; width: 96px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.cp-pw-eye { padding: 3px 7px; flex: none; }
+
+/* Granted-sections cell: one line, always. */
+.cp-grant-cell { display: flex; align-items: center; gap: 5px; white-space: nowrap; }
+.cp-grant-more {
+  font-size: 11.5px; font-weight: 600; color: var(--cp-muted);
+  padding: 2px 7px; border: 1px solid var(--cp-border); border-radius: 20px; cursor: default;
+}
 .cp-btn-block { width: 100%; justify-content: center; }
 
 /* ── Filters / toolbar ────────────────────────────────────────────────────*/
@@ -513,6 +534,157 @@ a { text-decoration: none; color: inherit; }
 .cp-pagination a:hover { border-color: var(--cp-accent); color: var(--cp-accent); }
 .cp-pagination .cp-cur { background: var(--cp-accent); border-color: var(--cp-accent); color: #fff; font-weight: 600; }
 .cp-pagination .cp-disabled { opacity: .45; pointer-events: none; }
+/* The ellipsis between page-number runs is a label, not a target. */
+.cp-pagination .cp-gap { border-color: transparent; background: none; padding: 7px 4px; color: var(--cp-muted); }
+
+/* Pager bar: numbers on the right, page-size control on the left. */
+.cp-pager { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.cp-pager .cp-pagination { order: 2; margin-left: auto; }
+.cp-pager-size { order: 1; display: flex; align-items: center; gap: 6px; padding: 16px 4px 0; font-size: 12.5px; }
+.cp-pager-size > span { color: var(--cp-muted); margin-right: 2px; }
+.cp-pager-size a {
+  padding: 5px 10px; border: 1px solid var(--cp-border); border-radius: 7px;
+  background: #fff; color: var(--cp-muted); transition: all .12s;
+}
+.cp-pager-size a:hover { border-color: var(--cp-accent); color: var(--cp-accent); }
+.cp-pager-size a.on { background: var(--cp-accent-soft); border-color: var(--cp-accent); color: var(--cp-accent); font-weight: 600; }
+
+/* ── Finance pages (Subscriptions / Payments) ─────────────────────────────*/
+/* A tighter KPI row than the dashboard's: these pages carry five figures
+   above a working table, so the tiles have to earn their vertical space. */
+.cp-kpi-grid.cp-kpi-tight {
+  grid-template-columns: repeat(auto-fit, minmax(178px, 1fr));
+  gap: 12px; margin-bottom: 16px;
+}
+.cp-kpi-tight .cp-kpi { padding: 14px 16px; }
+.cp-kpi-tight .cp-kpi-value { font-size: 22px; }
+.cp-kpi-tight .cp-kpi-foot { font-size: 11.5px; }
+
+/* Table cells that carry secondary information. */
+.cp-cell-muted { font-size: 12.5px; color: var(--cp-muted); }
+.cp-cell-clip {
+  max-width: 180px; overflow: hidden; text-overflow: ellipsis;
+  white-space: nowrap; font-size: 12.5px;
+}
+.cp-note-amber { font-size: 11px; color: var(--cp-amber); margin-top: 3px; }
+
+/* Buttons inside a table row: kept on one line and pushed right. Each action
+   is its own POST form, so they need to sit inline rather than stack. */
+.cp-row-actions { display: flex; align-items: center; gap: 6px; justify-content: flex-end; }
+.cp-row-actions form { display: inline; }
+
+/* Compact settings form (the folded pricing panel). */
+.cp-form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; }
+.cp-form-grid label { font-size: 12.5px; font-weight: 600; color: var(--cp-heading); }
+.cp-form-grid input {
+  width: 100%; margin-top: 6px; padding: 9px 11px; font-family: inherit; font-size: 13px;
+  border: 1px solid var(--cp-border); border-radius: 8px; background: #fff; color: var(--cp-text);
+}
+.cp-form-grid input:focus { outline: none; border-color: var(--cp-accent); }
+.cp-field-hint { display: block; margin-top: 5px; font-size: 11.5px; font-weight: 400; color: var(--cp-muted); }
+.cp-form-foot { display: flex; align-items: center; gap: 14px; margin-top: 16px; flex-wrap: wrap; }
+.cp-form-foot span { font-size: 12px; color: var(--cp-muted); flex: 1; min-width: 240px; }
+
+/* Chart wells. Fixed heights because Chart.js needs a sized parent to size
+   itself against — without one it grows on every resize. */
+.cp-chart { height: 190px; padding: 8px 18px 16px; }
+.cp-chart-wide { height: 230px; }
+/* Shown in place of a chart that would be entirely zero — the reason it is
+   empty is more informative than an empty axis. */
+.cp-chart-empty {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center; color: var(--cp-muted); gap: 6px;
+}
+.cp-chart-empty i { font-size: 26px; opacity: .35; }
+.cp-chart-empty p { margin: 0; font-size: 12.5px; max-width: 44ch; line-height: 1.55; }
+.cp-chart-empty p.warn { color: var(--cp-amber); }
+.cp-card-head .cp-card-sub { margin-left: auto; font-size: 12px; color: var(--cp-muted); }
+
+/* Caveats that must travel with the numbers, without shouting. */
+.cp-footnote { margin: 14px 4px 0; font-size: 12px; color: var(--cp-muted); line-height: 1.6; max-width: 90ch; }
+
+/* ── Profile page ─────────────────────────────────────────────────────────*/
+/* Deliberately restrained: structure, type and whitespace carry the design,
+   and colour is reserved for the one thing that is genuinely stateful (the
+   role). Filling this page with coloured tiles would signal importance that
+   an account-settings screen does not have. */
+
+.cp-prof-head {
+  display: flex; align-items: center; gap: 18px;
+  padding-bottom: 22px; margin-bottom: 26px;
+  border-bottom: 1px solid var(--cp-border);
+}
+.cp-prof-mark {
+  width: 52px; height: 52px; flex: none; border-radius: 14px; overflow: hidden;
+  background: var(--cp-bg-2, #f4f4f5); border: 1px solid var(--cp-border);
+  color: var(--cp-heading); font-size: 20px; font-weight: 600;
+  display: flex; align-items: center; justify-content: center;
+}
+.cp-prof-mark img { width: 100%; height: 100%; object-fit: cover; }
+.cp-prof-id { min-width: 0; }
+.cp-prof-id h2 {
+  margin: 0; font-size: 19px; font-weight: 600; letter-spacing: -.01em;
+  color: var(--cp-heading); overflow-wrap: anywhere;
+}
+.cp-prof-role {
+  display: inline-flex; align-items: center; gap: 6px; margin-top: 5px;
+  font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .09em;
+  color: var(--cp-muted);
+}
+.cp-prof-role::before {
+  content: ''; width: 6px; height: 6px; border-radius: 50%;
+  background: var(--cp-accent);
+}
+
+/* Facts strip — small caps label over the value, separated by hairlines. */
+.cp-facts {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1px; background: var(--cp-border); border: 1px solid var(--cp-border);
+  border-radius: 12px; overflow: hidden; margin-bottom: 26px;
+}
+.cp-fact { background: #fff; padding: 15px 18px; }
+.cp-fact dt {
+  font-size: 10.5px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: .08em; color: var(--cp-muted); margin-bottom: 6px;
+}
+.cp-fact dd {
+  margin: 0; font-size: 13.5px; font-weight: 500; color: var(--cp-heading);
+  overflow-wrap: anywhere;
+}
+.cp-fact dd.mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px; }
+
+/* Section headings that are type, not chrome. */
+.cp-prof-sec { margin-bottom: 26px; }
+.cp-prof-sec > h3 {
+  margin: 0 0 4px; font-size: 14px; font-weight: 600; color: var(--cp-heading);
+}
+.cp-prof-sec > .cp-prof-note { margin: 0 0 16px; font-size: 12.5px; color: var(--cp-muted); line-height: 1.6; max-width: 62ch; }
+
+/* Access list: hairline rows, muted glyphs, no coloured tiles. */
+.cp-access-row {
+  display: flex; gap: 12px; align-items: flex-start;
+  padding: 13px 0; border-bottom: 1px solid var(--cp-border-2);
+}
+.cp-access-row:last-child { border-bottom: 0; }
+.cp-access-row > i { font-size: 17px; color: var(--cp-muted); margin-top: 1px; }
+.cp-access-row strong { display: block; font-size: 13.5px; font-weight: 600; color: var(--cp-heading); }
+.cp-access-row span { font-size: 12.5px; color: var(--cp-muted); }
+
+/* Password fields: stacked, narrow, with the rules stated as plain text. */
+.cp-pw-form { max-width: 380px; }
+.cp-pw-form label { display: block; margin-bottom: 14px; }
+.cp-pw-form label > span {
+  display: block; margin-bottom: 6px;
+  font-size: 12px; font-weight: 600; color: var(--cp-heading);
+}
+.cp-pw-form input {
+  width: 100%; padding: 10px 12px; font-family: inherit; font-size: 13.5px;
+  border: 1px solid var(--cp-border); border-radius: 9px; background: #fff; color: var(--cp-text);
+  transition: border-color .15s, box-shadow .15s;
+}
+.cp-pw-form input:focus {
+  outline: none; border-color: var(--cp-accent); box-shadow: 0 0 0 3px var(--cp-accent-soft);
+}
 
 /* ── Empty state ──────────────────────────────────────────────────────────*/
 .cp-empty { text-align: center; padding: 60px 20px; color: var(--cp-muted); }
@@ -546,6 +718,15 @@ a { text-decoration: none; color: inherit; }
 .cp-action-row .cp-action-txt { flex: 1; }
 .cp-action-row .cp-action-txt strong { display: block; font-size: 13.5px; color: var(--cp-heading); }
 .cp-action-row .cp-action-txt span { font-size: 12px; color: var(--cp-muted); }
+
+/* Group label inside a work queue ("Payment failed — 3"). Sits above a run of
+   .cp-action-row so several different reasons-to-act can share one card
+   without the reader losing track of which list they are reading. */
+.cp-queue-head {
+  font-size: 11.5px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .05em; margin: 16px 0 2px;
+}
+.cp-queue-head:first-child { margin-top: 0; }
 
 .cp-legend { display: flex; flex-wrap: wrap; gap: 10px 18px; padding: 0 20px 18px; }
 .cp-legend .cp-leg-item { display: flex; align-items: center; gap: 7px; font-size: 12.5px; color: var(--cp-muted); }
@@ -1027,5 +1208,6 @@ tr.cp-row-link:hover .cp-count-link i { color: var(--cp-accent); }
   .cp-hamburger { display: block; }
   .cp-content { padding: 18px 15px; }
   .cp-topbar { padding: 0 16px; }
-  .cp-admin-chip span:not(.cp-avatar) { display: none; }
+  /* (The chip used to carry the email text beside the avatar and hid it here.
+     It is avatar-only at every width now, so nothing needs hiding.) */
 }
