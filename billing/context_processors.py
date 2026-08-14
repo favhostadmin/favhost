@@ -45,7 +45,14 @@ def subscription_status(request):
     now = timezone.now()
     # Trial length is captured per-account at signup; fall back to the current
     # platform setting for any legacy record without it.
-    trial_days = getattr(user, 'trial_days', None) or settings_obj.free_trial_days
+    # `is None`, not `or`: zero is a real, meaningful value here. The console
+    # sets trial_days to 0 when the owner cancels a subscription outright, to
+    # close any trial the host could otherwise coast on. Treating 0 as "unset"
+    # would hand that host a fresh 90-day trial — the exact opposite of the
+    # intent — so only a genuinely missing value falls back to the default.
+    trial_days = getattr(user, 'trial_days', None)
+    if trial_days is None:
+        trial_days = settings_obj.free_trial_days
     trial_end = user.created_at + timedelta(days=trial_days)
     trial_expired = now > trial_end
 

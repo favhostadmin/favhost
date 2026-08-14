@@ -1,0 +1,104 @@
+{% extends 'controlpanel/base.html' %}
+
+{% block page_title %}My Profile{% endblock %}
+{% block heading %}My Profile{% endblock %}
+{% block subheading %}<div class="cp-sub">Your console account and sign-in security</div>{% endblock %}
+
+{% block content %}
+
+{% comment %}
+  Three things only: who this account is, what it can reach, and how to change
+  its password. A console login has no name or phone to keep — those belong to
+  a host profile — so nothing is invented here to fill space.
+{% endcomment %}
+
+<div class="cp-prof-head">
+  <span class="cp-prof-mark">
+    {% if account.profile_picture_url %}<img src="{{ account.profile_picture_url }}" alt="">
+    {% else %}{{ account.email|slice:":1"|upper }}{% endif %}
+  </span>
+  <div class="cp-prof-id">
+    <h2>{{ account.email }}</h2>
+    <div class="cp-prof-role">{% if is_owner %}Platform owner{% else %}Co-admin{% endif %}</div>
+  </div>
+</div>
+
+<dl class="cp-facts">
+  <div class="cp-fact">
+    <dt>Last sign-in</dt>
+    <dd>{% if account.last_login %}{{ account.last_login|date:"M j, Y" }}<span style="color:var(--cp-muted);font-weight:400;"> · {{ account.last_login|date:"H:i" }}</span>{% else %}—{% endif %}</dd>
+  </div>
+  <div class="cp-fact">
+    <dt>Console access since</dt>
+    <dd>{% if coadmin %}{{ coadmin.created_at|date:"M j, Y" }}{% else %}{{ account.created_at|date:"M j, Y" }}{% endif %}</dd>
+  </div>
+  <div class="cp-fact">
+    <dt>{% if coadmin %}Appointed by{% else %}Owner account{% endif %}</dt>
+    <dd class="mono">{% if coadmin %}{{ coadmin.created_by.email|default:owner_email }}{% else %}{{ owner_email }}{% endif %}</dd>
+  </div>
+  <div class="cp-fact">
+    <dt>Sections</dt>
+    <dd>{% if is_owner %}All{% else %}{{ sections|length }} granted{% endif %}</dd>
+  </div>
+</dl>
+
+<div class="cp-grid cp-grid-2">
+
+  <div class="cp-prof-sec">
+    <h3>Password</h3>
+    <p class="cp-prof-note">
+      Your current password is required. You stay signed in on this device;
+      any other session is ended.
+    </p>
+    <form method="post" class="cp-pw-form" autocomplete="off">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="password">
+      <label>
+        <span>Current password</span>
+        <input type="password" name="current_password" autocomplete="current-password" required>
+      </label>
+      <label>
+        <span>New password</span>
+        <input type="password" name="new_password1" autocomplete="new-password" required>
+      </label>
+      <label>
+        <span>Confirm new password</span>
+        <input type="password" name="new_password2" autocomplete="new-password" required>
+      </label>
+      <button class="cp-btn cp-btn-primary"><i class="ti ti-lock"></i> Update password</button>
+    </form>
+  </div>
+
+  <div class="cp-prof-sec">
+    <h3>Access</h3>
+    <p class="cp-prof-note">
+      {% if is_owner %}
+        Every section, plus the owner-only controls: pricing, subscription
+        cancellation and appointing co-admins. This account is the root of the
+        console and cannot be blocked or removed from inside the panel.
+      {% else %}
+        What you can open. Only the owner can change this.
+      {% endif %}
+    </p>
+
+    {% for s in sections %}
+    <div class="cp-access-row">
+      <i class="ti {{ s.icon }}"></i>
+      <div>
+        <strong>{{ s.label }}</strong>
+        <span>{{ s.desc }}</span>
+      </div>
+    </div>
+    {% empty %}
+    <div class="cp-access-row">
+      <i class="ti ti-lock-off"></i>
+      <div>
+        <strong>No sections granted</strong>
+        <span>Ask the owner for access.</span>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+</div>
+{% endblock %}
