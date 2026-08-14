@@ -5250,3 +5250,204 @@
 }
 .cl-cselect-option:hover { background: #fdefe8; }
 .cl-cselect-option.selected { background: #EB5310; color: #fff; }
+
+/* --- Availability View -------------------------------------------------
+   Deliberately thin: the grid itself is the Month view's shell (.month-calendar-*
+   classes, reused verbatim) so both views share one card, one dark weekday
+   strip and one set of week rows. Everything below only adds what a day cell
+   needs to read as a click target carrying a free-listing count. */
+.availability-pane #availabilityContent {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.avl-week {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+}
+
+.avl-day {
+  background-color: #ffffff;
+  cursor: pointer;
+  gap: 5px;
+}
+/* The shared day-number carries a bottom margin for the Month view's event
+   bands; here the flex gap already does the spacing. With no reservation bars
+   competing for the cell, the date is set 30% larger than the Month view's —
+   scoped to .avl-day so the Month view keeps its own sizing. */
+.avl-day .day-number {
+  margin-bottom: 0;
+  font-size: 18.2px;   /* 14 × 1.3 */
+  width: 31.2px;       /* 24 × 1.3 */
+  height: 31.2px;
+}
+.avl-day.today .day-number {
+  width: 31.2px;
+  height: 31.2px;
+}
+.avl-day:hover { background-color: #fff7f3; }
+.avl-day.other-month { background-color: #f9fafb; }
+.avl-day.other-month:hover { background-color: #f3f4f6; }
+.avl-day.today { background-color: rgba(59, 130, 246, 0.04); }
+.avl-day:focus-visible {
+  outline: 2px solid #EB5310;
+  outline-offset: -2px;
+}
+
+/* Pinned to the bottom of the cell so the counts read as a footer line rather
+   than floating under the date. */
+.avl-foot {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  min-width: 0;
+}
+
+.avl-chip {
+  flex: 0 0 auto;
+  padding: 1px 6px;
+  border-radius: 20px;
+  font-size: 10.5px;
+  font-weight: 600;
+  line-height: 1.6;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.avl-chip.lvl-good { background: #ecfdf3; color: #05603a; }
+.avl-chip.lvl-some { background: #fffaeb; color: #93370d; }
+.avl-chip.lvl-none { background: #fef3f2; color: #912018; }
+.other-month .avl-chip { opacity: .55; }
+
+.avl-taken {
+  font-size: 9.5px;
+  color: #9ca3af;
+  text-align: right;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.avl-empty {
+  padding: 48px 20px;
+  text-align: center;
+  color: #6b7280;
+  font-size: 14px;
+}
+
+/* Day popup ------------------------------------------------------------- */
+.avl-modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(17, 24, 39, .45);
+  z-index: 10050;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.avl-modal-overlay.open { display: flex; }
+.avl-modal {
+  background: #fff;
+  border-radius: 14px;
+  width: 100%;
+  max-width: 520px;
+  max-height: 82vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 24px 60px rgba(17, 24, 39, .28);
+  overflow: hidden;
+}
+.avl-modal-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px 18px;
+  border-bottom: 1px solid #f0f0ee;
+}
+.avl-modal-title {
+  font-size: 15.5px;
+  font-weight: 700;
+  color: #16151C;
+}
+.avl-modal-sub {
+  font-size: 12.5px;
+  color: #6b7280;
+  margin-top: 2px;
+}
+.avl-modal-close {
+  margin-left: auto;
+  border: 0;
+  background: transparent;
+  font-size: 26px;
+  line-height: 1;
+  color: #9ca3af;
+  cursor: pointer;
+  padding: 0 4px;
+}
+.avl-modal-close:hover { color: #16151C; }
+.avl-modal-body {
+  padding: 10px 18px 18px;
+  overflow-y: auto;
+}
+.avl-listing {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid #f4f4f2;
+  color: inherit;
+}
+.avl-listing:last-child { border-bottom: none; }
+.avl-listing:hover .avl-listing-title { color: #EB5310; }
+.avl-listing-img {
+  width: 46px;
+  height: 46px;
+  border-radius: 8px;
+  object-fit: cover;
+  background: #f0f0ee;
+  flex-shrink: 0;
+}
+.avl-listing-txt { min-width: 0; }
+.avl-listing-title {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #16151C;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.avl-listing-meta {
+  font-size: 12px;
+  color: #6b7280;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.avl-listing-price {
+  margin-left: auto;
+  font-size: 13px;
+  font-weight: 700;
+  color: #16151C;
+  white-space: nowrap;
+}
+.avl-modal-none {
+  padding: 26px 4px;
+  text-align: center;
+  color: #6b7280;
+  font-size: 13.5px;
+}
+
+@media (max-width: 576px) {
+  /* The weekday strip and cell padding already shrink with the Month view's
+     own breakpoint; only the availability extras need trimming here. */
+  .avl-chip { padding: 1px 5px; font-size: 9.5px; }
+  .avl-taken { display: none; }
+  /* Same +30% over the Month view's small-screen date (12px / 22px). */
+  .avl-day .day-number { font-size: 15.6px; width: 28.6px; height: 28.6px; }
+  .avl-day.today .day-number { width: 28.6px; height: 28.6px; }
+}
