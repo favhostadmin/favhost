@@ -44,22 +44,40 @@
         <tr>
           <td><strong>{{ r.user.get_full_name|default:"—" }}</strong></td>
           <td>{{ r.user.email }}</td>
+          {% comment %}
+            Only the first two grants are drawn. A co-admin holding all seven
+            wrapped to three lines and made its row three times the height of
+            its neighbours — the table stopped scanning as a table. The
+            remainder collapses to a "+N" chip, and the full list is on the
+            cell's tooltip and in the Edit dialog, which is where someone
+            checking exact permissions is going anyway.
+          {% endcomment %}
           <td>
             {% if r.granted_labels %}
-              <div style="display:flex;flex-wrap:wrap;gap:5px;max-width:280px;">
-                {% for label in r.granted_labels %}
+              <div class="cp-grant-cell" title="{{ r.granted_labels|join:', ' }}">
+                {% for label in r.granted_labels|slice:":2" %}
                   <span class="cp-badge b-indigo no-dot">{{ label }}</span>
                 {% endfor %}
+                {% if r.n_granted > 2 %}
+                  <span class="cp-grant-more">+{{ r.n_granted|add:"-2" }}</span>
+                {% endif %}
               </div>
             {% else %}
               <span class="cp-badge b-amber no-dot">No access granted</span>
             {% endif %}
           </td>
+          {% comment %}
+            The reveal used to swap 8 bullets for the real password, and the
+            differing widths shunted the Added and action columns sideways.
+            A fixed-width monospace slot keeps both states the same size.
+          {% endcomment %}
           <td>
             {% if r.rel.display_password %}
-              <span class="cp-pw" data-pw="{{ r.rel.display_password }}">••••••••</span>
-              <button type="button" class="cp-btn cp-btn-sm" onclick="cpTogglePw(this)"
-                      style="padding:3px 7px;margin-left:6px;"><i class="ti ti-eye"></i></button>
+              <div class="cp-pw-cell">
+                <span class="cp-pw" data-pw="{{ r.rel.display_password }}">••••••••</span>
+                <button type="button" class="cp-btn cp-btn-sm cp-pw-eye" onclick="cpTogglePw(this)"
+                        aria-label="Show or hide password"><i class="ti ti-eye"></i></button>
+              </div>
             {% else %}<span class="cp-muted">—</span>{% endif %}
           </td>
           <td class="cp-muted">{{ r.rel.created_at|date:"M j, Y" }}</td>
