@@ -220,9 +220,12 @@
             display: block;
             width: 100%;
             overflow: hidden;
-            /* flush at the left, fading out only on the right */
-            -webkit-mask-image: linear-gradient(to right, #000 88%, transparent);
-            mask-image: linear-gradient(to right, #000 88%, transparent);
+            /* Soft on both edges. Logos enter at the right and leave at the
+               left, so a hard left edge would clip each one off mid-shape as
+               it exits. The entry fade is the wider of the two — arriving
+               gradually reads as intentional, leaving abruptly reads as a bug. */
+            -webkit-mask-image: linear-gradient(to right, transparent 0, #000 5%, #000 88%, transparent 100%);
+            mask-image: linear-gradient(to right, transparent 0, #000 5%, #000 88%, transparent 100%);
         }
 
         .ul-banner .partner-logos .logo-track {
@@ -267,6 +270,24 @@
         @media (prefers-reduced-motion: reduce) {
             .ul-banner .partner-logos .logo-track {
                 animation: none;
+            }
+        }
+
+        /* ── Desktop: give the marquee a real width to scroll inside ──
+           The strip sits in .ul-banner-btns, a wrapping flex row, so
+           .ul-banner-stat is sized by its content and — like any flex item —
+           will not shrink below it (min-width defaults to auto). Left alone it
+           grows to the full width of the duplicated logo track and spills out
+           under the hero image, and `overflow: hidden` has nothing to clip
+           against. Putting it on its own full-width line and clearing
+           min-width gives the track a viewport-bounded window to run in.
+           Everything else — the animation, the seamless loop, the sizing — is
+           the shared rule above, so desktop and phone scroll identically. */
+        @media screen and (min-width: 992px) {
+            .ul-banner .ul-banner-stat {
+                flex: 1 1 100%;
+                width: 100%;
+                min-width: 0;
             }
         }
 

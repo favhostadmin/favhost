@@ -376,13 +376,24 @@
           {% endif %}
 
           <div class="hero-actions" aria-label="Social links">
+            {% comment %}
+              Only render a network the host actually linked. The old
+              `|default:'#'` still drew the icon and pointed it at '#', so a
+              visitor clicking Facebook on a host who never set one just
+              jumped to the top of the page — an advertised link that goes
+              nowhere is worse than no link.
+            {% endcomment %}
             {% if show_host_contact %}
-              <a class="hero-icon-link" href="{{ host.facebook_url|default:'#' }}" aria-label="Facebook" target="_blank" rel="noopener">
+              {% if host.facebook_url %}
+              <a class="hero-icon-link" href="{{ host.facebook_url }}" aria-label="Facebook" target="_blank" rel="noopener">
                 <img src="{% static 'img/public_host_website/facebooks.png' %}" alt="Facebook">
               </a>
-              <a class="hero-icon-link" href="{{ host.instagram_url|default:'#' }}" aria-label="Instagram" target="_blank" rel="noopener">
+              {% endif %}
+              {% if host.instagram_url %}
+              <a class="hero-icon-link" href="{{ host.instagram_url }}" aria-label="Instagram" target="_blank" rel="noopener">
                 <img src="{% static 'img/public_host_website/instagram.png' %}" alt="Instagram">
               </a>
+              {% endif %}
             {% endif %}
             <a class="hero-icon-link share-page-link me-2" href="#" id="sharePageLink" aria-label="Share">
               <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -573,22 +584,37 @@
                     <svg class="meta-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M8 2v4M16 2v4M3 9h18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
                     Joined {{ host.created_at|date:"M Y" }}
                   </p>
+                  {% comment %}
+                    Same rule as the hero strip: a network appears only if the
+                    host linked it. The row itself disappears when none are
+                    set, rather than leaving an empty gap under "Joined".
+                  {% endcomment %}
+                  {% with modal_wa_number=host.whatsapp_number|default:host.phone %}
+                  {% if host.instagram_url or host.facebook_url or host.youtube_url or modal_wa_number %}
                   <div class="social-row" aria-label="Social links">
-                    <a href="{{ host.instagram_url|default:'#' }}" class="social-link social-logo-link" aria-label="Instagram" target="_blank" rel="noopener">
+                    {% if host.instagram_url %}
+                    <a href="{{ host.instagram_url }}" class="social-link social-logo-link" aria-label="Instagram" target="_blank" rel="noopener">
                       <img src="{% static 'img/public_host_website/instagram.png' %}" alt="Instagram">
                     </a>
-                    <a href="{{ host.facebook_url|default:'#' }}" class="social-link social-logo-link" aria-label="Facebook" target="_blank" rel="noopener">
+                    {% endif %}
+                    {% if host.facebook_url %}
+                    <a href="{{ host.facebook_url }}" class="social-link social-logo-link" aria-label="Facebook" target="_blank" rel="noopener">
                       <img src="{% static 'img/public_host_website/facebooks.png' %}" alt="Facebook">
                     </a>
-                    <a href="{{ host.youtube_url|default:'#' }}" class="social-link social-logo-link" aria-label="YouTube" target="_blank" rel="noopener">
+                    {% endif %}
+                    {% if host.youtube_url %}
+                    <a href="{{ host.youtube_url }}" class="social-link social-logo-link" aria-label="YouTube" target="_blank" rel="noopener">
                       <img src="{% static 'img/public_host_website/youtube.png' %}" alt="YouTube">
                     </a>
-                    {% with modal_wa_number=host.whatsapp_number|default:host.phone %}
-                    <a href="{% if modal_wa_number %}https://wa.me/{{ modal_wa_number|cut:'+'|cut:' '|cut:'-'|cut:'('|cut:')' }}{% else %}#{% endif %}" class="social-link social-logo-link" aria-label="WhatsApp" target="_blank" rel="noopener">
+                    {% endif %}
+                    {% if modal_wa_number %}
+                    <a href="https://wa.me/{{ modal_wa_number|cut:'+'|cut:' '|cut:'-'|cut:'('|cut:')' }}" class="social-link social-logo-link" aria-label="WhatsApp" target="_blank" rel="noopener">
                       <img src="{% static 'img/public_host_website/whatsapp.png' %}" alt="WhatsApp">
                     </a>
-                    {% endwith %}
+                    {% endif %}
                   </div>
+                  {% endif %}
+                  {% endwith %}
                 </div>
               </div>
             </article>
