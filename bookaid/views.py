@@ -1403,6 +1403,106 @@ class CalendarListView(LoginRequiredMixin, ListView):
 
         return super().get(request, *args, **kwargs)
 
+
+class CalendarAvailabilityView(LoginRequiredMixin, View):
+    """Per-day listing availability for the calendar's Availability view.
+
+    Serves the same shape of answer the other calendar views do: an AJAX GET
+    over a date window returns JSON the page renders itself. A direct (non-AJAX)
+    visit lands on the calendar with the Availability view already selected, so
+    the URL is shareable exactly like the Timeline one.
+
+    Availability follows the rule the rest of the app enforces when it accepts a
+    booking (see ``Enquiry.is_available`` and ``property.views.check_conflicts``):
+    a stay occupies the nights ``[check_in, check_out)``, so the day a guest
+    checks out is free for the next arrival. The month grid deliberately paints a
+    reservation bar across the check-out day as well — that bar means "someone is
+    still here this morning", not "this night is sold".
+    """
+
+    def get(self, request, *args, **kwargs):
+        if request.headers.get('x-requested-with') != 'XMLHttpRequest':
+            return redirect('/calendar/?view=availability')
+
+        try:
+            start_date = datetime.datetime.strptime(request.GET['start_date'], '%Y-%m-%d').date()
+            end_date = datetime.datetime.strptime(request.GET['end_date'], '%Y-%m-%d').date()
+        except (KeyError, ValueError, TypeError):
+            return JsonResponse({'error': 'Invalid date range. Use start_date and end_date as YYYY-MM-DD.'}, status=400)
+
+        if end_date < start_date:
+            start_date, end_date = end_date, start_date
+        # A calendar grid is at most six weeks; anything larger is a malformed
+        # request, and capping it keeps one bad URL from scanning a whole year.
+        if (end_date - start_date).days > 92:
+            end_date = start_date + datetime.timedelta(days=92)
+
+        visible = get_visible_user_ids(request.user)
+        properties = list(
+            Property.objects.filter(created_by__in=visible, status='Active')
+            .values_list('id', flat=True)
+        )
+        property_ids = {str(pid) for pid in properties}
+
+        days = [start_date + datetime.timedelta(days=i) for i in range((end_date - start_date).days + 1)]
+        # Per day: which listings are spoken for, and by what. Occupancy is
+        # tracked as sets so two overlapping records on one listing can never
+        # count it as unavailable twice.
+        booked = {d: set() for d in days}
+        blocked = {d: set() for d in days}
+
+        def mark(bucket, prop_id, span_start, span_end):
+            """Mark the half-open range [span_start, span_end) on one listing."""
+            if not span_start or not span_end:
+                return
+            cursor = max(span_start, start_date)
+            last = min(span_end - datetime.timedelta(days=1), end_date)
+            while cursor <= last:
+                bucket[cursor].add(str(prop_id))
+                cursor += datetime.timedelta(days=1)
+
+        # Both queries are scoped to the same listings the totals are drawn
+        # from — a reservation on a paused listing must not make "3 booked" of
+        # a 2-listing account.
+        bookings_qs = Booking.objects.filter(
+            property_id__in=properties,
+            check_in_date__lte=end_date,
+            check_out_date__gt=start_date,
+        ).exclude(status__in=['cancelled', 'no_show']).values_list(
+            'property_id', 'check_in_date', 'check_out_date'
+        )
+        for prop_id, check_in, check_out in bookings_qs:
+            mark(booked, prop_id, check_in, check_out)
+
+        blocks_qs = PropertyBlockDate.objects.filter(
+            property_id__in=properties,
+            start_date__lte=end_date,
+            end_date__gt=start_date,
+            is_active=True,
+        ).values_list('property_id', 'start_date', 'end_date')
+        for prop_id, block_start, block_end in blocks_qs:
+            mark(blocked, prop_id, block_start, block_end)
+
+        total = len(property_ids)
+        payload = {}
+        for d in days:
+            taken = booked[d] | blocked[d]
+            available = sorted(property_ids - taken)
+            payload[d.isoformat()] = {
+                'available': available,
+                'available_count': len(available),
+                'booked_count': len(booked[d]),
+                'blocked_count': len(blocked[d] - booked[d]),
+            }
+
+        return JsonResponse({
+            'start_date': start_date.isoformat(),
+            'end_date': end_date.isoformat(),
+            'total_listings': total,
+            'days': payload,
+        })
+
+
 @login_required
 def channel_integration(request, property_id):
     property_obj = get_object_or_404(Property, pk=property_id, created_by__in=get_visible_user_ids(request.user))

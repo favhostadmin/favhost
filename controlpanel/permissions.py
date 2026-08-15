@@ -19,8 +19,11 @@ Two tiers:
     * ``co_admins`` — whoever can appoint co-admins can grant themselves every
       other section, so making it grantable would collapse the whole permission
       system into "full access".
-    * ``settings`` — subscription pricing and trial length are business-level
-      numbers displayed across the entire platform.
+
+    Pricing used to be a third entry (``settings``) with its own page. It now
+    lives on Subscriptions, which IS grantable — a billing-support co-admin
+    needs to see revenue. The section grant therefore buys read access only;
+    the price form is owner-gated inside the view itself.
 
 Both are enforced server-side in ``access.py``; the nav merely hides what the
 viewer cannot reach. Hiding a link is never the security boundary.
@@ -31,7 +34,6 @@ SECTIONS = [
     ('dashboard',     'Dashboard',      'ti-layout-dashboard',      'Platform KPIs, charts and the attention queue.'),
     ('users',         'Hosts & Users',  'ti-users',                 'Host accounts, account health, block/delete powers.'),
     ('properties',    'Properties',     'ti-building-community',    'Every listing on the platform (read-only).'),
-    ('bookings',      'Bookings',       'ti-calendar-check',        'Every booking on the platform (read-only).'),
     ('enquiries',     'Enquiries',      'ti-message-dots',          'Guest enquiries across all hosts.'),
     ('subscriptions', 'Subscriptions',  'ti-crown',                 'Subscription states, trials and MRR.'),
     ('payments',      'Payments',       'ti-cash',                  'Payment records and revenue totals.'),
@@ -40,7 +42,7 @@ SECTIONS = [
 GRANTABLE = [s[0] for s in SECTIONS]
 
 # Reachable only by the platform owner — never offered as a checkbox.
-OWNER_ONLY = ('settings', 'co_admins')
+OWNER_ONLY = ('co_admins',)
 
 SECTION_LABELS = {key: label for key, label, _icon, _desc in SECTIONS}
 
@@ -50,7 +52,6 @@ SECTION_URLS = {
     'dashboard':     'controlpanel:dashboard',
     'users':         'controlpanel:users',
     'properties':    'controlpanel:properties',
-    'bookings':      'controlpanel:bookings',
     'enquiries':     'controlpanel:enquiries',
     'subscriptions': 'controlpanel:subscriptions',
     'payments':      'controlpanel:payments',

@@ -6,72 +6,158 @@
 {% block subheading %}<div class="cp-sub">Every account on the platform</div>{% endblock %}
 
 {% block content %}
-<form method="get" class="cp-toolbar">
+
+{# ── A quiet ledger of what the current filters returned ──────────────── #}
+<div class="cp-summary">
+  <div class="cp-summary-item">
+    <span class="cp-summary-n">{{ summary.total|intcomma }}</span>
+    <span class="cp-summary-l">{% if has_filters %}Matching accounts{% else %}Accounts{% endif %}</span>
+  </div>
+  <div class="cp-summary-item">
+    <span class="cp-summary-n">{{ summary.paying|intcomma }}</span>
+    <span class="cp-summary-l">Paying</span>
+  </div>
+  <div class="cp-summary-item">
+    <span class="cp-summary-n">{{ summary.trialing|intcomma }}</span>
+    <span class="cp-summary-l">On trial</span>
+  </div>
+  <div class="cp-summary-item">
+    <span class="cp-summary-n">{{ summary.countries|intcomma }}</span>
+    <span class="cp-summary-l">{{ summary.countries|pluralize:"Country,Countries" }}</span>
+  </div>
+  <div class="cp-summary-item {% if summary.attention %}is-warn{% endif %}">
+    <span class="cp-summary-n">{{ summary.attention|intcomma }}</span>
+    <span class="cp-summary-l">Need attention</span>
+  </div>
+</div>
+
+{# ── Filters ──────────────────────────────────────────────────────────── #}
+<form method="get" class="cp-filterbar">
   <div class="cp-search">
     <i class="ti ti-search"></i>
-    <input type="text" name="q" value="{{ q }}" placeholder="Search name, email or phone…">
+    <input type="text" name="q" value="{{ q }}" placeholder="Search name, email, phone or place…">
   </div>
-  <select name="status" class="cp-select" onchange="this.form.submit()">
+
+  <select name="status" class="cp-select" onchange="this.form.submit()" aria-label="Account status">
     <option value="">All accounts</option>
     <option value="active" {% if status == 'active' %}selected{% endif %}>Active only</option>
     <option value="blocked" {% if status == 'blocked' %}selected{% endif %}>Blocked only</option>
   </select>
-  <select name="sub" class="cp-select" onchange="this.form.submit()">
+
+  <select name="sub" class="cp-select" onchange="this.form.submit()" aria-label="Subscription state">
     <option value="">Any subscription</option>
     {% for key, label in sub_labels.items %}
     <option value="{{ key }}" {% if sub == key %}selected{% endif %}>{{ label }}</option>
     {% endfor %}
   </select>
+
+  <select name="country" class="cp-select" onchange="this.form.submit()" aria-label="Country">
+    <option value="">Any country</option>
+    {% for c in countries %}
+    <option value="{{ c.name }}" {% if country == c.name %}selected{% endif %}>{{ c.name }}{% if c.code %} ({{ c.code }}){% endif %}</option>
+    {% endfor %}
+  </select>
+
+  <select name="sort" class="cp-select" onchange="this.form.submit()" aria-label="Sort order">
+    {% for key, label in sort_options %}
+    <option value="{{ key }}" {% if sort == key %}selected{% endif %}>{{ label }}</option>
+    {% endfor %}
+  </select>
+
+  <select name="group" class="cp-select" onchange="this.form.submit()" aria-label="Grouping">
+    <option value="country" {% if grouped %}selected{% endif %}>Grouped by country</option>
+    <option value="none" {% if not grouped %}selected{% endif %}>One flat list</option>
+  </select>
+
+  {# Kept as a hidden field so the toggle survives the other selects submitting. #}
   <input type="hidden" name="attention" id="attnField" value="{{ attention }}">
-  <button type="submit" class="cp-btn {% if attention %}cp-btn-primary{% endif %}"
+  <button type="submit" class="cp-chip-toggle {% if attention %}is-on{% endif %}"
           onclick="document.getElementById('attnField').value='{% if attention %}{% else %}1{% endif %}'">
-    <i class="ti ti-alert-triangle"></i> {% if attention %}Attention only ✓{% else %}Needs attention{% endif %}
+    <i class="ti ti-{% if attention %}circle-check{% else %}alert-triangle{% endif %}"></i>
+    Needs attention
   </button>
-  <button class="cp-btn" type="submit"><i class="ti ti-filter"></i> Apply</button>
-  <span class="cp-count-pill">{{ total_count|intcomma }} result{{ total_count|pluralize }}</span>
+
+  <button class="cp-btn cp-btn-sm" type="submit"><i class="ti ti-filter"></i> Apply</button>
+
+  {% if has_filters %}
+  <a class="cp-clear-link" href="{% url 'controlpanel:users' %}"><i class="ti ti-x"></i> Clear filters</a>
+  {% endif %}
 </form>
 
+{# ── The register ─────────────────────────────────────────────────────── #}
 <div class="cp-card">
+  <div class="cp-card-head">
+    <div>
+      <h3>Accounts</h3>
+      <p class="cp-card-sub">
+        {{ summary.total|intcomma }} account{{ summary.total|pluralize }}{% if has_filters %} matching your filters{% endif %}
+        {% if grouped %}· grouped by country, {{ sort_label|lower }} within each{% else %}· sorted by {{ sort_label|lower }}{% endif %}
+      </p>
+    </div>
+  </div>
   <div class="cp-table-wrap">
-    <table class="cp-table">
+    <table class="cp-table cp-table-lined">
       <thead>
         <tr>
-          <th>Host</th><th>Subscription</th><th>Listings</th><th>Co-hosts</th>
-          <th>Account</th><th>Last active</th><th></th>
+          <th>Host</th>
+          <th>{% if grouped %}City{% else %}Location{% endif %}</th>
+          <th>Subscription</th>
+          <th class="cp-num">Listings</th>
+          <th class="cp-num">Co-hosts</th>
+          <th>Account</th>
+          <th>Last active</th>
+          <th aria-label="Actions"></th>
         </tr>
       </thead>
-      <tbody>
-        {% for row in page_obj %}
-        <tr>
-          <td>
-            <div class="cp-user-cell">
-              <span class="cp-ava">{% if row.user.profile_picture_url %}<img src="{{ row.user.profile_picture_url }}">{% else %}{{ row.user.username|slice:":1"|upper }}{% endif %}</span>
-              <div>
-                <div class="cp-uname">{{ row.user.get_full_name|default:row.user.username }}</div>
-                <div class="cp-uemail">{{ row.user.email|default:"—" }}</div>
+      {% if grouped %}
+        {% for g in groups %}
+        <tbody class="cp-group">
+          <tr class="cp-group-row">
+            <td colspan="8">
+              <div class="cp-group-head">
+                {% if g.unknown %}<span class="cp-iso is-empty" aria-hidden="true">?</span>
+                {% elif g.code %}<span class="cp-iso">{{ g.code }}</span>{% endif %}
+                <span class="cp-group-name">{{ g.name }}</span>
+                <span class="cp-group-count">
+                  {{ g.total }} host{{ g.total|pluralize }}{% if g.partial %} · {{ g.rows|length }} on this page{% endif %}
+                </span>
+                {% if not g.unknown and not country %}
+                <a class="cp-group-only" href="?country={{ g.name|urlencode }}{% if q %}&amp;q={{ q|urlencode }}{% endif %}{% if status %}&amp;status={{ status }}{% endif %}{% if sub %}&amp;sub={{ sub }}{% endif %}{% if attention %}&amp;attention={{ attention }}{% endif %}">Only this country</a>
+                {% endif %}
               </div>
+            </td>
+          </tr>
+          {% for row in g.rows %}{% include 'controlpanel/_user_row.html' %}{% endfor %}
+        </tbody>
+        {% empty %}
+        <tbody>
+          <tr>
+            <td colspan="8">
+              <div class="cp-empty">
+                <i class="ti ti-user-off"></i>
+                <p>No accounts match your filters</p>
+                {% if has_filters %}<a class="cp-btn cp-btn-sm" href="{% url 'controlpanel:users' %}" style="margin-top:14px;"><i class="ti ti-rotate-2"></i> Clear filters</a>{% endif %}
+              </div>
+            </td>
+          </tr>
+        </tbody>
+        {% endfor %}
+      {% else %}
+      <tbody>
+        {% for row in page_obj %}{% include 'controlpanel/_user_row.html' %}
+        {% empty %}
+        <tr>
+          <td colspan="8">
+            <div class="cp-empty">
+              <i class="ti ti-user-off"></i>
+              <p>No accounts match your filters</p>
+              {% if has_filters %}<a class="cp-btn cp-btn-sm" href="{% url 'controlpanel:users' %}" style="margin-top:14px;"><i class="ti ti-rotate-2"></i> Clear filters</a>{% endif %}
             </div>
           </td>
-          <td>
-            {% if row.sub_state == 'active' %}<span class="cp-badge b-green">{{ row.sub_label }}</span>
-            {% elif row.sub_state == 'trialing' %}<span class="cp-badge b-orange">{{ row.sub_label }}</span>
-            {% elif row.sub_state == 'past_due' %}<span class="cp-badge b-amber">{{ row.sub_label }}</span>
-            {% elif row.sub_state == 'free' %}<span class="cp-badge b-indigo">{{ row.sub_label }}</span>
-            {% elif row.sub_state == 'expired' %}<span class="cp-badge b-red">{{ row.sub_label }}</span>
-            {% else %}<span class="cp-badge b-gray">{{ row.sub_label }}</span>{% endif %}
-          </td>
-          <td>{{ row.n_props }}</td>
-          <td>{% if row.n_cohosts %}{{ row.n_cohosts }}{% else %}<span style="color:var(--cp-muted);">—</span>{% endif %}</td>
-          <td>{% if row.user.is_active %}<span class="cp-badge b-green">Active</span>{% else %}<span class="cp-badge b-red">Blocked</span>{% endif %}</td>
-          <td style="font-size:12.5px;{% if row.dormant %}color:var(--cp-amber);{% else %}color:var(--cp-muted);{% endif %}">
-            {% if row.last_login %}{{ row.last_login|date:"M j, Y" }}{% else %}<span style="color:var(--cp-amber);">Never</span>{% endif %}
-          </td>
-          <td style="text-align:right;"><a class="cp-btn cp-btn-sm" href="{% url 'controlpanel:user_detail' row.user.id %}">Manage <i class="ti ti-chevron-right"></i></a></td>
         </tr>
-        {% empty %}
-        <tr><td colspan="7"><div class="cp-empty"><i class="ti ti-user-off"></i><p>No accounts match your filters</p></div></td></tr>
         {% endfor %}
       </tbody>
+      {% endif %}
     </table>
   </div>
 </div>

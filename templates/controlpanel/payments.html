@@ -2,46 +2,160 @@
 {% load humanize %}
 
 {% block page_title %}Payments{% endblock %}
-{% block heading %}Payments &amp; Finance{% endblock %}
-{% block subheading %}<div class="cp-sub">Every recorded payment across the platform (USD)</div>{% endblock %}
+{% block heading %}Booking Payments{% endblock %}
+{% block subheading %}<div class="cp-sub">Guest→host money across the platform (USD) — volume, not FavHost income</div>{% endblock %}
 
 {% block content %}
-<div class="cp-kpi-grid" style="grid-template-columns:repeat(auto-fill,minmax(220px,1fr));margin-bottom:18px;">
+
+<div class="cp-kpi-grid cp-kpi-tight">
+  <div class="cp-kpi"><div class="cp-kpi-ico cp-ico-indigo"><i class="ti ti-chart-bar"></i></div>
+    <div class="cp-kpi-label">Volume</div>
+    <div class="cp-kpi-value">${{ totals.volume|floatformat:2|intcomma }}</div>
+    <div class="cp-kpi-foot">{% if filtered %}matching filter{% else %}excludes cancelled{% endif %}</div></div>
+
   <div class="cp-kpi"><div class="cp-kpi-ico cp-ico-green"><i class="ti ti-wallet"></i></div>
-    <div class="cp-kpi-label">Collected</div><div class="cp-kpi-value">${{ totals.paid|floatformat:2|intcomma }}</div></div>
+    <div class="cp-kpi-label">Collected</div>
+    <div class="cp-kpi-value">${{ totals.paid|floatformat:2|intcomma }}</div>
+    <div class="cp-kpi-foot">{% if totals.collection_rate is not None %}{{ totals.collection_rate }}% of volume{% else %}—{% endif %}</div></div>
+
   <div class="cp-kpi"><div class="cp-kpi-ico cp-ico-amber"><i class="ti ti-clock-dollar"></i></div>
-    <div class="cp-kpi-label">Outstanding</div><div class="cp-kpi-value">${{ totals.unpaid|floatformat:2|intcomma }}</div></div>
+    <div class="cp-kpi-label">Outstanding</div>
+    <div class="cp-kpi-value">${{ totals.unpaid|floatformat:2|intcomma }}</div>
+    <div class="cp-kpi-foot">awaiting payment</div></div>
+
+  <div class="cp-kpi"><div class="cp-kpi-ico cp-ico-red"><i class="ti ti-alert-triangle"></i></div>
+    <div class="cp-kpi-label">Overdue</div>
+    <div class="cp-kpi-value">${{ totals.overdue|floatformat:2|intcomma }}</div>
+    <div class="cp-kpi-foot">{{ totals.overdue_count }} past checkout</div></div>
+
+  <div class="cp-kpi"><div class="cp-kpi-ico cp-ico-green"><i class="ti ti-calendar-dollar"></i></div>
+    <div class="cp-kpi-label">This month</div>
+    <div class="cp-kpi-value">${{ totals.this_month|floatformat:2|intcomma }}</div>
+    <div class="cp-kpi-foot">collected, platform-wide</div></div>
+</div>
+
+{% comment %}
+  Collected beside outstanding, not collected alone: the gap between the two
+  bars is the collection problem, and a single series hides it entirely.
+  Built from the filtered queryset so it always describes the table below.
+{% endcomment %}
+<div class="cp-card cp-mb">
+  <div class="cp-card-head">
+    <h3>Collected vs outstanding</h3>
+    <span class="cp-card-sub">last 12 months{% if filtered %} · current filter{% endif %}</span>
+  </div>
+  <div class="cp-chart cp-chart-wide"><canvas id="chartPayments"></canvas></div>
 </div>
 
 <form method="get" class="cp-toolbar">
+  <div class="cp-search">
+    <i class="ti ti-search"></i>
+    <input type="text" name="q" value="{{ q }}" placeholder="Booking #, property or host…">
+  </div>
   <select name="status" class="cp-select" onchange="this.form.submit()">
     <option value="">All payments</option>
     <option value="paid" {% if status == 'paid' %}selected{% endif %}>Paid</option>
     <option value="unpaid" {% if status == 'unpaid' %}selected{% endif %}>Unpaid</option>
   </select>
+  <input type="date" name="start" value="{{ start }}" class="cp-select" title="Paid from">
+  <input type="date" name="end" value="{{ end }}" class="cp-select" title="Paid until">
+  <button class="cp-btn" type="submit"><i class="ti ti-filter"></i> Apply</button>
+  {% if filtered %}<a class="cp-btn" href="{% url 'controlpanel:payments' %}"><i class="ti ti-x"></i> Clear</a>{% endif %}
   <span class="cp-count-pill">{{ total_count|intcomma }} payment{{ total_count|pluralize }}</span>
 </form>
 
 <div class="cp-card">
   <div class="cp-table-wrap">
     <table class="cp-table">
-      <thead><tr><th>Type</th><th>Booking</th><th>Property</th><th>Date</th><th>Status</th><th style="text-align:right;">Amount</th></tr></thead>
+      <thead><tr>
+        <th>Booking</th><th>Property</th><th>Host</th>
+        <th>Type</th><th>Date</th><th>Status</th><th style="text-align:right;">Amount</th>
+      </tr></thead>
       <tbody>
         {% for pay in page_obj %}
         <tr>
-          <td>{{ pay.type|default:"Payment" }}</td>
           <td><a class="cp-link" href="{% url 'controlpanel:booking_detail' pay.booking.id %}">#{{ pay.booking.booking_id|default:"—" }}</a></td>
-          <td style="max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12.5px;">{{ pay.booking.property.title }}</td>
-          <td style="font-size:12.5px;color:var(--cp-muted);">{{ pay.payment_date|date:"M j, Y"|default:"—" }}</td>
-          <td>{% if pay.is_paid %}<span class="cp-badge b-green">Paid</span>{% else %}<span class="cp-badge b-amber">Pending</span>{% endif %}</td>
+          <td class="cp-cell-clip">{{ pay.booking.property.title }}</td>
+          <td style="font-size:12.5px;">
+            {% with owner=pay.booking.property.created_by %}
+            {% if owner %}<a class="cp-link" href="{% url 'controlpanel:user_detail' owner.id %}">{{ owner.get_full_name|default:owner.username }}</a>
+            {% else %}<span class="cp-cell-muted">—</span>{% endif %}
+            {% endwith %}
+          </td>
+          <td class="cp-cell-muted">{{ pay.type|default:"Payment" }}</td>
+          <td class="cp-cell-muted">{{ pay.payment_date|date:"M j, Y"|default:"—" }}</td>
+          <td>
+            {% if pay.is_paid %}<span class="cp-badge b-green">Paid</span>
+            {% elif pay.booking.check_out_date and pay.booking.check_out_date < today %}<span class="cp-badge b-red">Overdue</span>
+            {% else %}<span class="cp-badge b-amber">Pending</span>{% endif %}
+          </td>
           <td style="text-align:right;font-weight:700;">${{ pay.amount|floatformat:2|intcomma }}</td>
         </tr>
         {% empty %}
-        <tr><td colspan="6"><div class="cp-empty"><i class="ti ti-cash-off"></i><p>No payments found</p></div></td></tr>
+        <tr><td colspan="7"><div class="cp-empty"><i class="ti ti-cash-off"></i><p>No payments match your filters</p></div></td></tr>
         {% endfor %}
       </tbody>
     </table>
   </div>
 </div>
-{% include 'controlpanel/_pagination.html' %}
+{% include 'controlpanel/_pagination.html' with show_per_page=1 %}
+
+<p class="cp-footnote">
+  Guest→host booking payments — the business hosts run on FavHost. What the
+  platform itself earns is subscription revenue, on the
+  <a class="cp-link" href="{% url 'controlpanel:subscriptions' %}">Subscriptions</a> page.
+  Cancelled bookings are excluded throughout. Dates use the recorded payment
+  date where one exists and the scheduled date otherwise — much of the table
+  has no settled date written to it, and keying on that column alone would
+  drop those rows from the totals and the chart.
+</p>
+
+{{ series|json_script:"paySeries" }}
+<script>
+  (function () {
+    const S = JSON.parse(document.getElementById('paySeries').textContent);
+    const money = function (v) {
+      return '$' + Number(v).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    };
+
+    new Chart(document.getElementById('chartPayments'), {
+      type: 'bar',
+      data: {
+        labels: S.labels,
+        datasets: [
+          { label: 'Collected', data: S.collected, backgroundColor: '#16a34a',
+            borderRadius: 4, borderSkipped: false, maxBarThickness: 20 },
+          { label: 'Outstanding', data: S.outstanding, backgroundColor: '#e7b008',
+            borderRadius: 4, borderSkipped: false, maxBarThickness: 20 }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          // Two series need a key; it sits top-right as small point labels.
+          legend: {
+            display: true, position: 'top', align: 'end',
+            labels: { boxWidth: 8, boxHeight: 8, usePointStyle: true,
+                      color: '#6b7280', font: { size: 11.5 } }
+          },
+          tooltip: {
+            backgroundColor: '#16181d', padding: 11, cornerRadius: 9,
+            titleFont: { size: 12.5, weight: '700' }, bodyFont: { size: 12.5 },
+            bodySpacing: 5, usePointStyle: true, boxWidth: 8, boxHeight: 8,
+            callbacks: { label: function (i) { return ' ' + i.dataset.label + ': ' + money(i.raw); } }
+          }
+        },
+        scales: {
+          x: { grid: { display: false }, border: { color: '#e9e9e7' },
+               ticks: { color: '#9ca3af', font: { size: 10.5 }, maxRotation: 0, autoSkip: true, maxTicksLimit: 8 } },
+          y: { beginAtZero: true, border: { display: false },
+               grid: { color: 'rgba(17,24,39,.055)' },
+               ticks: { color: '#9ca3af', font: { size: 10.5 }, maxTicksLimit: 5,
+                        callback: function (v) { return v >= 1000 ? '$' + (v / 1000) + 'k' : '$' + v; } } }
+        }
+      }
+    });
+  })();
+</script>
 {% endblock %}

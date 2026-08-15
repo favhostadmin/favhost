@@ -1,16 +1,53 @@
-{% if page_obj.paginator.num_pages > 1 %}
-<div class="cp-pagination">
-  {% with q=request.GET.q status=request.GET.status sub=request.GET.sub state=request.GET.state attention=request.GET.attention property_id=request.GET.property_id %}
-  {% comment %}Preserve active filters across page links.{% endcomment %}
-  {% if page_obj.has_previous %}
-  <a href="?page={{ page_obj.previous_page_number }}{% if q %}&q={{ q }}{% endif %}{% if status %}&status={{ status }}{% endif %}{% if sub %}&sub={{ sub }}{% endif %}{% if state %}&state={{ state }}{% endif %}{% if attention %}&attention={{ attention }}{% endif %}{% if property_id %}&property_id={{ property_id }}{% endif %}"><i class="ti ti-chevron-left"></i></a>
-  {% else %}<span class="cp-disabled"><i class="ti ti-chevron-left"></i></span>{% endif %}
+{% comment %}
+  Shared pager. Numbered links come from ``page.elided_range`` (built in
+  views._paginate), so long result sets collapse to 1 2 … 7 8 9 … 20 rather
+  than printing every page.
 
-  <span class="cp-cur">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+  Every link is built with {% querystring %}, which rewrites only the key it is
+  given and carries the rest of the current query through untouched. That is
+  what keeps filters, searches and sort order alive across page clicks — the
+  previous hand-listed approach silently dropped any filter nobody remembered
+  to add here.
 
-  {% if page_obj.has_next %}
-  <a href="?page={{ page_obj.next_page_number }}{% if q %}&q={{ q }}{% endif %}{% if status %}&status={{ status }}{% endif %}{% if sub %}&sub={{ sub }}{% endif %}{% if state %}&state={{ state }}{% endif %}{% if attention %}&attention={{ attention }}{% endif %}{% if property_id %}&property_id={{ property_id }}{% endif %}"><i class="ti ti-chevron-right"></i></a>
-  {% else %}<span class="cp-disabled"><i class="ti ti-chevron-right"></i></span>{% endif %}
-  {% endwith %}
+  Pass ``show_per_page=1`` from the including template to also render the
+  page-size / View all control.
+{% endcomment %}
+{% if page_obj.paginator.num_pages > 1 or show_per_page %}
+<div class="cp-pager">
+
+  {% if page_obj.paginator.num_pages > 1 %}
+  <nav class="cp-pagination" aria-label="Pagination">
+    {% if page_obj.has_previous %}
+    <a href="{% querystring page=page_obj.previous_page_number %}" aria-label="Previous page"><i class="ti ti-chevron-left"></i></a>
+    {% else %}<span class="cp-disabled"><i class="ti ti-chevron-left"></i></span>{% endif %}
+
+    {% for p in page_obj.elided_range %}
+      {% if p == page_obj.paginator.ELLIPSIS %}
+      <span class="cp-gap">{{ p }}</span>
+      {% elif p == page_obj.number %}
+      <span class="cp-cur" aria-current="page">{{ p }}</span>
+      {% else %}
+      <a href="{% querystring page=p %}">{{ p }}</a>
+      {% endif %}
+    {% endfor %}
+
+    {% if page_obj.has_next %}
+    <a href="{% querystring page=page_obj.next_page_number %}" aria-label="Next page"><i class="ti ti-chevron-right"></i></a>
+    {% else %}<span class="cp-disabled"><i class="ti ti-chevron-right"></i></span>{% endif %}
+  </nav>
+  {% endif %}
+
+  {% if show_per_page %}
+  <div class="cp-pager-size">
+    <span>Rows</span>
+    {% for n in page_obj.per_page_choices %}
+    <a href="{% querystring per_page=n page=1 %}"
+       class="{% if not page_obj.show_all and page_obj.paginator.per_page == n %}on{% endif %}">{{ n }}</a>
+    {% endfor %}
+    <a href="{% querystring per_page='all' page=1 %}"
+       class="{% if page_obj.show_all %}on{% endif %}">View all</a>
+  </div>
+  {% endif %}
+
 </div>
 {% endif %}

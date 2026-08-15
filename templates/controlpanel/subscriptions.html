@@ -3,40 +3,202 @@
 
 {% block page_title %}Subscriptions{% endblock %}
 {% block heading %}Subscriptions{% endblock %}
-{% block subheading %}<div class="cp-sub">Billing status for every host</div>{% endblock %}
+{% block subheading %}<div class="cp-sub">Recurring revenue from hosts · {{ setting.full_display }} · {{ setting.free_trial_days }}-day trial</div>{% endblock %}
 
 {% block content %}
-<div class="cp-kpi-grid" style="grid-template-columns:repeat(auto-fill,minmax(200px,1fr));margin-bottom:18px;">
-  <div class="cp-kpi"><div class="cp-kpi-ico cp-ico-indigo"><i class="ti ti-repeat"></i></div>
-    <div class="cp-kpi-label">Estimated MRR</div><div class="cp-kpi-value">${{ mrr|floatformat:2|intcomma }}</div>
-    <div class="cp-kpi-foot">at {{ setting.amount_display }}/{{ setting.subscription_interval }}</div></div>
-  <div class="cp-kpi"><div class="cp-kpi-ico cp-ico-green"><i class="ti ti-crown"></i></div>
-    <div class="cp-kpi-label">Monthly price</div><div class="cp-kpi-value">{{ setting.amount_display }}</div>
-    <div class="cp-kpi-foot">Yearly {{ setting.amount_display_yearly }}</div></div>
+
+{% comment %}
+  Five figures, one row. Everything here is a number the owner acts on:
+  what we earn, what is coming, and what is about to stop. Anything that is
+  merely interesting was left off — a finance screen earns trust by being
+  short enough to read in full.
+{% endcomment %}
+<div class="cp-kpi-grid cp-kpi-tight">
+  <div class="cp-kpi"><div class="cp-kpi-ico cp-ico-green"><i class="ti ti-repeat"></i></div>
+    <div class="cp-kpi-label">MRR</div>
+    <div class="cp-kpi-value">${{ kpis.mrr|floatformat:2|intcomma }}</div>
+    <div class="cp-kpi-foot">${{ kpis.arr|floatformat:0|intcomma }} ARR · {{ kpis.active }} paying</div></div>
+
+  <div class="cp-kpi"><div class="cp-kpi-ico {% if kpis.net_paid < 0 %}cp-ico-red{% else %}cp-ico-green{% endif %}"><i class="ti ti-arrows-up-down"></i></div>
+    <div class="cp-kpi-label">Net this month</div>
+    <div class="cp-kpi-value">{% if kpis.net_paid > 0 %}+{% endif %}{{ kpis.net_paid }}</div>
+    <div class="cp-kpi-foot">+{{ kpis.new_paid }} new · −{{ kpis.churned }} churned</div></div>
+
   <div class="cp-kpi"><div class="cp-kpi-ico cp-ico-orange"><i class="ti ti-hourglass"></i></div>
-    <div class="cp-kpi-label">Default trial</div><div class="cp-kpi-value">{{ setting.free_trial_days }}d</div>
-    <div class="cp-kpi-foot"><a class="cp-link" href="{% url 'controlpanel:settings' %}">Edit pricing →</a></div></div>
+    <div class="cp-kpi-label">On trial</div>
+    <div class="cp-kpi-value">{{ kpis.trialing }}</div>
+    <div class="cp-kpi-foot">{% if kpis.conversion is not None %}{{ kpis.conversion }}% convert{% else %}no data yet{% endif %}</div></div>
+
+  <div class="cp-kpi"><div class="cp-kpi-ico cp-ico-amber"><i class="ti ti-alert-triangle"></i></div>
+    <div class="cp-kpi-label">At risk</div>
+    <div class="cp-kpi-value">${{ kpis.at_risk|floatformat:2|intcomma }}</div>
+    <div class="cp-kpi-foot">{{ kpis.past_due }} past due · {{ queues.cancelling|length }} cancelling</div></div>
+
+  <div class="cp-kpi"><div class="cp-kpi-ico cp-ico-indigo"><i class="ti ti-user-dollar"></i></div>
+    <div class="cp-kpi-label">Per account</div>
+    <div class="cp-kpi-value">${{ kpis.arpa|floatformat:2 }}</div>
+    <div class="cp-kpi-foot">{{ kpis.free }} comped free</div></div>
 </div>
+
+{% comment %}
+  Two series, both measured rather than modelled. There is no MRR-over-time
+  chart because no history of subscription status is stored — see the footnote.
+{% endcomment %}
+<div class="cp-grid cp-grid-even cp-mb">
+  <div class="cp-card">
+    <div class="cp-card-head">
+      <h3>New subscriptions</h3>
+      <span class="cp-card-sub">last 12 months</span>
+    </div>
+    <div class="cp-chart"><canvas id="chartStarted"></canvas></div>
+  </div>
+  <div class="cp-card">
+    <div class="cp-card-head">
+      <h3>Renewals due</h3>
+      <span class="cp-card-sub">next 6 months, at today's price</span>
+    </div>
+    {% if renewals.total %}
+    <div class="cp-chart"><canvas id="chartRenewals"></canvas></div>
+    {% else %}
+    {% comment %}
+      An all-zero bar chart reads as "broken", not as "nothing due". State the
+      reason instead — and if subscriptions are still marked active with a
+      period that already ended, say so plainly: that is a sync problem, and
+      it is inflating the MRR shown above.
+    {% endcomment %}
+    <div class="cp-chart cp-chart-empty">
+      <i class="ti ti-calendar-off"></i>
+      <p>No renewals scheduled in the next 6 months.</p>
+      {% if renewals.stale %}
+      <p class="warn">{{ renewals.stale }} subscription{{ renewals.stale|pluralize }} still marked active with a
+        billing period that has already ended — likely a Stripe webhook that never
+        arrived. Until it syncs, those are counted in MRR above.</p>
+      {% endif %}
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{% if queues.total %}
+<div class="cp-card cp-mb">
+  <div class="cp-card-head">
+    <h3>Needs action</h3>
+    <span class="cp-count-pill">{{ queues.total }}</span>
+  </div>
+  <div class="cp-card-pad" style="padding-top:4px;">
+
+    {% for r in queues.past_due %}
+    <div class="cp-action-row">
+      <span class="cp-badge b-amber">Payment failed</span>
+      <div class="cp-action-txt">
+        <strong><a class="cp-link" href="{% url 'controlpanel:user_detail' r.user.id %}">{{ r.user.get_full_name|default:r.user.username }}</a></strong>
+        <span>{{ r.user.email }}</span>
+      </div>
+      {% if can_manage %}
+      <form method="post" action="{% url 'controlpanel:subscription_action' r.user.id %}"
+            onsubmit="return confirm('Cancel {{ r.user.email|escapejs }} immediately? Billing stops now and they lose access until they resubscribe.');">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="cancel_now">
+        <button class="cp-btn cp-btn-sm cp-btn-danger">Cancel now</button>
+      </form>
+      {% endif %}
+    </div>
+    {% endfor %}
+
+    {% for r in queues.cancelling %}
+    <div class="cp-action-row">
+      <span class="cp-badge b-red">Cancelling</span>
+      <div class="cp-action-txt">
+        <strong><a class="cp-link" href="{% url 'controlpanel:user_detail' r.user.id %}">{{ r.user.get_full_name|default:r.user.username }}</a></strong>
+        <span>leaves {{ r.renews|date:"M j, Y"|default:"period end" }}</span>
+      </div>
+      {% if can_manage %}
+      <form method="post" action="{% url 'controlpanel:subscription_action' r.user.id %}">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="resume">
+        <button class="cp-btn cp-btn-sm">Keep them</button>
+      </form>
+      {% endif %}
+    </div>
+    {% endfor %}
+
+    {% for r in queues.trials_ending %}
+    <div class="cp-action-row">
+      <span class="cp-badge b-orange">{% if r.days_left == 0 %}Ends today{% else %}{{ r.days_left }}d left{% endif %}</span>
+      <div class="cp-action-txt">
+        <strong><a class="cp-link" href="{% url 'controlpanel:user_detail' r.user.id %}">{{ r.user.get_full_name|default:r.user.username }}</a></strong>
+        <span>trial ending · {{ r.user.email }}</span>
+      </div>
+      <a class="cp-btn cp-btn-sm" href="{% url 'controlpanel:user_detail' r.user.id %}">Open</a>
+    </div>
+    {% endfor %}
+
+  </div>
+</div>
+{% endif %}
 
 <form method="get" class="cp-toolbar">
   <select name="state" class="cp-select" onchange="this.form.submit()">
     <option value="">All states</option>
-    {% for key, label in sub_labels.items %}
-    <option value="{{ key }}" {% if state == key %}selected{% endif %}>{{ label }}</option>
+    {% for m in mix %}
+    <option value="{{ m.key }}" {% if state == m.key %}selected{% endif %}>{{ m.label }} ({{ m.count }})</option>
     {% endfor %}
   </select>
+  {% if state %}<a class="cp-btn" href="{% url 'controlpanel:subscriptions' %}"><i class="ti ti-x"></i> Clear</a>{% endif %}
+  {% if can_manage %}
+  <button type="button" class="cp-btn" onclick="document.getElementById('cpPricing').hidden=!document.getElementById('cpPricing').hidden;">
+    <i class="ti ti-tag"></i> Pricing &amp; trial
+  </button>
+  {% endif %}
   <span class="cp-count-pill">{{ total_count|intcomma }} account{{ total_count|pluralize }}</span>
 </form>
+
+{% if can_manage %}
+{% comment %}
+  Pricing is folded away by default: it is changed a few times a year, while
+  the numbers above it are read daily. Keeping it open would push the ledger
+  below the fold for no benefit.
+{% endcomment %}
+<div class="cp-card cp-mb" id="cpPricing" hidden>
+  <div class="cp-card-head"><h3>Pricing &amp; trial</h3></div>
+  <div class="cp-card-pad">
+    <form method="post" action="{% url 'controlpanel:subscriptions' %}">
+      {% csrf_token %}
+      <div class="cp-form-grid">
+        <label>Monthly Stripe Price ID
+          <input type="text" placeholder="price_..." name="stripe_price_id_monthly" value="{{ setting.stripe_price_id_monthly }}">
+          <small class="cp-field-hint">{% if setting.stripe_price_id_monthly %}Currently {{ setting.full_display }} (fetched from Stripe){% else %}No price ID set yet — nothing can be charged.{% endif %}</small>
+        </label>
+        <label>Yearly Stripe Price ID
+          <input type="text" placeholder="price_..." name="stripe_price_id_yearly" value="{{ setting.stripe_price_id_yearly }}">
+          <small class="cp-field-hint">{% if setting.stripe_price_id_yearly %}Currently {{ setting.full_display_yearly }} ({{ setting.yearly_monthly_equivalent_display }}/mo{% if setting.yearly_savings_percent %}, saves {{ setting.yearly_savings_percent }}%{% endif %}){% else %}No price ID set yet — nothing can be charged.{% endif %}</small>
+        </label>
+        <label>Free trial (days)
+          <input type="number" min="0" name="free_trial_days" value="{{ setting.free_trial_days }}"></label>
+      </div>
+      <div class="cp-form-foot">
+        <button class="cp-btn cp-btn-primary"><i class="ti ti-device-floppy"></i> Save</button>
+        <span>Create the price in Stripe first, then paste its ID above — amount, currency and interval are fetched from Stripe automatically on save, so there's only one source of truth.
+          Trial length applies to new signups. Last saved {{ setting.updated_at|date:"M j, Y H:i"|default:"—" }}.</span>
+      </div>
+    </form>
+  </div>
+</div>
+{% endif %}
 
 <div class="cp-card">
   <div class="cp-table-wrap">
     <table class="cp-table">
-      <thead><tr><th>Host</th><th>State</th><th>Stripe status</th><th>Renews / ends</th><th>Trial ends</th><th></th></tr></thead>
+      <thead><tr>
+        <th>Account</th><th>State</th><th>Since</th><th>Renews</th>
+        <th style="text-align:right;">MRR</th><th style="text-align:right;">Manage</th>
+      </tr></thead>
       <tbody>
         {% for r in page_obj %}
         <tr>
           <td><div class="cp-user-cell"><span class="cp-ava">{{ r.user.username|slice:":1"|upper }}</span>
-            <div><div class="cp-uname">{{ r.user.get_full_name|default:r.user.username }}</div><div class="cp-uemail">{{ r.user.email }}</div></div></div></td>
+            <div><div class="cp-uname">{{ r.user.get_full_name|default:r.user.username }}</div>
+                 <div class="cp-uemail">{{ r.user.email }}</div></div></div></td>
           <td>
             {% if r.state == 'active' %}<span class="cp-badge b-green">{{ r.label }}</span>
             {% elif r.state == 'trialing' %}<span class="cp-badge b-orange">{{ r.label }}</span>
@@ -44,11 +206,40 @@
             {% elif r.state == 'free' %}<span class="cp-badge b-indigo">{{ r.label }}</span>
             {% elif r.state == 'expired' %}<span class="cp-badge b-red">{{ r.label }}</span>
             {% else %}<span class="cp-badge b-gray">{{ r.label }}</span>{% endif %}
+            {% if r.pending_cancel %}<div class="cp-note-amber">cancels at period end</div>{% endif %}
           </td>
-          <td style="font-size:12.5px;">{{ r.stripe.subscription_status|default:"—" }}</td>
-          <td style="font-size:12.5px;color:var(--cp-muted);">{{ r.stripe.current_period_end|date:"M j, Y"|default:"—" }}</td>
-          <td style="font-size:12.5px;color:var(--cp-muted);">{{ r.trial_end|date:"M j, Y"|default:"—" }}</td>
-          <td style="text-align:right;"><a class="cp-btn cp-btn-sm" href="{% url 'controlpanel:user_detail' r.user.id %}">Manage</a></td>
+          <td class="cp-cell-muted">{{ r.since|date:"M j, Y"|default:"—" }}</td>
+          <td class="cp-cell-muted">
+            {% if r.state == 'trialing' %}trial ends {{ r.trial_end|date:"M j"|default:"—" }}
+            {% else %}{{ r.renews|date:"M j, Y"|default:"—" }}{% endif %}
+          </td>
+          <td style="text-align:right;font-weight:700;">{% if r.mrr %}${{ r.mrr|floatformat:2 }}{% else %}<span class="cp-cell-muted">—</span>{% endif %}</td>
+          <td style="text-align:right;">
+            <div class="cp-row-actions">
+              {% if can_manage and r.is_billable %}
+                {% if not r.pending_cancel %}
+                <form method="post" action="{% url 'controlpanel:subscription_action' r.user.id %}">
+                  {% csrf_token %}
+                  <input type="hidden" name="action" value="cancel_at_period_end">
+                  <button class="cp-btn cp-btn-sm" title="Stop the next renewal; they keep the period already paid for">End renewal</button>
+                </form>
+                {% else %}
+                <form method="post" action="{% url 'controlpanel:subscription_action' r.user.id %}">
+                  {% csrf_token %}
+                  <input type="hidden" name="action" value="resume">
+                  <button class="cp-btn cp-btn-sm" title="Undo the scheduled cancellation">Resume</button>
+                </form>
+                {% endif %}
+                <form method="post" action="{% url 'controlpanel:subscription_action' r.user.id %}"
+                      onsubmit="return confirm('Cancel {{ r.user.email|escapejs }} immediately?\n\n• Billing stops now — nothing further is charged\n• They lose access at once and must resubscribe to return');">
+                  {% csrf_token %}
+                  <input type="hidden" name="action" value="cancel_now">
+                  <button class="cp-btn cp-btn-sm cp-btn-danger" title="End billing and access immediately">Cancel</button>
+                </form>
+              {% endif %}
+              <a class="cp-btn cp-btn-sm" href="{% url 'controlpanel:user_detail' r.user.id %}">Open</a>
+            </div>
+          </td>
         </tr>
         {% empty %}
         <tr><td colspan="6"><div class="cp-empty"><i class="ti ti-crown-off"></i><p>No accounts in this state</p></div></td></tr>
@@ -57,5 +248,97 @@
     </table>
   </div>
 </div>
-{% include 'controlpanel/_pagination.html' %}
+{% include 'controlpanel/_pagination.html' with show_per_page=1 %}
+
+<p class="cp-footnote">
+  MRR values every active subscription at the monthly price — Stripe records a
+  subscription's status but not its plan, so yearly subscribers cannot be told
+  apart in our data. Where they exist, real MRR is lower than shown. There is
+  no MRR-over-time chart for the same reason: only the current status of each
+  subscription is stored, so a historical curve could only be guessed at.
+</p>
+
+{{ charts|json_script:"subCharts" }}
+<script>
+  (function () {
+    const C = JSON.parse(document.getElementById('subCharts').textContent);
+    const ACCENT = '#e05c2a', GREEN = '#16a34a';
+
+    // Shared shell: bars (each month is a discrete bucket, so a line would
+    // imply values between months that do not exist), no legend on the
+    // single-series chart, and the dashboard's tooltip treatment.
+    function base(extra) {
+      return Object.assign({
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: '#16181d', padding: 11, cornerRadius: 9,
+            titleFont: { size: 12.5, weight: '700' }, bodyFont: { size: 12.5 },
+            displayColors: false
+          }
+        },
+        scales: {
+          x: { grid: { display: false }, border: { color: '#e9e9e7' },
+               ticks: { color: '#9ca3af', font: { size: 10.5 }, maxRotation: 0, autoSkip: true, maxTicksLimit: 7 } },
+          y: { beginAtZero: true, border: { display: false },
+               grid: { color: 'rgba(17,24,39,.055)' },
+               ticks: { color: '#9ca3af', font: { size: 10.5 }, maxTicksLimit: 4, precision: 0 } }
+        }
+      }, extra || {});
+    }
+
+    new Chart(document.getElementById('chartStarted'), {
+      type: 'bar',
+      data: {
+        labels: C.started.labels,
+        datasets: [{
+          data: C.started.values, backgroundColor: ACCENT, hoverBackgroundColor: '#c94e22',
+          borderRadius: 4, borderSkipped: false, maxBarThickness: 26
+        }]
+      },
+      options: base({
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: '#16181d', padding: 11, cornerRadius: 9,
+            titleFont: { size: 12.5, weight: '700' }, bodyFont: { size: 12.5 }, displayColors: false,
+            callbacks: { label: function (i) { return ' ' + i.raw + ' started'; } }
+          }
+        }
+      })
+    });
+
+    // Renewals carry two facts — how many and how much — so the bar is the
+    // count and the tooltip adds the money it represents. Absent when there is
+    // nothing due, where the card shows an explanation instead.
+    const rc = document.getElementById('chartRenewals');
+    if (rc) new Chart(rc, {
+      type: 'bar',
+      data: {
+        labels: C.renewals.labels,
+        datasets: [{
+          data: C.renewals.counts, backgroundColor: GREEN, hoverBackgroundColor: '#12833d',
+          borderRadius: 4, borderSkipped: false, maxBarThickness: 26
+        }]
+      },
+      options: base({
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: '#16181d', padding: 11, cornerRadius: 9,
+            titleFont: { size: 12.5, weight: '700' }, bodyFont: { size: 12.5 }, displayColors: false,
+            callbacks: {
+              label: function (i) {
+                const v = C.renewals.values[i.dataIndex] || 0;
+                return ' ' + i.raw + ' renewal' + (i.raw === 1 ? '' : 's') +
+                       ' · $' + v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+              }
+            }
+          }
+        }
+      })
+    });
+  })();
+</script>
 {% endblock %}

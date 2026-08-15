@@ -110,6 +110,7 @@
               <li><a class="dropdown-item" href="#" data-view="week">Week</a></li>
               <li><a class="dropdown-item" href="#" data-view="day">Day</a></li>
               <li><a class="dropdown-item" href="#" data-view="list">List View</a></li>
+              <li><a class="dropdown-item" href="#" data-view="availability">Availability</a></li>
             </ul>
           </div>
         </div>
@@ -125,6 +126,7 @@
                 <button class="mobile-view-btn" data-view="week">Week</button>
                 <button class="mobile-view-btn" data-view="day">Day</button>
                 <button class="mobile-view-btn" data-view="list">List</button>
+                <button class="mobile-view-btn" data-view="availability">Availability</button>
               </div>
             </div>
             <div class="mobile-menu-divider"></div>
@@ -204,6 +206,13 @@
           <div class="list-loading">Loading events…</div>
         </div>
       </div>
+      <!-- Availability View Pane (month grid of free listings, no sidebar) -->
+      <div id="availabilityPane" class="availability-pane"
+        style="display: none; flex: 1; height: 100%; min-height: 0; overflow-y: auto; padding: 16px; background-color: #fafafa; position: relative; z-index: 1; box-sizing: border-box;">
+        <div id="availabilityContent">
+          <div class="list-loading">Loading availability…</div>
+        </div>
+      </div>
       <div class="calendar-empty-state" id="calendarEmptyState">No data to display</div>
     </div>
   </div>
@@ -245,6 +254,20 @@
       <div class="modal-body" style="padding: 0; max-height: none; overflow: visible;">
         <div id="rental-agreement-content-placeholder">Loading...</div>
       </div>
+    </div>
+  </div>
+
+  <!-- Availability Day Modal (which listings are free on one day) -->
+  <div id="availabilityDayModal" class="avl-modal-overlay" onclick="closeAvailabilityDayModal(event)">
+    <div class="avl-modal" role="dialog" aria-modal="true" aria-labelledby="avlModalTitle" onclick="event.stopPropagation()">
+      <div class="avl-modal-head">
+        <div>
+          <div class="avl-modal-title" id="avlModalTitle">Availability</div>
+          <div class="avl-modal-sub" id="avlModalSub"></div>
+        </div>
+        <button type="button" class="avl-modal-close" onclick="closeAvailabilityDayModal()" aria-label="Close">&times;</button>
+      </div>
+      <div class="avl-modal-body" id="avlModalBody"></div>
     </div>
   </div>
 
@@ -608,7 +631,7 @@
   function updateViewTitle() {
     const el = document.getElementById('viewTitle');
     if (!el) return;
-    const labels = { month: 'Month view', week: 'Week view', day: 'Day view', list: 'List view' };
+    const labels = { month: 'Month view', week: 'Week view', day: 'Day view', list: 'List view', availability: 'Availability view' };
     el.textContent = 'Calendar - ' + (labels[currentViewMode] || 'Month view');
   }
 
@@ -2464,11 +2487,32 @@
     hidePropertyPreview();
     const gridPane = document.getElementById('gridCalendarPane');
     const listPane = document.getElementById('listViewPane');
+    const availabilityPane = document.getElementById('availabilityPane');
     const propsColumn = document.querySelector('.properties-column');
     const legend = document.getElementById('calColorLegend');
     if (!gridPane) return;
 
-    if (currentViewMode === 'list') {
+    // The reservation/task/payment filter has nothing to act on in the
+    // Availability view, so hide it there rather than leave a dead control.
+    const typeFilterDropdown = document.querySelector('.calendar-filter-dropdown');
+    if (typeFilterDropdown) {
+      typeFilterDropdown.style.display = currentViewMode === 'availability' ? 'none' : '';
+    }
+    if (availabilityPane && currentViewMode !== 'availability') availabilityPane.style.display = 'none';
+
+    if (currentViewMode === 'availability') {
+      if (legend) legend.style.display = 'none';
+      if (propsColumn) propsColumn.style.display = 'none';
+      gridPane.style.display = 'none';
+      listPane.style.display = 'none';
+      if (availabilityPane) {
+        // Same box the Month view uses, so the grid stretches to the pane
+        // instead of floating short at the top.
+        availabilityPane.style.display = 'flex';
+        availabilityPane.style.flexDirection = 'column';
+      }
+      renderAvailabilityView();
+    } else if (currentViewMode === 'list') {
       if (legend) legend.style.display = 'none';
       if (propsColumn) propsColumn.style.display = 'none';
       gridPane.style.display = 'none';
@@ -2764,6 +2808,212 @@
 
     pane.innerHTML = html;
   }
+
+  /* --- Availability View (month grid of free listings, no sidebar) ------
+     Availability is answered by the server rather than derived from the
+     reservation bars this page already holds: the bar for a stay covers the
+     check-out day (the guest is still there that morning) while that night is
+     actually sellable, so counting bars would under-report free listings on
+     every turnover day. The endpoint applies the same [check_in, check_out)
+     rule the booking form enforces. */
+  let availabilityData = null;      // last payload, keyed by ISO date
+  let availabilityRequestId = 0;    // guards against out-of-order responses
+
+  function availabilityGridWeeks() {
+    const year = currentDisplayDate.getFullYear();
+    const month = currentDisplayDate.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const gridStart = new Date(firstDay);
+    gridStart.setDate(gridStart.getDate() - firstDay.getDay());
+
+    const weeks = [];
+    const cursor = new Date(gridStart);
+    for (let w = 0; w < 6; w++) {
+      const week = [];
+      for (let d = 0; d < 7; d++) {
+        week.push(new Date(cursor));
+        cursor.setDate(cursor.getDate() + 1);
+      }
+      weeks.push(week);
+    }
+    // Drop a trailing week that belongs entirely to the next month, exactly as
+    // the Month view does, so the two grids line up row for row.
+    if (weeks.length === 6 && weeks[5].every(d => d.getMonth() !== month)) weeks.pop();
+    return weeks;
+  }
+
+  function availabilityLevel(freeCount, total) {
+    if (!total || freeCount <= 0) return 'none';
+    return (freeCount / total) <= 0.34 ? 'some' : 'good';
+  }
+
+  function renderAvailabilityView() {
+    const host = document.getElementById('availabilityContent');
+    if (!host) return;
+
+    const weeks = availabilityGridWeeks();
+    const rangeStart = weeks[0][0];
+    const rangeEnd = weeks[weeks.length - 1][6];
+    const requestId = ++availabilityRequestId;
+
+    host.innerHTML = '<div class="list-loading">Loading availability…</div>';
+
+    const url = "{% url 'calendar-availability-view' %}" +
+      '?start_date=' + toISODateString(rangeStart) +
+      '&end_date=' + toISODateString(rangeEnd) +
+      '&_=' + Date.now();
+
+    fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+      .then(r => r.json())
+      .then(data => {
+        // A slower earlier request must not overwrite a newer month's answer.
+        if (requestId !== availabilityRequestId) return;
+        if (data.error) {
+          host.innerHTML = '<div class="avl-empty">' + escapeHtmlText(data.error) + '</div>';
+          return;
+        }
+        availabilityData = data;
+        paintAvailabilityGrid(host, weeks, data);
+      })
+      .catch(() => {
+        if (requestId !== availabilityRequestId) return;
+        host.innerHTML = '<div class="avl-empty">Could not load availability. Please try again.</div>';
+      });
+  }
+
+  function escapeHtmlText(s) {
+    const d = document.createElement('div');
+    d.textContent = s == null ? '' : String(s);
+    return d.innerHTML;
+  }
+
+  function paintAvailabilityGrid(host, weeks, data) {
+    const month = currentDisplayDate.getMonth();
+    const total = data.total_listings || 0;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    if (!total) {
+      host.innerHTML = '<div class="avl-empty">No active listings yet, so there is nothing to show as available.</div>';
+      return;
+    }
+
+    // Built on the Month view's own shell classes — same card, same dark
+    // weekday strip, same week rows that stretch to fill the pane — so the two
+    // views are the same calendar with different contents, not two designs.
+    let html = `
+      <div class="month-calendar-grid" style="flex: 1; min-height: 0;">
+        <div class="month-calendar-header-row">
+          <div class="month-calendar-header-cell">SUN</div>
+          <div class="month-calendar-header-cell">MON</div>
+          <div class="month-calendar-header-cell">TUE</div>
+          <div class="month-calendar-header-cell">WED</div>
+          <div class="month-calendar-header-cell">THU</div>
+          <div class="month-calendar-header-cell">FRI</div>
+          <div class="month-calendar-header-cell">SAT</div>
+        </div>
+        <div class="month-calendar-weeks-container">
+    `;
+
+    weeks.forEach(week => {
+      html += '<div class="month-calendar-week avl-week">';
+      week.forEach(d => {
+        const iso = toISODateString(d);
+        const info = (data.days && data.days[iso]) || { available_count: 0, booked_count: 0, blocked_count: 0 };
+        const free = info.available_count || 0;
+        const level = availabilityLevel(free, total);
+        const classes = [
+          'month-calendar-day-cell', 'avl-day',
+          d.getMonth() !== month ? 'other-month' : '',
+          d.toDateString() === today.toDateString() ? 'today' : ''
+        ].filter(Boolean).join(' ');
+
+        const takenBits = [];
+        if (info.booked_count) takenBits.push(info.booked_count + ' booked');
+        if (info.blocked_count) takenBits.push(info.blocked_count + ' blocked');
+
+        const chip = free === 0
+          ? '<span class="avl-chip lvl-none">Fully booked</span>'
+          : '<span class="avl-chip lvl-' + level + '">' + free + ' free</span>';
+
+        html +=
+          '<div class="' + classes + '" data-date="' + iso + '" role="button" tabindex="0"' +
+          ' onclick="openAvailabilityDayModal(\'' + iso + '\')"' +
+          ' onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();openAvailabilityDayModal(\'' + iso + '\');}"' +
+          ' aria-label="' + escapeHtmlText(free + ' of ' + total + ' listings free on ' + iso) + '">' +
+          '<span class="day-number">' + d.getDate() + '</span>' +
+          // Footer sits on the cell's baseline: what's free on the left, what's
+          // taken on the right, so both columns line up down the whole month.
+          '<span class="avl-foot">' + chip +
+          '<span class="avl-taken">' + (takenBits.length ? escapeHtmlText(takenBits.join(' · ')) : '') + '</span>' +
+          '</span>' +
+          '</div>';
+      });
+      html += '</div>';
+    });
+
+    html += '</div></div>';
+    host.innerHTML = html;
+  }
+
+  function openAvailabilityDayModal(iso) {
+    const modal = document.getElementById('availabilityDayModal');
+    if (!modal || !availabilityData) return;
+
+    const info = (availabilityData.days && availabilityData.days[iso]) || null;
+    const total = availabilityData.total_listings || 0;
+    const ids = info ? (info.available || []) : [];
+    const byId = {};
+    (properties || []).forEach(p => { byId[String(p.id)] = p; });
+
+    const d = new Date(iso + 'T00:00:00');
+    const dateLabel = d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+
+    document.getElementById('avlModalTitle').textContent = ids.length + ' of ' + total + ' listing' + (total === 1 ? '' : 's') + ' free';
+    const takenBits = [];
+    if (info && info.booked_count) takenBits.push(info.booked_count + ' booked');
+    if (info && info.blocked_count) takenBits.push(info.blocked_count + ' blocked');
+    document.getElementById('avlModalSub').textContent =
+      dateLabel + (takenBits.length ? ' · ' + takenBits.join(', ') : '');
+
+    const body = document.getElementById('avlModalBody');
+    if (!ids.length) {
+      body.innerHTML = '<div class="avl-modal-none">Every listing is taken on this day.</div>';
+    } else {
+      body.innerHTML = ids.map(id => {
+        const p = byId[id];
+        // A listing the page doesn't know about (created after this tab
+        // loaded) still counts — show it rather than silently dropping it.
+        if (!p) return '<div class="avl-listing"><div class="avl-listing-txt"><div class="avl-listing-title">Listing ' + escapeHtmlText(id) + '</div></div></div>';
+        const img = p.image
+          ? '<img class="avl-listing-img" src="' + escapeHtmlText(p.image) + '" alt="">'
+          : '<div class="avl-listing-img"></div>';
+        const price = p.price_per_night
+          ? (window.fmtMoney ? window.fmtMoney(Number(p.price_per_night)) : '$' + Number(p.price_per_night).toLocaleString())
+          : '';
+        return '<a class="avl-listing" href="' + escapeHtmlText(p.detail_url || '#') + '">' + img +
+          '<div class="avl-listing-txt">' +
+          '<div class="avl-listing-title">' + escapeHtmlText(p.title) + '</div>' +
+          '<div class="avl-listing-meta">' + escapeHtmlText(p.location || '') + '</div>' +
+          '</div>' +
+          (price ? '<div class="avl-listing-price">' + price + '<span style="font-weight:500;color:#6b7280"> /night</span></div>' : '') +
+          '</a>';
+      }).join('');
+    }
+
+    modal.classList.add('open');
+  }
+
+  function closeAvailabilityDayModal() {
+    // The panel stops click propagation itself, so the backdrop handler only
+    // ever fires for genuine outside clicks.
+    const modal = document.getElementById('availabilityDayModal');
+    if (modal) modal.classList.remove('open');
+  }
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') closeAvailabilityDayModal();
+  });
 
   /* --- Week Grid View (unified: property label + 7-day data per row) --- */
   function renderWeekGrid(pane) {
@@ -3642,7 +3892,9 @@
 
     updateMonthDisplay();
 
-    if (currentViewMode === 'list') {
+    // Both views own their data end-to-end (each has its own endpoint), so
+    // they skip the shared property-column/booking fetch entirely.
+    if (currentViewMode === 'list' || currentViewMode === 'availability') {
       updateViewTitle();
       renderActiveView();
       return;
@@ -3656,7 +3908,7 @@
   }
 
   function goToPrevMonth() {
-    if (currentViewMode === 'month' || currentViewMode === 'list') {
+    if (currentViewMode === 'month' || currentViewMode === 'list' || currentViewMode === 'availability') {
       currentDisplayDate.setMonth(currentDisplayDate.getMonth() - 1, 1);
       refreshView();
     } else if (currentViewMode === 'week') {
@@ -3675,7 +3927,7 @@
   }
 
   function goToNextMonth() {
-    if (currentViewMode === 'month' || currentViewMode === 'list') {
+    if (currentViewMode === 'month' || currentViewMode === 'list' || currentViewMode === 'availability') {
       currentDisplayDate.setMonth(currentDisplayDate.getMonth() + 1, 1);
       refreshView();
     } else if (currentViewMode === 'week') {
@@ -3721,6 +3973,8 @@
   function refreshData() {
     if (currentViewMode === 'list') {
       renderListView();
+    } else if (currentViewMode === 'availability') {
+      renderAvailabilityView();
     } else {
       fetchBookings();
     }
@@ -3827,7 +4081,7 @@
       currentDisplayDate = new Date();
     }
     const urlView = urlParams.get('view');
-    if (urlView && ['month', 'week', 'day', 'list'].includes(urlView)) {
+    if (urlView && ['month', 'week', 'day', 'list', 'availability'].includes(urlView)) {
       currentViewMode = urlView;
     }
     initialFilter = urlParams.get('filter') || null;
@@ -3954,9 +4208,16 @@
     }
 
     document.getElementById('printBtn').addEventListener('click', function () {
-      const viewType = currentViewMode || 'month';
+      // The print panel has no availability layout, and Availability skips
+      // generateDates(), so allDates can be a stale month here — print the
+      // month being looked at, as a month.
+      const viewType = currentViewMode === 'availability' ? 'month' : (currentViewMode || 'month');
       let startDate, endDate;
-      if (allDates.length > 0) {
+      if (currentViewMode === 'availability') {
+        const y = currentDisplayDate.getFullYear(), m = currentDisplayDate.getMonth();
+        startDate = toISODateString(new Date(y, m, 1));
+        endDate = toISODateString(new Date(y, m + 1, 0));
+      } else if (allDates.length > 0) {
         startDate = toISODateString(allDates[0]);
         endDate = toISODateString(allDates[allDates.length - 1]);
       } else {
@@ -4143,9 +4404,14 @@
 
   if (mobilePrintBtn) {
     mobilePrintBtn.addEventListener('click', () => {
-      const viewType = currentViewMode || 'month';
+      // Same fallback as the desktop print button — see the note there.
+      const viewType = currentViewMode === 'availability' ? 'month' : (currentViewMode || 'month');
       let startDate, endDate;
-      if (allDates.length > 0) {
+      if (currentViewMode === 'availability') {
+        const y = currentDisplayDate.getFullYear(), m = currentDisplayDate.getMonth();
+        startDate = toISODateString(new Date(y, m, 1));
+        endDate = toISODateString(new Date(y, m + 1, 0));
+      } else if (allDates.length > 0) {
         startDate = toISODateString(allDates[0]);
         endDate = toISODateString(allDates[allDates.length - 1]);
       } else {
