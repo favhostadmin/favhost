@@ -1,0 +1,95 @@
+{% extends 'controlpanel/base.html' %}
+
+{% block page_title %}SEO / Landing Page{% endblock %}
+{% block heading %}SEO / Landing Page{% endblock %}
+{% block subheading %}<div class="cp-sub">Everything below is live on <a href="/home" target="_blank" rel="noopener">favhost.com/home</a> — a fully editable duplicate of the main landing page.</div>{% endblock %}
+
+{% block extra_head %}
+<style>
+  .cp-seo-field { margin-bottom: 16px; }
+  .cp-seo-field:last-child { margin-bottom: 0; }
+  .cp-seo-field label { display: block; font-size: 12.5px; font-weight: 600; color: var(--cp-heading); margin-bottom: 6px; }
+  .cp-seo-field input[type="text"],
+  .cp-seo-field textarea {
+    width: 100%; padding: 9px 11px; font-family: inherit; font-size: 13px;
+    border: 1px solid var(--cp-border); border-radius: 8px; background: #fff; color: var(--cp-text);
+    resize: vertical;
+  }
+  .cp-seo-field textarea { min-height: 84px; }
+  .cp-seo-field input[type="text"]:focus,
+  .cp-seo-field textarea:focus { outline: none; border-color: var(--cp-accent); }
+  .cp-seo-field .cp-override-badge {
+    display: inline-block; margin-left: 8px; font-size: 10.5px; font-weight: 700;
+    color: var(--cp-accent); background: #fff4ed; border-radius: 20px; padding: 2px 9px;
+    vertical-align: middle;
+  }
+  .cp-seo-img-row { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+  .cp-seo-img-row img {
+    width: 96px; height: 72px; object-fit: cover; border-radius: 8px; border: 1px solid var(--cp-border);
+    background: #f4f4f2;
+  }
+  .cp-seo-img-controls { display: flex; flex-direction: column; gap: 6px; }
+  .cp-seo-img-controls input[type="file"] { font-size: 12.5px; }
+  .cp-seo-img-controls label.cp-reset { font-size: 12px; font-weight: 400; color: var(--cp-muted); display: flex; align-items: center; gap: 6px; cursor: pointer; }
+  .cp-seo-sections-nav { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
+  .cp-seo-sections-nav a {
+    font-size: 12.5px; font-weight: 600; padding: 6px 13px; border-radius: 20px;
+    border: 1px solid var(--cp-border); color: var(--cp-text); text-decoration: none;
+  }
+  .cp-seo-sections-nav a:hover { border-color: var(--cp-accent); color: var(--cp-accent); }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="cp-seo-sections-nav">
+  {% for section in sections %}
+  <a href="#seo-{{ section.key }}">{{ section.label }}</a>
+  {% endfor %}
+</div>
+
+<form method="post" enctype="multipart/form-data">
+  {% csrf_token %}
+
+  {% for section in sections %}
+  <div class="cp-card cp-card-pad cp-mb" id="seo-{{ section.key }}">
+    <div class="cp-card-head">
+      <h3>{{ section.label }}</h3>
+    </div>
+
+    {% for field in section.fields %}
+    <div class="cp-seo-field">
+      <label for="id_{{ field.key }}">
+        {{ field.label }}
+        {% if field.is_override %}<span class="cp-override-badge">Edited</span>{% endif %}
+      </label>
+
+      {% if field.type == 'image' %}
+      <div class="cp-seo-img-row">
+        <img src="{{ field.current_image_url }}" alt="">
+        <div class="cp-seo-img-controls">
+          <input type="file" id="id_{{ field.key }}" name="{{ field.key }}" accept="image/*">
+          {% if field.is_override %}
+          <label class="cp-reset">
+            <input type="checkbox" name="{{ field.key }}__reset" value="1"> Reset to default image
+          </label>
+          {% endif %}
+        </div>
+      </div>
+      {% elif field.type == 'textarea' %}
+      <textarea id="id_{{ field.key }}" name="{{ field.key }}">{{ field.current_text }}</textarea>
+      {% else %}
+      <input type="text" id="id_{{ field.key }}" name="{{ field.key }}" value="{{ field.current_text }}">
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% endfor %}
+
+  <div class="cp-form-foot">
+    <span>Blank a text field and save to revert it to the built-in default. Changes go live on /home immediately.</span>
+    <button type="submit" class="cp-btn cp-btn-primary"><i class="ti ti-device-floppy"></i> Save changes</button>
+  </div>
+</form>
+
+{% endblock %}

@@ -1681,6 +1681,16 @@ def delete_channel(request, property_id, channel_id):
 class WebsiteIndexView(TemplateView):
     template_name = 'frontend/website/index.html'
 
+
+def website_home_dynamic(request):
+    """A duplicate of the landing page whose text and images are editable by
+    an SEO co-admin from /console/seo/, instead of being hardcoded in the
+    template. See controlpanel.seo_fields for the field registry.
+    """
+    from controlpanel.seo_fields import resolve_seo_context
+    seo, seo_img = resolve_seo_context()
+    return render(request, 'frontend/website/home.html', {'seo': seo, 'seo_img': seo_img})
+
 class WebsiteBlogView(TemplateView):
     template_name = 'frontend/website/blog.html'
 

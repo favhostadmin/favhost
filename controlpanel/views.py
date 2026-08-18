@@ -39,6 +39,7 @@ from django.db.models import Count, Q, Sum
 from django.db.models.functions import Coalesce
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
+from django.templatetags.static import static
 from django.utils import timezone
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_POST
@@ -1108,4 +1109,72 @@ def co_admins(request):
         'sections': SECTIONS,
         'owner_email': admin_email(),
         'total_count': len(rows),
+    })
+
+
+# ── SEO / dynamic landing page (/home) ───────────────────────────────────────
+
+@section_required('seo')
+def seo_settings(request):
+    """Edit every text/image block on the public ``/home`` landing page.
+
+    Each field in ``seo_fields.SEO_FIELDS`` is either saved as a
+    ``SeoContentBlock`` override or, if submitted blank, reverted to its
+    built-in default by deleting the override row. Images work the same way
+    via a per-field "reset to default" checkbox, since file inputs can't be
+    cleared by submitting blank.
+    """
+    from .models import SeoContentBlock
+    from .seo_fields import SEO_FIELDS, SEO_SECTIONS
+
+    if request.method == 'POST':
+        for f in SEO_FIELDS:
+            key = f['key']
+            if f['type'] == 'image':
+                uploaded = request.FILES.get(key)
+                if uploaded:
+                    SeoContentBlock.objects.update_or_create(
+                        key=key,
+                        defaults={
+                            'section': f['section'], 'label': f['label'], 'field_type': f['type'],
+                            'image': uploaded,
+                        },
+                    )
+                elif request.POST.get(f'{key}__reset'):
+                    SeoContentBlock.objects.filter(key=key).delete()
+            else:
+                value = request.POST.get(key, '')
+                if value.strip():
+                    SeoContentBlock.objects.update_or_create(
+                        key=key,
+                        defaults={
+                            'section': f['section'], 'label': f['label'], 'field_type': f['type'],
+                            'text_value': value,
+                        },
+                    )
+                else:
+                    SeoContentBlock.objects.filter(key=key).delete()
+        messages.success(request, 'Landing page updated — changes are live on /home now.')
+        return redirect('controlpanel:seo')
+
+    overrides = {b.key: b for b in SeoContentBlock.objects.all()}
+    sections = []
+    for section_key, section_label in SEO_SECTIONS:
+        fields = []
+        for f in SEO_FIELDS:
+            if f['section'] != section_key:
+                continue
+            block = overrides.get(f['key'])
+            entry = dict(f)
+            entry['is_override'] = bool(block)
+            if f['type'] == 'image':
+                entry['current_image_url'] = block.image.url if (block and block.image) else static(f['default'])
+            else:
+                entry['current_text'] = block.text_value if (block and block.text_value) else f['default']
+            fields.append(entry)
+        sections.append({'key': section_key, 'label': section_label, 'fields': fields})
+
+    return render(request, 'controlpanel/seo.html', {
+        'active_nav': 'seo',
+        'sections': sections,
     })
