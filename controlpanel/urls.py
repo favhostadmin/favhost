@@ -41,4 +41,5 @@ urlpatterns = [
 
     # SEO / dynamic landing page
     path('seo/', views.seo_settings, name='seo'),
+    path('seo/preview/', views.seo_preview, name='seo_preview'),
 ]

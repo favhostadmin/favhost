@@ -1686,10 +1686,26 @@ def website_home_dynamic(request):
     """A duplicate of the landing page whose text and images are editable by
     an SEO co-admin from /console/seo/, instead of being hardcoded in the
     template. See controlpanel.seo_fields for the field registry.
+
+    ``?seo_preview=1`` renders the co-admin's own unsaved draft (stashed in
+    their session by the Preview button on /console/seo/) instead of what's
+    actually saved. It only works for the same browser session that made the
+    edit, and only while that session is still a platform admin — anyone else
+    hitting /home, with or without the query param, sees the real thing.
     """
+    from controlpanel.access import is_platform_admin
     from controlpanel.seo_fields import resolve_seo_context
-    seo, seo_img = resolve_seo_context()
-    return render(request, 'frontend/website/home.html', {'seo': seo, 'seo_img': seo_img})
+
+    preview = None
+    is_preview = False
+    if request.GET.get('seo_preview') == '1' and is_platform_admin(request.user):
+        preview = request.session.get('seo_preview')
+        is_preview = True
+
+    seo, seo_img = resolve_seo_context(preview)
+    return render(request, 'frontend/website/home.html', {
+        'seo': seo, 'seo_img': seo_img, 'seo_preview_active': is_preview,
+    })
 
 class WebsiteBlogView(TemplateView):
     template_name = 'frontend/website/blog.html'

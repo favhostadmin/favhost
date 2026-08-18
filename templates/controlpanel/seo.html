@@ -87,9 +87,37 @@
   {% endfor %}
 
   <div class="cp-form-foot">
-    <span>Blank a text field and save to revert it to the built-in default. Changes go live on /home immediately.</span>
+    <span>Blank a text field and save to revert it to the built-in default. Preview opens your unsaved edits in a new tab — nothing is live until you hit Save.</span>
+    <button type="button" id="seoPreviewBtn" class="cp-btn"><i class="ti ti-eye"></i> Preview changes</button>
     <button type="submit" class="cp-btn cp-btn-primary"><i class="ti ti-device-floppy"></i> Save changes</button>
   </div>
 </form>
+
+<script>
+  (function () {
+    var btn = document.getElementById('seoPreviewBtn');
+    var form = btn.closest('form');
+    btn.addEventListener('click', function () {
+      var originalLabel = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '<i class="ti ti-loader-2"></i> Preparing preview…';
+      fetch('{% url "controlpanel:seo_preview" %}', {
+        method: 'POST',
+        body: new FormData(form),
+      })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          if (data.ok) window.open(data.url, '_blank');
+        })
+        .catch(function () {
+          alert('Could not build the preview — please try again.');
+        })
+        .finally(function () {
+          btn.disabled = false;
+          btn.innerHTML = originalLabel;
+        });
+    });
+  })();
+</script>
 
 {% endblock %}

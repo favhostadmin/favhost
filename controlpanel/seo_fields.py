@@ -300,7 +300,7 @@ SEO_FIELDS = [
 SEO_FIELDS_BY_KEY = {f['key']: f for f in SEO_FIELDS}
 
 
-def resolve_seo_context():
+def resolve_seo_context(preview=None):
     """Build the two nested dicts the /home template reads: text and images.
 
     Each is keyed ``{section: {field: value}}`` (split from ``"section.field"``)
@@ -309,19 +309,33 @@ def resolve_seo_context():
     common case — most fields are never touched) resolves to its built-in
     default, so the page is byte-for-byte the shipped copy until a co-admin
     changes something.
+
+    ``preview`` — an optional ``{key: value}`` dict of *unsaved* edits (text,
+    or a pre-resolved image URL) — wins over both the saved override and the
+    default. This is how the "Preview changes" button on ``/console/seo/``
+    shows a co-admin their draft without writing anything to the database:
+    the values are stashed in their session, never in ``SeoContentBlock``.
     """
     from .models import SeoContentBlock
 
+    preview = preview or {}
     overrides = {b.key: b for b in SeoContentBlock.objects.all()}
     text, images = {}, {}
     for f in SEO_FIELDS:
         section, field = f['key'].split('.', 1)
         block = overrides.get(f['key'])
+        draft = preview.get(f['key'])
         if f['type'] == IMAGE:
             images.setdefault(section, {})
-            images[section][field] = block.image.url if (block and block.image) else _static(f['default'])
+            if draft:
+                images[section][field] = draft
+            else:
+                images[section][field] = block.image.url if (block and block.image) else _static(f['default'])
         else:
             text.setdefault(section, {})
-            value = block.text_value if (block and block.text_value) else f['default']
+            if draft is not None:
+                value = draft
+            else:
+                value = block.text_value if (block and block.text_value) else f['default']
             text[section][field] = value
     return text, images

@@ -37,7 +37,7 @@ from django.core.paginator import Paginator
 from django.core.validators import validate_email
 from django.db.models import Count, Q, Sum
 from django.db.models.functions import Coalesce
-from django.http import Http404
+from django.http import Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.templatetags.static import static
 from django.utils import timezone
@@ -1178,3 +1178,45 @@ def seo_settings(request):
         'active_nav': 'seo',
         'sections': sections,
     })
+
+
+@section_required('seo')
+@require_POST
+def seo_preview(request):
+    """Stash the SEO form's *current, unsaved* values in the co-admin's own
+    session and hand back a ``/home`` URL that renders them.
+
+    Nothing here touches ``SeoContentBlock`` — a preview image upload is
+    written to a session-scoped folder under MEDIA instead, so opening the
+    preview link never publishes a change. The link only shows the draft to
+    the browser that submitted it (same session cookie); anyone else hitting
+    ``/home`` still sees whatever is actually saved.
+    """
+    from django.core.files.storage import default_storage
+    from .seo_fields import SEO_FIELDS
+    import os
+    import uuid
+
+    if not request.session.session_key:
+        request.session.save()
+
+    draft = {}
+    for f in SEO_FIELDS:
+        key = f['key']
+        if f['type'] == 'image':
+            uploaded = request.FILES.get(key)
+            if uploaded:
+                ext = os.path.splitext(uploaded.name)[1]
+                dest = f'seo_previews/{request.session.session_key}/{uuid.uuid4().hex}{ext}'
+                saved_path = default_storage.save(dest, uploaded)
+                draft[key] = default_storage.url(saved_path)
+        else:
+            value = request.POST.get(key, '')
+            if value.strip():
+                draft[key] = value
+
+    request.session['seo_preview'] = draft
+    request.session.set_expiry(3600)
+
+    from django.urls import reverse
+    return JsonResponse({'ok': True, 'url': reverse('home') + '?seo_preview=1'})
