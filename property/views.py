@@ -426,7 +426,7 @@ class PropertyListView(LoginRequiredMixin, ListView):
 
     def get_queryset(self):
         # queryset = Property.objects.prefetch_related('images', 'amenities').all()
-        queryset = Property.objects.filter(created_by__in=get_visible_user_ids(self.request.user)).prefetch_related('images').all()
+        queryset = Property.objects.filter(created_by__in=get_visible_user_ids(self.request.user)).prefetch_related('images', 'amenities').all()
         
         # Search functionality
         search_query = self.request.GET.get('search', '').strip()

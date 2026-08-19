@@ -1536,6 +1536,266 @@
         }
     }
 </style>
+
+<style>
+    /* =====================================================================
+       Listing tile refresh.
+       Loaded last so it layers on top of the base card rules above; the
+       `.pl-view-list` rules stay more specific, so list view is unchanged.
+       ===================================================================== */
+
+    /* --- availability pill, now sitting on the photo --------------------- */
+    .listing-avl-pill {
+        position: absolute;
+        left: 12px;
+        bottom: 12px;
+        z-index: 30;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        max-width: calc(100% - 24px);
+        padding: 5px 11px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.96);
+        box-shadow: 0 2px 8px rgba(16, 24, 40, 0.18);
+        font-size: 12.5px;
+        font-weight: 600;
+        color: #111827;
+        pointer-events: none;
+    }
+
+    .listing-avl-dot {
+        position: relative;
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: #12b76a;
+        flex: 0 0 auto;
+    }
+
+    /* Free right now — the dot pulses so the tile reads as "bookable today"
+       at a glance. The halo is a pseudo-element so the dot itself never
+       changes size and the pill's text stays put. */
+    .listing-avl-dot:not(.is-later) {
+        animation: listing-avl-blink 1.6s ease-in-out infinite;
+    }
+
+    .listing-avl-dot:not(.is-later)::after {
+        content: "";
+        position: absolute;
+        inset: -3px;
+        border-radius: 50%;
+        background: #12b76a;
+        animation: listing-avl-halo 1.6s ease-out infinite;
+    }
+
+    @keyframes listing-avl-blink {
+        0%, 100% { opacity: 1; }
+        50%      { opacity: 0.45; }
+    }
+
+    @keyframes listing-avl-halo {
+        0%   { opacity: 0.45; transform: scale(0.6); }
+        70%  { opacity: 0;    transform: scale(1.6); }
+        100% { opacity: 0;    transform: scale(1.6); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .listing-avl-dot:not(.is-later),
+        .listing-avl-dot:not(.is-later)::after {
+            animation: none;
+        }
+
+        .listing-avl-dot:not(.is-later)::after {
+            display: none;
+        }
+    }
+
+    /* booked today — the pill shows the date it frees up instead */
+    .listing-avl-dot.is-later {
+        background: #EB5310;
+    }
+
+    .listing-avl-pill .listing-availability-text {
+        font-size: inherit;
+        font-weight: inherit;
+        color: inherit;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    /* --- location line with map pin -------------------------------------- */
+    .listing-location {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        min-width: 0;
+    }
+
+    .listing-location .listing-loc-icon {
+        width: 13px;
+        height: 13px;
+        flex: 0 0 auto;
+        color: #9ca3af;
+    }
+
+    .listing-location > span {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    /* --- amenity chips ---------------------------------------------------- */
+    .listing-chips {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 6px;
+        min-width: 0;
+    }
+
+    .listing-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 4px 9px;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        background: #ffffff;
+        font-size: 12px;
+        font-weight: 500;
+        line-height: 1.2;
+        color: #374151;
+        white-space: nowrap;
+        max-width: 100%;
+    }
+
+    .listing-chip img,
+    .listing-chip svg {
+        width: 14px;
+        height: 14px;
+        object-fit: contain;
+        flex: 0 0 auto;
+    }
+
+    .listing-chip > span {
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .listing-info .price-period {
+        font-size: 13px;
+        font-weight: 500 !important;
+        color: #6b7280 !important;
+    }
+
+    @media (min-width: 992px) {
+        .property-card-col {
+            padding: 10px !important;
+        }
+
+        .listing-card {
+            border: 1px solid #e8e8ea;
+            border-radius: 16px;
+            background: #ffffff;
+            overflow: hidden;
+            box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+            transition: box-shadow 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
+        }
+
+        .listing-card:hover {
+            background: #ffffff;
+            border-color: #dcdce0;
+            box-shadow: 0 12px 26px -14px rgba(16, 24, 40, 0.35);
+            transform: translateY(-2px);
+        }
+
+        .listing-image-container {
+            height: 224px;
+        }
+
+        .status-badge {
+            top: 12px;
+            right: 12px;
+            padding: 5px 12px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 700;
+            background: #12b76a;
+            box-shadow: 0 2px 8px rgba(16, 24, 40, 0.18);
+        }
+
+        .status-badge.inactive {
+            background: #ef4444;
+        }
+
+        .listing-info {
+            padding: 14px 16px 16px;
+            gap: 8px;
+        }
+
+        /* the template rows already carry their own margins */
+        .listing-info > .mt-2 {
+            margin-top: 0 !important;
+        }
+
+        .listing-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: #111827;
+        }
+
+        .listing-location {
+            font-size: 13px;
+        }
+
+        .listing-price {
+            font-size: 20px;
+            font-weight: 700;
+            color: #111827;
+        }
+    }
+
+    /* The <=991px card is a compact row: keep it looking as it did by
+       stripping the chip frame and showing the bed chip only. */
+    @media (max-width: 991px) {
+        .listing-chips {
+            flex-wrap: nowrap;
+            overflow: hidden;
+        }
+
+        .listing-chip {
+            border: none;
+            background: transparent;
+            padding: 0;
+            font-size: 12px;
+            font-weight: 600;
+            color: #6b7280;
+        }
+
+        .listing-chip:not(:first-child) {
+            display: none;
+        }
+
+        .listing-avl-pill {
+            left: 8px;
+            bottom: 8px;
+            padding: 3px 8px;
+            font-size: 10.5px;
+            gap: 4px;
+        }
+
+        .listing-avl-dot {
+            width: 6px;
+            height: 6px;
+        }
+
+        .listing-location .listing-loc-icon {
+            width: 12px;
+            height: 12px;
+        }
+    }
+</style>
 {% endblock extra_head %}
 
 {% block content %}
