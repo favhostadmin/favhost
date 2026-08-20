@@ -111,21 +111,23 @@ def profile(request):
     page that can be pointed at somebody else's account. Managing other people
     stays on Hosts & Users (hosts) and Co-admins (console staff).
 
-    Exactly one thing is editable: the password. A console login is not a host
-    profile — it has no name, phone or address to keep, and inventing fields to
-    fill a card would only create data nobody maintains. Everything else here
-    is a fact worth confirming (which account, what it can reach, when it was
-    last used) and is deliberately read-only.
-
-    The password form re-checks the current one before accepting a new one: a
-    console session left open on an unlocked laptop should not be enough to
-    take the account over.
+    The owner can change their own password here (the form re-checks the
+    current one first, so a console session left open on an unlocked laptop
+    isn't enough to take the account over). Co-admin passwords are owner-set
+    on the Co-admins page instead, so a co-admin sees their current password
+    displayed here rather than a form to change it. Everything else on the
+    page is a fact worth confirming (which account, what it can reach, when
+    it was last used) and is deliberately read-only.
     """
     user = request.user
     role = console_role(user)
 
     if request.method == 'POST':
         action = request.POST.get('action')
+
+        if action == 'password' and role != 'owner':
+            messages.error(request, 'Only the owner account can change its own password. Co-admin passwords are set by the owner.')
+            return redirect('controlpanel:profile')
 
         if action == 'password':
             current = request.POST.get('current_password') or ''
