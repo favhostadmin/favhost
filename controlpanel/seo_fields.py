@@ -37,9 +37,16 @@ SEO_FIELDS = [
     dict(key='meta.description', section='meta', label='Meta description', type=TEXTAREA,
          default='Favhost is vacation rental software that syncs your calendars, automates guest messages, '
                   'and manages bookings across Airbnb, Vrbo, and Booking.com. Start free.'),
+    dict(key='meta.canonical', section='meta', label='Canonical URL', type=TEXT,
+         default='https://www.favhost.com/home'),
+    dict(key='meta.schema_json', section='meta', label='Extra schema markup (JSON-LD, optional)', type=TEXTAREA,
+         default=''),
+    dict(key='meta.robots_txt', section='meta', label='robots.txt (site-wide — applies to the whole domain, not just /home)', type=TEXTAREA,
+         default='User-agent: *\nAllow: /\nDisallow: /admin/\nDisallow: /api/\nDisallow: /*?utm_\n\n'
+                  'Sitemap: https://www.favhost.com/sitemap.xml'),
 
     # ── Hero banner ────────────────────────────────────────────────────
-    dict(key='hero.title', section='hero', label='Hero title', type=TEXT,
+    dict(key='hero.title', section='hero', label='Hero title (H1)', type=TEXT,
          default='One Platform to manage Short-term vacation rentals, Hotel and Mid term rental business'),
     dict(key='hero.description', section='hero', label='Hero description', type=TEXTAREA,
          default='Build for Vacation Rentals | Hostel | B&Bs | Hotels - All in one Channel manager, PMS, '
@@ -48,13 +55,19 @@ SEO_FIELDS = [
          default='Get started for free'),
     dict(key='hero.image_1', section='hero', label='Hero image 1', type=IMAGE,
          default='website/img/herobanner.jpg'),
+    dict(key='hero.image_1_alt', section='hero', label='Hero image 1 — alt text', type=TEXT,
+         default='Vacation rental property managed with Favhost short-term rental software'),
     dict(key='hero.image_2', section='hero', label='Hero image 2', type=IMAGE,
          default='website/img/herobanner1.jpg'),
+    dict(key='hero.image_2_alt', section='hero', label='Hero image 2 — alt text', type=TEXT,
+         default='Vacation rental property managed with Favhost short-term rental software'),
     dict(key='hero.image_3', section='hero', label='Hero image 3', type=IMAGE,
          default='website/img/herobanner2.jpg'),
+    dict(key='hero.image_3_alt', section='hero', label='Hero image 3 — alt text', type=TEXT,
+         default='Vacation rental property managed with Favhost short-term rental software'),
 
     # ── Features ───────────────────────────────────────────────────────
-    dict(key='features.title', section='features', label='Section title', type=TEXT,
+    dict(key='features.title', section='features', label='Section title (H2)', type=TEXT,
          default='Key Features of Our Channel Manager Application'),
     dict(key='features.subtitle', section='features', label='Section subtitle', type=TEXT,
          default='Everything you need to manage your property effortlessly'),
@@ -67,7 +80,7 @@ SEO_FIELDS = [
                   'housekeeping schedules.\n\nOptimize your hospitality business, increase occupancy, avoid '
                   'double bookings and improve guest satisfaction today.'),
 
-    dict(key='feature_1.title', section='features', label='Feature 1 — title', type=TEXT, default='Channel Manager'),
+    dict(key='feature_1.title', section='features', label='Feature 1 — title (H3)', type=TEXT, default='Channel Manager'),
     dict(key='feature_1.description', section='features', label='Feature 1 — description', type=TEXTAREA,
          default='Our integrated Channel Manager acts as your central command center, synchronizing your '
                   'availability and rates across multiple OTAs like Airbnb, Vrbo, Booking.com.\n\nZero '
@@ -77,8 +90,10 @@ SEO_FIELDS = [
                   'maximize occupancy effortlessly.'),
     dict(key='feature_1.image', section='features', label='Feature 1 — image', type=IMAGE,
          default='website/img/service-2.jpg'),
+    dict(key='feature_1.image_alt', section='features', label='Feature 1 — image alt text', type=TEXT,
+         default='Favhost channel manager syncing vacation rental bookings'),
 
-    dict(key='feature_2.title', section='features', label='Feature 2 — title', type=TEXT, default='Reservations'),
+    dict(key='feature_2.title', section='features', label='Feature 2 — title (H3)', type=TEXT, default='Reservations'),
     dict(key='feature_2.description', section='features', label='Feature 2 — description', type=TEXTAREA,
          default='Manage stress-free the short-term rental repetitive tasks for maintenance and cleaning. Track '
                   'cleaning schedules and STR maintenance in a single consolidated calendar.\n\nInstantly '
@@ -87,8 +102,10 @@ SEO_FIELDS = [
                   'reservation running smoothly from booking to checkout.'),
     dict(key='feature_2.image', section='features', label='Feature 2 — image', type=IMAGE,
          default='website/img/service-5.jpg'),
+    dict(key='feature_2.image_alt', section='features', label='Feature 2 — image alt text', type=TEXT,
+         default='Favhost vacation rental reservation management'),
 
-    dict(key='feature_3.title', section='features', label='Feature 3 — title', type=TEXT,
+    dict(key='feature_3.title', section='features', label='Feature 3 — title (H3)', type=TEXT,
          default='Direct booking website'),
     dict(key='feature_3.description', section='features', label='Feature 3 — description', type=TEXTAREA,
          default='Favhost is designed specifically for short-term rental owners who want to maximize their ROI '
@@ -98,8 +115,10 @@ SEO_FIELDS = [
                   'calendar, so you never have to worry about manual updates or double bookings.'),
     dict(key='feature_3.image', section='features', label='Feature 3 — image', type=IMAGE,
          default='website/img/service-3.jpg'),
+    dict(key='feature_3.image_alt', section='features', label='Feature 3 — image alt text', type=TEXT,
+         default='Favhost direct booking website for vacation rental hosts'),
 
-    dict(key='feature_4.title', section='features', label='Feature 4 — title', type=TEXT, default='Accounting'),
+    dict(key='feature_4.title', section='features', label='Feature 4 — title (H3)', type=TEXT, default='Accounting'),
     dict(key='feature_4.description', section='features', label='Feature 4 — description', type=TEXTAREA,
          default='Maximize your short-term rental ROI with our Channel Manager’s advanced accounting and '
                   'revenue report features. Seamlessly track rental income, expenses, and net profits across '
@@ -110,8 +129,10 @@ SEO_FIELDS = [
                   'efficiently.'),
     dict(key='feature_4.image', section='features', label='Feature 4 — image', type=IMAGE,
          default='website/img/service-4.jpg'),
+    dict(key='feature_4.image_alt', section='features', label='Feature 4 — image alt text', type=TEXT,
+         default='Favhost listings and reservations management'),
 
-    dict(key='feature_5.title', section='features', label='Feature 5 — title', type=TEXT, default='Manage Tasks'),
+    dict(key='feature_5.title', section='features', label='Feature 5 — title (H3)', type=TEXT, default='Manage Tasks'),
     dict(key='feature_5.description', section='features', label='Feature 5 — description', type=TEXTAREA,
          default='Our integrated task management suite automates your team\'s workflow from the moment a '
                   'booking is confirmed, giving you a real-time view of every job status across all your '
@@ -121,8 +142,10 @@ SEO_FIELDS = [
                   'expenses, and net profit to make smarter decisions and grow your business.'),
     dict(key='feature_5.image', section='features', label='Feature 5 — image', type=IMAGE,
          default='website/img/service-6.jpg'),
+    dict(key='feature_5.image_alt', section='features', label='Feature 5 — image alt text', type=TEXT,
+         default='Favhost task management for vacation rental hosts'),
 
-    dict(key='feature_6.title', section='features', label='Feature 6 — title', type=TEXT, default='Housekeeping'),
+    dict(key='feature_6.title', section='features', label='Feature 6 — title (H3)', type=TEXT, default='Housekeeping'),
     dict(key='feature_6.description', section='features', label='Feature 6 — description', type=TEXTAREA,
          default='Transform your property\'s turnaround efficiency with real-time housekeeping updates '
                   'instantly synced to your listings across all booking channels.\n\nEnsure every room meets '
@@ -132,18 +155,20 @@ SEO_FIELDS = [
                   'housekeeping management solution built for short-term rental hosts.'),
     dict(key='feature_6.image', section='features', label='Feature 6 — image', type=IMAGE,
          default='website/img/service-1.jpg'),
+    dict(key='feature_6.image_alt', section='features', label='Feature 6 — image alt text', type=TEXT,
+         default='Favhost housekeeping automation for short-term rentals'),
 
     # ── How it works ───────────────────────────────────────────────────
-    dict(key='how.title', section='how', label='Section title', type=TEXT, default='How it works'),
-    dict(key='how_1.title', section='how', label='Step 1 — title', type=TEXT, default='Property Management'),
+    dict(key='how.title', section='how', label='Section title (H2)', type=TEXT, default='How it works'),
+    dict(key='how_1.title', section='how', label='Step 1 — title (H3)', type=TEXT, default='Property Management'),
     dict(key='how_1.description', section='how', label='Step 1 — description', type=TEXTAREA,
          default='Optimize your property management with Favhost, the ultimate hospitality software for '
                   'real-time channel management for the short-term rental business.'),
-    dict(key='how_2.title', section='how', label='Step 2 — title', type=TEXT, default='Multi-Channel Sync'),
+    dict(key='how_2.title', section='how', label='Step 2 — title (H3)', type=TEXT, default='Multi-Channel Sync'),
     dict(key='how_2.description', section='how', label='Step 2 — description', type=TEXTAREA,
          default='Our cloud-based channel manager syncs your rates and availability across Booking.com, '
                   'Expedia, Airbnb and many more instantly.'),
-    dict(key='how_3.title', section='how', label='Step 3 — title', type=TEXT, default='Boost Revenue'),
+    dict(key='how_3.title', section='how', label='Step 3 — title (H3)', type=TEXT, default='Boost Revenue'),
     dict(key='how_3.description', section='how', label='Step 3 — description', type=TEXTAREA,
          default='Eliminate double bookings, maximize profits and occupancies, streamline operations and '
                   'boost your short-term rental and homestay business revenue effortlessly.'),
@@ -155,9 +180,11 @@ SEO_FIELDS = [
          default='Pricing\nUnlimited listings,\nSimplified pricing'),
     dict(key='pricing.image', section='pricing', label='Pricing image', type=IMAGE,
          default='website/img/about-3.jpg'),
+    dict(key='pricing.image_alt', section='pricing', label='Pricing image — alt text', type=TEXT,
+         default='Favhost vacation rental software pricing'),
 
     # ── About us ───────────────────────────────────────────────────────
-    dict(key='about.title', section='about', label='Section title', type=TEXT, default='About us and our Team'),
+    dict(key='about.title', section='about', label='Section title (H2)', type=TEXT, default='About us and our Team'),
     dict(key='about.intro', section='about', label='Intro paragraph', type=TEXTAREA,
          default='Favhost was born from a simple observation: the hospitality industry is moving faster than '
                   'ever, but the tools shouldn\'t make your life harder.'),
@@ -178,9 +205,11 @@ SEO_FIELDS = [
                   'STR market.'),
     dict(key='about.image', section='about', label='About image', type=IMAGE,
          default='website/img/aboutt4.jpg'),
+    dict(key='about.image_alt', section='about', label='About image — alt text', type=TEXT,
+         default='Favhost team managing short-term rental properties'),
 
     # ── Testimonials ───────────────────────────────────────────────────
-    dict(key='testimonials.title', section='testimonials', label='Section title', type=TEXT,
+    dict(key='testimonials.title', section='testimonials', label='Section title (H2)', type=TEXT,
          default='What People Say About us'),
     dict(key='testimonials.rating', section='testimonials', label='Overview rating', type=TEXT, default='4.9'),
     dict(key='testimonials.overview_quote', section='testimonials', label='Overview quote', type=TEXTAREA,
@@ -233,7 +262,7 @@ SEO_FIELDS = [
          default='website/img/img6.jpg'),
 
     # ── FAQ ────────────────────────────────────────────────────────────
-    dict(key='faq.title', section='faq', label='Section title', type=TEXT, default='Frequently asked questions'),
+    dict(key='faq.title', section='faq', label='Section title (H2)', type=TEXT, default='Frequently asked questions'),
     dict(key='faq.subtitle', section='faq', label='Section subtitle', type=TEXTAREA,
          default='Everything you need to know about Favhost - from connecting your first OTA to running a '
                   'commission-free direct booking site.'),

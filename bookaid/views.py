@@ -1707,6 +1707,18 @@ def website_home_dynamic(request):
         'seo': seo, 'seo_img': seo_img, 'seo_preview_active': is_preview,
     })
 
+
+def robots_txt(request):
+    """robots.txt, editable from /console/seo/ (field: meta.robots_txt).
+
+    Site-wide, not /home-specific — there is only one robots.txt for the
+    whole domain — but it's exposed on the SEO console page since that's
+    where a co-admin manages every other crawler-facing setting.
+    """
+    from controlpanel.seo_fields import resolve_seo_context
+    text, _ = resolve_seo_context()
+    return HttpResponse(text['meta']['robots_txt'], content_type='text/plain')
+
 class WebsiteBlogView(TemplateView):
     template_name = 'frontend/website/blog.html'
 
