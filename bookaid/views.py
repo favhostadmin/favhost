@@ -1697,14 +1697,12 @@ def website_home_dynamic(request):
     from controlpanel.seo_fields import resolve_seo_context
 
     preview = None
-    is_preview = False
     if request.GET.get('seo_preview') == '1' and is_platform_admin(request.user):
         preview = request.session.get('seo_preview')
-        is_preview = True
 
     seo, seo_img = resolve_seo_context(preview)
     return render(request, 'frontend/website/home.html', {
-        'seo': seo, 'seo_img': seo_img, 'seo_preview_active': is_preview,
+        'seo': seo, 'seo_img': seo_img,
     })
 
 
