@@ -38,4 +38,8 @@ urlpatterns = [
     # Platform settings & console delegates
     path('settings/', views.platform_settings, name='settings'),
     path('co-admins/', views.co_admins, name='co_admins'),
+
+    # SEO / dynamic landing page
+    path('seo/', views.seo_settings, name='seo'),
+    path('seo/preview/', views.seo_preview, name='seo_preview'),
 ]

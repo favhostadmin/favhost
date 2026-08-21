@@ -1681,6 +1681,42 @@ def delete_channel(request, property_id, channel_id):
 class WebsiteIndexView(TemplateView):
     template_name = 'frontend/website/index.html'
 
+
+def website_home_dynamic(request):
+    """A duplicate of the landing page whose text and images are editable by
+    an SEO co-admin from /console/seo/, instead of being hardcoded in the
+    template. See controlpanel.seo_fields for the field registry.
+
+    ``?seo_preview=1`` renders the co-admin's own unsaved draft (stashed in
+    their session by the Preview button on /console/seo/) instead of what's
+    actually saved. It only works for the same browser session that made the
+    edit, and only while that session is still a platform admin — anyone else
+    hitting /home, with or without the query param, sees the real thing.
+    """
+    from controlpanel.access import is_platform_admin
+    from controlpanel.seo_fields import resolve_seo_context
+
+    preview = None
+    if request.GET.get('seo_preview') == '1' and is_platform_admin(request.user):
+        preview = request.session.get('seo_preview')
+
+    seo, seo_img = resolve_seo_context(preview)
+    return render(request, 'frontend/website/home.html', {
+        'seo': seo, 'seo_img': seo_img,
+    })
+
+
+def robots_txt(request):
+    """robots.txt, editable from /console/seo/ (field: meta.robots_txt).
+
+    Site-wide, not /home-specific — there is only one robots.txt for the
+    whole domain — but it's exposed on the SEO console page since that's
+    where a co-admin manages every other crawler-facing setting.
+    """
+    from controlpanel.seo_fields import resolve_seo_context
+    text, _ = resolve_seo_context()
+    return HttpResponse(text['meta']['robots_txt'], content_type='text/plain')
+
 class WebsiteBlogView(TemplateView):
     template_name = 'frontend/website/blog.html'
 
