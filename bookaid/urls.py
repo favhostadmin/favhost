@@ -32,9 +32,11 @@ urlpatterns = [
 
     # WEBSITE URLS
     path('sitemap.xml', TemplateView.as_view(template_name='sitemap.xml', content_type='application/xml'), name='sitemap'),
-    path('robots.txt', TemplateView.as_view(template_name='robots.txt', content_type='text/plain'), name='robots'),
+    path('robots.txt', robots_txt, name='robots'),
 
     path('', WebsiteIndexView.as_view(), name='index'),
+    # SEO team's dynamic duplicate of the landing page — content edited from /console/seo/.
+    path('home/', website_home_dynamic, name='home'),
     # Demo video served with HTTP Range support so the landing-page player can seek.
     path('media/demo-video.mp4', demo_video, name='demo-video'),
     path('resources/', WebsiteBlogView.as_view(), name='blog'),

@@ -39,6 +39,13 @@
                                 <img src="{% static 'img/property/next.png' %}">
                             </button>
                             {% endif %}
+
+                            {% if not check_in or not check_out %}
+                            <div class="listing-avl-pill">
+                                <span class="listing-avl-dot"></span>
+                                <span class="listing-availability-text">{% if item.next_available_date %}Avl. on {{ item.next_available_date|date:"d-M-y" }}{% else %}Available today{% endif %}</span>
+                            </div>
+                            {% endif %}
                         </div>
                     </a>
                     <div class="listing-info">
@@ -154,19 +161,33 @@
                             </div>
                         </div>
                         <a href="{% url 'property:property-detail' slug=item.slug %}" data-open-property-preview="true" data-preview-title="{{ item.title|escape }}" rel="noopener noreferrer">
-                            <p class="listing-location">{{ item.city }}, {{ item.state }}</p>
+                            <p class="listing-location">
+                                <svg class="listing-loc-icon" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                                    <path d="M8 14.5s5-4.31 5-8a5 5 0 1 0-10 0c0 3.69 5 8 5 8Z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/>
+                                    <circle cx="8" cy="6.4" r="1.85" stroke="currentColor" stroke-width="1.3"/>
+                                </svg>
+                                <span>{{ item.city }}, {{ item.state }}</span>
+                            </p>
                         </a>
                         <div class="d-flex justify-content-between align-items-center">
                             {% if check_in and check_out %}
-                            <div style="display: flex; align-items: center; gap: 6px;">
-                                <img src="{% static 'img/property/bed.svg' %}">
-                                <div class="listing-bed-type">{{ item.get_bed_type_display|cut:" Bed" }}</div>
+                            <div class="listing-chips">
+                                <span class="listing-chip">
+                                    <img src="{% static 'img/property/bed.svg' %}" alt="" aria-hidden="true">
+                                    <span class="listing-bed-type">{{ item.get_bed_type_display|cut:" Bed" }}</span>
+                                </span>
+                                {% for amenity in item.amenities.all|slice:":3" %}
+                                <span class="listing-chip">
+                                    {% if amenity.icon %}<img src="{{ amenity.icon.url }}" alt="" aria-hidden="true">{% endif %}
+                                    <span>{{ amenity.name }}</span>
+                                </span>
+                                {% endfor %}
                             </div>
                             <div class="listing-stay-wrap" style="display: flex; align-items: center; gap: 6px;">
                                 <span class="listing-nights" data-listing-nights style="display: none;"></span>
                                 <a href="{% url 'property:property-detail' slug=item.slug %}" data-open-property-preview="true" data-preview-title="{{ item.title|escape }}" rel="noopener noreferrer">
                                     <p class="listing-price" data-nightly-price="{% money_raw item.price_per_night %}" data-cleaning-fee="{% money_raw item.cleaning_fee %}" data-refundable-deposit="{% money_raw item.refundable_deposit %}" data-taxes="{% money_raw item.taxes %}" data-other-fees="{% money_raw item.other_fees %}">
-                                        {% money item.price_per_night %} <span class="price-period">Night</span>
+                                        {% money item.price_per_night %} <span class="price-period">/night</span>
                                     </p>
                                 </a>
                             </div>
@@ -174,20 +195,25 @@
                         </div>
                         {% if not check_in or not check_out %}
                         <div class="d-flex justify-content-between align-items-center mt-2">
-                            <div style="display: flex; align-items: center; gap: 6px;">
-                                <img src="{% static 'img/property/bed.svg' %}">
-                                <div class="listing-bed-type">{{ item.get_bed_type_display|cut:" Bed" }}</div>
+                            <div class="listing-chips">
+                                <span class="listing-chip">
+                                    <img src="{% static 'img/property/bed.svg' %}" alt="" aria-hidden="true">
+                                    <span class="listing-bed-type">{{ item.get_bed_type_display|cut:" Bed" }}</span>
+                                </span>
+                                {% for amenity in item.amenities.all|slice:":3" %}
+                                <span class="listing-chip">
+                                    {% if amenity.icon %}<img src="{{ amenity.icon.url }}" alt="" aria-hidden="true">{% endif %}
+                                    <span>{{ amenity.name }}</span>
+                                </span>
+                                {% endfor %}
                             </div>
                         </div>
                         <div class="d-flex justify-content-between align-items-center mt-2" style="gap: 6px; min-width: 0;">
                             <a href="{% url 'property:property-detail' slug=item.slug %}" data-open-property-preview="true" data-preview-title="{{ item.title|escape }}" rel="noopener noreferrer" style="min-width: 0; flex-shrink: 0;">
                                 <p class="listing-price" data-nightly-price="{% money_raw item.price_per_night %}" data-cleaning-fee="{% money_raw item.cleaning_fee %}" data-refundable-deposit="{% money_raw item.refundable_deposit %}" data-taxes="{% money_raw item.taxes %}" data-other-fees="{% money_raw item.other_fees %}">
-                                    {% money item.price_per_night %} <span class="price-period">Night</span>
+                                    {% money item.price_per_night %} <span class="price-period">/night</span>
                                 </p>
                             </a>
-                            <div class="listing-stay-wrap listing-stay-badge" style="display: flex; align-items: center; gap: 6px; min-width: 0; max-width: 100%; box-sizing: border-box;">
-                                <span class="listing-availability-text" style="overflow: hidden; text-overflow: ellipsis;">{% if item.next_available_date %}Avl. on {{ item.next_available_date|date:"d-M-y" }}{% else %}Avl. today{% endif %}</span>
-                            </div>
                         </div>
                         {% endif %}
                     </div>
