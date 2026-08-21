@@ -229,6 +229,9 @@ class CustomLoginView(LoginView):
             messages.error(self.request, 'This account cannot sign in here.')
             return redirect('login')
         self.request.session.set_expiry(settings.SESSION_COOKIE_AGE)
+        # See accounts/signals.py (user_logged_in) for the one-shot
+        # "complete your profile" popup flag — it's set there, after
+        # auth.login() finishes, for every login path at once.
         return super().form_valid(form)
 
     def get_success_url(self):

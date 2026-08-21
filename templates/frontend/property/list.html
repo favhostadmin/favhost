@@ -620,16 +620,21 @@
             gap: 7px;
         }
 
+        /* Search box: a rounded rectangle split into three labelled segments
+           (CHECK-IN / CHECK-OUT / GUESTS) with a round orange submit on the
+           right — matching the public host site's mobile search. */
         .mobile-inline-filter {
             flex: 1;
             min-width: 0;
-            height: 40px;
-            border: 1.5px solid #9ca3af;
-            border-radius: 999px;
+            height: auto;
+            min-height: 58px;
+            border: 1px solid #e3e5e8;
+            border-radius: 16px;
             background: #fff;
+            box-shadow: 0 4px 14px rgba(16, 24, 40, 0.08);
             display: flex;
-            align-items: center;
-            padding: 0 4px;
+            align-items: stretch;
+            padding: 0 6px 0 0;
             justify-content: flex-start;
             overflow: hidden;
             white-space: nowrap;
@@ -643,46 +648,116 @@
             border: none;
             background: transparent;
             color: #111827;
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 600;
             white-space: nowrap;
-            display: inline-flex;
-            align-items: center;
-            justify-content: flex-start;
-            gap: 4px;
-            padding: 0 6px;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            justify-content: center;
+            gap: 3px;
+            padding: 8px 8px 8px 12px;
             min-width: 0;
             flex: 1 1 0;
             text-align: left;
         }
 
-        .mobile-inline-item.search-trigger {
-            text-decoration: underline;
-            margin-left: 0;
+        .mobile-inline-label {
+            display: block;
+            font-size: 9.5px;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: #6b7280;
+            line-height: 1;
+            pointer-events: none;
+        }
+
+        #mobile-checkin-display,
+        #mobile-checkout-display,
+        #mobile-inline-guests {
+            max-width: 100%;
+            font-size: 13px;
+            font-weight: 600;
+            color: #111827;
+            line-height: 1.2;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            pointer-events: none;
+        }
+
+        /* narrower than the date fields, with room for the stepper */
+        #mobile-guests-item {
+            position: relative;
+            flex: 0 1 auto;
             min-width: 68px;
-            padding-right: 0;
+            padding-right: 20px;
+        }
+
+        .mobile-guest-stepper {
+            position: absolute;
+            right: 3px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        /* The submit turns into the round orange button from the mock. The
+           label stays in the DOM for screen readers and is collapsed with
+           font-size:0, the glyph coming from a mask. */
+        .mobile-inline-item.search-trigger {
+            align-self: center;
             flex: 0 0 auto;
+            width: 40px;
+            min-width: 40px;
+            height: 40px;
+            padding: 0;
+            margin-left: 6px;
+            border-radius: 50%;
+            background: #EB5310;
+            color: #ffffff;
+            display: inline-flex;
+            flex-direction: row;
+            align-items: center;
+            justify-content: center;
+            font-size: 0;
+            text-decoration: none;
+            box-shadow: 0 6px 14px -6px rgba(235, 83, 16, 0.9);
+        }
+
+        .mobile-inline-item.search-trigger::before {
+            content: "";
+            width: 17px;
+            height: 17px;
+            display: inline-block;
+            background: currentColor;
+            -webkit-mask: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M10.5 4a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13Zm-8.5 6.5a8.5 8.5 0 1 1 15.02 5.44l4.02 4.02-1.41 1.41-4.02-4.02A8.5 8.5 0 0 1 2 10.5Z'/%3E%3C/svg%3E") center / contain no-repeat;
+            mask: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M10.5 4a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13Zm-8.5 6.5a8.5 8.5 0 1 1 15.02 5.44l4.02 4.02-1.41 1.41-4.02-4.02A8.5 8.5 0 0 1 2 10.5Z'/%3E%3C/svg%3E") center / contain no-repeat;
         }
 
         .mobile-inline-separator {
             width: 1px;
-            height: 24px;
-            background: #d1d5db;
+            height: auto;
+            align-self: stretch;
+            background: #e6e8eb;
             flex: 0 0 auto;
-            margin: 0 2px;
+            margin: 0;
+        }
+
+        /* no divider before the round submit */
+        .mobile-inline-separator:last-of-type {
+            display: none;
         }
 
         #mobile-checkin-btn,
         #mobile-checkout-btn {
             flex: 1 1 0;
-            padding-left: 4px;
             position: relative;
             overflow: hidden;
         }
 
+        /* the labels carry the meaning now, so the calendar glyphs go */
         .mobile-inline-icon {
-            width: 14px;
-            height: 14px;
+            display: none;
         }
 
         .mobile-inline-date-input {
@@ -777,78 +852,55 @@
         .main_content_div{
             padding: 0 10px !important;
             min-height: auto !important;
-            padding-top: 56px !important;
+            /* clears the fixed filter bar: 10px margin + 58px box + 10px margin */
+            padding-top: 74px !important;
         }
 
     }
     @media (max-width: 575px) {
-        .mobile-inline-item {
-            font-size: 12px;
-            padding: 0 6px;
-        }
-
+        /* The box no longer scrolls sideways — the three segments share the
+           width, so they only need tighter padding and type here. */
         .mobile-inline-filter {
+            min-height: 54px;
             justify-content: flex-start;
-            overflow-x: auto;
-            overflow-y: hidden;
-            scrollbar-width: none;
+            overflow: hidden;
         }
 
         .mobile-inline-item {
-            min-width: max-content;
-            flex: 0 0 auto;
-        }
-
-        .property-card-col {
-            padding: 8px 6px !important;
-        }
-
-        .listing-card {
-            gap: 12px;
-            padding: 12px;
-            border-radius: 14px;
-        }
-
-        .listing-card-link {
-            flex: 0 0 128px;
-            width: 128px;
-        }
-
-        .listing-image-container {
-            height: 120px;
-            border-radius: 10px;
-        }
-
-        .listing-title {
-            font-size: 15px;
-            line-height: 1.3;
-            margin: 0 0 6px 0;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .listing-location {
             font-size: 12px;
-            margin: 0 0 6px 0;
+            padding: 8px 6px 8px 10px;
         }
 
-        .listing-price {
-            font-size: 14px;
-            white-space: nowrap;
+        .mobile-inline-label {
+            font-size: 9px;
+            letter-spacing: 0.04em;
         }
 
-        .price-period {
-            font-size: 13px;
+        #mobile-checkin-display,
+        #mobile-checkout-display,
+        #mobile-inline-guests {
+            font-size: 12px;
         }
 
+        #mobile-guests-item {
+            min-width: 58px;
+            padding-right: 18px;
+        }
+
+        .mobile-inline-item.search-trigger {
+            width: 36px;
+            min-width: 36px;
+            height: 36px;
+            padding: 0;
+            margin-left: 4px;
+        }
+
+        /* Card sizing for small phones lives in the stacked-card block at the
+           end of this file, so it lands after the <=991px rules and actually
+           wins — this block is above them. */
         .listing-stay-badge {
             padding: 2px 8px;
             flex-shrink: 0;
-        }
-
-        .listing-availability-text {
-            font-size: 11px;
         }
 
         .listing-night-label {
@@ -866,130 +918,154 @@
             gap: 5px;
         }
 
-        .status-badge {
-            top: 8px;
-            right: 8px;
-            font-size: 11px;
-            padding: 2px 8px;
+        .main_content_div{
+            padding-top: 70px !important;
         }
     }
 
+    /* ------------------------------------------------------------------
+       Phone / tablet: a full-width stacked card — photo on top, details
+       underneath — instead of the compact 126px thumbnail row. The card
+       itself is borderless (the rounded photo does the framing), so the
+       three-dot menu can hang outside it without being clipped.
+       ------------------------------------------------------------------ */
     @media (max-width: 991px) {
         .property-card-col {
             flex: 0 0 100%;
             max-width: 100%;
-            padding: 6px 2px !important;
+            padding: 0 6px 24px !important;
         }
 
         .listing-card {
             display: flex;
-            flex-direction: row;
-            gap: 10px;
-            padding: 10px;
-            border-radius: 14px;
-            border: 1px solid #e5e7eb;
-            background: #ffffff;
+            flex-direction: column;
+            gap: 0;
+            padding: 0;
+            border: none;
+            border-radius: 0;
+            background: transparent;
+            box-shadow: none;
             overflow: visible;
             min-height: 0;
+            height: auto;
+        }
+
+        /* the desktop hover treatment has no meaning on touch */
+        .listing-card:hover {
+            background: transparent;
+            border-color: transparent;
+            box-shadow: none;
+            transform: none;
+        }
+
+        .listing-card:hover .listing-image.active {
+            transform: none;
         }
 
         .listing-card-link {
-            flex: 0 0 126px;
-            width: 126px;
+            flex: none;
+            width: 100%;
             display: block;
         }
 
         .listing-image-container {
-            height: 102px;
-            border-radius: 10px;
+            width: 100%;
+            height: auto;
+            aspect-ratio: 4 / 3;
+            border-radius: 14px;
             overflow: hidden;
         }
 
         .listing-info {
-            flex: 1;
+            flex: none;
             min-width: 0;
-            padding: 0;
+            height: auto;
+            padding: 11px 2px 0;
             position: relative;
             display: flex;
             flex-direction: column;
-            justify-content: space-between;
-            height: 102px;
+            justify-content: flex-start;
+            gap: 7px;
         }
 
+        /* Row 1 (title + three dots) is styled inline in the template, so the
+           `.d-flex` rules below never reach it — it already lays out right. */
         .listing-title {
-            font-size: 14px;
+            font-size: 16px;
+            font-weight: 700;
             line-height: 1.3;
             margin: 0;
+            color: #111827;
             white-space: normal;
             overflow: hidden;
             text-overflow: ellipsis;
             display: -webkit-box;
-            -webkit-line-clamp: 1;
+            -webkit-line-clamp: 2;
             -webkit-box-orient: vertical;
-            line-clamp: 1;
+            line-clamp: 2;
         }
 
         .listing-location {
-            font-size: 12px;
+            font-size: 13.5px;
             margin: 0;
             color: #6b7280;
         }
 
+        /* Rows 3-5 (dates row, chips, price) each get the full width and sit
+           left-aligned, rather than being split into two stacked columns. */
         .listing-info > .d-flex {
-            align-items: stretch !important;
-            justify-content: space-between !important;
-            margin-top: 0;
-            gap: 6px;
-            flex: 1;
+            align-items: center !important;
+            justify-content: flex-start !important;
+            margin-top: 0 !important;
+            gap: 8px;
+            flex: none;
+            flex-wrap: wrap;
         }
 
-        /* Left column: title, location, bed, price stacked */
         .listing-info > .d-flex > a:first-child,
         .listing-info > .d-flex > div:first-child {
             display: flex;
-            flex-direction: column;
+            flex-direction: row;
             min-width: 0;
-            flex: 1;
+            flex: 0 1 auto;
         }
 
-        /* Right column: 3-dots centered */
         .listing-info > .d-flex > div:last-child {
             position: static;
-            flex-shrink: 0;
+            flex-shrink: 1;
             display: flex;
             align-items: center;
-            justify-content: center;
+            justify-content: flex-start;
         }
 
         .listing-actions {
             display: flex;
-            flex-direction: column;
+            flex-direction: row;
             align-items: center;
             justify-content: center;
             gap: 6px;
         }
 
-        /* Bed + price: stack vertically, no gap needed — space-between on parent handles it */
         .listing-info .d-flex.justify-content-between {
-            /* flex-direction: column !important; */
-            align-items: flex-start !important;
-            gap: 0;
+            align-items: center !important;
+            gap: 8px;
         }
 
-        /* Bed icon + type on one line */
+        /* the chip row — wraps to a second line rather than being clipped */
         .listing-info .d-flex.justify-content-between > div:first-child {
             display: flex !important;
             flex-direction: row !important;
+            flex-wrap: wrap !important;
             align-items: center !important;
             gap: 6px;
-            justify-content: left;
+            justify-content: flex-start;
         }
 
         .listing-bed-type {
-            font-size: 12px;
-            line-height: 1.2;
-            color: #6b7280;
-            font-weight: 600;
+            font-size: inherit;
+            line-height: inherit;
+            color: inherit;
+            font-weight: inherit;
             text-align: left;
             white-space: nowrap;
             overflow: hidden;
@@ -997,10 +1073,10 @@
         }
 
         .options-btn {
-            width: 26px;
-            height: 26px;
+            width: 30px;
+            height: 30px;
             border-radius: 50%;
-            border: 1px solid #d1d5db;
+            border: 1px solid #e5e7eb;
             background: #ffffff;
             display: inline-flex;
             align-items: center;
@@ -1011,8 +1087,8 @@
         }
 
         .options-dots-icon {
-            width: 9px;
-            height: 9px;
+            width: 11px;
+            height: 11px;
             fill: #111827;
             display: block;
             margin: auto;
@@ -1031,16 +1107,16 @@
         }
 
         .listing-price {
-            font-size: 12px;
+            font-size: 18px;
             font-weight: 700;
             margin: 0 !important;
             color: #111827;
         }
 
-        
         .price-period {
             font-size: 13px;
-            color: currentColor;
+            font-weight: 500 !important;
+            color: #6b7280 !important;
         }
 
         .listing-night-label {
@@ -1074,12 +1150,6 @@
             fill: none;
         }
 
-        .status-badge {
-            top: 8px;
-            right: 8px;
-            font-size: 11px;
-            padding: 2px 9px;
-        }
     }
 </style>
 
@@ -1343,9 +1413,10 @@
         color: #ffffff;
     }
 
-    /* The injected "Book now" link exists in every card but is only ever
-       shown by the list-view rules below, so tile view is untouched. */
-    .pl-book-btn {
+    /* The injected "Book now" link and its column exist in every card but are
+       only ever shown by the list-view rules below, so tile view is untouched. */
+    .pl-book-btn,
+    .pl-book-col {
         display: none;
     }
 
@@ -1470,23 +1541,31 @@
 
         /* No date range: price, availability and the booking button stack in a
            right-hand column, separated by a soft divider. */
+        /* The price sits in the left column directly under the amenity chips,
+           where it reads with the listing rather than with the button. */
         #property-results.pl-view-list .listing-info > div:nth-child(5) {
-            grid-column: 2;
-            grid-row: 1 / span 5;
-            align-self: center;
-            flex-direction: column;
-            align-items: flex-end !important;
-            justify-content: center;
-            gap: 12px !important;
-            margin-top: 0 !important;
-            margin-left: 20px;
-            padding-left: 22px;
-            border-left: 1px dashed #e5e7eb;
-            text-align: right;
+            justify-content: flex-start !important;
+            align-items: center !important;
+            margin-top: 10px !important;
         }
 
         #property-results.pl-view-list .listing-info > div:nth-child(5) > a {
             flex-shrink: 1 !important;
+        }
+
+        /* "Book now" keeps the right-hand column to itself, still divided off
+           from the listing details. It spans every row so it stays centred no
+           matter how many the card has (the dates-active card has fewer). */
+        #property-results.pl-view-list .listing-info > .pl-book-col {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            grid-column: 2;
+            grid-row: 1 / span 6;
+            align-self: center;
+            margin-left: 20px;
+            padding-left: 22px;
+            border-left: 1px dashed #e5e7eb;
         }
 
         /* Real navigation to the reservation form for this listing — it must not
@@ -1533,6 +1612,287 @@
 
         #property-results.pl-view-list .listing-availability-text {
             font-size: 12.5px;
+        }
+    }
+</style>
+
+<style>
+    /* =====================================================================
+       Listing tile refresh.
+       Loaded last so it layers on top of the base card rules above; the
+       `.pl-view-list` rules stay more specific, so list view is unchanged.
+       ===================================================================== */
+
+    /* --- availability pill, now sitting on the photo --------------------- */
+    /* The status reads as a dot rather than an "Active" pill. The word stays
+       in the DOM — collapsed with font-size:0 — so screen readers and the
+       deferred-image script that rebuilds these badges are unaffected. The
+       white ring is what keeps it visible over a bright photo. */
+    .status-badge {
+        top: 12px;
+        right: 12px;
+        width: 12px;
+        height: 12px;
+        padding: 0;
+        border-radius: 50%;
+        font-size: 0;
+        line-height: 0;
+        background: #12b76a;
+        box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.95),
+                    0 1px 3px rgba(0, 0, 0, 0.35);
+    }
+
+    .status-badge.inactive {
+        background: #ef4444;
+    }
+
+    /* The label is always on show — no collapsing, no pulse — and every pill
+       reads green regardless of when the listing frees up. The date in the
+       label is what separates "free now" from "free later". */
+    .listing-avl-pill {
+        position: absolute;
+        left: 12px;
+        bottom: 12px;
+        z-index: 30;
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        max-width: calc(100% - 24px);
+        padding: 5px 12px 5px 10px;
+        border-radius: 999px;
+        background: rgba(236, 253, 243, 0.96);
+        box-shadow: 0 2px 8px rgba(16, 24, 40, 0.18);
+        font-size: 12.5px;
+        font-weight: 600;
+        color: #05603a;
+        pointer-events: none;
+    }
+
+    .listing-avl-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: #12b76a;
+        flex: 0 0 auto;
+    }
+
+    .listing-avl-pill .listing-availability-text {
+        font-size: inherit;
+        font-weight: inherit;
+        color: inherit;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    /* --- location line with map pin -------------------------------------- */
+    .listing-location {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        min-width: 0;
+    }
+
+    .listing-location .listing-loc-icon {
+        width: 13px;
+        height: 13px;
+        flex: 0 0 auto;
+        color: #9ca3af;
+    }
+
+    .listing-location > span {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    /* --- amenity chips ---------------------------------------------------- */
+    .listing-chips {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 6px;
+        min-width: 0;
+    }
+
+    .listing-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 4px 9px;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        background: #ffffff;
+        font-size: 12px;
+        font-weight: 500;
+        line-height: 1.2;
+        color: #374151;
+        white-space: nowrap;
+        max-width: 100%;
+    }
+
+    .listing-chip img,
+    .listing-chip svg {
+        width: 14px;
+        height: 14px;
+        object-fit: contain;
+        flex: 0 0 auto;
+    }
+
+    .listing-chip > span {
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .listing-info .price-period {
+        font-size: 13px;
+        font-weight: 500 !important;
+        color: #6b7280 !important;
+    }
+
+    /* With a date range applied, row 3 carries the chip row *and* the
+       stay/price badge. Side by side the badge's natural width (e.g. "20
+       nights  Rs 5,23,767.44") leaves the chips almost no room, so they each
+       collapse to one ellipsised letter and the badge overflows across them.
+       Outside list view — which has a full row to spread into — they stack, in
+       the same order as the no-dates card. */
+    #property-results:not(.pl-view-list) .listing-info > div:nth-child(3) {
+        flex-direction: column;
+        align-items: flex-start !important;
+        justify-content: flex-start !important;
+        gap: 8px;
+    }
+
+    #property-results:not(.pl-view-list) .listing-info > div:nth-child(3) > * {
+        max-width: 100%;
+        min-width: 0;
+    }
+
+    /* the badge is one nowrap line; let it wrap rather than run off the card */
+    #property-results:not(.pl-view-list) .listing-stay-badge {
+        flex-wrap: wrap;
+        row-gap: 2px;
+    }
+
+    @media (min-width: 992px) {
+        .property-card-col {
+            padding: 10px !important;
+        }
+
+        .listing-card {
+            border: 1px solid #e8e8ea;
+            border-radius: 16px;
+            background: #ffffff;
+            overflow: hidden;
+            box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+            transition: box-shadow 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
+        }
+
+        .listing-card:hover {
+            background: #ffffff;
+            border-color: #dcdce0;
+            box-shadow: 0 12px 26px -14px rgba(16, 24, 40, 0.35);
+            transform: translateY(-2px);
+        }
+
+        .listing-image-container {
+            height: 224px;
+        }
+
+
+        .listing-info {
+            padding: 14px 16px 16px;
+            gap: 8px;
+        }
+
+        /* the template rows already carry their own margins */
+        .listing-info > .mt-2 {
+            margin-top: 0 !important;
+        }
+
+        .listing-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: #111827;
+        }
+
+        .listing-location {
+            font-size: 13px;
+        }
+
+        .listing-price {
+            font-size: 20px;
+            font-weight: 700;
+            color: #111827;
+        }
+    }
+
+    /* The <=991px card is now a full-width stacked tile, so the chips get the
+       same framed treatment as on desktop and the photo overlays are sized for
+       a phone-width image rather than a 126px thumbnail. */
+    @media (max-width: 991px) {
+        .listing-chips {
+            flex-wrap: wrap;
+            overflow: visible;
+        }
+
+        .listing-chip {
+            border: 1px solid #e5e7eb;
+            background: #ffffff;
+            padding: 4px 9px;
+            font-size: 12px;
+            font-weight: 500;
+            color: #374151;
+        }
+
+        .listing-avl-pill {
+            left: 12px;
+            bottom: 12px;
+            padding: 6px 13px 6px 11px;
+            font-size: 13px;
+            gap: 8px;
+        }
+
+        .listing-avl-dot {
+            width: 8px;
+            height: 8px;
+        }
+
+        .listing-location .listing-loc-icon {
+            width: 14px;
+            height: 14px;
+        }
+    }
+
+    /* Small phones — placed last so it outranks the <=991px rules above.
+       Only the type scale changes; the layout is the same stacked card. */
+    @media (max-width: 575px) {
+        .property-card-col {
+            padding: 0 4px 20px !important;
+        }
+
+        .listing-title {
+            font-size: 15px;
+        }
+
+        .listing-location {
+            font-size: 12.5px;
+        }
+
+        .listing-price {
+            font-size: 17px;
+        }
+
+        .listing-chip {
+            font-size: 11.5px;
+            padding: 4px 8px;
+        }
+
+        .listing-avl-pill {
+            left: 10px;
+            bottom: 10px;
+            padding: 5px 11px 5px 9px;
+            font-size: 12px;
         }
     }
 </style>
@@ -1663,21 +2023,23 @@
         <div class="mobile-listing-top">
             <div class="mobile-inline-filter">
                 <div class="mobile-inline-item" id="mobile-checkin-btn" role="group" aria-label="Check-in date">
-                    <span id="mobile-checkin-display">In</span>
+                    <span class="mobile-inline-label">Check-in</span>
+                    <span id="mobile-checkin-display">Add date</span>
                     <img class="mobile-inline-icon" src="{% static 'img/property/uit_calendar.svg' %}" alt="">
                     <input type="date" class="mobile-inline-date-input" name="check_in" id="mobile_check_in_date" value="{{ check_in }}" aria-label="Check-in">
                 </div>
                 <div class="mobile-inline-separator"></div>
 
                 <div class="mobile-inline-item" id="mobile-checkout-btn" role="group" aria-label="Check-out date">
-                    <span id="mobile-checkout-display">Check-out</span>
+                    <span class="mobile-inline-label">Check-out</span>
+                    <span id="mobile-checkout-display">Add date</span>
                     <img class="mobile-inline-icon" src="{% static 'img/property/uit_calendar.svg' %}" alt="">
                     <input type="date" class="mobile-inline-date-input" name="check_out" id="mobile_check_out_date" value="{{ check_out }}" aria-label="Check-out">
                 </div>
                 <div class="mobile-inline-separator"></div>
 
-                <div class="mobile-inline-item">
-                    <span>Guests</span>
+                <div class="mobile-inline-item" id="mobile-guests-item">
+                    <span class="mobile-inline-label">Guests</span>
                     <span id="mobile-inline-guests">{{ guests|default:'1' }}</span>
                     <div class="mobile-guest-stepper">
                         <button type="button" id="mobile-guest-inc" aria-label="Increase guests">▲</button>
@@ -1686,7 +2048,7 @@
                 </div>
                 <div class="mobile-inline-separator"></div>
 
-                <button type="button" class="mobile-inline-item search-trigger" onclick="performSearch()">Search</button>
+                <button type="button" class="mobile-inline-item search-trigger" onclick="performSearch()" aria-label="Search">Search</button>
             </div>
 
             <div class="mobile-right-actions">
@@ -2205,10 +2567,10 @@
 
         function syncInlineMobileFilter() {
             if (mobileCheckinDisplay && mobileCheckinInput) {
-                mobileCheckinDisplay.textContent = mobileCheckinInput.value ? formatMobileDate(mobileCheckinInput.value) : 'Check-in';
+                mobileCheckinDisplay.textContent = mobileCheckinInput.value ? formatMobileDate(mobileCheckinInput.value) : 'Add date';
             }
             if (mobileCheckoutDisplay && mobileCheckoutInput) {
-                mobileCheckoutDisplay.textContent = mobileCheckoutInput.value ? formatMobileDate(mobileCheckoutInput.value) : 'Check-out';
+                mobileCheckoutDisplay.textContent = mobileCheckoutInput.value ? formatMobileDate(mobileCheckoutInput.value) : 'Add date';
             }
             if (mobileInlineGuests && mobileGuestsInput) {
                 const guestVal = parseInt(mobileGuestsInput.value || '1', 10);
@@ -2230,9 +2592,19 @@
 
         function setupMobileDateTrigger(containerEl, inputEl) {
             if (!containerEl || !inputEl) return;
-            containerEl.addEventListener('click', function(event) {
-                if (event.target === inputEl) return;
+
+            // The input is stretched over the whole segment (inset:0, z-index:3),
+            // so every click's target IS the input — testing for that swallowed
+            // every real click and only a native tap on a phone still opened the
+            // picker. Guard against the re-entrant click() that
+            // openNativeDatePicker() falls back to instead.
+            let opening = false;
+
+            containerEl.addEventListener('click', function() {
+                if (opening) return;
+                opening = true;
                 openNativeDatePicker(inputEl);
+                setTimeout(function() { opening = false; }, 0);
             });
         }
 
@@ -3231,17 +3603,20 @@
                 const info = card.querySelector('.listing-info');
                 if (!propertyId || !info) return;
 
-                // Row 5 (price + availability) exists only when no date range is
-                // applied; with dates, row 3 is the one carrying the price.
-                const host = info.children[4] || info.children[2];
-                if (!host) return;
+                // Its own child of .listing-info rather than tucked inside the
+                // price row: list view now keeps the price in the left column
+                // under the amenities, so the button needs a cell of its own.
+                // Hidden outside list view by .pl-book-col.
+                const col = document.createElement('div');
+                col.className = 'pl-book-col';
 
                 const link = document.createElement('a');
                 link.className = 'pl-book-btn';
                 link.href = BOOKING_CREATE_URL + '?property_id=' + encodeURIComponent(propertyId);
                 link.textContent = 'Book now';
 
-                host.appendChild(link);
+                col.appendChild(link);
+                info.appendChild(col);
             });
         }
 

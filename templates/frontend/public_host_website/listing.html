@@ -253,11 +253,12 @@
         border-radius: 14px;
       }
 
-      /* Direct child only — the bed and nights icons are <img> too, and a
-         blanket `.card img` rule stretches them out of shape. The tile-view
-         rule sizes the photo by viewport height (30vh), which is far too tall
-         for a row; here it just fills its own column. */
-      #listingCards.pl-view-list .card > img {
+      /* Scoped to the photo wrapper — the bed and nights icons are <img> too,
+         and a blanket `.card img` rule stretches them out of shape. The
+         tile-view rule sizes the photo by viewport height (30vh), which is far
+         too tall for a row; here it just fills its own column. */
+      #listingCards.pl-view-list .card > .card-media,
+      #listingCards.pl-view-list .card > .card-media img {
         width: 100%;
         height: 100%;
         min-height: 200px;
@@ -308,6 +309,305 @@
       #listingCards.pl-view-list .card-title,
       #listingCards.pl-view-list .card-sub-title {
         padding-right: 140px;
+      }
+    }
+
+    /* ============================================================
+       Tile refresh — mirrors the control-panel listing cards
+       (templates/frontend/property/list.html) so the public site and
+       the dashboard show a listing the same way.
+       ============================================================ */
+
+    .card {
+      border-radius: 16px;
+      border-color: #e8e8ea;
+      box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+    }
+
+    .card:hover {
+      border-color: #dcdce0;
+      box-shadow: 0 12px 26px -14px rgba(16, 24, 40, 0.35);
+    }
+
+    /* Wrapper exists so the availability pill has something to anchor to
+       without the photo's hover scale dragging it along. */
+    .card-media {
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* The label is always on show — no collapsing, no pulse — and every pill
+       reads green regardless of when the listing frees up. The date in the
+       label is what separates "free now" from "free later". Matches the
+       control-panel listing page. */
+    .listing-avl-pill {
+      position: absolute;
+      left: 12px;
+      bottom: 12px;
+      z-index: 2;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      max-width: calc(100% - 24px);
+      padding: 5px 12px 5px 10px;
+      border-radius: 999px;
+      background: rgba(236, 253, 243, 0.96);
+      box-shadow: 0 2px 8px rgba(16, 24, 40, 0.18);
+      font-size: 12.5px;
+      font-weight: 600;
+      color: #05603a;
+      pointer-events: none;
+    }
+
+    .listing-avl-pill .listing-availability-text {
+      font-size: inherit;
+      font-weight: inherit;
+      color: inherit;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .listing-avl-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #12b76a;
+      flex: 0 0 auto;
+    }
+
+    .card-body .card-title {
+      font-size: 17px;
+      font-weight: 700;
+      margin: 0 0 6px;
+    }
+
+    /* Was a bold near-black repeat of the title's weight; as a location line
+       it reads better muted, with a pin to mark what it is. Scoped under
+       .card-body because the `.card-body p` rule in listing.css outranks a
+       bare .card-sub-title on both colour and margin. */
+    .card-body .card-sub-title {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      min-width: 0;
+      font-size: 13.5px;
+      font-weight: 500;
+      color: #6b7280;
+      margin: 0 0 10px;
+    }
+
+    .card-sub-title .listing-loc-icon {
+      width: 13px;
+      height: 13px;
+      flex: 0 0 auto;
+      color: #9ca3af;
+    }
+
+    .card-sub-title > span {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .listing-chips {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px;
+      min-width: 0;
+    }
+
+    .listing-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 9px;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      background: #ffffff;
+      font-size: 12px;
+      font-weight: 500;
+      line-height: 1.2;
+      color: #374151;
+      white-space: nowrap;
+      max-width: 100%;
+    }
+
+    /* `.card img` sizes the photo at 100%/30vh — chip icons are <img> too, so
+       they need a more specific rule or they fill the card. */
+    .card .listing-chip img {
+      width: 14px;
+      height: 14px;
+      object-fit: contain;
+      flex: 0 0 auto;
+    }
+
+    .card .listing-chip img,
+    .card:hover .listing-chip img {
+      transform: none;
+    }
+
+    .listing-chip > span {
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .card-price {
+      font-size: 20px;
+      font-weight: 700;
+      color: #111827;
+    }
+
+    .card-price .price-period {
+      font-size: 13px;
+      font-weight: 500;
+      color: #6b7280;
+    }
+
+    .card-stay-info {
+      margin-top: 10px;
+    }
+
+    /* ------------------------------------------------------------------
+       Phone / tablet: a full-width stacked card — photo on top, details
+       underneath — instead of the 130px thumbnail row that listing.css lays
+       out at this breakpoint. The card itself is borderless; the rounded
+       photo does the framing.
+       ------------------------------------------------------------------ */
+    @media (max-width: 991.98px) {
+      .cards {
+        gap: 22px;
+      }
+
+      .card {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0;
+        padding: 0;
+        border: none;
+        border-radius: 0;
+        background: transparent;
+        box-shadow: none;
+        overflow: visible;
+      }
+
+      .card-media {
+        width: 100%;
+        overflow: hidden;
+        border-radius: 14px;
+      }
+
+      /* listing.css pins the photo at 130x130 here; it takes the full width
+         now, with the chip icons excluded by the more specific rule above. */
+      .card > .card-media img {
+        width: 100%;
+        height: auto;
+        aspect-ratio: 4 / 3;
+        border-radius: 14px;
+        object-fit: cover;
+      }
+
+      /* no hover state on touch */
+      .card:hover img {
+        transform: none;
+      }
+
+      .card-body {
+        padding: 11px 2px 0;
+      }
+
+      .card-body .card-title {
+        font-size: 16px;
+        font-weight: 700;
+        line-height: 1.3;
+        margin: 0 0 6px;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        line-clamp: 2;
+        overflow: hidden;
+      }
+
+      .card-body .card-sub-title {
+        font-size: 13.5px;
+        margin: 0 0 9px;
+      }
+
+      .card-sub-title .listing-loc-icon {
+        width: 14px;
+        height: 14px;
+      }
+
+      /* full width means the chips get the same framed treatment as desktop
+         and wrap instead of being cut down to the bed type alone */
+      .listing-chips {
+        flex-wrap: wrap;
+        overflow: visible;
+      }
+
+      .listing-chip {
+        border: 1px solid #e5e7eb;
+        background: #ffffff;
+        padding: 4px 9px;
+        font-size: 12px;
+        font-weight: 500;
+        color: #374151;
+      }
+
+      .card-price {
+        font-size: 18px;
+      }
+
+      .card-price .price-period {
+        font-size: 13px;
+      }
+
+      .card-stay-info {
+        margin-top: 10px;
+      }
+
+      /* overlays sized for a phone-width photo rather than a 130px thumbnail */
+      .listing-avl-pill {
+        left: 12px;
+        bottom: 12px;
+        padding: 6px 13px 6px 11px;
+        font-size: 13px;
+        gap: 8px;
+        max-width: calc(100% - 24px);
+      }
+
+      .listing-avl-dot {
+        width: 8px;
+        height: 8px;
+      }
+    }
+
+    /* Small phones — same stacked card, tighter type. */
+    @media (max-width: 575px) {
+      .card-body .card-title {
+        font-size: 15px;
+      }
+
+      .card-body .card-sub-title {
+        font-size: 12.5px;
+      }
+
+      .listing-chip {
+        font-size: 11.5px;
+        padding: 4px 8px;
+      }
+
+      .card-price {
+        font-size: 17px;
+      }
+
+      .listing-avl-pill {
+        left: 10px;
+        bottom: 10px;
+        padding: 5px 11px 5px 9px;
+        font-size: 12px;
       }
     }
   </style>
@@ -418,7 +718,8 @@
           </div>
           <div class="mobile-date-row">
             <div class="mobile-date-field">
-              <span class="mobile-date-text" id="checkinMobileText">Check-In</span>
+              <span class="mobile-date-label">Check-in</span>
+              <span class="mobile-date-text" id="checkinMobileText">Add date</span>
               <span class="mobile-date-icon" aria-hidden="true">📅</span>
               <svg class="mobile-date-icon-svg" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                 <rect x="3.5" y="5.5" width="17" height="15" rx="2.2" stroke="currentColor" stroke-width="1.7"/>
@@ -427,7 +728,8 @@
               <input id="checkinMobile" class="mobile-date-input" type="date" value="{{ check_in }}">
             </div>
             <div class="mobile-date-field">
-              <span class="mobile-date-text" id="checkoutMobileText">Check-Out</span>
+              <span class="mobile-date-label">Check-out</span>
+              <span class="mobile-date-text" id="checkoutMobileText">Add date</span>
               <span class="mobile-date-icon" aria-hidden="true">📅</span>
               <svg class="mobile-date-icon-svg" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                 <rect x="3.5" y="5.5" width="17" height="15" rx="2.2" stroke="currentColor" stroke-width="1.7"/>
@@ -481,21 +783,42 @@
       <section class="cards" id="listingCards">
         {% for property in properties %}
           <a class="card" href="{{ property.get_absolute_url }}?check_in={{ check_in|default:'' }}&check_out={{ check_out|default:'' }}&guests={{ guests|default:guests_count|default:'1' }}">
-            <img src="{{ property.get_primary_image_url }}" alt="{{ property.title }}">
+            <div class="card-media">
+              <img src="{{ property.get_primary_image_url }}" alt="{{ property.title }}">
+              {% if not num_nights %}
+              <div class="listing-avl-pill">
+                <span class="listing-avl-dot"></span>
+                <span class="listing-availability-text">{% if property.next_available_date %}Avl. on {{ property.next_available_date|date:"d-M-y" }}{% else %}Available today{% endif %}</span>
+              </div>
+              {% endif %}
+            </div>
             <div class="card-body">
               <span class="book-now-btn" role="button" tabindex="0"
                     data-book-url="{% url 'booking:booking-create' %}?property_id={{ property.id }}{% if check_in %}&check_in={{ check_in }}{% endif %}{% if check_out %}&check_out={{ check_out }}{% endif %}&guests={{ guests|default:guests_count|default:'1' }}"
                     aria-label="Book {{ property.title }}">Book now</span>
               <h3 class="card-title">{{ property.title }}</h3>
-              <p class="card-sub-title">{{ property.city }}, {{ property.state }}</p>
+              <p class="card-sub-title">
+                <svg class="listing-loc-icon" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                  <path d="M8 14.5s5-4.31 5-8a5 5 0 1 0-10 0c0 3.69 5 8 5 8Z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/>
+                  <circle cx="8" cy="6.4" r="1.85" stroke="currentColor" stroke-width="1.3"/>
+                </svg>
+                <span>{{ property.city }}, {{ property.state }}</span>
+              </p>
+              <div class="listing-chips">
+                <span class="listing-chip">
+                  <img src="{% static 'img/property/bed.svg' %}" alt="" aria-hidden="true">
+                  <span>{{ property.bed_type }}</span>
+                </span>
+                {% for amenity in property.amenities.all|slice:":3" %}
+                <span class="listing-chip">
+                  {% if amenity.icon %}<img src="{{ amenity.icon.url }}" alt="" aria-hidden="true">{% endif %}
+                  <span>{{ amenity.name }}</span>
+                </span>
+                {% endfor %}
+              </div>
               {% if num_nights %}
               <div class="card-stay-info">
-                <span class="stay-bed-type">
-                  <img src="{% static 'img/property/bed.svg' %}" style="width: 16px; height: auto;">
-                  {{ property.bed_type }}
-                </span>
                 <span class="stay-nights-badge">
-                  <!-- <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg> -->
                    <img src="{% static 'img/property/min_nights.svg' %}" style="width:15px;height:auto;">
                   {{ num_nights }} night{{ num_nights|pluralize }}
                   <strong>{{ currency_symbol }}<span class="js-total" data-price="{% money_raw property.price_per_night %}" data-nights="{{ num_nights }}" data-cleaning="{% money_raw property.cleaning_fee %}" data-taxes="{% money_raw property.taxes %}" data-otherfees="{% money_raw property.other_fees %}" data-deposit="{% money_raw property.refundable_deposit %}"></span></strong>
@@ -503,16 +826,7 @@
               </div>
               {% else %}
               <div class="card-stay-info">
-                <span class="stay-bed-type">
-                  <img src="{% static 'img/property/bed.svg' %}" style="width: 16px; height: auto;">
-                  {{ property.bed_type }}
-                </span>
-              </div>
-              <div class="card-stay-info">
-                <span class="stay-bed-type">{% money property.price_per_night %} Night</span>
-                <span class="stay-nights-badge">
-                  {% if property.next_available_date %}Avl. on {{ property.next_available_date|date:"d-M-y" }}{% else %}Avl. today{% endif %}
-                </span>
+                <span class="card-price">{% money property.price_per_night %} <span class="price-period">/night</span></span>
               </div>
               {% endif %}
             </div>
@@ -1227,10 +1541,10 @@
 
       function updateMobileDateTexts() {
         if (checkinMobileText) {
-          checkinMobileText.textContent = checkinMobile.value ? formatMobileDate(checkinMobile.value) : "Check-In";
+          checkinMobileText.textContent = checkinMobile.value ? formatMobileDate(checkinMobile.value) : "Add date";
         }
         if (checkoutMobileText) {
-          checkoutMobileText.textContent = checkoutMobile.value ? formatMobileDate(checkoutMobile.value) : "Check-Out";
+          checkoutMobileText.textContent = checkoutMobile.value ? formatMobileDate(checkoutMobile.value) : "Add date";
         }
       }
 
@@ -1263,10 +1577,19 @@
 
       mobileDateFields.forEach(function (field) {
         const inputEl = field.querySelector(".mobile-date-input");
-        field.addEventListener("click", function (event) {
-          if (event.target !== inputEl) {
-            openMobileDateInput(inputEl);
-          }
+
+        // The input is stretched over the whole field (inset:0), so every
+        // click's target IS the input — requiring a different target swallowed
+        // every real click and only a native tap on a phone still opened the
+        // picker. Guard against the re-entrant click() that
+        // openMobileDateInput() falls back to instead.
+        let opening = false;
+
+        field.addEventListener("click", function () {
+          if (opening) return;
+          opening = true;
+          openMobileDateInput(inputEl);
+          setTimeout(function () { opening = false; }, 0);
         });
       });
       updateMobileDateTexts();
