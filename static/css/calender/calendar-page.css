@@ -5297,21 +5297,27 @@
 }
 
 /* Pinned to the bottom of the cell so the counts read as a footer line rather
-   than floating under the date. */
+   than floating under the date, with the count centred and what's taken
+   centred beneath it. */
 .avl-foot {
   margin-top: auto;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: space-between;
-  gap: 6px;
+  justify-content: center;
+  gap: 3px;
   min-width: 0;
+  text-align: center;
 }
 
 .avl-chip {
   flex: 0 0 auto;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
   padding: 1px 6px;
   border-radius: 20px;
-  font-size: 10.5px;
+  font-size: 13.65px;  /* 10.5 × 1.3 — matches the day number's +30% */
   font-weight: 600;
   line-height: 1.6;
   white-space: nowrap;
@@ -5323,9 +5329,10 @@
 .other-month .avl-chip { opacity: .55; }
 
 .avl-taken {
-  font-size: 9.5px;
+  font-size: 12.35px;  /* 9.5 × 1.3 */
   color: #9ca3af;
-  text-align: right;
+  max-width: 100%;
+  text-align: center;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -5442,12 +5449,122 @@
   font-size: 13.5px;
 }
 
-@media (max-width: 576px) {
-  /* The weekday strip and cell padding already shrink with the Month view's
-     own breakpoint; only the availability extras need trimming here. */
-  .avl-chip { padding: 1px 5px; font-size: 9.5px; }
-  .avl-taken { display: none; }
-  /* Same +30% over the Month view's small-screen date (12px / 22px). */
-  .avl-day .day-number { font-size: 15.6px; width: 28.6px; height: 28.6px; }
-  .avl-day.today .day-number { width: 28.6px; height: 28.6px; }
+/* Was inline on the element; moved here so the phone breakpoint can override
+   it — an inline min-height:0 would have pinned the grid to the pane height
+   and let the week rows collapse. */
+.avl-grid {
+  flex: 1;
+  min-height: 0;
+}
+
+/* ---------------------------------------------------------------------
+   Availability grid on phones.
+
+   Seven columns across ~360px leaves each cell under 40px wide, where the
+   desktop sizing — a 28.6px date disc beside a nowrap "12 free" chip —
+   simply does not fit and spills out of the cell. Here the cell centres and
+   stacks, the chip falls back to the bare count, and the week rows get a
+   floor height so a short viewport scrolls the month instead of crushing
+   six rows into it.
+
+   Everything is scoped to .availability-pane so the Month view, which
+   shares these .month-calendar-* classes, keeps its own sizing.
+   --------------------------------------------------------------------- */
+@media (max-width: 767.98px) {
+  /* the pane's 16px padding is set inline on the element */
+  .availability-pane {
+    padding: 8px !important;
+  }
+
+  /* flex-shrink:0 keeps the grid at its content height (the week rows' floor
+     below), so a short viewport scrolls the pane instead of crushing them;
+     it still grows to fill a tall one. */
+  .availability-pane .avl-grid {
+    flex: 1 0 auto;
+    height: auto;
+    min-height: 0;
+    border-radius: 10px;
+  }
+
+  /* let the month scroll rather than squeeze every week row */
+  .availability-pane .month-calendar-weeks-container {
+    overflow: visible;
+  }
+
+  .availability-pane .avl-week {
+    min-height: 62px;
+  }
+
+  .availability-pane .month-calendar-header-cell {
+    padding: 7px 2px;
+    font-size: 9.5px;
+  }
+
+  .availability-pane .month-calendar-day-cell {
+    padding: 5px 2px;
+    align-items: center;
+    gap: 3px;
+  }
+
+  /* the date disc drops back to about the Month view's size — at +30% it ate
+     most of a 38px-wide cell */
+  .availability-pane .avl-day .day-number,
+  .availability-pane .avl-day.today .day-number {
+    font-size: 13px;
+    width: 22px;
+    height: 22px;
+    margin-bottom: 0;
+  }
+
+  /* the footer stops being a two-column row; the chip centres under the date */
+  .availability-pane .avl-foot {
+    width: 100%;
+    justify-content: center;
+    gap: 0;
+  }
+
+  .availability-pane .avl-taken {
+    display: none;
+  }
+
+  .availability-pane .avl-chip {
+    max-width: 100%;
+    padding: 1px 5px;
+    font-size: 10px;
+    line-height: 1.5;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* "free" / "Fully booked" will not fit; the count plus the chip colour
+     carries it, and the cell's aria-label still spells it out in full */
+  .availability-pane .avl-chip .avl-chip-word {
+    display: none;
+  }
+}
+
+@media (max-width: 380px) {
+  .availability-pane {
+    padding: 6px !important;
+  }
+
+  .availability-pane .month-calendar-day-cell {
+    padding: 4px 1px;
+  }
+
+  .availability-pane .avl-day .day-number,
+  .availability-pane .avl-day.today .day-number {
+    font-size: 12px;
+    width: 20px;
+    height: 20px;
+  }
+
+  .availability-pane .avl-chip {
+    font-size: 9.5px;
+    padding: 1px 4px;
+  }
+
+  .availability-pane .avl-week {
+    min-height: 56px;
+  }
 }

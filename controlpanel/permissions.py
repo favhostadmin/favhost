@@ -37,6 +37,7 @@ SECTIONS = [
     ('enquiries',     'Enquiries',      'ti-message-dots',          'Guest enquiries across all hosts.'),
     ('subscriptions', 'Subscriptions',  'ti-crown',                 'Subscription states, trials and MRR.'),
     ('payments',      'Payments',       'ti-cash',                  'Payment records and revenue totals.'),
+    ('seo',           'SEO / Landing',  'ti-world',                 'Edit the text, images and meta tags on the public /home landing page.'),
 ]
 
 GRANTABLE = [s[0] for s in SECTIONS]
@@ -55,6 +56,7 @@ SECTION_URLS = {
     'enquiries':     'controlpanel:enquiries',
     'subscriptions': 'controlpanel:subscriptions',
     'payments':      'controlpanel:payments',
+    'seo':           'controlpanel:seo',
 }
 
 

@@ -1540,6 +1540,16 @@
         }, { once: true });
     }
 
+    // Auto-open the popup once on the first page after a fresh login when
+    // the profile is still incomplete. The server-side flag is popped on
+    // read, so this only fires this one time per login — clicking
+    // "Maybe Later" doesn't suppress it, but it also won't nag on every
+    // subsequent page load; the header's click-triggered gate still catches
+    // any Create action later.
+    if ("{{ auto_show_profile_modal|yesno:'true,false' }}" === "true") {
+        document.addEventListener('DOMContentLoaded', showHeaderProfileModal);
+    }
+
     // Guard any "Create" action: run onOk() only when the profile is complete,
     // otherwise show the complete-profile modal.
     function headerCreateGuard(onOk) {
