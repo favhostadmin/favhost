@@ -37,8 +37,9 @@ from django.core.paginator import Paginator
 from django.core.validators import validate_email
 from django.db.models import Count, Q, Sum
 from django.db.models.functions import Coalesce
-from django.http import Http404
+from django.http import Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.templatetags.static import static
 from django.utils import timezone
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_POST
@@ -110,21 +111,23 @@ def profile(request):
     page that can be pointed at somebody else's account. Managing other people
     stays on Hosts & Users (hosts) and Co-admins (console staff).
 
-    Exactly one thing is editable: the password. A console login is not a host
-    profile — it has no name, phone or address to keep, and inventing fields to
-    fill a card would only create data nobody maintains. Everything else here
-    is a fact worth confirming (which account, what it can reach, when it was
-    last used) and is deliberately read-only.
-
-    The password form re-checks the current one before accepting a new one: a
-    console session left open on an unlocked laptop should not be enough to
-    take the account over.
+    The owner can change their own password here (the form re-checks the
+    current one first, so a console session left open on an unlocked laptop
+    isn't enough to take the account over). Co-admin passwords are owner-set
+    on the Co-admins page instead, so a co-admin sees their current password
+    displayed here rather than a form to change it. Everything else on the
+    page is a fact worth confirming (which account, what it can reach, when
+    it was last used) and is deliberately read-only.
     """
     user = request.user
     role = console_role(user)
 
     if request.method == 'POST':
         action = request.POST.get('action')
+
+        if action == 'password' and role != 'owner':
+            messages.error(request, 'Only the owner account can change its own password. Co-admin passwords are set by the owner.')
+            return redirect('controlpanel:profile')
 
         if action == 'password':
             current = request.POST.get('current_password') or ''
@@ -1109,3 +1112,113 @@ def co_admins(request):
         'owner_email': admin_email(),
         'total_count': len(rows),
     })
+
+
+# ── SEO / dynamic landing page (/home) ───────────────────────────────────────
+
+@section_required('seo')
+def seo_settings(request):
+    """Edit every text/image block on the public ``/home`` landing page.
+
+    Each field in ``seo_fields.SEO_FIELDS`` is either saved as a
+    ``SeoContentBlock`` override or, if submitted blank, reverted to its
+    built-in default by deleting the override row. Images work the same way
+    via a per-field "reset to default" checkbox, since file inputs can't be
+    cleared by submitting blank.
+    """
+    from .models import SeoContentBlock
+    from .seo_fields import SEO_FIELDS, SEO_SECTIONS
+
+    if request.method == 'POST':
+        for f in SEO_FIELDS:
+            key = f['key']
+            if f['type'] == 'image':
+                uploaded = request.FILES.get(key)
+                if uploaded:
+                    SeoContentBlock.objects.update_or_create(
+                        key=key,
+                        defaults={
+                            'section': f['section'], 'label': f['label'], 'field_type': f['type'],
+                            'image': uploaded,
+                        },
+                    )
+                elif request.POST.get(f'{key}__reset'):
+                    SeoContentBlock.objects.filter(key=key).delete()
+            else:
+                value = request.POST.get(key, '')
+                if value.strip():
+                    SeoContentBlock.objects.update_or_create(
+                        key=key,
+                        defaults={
+                            'section': f['section'], 'label': f['label'], 'field_type': f['type'],
+                            'text_value': value,
+                        },
+                    )
+                else:
+                    SeoContentBlock.objects.filter(key=key).delete()
+        messages.success(request, 'Landing page updated — changes are live on /home now.')
+        return redirect('controlpanel:seo')
+
+    overrides = {b.key: b for b in SeoContentBlock.objects.all()}
+    sections = []
+    for section_key, section_label in SEO_SECTIONS:
+        fields = []
+        for f in SEO_FIELDS:
+            if f['section'] != section_key:
+                continue
+            block = overrides.get(f['key'])
+            entry = dict(f)
+            entry['is_override'] = bool(block)
+            if f['type'] == 'image':
+                entry['current_image_url'] = block.image.url if (block and block.image) else static(f['default'])
+            else:
+                entry['current_text'] = block.text_value if (block and block.text_value) else f['default']
+            fields.append(entry)
+        sections.append({'key': section_key, 'label': section_label, 'fields': fields})
+
+    return render(request, 'controlpanel/seo.html', {
+        'active_nav': 'seo',
+        'sections': sections,
+    })
+
+
+@section_required('seo')
+@require_POST
+def seo_preview(request):
+    """Stash the SEO form's *current, unsaved* values in the co-admin's own
+    session and hand back a ``/home`` URL that renders them.
+
+    Nothing here touches ``SeoContentBlock`` — a preview image upload is
+    written to a session-scoped folder under MEDIA instead, so opening the
+    preview link never publishes a change. The link only shows the draft to
+    the browser that submitted it (same session cookie); anyone else hitting
+    ``/home`` still sees whatever is actually saved.
+    """
+    from django.core.files.storage import default_storage
+    from .seo_fields import SEO_FIELDS
+    import os
+    import uuid
+
+    if not request.session.session_key:
+        request.session.save()
+
+    draft = {}
+    for f in SEO_FIELDS:
+        key = f['key']
+        if f['type'] == 'image':
+            uploaded = request.FILES.get(key)
+            if uploaded:
+                ext = os.path.splitext(uploaded.name)[1]
+                dest = f'seo_previews/{request.session.session_key}/{uuid.uuid4().hex}{ext}'
+                saved_path = default_storage.save(dest, uploaded)
+                draft[key] = default_storage.url(saved_path)
+        else:
+            value = request.POST.get(key, '')
+            if value.strip():
+                draft[key] = value
+
+    request.session['seo_preview'] = draft
+    request.session.set_expiry(3600)
+
+    from django.urls import reverse
+    return JsonResponse({'ok': True, 'url': reverse('home') + '?seo_preview=1'})

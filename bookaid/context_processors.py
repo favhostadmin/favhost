@@ -35,13 +35,24 @@ def enquiry_counts(request):
             is_booked=False,
         ).count()
         is_cohost = CoHost.objects.filter(co_host=request.user).exists()
+        header_profile_complete = get_effective_user(request.user).is_profile_complete()
+        # One-shot popup right after login when the profile is incomplete.
+        # Popped (not just read) so it only auto-shows once per login, not on
+        # every subsequent page load — "Maybe Later" then leaves the header's
+        # normal click-triggered gate as the only remaining reminder. Host
+        # only — a co-host can't edit the host's profile, so nagging them
+        # about it on login (as opposed to the click-triggered gate, which
+        # tells them to ask the host) would just be a dead end.
+        just_logged_in = request.session.pop('show_profile_complete_modal', False)
+        auto_show_profile_modal = just_logged_in and not header_profile_complete and not is_cohost
         return {
             'new_enquiry_count': new_enquiry_count,
             'is_cohost': is_cohost,
             # Effective-user (host) profile completeness — drives the header's
             # "Complete Your Profile" gate on every Create action so co-hosts
             # are gated by the host's profile, matching the server-side checks.
-            'header_profile_complete': get_effective_user(request.user).is_profile_complete(),
+            'header_profile_complete': header_profile_complete,
+            'auto_show_profile_modal': auto_show_profile_modal,
             'expense_categories': [c[0] for c in Expense.CATEGORY_CHOICES],
             'expense_listings': Property.objects.filter(
                 created_by__in=visible_ids

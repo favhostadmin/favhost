@@ -2902,7 +2902,7 @@
     // weekday strip, same week rows that stretch to fill the pane — so the two
     // views are the same calendar with different contents, not two designs.
     let html = `
-      <div class="month-calendar-grid" style="flex: 1; min-height: 0;">
+      <div class="month-calendar-grid avl-grid">
         <div class="month-calendar-header-row">
           <div class="month-calendar-header-cell">SUN</div>
           <div class="month-calendar-header-cell">MON</div>
@@ -2932,9 +2932,12 @@
         if (info.booked_count) takenBits.push(info.booked_count + ' booked');
         if (info.blocked_count) takenBits.push(info.blocked_count + ' blocked');
 
+        // The count and the word are split so a phone cell — under 40px wide —
+        // can drop the word and keep the number; the chip colour and the
+        // cell's aria-label still carry the full meaning.
         const chip = free === 0
-          ? '<span class="avl-chip lvl-none">Fully booked</span>'
-          : '<span class="avl-chip lvl-' + level + '">' + free + ' free</span>';
+          ? '<span class="avl-chip lvl-none"><span class="avl-chip-num">0</span><span class="avl-chip-word"> available</span></span>'
+          : '<span class="avl-chip lvl-' + level + '"><span class="avl-chip-num">' + free + '</span><span class="avl-chip-word"> available</span></span>';
 
         html +=
           '<div class="' + classes + '" data-date="' + iso + '" role="button" tabindex="0"' +
