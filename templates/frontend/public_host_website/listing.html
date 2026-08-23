@@ -430,18 +430,22 @@
       min-width: 0;
     }
 
+    /* Light grey: the amenities are supporting detail, so they sit back from
+       the title and price rather than competing with them. Text stays at
+       #6b7280 — a lighter grey on this background drops under the 4.5:1
+       contrast floor at 12px. Matches the control-panel listing page. */
     .listing-chip {
       display: inline-flex;
       align-items: center;
       gap: 5px;
       padding: 4px 9px;
-      border: 1px solid #e5e7eb;
+      border: 1px solid #ececef;
       border-radius: 8px;
-      background: #ffffff;
+      background: #f6f7f8;
       font-size: 12px;
       font-weight: 500;
       line-height: 1.2;
-      color: #374151;
+      color: #6b7280;
       white-space: nowrap;
       max-width: 100%;
     }
@@ -453,6 +457,8 @@
       height: 14px;
       object-fit: contain;
       flex: 0 0 auto;
+      /* the bed glyph is a flat PNG/SVG, so it is muted to match the text */
+      opacity: 0.65;
     }
 
     .card .listing-chip img,
@@ -689,12 +695,12 @@
       }
 
       .listing-chip {
-        border: 1px solid #e5e7eb;
-        background: #ffffff;
+        border: 1px solid #ececef;
+        background: #f6f7f8;
         padding: 4px 9px;
         font-size: 12px;
         font-weight: 500;
-        color: #374151;
+        color: #6b7280;
       }
 
       .card-price {
@@ -889,10 +895,14 @@
             <span>Guests</span>
             {# Writes through to #guests, which stays the field the form submits. #}
             <select id="mobile-guests-select" class="mobile-inline-select" aria-label="Guests">
+              {% comment %}
+                The leading &nbsp; is the only spacing a Chromium popup honours —
+                it draws the option list with an OS widget and ignores padding.
+              {% endcomment %}
               {% for n in "123456789"|make_list %}
-              <option value="{{ n }}">{{ n }}</option>
+              <option value="{{ n }}">&nbsp;&nbsp;{{ n }}</option>
               {% endfor %}
-              <option value="10">10+</option>
+              <option value="10">&nbsp;&nbsp;10+</option>
             </select>
             <input type="hidden" id="guests" name="guests" value="{{ guests|default:guests_count|default:'1' }}">
           </div>
