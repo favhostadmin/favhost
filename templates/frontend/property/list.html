@@ -674,8 +674,7 @@
         }
 
         #mobile-checkin-display,
-        #mobile-checkout-display,
-        #mobile-inline-guests {
+        #mobile-checkout-display {
             max-width: 100%;
             font-size: 13px;
             font-weight: 600;
@@ -686,19 +685,44 @@
             pointer-events: none;
         }
 
-        /* narrower than the date fields, with room for the stepper */
+        /* narrower than the date fields */
         #mobile-guests-item {
-            position: relative;
             flex: 0 1 auto;
-            min-width: 68px;
-            padding-right: 20px;
+            min-width: 76px;
         }
 
-        .mobile-guest-stepper {
-            position: absolute;
-            right: 3px;
-            top: 50%;
-            transform: translateY(-50%);
+        /* Sits flush under its label like the date values, so the segment
+           reads as one control rather than a caption plus a form field. */
+        .mobile-inline-select {
+            width: 100%;
+            max-width: 100%;
+            border: none;
+            padding: 0 15px 0 0;
+            margin: 0;
+            font-size: 13px;
+            font-weight: 600;
+            color: #111827;
+            line-height: 1.2;
+            cursor: pointer;
+            appearance: none;
+            -webkit-appearance: none;
+            /* the native arrow goes with appearance:none, so draw one back in —
+               otherwise nothing marks this as a dropdown */
+            background: transparent url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M2.5 4.5 6 8l3.5-3.5' fill='none' stroke='%236b7280' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right center / 10px 10px;
+        }
+
+        .mobile-inline-select:focus-visible {
+            outline: 2px solid #111827;
+            outline-offset: 2px;
+            border-radius: 4px;
+        }
+
+        /* The open list renders flush against its left edge otherwise, so the
+           numbers sit right on the border. */
+        .mobile-inline-select option {
+            padding: 6px 12px;
+            color: #111827;
+            background: #ffffff;
         }
 
         /* The submit turns into the round orange button from the mock. The
@@ -773,22 +797,6 @@
             -webkit-appearance: none;
             appearance: none;
             font-size: 16px;
-        }
-
-        .mobile-guest-stepper {
-            display: inline-flex;
-            flex-direction: column;
-            margin-left: 2px;
-            line-height: 1;
-        }
-
-        .mobile-guest-stepper button {
-            border: none;
-            background: transparent;
-            padding: 0;
-            font-size: 10px;
-            line-height: 1;
-            color: #111827;
         }
 
         .mobile-right-actions {
@@ -877,14 +885,16 @@
         }
 
         #mobile-checkin-display,
-        #mobile-checkout-display,
-        #mobile-inline-guests {
+        #mobile-checkout-display {
             font-size: 12px;
         }
 
         #mobile-guests-item {
-            min-width: 58px;
-            padding-right: 18px;
+            min-width: 64px;
+        }
+
+        .mobile-inline-select {
+            font-size: 12px;
         }
 
         .mobile-inline-item.search-trigger {
@@ -2040,11 +2050,13 @@
 
                 <div class="mobile-inline-item" id="mobile-guests-item">
                     <span class="mobile-inline-label">Guests</span>
-                    <span id="mobile-inline-guests">{{ guests|default:'1' }}</span>
-                    <div class="mobile-guest-stepper">
-                        <button type="button" id="mobile-guest-inc" aria-label="Increase guests">▲</button>
-                        <button type="button" id="mobile-guest-dec" aria-label="Decrease guests">▼</button>
-                    </div>
+                    {# Writes through to #mobile_guests_input, which stays the value performSearch() reads. #}
+                    <select id="mobile-guests-select" class="mobile-inline-select" aria-label="Guests">
+                        {% for n in "123456789"|make_list %}
+                        <option value="{{ n }}">{{ n }}</option>
+                        {% endfor %}
+                        <option value="10">10+</option>
+                    </select>
                 </div>
                 <div class="mobile-inline-separator"></div>
 
@@ -2549,11 +2561,9 @@
         const mobileCheckinInput = document.getElementById('mobile_check_in_date');
         const mobileCheckoutInput = document.getElementById('mobile_check_out_date');
         const mobileGuestsInput = document.getElementById('mobile_guests_input');
-        const mobileInlineGuests = document.getElementById('mobile-inline-guests');
+        const mobileGuestsSelect = document.getElementById('mobile-guests-select');
         const mobileCheckinDisplay = document.getElementById('mobile-checkin-display');
         const mobileCheckoutDisplay = document.getElementById('mobile-checkout-display');
-        const mobileGuestInc = document.getElementById('mobile-guest-inc');
-        const mobileGuestDec = document.getElementById('mobile-guest-dec');
         const mobileCheckinBtn = document.getElementById('mobile-checkin-btn');
         const mobileCheckoutBtn = document.getElementById('mobile-checkout-btn');
         const MAX_GUESTS = 50;
@@ -2572,9 +2582,11 @@
             if (mobileCheckoutDisplay && mobileCheckoutInput) {
                 mobileCheckoutDisplay.textContent = mobileCheckoutInput.value ? formatMobileDate(mobileCheckoutInput.value) : 'Add date';
             }
-            if (mobileInlineGuests && mobileGuestsInput) {
-                const guestVal = parseInt(mobileGuestsInput.value || '1', 10);
-                mobileInlineGuests.textContent = String(Math.max(1, Math.min(MAX_GUESTS, guestVal)));
+            if (mobileGuestsSelect && mobileGuestsInput) {
+                // The list stops at "10+", so anything above it shows as 10+
+                // while the input keeps the real number for the search.
+                const guestVal = Math.max(1, Math.min(MAX_GUESTS, parseInt(mobileGuestsInput.value || '1', 10)));
+                mobileGuestsSelect.value = String(Math.min(10, guestVal));
             }
         }
 
@@ -2649,19 +2661,9 @@
             mobileGuestsInput.addEventListener('change', syncInlineMobileFilter);
         }
 
-        if (mobileGuestInc && mobileGuestsInput) {
-            mobileGuestInc.addEventListener('click', function() {
-                const current = parseInt(mobileGuestsInput.value || '1', 10);
-                mobileGuestsInput.value = Math.min(MAX_GUESTS, Math.max(1, current + 1));
-                syncInlineMobileFilter();
-            });
-        }
-
-        if (mobileGuestDec && mobileGuestsInput) {
-            mobileGuestDec.addEventListener('click', function() {
-                const current = parseInt(mobileGuestsInput.value || '1', 10);
-                mobileGuestsInput.value = Math.max(1, current - 1);
-                syncInlineMobileFilter();
+        if (mobileGuestsSelect && mobileGuestsInput) {
+            mobileGuestsSelect.addEventListener('change', function() {
+                mobileGuestsInput.value = String(Math.max(1, parseInt(this.value, 10) || 1));
             });
         }
 

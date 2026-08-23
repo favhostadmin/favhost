@@ -1,7 +1,12 @@
-{# Guest currency switcher for public host pages. Sets a cookie + reloads. #}
+{% comment %}
+  Guest currency switcher for public host pages. Sets a cookie + reloads.
+  Safe to include more than once on a page (the listing page renders it in
+  both the desktop and the mobile header): carries no element id, and the
+  handler is only defined the first time.
+{% endcomment %}
 <div class="guest-currency-switcher" style="display:inline-flex;align-items:center;gap:6px;">
   <span aria-hidden="true" style="font-size:13px;color:#555;">{{ currency_symbol }}</span>
-  <select id="guestCurrencySelect" aria-label="Display currency"
+  <select aria-label="Display currency"
           onchange="setGuestCurrency(this.value)"
           style="padding:4px 8px;border:1px solid #ddd;border-radius:6px;font-size:13px;cursor:pointer;background:#fff;">
     {% for c in currency_options %}
@@ -13,9 +18,9 @@
   </select>
 </div>
 <script>
-  function setGuestCurrency(code) {
+  window.setGuestCurrency = window.setGuestCurrency || function (code) {
     document.cookie = "guest_currency=" + encodeURIComponent(code) +
                       "; path=/; max-age=" + (60 * 60 * 24 * 365);
     location.reload();
-  }
+  };
 </script>
