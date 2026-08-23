@@ -248,20 +248,32 @@
       #listingCards.pl-view-list .card {
         display: grid;
         grid-template-columns: 288px minmax(0, 1fr);
+        /* A definite row, so the row height comes from here and never from a
+           photo's own proportions — a tall portrait shot used to be able to
+           stretch the whole card. Grows only if the details need more room. */
+        grid-auto-rows: minmax(220px, auto);
         align-items: stretch;
-        min-height: 200px;
         border-radius: 14px;
       }
 
       /* Scoped to the photo wrapper — the bed and nights icons are <img> too,
          and a blanket `.card img` rule stretches them out of shape. The
          tile-view rule sizes the photo by viewport height (30vh), which is far
-         too tall for a row; here it just fills its own column. */
-      #listingCards.pl-view-list .card > .card-media,
-      #listingCards.pl-view-list .card > .card-media img {
+         too tall for a row.
+
+         No height and no min-height here on purpose: the grid's stretch
+         alignment already sizes the wrapper to the row above, and the slides
+         are absolutely positioned inside it. A `height: 100%` would resolve
+         against an auto row and a `min-height` would let the tallest photo
+         set the row instead of the other way round. */
+      #listingCards.pl-view-list .card > .card-media {
         width: 100%;
-        height: 100%;
-        min-height: 200px;
+        height: auto;
+        min-height: 0;
+        border-radius: 14px 0 0 14px;
+      }
+
+      #listingCards.pl-view-list .card > .card-media .card-slide {
         object-fit: cover;
       }
 
@@ -469,6 +481,133 @@
       margin-top: 10px;
     }
 
+    /* Currency switcher in the dark header — the same pill the listing-details
+       and request-book bars use, so it reads identically across the public
+       site. Scoped to .top-nav so it covers both the desktop and the mobile
+       header instance. The partial sets these properties inline, and inline
+       styles can only be beaten by !important. */
+    .top-nav .guest-currency-switcher {
+      display: inline-flex !important;
+      align-items: center !important;
+      gap: 6px !important;
+      height: 32px !important;
+      padding: 0 6px 0 10px !important;
+      border: 1px solid rgba(255, 255, 255, 0.28) !important;
+      border-radius: 8px !important;
+      background: rgba(255, 255, 255, 0.12) !important;
+      transition: background-color 0.18s ease, border-color 0.18s ease;
+    }
+
+    .top-nav .guest-currency-switcher:hover,
+    .top-nav .guest-currency-switcher:focus-within {
+      border-color: rgba(255, 255, 255, 0.5) !important;
+      background: rgba(255, 255, 255, 0.2) !important;
+    }
+
+    .top-nav .guest-currency-switcher span {
+      font-size: 15px !important;
+      font-weight: 700 !important;
+      color: #ffffff !important;
+    }
+
+    .top-nav .guest-currency-switcher select {
+      padding: 0 4px !important;
+      border: none !important;
+      background: transparent !important;
+      color: #ffffff !important;
+      font-size: 13px !important;
+      font-weight: 600 !important;
+      line-height: 1;
+      cursor: pointer !important;
+      outline: none !important;
+    }
+
+    /* the list is painted by the OS, so it goes back to solid */
+    .top-nav .guest-currency-switcher select option {
+      background: #313131 !important;
+      color: #ffffff !important;
+    }
+
+    /* ------------------------------------------------------------------
+       Photo slideshow. The slides stack on top of each other and cross-fade,
+       so the height has to live on .card-media — listing.css puts it on
+       `.card img`, which no longer sizes anything now that the slides are
+       absolutely positioned.
+       ------------------------------------------------------------------ */
+    .card-media {
+      position: relative;
+      overflow: hidden;
+      height: 30vh;
+    }
+
+    .card-media .card-slide {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      opacity: 0;
+      transition: opacity 0.35s ease, transform 0.3s ease;
+    }
+
+    .card-media .card-slide.is-active {
+      opacity: 1;
+    }
+
+    .card-nav {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 3;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.92);
+      box-shadow: 0 2px 8px rgba(16, 24, 40, 0.22);
+      color: #111827;
+      cursor: pointer;
+      /* revealed on hover so the photo is unobstructed at rest */
+      opacity: 0;
+      transition: opacity 0.18s ease, background-color 0.18s ease;
+    }
+
+    .card-nav.prev { left: 10px; }
+    .card-nav.next { right: 10px; }
+
+    .card:hover .card-nav,
+    .card-nav:focus-visible {
+      opacity: 1;
+    }
+
+    .card-nav:hover {
+      background: #ffffff;
+    }
+
+    .card-nav:focus-visible {
+      outline: 2px solid #111827;
+      outline-offset: 2px;
+    }
+
+    .card-nav svg {
+      width: 15px;
+      height: 15px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2.2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    /* nothing hovers on touch, so the arrows stay put */
+    @media (hover: none) {
+      .card-nav {
+        opacity: 1;
+      }
+    }
+
     /* ------------------------------------------------------------------
        Phone / tablet: a full-width stacked card — photo on top, details
        underneath — instead of the 130px thumbnail row that listing.css lays
@@ -493,21 +632,23 @@
         overflow: visible;
       }
 
+      /* listing.css pins the photo at 130x130 here; the wrapper takes the
+         full width instead and the slides fill it. */
       .card-media {
         width: 100%;
+        height: auto;
+        aspect-ratio: 4 / 3;
         overflow: hidden;
         border-radius: 14px;
       }
 
-      /* listing.css pins the photo at 130x130 here; it takes the full width
-         now, with the chip icons excluded by the more specific rule above. */
-      .card > .card-media img {
-        width: 100%;
-        height: auto;
-        aspect-ratio: 4 / 3;
-        border-radius: 14px;
-        object-fit: cover;
+      .card-nav {
+        width: 28px;
+        height: 28px;
       }
+
+      .card-nav.prev { left: 8px; }
+      .card-nav.next { right: 8px; }
 
       /* no hover state on touch */
       .card:hover img {
@@ -675,6 +816,12 @@
             {% endif %}
           {% endif %}
 
+          {% comment %}
+            Same switcher the mobile header carries; .top-nav-right is hidden
+            below 992px, so only one of the two is ever on screen.
+          {% endcomment %}
+          {% include 'frontend/public_host_website/_currency_switcher.html' %}
+
           <div class="hero-actions" aria-label="Social links">
             {% comment %}
               Only render a network the host actually linked. The old
@@ -740,11 +887,13 @@
           </div>
           <div class="mobile-inline-item">
             <span>Guests</span>
-            <span id="mobile-inline-guests">{{ guests|default:guests_count|default:'1' }}</span>
-            <div class="mobile-guest-stepper">
-              <button type="button" id="mobile-guest-inc" aria-label="Increase guests">▲</button>
-              <button type="button" id="mobile-guest-dec" aria-label="Decrease guests">▼</button>
-            </div>
+            {# Writes through to #guests, which stays the field the form submits. #}
+            <select id="mobile-guests-select" class="mobile-inline-select" aria-label="Guests">
+              {% for n in "123456789"|make_list %}
+              <option value="{{ n }}">{{ n }}</option>
+              {% endfor %}
+              <option value="10">10+</option>
+            </select>
             <input type="hidden" id="guests" name="guests" value="{{ guests|default:guests_count|default:'1' }}">
           </div>
           <button type="submit" class="search-btn">Search</button>
@@ -784,7 +933,30 @@
         {% for property in properties %}
           <a class="card" href="{{ property.get_absolute_url }}?check_in={{ check_in|default:'' }}&check_out={{ check_out|default:'' }}&guests={{ guests|default:guests_count|default:'1' }}">
             <div class="card-media">
-              <img src="{{ property.get_primary_image_url }}" alt="{{ property.title }}">
+              {% with images=property.images.all %}
+                {% if images %}
+                  {% comment %}
+                    PropertyImage.Meta orders by -is_primary, so the first slide
+                    is the primary photo. Capped at 8 to keep the page light.
+                  {% endcomment %}
+                  {% for photo in images|slice:":8" %}
+                    <img class="card-slide{% if forloop.first %} is-active{% endif %}"
+                         src="{{ photo.image.url }}" alt="{{ property.title }}"
+                         {% if not forloop.first %}loading="lazy"{% endif %}>
+                  {% endfor %}
+                  {% if images|length > 1 %}
+                    {# <button> inside the card's <a> would be invalid, so these mirror .book-now-btn #}
+                    <span class="card-nav prev" role="button" tabindex="0" aria-label="Previous photo">
+                      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5.5 8.5 12l6.5 6.5"/></svg>
+                    </span>
+                    <span class="card-nav next" role="button" tabindex="0" aria-label="Next photo">
+                      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5.5 15.5 12 9 18.5"/></svg>
+                    </span>
+                  {% endif %}
+                {% else %}
+                  <img class="card-slide is-active" src="{{ property.get_primary_image_url }}" alt="{{ property.title }}">
+                {% endif %}
+              {% endwith %}
               {% if not num_nights %}
               <div class="listing-avl-pill">
                 <span class="listing-avl-dot"></span>
@@ -1023,9 +1195,7 @@
       const mobileDateFields = document.querySelectorAll(".mobile-date-field");
       const checkinMobileText = document.getElementById("checkinMobileText");
       const checkoutMobileText = document.getElementById("checkoutMobileText");
-      const mobileInlineGuests = document.getElementById("mobile-inline-guests");
-      const mobileGuestInc = document.getElementById("mobile-guest-inc");
-      const mobileGuestDec = document.getElementById("mobile-guest-dec");
+      const mobileGuestsSelect = document.getElementById("mobile-guests-select");
       const guestsHiddenInput = document.getElementById("guests");
       const searchRangeField = document.querySelector(".search-range");
       const calendarIcon = document.querySelector(".calendar-icon");
@@ -1597,28 +1767,22 @@
 
       function syncGuestDisplay(nextValue) {
         const value = Math.max(1, Math.min(50, parseInt(nextValue, 10) || 1));
-        if (mobileInlineGuests) {
-          mobileInlineGuests.textContent = String(value);
+        if (mobileGuestsSelect) {
+          // The list stops at "10+", so anything above it shows as 10+ while
+          // the hidden field keeps the real number for the search.
+          mobileGuestsSelect.value = String(Math.min(10, value));
         }
         if (guestsHiddenInput) {
           guestsHiddenInput.value = String(value);
         }
       }
 
-      if (mobileInlineGuests && guestsHiddenInput) {
-        syncGuestDisplay(mobileInlineGuests.textContent);
+      if (mobileGuestsSelect && guestsHiddenInput) {
+        syncGuestDisplay(guestsHiddenInput.value);
 
-        if (mobileGuestInc) {
-          mobileGuestInc.addEventListener("click", function () {
-            syncGuestDisplay((parseInt(mobileInlineGuests.textContent, 10) || 1) + 1);
-          });
-        }
-
-        if (mobileGuestDec) {
-          mobileGuestDec.addEventListener("click", function () {
-            syncGuestDisplay((parseInt(mobileInlineGuests.textContent, 10) || 1) - 1);
-          });
-        }
+        mobileGuestsSelect.addEventListener("change", function () {
+          guestsHiddenInput.value = String(Math.max(1, parseInt(this.value, 10) || 1));
+        });
       }
 
       if (aboutToggle && aboutMore) {
@@ -1818,6 +1982,45 @@
           event.preventDefault();
           event.stopPropagation();
           goToReservation(trigger);
+        });
+
+        // Photo slideshow arrows. Delegated like the button above, so the
+        // cards the infinite scroll appends are covered, and cancelling the
+        // event keeps a click on an arrow from opening the listing.
+        function stepSlide(nav) {
+          const media = nav.closest(".card-media");
+          if (!media) return;
+
+          const slides = media.querySelectorAll(".card-slide");
+          if (slides.length < 2) return;
+
+          let current = 0;
+          slides.forEach(function (slide, index) {
+            if (slide.classList.contains("is-active")) current = index;
+          });
+
+          const step = nav.classList.contains("next") ? 1 : -1;
+          const next = (current + step + slides.length) % slides.length;
+
+          slides[current].classList.remove("is-active");
+          slides[next].classList.add("is-active");
+        }
+
+        listingsContainer.addEventListener("click", function (event) {
+          const nav = event.target.closest(".card-nav");
+          if (!nav) return;
+          event.preventDefault();
+          event.stopPropagation();
+          stepSlide(nav);
+        });
+
+        listingsContainer.addEventListener("keydown", function (event) {
+          if (event.key !== "Enter" && event.key !== " ") return;
+          const nav = event.target.closest(".card-nav");
+          if (!nav) return;
+          event.preventDefault();
+          event.stopPropagation();
+          stepSlide(nav);
         });
       }
 

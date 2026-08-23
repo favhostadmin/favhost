@@ -2928,10 +2928,6 @@
           d.toDateString() === today.toDateString() ? 'today' : ''
         ].filter(Boolean).join(' ');
 
-        const takenBits = [];
-        if (info.booked_count) takenBits.push(info.booked_count + ' booked');
-        if (info.blocked_count) takenBits.push(info.blocked_count + ' blocked');
-
         // The count and the word are split so a phone cell — under 40px wide —
         // can drop the word and keep the number; the chip colour and the
         // cell's aria-label still carry the full meaning.
@@ -2945,11 +2941,10 @@
           ' onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();openAvailabilityDayModal(\'' + iso + '\');}"' +
           ' aria-label="' + escapeHtmlText(free + ' of ' + total + ' listings free on ' + iso) + '">' +
           '<span class="day-number">' + d.getDate() + '</span>' +
-          // Footer sits on the cell's baseline: what's free on the left, what's
-          // taken on the right, so both columns line up down the whole month.
-          '<span class="avl-foot">' + chip +
-          '<span class="avl-taken">' + (takenBits.length ? escapeHtmlText(takenBits.join(' · ')) : '') + '</span>' +
-          '</span>' +
+          // Footer sits on the cell's baseline so the counts line up down the
+          // whole month. Only what's free is shown; the booked/blocked split
+          // is in the day modal.
+          '<span class="avl-foot">' + chip + '</span>' +
           '</div>';
       });
       html += '</div>';

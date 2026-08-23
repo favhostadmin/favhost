@@ -894,8 +894,8 @@ class ListingPageView(ListView):
         else:
             return Property.objects.none()
 
-        # The cards show up to three amenity chips each.
-        queryset = queryset.prefetch_related('amenities')
+        # The cards show up to three amenity chips and a photo slideshow each.
+        queryset = queryset.prefetch_related('amenities', 'images')
 
         # Filter by availability if dates are provided
         if check_in and check_out:
