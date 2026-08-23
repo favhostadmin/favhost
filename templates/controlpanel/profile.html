@@ -7,9 +7,11 @@
 {% block content %}
 
 {% comment %}
-  Three things only: who this account is, what it can reach, and how to change
-  its password. A console login has no name or phone to keep — those belong to
-  a host profile — so nothing is invented here to fill space.
+  Three things only: who this account is, what it can reach, and its password
+  — a form to change it for the owner, a read-only reveal for a co-admin
+  (owner-set, on the Co-admins page). A console login has no name or phone to
+  keep — those belong to a host profile — so nothing is invented here to fill
+  space.
 {% endcomment %}
 
 <div class="cp-prof-head">
@@ -46,6 +48,7 @@
 
   <div class="cp-prof-sec">
     <h3>Password</h3>
+    {% if is_owner %}
     <p class="cp-prof-note">
       Your current password is required. You stay signed in on this device;
       any other session is ended.
@@ -67,6 +70,20 @@
       </label>
       <button class="cp-btn cp-btn-primary"><i class="ti ti-lock"></i> Update password</button>
     </form>
+    {% else %}
+    <p class="cp-prof-note">
+      Set by the owner when you were appointed. Contact them if it needs to change.
+    </p>
+    {% if coadmin.display_password %}
+    <div class="cp-pw-cell">
+      <span class="cp-pw" data-pw="{{ coadmin.display_password }}">••••••••</span>
+      <button type="button" class="cp-btn cp-btn-sm cp-pw-eye" onclick="cpTogglePw(this)"
+              aria-label="Show or hide password"><i class="ti ti-eye"></i></button>
+    </div>
+    {% else %}
+    <span class="cp-muted">Not available.</span>
+    {% endif %}
+    {% endif %}
   </div>
 
   <div class="cp-prof-sec">
@@ -101,4 +118,15 @@
   </div>
 
 </div>
+
+{% if not is_owner and coadmin.display_password %}
+<script>
+  function cpTogglePw(btn) {
+    var el = btn.previousElementSibling;
+    var hidden = el.textContent.indexOf('•') !== -1;
+    el.textContent = hidden ? el.dataset.pw : '••••••••';
+    btn.innerHTML = hidden ? '<i class="ti ti-eye-off"></i>' : '<i class="ti ti-eye"></i>';
+  }
+</script>
+{% endif %}
 {% endblock %}
