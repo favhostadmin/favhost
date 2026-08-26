@@ -23,6 +23,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST, require_http_methods
 from django.contrib.staticfiles import finders
 from .models import MyUser, UserDocument, CoHost
+from .forms import BlockAwareAuthenticationForm
 from .utils import get_effective_user, is_console_account
 from shared.models import CountryAndState
 
@@ -96,6 +97,8 @@ def firebase_auth_view(request):
     if user and is_console_account(user):
         # Console-only account — no host side to sign into.
         return JsonResponse({'error': 'This account cannot sign in here.'}, status=403)
+    if user and not user.is_active:
+        return JsonResponse({'error': 'blocked', 'blocked': True}, status=403)
     if not user:
         user = MyUser.objects.create_user(
             username=email,
@@ -165,6 +168,8 @@ def google_auth_view(request):
     if user and is_console_account(user):
         # Console-only account — no host side to sign into.
         return JsonResponse({'error': 'This account cannot sign in here.'}, status=403)
+    if user and not user.is_active:
+        return JsonResponse({'error': 'blocked', 'blocked': True}, status=403)
     if not user:
         user = MyUser.objects.create_user(username=email, email=email)
         user.first_name = first_name
@@ -213,11 +218,16 @@ def _google_signin_context():
 class CustomLoginView(LoginView):
     template_name = 'frontend/auth/login.html'
     redirect_authenticated_user = True
+    authentication_form = BlockAwareAuthenticationForm
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         # Default to login mode; ?mode=signup shows signup view
         context['show_signup'] = self.request.GET.get('mode') == 'signup'
+        # Set on a normal GET redirect from the Google/Firebase sign-in flow
+        # (see google_auth_view/firebase_auth_view) as well as by form_invalid
+        # below, so both login paths show the same "you're blocked" popup.
+        context['show_blocked_modal'] = context.get('show_blocked_modal') or self.request.GET.get('blocked') == '1'
         context.update(_google_signin_context())
         return context
 
@@ -241,6 +251,12 @@ class CustomLoginView(LoginView):
         return reverse_lazy('frontdesk:index')
 
     def form_invalid(self, form):
+        blocked = any(
+            getattr(err, 'code', None) == 'blocked'
+            for err in form.non_field_errors().as_data()
+        )
+        if blocked:
+            return self.render_to_response(self.get_context_data(form=form, show_blocked_modal=True))
         for error in form.non_field_errors():
             messages.error(self.request, error)
         return super().form_invalid(form)

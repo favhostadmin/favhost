@@ -18,20 +18,21 @@ def fetch_stripe_price_details(price_id):
     stripe.api_key = settings.STRIPE_SECRET_KEY
     price = stripe.Price.retrieve(price_id)
 
-    if not price.get('active', True):
+    # stripe-python's Price is a typed object, not a dict — no .get() here.
+    if not getattr(price, 'active', True):
         raise ValueError(f"Stripe price {price_id} is archived/inactive in Stripe.")
-    if price.get('unit_amount') is None:
+    if getattr(price, 'unit_amount', None) is None:
         raise ValueError(
             f"Stripe price {price_id} has no fixed unit amount (metered or "
             f"tiered prices aren't supported here)."
         )
-    recurring = price.get('recurring')
+    recurring = getattr(price, 'recurring', None)
     if not recurring:
         raise ValueError(f"Stripe price {price_id} is not a recurring price.")
 
-    amount = Decimal(price['unit_amount']) / Decimal(100)
-    currency = (price.get('currency') or 'usd').upper()
-    interval = recurring.get('interval') or 'month'
+    amount = Decimal(price.unit_amount) / Decimal(100)
+    currency = (getattr(price, 'currency', None) or 'usd').upper()
+    interval = getattr(recurring, 'interval', None) or 'month'
     return amount, currency, interval
 
 
