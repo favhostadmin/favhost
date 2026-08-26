@@ -18,6 +18,38 @@
       <span class="cp-badge b-gray no-dot">{{ p.get_property_type_display }}</span>
     </div>
   </div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;">
+    {% if p.status == 'Active' %}
+    <form method="post" action="{% url 'controlpanel:property_action' p.id %}">
+      {% csrf_token %}<input type="hidden" name="action" value="deactivate">
+      <button class="cp-btn cp-btn-danger"><i class="ti ti-eye-off"></i> Deactivate</button>
+    </form>
+    {% else %}
+    <form method="post" action="{% url 'controlpanel:property_action' p.id %}">
+      {% csrf_token %}<input type="hidden" name="action" value="activate">
+      <button class="cp-btn cp-btn-primary"><i class="ti ti-eye"></i> Activate</button>
+    </form>
+    {% endif %}
+    <button class="cp-btn cp-btn-danger" onclick="document.getElementById('cpPropDeleteModal').classList.add('open')"><i class="ti ti-trash"></i> Delete listing</button>
+  </div>
+</div>
+
+<!-- Delete confirmation modal -->
+<div class="cp-modal-overlay" id="cpPropDeleteModal">
+  <div class="cp-modal">
+    <div class="cp-modal-head" style="color:var(--cp-red);">Delete this listing?</div>
+    <form method="post" action="{% url 'controlpanel:property_action' p.id %}">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="delete">
+      <div class="cp-modal-body">
+        This will permanently remove <strong>{{ p.title }}</strong> and all of its bookings, enquiries and images. This cannot be undone.
+      </div>
+      <div class="cp-modal-foot">
+        <button type="button" class="cp-btn" onclick="document.getElementById('cpPropDeleteModal').classList.remove('open')">Cancel</button>
+        <button type="submit" class="cp-btn cp-btn-danger"><i class="ti ti-trash"></i> Delete forever</button>
+      </div>
+    </form>
+  </div>
 </div>
 
 <div class="cp-kpi-grid" style="grid-template-columns:repeat(auto-fill,minmax(180px,1fr));">
