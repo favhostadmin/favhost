@@ -667,7 +667,14 @@
           </svg>
         </div>
       </div>
-      {% if wall_reason == 'canceled' %}
+      {% if wall_reason == 'past_due' %}
+      <h2 class="sw-title">Your Payment Is Overdue</h2>
+      {% if is_cohost %}
+      <p class="sw-subtitle">This account's FavHost payment could not be processed. Please contact your host to restore full access.</p>
+      {% else %}
+      <p class="sw-subtitle">Your last payment for FavHost failed and your subscription is now past due. Update your payment method to regain full access to your property management tools.</p>
+      {% endif %}
+      {% elif wall_reason == 'canceled' %}
       <h2 class="sw-title">Your Subscription Has Ended</h2>
       {% if is_cohost %}
       <p class="sw-subtitle">This account's FavHost subscription is no longer active. Please contact your host to restore full access.</p>
@@ -693,11 +700,26 @@
 
       {% if is_cohost %}
       <div class="sw-contact-host">
+        {% if wall_reason == 'past_due' %}
+        Only the <strong>host</strong> can update the payment method on file.
+        Please contact your host{% if account_owner_email %} at
+        <a href="mailto:{{ account_owner_email }}">{{ account_owner_email }}</a>{% endif %}
+        to restore access.
+        {% else %}
         Only the <strong>host</strong> can renew this subscription.
         Please contact your host{% if account_owner_email %} at
         <a href="mailto:{{ account_owner_email }}">{{ account_owner_email }}</a>{% endif %}
         to restore access.
+        {% endif %}
       </div>
+      {% elif wall_reason == 'past_due' %}
+      <form method="post" action="{% url 'billing:customer_portal' %}" style="margin:0 0 8px;">
+        {% csrf_token %}
+        <button type="submit" class="sw-btn-subscribe">Update Payment Method</button>
+      </form>
+      <p class="sw-price-note">
+        Need help? <a href="{% url 'contact' %}" target="_blank">Contact support</a>
+      </p>
       {% else %}
       <p class="sw-price-note">Cancel anytime &nbsp;·&nbsp; No hidden fees</p>
 
