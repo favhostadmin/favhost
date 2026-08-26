@@ -1087,10 +1087,69 @@ class MarkNoShowView(LoginRequiredMixin, View):
 
 
 #Enquiry API Views
+
+# Reuse the signup OTP machinery (session-based, not tied to a logged-in
+# user) instead of building a second implementation for guest inquiries.
+from accounts.views import _generate_otp, _store_otp, _clear_otp, _check_otp, _send_otp_email
+
+INQUIRY_OTP_SESSION_KEY = 'inquiry_otp'
+
+
+@require_POST
+def enquiry_send_otp_api(request):
+    """Email a verification code to a guest before they can submit an inquiry."""
+    email = (request.POST.get('email') or '').strip()
+    first_name = (request.POST.get('first_name') or '').strip() or 'there'
+    if not email:
+        return JsonResponse({'success': False, 'error': 'Please enter your email address.'}, status=400)
+
+    otp = _generate_otp()
+    _store_otp(request, INQUIRY_OTP_SESSION_KEY, otp)
+    # Tie the code to the email it was sent to, so verifying only unlocks
+    # submission for that exact address.
+    request.session[f'{INQUIRY_OTP_SESSION_KEY}_email'] = email
+    request.session.pop('inquiry_verified_email', None)
+
+    sent = _send_otp_email(
+        email=email,
+        first_name=first_name,
+        otp=otp,
+        subject='Verify your email — Favhost inquiry',
+        template_name='frontend/emails/inquiry_otp.html',
+    )
+    if not sent:
+        return JsonResponse({'success': False, 'error': 'Could not send the verification email. Please try again.'}, status=502)
+    return JsonResponse({'success': True})
+
+
+@require_POST
+def enquiry_verify_otp_api(request):
+    """Confirm the code a guest entered matches the one emailed to them."""
+    email = (request.POST.get('email') or '').strip()
+    otp_code = (request.POST.get('otp_code') or '').strip()
+    stored_email = request.session.get(f'{INQUIRY_OTP_SESSION_KEY}_email')
+
+    if not email or not stored_email or email != stored_email:
+        return JsonResponse({'success': False, 'error': 'Please request a new code for this email.'}, status=400)
+
+    ok, error = _check_otp(request, INQUIRY_OTP_SESSION_KEY, otp_code)
+    if not ok:
+        return JsonResponse({'success': False, 'error': error}, status=400)
+
+    _clear_otp(request, INQUIRY_OTP_SESSION_KEY)
+    request.session.pop(f'{INQUIRY_OTP_SESSION_KEY}_email', None)
+    request.session['inquiry_verified_email'] = email
+    return JsonResponse({'success': True})
+
+
 @require_POST
 def enquiry_create_api(request):
     """API endpoint to create an Enquiry from the public request_book page."""
     try:
+        email = (request.POST.get('email') or '').strip()
+        if request.session.get('inquiry_verified_email') != email:
+            return JsonResponse({'success': False, 'error': 'Please verify your email before sending the inquiry.'}, status=400)
+
         property_id = request.POST.get('property_id')
         prop = get_object_or_404(Property, id=property_id)
 
@@ -1133,6 +1192,8 @@ def enquiry_create_api(request):
                     file_type=attachment.content_type
                 )
 
+        # One-shot: the next inquiry (even from the same visitor) needs a fresh code.
+        request.session.pop('inquiry_verified_email', None)
         return JsonResponse({'success': True, 'enquiry_id': enquiry.id})
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
