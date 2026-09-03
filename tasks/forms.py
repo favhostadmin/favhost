@@ -115,6 +115,23 @@ class TaskForm(forms.ModelForm):
         if date and self.instance and self.instance.pk and self.date_must_stay_future:
             if date < datetime.date.today():
                 raise forms.ValidationError("The date cannot be moved into the past.")
+
+        # Each occurrence of a repeating series is its own row, so moving one
+        # onto a day the series already covers leaves two identical tasks on
+        # that day and an empty slot on the old one - which reads as the edit
+        # having duplicated the task rather than moved it.
+        if date and self.instance and self.instance.pk and self.instance.recurrence_id:
+            clash = (
+                Task.objects
+                .filter(recurrence_id=self.instance.recurrence_id, date=date)
+                .exclude(pk=self.instance.pk)
+                .exists()
+            )
+            if clash:
+                raise forms.ValidationError(
+                    "This repeating task already has an occurrence on "
+                    f"{date:%d-%m-%Y}. Pick a different date."
+                )
         return date
 
     def save(self, commit=True):
