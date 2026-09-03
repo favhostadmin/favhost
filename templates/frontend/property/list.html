@@ -356,17 +356,20 @@
         height: 20px;
     }
 
-    /* Desktop/Mobile date-range picker */
+    /* Desktop/Mobile date-range picker.
+       Same panel as the public Explore page (static/css/public_host_website/
+       explore.css, .ex-drp-*): circular day pills, an ink-filled range, a
+       prompt in the header and a Clear/Done footer. */
     .date-range-picker {
         position: fixed;
         top: 96px;
         left: 50%;
         transform: translateX(-50%);
         background: #ffffff;
-        border: 1px solid #e5e7eb;
-        border-radius: 12px;
-        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
-        padding: 12px;
+        border: 1px solid #DDDDDD;
+        border-radius: 20px;
+        box-shadow: 0 8px 28px rgba(0, 0, 0, 0.16);
+        padding: 14px;
         width: min(720px, calc(100vw - 16px));
         z-index: 9999;
         display: none;
@@ -382,15 +385,26 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
+        gap: 12px;
         margin-bottom: 10px;
     }
 
+    .drp-hint {
+        font-size: 12.5px;
+        font-weight: 600;
+        color: #717171;
+    }
+
     .drp-nav {
-        border: 1px solid #d1d5db;
+        flex: 0 0 auto;
+        border: 1px solid #DDDDDD;
         background: #fff;
-        border-radius: 8px;
+        border-radius: 50%;
         width: 32px;
         height: 32px;
+        font-size: 17px;
+        line-height: 1;
+        color: #222222;
         display: inline-flex;
         align-items: center;
         justify-content: center;
@@ -398,22 +412,28 @@
         transition: background 0.15s ease, border-color 0.15s ease;
     }
 
-    .drp-nav:hover {
-        background: #f3f4f6;
-        border-color: #9ca3af;
+    .drp-nav:hover:not(:disabled) {
+        background: #EBEBEB;
+        border-color: #717171;
+    }
+
+    .drp-nav:disabled {
+        opacity: 0.35;
+        cursor: not-allowed;
     }
 
     .drp-months {
         display: grid;
         grid-template-columns: repeat(var(--months, 2), minmax(0, 1fr));
-        gap: 12px;
+        gap: 18px;
     }
 
     .drp-month-title {
         text-align: center;
-        font-weight: 600;
-        margin-bottom: 6px;
-        color: #111827;
+        font-size: 14px;
+        font-weight: 700;
+        margin-bottom: 8px;
+        color: #222222;
     }
 
     .drp-weekdays,
@@ -425,21 +445,22 @@
 
     .drp-weekday {
         text-align: center;
-        font-size: 12px;
-        color: #45484e;
+        font-size: 11px;
+        color: #717171;
         padding: 4px 0;
         font-weight: 600;
     }
 
     .drp-day {
-        text-align: center;
-        padding: 9px 0;
-        border-radius: 10px;
+        display: grid;
+        place-items: center;
+        height: 36px;
+        width: 100%;
+        border-radius: 50%;
         cursor: pointer;
         font-size: 13px;
         font-weight: 600;
-        color: #111827;
-        position: relative;
+        color: #222222;
         transition: background 0.1s ease, color 0.1s ease;
         margin: 0;
     }
@@ -448,46 +469,80 @@
         cursor: default;
     }
 
-    .drp-day:not(.blank):hover {
-        background: #6d6a68;
-    }
-
     .drp-day.disabled {
-        color: #d1d5db;
+        color: #C7C7C7;
         cursor: not-allowed;
+        text-decoration: line-through;
     }
 
+    .drp-day:not(.blank):not(.disabled):not(.start):not(.end):hover {
+        background: #EBEBEB;
+    }
+
+    /* The range fill is square so consecutive days read as one continuous bar;
+       the two ends keep their pill shape on the outer side only. */
     .drp-day.in-range {
-        background: #d8d8d8; /* deeper fill */
-        color: #111827;
+        background: #EBEBEB;
+        color: #222222;
         border-radius: 0;
     }
 
     .drp-day.start,
     .drp-day.end {
-        background: #6d6a68;
+        background: #222222;
         color: #fff;
     }
 
     .drp-day.start {
-        border-top-left-radius: 12px;
-        border-bottom-left-radius: 12px;
-        border-top-right-radius: 0;
-        border-bottom-right-radius: 0;
-        box-shadow: 6px 0 0 #d8d8d8;
+        border-radius: 50% 0 0 50%;
+        box-shadow: 8px 0 0 #EBEBEB;
     }
 
     .drp-day.end {
-        border-top-right-radius: 12px;
-        border-bottom-right-radius: 12px;
-        border-top-left-radius: 0;
-        border-bottom-left-radius: 0;
-        box-shadow: -6px 0 0 #d8d8d8;
+        border-radius: 0 50% 50% 0;
+        box-shadow: -8px 0 0 #EBEBEB;
     }
 
     .drp-day.start.end {
-        border-radius: 12px;
+        border-radius: 50%;
         box-shadow: none;
+    }
+
+    .drp-foot {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-top: 12px;
+        padding-top: 12px;
+        border-top: 1px solid #EBEBEB;
+    }
+
+    .drp-clear {
+        background: none;
+        border: 0;
+        font-size: 13px;
+        font-weight: 600;
+        color: #222222;
+        text-decoration: underline;
+        padding: 6px 2px;
+        cursor: pointer;
+    }
+
+    .drp-done {
+        border: 0;
+        font-size: 13px;
+        font-weight: 600;
+        color: #fff;
+        background: #EB5310;
+        border-radius: 999px;
+        padding: 9px 20px;
+        cursor: pointer;
+        transition: filter 0.15s ease;
+    }
+
+    .drp-done:hover {
+        filter: brightness(1.05);
     }
 
     @media (max-width: 991.98px) {
@@ -501,7 +556,7 @@
 
     @media (max-width: 768px) {
         .date-range-picker {
-            padding: 10px;
+            padding: 12px;
         }
 
         .drp-months {
@@ -1617,6 +1672,16 @@
         #property-results.pl-view-list .listing-location {
             font-size: 13.5px;
             margin-top: 6px !important;
+        }
+
+        /* A little more air between the location line and the amenity chips
+           below it — row 4 with no date range, row 3 when one is active. */
+        #property-results.pl-view-list .listing-info > div:nth-child(4) {
+            margin-top: 14px !important;
+        }
+
+        #property-results.pl-view-list .listing-info > div:nth-child(3) > * {
+            margin-top: 14px;
         }
 
         #property-results.pl-view-list .listing-price {
@@ -2928,21 +2993,18 @@
                 if (!cell) return `<div class="drp-day blank"></div>`;
                 const iso = formatInput(cell);
                 const disabled = isDisabled(cell);
-                const previewStart = startDate && !endDate && hoverDate
-                    ? (hoverDate < startDate ? hoverDate : startDate)
-                    : null;
-                const previewEnd = startDate && !endDate && hoverDate
-                    ? (hoverDate > startDate ? hoverDate : startDate)
-                    : null;
+                // Forward-only preview: hovering before the start day would draw a
+                // range that clicking can't produce, since that click re-picks check-in.
+                const previewing = !!(startDate && !endDate && hoverDate && hoverDate > startDate);
                 const inRange = startDate && endDate && cell > startDate && cell < endDate;
-                const inPreviewRange = previewStart && previewEnd && cell > previewStart && cell < previewEnd;
+                const inPreviewRange = previewing && cell > startDate && cell < hoverDate;
                 const classes = ['drp-day'];
                 if (disabled) classes.push('disabled');
                 if (inRange) classes.push('in-range');
                 if (inPreviewRange) classes.push('in-range');
                 if (sameDay(cell, startDate)) classes.push('start');
                 if (sameDay(cell, endDate)) classes.push('end');
-                if (!endDate && hoverDate && sameDay(cell, hoverDate)) classes.push('end');
+                if (previewing && sameDay(cell, hoverDate)) classes.push('end');
                 return `<div class="${classes.join(' ')}" data-date="${iso}">${cell.getDate()}</div>`;
             }).join('');
 
@@ -2966,20 +3028,50 @@
 
             rangePicker.style.setProperty('--months', monthsToShow);
 
+            const hint = (startDate && !endDate)
+                ? 'Select your check-out date'
+                : 'Select your check-in date';
+
             rangePicker.innerHTML = `
                 <div class="drp-header">
                     <button type="button" class="drp-nav" data-dir="-1" aria-label="Previous month">‹</button>
-                    <div style="flex:1;"></div>
+                    <span class="drp-hint">${hint}</span>
                     <button type="button" class="drp-nav" data-dir="1" aria-label="Next month">›</button>
                 </div>
                 <div class="drp-months">
                     ${monthsMarkup}
                 </div>
+                <div class="drp-foot">
+                    <button type="button" class="drp-clear">Clear dates</button>
+                    <button type="button" class="drp-done">Done</button>
+                </div>
             `;
+
+            // Nothing earlier than this month is reachable, so grey the back arrow.
+            const earliestMonth = new Date(minDate.getFullYear(), minDate.getMonth(), 1);
+            const backBtn = rangePicker.querySelector('.drp-nav[data-dir="-1"]');
+            if (backBtn) backBtn.disabled = viewCursor <= earliestMonth;
+
+            const clearBtnEl = rangePicker.querySelector('.drp-clear');
+            if (clearBtnEl) clearBtnEl.addEventListener('click', function (e) {
+                e.stopPropagation();
+                startDate = null;
+                endDate = null;
+                hoverDate = null;
+                syncInputs();
+                renderRangePicker();
+            });
+
+            const doneBtnEl = rangePicker.querySelector('.drp-done');
+            if (doneBtnEl) doneBtnEl.addEventListener('click', function (e) {
+                e.stopPropagation();
+                closePicker();
+            });
 
             rangePicker.querySelectorAll('.drp-nav').forEach(btn => {
                 btn.addEventListener('click', function (e) {
                     e.stopPropagation();
+                    if (this.disabled) return;
                     const dir = parseInt(this.dataset.dir, 10);
                     viewCursor.setMonth(viewCursor.getMonth() + dir);
                     // prevent navigating to months entirely before today
@@ -2995,17 +3087,13 @@
                 dayEl.addEventListener('click', function (e) {
                     e.stopPropagation();
                     const clicked = parseDateInput(this.dataset.date);
-                    if (!startDate || (startDate && endDate)) {
+                    // `<=` covers re-clicking the start day: the view only applies a
+                    // range when check-out is strictly after check-in, so that click
+                    // re-picks check-in rather than committing a zero-night stay the
+                    // server would silently drop.
+                    if (!startDate || endDate || clicked <= startDate) {
                         startDate = clicked;
                         endDate = null;
-                        hoverDate = null;
-                    } else if (clicked < startDate) {
-                        startDate = clicked;
-                        endDate = null;
-                        hoverDate = null;
-                    } else if (sameDay(clicked, startDate)) {
-                        // Single-day stay
-                        endDate = clicked;
                         hoverDate = null;
                     } else {
                         endDate = clicked;
@@ -3026,11 +3114,11 @@
         }
 
         function syncInputs() {
-            if (startDate) {
-                checkinInput.value = formatInput(startDate);
-                checkinInput.dispatchEvent(new Event('input'));
-                checkinInput.dispatchEvent(new Event('change'));
-            }
+            // Assign unconditionally: "Clear dates" has to empty check-in as well,
+            // and the display/clear-button listeners key off these events.
+            checkinInput.value = startDate ? formatInput(startDate) : '';
+            checkinInput.dispatchEvent(new Event('input'));
+            checkinInput.dispatchEvent(new Event('change'));
             if (endDate) {
                 checkoutInput.value = formatInput(endDate);
                 checkoutInput.dispatchEvent(new Event('input'));

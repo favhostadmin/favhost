@@ -1,3 +1,5 @@
+import datetime
+
 from django import forms
 from .models import Task
 from property.models import Property
@@ -43,18 +45,43 @@ class TaskForm(forms.ModelForm):
         user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
         
-        is_instance = self.instance and self.instance.pk
+        is_instance = bool(self.instance and self.instance.pk)
+
+        # An occurrence that still lies ahead can be rescheduled, whether or not
+        # it belongs to a repeating series; a repeating one that has already
+        # passed is history, so its date stays locked as before. save() reads
+        # date_editable to decide whether to restore the original value.
+        self.date_editable = True
+        self.date_must_stay_future = False
+        if is_instance:
+            self.date_must_stay_future = bool(
+                self.instance.date and self.instance.date >= datetime.date.today()
+            )
+            self.date_editable = (
+                self.date_must_stay_future or self.instance.repeat == 'None'
+            )
+
         if is_instance and self.instance.repeat != 'None':
             # These fields are disabled in the template for editing, so they won't be in POST data.
             # We make them not required and disabled in the form to prevent validation errors.
             self.fields['property'].widget.attrs['disabled'] = True
             self.fields['property'].required = False
-            self.fields['date'].widget.attrs['disabled'] = True
-            self.fields['date'].required = False
             self.fields['repeat'].widget.attrs['disabled'] = True
             self.fields['repeat'].required = False
             self.fields['task_type'].widget.attrs['disabled'] = True
             self.fields['task_type'].required = False
+
+        if is_instance and not self.date_editable:
+            self.fields['date'].widget.attrs['disabled'] = True
+            self.fields['date'].required = False
+        elif is_instance:
+            # The label carries a required star, so hold the form to it rather
+            # than letting an upcoming task be saved with no date at all.
+            self.fields['date'].required = True
+            if self.date_must_stay_future:
+                # Rescheduling forward only - the picker refuses past days, and
+                # clean_date() enforces the same rule server-side.
+                self.fields['date'].widget.attrs['min'] = datetime.date.today().isoformat()
 
 
         if user: # Filter properties by the logged-in user
@@ -81,12 +108,23 @@ class TaskForm(forms.ModelForm):
                     choices.insert(0, ('', 'Select'))
                 field.choices = choices
 
+    def clean_date(self):
+        date = self.cleaned_data.get('date')
+        # Only guard tasks that were already due today or later: an editable
+        # past task keeps its own (past) date, which would fail this check.
+        if date and self.instance and self.instance.pk and self.date_must_stay_future:
+            if date < datetime.date.today():
+                raise forms.ValidationError("The date cannot be moved into the past.")
+        return date
+
     def save(self, commit=True):
         # When editing, disabled fields are not in the POST data.
         # We need to restore them from the original instance.
         if self.instance and self.instance.pk:
             # These are the fields disabled in the template.
-            disabled_fields = ['property', 'date', 'repeat', 'repeat_till', 'task_type']
+            disabled_fields = ['property', 'repeat', 'repeat_till', 'task_type']
+            if not self.date_editable:
+                disabled_fields.append('date')
             for field_name in disabled_fields:
                 if field_name not in self.cleaned_data:
                     # If the field is disabled, it won't be in the POST data.

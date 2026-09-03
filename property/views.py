@@ -21,7 +21,8 @@ from django.http import HttpResponse
 
 from .forms import PropertyForm
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import Q, Count
+from django.utils.http import urlencode
 from django.core.files import File
 from django.contrib.auth.mixins import LoginRequiredMixin
 from accounts.utils import get_visible_user_ids, get_effective_user
@@ -1087,16 +1088,29 @@ class RequestBokPageView(DetailView):
 
 # ── Google Places proxy views (keep API key server-side) ──────────────────────
 
+# Place-types the autocomplete proxy will forward to Google. Allowlisted so a
+# caller can't turn the endpoint into an arbitrary passthrough.
+PLACES_AUTOCOMPLETE_TYPES = {'address', '(cities)', '(regions)', 'geocode'}
+
+
 def places_autocomplete_proxy(request):
-    """Return address predictions for a given query string."""
+    """Return place predictions for a given query string.
+
+    `types` selects what Google suggests; it defaults to street addresses (what
+    the listing form needs). The public Explore search passes `(cities)` so the
+    "Where" box suggests destinations rather than house numbers.
+    """
     q = request.GET.get('q', '').strip()
+    place_types = request.GET.get('types', 'address').strip()
+    if place_types not in PLACES_AUTOCOMPLETE_TYPES:
+        place_types = 'address'
     api_key = settings.GOOGLE_MAPS_API_KEY
     if not q or not api_key:
         return JsonResponse({'predictions': []})
     try:
         resp = http_requests.get(
             'https://maps.googleapis.com/maps/api/place/autocomplete/json',
-            params={'input': q, 'types': 'address', 'key': api_key},
+            params={'input': q, 'types': place_types, 'key': api_key},
             timeout=5,
         )
         data = resp.json()
@@ -1210,3 +1224,191 @@ def property_policy(request, pk, kind):
             if k != kind and has_policy(property_obj, k)
         ],
     })
+
+
+# ---------------------------------------------------------------------------
+# Public "Explore" browse page (linked from the marketing site's navbar).
+# ---------------------------------------------------------------------------
+
+class ExploreListingView(ListView):
+    """Airbnb-style public browse page over every *active* listing.
+
+    It runs the same filters as the host-facing list at /property/list/
+    (search, check-in/check-out availability, guest count) but is open to
+    guests rather than scoped to the signed-in host's own properties -- the
+    link lives in the public landing page navbar.
+    """
+    model = Property
+    template_name = 'frontend/public_host_website/explore.html'
+    context_object_name = 'properties'
+    paginate_by = 24
+
+    # Rows shown when the visitor hasn't searched yet.
+    MAX_SECTIONS = 4
+    SECTION_SIZE = 12
+
+    def _filters(self):
+        """The GET params that turn the page from 'browse' into 'results'."""
+        get = self.request.GET
+        return {
+            'search': get.get('search', '').strip(),
+            'check_in': get.get('check_in', '').strip(),
+            'check_out': get.get('check_out', '').strip(),
+            'guests': get.get('guests', '').strip(),
+        }
+
+    def _active(self):
+        """Every active listing, with no joins attached.
+
+        Kept separate from `_base_queryset` because the `booking_count`
+        annotation joins the booking table: aggregating over an annotated
+        queryset (``.values(...).annotate(Count('id'))``) would count the
+        joined booking rows, not the listings.
+        """
+        return Property.objects.filter(status='Active')
+
+    def _base_queryset(self):
+        """Active listings, ready for the card template."""
+        return (
+            self._active()
+            .select_related('created_by')
+            .prefetch_related('images')
+            .annotate(booking_count=Count('booking', filter=Q(booking__status='confirmed')))
+        )
+
+    def get_queryset(self):
+        f = self._filters()
+        queryset = self._base_queryset()
+
+        if f['search']:
+            queryset = queryset.filter(
+                Q(title__icontains=f['search']) |
+                Q(description__icontains=f['search']) |
+                Q(city__icontains=f['search']) |
+                Q(state__icontains=f['search']) |
+                Q(country__icontains=f['search'])
+            )
+
+        if f['check_in'] and f['check_out']:
+            try:
+                check_in_date = datetime.strptime(f['check_in'], '%Y-%m-%d').date()
+                check_out_date = datetime.strptime(f['check_out'], '%Y-%m-%d').date()
+            except (ValueError, TypeError):
+                check_in_date = check_out_date = None
+
+            if check_in_date and check_out_date and check_out_date > check_in_date:
+                nights = (check_out_date - check_in_date).days
+                queryset = queryset.filter(minimum_booking__lte=nights)
+
+                # Drop anything already reserved or host-blocked over the stay.
+                overlapping_bookings = Booking.objects.filter(
+                    check_in_date__lt=check_out_date,
+                    check_out_date__gt=check_in_date,
+                    status='confirmed',
+                )
+                queryset = queryset.exclude(
+                    id__in=overlapping_bookings.values_list('property_id', flat=True)
+                )
+
+                overlapping_blocks = PropertyBlockDate.objects.filter(
+                    is_active=True,
+                    start_date__lt=check_out_date,
+                    end_date__gt=check_in_date,
+                )
+                queryset = queryset.exclude(
+                    id__in=overlapping_blocks.values_list('property_id', flat=True)
+                )
+
+        if f['guests']:
+            try:
+                queryset = queryset.filter(guest__gte=int(f['guests']))
+            except (ValueError, TypeError):
+                pass
+
+        return queryset.order_by('-booking_count', 'title')
+
+    def _sections(self):
+        """Carousel rows for the unfiltered page.
+
+        Rows are grouped by region rather than city: listings are spread thinly
+        across many cities, so a per-city row would usually hold one card.
+        """
+        base = self._base_queryset()
+        sections = []
+
+        # 1. Anything guests have actually booked before.
+        favourites = list(
+            base.filter(booking_count__gt=0).order_by('-booking_count', 'title')[:self.SECTION_SIZE]
+        )
+        if favourites:
+            sections.append({
+                'title': 'Guest favourites',
+                'subtitle': 'Homes guests keep coming back to',
+                'properties': favourites,
+                'more_url': '',
+            })
+
+        # 2. The regions with the most listings (>= 2, so a row is never a
+        #    single lonely card).
+        top_regions = [
+            row for row in self._active().exclude(state='')
+                            .values('state', 'country')
+                            .annotate(n=Count('id'))
+                            .order_by('-n', 'state')[:self.MAX_SECTIONS]
+            if row['n'] >= 2
+        ]
+        for row in top_regions:
+            items = list(
+                base.filter(state=row['state'], country=row['country'])
+                    .order_by('-booking_count', 'title')[:self.SECTION_SIZE]
+            )
+            if not items:
+                continue
+            sections.append({
+                'title': f"Stays in {row['state']}",
+                'subtitle': f"{row['n']} listing{'' if row['n'] == 1 else 's'}",
+                'properties': items,
+                'more_url': '?' + urlencode({'search': row['state']}),
+            })
+
+        # 3. Newest arrivals.
+        newest = list(base.order_by('-created_at')[:self.SECTION_SIZE])
+        if newest:
+            sections.append({
+                'title': 'Recently added',
+                'subtitle': 'The newest homes on Favhost',
+                'properties': newest,
+                'more_url': '',
+            })
+
+        return sections
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        f = self._filters()
+
+        context.update(f)
+        context['guests_count'] = f['guests'] or ''
+        context['has_filters'] = any(f.values())
+        context['total_listing'] = self._active().count()
+
+        # Guests pick their own display currency (cookie), defaulting to USD.
+        context.update(currency.display_context(currency.resolve_display_currency(
+            self.request.COOKIES.get('guest_currency'),
+            getattr(self.request.user, 'currency', None)
+            if self.request.user.is_authenticated else None,
+        )))
+
+        context['nights'] = 0
+        if f['check_in'] and f['check_out']:
+            try:
+                nights = (
+                    datetime.strptime(f['check_out'], '%Y-%m-%d').date()
+                    - datetime.strptime(f['check_in'], '%Y-%m-%d').date()
+                ).days
+                context['nights'] = max(nights, 0)
+            except (ValueError, TypeError):
+                pass
+
+        context['sections'] = [] if context['has_filters'] else self._sections()
+        return context
