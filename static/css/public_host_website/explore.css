@@ -1,0 +1,437 @@
+/* Public "Explore" browse page - Airbnb-style listing grid & carousels. */
+
+:root{
+  /* Brand orange, matching the FavHost logo and the app's buttons. */
+  --ex-accent:#EB5310;
+  --ex-accent-dark:#D1490E;
+  --ex-ink:#222222;
+  --ex-muted:#717171;
+  --ex-line:#DDDDDD;
+  --ex-line-2:#EBEBEB;
+}
+
+/* Everything below the shared site navbar. Scoped to `.ex-page` (never `body`)
+   so website/css/style.css keeps full control of the navbar itself. */
+.ex-page,.ex-page *,.ex-page *::before,.ex-page *::after{ box-sizing:border-box; }
+
+.ex-page{
+  font-family:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  font-size:16px;
+  color:var(--ex-ink);
+  background:#fff;
+  -webkit-font-smoothing:antialiased;
+}
+.ex-page img{ display:block; max-width:100%; transition:none; }
+.ex-page button{ font-family:inherit; cursor:pointer; border:0; background:none; }
+/* style.css sets a{display:inline-block;color:#000} and an orange :hover -- the
+   cards need block links that don't recolour on hover. */
+.ex-page a{ display:block; color:inherit; text-decoration:none; }
+.ex-page a:hover{ color:inherit; }
+.ex-page ul{ margin:0; padding:0; list-style:none; }
+
+.ex-container{ padding-inline:clamp(20px,5vw,80px); }
+
+.ex-page a:focus-visible,
+.ex-page button:focus-visible,
+.ex-page input:focus-visible,
+.ex-page select:focus-visible{
+  outline:2px solid var(--ex-accent);
+  outline-offset:2px;
+  border-radius:8px;
+}
+
+/* ---------------- Shared navbar: light-background variant ----------------
+   website/css/style.css builds the navbar for the landing page, where it floats
+   over a dark hero: `.ul-header-bottom` is absolutely positioned (transparent,
+   out of flow) and the nav text is white. On this white page that made the
+   header overlap the search bar and rendered the links, logo and Log In
+   invisible. These rules put the header back in flow and darken its text.
+   Scoped to `body.explore-page`, so the landing pages are untouched. */
+.explore-page .ul-header{
+  position:sticky; top:0; z-index:99;
+  background:#fff;
+  border-bottom:1px solid var(--ex-line-2);
+}
+/* Back into normal flow -- style.css sets absolute, and `.sticky` sets fixed. */
+.explore-page .ul-header-bottom,
+.explore-page .ul-header-bottom.sticky{
+  position:static;
+  background-color:transparent;
+  box-shadow:none;
+}
+/* `.sticky` is toggled past 80px of scroll; here it only lifts the header. */
+.explore-page .ul-header-bottom.sticky{ box-shadow:0 2px 14px rgba(0,0,0,.08); }
+
+/* Nav links: white -> brand black, keeping the orange hover. */
+.explore-page .ul-header-nav a,
+.explore-page .ul-header-nav a:not([href]):not([class]){ color:var(--ul-black); }
+.explore-page .ul-header-nav a:hover,
+.explore-page .ul-header-nav a:not([href]):hover{ color:var(--ul-primary); }
+
+/* Header buttons (the mobile menu/search icons) also default to white. */
+/* `.ul-header-bottom` is in the chain so these outrank style.css's
+   `.ul-header-bottom.sticky .ul-header-actions button`, which would otherwise
+   repaint Log In black once the page scrolls past 80px. */
+.explore-page .ul-header-bottom .ul-header-actions button{ color:var(--ul-black); }
+/* Log In: the one accent in the bar. Change this hex to retune the red. */
+.explore-page .ul-header-bottom .ul-header-actions .btn-login{ color:#D92D20; }
+.explore-page .ul-header-bottom .ul-header-actions .btn-login:hover{ color:#A81D14; }
+
+/* ---------------- Search bar ---------------- */
+.ex-search-wrap{ display:flex; justify-content:center; padding:28px 0 22px; }
+.ex-searchbar{
+  display:flex; align-items:center;
+  width:min(880px,100%);
+  background:#fff;
+  border:1px solid var(--ex-line);
+  border-radius:40px;
+  box-shadow:0 3px 12px rgba(0,0,0,.10);
+  padding:6px 8px 6px 6px;
+}
+.ex-seg{
+  display:flex; flex-direction:column; justify-content:center;
+  text-align:left;
+  padding:10px 22px;
+  border-radius:40px;
+  min-width:0; flex:1 1 0;
+  transition:background .15s ease;
+}
+.ex-seg:hover,.ex-seg:focus-within{ background:#EBEBEB; }
+.ex-seg .ex-lbl{ font-size:.78rem; font-weight:600; color:var(--ex-ink); }
+.ex-seg input{
+  border:0; background:transparent; padding:0;
+  font-family:inherit; font-size:.88rem; color:var(--ex-ink);
+  width:100%; min-width:0;
+}
+.ex-seg input::placeholder{ color:var(--ex-muted); }
+.ex-seg input:focus{ outline:none; }
+.ex-seg-div{ width:1px; height:32px; background:var(--ex-line); flex:0 0 auto; }
+
+/* ---- "Where" destination autocomplete ---- */
+.ex-seg .ex-lbl{ display:block; cursor:inherit; }
+.ex-seg-where{ position:relative; }        /* anchors the suggestion list */
+.ex-ac{
+  position:absolute; z-index:60;
+  top:calc(100% + 10px); left:0;
+  min-width:320px; max-width:min(420px,90vw);
+  max-height:320px; overflow-y:auto;
+  margin:0; padding:8px;
+  list-style:none;
+  background:#fff;
+  border:1px solid var(--ex-line);
+  border-radius:16px;
+  box-shadow:0 8px 28px rgba(0,0,0,.16);
+}
+.ex-ac[hidden]{ display:none; }
+.ex-ac li{
+  display:flex; align-items:center; gap:10px;
+  padding:10px 12px;
+  border-radius:10px;
+  font-size:.9rem; color:var(--ex-ink);
+  cursor:pointer;
+}
+.ex-ac li:hover,.ex-ac li.ex-ac-active{ background:#F2F2F2; }
+.ex-ac li svg{ width:16px; height:16px; flex:0 0 auto; color:var(--ex-muted); }
+.ex-ac-main{ font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.ex-ac-sub{ color:var(--ex-muted); font-size:.82rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.ex-seg-who{
+  flex:1.1 1 0;
+  flex-direction:row; align-items:center; justify-content:space-between; gap:12px;
+  padding-right:6px;
+}
+.ex-seg-who .ex-who-text{ display:flex; flex-direction:column; min-width:0; flex:1 1 auto; }
+.ex-page .ex-search-btn{
+  flex:0 0 auto;
+  display:grid; place-items:center;
+  width:48px; height:48px;
+  background:var(--ex-accent);
+  border-radius:50%;
+  color:#fff;
+  transition:filter .15s ease, transform .1s ease;
+}
+.ex-search-btn:hover{ filter:brightness(1.05); }
+.ex-search-btn:active{ transform:scale(.95); }
+.ex-search-btn svg{ width:18px; height:18px; }
+
+
+/* ---- Merged check-in / check-out segment + range calendar ---- */
+/* One segment opens a single two-month picker (the listing page's
+   interaction) instead of two separate native date inputs. */
+.ex-seg-dates{ position:relative; flex:1.15 1 0; padding:0; }
+.ex-dates-trigger{
+  display:flex; flex-direction:column; justify-content:center;
+  width:100%; text-align:left;
+  padding:10px 22px;
+  border-radius:40px;
+  font:inherit; color:inherit;
+}
+.ex-dates-value{
+  display:flex; align-items:center; gap:6px;
+  font-size:.88rem; color:var(--ex-muted);
+  white-space:nowrap; overflow:hidden;
+}
+.ex-seg-dates.has-dates .ex-dates-value{ color:var(--ex-ink); font-weight:600; }
+.ex-dates-sep{ color:var(--ex-line); }
+
+.ex-drp{
+  position:absolute; z-index:70;
+  top:calc(100% + 12px); left:50%; transform:translateX(-50%);
+  width:min(720px,calc(100vw - 40px));
+  padding:14px;
+  background:#fff;
+  border:1px solid var(--ex-line);
+  border-radius:20px;
+  box-shadow:0 8px 28px rgba(0,0,0,.16);
+}
+.ex-drp[hidden]{ display:none; }
+
+.ex-drp-head{
+  display:flex; align-items:center; justify-content:space-between; gap:12px;
+  margin-bottom:10px;
+}
+.ex-drp-hint{ font-size:.82rem; font-weight:600; color:var(--ex-muted); }
+.ex-page .ex-drp-nav{
+  flex:0 0 auto;
+  display:grid; place-items:center;
+  width:32px; height:32px;
+  font-size:1.1rem; line-height:1;
+  color:var(--ex-ink);
+  background:#fff;
+  border:1px solid var(--ex-line);
+  border-radius:50%;
+  transition:background .15s ease, border-color .15s ease;
+}
+.ex-drp-nav:hover:not(:disabled){ background:var(--ex-line-2); border-color:var(--ex-muted); }
+.ex-drp-nav:disabled{ opacity:.35; cursor:not-allowed; }
+
+.ex-drp-months{
+  display:grid;
+  grid-template-columns:repeat(var(--ex-drp-months,2),minmax(0,1fr));
+  gap:24px;
+}
+.ex-drp-month-title{
+  text-align:center; font-size:.88rem; font-weight:700;
+  color:var(--ex-ink); margin-bottom:8px;
+}
+.ex-drp-weekdays,.ex-drp-days{ display:grid; grid-template-columns:repeat(7,1fr); }
+.ex-drp-weekdays div{
+  text-align:center; font-size:.7rem; font-weight:600;
+  color:var(--ex-muted); padding:4px 0;
+}
+.ex-drp-day{
+  display:grid; place-items:center;
+  height:36px; width:100%;
+  font-size:.82rem; font-weight:600;
+  color:var(--ex-ink);
+  border-radius:50%;
+  cursor:pointer;
+  transition:background .1s ease, color .1s ease;
+}
+.ex-drp-day.blank{ cursor:default; }
+.ex-drp-day.disabled{ color:#C7C7C7; cursor:not-allowed; text-decoration:line-through; }
+.ex-drp-day:not(.blank):not(.disabled):not(.start):not(.end):hover{
+  background:var(--ex-line-2);
+}
+/* The range fill is square so consecutive days read as one continuous bar;
+   the two ends keep their pill shape on the outer side only. */
+.ex-drp-day.in-range{ background:var(--ex-line-2); border-radius:0; }
+.ex-drp-day.start,.ex-drp-day.end{ background:var(--ex-ink); color:#fff; }
+.ex-drp-day.start{ border-radius:50% 0 0 50%; box-shadow:8px 0 0 var(--ex-line-2); }
+.ex-drp-day.end{ border-radius:0 50% 50% 0; box-shadow:-8px 0 0 var(--ex-line-2); }
+.ex-drp-day.start.end{ border-radius:50%; box-shadow:none; }
+
+.ex-drp-foot{
+  display:flex; align-items:center; justify-content:space-between; gap:12px;
+  margin-top:12px; padding-top:12px;
+  border-top:1px solid var(--ex-line-2);
+}
+.ex-drp-clear{
+  font-size:.85rem; font-weight:600; color:var(--ex-ink);
+  text-decoration:underline; padding:6px 2px;
+}
+.ex-page .ex-drp-done{
+  font-size:.85rem; font-weight:600; color:#fff;
+  background:var(--ex-accent);
+  border-radius:999px;
+  padding:9px 20px;
+  transition:filter .15s ease;
+}
+.ex-drp-done:hover{ filter:brightness(1.05); }
+
+/* ---------------- Results summary band ---------------- */
+.ex-summary-band{ border-bottom:1px solid var(--ex-line-2); }
+.ex-summary{
+  display:flex; align-items:center; justify-content:center; gap:14px;
+  flex-wrap:wrap;
+  padding:18px 0;
+}
+.ex-summary-text{ font-size:.95rem; color:var(--ex-ink); }
+.ex-summary-text strong{ font-weight:600; }
+.ex-summary-text .ex-dates{ color:var(--ex-muted); }
+.ex-clear{
+  font-size:.85rem; font-weight:600; color:var(--ex-ink);
+  border-bottom:1px solid var(--ex-ink);
+  padding-bottom:1px;
+}
+
+/* ---------------- Sections & carousels ---------------- */
+.ex-section{ padding-top:26px; padding-bottom:8px; }
+.ex-section-head{
+  display:flex; align-items:center; justify-content:space-between; gap:16px;
+  margin-bottom:16px;
+}
+.ex-section-head h2{
+  margin:0;
+  font-size:1.35rem; font-weight:600; letter-spacing:-.01em;
+}
+.ex-section-head h2 a{ display:inline-flex; align-items:center; gap:8px; }
+.ex-section-head h2 svg{ width:16px; height:16px; }
+.ex-section-sub{ display:block; font-size:.85rem; font-weight:400; color:var(--ex-muted); margin-top:2px; }
+.ex-carousel-nav{ display:flex; gap:8px; flex:0 0 auto; }
+.ex-nav-arrow{
+  display:grid; place-items:center;
+  width:32px; height:32px;
+  border:1px solid var(--ex-line);
+  border-radius:50%;
+  color:var(--ex-ink);
+  background:#fff;
+  transition:box-shadow .15s ease;
+}
+.ex-nav-arrow:hover{ box-shadow:0 2px 8px rgba(0,0,0,.15); }
+.ex-nav-arrow svg{ width:14px; height:14px; }
+
+.ex-row{
+  display:flex;
+  gap:20px;
+  overflow-x:auto;
+  scroll-behavior:smooth;
+  scroll-snap-type:x mandatory;
+  padding-bottom:6px;
+  scrollbar-width:none;
+}
+.ex-row::-webkit-scrollbar{ display:none; }
+.ex-row .ex-card{ flex:0 0 auto; width:clamp(200px,20vw,300px); scroll-snap-align:start; }
+
+/* Grid used for search results */
+.ex-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(220px,1fr));
+  gap:24px 20px;
+  padding-bottom:8px;
+}
+
+/* ---------------- Card ---------------- */
+/* `position:relative` anchors the save heart, which sits outside the photo's
+   <a> so we never nest a button inside a link. */
+.ex-card{ min-width:0; position:relative; }
+.ex-card-img{
+  position:relative;
+  aspect-ratio:1/1;
+  border-radius:12px;
+  overflow:hidden;
+  background:#e9e6e1;
+}
+.ex-card-img img{ width:100%; height:100%; object-fit:cover; transition:transform .35s ease; }
+.ex-card:hover .ex-card-img img{ transform:scale(1.04); }
+.ex-card:nth-child(7n+1) .ex-card-img{ background:#e7ddd0; }
+.ex-card:nth-child(7n+2) .ex-card-img{ background:#dfe4ea; }
+.ex-card:nth-child(7n+3) .ex-card-img{ background:#dde8dd; }
+.ex-card:nth-child(7n+4) .ex-card-img{ background:#f0e2e4; }
+.ex-card:nth-child(7n+5) .ex-card-img{ background:#e2e8f0; }
+.ex-card:nth-child(7n+6) .ex-card-img{ background:#efe7d8; }
+.ex-card:nth-child(7n+7) .ex-card-img{ background:#e3ded6; }
+
+.ex-tag{
+  position:absolute; top:12px; left:12px;
+  background:#fff; color:var(--ex-ink);
+  font-size:.8rem; font-weight:600;
+  padding:6px 12px; border-radius:20px;
+  box-shadow:0 2px 8px rgba(0,0,0,.18);
+}
+.ex-like{
+  position:absolute; top:10px; right:10px;
+  display:grid; place-items:center;
+  width:34px; height:34px;
+  z-index:2;
+}
+.ex-like svg{ width:24px; height:24px; fill:rgba(0,0,0,.5); stroke:#fff; stroke-width:2; transition:transform .15s ease, fill .15s ease; }
+.ex-like:hover svg{ fill:rgba(0,0,0,.65); transform:scale(1.05); }
+.ex-like.liked svg{ fill:var(--ex-accent); stroke:var(--ex-accent); }
+
+.ex-card-name{
+  margin-top:10px; font-size:.95rem; font-weight:600; color:var(--ex-ink);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.ex-card-info{
+  margin-top:2px; font-size:.95rem; color:var(--ex-muted);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.ex-card-info .ex-price{ color:var(--ex-ink); font-weight:600; }
+
+/* ---------------- Empty state ---------------- */
+.ex-empty{ text-align:center; padding:70px 20px 90px; }
+.ex-empty-icon{
+  display:inline-flex; align-items:center; justify-content:center;
+  width:100px; height:100px; border-radius:50%;
+  background:#f3f4f6; margin-bottom:18px;
+}
+.ex-empty h3{ font-size:1.15rem; font-weight:600; color:#374151; margin:0 0 6px; }
+.ex-empty p{ color:#6b7280; font-size:.9rem; margin:0 0 18px; }
+.ex-page .ex-empty-btn{
+  display:inline-block;
+  background:var(--ex-accent); color:#fff;
+  font-weight:600; font-size:.9rem;
+  padding:12px 26px; border-radius:24px;
+}
+.ex-page .ex-empty-btn:hover{ background:var(--ex-accent-dark); color:#fff; }
+
+/* ---------------- Pagination ---------------- */
+.ex-pagination{ display:flex; justify-content:center; gap:8px; padding:34px 0 10px; flex-wrap:wrap; }
+.ex-pagination a,.ex-pagination span{
+  display:grid; place-items:center;
+  min-width:36px; height:36px; padding:0 10px;
+  border-radius:50px;
+  font-size:.9rem;
+  border:1px solid var(--ex-line);
+  color:var(--ex-ink);
+}
+.ex-pagination .ex-current{ background:var(--ex-ink); border-color:var(--ex-ink); color:#fff; font-weight:600; }
+.ex-pagination .ex-disabled{ color:#bbb; border-color:var(--ex-line-2); }
+
+/* ---------------- Footer ---------------- */
+.ex-footer{
+  margin-top:50px;
+  border-top:1px solid var(--ex-line-2);
+  background:#F7F7F7;
+}
+.ex-footer-inner{
+  display:flex; align-items:center; justify-content:space-between;
+  gap:16px; flex-wrap:wrap;
+  padding:26px 0;
+  font-size:.85rem; color:var(--ex-muted);
+}
+.ex-footer-links{ display:flex; gap:18px; flex-wrap:wrap; }
+.ex-footer-links a:hover{ color:var(--ex-ink); text-decoration:underline; }
+
+/* ---------------- Responsive ---------------- */
+@media (max-width:720px){
+  .ex-searchbar{ flex-wrap:wrap; border-radius:24px; padding:8px; }
+  .ex-seg{ flex:1 1 45%; padding:8px 14px; }
+  .ex-seg-div{ display:none; }
+  .ex-seg-who{ flex:1 1 100%; }
+  .ex-seg-dates{ flex:1 1 100%; padding:0; }
+  .ex-dates-trigger{ padding:8px 14px; }
+  /* The segment spans the wrapped bar, so centring on it centres on the page.
+     One month, capped to the viewport and scrollable on short screens. */
+  .ex-drp{
+    width:min(360px,calc(100vw - 24px)); max-width:none;
+    max-height:calc(100vh - 160px); overflow-y:auto;
+    padding:12px;
+  }
+}
+@media (max-width:560px){
+  .ex-search-btn{ width:44px; height:44px; }
+  .ex-carousel-nav{ display:none; }
+  .ex-section-head h2{ font-size:1.15rem; }
+  .ex-grid{ grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:20px 14px; }
+}

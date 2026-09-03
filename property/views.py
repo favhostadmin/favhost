@@ -21,7 +21,8 @@ from django.http import HttpResponse
 
 from .forms import PropertyForm
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import Q, Count
+from django.utils.http import urlencode
 from django.core.files import File
 from django.contrib.auth.mixins import LoginRequiredMixin
 from accounts.utils import get_visible_user_ids, get_effective_user
@@ -1098,16 +1099,29 @@ class RequestBokPageView(DetailView):
 
 # ── Google Places proxy views (keep API key server-side) ──────────────────────
 
+# Place-types the autocomplete proxy will forward to Google. Allowlisted so a
+# caller can't turn the endpoint into an arbitrary passthrough.
+PLACES_AUTOCOMPLETE_TYPES = {'address', '(cities)', '(regions)', 'geocode'}
+
+
 def places_autocomplete_proxy(request):
-    """Return address predictions for a given query string."""
+    """Return place predictions for a given query string.
+
+    `types` selects what Google suggests; it defaults to street addresses (what
+    the listing form needs). The public Explore search passes `(cities)` so the
+    "Where" box suggests destinations rather than house numbers.
+    """
     q = request.GET.get('q', '').strip()
+    place_types = request.GET.get('types', 'address').strip()
+    if place_types not in PLACES_AUTOCOMPLETE_TYPES:
+        place_types = 'address'
     api_key = settings.GOOGLE_MAPS_API_KEY
     if not q or not api_key:
         return JsonResponse({'predictions': []})
     try:
         resp = http_requests.get(
             'https://maps.googleapis.com/maps/api/place/autocomplete/json',
-            params={'input': q, 'types': 'address', 'key': api_key},
+            params={'input': q, 'types': place_types, 'key': api_key},
             timeout=5,
         )
         data = resp.json()
@@ -1221,3 +1235,127 @@ def property_policy(request, pk, kind):
             if k != kind and has_policy(property_obj, k)
         ],
     })
+
+
+# ---------------------------------------------------------------------------
+# Public "Explore" browse page (linked from the marketing site's navbar).
+# ---------------------------------------------------------------------------
+
+class ExploreListingView(ListView):
+    """Airbnb-style public browse page over every *active* listing.
+
+    It runs the same filters as the host-facing list at /property/list/
+    (search, check-in/check-out availability, guest count) but is open to
+    guests rather than scoped to the signed-in host's own properties -- the
+    link lives in the public landing page navbar.
+    """
+    model = Property
+    template_name = 'frontend/public_host_website/explore.html'
+    context_object_name = 'properties'
+    paginate_by = 24
+
+    def _filters(self):
+        """The GET params that turn the page from 'browse' into 'results'."""
+        get = self.request.GET
+        return {
+            'search': get.get('search', '').strip(),
+            'check_in': get.get('check_in', '').strip(),
+            'check_out': get.get('check_out', '').strip(),
+            'guests': get.get('guests', '').strip(),
+        }
+
+    def _active(self):
+        """Every active listing, with no joins attached.
+
+        Kept separate from `_base_queryset`, which adds the joins the card
+        template needs; a plain count has no use for them.
+        """
+        return Property.objects.filter(status='Active')
+
+    def _base_queryset(self):
+        """Active listings, ready for the card template."""
+        return (
+            self._active()
+            .select_related('created_by')
+            .prefetch_related('images')
+        )
+
+    def get_queryset(self):
+        f = self._filters()
+        queryset = self._base_queryset()
+
+        if f['search']:
+            queryset = queryset.filter(
+                Q(title__icontains=f['search']) |
+                Q(description__icontains=f['search']) |
+                Q(city__icontains=f['search']) |
+                Q(state__icontains=f['search']) |
+                Q(country__icontains=f['search'])
+            )
+
+        if f['check_in'] and f['check_out']:
+            try:
+                check_in_date = datetime.strptime(f['check_in'], '%Y-%m-%d').date()
+                check_out_date = datetime.strptime(f['check_out'], '%Y-%m-%d').date()
+            except (ValueError, TypeError):
+                check_in_date = check_out_date = None
+
+            if check_in_date and check_out_date and check_out_date > check_in_date:
+                nights = (check_out_date - check_in_date).days
+                queryset = queryset.filter(minimum_booking__lte=nights)
+
+                # Drop anything already reserved or host-blocked over the stay.
+                overlapping_bookings = Booking.objects.filter(
+                    check_in_date__lt=check_out_date,
+                    check_out_date__gt=check_in_date,
+                    status='confirmed',
+                )
+                queryset = queryset.exclude(
+                    id__in=overlapping_bookings.values_list('property_id', flat=True)
+                )
+
+                overlapping_blocks = PropertyBlockDate.objects.filter(
+                    is_active=True,
+                    start_date__lt=check_out_date,
+                    end_date__gt=check_in_date,
+                )
+                queryset = queryset.exclude(
+                    id__in=overlapping_blocks.values_list('property_id', flat=True)
+                )
+
+        if f['guests']:
+            try:
+                queryset = queryset.filter(guest__gte=int(f['guests']))
+            except (ValueError, TypeError):
+                pass
+
+        return queryset.order_by('-created_at', '-id')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        f = self._filters()
+
+        context.update(f)
+        context['guests_count'] = f['guests'] or ''
+        context['has_filters'] = any(f.values())
+        context['total_listing'] = self._active().count()
+
+        # Guests pick their own display currency (cookie), defaulting to USD.
+        context.update(currency.display_context(currency.resolve_display_currency(
+            self.request.COOKIES.get('guest_currency'),
+            getattr(self.request.user, 'currency', None)
+            if self.request.user.is_authenticated else None,
+        )))
+
+        context['nights'] = 0
+        if f['check_in'] and f['check_out']:
+            try:
+                nights = (
+                    datetime.strptime(f['check_out'], '%Y-%m-%d').date()
+                    - datetime.strptime(f['check_in'], '%Y-%m-%d').date()
+                ).days
+                context['nights'] = max(nights, 0)
+            except (ValueError, TypeError):
+                pass
+
+        return context
