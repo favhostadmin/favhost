@@ -1,0 +1,544 @@
+{% load static %}
+{% load currency_tags %}<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Explore stays | Favhost</title>
+  <meta name="description" content="Browse every home, apartment and room listed on Favhost. Search by destination, dates and guests.">
+  <link rel="icon" type="image/png" href="{% static 'website/img/fev.png' %}">
+
+  {# Same stylesheets the landing page uses, so the navbar renders identically. #}
+  <link rel="stylesheet" href="{% static 'website/icon/flaticon_charitics.css' %}">
+  <link rel="stylesheet" href="{% static 'website/vendor/bootstrap/bootstrap.min.css' %}">
+  <link rel="stylesheet" href="{% static 'website/css/style.css' %}">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'css/public_host_website/explore.css' %}">
+</head>
+<body class="explore-page">
+
+<!-- Icon sprite -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="ex-ic-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></symbol>
+  <symbol id="ex-ic-heart" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 1 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z"/></symbol>
+</svg>
+
+{% comment %}
+  The landing page navbar. `nav_home` makes its in-page anchors point back at /,
+  and `logo_dark` swaps in the black wordmark for this page's white header.
+{% endcomment %}
+{% url 'index' as home_url %}
+{% include 'frontend/website/_site_header.html' with nav_home=home_url logo_dark=True %}
+
+<div class="ex-page">
+
+  <!-- ================= Search bar ================= -->
+  <div class="ex-search-wrap ex-container">
+    <form class="ex-searchbar" role="search" method="get" action="{% url 'property:explore-listings' %}">
+      {% comment %}
+        A div, not a label: the suggestion list lives inside this segment, and
+        clicks on a list item nested in a label get re-dispatched to the
+        labelled input, which breaks selection.
+      {% endcomment %}
+      <div class="ex-seg ex-seg-where">
+        <label class="ex-lbl" for="ex-where">Where</label>
+        <input type="search" id="ex-where" name="search" value="{{ search }}"
+               placeholder="Search destinations" autocomplete="off"
+               role="combobox" aria-expanded="false" aria-autocomplete="list"
+               aria-controls="ex-where-list">
+        <ul class="ex-ac" id="ex-where-list" role="listbox" aria-label="Destination suggestions" hidden></ul>
+      </div>
+      <span class="ex-seg-div" aria-hidden="true"></span>
+
+      {% comment %}
+        Check-in and check-out share one segment: clicking anywhere on it opens
+        the two-month range calendar, the same interaction as the host-facing
+        listing page. The dates ride along in hidden inputs, so the GET params
+        the view reads (`check_in` / `check_out`) are unchanged.
+      {% endcomment %}
+      <div class="ex-seg ex-seg-dates" id="ex-dates-seg">
+        <button type="button" class="ex-dates-trigger" id="ex-dates-btn"
+                aria-expanded="false" aria-controls="ex-drp" aria-haspopup="dialog">
+          <span class="ex-lbl">Dates</span>
+          <span class="ex-dates-value">
+            <span id="ex-ci-display">Check in</span>
+            <span class="ex-dates-sep" aria-hidden="true">&mdash;</span>
+            <span id="ex-co-display">Check out</span>
+          </span>
+        </button>
+        <input type="hidden" name="check_in" id="ex-check-in" value="{{ check_in }}">
+        <input type="hidden" name="check_out" id="ex-check-out" value="{{ check_out }}">
+
+        <div class="ex-drp" id="ex-drp" role="dialog" aria-label="Choose dates" hidden>
+          <div class="ex-drp-head">
+            <button type="button" class="ex-drp-nav" data-dir="-1" aria-label="Previous month">&lsaquo;</button>
+            <span class="ex-drp-hint" id="ex-drp-hint">Select your check-in date</span>
+            <button type="button" class="ex-drp-nav" data-dir="1" aria-label="Next month">&rsaquo;</button>
+          </div>
+          <div class="ex-drp-months" id="ex-drp-months"></div>
+          <div class="ex-drp-foot">
+            <button type="button" class="ex-drp-clear" id="ex-drp-clear">Clear dates</button>
+            <button type="button" class="ex-drp-done" id="ex-drp-done">Done</button>
+          </div>
+        </div>
+      </div>
+      <span class="ex-seg-div" aria-hidden="true"></span>
+
+      <label class="ex-seg ex-seg-who">
+        <span class="ex-who-text">
+          <span class="ex-lbl">Who</span>
+          <input type="number" name="guests" min="1" step="1" value="{{ guests }}" placeholder="Add guests">
+        </span>
+        <button class="ex-search-btn" type="submit" aria-label="Search">
+          <svg><use href="#ex-ic-search"/></svg>
+        </button>
+      </label>
+    </form>
+  </div>
+
+  <!-- ================= Summary band ================= -->
+  <div class="ex-summary-band">
+    <div class="ex-summary ex-container">
+      {% if has_filters %}
+        <span class="ex-summary-text">
+          <strong>{{ paginator.count }} stay{{ paginator.count|pluralize }}</strong>
+          {% if search %} in &ldquo;{{ search }}&rdquo;{% endif %}
+          {% if check_in and check_out %}
+            <span class="ex-dates">&middot; {{ check_in }} &rarr; {{ check_out }}{% if nights %} ({{ nights }} night{{ nights|pluralize }}){% endif %}</span>
+          {% endif %}
+          {% if guests %}<span class="ex-dates">&middot; {{ guests }} guest{{ guests|pluralize }}</span>{% endif %}
+        </span>
+        <a class="ex-clear" href="{% url 'property:explore-listings' %}">Clear all</a>
+      {% else %}
+        <span class="ex-summary-text">
+          <strong>{{ total_listing }} home{{ total_listing|pluralize }}</strong> ready to book
+          <span class="ex-dates">&middot; add your dates to see what is available</span>
+        </span>
+      {% endif %}
+      {% include 'frontend/public_host_website/_currency_switcher.html' %}
+    </div>
+  </div>
+
+  <!-- ================= Main ================= -->
+  <main class="ex-container">
+
+    {# --- Every listing, newest first, in one flat paginated grid --- #}
+    <section class="ex-section">
+      {% if properties %}
+        <div class="ex-grid">
+          {% for item in properties %}
+            {% include 'frontend/public_host_website/_explore_card.html' %}
+          {% endfor %}
+        </div>
+
+        {% if is_paginated %}
+          <nav class="ex-pagination" aria-label="Pagination">
+            {% if page_obj.has_previous %}
+              <a href="?page={{ page_obj.previous_page_number }}{% for k, v in request.GET.items %}{% if k != 'page' %}&{{ k }}={{ v }}{% endif %}{% endfor %}" aria-label="Previous">&laquo;</a>
+            {% else %}
+              <span class="ex-disabled">&laquo;</span>
+            {% endif %}
+
+            {% for i in paginator.page_range %}
+              {% if i == page_obj.number %}
+                <span class="ex-current" aria-current="page">{{ i }}</span>
+              {% else %}
+                <a href="?page={{ i }}{% for k, v in request.GET.items %}{% if k != 'page' %}&{{ k }}={{ v }}{% endif %}{% endfor %}">{{ i }}</a>
+              {% endif %}
+            {% endfor %}
+
+            {% if page_obj.has_next %}
+              <a href="?page={{ page_obj.next_page_number }}{% for k, v in request.GET.items %}{% if k != 'page' %}&{{ k }}={{ v }}{% endif %}{% endfor %}" aria-label="Next">&raquo;</a>
+            {% else %}
+              <span class="ex-disabled">&raquo;</span>
+            {% endif %}
+          </nav>
+        {% endif %}
+      {% elif has_filters %}
+        <div class="ex-empty">
+          <div class="ex-empty-icon">
+            <svg width="52" height="52" viewBox="0 0 52 52" fill="none" aria-hidden="true">
+              <circle cx="23" cy="23" r="15" stroke="#9ca3af" stroke-width="2.5" fill="#e5e7eb"/>
+              <path d="M34 34 L44 44" stroke="#9ca3af" stroke-width="3" stroke-linecap="round"/>
+              <path d="M18 23 H28 M23 18 V28" stroke="#9ca3af" stroke-width="2.5" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <h3>No stays match your search</h3>
+          <p>Try a different destination, widen your dates, or lower the guest count.</p>
+          <a class="ex-empty-btn" href="{% url 'property:explore-listings' %}">Clear filters</a>
+        </div>
+      {% else %}
+        <div class="ex-empty">
+          <div class="ex-empty-icon">
+            <svg width="52" height="52" viewBox="0 0 52 52" fill="none" aria-hidden="true">
+              <path d="M8 24 26 9l18 15" stroke="#9ca3af" stroke-width="2.5" stroke-linejoin="round"/>
+              <path d="M13 24v18h26V24" stroke="#9ca3af" stroke-width="2.5" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <h3>No listings published yet</h3>
+          <p>Once hosts publish their first homes, they will show up right here.</p>
+          <a class="ex-empty-btn" href="{% url 'register' %}">Become a host</a>
+        </div>
+      {% endif %}
+    </section>
+
+  </main>
+
+  <!-- ================= Footer ================= -->
+  <footer class="ex-footer">
+    <div class="ex-footer-inner ex-container">
+      <span>&copy; {% now "Y" %} Favhost</span>
+      <div class="ex-footer-links">
+        <a href="{% url 'index' %}">Home</a>
+        <a href="{% url 'contact' %}">Contact us</a>
+        <a href="{% url 'terms' %}">Terms</a>
+        <a href="{% url 'privacy' %}">Privacy</a>
+      </div>
+    </div>
+  </footer>
+
+</div><!-- /.ex-page -->
+
+<script>
+  /* Header behaviour. website/js/main.js does this on the landing pages, but it
+     also boots sliders for sections this page doesn't have, so the four bits
+     the navbar actually needs are reproduced here instead. */
+  document.addEventListener('DOMContentLoaded', function () {
+    var preloader = document.getElementById('preloader');
+    if (preloader) preloader.style.display = 'none';
+    document.body.style.position = 'static';   /* style.css sets body{position:fixed} */
+
+    var sidebar   = document.querySelector('.ul-sidebar');
+    var opener    = document.querySelector('.ul-header-sidebar-opener');
+    var closer    = document.querySelector('.ul-sidebar-closer');
+    var menu      = document.querySelector('.to-go-to-sidebar-in-mobile');
+    var mobileSlot = document.querySelector('.ul-sidebar-header-nav-wrapper');
+    var deskSlot   = document.querySelector('.ul-header-nav-wrapper');
+
+    if (menu && mobileSlot && deskSlot) {
+      var place = function () {
+        (window.innerWidth < 992 ? mobileSlot : deskSlot).appendChild(menu);
+      };
+      place();
+      window.addEventListener('resize', place);
+    }
+    if (opener && sidebar) opener.addEventListener('click', function () { sidebar.classList.add('active'); });
+    if (closer && sidebar) closer.addEventListener('click', function () { sidebar.classList.remove('active'); });
+
+    var stickyHeader = document.querySelector('.to-be-sticky');
+    if (stickyHeader) {
+      window.addEventListener('scroll', function () {
+        stickyHeader.classList.toggle('sticky', window.scrollY > 80);
+      });
+    }
+  });
+
+  /* Save heart — visual only; wired to a wishlist endpoint later. */
+  document.querySelectorAll('.ex-like').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var on = this.classList.toggle('liked');
+      this.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+  });
+
+  /* "Where" destination autocomplete, backed by the Google Places proxy
+     (property:places-autocomplete, which keeps the API key server-side).
+     `types=(cities)` asks Google for destinations rather than street addresses. */
+  (function () {
+    var input = document.getElementById('ex-where');
+    var list  = document.getElementById('ex-where-list');
+    var seg   = input && input.closest('.ex-seg-where');
+    if (!input || !list) return;
+
+    var ENDPOINT = '{% url "property:places-autocomplete" %}';
+    var timer, preds = [], active = -1;
+
+    /* The segment used to be a <label>; keep click-anywhere-to-focus. */
+    if (seg) seg.addEventListener('click', function (e) {
+      if (e.target === seg || e.target.classList.contains('ex-lbl')) input.focus();
+    });
+
+    function close() {
+      list.hidden = true;
+      list.innerHTML = '';
+      input.setAttribute('aria-expanded', 'false');
+      preds = []; active = -1;
+    }
+
+    function highlight(i) {
+      var items = list.querySelectorAll('li');
+      items.forEach(function (li) { li.classList.remove('ex-ac-active'); li.setAttribute('aria-selected', 'false'); });
+      if (i >= 0 && i < items.length) {
+        active = i;
+        items[i].classList.add('ex-ac-active');
+        items[i].setAttribute('aria-selected', 'true');
+        items[i].scrollIntoView({ block: 'nearest' });
+      }
+    }
+
+    /* Search matches the stored city/state text, so insert just the city name
+       ("Aspen"), not Google's full label ("Aspen, CO, USA"). */
+    function choose(pred) {
+      var sf = pred.structured_formatting || {};
+      input.value = sf.main_text || pred.description || '';
+      close();
+      input.focus();
+    }
+
+    function render(items) {
+      list.innerHTML = '';
+      preds = items;
+      if (!items.length) { close(); return; }
+      items.forEach(function (pred, idx) {
+        var sf = pred.structured_formatting || {};
+        var li = document.createElement('li');
+        li.setAttribute('role', 'option');
+        li.setAttribute('aria-selected', 'false');
+        li.innerHTML =
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
+          'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+          '<path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>' +
+          '<span class="ex-ac-main"></span><span class="ex-ac-sub"></span>';
+        li.querySelector('.ex-ac-main').textContent = sf.main_text || pred.description || '';
+        li.querySelector('.ex-ac-sub').textContent  = sf.secondary_text || '';
+        li.addEventListener('mouseenter', function () { highlight(idx); });
+        li.addEventListener('mousedown', function (e) { e.preventDefault(); choose(pred); });
+        list.appendChild(li);
+      });
+      list.hidden = false;
+      input.setAttribute('aria-expanded', 'true');
+      active = -1;
+    }
+
+    input.addEventListener('input', function () {
+      clearTimeout(timer);
+      var q = this.value.trim();
+      if (q.length < 2) { close(); return; }
+      timer = setTimeout(function () {
+        fetch(ENDPOINT + '?types=' + encodeURIComponent('(cities)') + '&q=' + encodeURIComponent(q))
+          .then(function (r) { return r.json(); })
+          .then(function (data) { render(data.predictions || []); })
+          .catch(close);   /* offline or key missing: just no suggestions */
+      }, 300);
+    });
+
+    input.addEventListener('keydown', function (e) {
+      var items = list.querySelectorAll('li');
+      if (list.hidden || !items.length) return;
+      if (e.key === 'ArrowDown') {
+        e.preventDefault(); highlight(active < items.length - 1 ? active + 1 : 0);
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault(); highlight(active > 0 ? active - 1 : items.length - 1);
+      } else if (e.key === 'Enter' && active >= 0 && preds[active]) {
+        e.preventDefault(); choose(preds[active]);   /* don't submit yet -- let them add dates */
+      } else if (e.key === 'Escape') {
+        close();
+      }
+    });
+
+    input.addEventListener('blur', function () { setTimeout(close, 150); });
+  })();
+
+  /* Merged check-in / check-out segment: one two-month range calendar, the
+     same interaction as the host-facing listing page. Check-out can never
+     land before check-in because the range is picked in a single gesture,
+     which is what the old `co.min` sync used to guard. */
+  (function () {
+    var seg     = document.getElementById('ex-dates-seg');
+    var trigger = document.getElementById('ex-dates-btn');
+    var panel   = document.getElementById('ex-drp');
+    var months  = document.getElementById('ex-drp-months');
+    var hint    = document.getElementById('ex-drp-hint');
+    var ciInput = document.getElementById('ex-check-in');
+    var coInput = document.getElementById('ex-check-out');
+    var ciLabel = document.getElementById('ex-ci-display');
+    var coLabel = document.getElementById('ex-co-display');
+    if (!seg || !trigger || !panel || !months) return;
+
+    var MONTH_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    var WEEKDAYS    = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+    var today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    function parse(val) {
+      if (!val) return null;
+      var p = val.split('-').map(Number);
+      if (p.length !== 3 || p.some(isNaN)) return null;
+      return new Date(p[0], p[1] - 1, p[2]);
+    }
+    /* Local-time YYYY-MM-DD; toISOString() would shift the day west of UTC. */
+    function iso(d) {
+      return d.getFullYear() + '-' +
+             String(d.getMonth() + 1).padStart(2, '0') + '-' +
+             String(d.getDate()).padStart(2, '0');
+    }
+    function pretty(d) { return d.getDate() + ' ' + MONTH_SHORT[d.getMonth()]; }
+    function sameDay(a, b) {
+      return !!a && !!b && a.getFullYear() === b.getFullYear() &&
+             a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+    }
+
+    var start = parse(ciInput.value);
+    var end   = parse(coInput.value);
+    /* A stale range from a bookmarked URL shouldn't survive into the picker. */
+    if (start && start < today) { start = null; end = null; }
+    if (end && start && end <= start) end = null;
+
+    var hover  = null;
+    var cursor = new Date(start || today);
+    cursor.setDate(1);
+
+    function monthMarkup(year, month) {
+      var first = new Date(year, month, 1);
+      var days  = new Date(year, month + 1, 0).getDate();
+      var cells = [];
+      for (var i = 0; i < first.getDay(); i++) cells.push(null);
+      for (var d = 1; d <= days; d++) cells.push(new Date(year, month, d));
+      while (cells.length % 7) cells.push(null);
+
+      /* Forward-only preview: hovering before the start day would draw a range
+         that clicking can't produce, since that click re-picks check-in. */
+      var previewing = !!(start && !end && hover && hover > start);
+
+      var body = cells.map(function (cell) {
+        if (!cell) return '<div class="ex-drp-day blank"></div>';
+        var cls = ['ex-drp-day'];
+        if (cell < today) cls.push('disabled');
+        if (start && end && cell > start && cell < end) cls.push('in-range');
+        if (previewing && cell > start && cell < hover) cls.push('in-range');
+        if (sameDay(cell, start)) cls.push('start');
+        if (sameDay(cell, end)) cls.push('end');
+        if (previewing && sameDay(cell, hover)) cls.push('end');
+        return '<div class="' + cls.join(' ') + '" data-date="' + iso(cell) + '">' +
+               cell.getDate() + '</div>';
+      }).join('');
+
+      return '<div class="ex-drp-month">' +
+               '<div class="ex-drp-month-title">' + MONTH_SHORT[month] + ' ' + year + '</div>' +
+               '<div class="ex-drp-weekdays">' +
+                 WEEKDAYS.map(function (w) { return '<div>' + w + '</div>'; }).join('') +
+               '</div>' +
+               '<div class="ex-drp-days">' + body + '</div>' +
+             '</div>';
+    }
+
+    function render() {
+      var count = window.innerWidth < 720 ? 1 : 2;
+      var next  = new Date(cursor);
+      next.setMonth(next.getMonth() + 1);
+
+      panel.style.setProperty('--ex-drp-months', count);
+      months.innerHTML = count === 1
+        ? monthMarkup(cursor.getFullYear(), cursor.getMonth())
+        : monthMarkup(cursor.getFullYear(), cursor.getMonth()) +
+          monthMarkup(next.getFullYear(), next.getMonth());
+
+      if (hint) {
+        hint.textContent = (start && !end)
+          ? 'Select your check-out date'
+          : 'Select your check-in date';
+      }
+      /* Nothing earlier than this month is reachable, so grey the back arrow. */
+      var earliest = new Date(today.getFullYear(), today.getMonth(), 1);
+      var back = panel.querySelector('.ex-drp-nav[data-dir="-1"]');
+      if (back) back.disabled = cursor <= earliest;
+    }
+
+    function syncFields() {
+      ciInput.value = start ? iso(start) : '';
+      coInput.value = end ? iso(end) : '';
+      ciLabel.textContent = start ? pretty(start) : 'Check in';
+      coLabel.textContent = end ? pretty(end) : 'Check out';
+      seg.classList.toggle('has-dates', !!(start || end));
+    }
+
+    function open() {
+      panel.hidden = false;
+      trigger.setAttribute('aria-expanded', 'true');
+      cursor = new Date(start || today);
+      cursor.setDate(1);
+      render();
+    }
+    function close() {
+      hover = null;
+      panel.hidden = true;
+      trigger.setAttribute('aria-expanded', 'false');
+    }
+
+    trigger.addEventListener('click', function (e) {
+      e.stopPropagation();
+      if (panel.hidden) { open(); } else { close(); }
+    });
+
+    /* Delegated so the handlers survive every re-render. */
+    panel.addEventListener('click', function (e) {
+      e.stopPropagation();
+
+      var nav = e.target.closest('.ex-drp-nav');
+      if (nav) {
+        cursor.setMonth(cursor.getMonth() + parseInt(nav.dataset.dir, 10));
+        var earliest = new Date(today.getFullYear(), today.getMonth(), 1);
+        if (cursor < earliest) cursor = earliest;
+        render();
+        return;
+      }
+
+      if (e.target.id === 'ex-drp-clear') {
+        start = null; end = null; hover = null;
+        syncFields();
+        render();
+        return;
+      }
+      if (e.target.id === 'ex-drp-done') { close(); return; }
+
+      var day = e.target.closest('.ex-drp-day[data-date]');
+      if (!day || day.classList.contains('disabled')) return;
+
+      var picked = parse(day.dataset.date);
+      /* `<=` not `<`: the view only applies a range when check-out is strictly
+         after check-in, so re-clicking the start day re-picks check-in rather
+         than committing a zero-night stay the server would silently drop. */
+      if (!start || end || picked <= start) {
+        start = picked; end = null;
+      } else {
+        end = picked;
+      }
+      hover = null;
+      syncFields();
+      render();
+      if (start && end) close();
+    });
+
+    panel.addEventListener('mouseover', function (e) {
+      if (!start || end) return;
+      var day = e.target.closest('.ex-drp-day[data-date]');
+      if (!day || day.classList.contains('disabled')) return;
+      var next = parse(day.dataset.date);
+      if (sameDay(hover, next)) return;
+      hover = next;
+      render();
+    });
+    panel.addEventListener('mouseleave', function () {
+      if (!start || end || !hover) return;
+      hover = null;
+      render();
+    });
+
+    document.addEventListener('click', function (e) {
+      if (!panel.hidden && !seg.contains(e.target)) close();
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && !panel.hidden) { close(); trigger.focus(); }
+    });
+    /* One vs two months is a width call, so re-lay-out rather than reposition. */
+    window.addEventListener('resize', function () { if (!panel.hidden) render(); });
+
+    syncFields();
+  })();
+</script>
+</body>
+</html>

@@ -1,0 +1,27 @@
+{% comment %}
+  One listing card for the public Explore page: square photo, title,
+  location, price line.
+  Expects `item` (a Property).
+{% endcomment %}
+{% load static %}
+{% load currency_tags %}
+
+<article class="ex-card">
+  <a href="{{ item.get_absolute_url }}" aria-label="{{ item.title }}">
+    <div class="ex-card-img">
+      <img src="{{ item.get_primary_image_url }}"
+           alt="{{ item.title }} in {{ item.city }}, {{ item.state }}"
+           loading="lazy"
+           {# get_primary_image_url()'s placeholder isn't in static/, so swap on 404. #}
+           onerror="this.src='{% static 'img/not-found/no_property.jpg' %}';this.onerror=null;">
+    </div>
+  </a>
+  <a href="{{ item.get_absolute_url }}">
+    <div class="ex-card-name">{{ item.title }}</div>
+    <div class="ex-card-info">{{ item.city }}{% if item.state %}, {{ item.state }}{% endif %}</div>
+    <div class="ex-card-info">
+      <span class="ex-price">{% money item.price_per_night %}</span> / night
+      &middot; {{ item.guest }} guest{{ item.guest|pluralize }}
+    </div>
+  </a>
+</article>
