@@ -1243,10 +1243,6 @@ class ExploreListingView(ListView):
     context_object_name = 'properties'
     paginate_by = 24
 
-    # Rows shown when the visitor hasn't searched yet.
-    MAX_SECTIONS = 4
-    SECTION_SIZE = 12
-
     def _filters(self):
         """The GET params that turn the page from 'browse' into 'results'."""
         get = self.request.GET
@@ -1260,10 +1256,8 @@ class ExploreListingView(ListView):
     def _active(self):
         """Every active listing, with no joins attached.
 
-        Kept separate from `_base_queryset` because the `booking_count`
-        annotation joins the booking table: aggregating over an annotated
-        queryset (``.values(...).annotate(Count('id'))``) would count the
-        joined booking rows, not the listings.
+        Kept separate from `_base_queryset`, which adds the joins the card
+        template needs; a plain count has no use for them.
         """
         return Property.objects.filter(status='Active')
 
@@ -1273,7 +1267,6 @@ class ExploreListingView(ListView):
             self._active()
             .select_related('created_by')
             .prefetch_related('images')
-            .annotate(booking_count=Count('booking', filter=Q(booking__status='confirmed')))
         )
 
     def get_queryset(self):
@@ -1325,63 +1318,7 @@ class ExploreListingView(ListView):
             except (ValueError, TypeError):
                 pass
 
-        return queryset.order_by('-booking_count', 'title')
-
-    def _sections(self):
-        """Carousel rows for the unfiltered page.
-
-        Rows are grouped by region rather than city: listings are spread thinly
-        across many cities, so a per-city row would usually hold one card.
-        """
-        base = self._base_queryset()
-        sections = []
-
-        # 1. Anything guests have actually booked before.
-        favourites = list(
-            base.filter(booking_count__gt=0).order_by('-booking_count', 'title')[:self.SECTION_SIZE]
-        )
-        if favourites:
-            sections.append({
-                'title': 'Guest favourites',
-                'subtitle': 'Homes guests keep coming back to',
-                'properties': favourites,
-                'more_url': '',
-            })
-
-        # 2. The regions with the most listings (>= 2, so a row is never a
-        #    single lonely card).
-        top_regions = [
-            row for row in self._active().exclude(state='')
-                            .values('state', 'country')
-                            .annotate(n=Count('id'))
-                            .order_by('-n', 'state')[:self.MAX_SECTIONS]
-            if row['n'] >= 2
-        ]
-        for row in top_regions:
-            items = list(
-                base.filter(state=row['state'], country=row['country'])
-                    .order_by('-booking_count', 'title')[:self.SECTION_SIZE]
-            )
-            if not items:
-                continue
-            sections.append({
-                'title': f"Stays in {row['state']}",
-                'subtitle': f"{row['n']} listing{'' if row['n'] == 1 else 's'}",
-                'properties': items,
-                'more_url': '?' + urlencode({'search': row['state']}),
-            })
-
-        # 3. Newest arrivals.
-        newest = list(base.order_by('-created_at')[:self.SECTION_SIZE])
-        if newest:
-            sections.append({
-                'title': 'Recently added',
-                'subtitle': 'The newest homes on Favhost',
-                'properties': newest,
-                'more_url': '',
-            })
-
-        return sections
+        return queryset.order_by('-created_at', '-id')
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -1410,5 +1347,4 @@ class ExploreListingView(ListView):
             except (ValueError, TypeError):
                 pass
 
-        context['sections'] = [] if context['has_filters'] else self._sections()
         return context

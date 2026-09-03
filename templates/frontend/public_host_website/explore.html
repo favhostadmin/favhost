@@ -24,9 +24,6 @@
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <symbol id="ex-ic-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></symbol>
   <symbol id="ex-ic-heart" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 1 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z"/></symbol>
-  <symbol id="ex-ic-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="12" x2="19" y2="12"/><polyline points="13 6 19 12 13 18"/></symbol>
-  <symbol id="ex-ic-chev-l" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 6 9 12 15 18"/></symbol>
-  <symbol id="ex-ic-chev-r" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></symbol>
 </svg>
 
 {% comment %}
@@ -128,80 +125,52 @@
   <!-- ================= Main ================= -->
   <main class="ex-container">
 
-    {% if has_filters %}
-      {# --- Search results: one flat, paginated grid --- #}
-      <section class="ex-section">
-        {% if properties %}
-          <div class="ex-grid">
-            {% for item in properties %}
-              {% include 'frontend/public_host_website/_explore_card.html' %}
+    {# --- Every listing, newest first, in one flat paginated grid --- #}
+    <section class="ex-section">
+      {% if properties %}
+        <div class="ex-grid">
+          {% for item in properties %}
+            {% include 'frontend/public_host_website/_explore_card.html' %}
+          {% endfor %}
+        </div>
+
+        {% if is_paginated %}
+          <nav class="ex-pagination" aria-label="Pagination">
+            {% if page_obj.has_previous %}
+              <a href="?page={{ page_obj.previous_page_number }}{% for k, v in request.GET.items %}{% if k != 'page' %}&{{ k }}={{ v }}{% endif %}{% endfor %}" aria-label="Previous">&laquo;</a>
+            {% else %}
+              <span class="ex-disabled">&laquo;</span>
+            {% endif %}
+
+            {% for i in paginator.page_range %}
+              {% if i == page_obj.number %}
+                <span class="ex-current" aria-current="page">{{ i }}</span>
+              {% else %}
+                <a href="?page={{ i }}{% for k, v in request.GET.items %}{% if k != 'page' %}&{{ k }}={{ v }}{% endif %}{% endfor %}">{{ i }}</a>
+              {% endif %}
             {% endfor %}
-          </div>
 
-          {% if is_paginated %}
-            <nav class="ex-pagination" aria-label="Pagination">
-              {% if page_obj.has_previous %}
-                <a href="?page={{ page_obj.previous_page_number }}{% for k, v in request.GET.items %}{% if k != 'page' %}&{{ k }}={{ v }}{% endif %}{% endfor %}" aria-label="Previous">&laquo;</a>
-              {% else %}
-                <span class="ex-disabled">&laquo;</span>
-              {% endif %}
-
-              {% for i in paginator.page_range %}
-                {% if i == page_obj.number %}
-                  <span class="ex-current" aria-current="page">{{ i }}</span>
-                {% else %}
-                  <a href="?page={{ i }}{% for k, v in request.GET.items %}{% if k != 'page' %}&{{ k }}={{ v }}{% endif %}{% endfor %}">{{ i }}</a>
-                {% endif %}
-              {% endfor %}
-
-              {% if page_obj.has_next %}
-                <a href="?page={{ page_obj.next_page_number }}{% for k, v in request.GET.items %}{% if k != 'page' %}&{{ k }}={{ v }}{% endif %}{% endfor %}" aria-label="Next">&raquo;</a>
-              {% else %}
-                <span class="ex-disabled">&raquo;</span>
-              {% endif %}
-            </nav>
-          {% endif %}
-        {% else %}
-          <div class="ex-empty">
-            <div class="ex-empty-icon">
-              <svg width="52" height="52" viewBox="0 0 52 52" fill="none" aria-hidden="true">
-                <circle cx="23" cy="23" r="15" stroke="#9ca3af" stroke-width="2.5" fill="#e5e7eb"/>
-                <path d="M34 34 L44 44" stroke="#9ca3af" stroke-width="3" stroke-linecap="round"/>
-                <path d="M18 23 H28 M23 18 V28" stroke="#9ca3af" stroke-width="2.5" stroke-linecap="round"/>
-              </svg>
-            </div>
-            <h3>No stays match your search</h3>
-            <p>Try a different destination, widen your dates, or lower the guest count.</p>
-            <a class="ex-empty-btn" href="{% url 'property:explore-listings' %}">Clear filters</a>
-          </div>
+            {% if page_obj.has_next %}
+              <a href="?page={{ page_obj.next_page_number }}{% for k, v in request.GET.items %}{% if k != 'page' %}&{{ k }}={{ v }}{% endif %}{% endfor %}" aria-label="Next">&raquo;</a>
+            {% else %}
+              <span class="ex-disabled">&raquo;</span>
+            {% endif %}
+          </nav>
         {% endif %}
-      </section>
-
-    {% else %}
-      {# --- Browse: one horizontal carousel per section --- #}
-      {% for section in sections %}
-        <section class="ex-section">
-          <div class="ex-section-head">
-            <h2>
-              {% if section.more_url %}
-                <a href="{{ section.more_url }}">{{ section.title }} <svg><use href="#ex-ic-arrow"/></svg></a>
-              {% else %}
-                {{ section.title }}
-              {% endif %}
-              <span class="ex-section-sub">{{ section.subtitle }}</span>
-            </h2>
-            <div class="ex-carousel-nav">
-              <button class="ex-nav-arrow" type="button" data-dir="prev" aria-label="Scroll left"><svg><use href="#ex-ic-chev-l"/></svg></button>
-              <button class="ex-nav-arrow" type="button" data-dir="next" aria-label="Scroll right"><svg><use href="#ex-ic-chev-r"/></svg></button>
-            </div>
+      {% elif has_filters %}
+        <div class="ex-empty">
+          <div class="ex-empty-icon">
+            <svg width="52" height="52" viewBox="0 0 52 52" fill="none" aria-hidden="true">
+              <circle cx="23" cy="23" r="15" stroke="#9ca3af" stroke-width="2.5" fill="#e5e7eb"/>
+              <path d="M34 34 L44 44" stroke="#9ca3af" stroke-width="3" stroke-linecap="round"/>
+              <path d="M18 23 H28 M23 18 V28" stroke="#9ca3af" stroke-width="2.5" stroke-linecap="round"/>
+            </svg>
           </div>
-          <div class="ex-row">
-            {% for item in section.properties %}
-              {% include 'frontend/public_host_website/_explore_card.html' %}
-            {% endfor %}
-          </div>
-        </section>
-      {% empty %}
+          <h3>No stays match your search</h3>
+          <p>Try a different destination, widen your dates, or lower the guest count.</p>
+          <a class="ex-empty-btn" href="{% url 'property:explore-listings' %}">Clear filters</a>
+        </div>
+      {% else %}
         <div class="ex-empty">
           <div class="ex-empty-icon">
             <svg width="52" height="52" viewBox="0 0 52 52" fill="none" aria-hidden="true">
@@ -213,8 +182,8 @@
           <p>Once hosts publish their first homes, they will show up right here.</p>
           <a class="ex-empty-btn" href="{% url 'register' %}">Become a host</a>
         </div>
-      {% endfor %}
-    {% endif %}
+      {% endif %}
+    </section>
 
   </main>
 
@@ -272,19 +241,6 @@
     btn.addEventListener('click', function () {
       var on = this.classList.toggle('liked');
       this.setAttribute('aria-pressed', on ? 'true' : 'false');
-    });
-  });
-
-  /* Carousel arrows scroll their own row by two cards. */
-  document.querySelectorAll('.ex-carousel-nav').forEach(function (nav) {
-    var row = nav.closest('.ex-section').querySelector('.ex-row');
-    if (!row) return;
-    nav.querySelectorAll('.ex-nav-arrow').forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        var card = row.querySelector('.ex-card');
-        var step = card ? card.getBoundingClientRect().width + 20 : 300;
-        row.scrollBy({ left: this.dataset.dir === 'next' ? step * 2 : -step * 2, behavior: 'smooth' });
-      });
     });
   });
 
