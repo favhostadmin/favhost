@@ -24,71 +24,19 @@
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <symbol id="ex-ic-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></symbol>
   <symbol id="ex-ic-heart" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 1 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z"/></symbol>
-  <symbol id="ex-ic-filter" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/><circle cx="9" cy="6" r="2"/><circle cx="15" cy="12" r="2"/><circle cx="7" cy="18" r="2"/></symbol>
 </svg>
 
 {% comment %}
   The landing page navbar. `nav_home` makes its in-page anchors point back at /,
-  `logo_dark` swaps in the black wordmark for this page's white header, `hide_nav`
-  drops the navbar links (Features, Watch Demo, Pricing, ...), `hide_auth` hides
-  the Log In / Get started / Sign up text buttons, `hide_opener` removes the
-  mobile sidebar (☰) button, `show_currency_switcher` parks the guest-currency
-  selector in the header, `show_header_add_listing` shows the Add-your-listing
-  button beside it, and `show_header_menu` adds the ☰ menu to the desktop header.
+  and `logo_dark` swaps in the black wordmark for this page's white header.
 {% endcomment %}
 {% url 'index' as home_url %}
-{% include 'frontend/website/_site_header.html' with nav_home=home_url logo_dark=True hide_nav=True hide_auth=True hide_opener=True show_currency_switcher=True show_header_add_listing=True show_header_menu=True %}
-
-{# Sits under the navbar rather than at the foot of the screen: in flow here, so it sticks below the header instead of floating over the page. #}
-<div class="ex-bottom-bar" aria-label="Search shortcuts">
-  <button type="button" class="ex-bb-item" id="ex-bb-where-btn" aria-label="Destination">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-         stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-      <path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
-    </svg>
-    <span class="ex-bb-lbl">Destination</span>
-    <span class="ex-bb-val" id="ex-bb-where">Anywhere</span>
-  </button>
-  <button type="button" class="ex-bb-item" id="ex-bb-dates-btn" aria-label="Dates">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-         stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-      <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/>
-      <line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
-    </svg>
-    <span class="ex-bb-lbl">Dates</span>
-    <span class="ex-bb-val" id="ex-bb-dates">Any dates</span>
-  </button>
-  <button type="button" class="ex-bb-item" id="ex-bb-who-btn" aria-label="Guests">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-         stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
-    </svg>
-    <span class="ex-bb-lbl">Who</span>
-    <span class="ex-bb-val" id="ex-bb-who">Add guests</span>
-  </button>
-  <div class="ex-bb-menu" id="ex-bb-menu-btn">
-    <button type="button" class="ex-bb-item ex-bb-menu-toggle" aria-label="Menu" aria-expanded="false"
-            aria-controls="ex-bb-menu-pop">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/>
-      </svg>
-      <span class="ex-bb-lbl">Menu</span>
-    </button>
-    <div class="ex-bb-menu-pop" id="ex-bb-menu-pop" hidden>
-      {% if request.user.is_authenticated %}
-      <a href="{% url 'accounts:profile' %}">Profile</a>
-      {% else %}
-      <a href="{% url 'accounts:login' %}">Login / Signup</a>
-      {% endif %}
-    </div>
-  </div>
-</div>
+{% include 'frontend/website/_site_header.html' with nav_home=home_url logo_dark=True %}
 
 <div class="ex-page">
 
   <!-- ================= Search bar ================= -->
-  <div class="ex-search-wrap ex-container" id="ex-search-wrap">
+  <div class="ex-search-wrap ex-container">
     <form class="ex-searchbar" role="search" method="get" action="{% url 'property:explore-listings' %}">
       {% comment %}
         A div, not a label: the suggestion list lives inside this segment, and
@@ -116,12 +64,9 @@
                 aria-expanded="false" aria-controls="ex-drp" aria-haspopup="dialog">
           <span class="ex-lbl">Dates</span>
           <span class="ex-dates-value">
-            <span class="ex-dates-set">
-              <span id="ex-ci-display">Check in</span>
-              <span class="ex-dates-sep" aria-hidden="true">&mdash;</span>
-              <span id="ex-co-display">Check out</span>
-            </span>
-            <span class="ex-dates-any">When</span>
+            <span id="ex-ci-display">Check in</span>
+            <span class="ex-dates-sep" aria-hidden="true">&mdash;</span>
+            <span id="ex-co-display">Check out</span>
           </span>
         </button>
         <input type="hidden" name="check_in" id="ex-check-in" value="{{ check_in }}">
@@ -142,27 +87,15 @@
       </div>
       <span class="ex-seg-div" aria-hidden="true"></span>
 
-      {% comment %}
-        A div, not a label, for the same reason as the Where segment: a click
-        on a button nested in a label is re-dispatched to the labelled input,
-        which would swallow the stepper. Click-to-focus is restored in script.
-      {% endcomment %}
-      <div class="ex-seg ex-seg-who" id="ex-guests-seg">
+      <label class="ex-seg ex-seg-who">
         <span class="ex-who-text">
           <span class="ex-lbl">Who</span>
-          <input type="number" name="guests" id="ex-guests" min="1" max="50" step="1"
-                 inputmode="numeric" value="{{ guests }}" placeholder="Add guests">
-        </span>
-        <span class="ex-guest-step">
-          <button type="button" class="ex-step" id="ex-guests-minus"
-                  aria-controls="ex-guests" aria-label="Fewer guests">&minus;</button>
-          <button type="button" class="ex-step" id="ex-guests-plus"
-                  aria-controls="ex-guests" aria-label="More guests">+</button>
+          <input type="number" name="guests" min="1" step="1" value="{{ guests }}" placeholder="Add guests">
         </span>
         <button class="ex-search-btn" type="submit" aria-label="Search">
           <svg><use href="#ex-ic-search"/></svg>
         </button>
-      </div>
+      </label>
     </form>
   </div>
 
@@ -180,167 +113,17 @@
         </span>
         <a class="ex-clear" href="{% url 'property:explore-listings' %}">Clear all</a>
       {% else %}
-        {% comment %} Default "N homes ready to book" banner hidden. {% endcomment %}
+        <span class="ex-summary-text">
+          <strong>{{ total_listing }} home{{ total_listing|pluralize }}</strong> ready to book
+          <span class="ex-dates">&middot; add your dates to see what is available</span>
+        </span>
       {% endif %}
+      {% include 'frontend/public_host_website/_currency_switcher.html' %}
     </div>
   </div>
 
   <!-- ================= Main ================= -->
   <main class="ex-container">
-
-    {# Filter bar: Filter button + quick chips; only shown once a search/filter is active. #}
-    {% if has_filters %}
-    <div class="ex-filterbar">
-      <div class="ex-filter-btn-wrap">
-        <button type="button" class="ex-filter-btn" id="ex-filter-btn"
-                aria-expanded="false" aria-controls="ex-filter-panel">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-               stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/>
-            <line x1="4" y1="18" x2="20" y2="18"/>
-            <circle cx="9" cy="6" r="2"/><circle cx="15" cy="12" r="2"/><circle cx="7" cy="18" r="2"/>
-          </svg>
-          <span>Filter</span>
-          {% if filter_count %}<span class="ex-filter-count">{{ filter_count }}</span>{% endif %}
-        </button>
-
-        {# Full filter popup: keeps search/date/guest params, adds facets. #}
-        <div class="ex-filter-backdrop" id="ex-filter-backdrop" hidden></div>
-        <div class="ex-filter-panel" id="ex-filter-panel" hidden
-             role="dialog" aria-label="Filters" aria-modal="true">
-          <form method="get" action="{% url 'property:explore-listings' %}">
-            <input type="hidden" name="search" value="{{ search }}">
-            <input type="hidden" name="check_in" value="{{ check_in }}">
-            <input type="hidden" name="check_out" value="{{ check_out }}">
-            <input type="hidden" name="guests" value="{{ guests }}">
-
-            <div class="ex-fgroup">
-              <div class="ex-fgroup-title">Home type</div>
-              <div class="ex-fgroup-opts">
-                <label class="ex-fopt">
-                  <input type="radio" name="property_type" value="" {% if not property_type %}checked{% endif %}>
-                  <span>Any</span>
-                </label>
-                {% for o in property_type_opts %}
-                <label class="ex-fopt">
-                  <input type="radio" name="property_type" value="{{ o.value }}"
-                         {% if property_type == o.value %}checked{% endif %}>
-                  <span>{{ o.label }}</span>
-                </label>
-                {% endfor %}
-              </div>
-            </div>
-
-            <div class="ex-fgroup">
-              <div class="ex-fgroup-title">Bed</div>
-              <div class="ex-fgroup-opts">
-                <label class="ex-fopt">
-                  <input type="radio" name="bed" value="" {% if not bed %}checked{% endif %}>
-                  <span>Any</span>
-                </label>
-                {% for o in bed_opts %}
-                <label class="ex-fopt">
-                  <input type="radio" name="bed" value="{{ o.value }}"
-                         {% if bed == o.value %}checked{% endif %}>
-                  <span>{{ o.label }}</span>
-                </label>
-                {% endfor %}
-              </div>
-            </div>
-
-            <div class="ex-fgroup">
-              <div class="ex-fgroup-title">Bathroom</div>
-              <div class="ex-fgroup-opts">
-                <label class="ex-fopt">
-                  <input type="radio" name="bathroom" value="" {% if not bathroom %}checked{% endif %}>
-                  <span>Any</span>
-                </label>
-                {% for o in bathroom_opts %}
-                <label class="ex-fopt">
-                  <input type="radio" name="bathroom" value="{{ o.value }}"
-                         {% if bathroom == o.value %}checked{% endif %}>
-                  <span>{{ o.label }}</span>
-                </label>
-                {% endfor %}
-              </div>
-            </div>
-
-            {% if price_buckets %}
-            <div class="ex-fgroup">
-              <div class="ex-fgroup-head">
-                <div class="ex-fgroup-title">Price per night</div>
-                <div class="ex-price-head-right">
-                  <span class="ex-price-selection" id="ex-price-selection">
-                    <span id="ex-price-sel-min">{{ currency_symbol }}{{ selected_min|floatformat:0 }}</span>
-                    <span aria-hidden="true">&ndash;</span>
-                    <span id="ex-price-sel-max">{{ currency_symbol }}{{ selected_max|floatformat:0 }}</span>
-                  </span>
-                  <button type="button" class="ex-price-reset" id="ex-price-reset">Clear</button>
-                </div>
-              </div>
-
-              <div class="ex-price-graph" id="ex-price-graph"
-                   data-min="{{ price_min }}" data-max="{{ price_max }}"
-                   data-sel-min="{{ selected_min }}" data-sel-max="{{ selected_max }}"
-                   data-symbol="{{ currency_symbol }}">
-                <div class="ex-price-bars" aria-hidden="true">
-                  {% for b in price_buckets %}
-                    <div class="ex-price-bar{% if b.selected %} on{% endif %}"
-                         style="height:{{ b.pct|floatformat:1 }}%" title="{{ b.label }} ({{ b.count }})"></div>
-                  {% endfor %}
-                </div>
-                <div class="ex-price-track" aria-hidden="true">
-                  <div class="ex-price-trackline"></div>
-                  <div class="ex-price-trackfill" id="ex-price-trackfill"></div>
-                </div>
-                <input type="range" class="ex-price-rng ex-price-rng-min" id="ex-min-rng"
-                       min="{{ price_min }}" max="{{ price_max }}" step="1" value="{{ selected_min }}"
-                       aria-label="Minimum price">
-                <input type="range" class="ex-price-rng ex-price-rng-max" id="ex-max-rng"
-                       min="{{ price_min }}" max="{{ price_max }}" step="1" value="{{ selected_max }}"
-                       aria-label="Maximum price">
-              </div>
-
-              <input type="hidden" name="min_price" id="ex-min-price"
-                     value="{% if min_price %}{{ min_price }}{% endif %}">
-              <input type="hidden" name="max_price" id="ex-max-price"
-                     value="{% if max_price %}{{ max_price }}{% endif %}">
-            </div>
-            {% endif %}
-
-            <div class="ex-fgroup">
-              <div class="ex-fgroup-title">Amenities</div>
-              <div class="ex-fgroup-opts ex-fgroup-grid" id="ex-amenity-grid">
-                {% for o in amenity_opts %}
-                <label class="ex-fopt{% if forloop.counter > amenity_visible %} ex-fopt-more{% endif %}">
-                  <input type="checkbox" name="amenities" value="{{ o.id }}"
-                         {% if o.active %}checked{% endif %}>
-                  <span>{{ o.name }}</span>
-                </label>
-                {% endfor %}
-              </div>
-              {% if amenity_reveal %}
-              <button type="button" class="ex-amenity-toggle" id="ex-amenity-toggle"
-                      aria-expanded="false">Show more ({{ amenity_reveal }})</button>
-              {% endif %}
-            </div>
-
-            <div class="ex-fgroup-foot">
-              <a href="{% url 'property:explore-listings' %}?search={{ search }}&check_in={{ check_in }}&check_out={{ check_out }}&guests={{ guests }}" class="ex-fgroup-clear">Clear all</a>
-              <button type="submit" class="ex-fgroup-show">Show stays</button>
-            </div>
-          </form>
-        </div>
-      </div>
-
-      <div class="ex-chips" aria-label="Quick filters">
-        {% for chip in chips %}
-          <a class="ex-chip{% if chip.active %} ex-chip-on{% endif %}" href="{{ chip.href }}"
-             {% if chip.active %}aria-pressed="true"{% endif %}>{{ chip.label }}</a>
-        {% endfor %}
-      </div>
-    </div>
-    {% endif %}
 
     {# --- Every listing, newest first, in one flat paginated grid --- #}
     <section class="ex-section">
@@ -418,19 +201,6 @@
   </footer>
 
 </div><!-- /.ex-page -->
-
-<!-- Mobile bottom bar: search shortcuts + add listing. Fixed to the bottom of
-     the screen below 992px; hidden on desktop. Values mirror the search bar. -->
-<!-- Popup card opened by the bottom-bar buttons on mobile. The search form is
-     relocated here while open, so the same inputs, autocomplete and date
-     calendar keep working without any duplicate logic. -->
-<div class="ex-bb-pop" id="ex-bb-pop" hidden>
-  <div class="ex-bb-pop-head">
-    <span class="ex-bb-pop-title" id="ex-bb-pop-title"></span>
-    <button type="button" class="ex-bb-pop-close" id="ex-bb-pop-close" aria-label="Close">&times;</button>
-  </div>
-  <div class="ex-bb-pop-body" id="ex-bb-pop-body"></div>
-</div>
 
 <script>
   /* Header behaviour. website/js/main.js does this on the landing pages, but it
@@ -572,174 +342,6 @@
     input.addEventListener('blur', function () { setTimeout(close, 150); });
   })();
 
-
-  /* Search bar: sticks under the navbar and shrinks to a compact pill once the
-     page scrolls. Clicking or tabbing into it expands it again so it stays
-     usable; it re-collapses when focus leaves and the page is still scrolled. */
-  (function () {
-    var wrap = document.getElementById('ex-search-wrap');
-    if (!wrap) return;
-
-    var header = document.querySelector('.ul-header');
-    var drp    = document.getElementById('ex-drp');
-
-    /* Compact drops the labels, so an empty field's placeholder becomes the
-       label: [input, full prompt, one-word prompt]. The dates segment has no
-       placeholder to swap and is handled in CSS instead. */
-    var PLACEHOLDERS = [
-      [document.getElementById('ex-where'),        'Search destinations', 'Where'],
-      [wrap.querySelector('input[name="guests"]'), 'Add guests',          'Who']
-    ];
-    var THRESHOLD = 80;   /* px scrolled before it collapses */
-    var held = false;     /* user opened it deliberately - leave it alone */
-
-    /* The navbar wraps at some widths, so its height is measured rather than
-       assumed. Three numbers come out of this:
-         --ex-header-h   the sticky offset, so the bar sits under the navbar
-         --ex-compact-h  the compact bar's own height, used to reclaim the
-                         space it leaves once it lifts away
-         --ex-lift       half the navbar plus half the compact bar, which is
-                         what puts the two centres on the same line
-       The compact metrics are taken with the class applied and transitions
-       off, then reverted in the same frame, so nothing is painted mid-measure. */
-    function measure() {
-      var headerH = header ? header.getBoundingClientRect().height : 0;
-
-      var wasCompact = wrap.classList.contains('is-compact');
-      wrap.classList.add('is-measuring');
-      wrap.classList.add('is-compact');
-      var compactH = wrap.getBoundingClientRect().height;
-      if (!wasCompact) wrap.classList.remove('is-compact');
-      wrap.classList.remove('is-measuring');
-
-      /* The mobile shortcut bar sits under the navbar, and its popups hang
-         off the bottom of it, so its height is published too. */
-      var bb = document.querySelector('.ex-bottom-bar');
-      var bbH = (bb && bb.offsetParent !== null) ? bb.getBoundingClientRect().height : 0;
-
-      var root = document.documentElement.style;
-      root.setProperty('--ex-bb-h', Math.round(bbH) + 'px');
-      root.setProperty('--ex-header-h', Math.round(headerH) + 'px');
-      root.setProperty('--ex-compact-h', Math.round(compactH) + 'px');
-      root.setProperty('--ex-lift', Math.round((headerH + compactH) / 2) + 'px');
-    }
-
-    function update() {
-      /* Never collapse under someone mid-interaction: a focused field, a held
-         bar, or the open date calendar (whose panel is anchored to a segment
-         that is about to change size). */
-      if (held || wrap.contains(document.activeElement)) return;
-      if (drp && !drp.hidden) return;
-      setCompact(window.scrollY > THRESHOLD);
-    }
-
-    function setCompact(on) {
-      wrap.classList.toggle('is-compact', on);
-      PLACEHOLDERS.forEach(function (p) {
-        if (p[0]) p[0].placeholder = on ? p[2] : p[1];
-      });
-    }
-
-    var ticking = false;
-    function onScroll() {
-      if (ticking) return;
-      ticking = true;
-      window.requestAnimationFrame(function () {
-        ticking = false;
-        update();
-      });
-    }
-
-    /* Expand on the way in, whether by pointer or keyboard. */
-    function expand() {
-      held = true;
-      setCompact(false);
-    }
-    wrap.addEventListener('mousedown', expand);
-    wrap.addEventListener('focusin', expand);
-
-    /* Let go once the interaction moves elsewhere. */
-    document.addEventListener('mousedown', function (e) {
-      if (!wrap.contains(e.target)) { held = false; update(); }
-    });
-    wrap.addEventListener('focusout', function () {
-      window.setTimeout(function () {
-        if (!wrap.contains(document.activeElement)) { held = false; update(); }
-      }, 0);
-    });
-
-    window.addEventListener('scroll', onScroll, { passive: true });
-    window.addEventListener('resize', function () { measure(); update(); });
-    measure();
-    update();
-  })();
-
-
-  /* Guest stepper. The number input stays the value carrier so the form still
-     submits `guests` unchanged; the buttons just drive it. */
-  (function () {
-    var seg   = document.getElementById('ex-guests-seg');
-    var input = document.getElementById('ex-guests');
-    var minus = document.getElementById('ex-guests-minus');
-    var plus  = document.getElementById('ex-guests-plus');
-    if (!seg || !input || !minus || !plus) return;
-
-    var MIN = 1, MAX = 50;
-
-    /* Empty is a real state, not zero: it means "no guest filter", which is
-       what the view treats a blank `guests` param as. */
-    function current() {
-      var v = parseInt(input.value, 10);
-      return isNaN(v) ? null : v;
-    }
-
-    function sync() {
-      var v = current();
-      minus.disabled = v === null;
-      plus.disabled = v !== null && v >= MAX;
-    }
-
-    function set(v) {
-      input.value = v === null ? '' : String(v);
-      input.dispatchEvent(new Event('change', { bubbles: true }));
-      sync();
-    }
-
-    plus.addEventListener('click', function (e) {
-      e.preventDefault();
-      var v = current();
-      set(v === null ? MIN : Math.min(v + 1, MAX));
-    });
-
-    minus.addEventListener('click', function (e) {
-      e.preventDefault();
-      var v = current();
-      if (v === null) return;
-      /* Stepping below the floor turns the filter off rather than sticking at
-         1, so the count can be cleared without selecting the text. */
-      set(v <= MIN ? null : v - 1);
-    });
-
-    /* Typing is still allowed, so the bounds are enforced here too. */
-    input.addEventListener('input', function () {
-      var v = current();
-      if (v !== null && v > MAX) input.value = String(MAX);
-      if (v !== null && v < MIN) input.value = String(MIN);
-      sync();
-    });
-
-    /* The segment used to be a <label>; keep click-anywhere-to-focus. */
-    seg.addEventListener('click', function (e) {
-      if (e.target === seg ||
-          e.target.classList.contains('ex-lbl') ||
-          e.target.classList.contains('ex-who-text')) {
-        input.focus();
-      }
-    });
-
-    sync();
-  })();
-
   /* Merged check-in / check-out segment: one two-month range calendar, the
      same interaction as the host-facing listing page. Check-out can never
      land before check-in because the range is picked in a single gesture,
@@ -852,7 +454,6 @@
       ciLabel.textContent = start ? pretty(start) : 'Check in';
       coLabel.textContent = end ? pretty(end) : 'Check out';
       seg.classList.toggle('has-dates', !!(start || end));
-      if (window.ExBottomBar) window.ExBottomBar.syncDates();
     }
 
     function open() {
@@ -937,306 +538,6 @@
     window.addEventListener('resize', function () { if (!panel.hidden) render(); });
 
     syncFields();
-  })();
-
-  /* Mobile bottom bar: mirrors the search bar's values and jumps to the
-     relevant control when tapped. Exposed as window.ExBottomBar so the date
-     picker above can notify it (dates are only ever set inside syncFields). */
-  (function () {
-    var bar      = document.querySelector('.ex-bottom-bar');
-    var bbWhere  = document.getElementById('ex-bb-where');
-    var bbDates  = document.getElementById('ex-bb-dates');
-    var bbWho    = document.getElementById('ex-bb-who');
-    var whereBtn = document.getElementById('ex-bb-where-btn');
-    var datesBtn = document.getElementById('ex-bb-dates-btn');
-    var whoBtn   = document.getElementById('ex-bb-who-btn');
-    var whereIn  = document.getElementById('ex-where');
-    var whoIn    = document.querySelector('.ex-seg-who input[name="guests"]');
-    var shareIn  = document.getElementById('ex-dates-btn');
-
-    if (!bar || !bbWhere) return;
-
-    function syncWhere() {
-      bbWhere.textContent = (whereIn && whereIn.value.trim()) || 'Anywhere';
-    }
-    function syncWho() {
-      var n = whoIn && parseInt(whoIn.value, 10);
-      bbWho.textContent = n ? n + ' guest' + (n === 1 ? '' : 's') : 'Add guests';
-    }
-    function syncDates() {
-      var ci = document.getElementById('ex-ci-display');
-      var co = document.getElementById('ex-co-display');
-      var ciT = ci ? ci.textContent : 'Check in';
-      var coT = co ? co.textContent : 'Check out';
-      bbDates.textContent = (ciT !== 'Check in' || coT !== 'Check out')
-        ? ciT + ' \u2013 ' + coT
-        : 'Any dates';
-    }
-
-    /* Values */
-    if (whereIn) whereIn.addEventListener('input', syncWhere);
-    if (whoIn)   whoIn.addEventListener('input', syncWho);
-    syncWhere(); syncWho(); syncDates();
-
-    /* Taps: each button opens a small popup card containing just its filter
-       control. The search form is moved into the popup while open (and put
-       back on close / resize-to-desktop), so the autocomplete, date calendar
-       and submit keep working through their existing wiring. */
-    var mobWrap  = document.querySelector('.ex-search-wrap');
-    var form     = document.querySelector('.ex-searchbar');
-    var pop      = document.getElementById('ex-bb-pop');
-    var popBody  = document.getElementById('ex-bb-pop-body');
-    var popTitle = document.getElementById('ex-bb-pop-title');
-    var popClose = document.getElementById('ex-bb-pop-close');
-    var segments = { dest: document.querySelector('.ex-seg-where'),
-                     dates: document.querySelector('.ex-seg-dates'),
-                     who: document.querySelector('.ex-seg-who') };
-
-    var POP_TITLES = { dest: 'Where to?', dates: 'When?', who: 'Guests' };
-
-    function openMob(view) {
-      if (!pop || !form) return;
-      if (pop.hidden === false && pop.dataset.view === view) { closeMob(); return; }
-
-      if (popBody.firstElementChild !== form) popBody.appendChild(form);
-      ['dest', 'dates', 'who'].forEach(function (k) {
-        if (segments[k]) segments[k].style.display = (k === view) ? 'flex' : 'none';
-      });
-      if (popTitle) popTitle.textContent = POP_TITLES[view] || '';
-      pop.dataset.view = view;
-      pop.hidden = false;
-      /* Dropdowns sit inside the relocating segments, so leave them open
-         until the form is back — re-opening the calendar for the dates view. */
-      setTimeout(function () {
-        if (view === 'dates' && document.getElementById('ex-dates-btn')) {
-          document.getElementById('ex-dates-btn').click();
-        } else if (view === 'dest' && whereIn) {
-          whereIn.focus();
-        } else if (view === 'who' && whoIn) {
-          whoIn.focus();
-        }
-      }, 80);
-    }
-
-    function closeMob() {
-      if (!pop) return;
-      pop.hidden = true;
-      delete pop.dataset.view;
-      var drp = document.getElementById('ex-drp');
-      if (drp) drp.hidden = true;
-      if (mobWrap && form && form.parentNode !== mobWrap) mobWrap.insertBefore(form, mobWrap.firstChild);
-      ['dest', 'dates', 'who'].forEach(function (k) {
-        if (segments[k]) segments[k].style.display = '';
-      });
-    }
-
-    if (whereBtn) whereBtn.addEventListener('click', function () { openMob('dest'); });
-    if (datesBtn) datesBtn.addEventListener('click', function () { openMob('dates'); });
-    if (whoBtn) whoBtn.addEventListener('click', function () { openMob('who'); });
-    if (popClose) popClose.addEventListener('click', closeMob);
-    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeMob(); });
-    window.addEventListener('resize', function () { if (window.innerWidth >= 993) closeMob(); });
-
-    /* ☰ menu in the bar: opens the actions dropdown (add listing / sign up). */
-    var menuBtn = document.getElementById('ex-bb-menu-btn');
-    var menuPop = document.getElementById('ex-bb-menu-pop');
-    var menuToggle = document.querySelector('.ex-bb-menu-toggle');
-    if (menuBtn && menuPop) {
-      menuBtn.addEventListener('click', function (e) {
-        e.stopPropagation();
-        var on = menuPop.hidden;
-        menuPop.hidden = !on;
-        if (menuToggle) menuToggle.setAttribute('aria-expanded', on ? 'true' : 'false');
-      });
-      document.addEventListener('click', function () {
-        menuPop.hidden = true;
-        if (menuToggle) menuToggle.setAttribute('aria-expanded', 'false');
-      });
-      document.addEventListener('keydown', function (e) {
-        if (e.key === 'Escape') {
-          menuPop.hidden = true;
-          if (menuToggle) menuToggle.setAttribute('aria-expanded', 'false');
-        }
-      });
-    }
-
-    window.ExBottomBar = { syncDates: syncDates };
-  })();
-
-  /* Filter button -> centre-screen modal. Closes on backdrop click / Escape. */
-  (function () {
-    var btn     = document.getElementById('ex-filter-btn');
-    var panel   = document.getElementById('ex-filter-panel');
-    var backdrop = document.getElementById('ex-filter-backdrop');
-    if (!btn || !panel) return;
-
-    function set(on) {
-      panel.hidden = !on;
-      if (backdrop) backdrop.hidden = !on;
-      btn.setAttribute('aria-expanded', on ? 'true' : 'false');
-      /* Lock background scrolling while the modal is open. */
-      document.body.style.overflow = on ? 'hidden' : '';
-    }
-    btn.addEventListener('click', function (e) {
-      e.stopPropagation();
-      set(panel.hidden);
-    });
-    if (backdrop) backdrop.addEventListener('click', function () { set(false); });
-    /* Drop empty hidden inputs / "Any" radios so the URL stays tidy. */
-    var form = panel.querySelector('form');
-    if (form) form.addEventListener('submit', function () {
-      form.querySelectorAll('input').forEach(function (inp) {
-        if (!inp.value) inp.remove();
-      });
-    });
-    document.addEventListener('click', function (e) {
-      if (!panel.hidden && !btn.contains(e.target) && !panel.contains(e.target)) set(false);
-    });
-    document.addEventListener('keydown', function (e) {
-      if (e.key === 'Escape' && !panel.hidden) { set(false); btn.focus(); }
-    });
-
-    /* --- Price-range histogram sliders --- */
-    var graph = document.getElementById('ex-price-graph');
-    if (graph) {
-      var minRng = document.getElementById('ex-min-rng');
-      var maxRng = document.getElementById('ex-max-rng');
-      var minHid = document.getElementById('ex-min-price');
-      var maxHid = document.getElementById('ex-max-price');
-      var minLbl = document.getElementById('ex-price-sel-min');
-      var maxLbl = document.getElementById('ex-price-sel-max');
-      var bars   = document.querySelectorAll('#ex-price-graph .ex-price-bar');
-      var fill   = document.getElementById('ex-price-trackfill');
-      var sym    = graph.dataset.symbol || '';
-      var lo     = parseInt(graph.dataset.min, 10);
-      var hiMax  = parseInt(graph.dataset.max, 10);
-      var selMin = parseInt(graph.dataset.selMin, 10);
-      var selMax = parseInt(graph.dataset.selMax, 10);
-
-      function fmt(n) { return sym + Math.round(n); }
-
-      function paint() {
-        if (minLbl) minLbl.textContent = fmt(selMin);
-        if (maxLbl) maxLbl.textContent = fmt(selMax);
-        if (fill) {
-          var span = hiMax - lo || 1;
-          /* .ex-price-track is inset by one thumb radius at each end (see
-             explore.css), so it spans exactly the distance a thumb centre
-             travels. The fill is then a plain fraction of it and the dots
-             land on its ends. */
-          var trackW = fill.offsetParent ? fill.offsetParent.offsetWidth : 0;
-          var leftPx = (selMin - lo) / span * trackW;
-          var rightPx = (hiMax - selMax) / span * trackW;
-          if (leftPx + rightPx <= trackW) {
-            fill.style.display = '';
-            fill.style.left = leftPx + 'px';
-            fill.style.right = rightPx + 'px';
-          } else {
-            fill.style.display = 'none';
-          }
-        }
-        bars.forEach(function (b, i) {
-          var frac = bars.length ? i / bars.length : 0;
-          var bLo = lo + (hiMax - lo) * frac;
-          var bHi = lo + (hiMax - lo) * (i + 1) / bars.length;
-          var on = !(bHi <= selMin || bLo >= selMax);
-          b.classList.toggle('on', on);
-        });
-      }
-
-      function syncHidden() {
-        if (minHid) minHid.value = selMin > lo ? String(selMin) : '';
-        if (maxHid) maxHid.value = selMax < hiMax ? String(selMax) : '';
-      }
-
-      minRng.addEventListener('input', function () {
-        if (parseInt(this.value, 10) > parseInt(maxRng.value, 10)) maxRng.value = this.value;
-        selMin = parseInt(this.value, 10);
-        selMax = parseInt(maxRng.value, 10);
-        paint();
-        syncHidden();
-      });
-      maxRng.addEventListener('input', function () {
-        if (parseInt(this.value, 10) < parseInt(minRng.value, 10)) minRng.value = this.value;
-        selMin = parseInt(minRng.value, 10);
-        selMax = parseInt(this.value, 10);
-        paint();
-        syncHidden();
-      });
-
-      var reset = document.getElementById('ex-price-reset');
-      if (reset) reset.addEventListener('click', function () {
-        selMin = lo; selMax = hiMax;
-        minRng.value = lo; maxRng.value = hiMax;
-        paint();
-        syncHidden();
-        minRng.focus();
-      });
-
-      paint();
-
-      /* The fill geometry depends on layout, which is unknown while the
-         modal is closed (display:none). Repaint whenever it opens or the
-         window resizes. */
-      btn.addEventListener('click', function () {
-        if (!panel.hidden) paint();
-      });
-      window.addEventListener('resize', paint);
-    }
-
-    /* Amenity "Show more" / "Show less" toggle. */
-    var amenToggle = document.getElementById('ex-amenity-toggle');
-    if (amenToggle) {
-      var amenHidden = panel.querySelectorAll('.ex-fopt-more');
-      /* Auto-expand if a checked amenity is among the hidden options. */
-      if (panel.querySelector('.ex-fopt-more input:checked')) {
-        amenHidden.forEach(function (m) { m.classList.add('visible'); });
-        amenToggle.setAttribute('aria-expanded', 'true');
-        amenToggle.textContent = 'Show less';
-      }
-      amenToggle.addEventListener('click', function () {
-        var expanding = amenToggle.getAttribute('aria-expanded') !== 'true';
-        amenHidden.forEach(function (m) {
-          m.classList.toggle('visible', expanding);
-        });
-        amenToggle.setAttribute('aria-expanded', String(expanding));
-        amenToggle.textContent = expanding ? 'Show less' : 'Show more ({{ amenity_reveal }})';
-      });
-    }
-  })();
-
-  /* Card photo slideshow arrows — delegated so any lazy-loaded cards inherit. */
-  (function () {
-    var grid = document.querySelector('.ex-grid');
-    if (!grid) return;
-
-    function stepSlide(nav) {
-      var media = nav.closest('.ex-card-img');
-      if (!media) return;
-      var slides = media.querySelectorAll('.ex-card-slide');
-      if (slides.length < 2) return;
-      var cur = 0;
-      slides.forEach(function (s, i) { if (s.classList.contains('is-active')) cur = i; });
-      var nxt = (cur + (nav.classList.contains('next') ? 1 : -1) + slides.length) % slides.length;
-      slides[cur].classList.remove('is-active');
-      slides[nxt].classList.add('is-active');
-    }
-
-    grid.addEventListener('click', function (e) {
-      var nav = e.target.closest('.ex-card-nav');
-      if (!nav) return;
-      e.preventDefault();
-      e.stopPropagation();
-      stepSlide(nav);
-    });
-    grid.addEventListener('keydown', function (e) {
-      if (e.key !== 'Enter' && e.key !== ' ') return;
-      var nav = e.target.closest('.ex-card-nav');
-      if (!nav) return;
-      e.preventDefault();
-      e.stopPropagation();
-      stepSlide(nav);
-    });
   })();
 </script>
 </body>
