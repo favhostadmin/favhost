@@ -50,6 +50,7 @@
 .explore-page .ul-header{
   position:sticky; top:0; z-index:99;
   background:#fff;
+  border-bottom:1px solid var(--ex-line-2);
 }
 /* Back into normal flow -- style.css sets absolute, and `.sticky` sets fixed. */
 .explore-page .ul-header-bottom,
@@ -57,7 +58,6 @@
   position:static;
   background-color:transparent;
   box-shadow:none;
-  padding:18px 0;
 }
 /* `.sticky` is toggled past 80px of scroll; here it only lifts the header. */
 .explore-page .ul-header-bottom.sticky{ box-shadow:0 2px 14px rgba(0,0,0,.08); }
@@ -77,48 +77,8 @@
 .explore-page .ul-header-bottom .ul-header-actions .btn-login{ color:#D92D20; }
 .explore-page .ul-header-bottom .ul-header-actions .btn-login:hover{ color:#A81D14; }
 
-/* ☰ menu added to the desktop header (Add your listing / Log in / Sign up). */
-.explore-page .ul-header-actions .ul-header-add-link{
-  font-size:.8rem; font-weight:600; text-decoration:none;
-  background:var(--ex-accent); color:#fff;
-  border-radius:20px; padding:8px 16px; white-space:nowrap;
-}
-.explore-page .ul-header-actions .ul-header-add-link:hover{ filter:brightness(1.05); }
-.explore-page .ul-header-actions .ul-header-menu-btn{ position:relative; font-size:20px; }
-.explore-page .ul-header-menu-btn:hover{ color:var(--ul-primary); }
-.explore-page .ul-header-menu-pop{
-  position:absolute; right:0; top:calc(100% + 14px);
-  min-width:172px;
-  background:#fff;
-  border:1px solid var(--ex-line);
-  border-radius:14px;
-  box-shadow:0 10px 28px rgba(0,0,0,.16);
-  padding:6px;
-  text-align:left;
-  z-index:105;
-}
-.explore-page .ul-header-menu-pop[hidden]{ display:none; }
-.explore-page .ul-header-menu-pop a{
-  display:block;
-  padding:10px 12px;
-  font-size:.86rem; font-weight:600;
-  color:var(--ex-ink); text-decoration:none;
-  border-radius:9px; white-space:nowrap;
-}
-.explore-page .ul-header-menu-pop a:hover{ background:#f5f5f5; }
-.explore-page .ul-header-menu-pop a:first-child{ color:var(--ex-accent); }
-
 /* ---------------- Search bar ---------------- */
-/* Sticks directly under the sticky navbar so it survives the scroll, then
-   shrinks into a compact pill. --ex-header-h is measured in explore.html,
-   because the navbar's height depends on how its own nav wraps. */
-.ex-search-wrap{
-  display:flex; justify-content:center; padding:8px 0 18px;
-  position:sticky; top:var(--ex-header-h,0px); z-index:60;
-  background:#fff;
-  transition:padding .28s ease, transform .28s ease,
-             margin-bottom .28s ease, background-color .28s ease;
-}
+.ex-search-wrap{ display:flex; justify-content:center; padding:28px 0 22px; }
 .ex-searchbar{
   display:flex; align-items:center;
   width:min(880px,100%);
@@ -126,79 +86,18 @@
   border:1px solid var(--ex-line);
   border-radius:40px;
   box-shadow:0 3px 12px rgba(0,0,0,.10);
-  padding:4px 6px 4px 6px;
-  transition:width .28s ease, padding .28s ease, box-shadow .28s ease;
-}
-
-/* --- Compact state, toggled by the scroll handler in explore.html -------- */
-.ex-search-wrap.is-compact{ padding:6px 0 10px; box-shadow:0 1px 0 var(--ex-line-2); }
-
-/* Wide screens: the pill lifts into the navbar row so it sits on the logo's
-   line, and the space it vacates is reclaimed so the cards close up under the
-   header -- the same move Airbnb makes. Both the lift and the negative margin
-   are measured in explore.html and animated, so nothing snaps.
-   Below 1200px the header's own controls leave too little room in the middle,
-   so there the bar just shrinks in place beneath the header. */
-@media (min-width:1200px){
-  .ex-search-wrap.is-compact{
-    transform:translateY(calc(-1 * var(--ex-lift,0px)));
-    margin-bottom:calc(-1 * var(--ex-compact-h,0px));
-    background-color:transparent;
-    box-shadow:none;
-    z-index:100;              /* over the sticky navbar, which sits at 99 */
-    pointer-events:none;      /* the header's own controls stay clickable */
-  }
-  .ex-search-wrap.is-compact .ex-searchbar{
-    pointer-events:auto;
-    width:min(420px,100%);    /* clears the logo on the left and the buttons on the right */
-  }
-}
-.ex-search-wrap.is-compact .ex-searchbar{
-  width:min(460px,100%);
-  padding:2px 4px;
-  box-shadow:0 2px 10px rgba(0,0,0,.13);
-}
-.ex-search-wrap.is-compact .ex-seg{ padding:5px 16px; }
-.ex-search-wrap.is-compact .ex-dates-trigger{ padding:5px 16px; }
-.ex-search-wrap.is-compact .ex-seg-div{ height:20px; }
-/* Labels collapse rather than display:none, so the height can animate. */
-.ex-search-wrap.is-compact .ex-lbl{ opacity:0; max-height:0; }
-.ex-search-wrap.is-compact .ex-seg input,
-.ex-search-wrap.is-compact .ex-dates-value{ font-size:.82rem; }
-
-/* Compact wording: with the labels collapsed the values carry the meaning on
-   their own, so an empty field says what it is in one word - Where / When /
-   Who - instead of the longer prompt. A field that already holds a search
-   keeps showing it. The Where and Who placeholders are swapped in
-   explore.html; only the dates need markup, having no placeholder to swap. */
-.ex-dates-any{ display:none; }
-.ex-search-wrap.is-compact .ex-seg-dates:not(.has-dates) .ex-dates-set{ display:none; }
-.ex-search-wrap.is-compact .ex-seg-dates:not(.has-dates) .ex-dates-any{ display:inline; }
-/* (0,3,0) - has to clear `.ex-page .ex-search-btn`. */
-.ex-search-wrap.is-compact .ex-search-btn{ width:34px; height:34px; }
-.ex-search-wrap.is-compact .ex-search-btn svg{ width:15px; height:15px; }
-
-/* Used for one frame while measure() reads the compact height. */
-.ex-search-wrap.is-measuring,
-.ex-search-wrap.is-measuring *{ transition:none !important; }
-
-@media (prefers-reduced-motion:reduce){
-  .ex-search-wrap,.ex-search-wrap *{ transition:none !important; }
+  padding:6px 8px 6px 6px;
 }
 .ex-seg{
   display:flex; flex-direction:column; justify-content:center;
   text-align:left;
-  padding:5px 22px;
+  padding:10px 22px;
   border-radius:40px;
   min-width:0; flex:1 1 0;
-  transition:background .15s ease, padding .28s ease;
+  transition:background .15s ease;
 }
 .ex-seg:hover,.ex-seg:focus-within{ background:#EBEBEB; }
-.ex-seg .ex-lbl{
-  font-size:.78rem; font-weight:600; color:var(--ex-ink);
-  max-height:22px; opacity:1; overflow:hidden;
-  transition:opacity .18s ease, max-height .28s ease;
-}
+.ex-seg .ex-lbl{ font-size:.78rem; font-weight:600; color:var(--ex-ink); }
 .ex-seg input{
   border:0; background:transparent; padding:0;
   font-family:inherit; font-size:.88rem; color:var(--ex-ink);
@@ -241,247 +140,18 @@
   padding-right:6px;
 }
 .ex-seg-who .ex-who-text{ display:flex; flex-direction:column; min-width:0; flex:1 1 auto; }
-
-/* --- Guest stepper ------------------------------------------------------- */
-/* The native number spinners would sit right next to these, so they go. */
-.ex-seg-who input[type=number]{ -moz-appearance:textfield; appearance:textfield; }
-.ex-seg-who input[type=number]::-webkit-outer-spin-button,
-.ex-seg-who input[type=number]::-webkit-inner-spin-button{
-  -webkit-appearance:none; margin:0;
-}
-.ex-guest-step{
-  display:flex; align-items:center; gap:6px; flex:0 0 auto;
-  max-width:80px; opacity:1; visibility:visible; overflow:hidden;
-  transition:max-width .28s ease, opacity .18s ease, visibility 0s;
-}
-/* .ex-page prefix: the reset `.ex-page button{border:0;background:none}` is
-   (0,1,1) and would otherwise strip the circle right back off. */
-.ex-page .ex-step{
-  display:grid; place-items:center;
-  width:28px; height:28px;
-  border:1px solid var(--ex-line); border-radius:50%;
-  background:#fff; color:var(--ex-ink);
-  font-size:15px; font-weight:700; line-height:1;
-  transition:border-color .15s ease, background-color .15s ease,
-             opacity .15s ease, width .28s ease, height .28s ease;
-}
-.ex-page .ex-step:hover:not(:disabled){ border-color:var(--ex-ink); background-color:var(--ex-line-2); }
-.ex-page .ex-step:disabled{ opacity:.35; cursor:not-allowed; }
-.ex-search-wrap.is-compact .ex-guest-step{
-  max-width:0; opacity:0; visibility:hidden;
-  transition:max-width .28s ease, opacity .18s ease, visibility 0s .28s;
-}
 .ex-page .ex-search-btn{
   flex:0 0 auto;
   display:grid; place-items:center;
-  width:44px; height:44px;
+  width:48px; height:48px;
   background:var(--ex-accent);
   border-radius:50%;
   color:#fff;
-  transition:filter .15s ease, transform .1s ease,
-             width .28s ease, height .28s ease;
+  transition:filter .15s ease, transform .1s ease;
 }
 .ex-search-btn:hover{ filter:brightness(1.05); }
 .ex-search-btn:active{ transform:scale(.95); }
 .ex-search-btn svg{ width:18px; height:18px; }
-
-/* ---------------- Filter bar & quick chips ---------------- */
-.ex-filterbar{
-  display:flex; align-items:center; justify-content:center; gap:14px;
-  padding:16px 0 4px;
-}
-.ex-filter-btn-wrap{ position:relative; flex:0 0 auto; }
-.ex-page .ex-filter-btn{
-  display:inline-flex; align-items:center; gap:8px;
-  padding:9px 16px;
-  border:1px solid var(--ex-line);
-  border-radius:999px;
-  background:#fff;
-  color:var(--ex-ink);
-  font-size:.85rem; font-weight:600;
-  transition:box-shadow .15s ease, border-color .15s ease;
-}
-.ex-filter-btn:hover{ border-color:var(--ex-muted); box-shadow:0 1px 4px rgba(0,0,0,.12); }
-.ex-filter-btn[aria-expanded="true"]{ border-color:var(--ex-ink); }
-.ex-filter-btn svg{ width:16px; height:16px; }
-.ex-filter-count{
-  display:grid; place-items:center;
-  min-width:18px; height:18px; padding:0 5px;
-  border-radius:999px;
-  background:var(--ex-accent); color:#fff;
-  font-size:.7rem; font-weight:700;
-}
-
-.ex-chips{
-  display:flex; align-items:center; gap:8px;
-  overflow-x:auto; padding-bottom:4px;
-  scrollbar-width:none;
-}
-.ex-chips::-webkit-scrollbar{ display:none; }
-/* Chips are <a>, and the page reset `.ex-page a{display:block;color:inherit}`
-   is (0,1,1) - it outranks a bare class, so without the .ex-page prefix the
-   selected chip inherited the ink colour and read as an empty black pill.
-   The :hover pair needs the prefix too, to beat `.ex-page a:hover`. */
-.ex-page .ex-chip{
-  flex:0 0 auto;
-  display:inline-flex; align-items:center; gap:6px;
-  padding:8px 14px;
-  border:1px solid var(--ex-line);
-  border-radius:999px;
-  font-size:.8rem; font-weight:600;
-  color:var(--ex-ink);
-  background:#fff;
-  white-space:nowrap;
-  transition:box-shadow .15s ease, border-color .15s ease;
-}
-.ex-page .ex-chip:hover{
-  color:var(--ex-ink);
-  border-color:var(--ex-muted); box-shadow:0 1px 4px rgba(0,0,0,.1);
-}
-.ex-page .ex-chip-on,
-.ex-page .ex-chip-on:hover{
-  background:var(--ex-ink); border-color:var(--ex-ink); color:#fff;
-}
-
-/* Full filter popup: a centre-screen modal over a dimmed backdrop. */
-.ex-filter-backdrop{
-  position:fixed; inset:0; z-index:125;
-  background:rgba(0,0,0,.45);
-}
-.ex-filter-panel{
-  position:fixed; z-index:126;
-  top:50%; left:50%; transform:translate(-50%,-50%);
-  width:min(560px, calc(100vw - 32px));
-  max-height:82vh; overflow-y:auto;
-  background:#fff;
-  border-radius:20px;
-  box-shadow:0 20px 50px rgba(0,0,0,.28);
-  padding:20px 20px 16px;
-}
-.ex-filter-backdrop[hidden],
-.ex-filter-panel[hidden]{ display:none; }
-.ex-fgroup{ padding:12px 0; border-bottom:1px solid var(--ex-line-2); }
-.ex-fgroup:first-child{ padding-top:0; }
-.ex-fgroup:last-of-type{ border-bottom:0; }
-.ex-fgroup-title{ font-size:.9rem; font-weight:600; color:var(--ex-ink); margin-bottom:10px; }
-.ex-fgroup-opts{ display:flex; flex-wrap:wrap; gap:8px; }
-.ex-fgroup-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); }
-.ex-fopt{
-  display:inline-flex; align-items:center; gap:7px;
-  border:1px solid var(--ex-line);
-  border-radius:12px;
-  padding:9px 12px;
-  font-size:.82rem; font-weight:500; color:var(--ex-ink);
-  cursor:pointer;
-  transition:border-color .15s ease, background .15s ease;
-}
-.ex-fopt:hover{ border-color:var(--ex-muted); }
-.ex-fopt input{ accent-color:var(--ex-accent); width:15px; height:15px; margin:0; flex:0 0 auto; }
-.ex-fopt:has(input:checked){ border-color:var(--ex-ink); background:#f7f7f7; }
-
-/* Roomy amenity grid: hide most options until "Show more" is clicked. */
-.ex-fopt-more{ display:none; }
-.ex-fopt-more.visible{ display:inline-flex; }
-.ex-amenity-toggle{
-  margin-top:10px;
-  font-size:.82rem; font-weight:600; color:var(--ex-ink);
-  text-decoration:underline; padding:2px;
-}
-.ex-amenity-toggle:hover{ color:var(--ex-accent); }
-.ex-fgroup-foot{
-  display:flex; align-items:center; justify-content:space-between; gap:12px;
-  padding-top:14px;
-}
-
-/* ---- Price-range histogram ---- */
-.ex-fgroup-head{
-  display:flex; align-items:center; justify-content:space-between; gap:12px;
-  margin-bottom:10px;
-}
-.ex-price-head-right{ display:flex; align-items:center; gap:10px; }
-.ex-price-selection{ font-size:.85rem; font-weight:600; color:var(--ex-ink); }
-.ex-price-reset{
-  font-size:.8rem; font-weight:600; color:var(--ex-muted);
-  text-decoration:underline; padding:2px;
-}
-.ex-price-reset:hover{ color:var(--ex-ink); }
-
-.ex-price-graph{ position:relative; height:104px; margin-top:4px; }
-
-/* A native range thumb's centre only travels between one radius in from each
-   end, so the track and the histogram are inset by that radius. Everything
-   then shares one coordinate space: at the extremes a dot sits exactly on the
-   end of the coloured bar. Keep in step with `halfThumb` in explore.html. */
-.ex-price-bars,
-.ex-price-track{ left:10px; right:10px; }
-
-/* Histogram: one bar per bucket, filling the width evenly. */
-.ex-price-bars{
-  position:absolute; top:0; bottom:20px;
-  display:flex; align-items:flex-end; gap:3px;
-}
-.ex-price-bar{
-  flex:1 1 0; min-width:0;
-  /* Empty buckets keep a sliver so the run of bars reads as one graph
-     rather than breaking into islands with gaps. */
-  min-height:3px;
-  background:var(--ex-line);
-  border-radius:3px 3px 0 0;
-  transition:background .15s ease;
-}
-.ex-price-bar.on{ background:var(--ex-accent); }
-
-/* Track row: base line + selected-range fill, centred on the thumb line. */
-.ex-price-track{ position:absolute; bottom:8px; height:4px; }
-.ex-price-trackline{ position:absolute; left:0; right:0; top:0; bottom:0;
-  background:var(--ex-line); border-radius:2px; }
-.ex-price-trackfill{ position:absolute; top:0; bottom:0;
-  background:var(--ex-accent); border-radius:2px; }
-
-/* Dual range sliders: invisible track, orange thumbs centered on the line. */
-.ex-price-rng{
-  position:absolute; left:0; right:0; bottom:0;
-  width:100%; height:20px;
-  margin:0; padding:0;
-  -webkit-appearance:none; appearance:none;
-  background:transparent; pointer-events:none;
-}
-.ex-price-rng-min{ z-index:3; }
-.ex-price-rng-max{ z-index:4; }
-.ex-price-rng::-webkit-slider-runnable-track{
-  -webkit-appearance:none; appearance:none;
-  height:4px; background:transparent; border:none;
-}
-.ex-price-rng::-webkit-slider-thumb{
-  -webkit-appearance:none; appearance:none;
-  box-sizing:border-box;
-  width:20px; height:20px; margin-top:-8px;   /* -(20-4)/2 centres it on the track */
-  background:var(--ex-accent); border:4px solid #fff; border-radius:50%;
-  box-shadow:0 1px 4px rgba(0,0,0,.28);
-  cursor:grab; pointer-events:auto;
-}
-.ex-price-rng::-webkit-slider-thumb:active{ cursor:grabbing; }
-.ex-price-rng::-moz-range-track{ height:4px; background:transparent; border:none; }
-/* border-box + the same 20px so Firefox's dot matches Chrome's. */
-.ex-price-rng::-moz-range-thumb{
-  box-sizing:border-box;
-  width:20px; height:20px;
-  background:var(--ex-accent); border:4px solid #fff; border-radius:50%;
-  box-shadow:0 1px 4px rgba(0,0,0,.28);
-  cursor:grab; pointer-events:auto;
-}
-.ex-page .ex-fgroup-clear{
-  font-size:.82rem; font-weight:600; color:var(--ex-ink);
-  text-decoration:underline;
-}
-.ex-page .ex-fgroup-show{
-  font-size:.85rem; font-weight:600; color:#fff;
-  background:var(--ex-accent);
-  border-radius:999px;
-  padding:11px 22px;
-  transition:filter .15s ease;
-}
-.ex-fgroup-show:hover{ filter:brightness(1.05); }
 
 
 /* ---- Merged check-in / check-out segment + range calendar ---- */
@@ -494,9 +164,7 @@
   padding:10px 22px;
   border-radius:40px;
   font:inherit; color:inherit;
-  transition:padding .28s ease;
 }
-.ex-dates-set{ display:flex; align-items:center; gap:6px; }
 .ex-dates-value{
   display:flex; align-items:center; gap:6px;
   font-size:.88rem; color:var(--ex-muted);
@@ -591,7 +259,7 @@
 .ex-drp-done:hover{ filter:brightness(1.05); }
 
 /* ---------------- Results summary band ---------------- */
-.ex-summary-band{ border-bottom:1px solid var(--ex-line-2); position:relative; }
+.ex-summary-band{ border-bottom:1px solid var(--ex-line-2); }
 .ex-summary{
   display:flex; align-items:center; justify-content:center; gap:14px;
   flex-wrap:wrap;
@@ -600,7 +268,7 @@
 .ex-summary-text{ font-size:.95rem; color:var(--ex-ink); }
 .ex-summary-text strong{ font-weight:600; }
 .ex-summary-text .ex-dates{ color:var(--ex-muted); }
-.ex-page .ex-clear{
+.ex-clear{
   font-size:.85rem; font-weight:600; color:var(--ex-ink);
   border-bottom:1px solid var(--ex-ink);
   padding-bottom:1px;
@@ -647,9 +315,9 @@
 /* Grid used for search results */
 .ex-grid{
   display:grid;
-  grid-template-columns:repeat(auto-fill,minmax(200px,1fr));
-  gap:56px 20px;
-  padding-bottom:40px;
+  grid-template-columns:repeat(auto-fill,minmax(220px,1fr));
+  gap:24px 20px;
+  padding-bottom:8px;
 }
 
 /* ---------------- Card ---------------- */
@@ -663,35 +331,8 @@
   overflow:hidden;
   background:#e9e6e1;
 }
-.ex-card-img img{ width:100%; height:100%; object-fit:cover; }
-.ex-card:hover .ex-card-img img:not(.ex-card-slide){ transform:scale(1.04); }
-
-.ex-card-img .ex-card-slide{
-  position:absolute; inset:0; width:100%; height:100%;
-  object-fit:cover; opacity:0; background:transparent;
-  transition:opacity .35s ease, transform .3s ease;
-}
-.ex-card-img .ex-card-slide.is-active{ opacity:1; }
-.ex-card:hover .ex-card-img .ex-card-slide.is-active{ transform:scale(1.04); }
-
-.ex-card-nav{
-  position:absolute; top:50%; transform:translateY(-50%); z-index:3;
-  display:inline-flex; align-items:center; justify-content:center;
-  width:28px; height:28px; border-radius:50%;
-  background:rgba(255,255,255,.92);
-  box-shadow:0 1px 4px rgba(16,24,40,.22);
-  color:#111827; cursor:pointer;
-  opacity:0; transition:opacity .18s ease, background-color .18s ease;
-}
-.ex-card-nav.prev{ left:8px; }
-.ex-card-nav.next{ right:8px; }
-.ex-card:hover .ex-card-nav,
-.ex-card-nav:focus-visible{ opacity:1; }
-.ex-card-nav:hover{ background:#fff; }
-.ex-card-nav:focus-visible{ outline:2px solid #111827; outline-offset:2px; }
-.ex-card-nav svg{ width:14px; height:14px; fill:none; stroke:currentColor;
-  stroke-width:2.2; stroke-linecap:round; stroke-linejoin:round; }
-@media(hover:none){ .ex-card-nav{ opacity:1; } }
+.ex-card-img img{ width:100%; height:100%; object-fit:cover; transition:transform .35s ease; }
+.ex-card:hover .ex-card-img img{ transform:scale(1.04); }
 .ex-card:nth-child(7n+1) .ex-card-img{ background:#e7ddd0; }
 .ex-card:nth-child(7n+2) .ex-card-img{ background:#dfe4ea; }
 .ex-card:nth-child(7n+3) .ex-card-img{ background:#dde8dd; }
@@ -718,11 +359,11 @@
 .ex-like.liked svg{ fill:var(--ex-accent); stroke:var(--ex-accent); }
 
 .ex-card-name{
-  margin-top:8px; font-size:.85rem; font-weight:600; color:var(--ex-ink);
+  margin-top:10px; font-size:.95rem; font-weight:600; color:var(--ex-ink);
   white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
 }
 .ex-card-info{
-  margin-top:1px; font-size:.8rem; color:var(--ex-muted);
+  margin-top:2px; font-size:.95rem; color:var(--ex-muted);
   white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
 }
 .ex-card-info .ex-price{ color:var(--ex-ink); font-weight:600; }
@@ -772,123 +413,8 @@
 .ex-footer-links{ display:flex; gap:18px; flex-wrap:wrap; }
 .ex-footer-links a:hover{ color:var(--ex-ink); text-decoration:underline; }
 
-/* ---------------- Mobile bottom bar ---------------- */
-.ex-bottom-bar{
-  display:none;
-}
-@media (max-width:992px){
-
-  /* The search bar is removed from the top of the page; the bottom-bar buttons
-     relocate it into a floating popup card for one filter at a time. */
-  .ex-search-wrap{ display:none; }
-
-  .ex-bb-pop{
-    position:fixed; left:12px; right:12px; z-index:110;
-    top:calc(var(--ex-header-h,0px) + var(--ex-bb-h,64px) + 8px);
-    background:#fff;
-    border:1px solid var(--ex-line);
-    border-radius:18px;
-    box-shadow:0 12px 34px rgba(0,0,0,.18);
-    max-height:calc(100vh - var(--ex-header-h,0px) - var(--ex-bb-h,64px) - 24px);
-    overflow-y:auto;
-  }
-  .ex-bb-pop[hidden]{ display:none; }
-  .ex-bb-pop-head{
-    display:flex; align-items:center; justify-content:space-between; gap:10px;
-    padding:12px 14px 4px;
-  }
-  .ex-bb-pop-title{ font-size:.95rem; font-weight:600; color:var(--ex-ink); }
-  .ex-bb-pop-close{
-    border:0; background:transparent; cursor:pointer;
-    font-size:1.3rem; line-height:1; color:var(--ex-muted); padding:2px 6px;
-  }
-  .ex-bb-pop-close:hover{ color:var(--ex-ink); }
-  .ex-bb-pop-body{ padding:4px 8px 12px; }
-
-  /* Inside the popup each control is shown on its own, so drop the separators
-     and let the picked segment fill the card. */
-  .ex-bb-pop .ex-seg-div{ display:none !important; }
-  .ex-bb-pop .ex-seg-where,
-  .ex-bb-pop .ex-seg-dates,
-  .ex-bb-pop .ex-seg-who{
-    flex:1 1 auto; width:100%; padding:10px 12px;
-    border-radius:14px; border:1px solid var(--ex-line);
-  }
-  .ex-bb-pop .ex-searchbar{
-    flex-direction:column; align-items:stretch; gap:10px;
-    width:100%; border:0; box-shadow:none; border-radius:0; padding:0;
-  }
-  /* The date calendar flows inside the card, not absolutely under the row. */
-  .ex-bb-pop .ex-drp{
-    position:static; transform:none;
-    width:100%; border:0; box-shadow:none; padding:6px 0 0;
-  }
-  .ex-bb-pop .ex-drp[hidden]{ display:none; }
-  .ex-bb-pop .ex-ac{
-    left:0; min-width:0; max-width:none; width:100%;
-  }
-
-  /* Directly under the navbar, in flow, sticking as the page scrolls -- so it
-     reads as part of the header rather than floating over the cards. */
-  .ex-bottom-bar{
-    display:flex; align-items:center; justify-content:space-between; gap:4px;
-    position:sticky; top:var(--ex-header-h,0px); z-index:90;
-    background:#fff;
-    border-bottom:1px solid var(--ex-line-2);
-    padding:8px 12px;
-  }
-  .ex-bb-item{
-    display:flex; flex-direction:column; align-items:center; gap:2px;
-    flex:1 1 0; min-width:0;
-    border:0; background:transparent; cursor:pointer; padding:4px 2px;
-    color:var(--ex-ink);
-  }
-  .ex-bb-item svg{ width:20px; height:20px; flex-shrink:0; }
-  .ex-bb-lbl{
-    font-size:.6rem; font-weight:600; text-transform:uppercase; letter-spacing:.04em;
-    color:var(--ex-muted);
-  }
-  .ex-bb-val{
-    font-size:.7rem; font-weight:600; color:var(--ex-ink);
-    width:100%; text-align:center;
-    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-  }
-  .ex-bb-menu{
-    position:relative; flex:1 1 0; min-width:0;
-    display:flex; align-items:center;
-  }
-  .ex-bb-menu-toggle{
-    flex:1 1 0; width:100%;
-    display:flex; flex-direction:column; align-items:center; gap:2px;
-  }
-  .ex-bb-menu-toggle svg{
-    width:28px; height:28px;
-    stroke-width:2.6;
-  }
-  .ex-bb-menu-pop{
-    position:absolute; right:0; top:calc(100% + 10px);
-    min-width:168px;
-    background:#fff;
-    border:1px solid var(--ex-line);
-    border-radius:14px;
-    box-shadow:0 10px 28px rgba(0,0,0,.16);
-    padding:6px;
-    text-align:left;
-  }
-  .ex-bb-menu-pop[hidden]{ display:none; }
-  .ex-bb-menu-pop a{
-    display:block;
-    padding:10px 12px;
-    font-size:.86rem; font-weight:600;
-    color:var(--ex-ink); text-decoration:none;
-    border-radius:9px;
-    white-space:nowrap;
-  }
-  .ex-bb-menu-pop a:hover{ background:#f5f5f5; }
-  .ex-bb-menu-pop a:first-child{ color:var(--ex-accent); }
-}
+/* ---------------- Responsive ---------------- */
 @media (max-width:720px){
-  .explore-page .ul-header-bottom{ padding:14px 0; }
   .ex-searchbar{ flex-wrap:wrap; border-radius:24px; padding:8px; }
   .ex-seg{ flex:1 1 45%; padding:8px 14px; }
   .ex-seg-div{ display:none; }
