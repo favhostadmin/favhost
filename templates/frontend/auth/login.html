@@ -281,6 +281,18 @@
         </div>
     </section>
 
+    <!-- BLOCKED ACCOUNT MODAL -->
+    <div class="verify-modal" id="blockedModal" aria-hidden="true">
+        <div class="verify-modal-card" role="dialog" aria-modal="true" aria-labelledby="blockedTitle">
+            <button type="button" class="verify-close-btn" id="blockedCloseBtn" aria-label="Close modal">&times;</button>
+            <h3 id="blockedTitle">Account Blocked</h3>
+            <p class="verify-copy">
+                You have been blocked by FavHost.<br>
+                For support, please <a href="{% url 'contact' %}">contact us</a>.
+            </p>
+        </div>
+    </div>
+
     <!-- VERIFY OTP MODAL (for signup) -->
     <div class="verify-modal" id="verifyModal" aria-hidden="true">
         <div class="verify-modal-card" role="dialog" aria-modal="true" aria-labelledby="verifyTitle">
@@ -328,6 +340,8 @@
         const verifyEmailHidden = document.getElementById("verifyEmailHidden");
         const verifyCloseBtn = document.getElementById("verifyCloseBtn");
         const verifyResendBtn = document.getElementById("verifyResendBtn");
+        const blockedModal = document.getElementById("blockedModal");
+        const blockedCloseBtn = document.getElementById("blockedCloseBtn");
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
         // Auto-dismiss toasts
@@ -464,6 +478,28 @@
             }
         });
 
+        function showBlockedModal() {
+            blockedModal.classList.add("open");
+            blockedModal.setAttribute("aria-hidden", "false");
+        }
+
+        blockedModal.addEventListener("click", (event) => {
+            if (event.target === blockedModal) {
+                blockedModal.classList.remove("open");
+                blockedModal.setAttribute("aria-hidden", "true");
+            }
+        });
+        blockedCloseBtn.addEventListener("click", () => {
+            blockedModal.classList.remove("open");
+            blockedModal.setAttribute("aria-hidden", "true");
+        });
+
+        // Show blocked modal if the server flagged this account (password
+        // login form_invalid, or a redirect back from Google/Firebase sign-in)
+        {% if show_blocked_modal %}
+        showBlockedModal();
+        {% endif %}
+
         // Show OTP modal if server signals it
         {% if show_otp_modal %}
         const enteredEmail = "{{ otp_email|escapejs }}";
@@ -534,12 +570,19 @@
                     body: JSON.stringify({ credential: response.credential })
                 })
                     .then(function (res) {
+                        if (res.status === 403) {
+                            return res.json().then(function (d) {
+                                if (d.blocked) { window.location.href = "{% url 'login' %}?blocked=1"; return null; }
+                                throw new Error(d.error || "Server error");
+                            });
+                        }
                         if (!res.ok) {
                             return res.json().then(function (d) { throw new Error(d.error || "Server error"); });
                         }
                         return res.json();
                     })
                     .then(function (data) {
+                        if (!data) return; // blocked redirect already in flight
                         if (data.success) { window.location.href = data.redirect; }
                         else { alert("Google sign-in failed: " + (data.error || "Unknown error")); }
                     })
@@ -623,12 +666,19 @@
                         });
                     })
                     .then(function (res) {
+                        if (res.status === 403) {
+                            return res.json().then(function (d) {
+                                if (d.blocked) { window.location.href = "{% url 'login' %}?blocked=1"; return null; }
+                                throw new Error(d.error || "Server error");
+                            });
+                        }
                         if (!res.ok) {
                             return res.json().then(function (d) { throw new Error(d.error || "Server error"); });
                         }
                         return res.json();
                     })
                     .then(function (data) {
+                        if (!data) return; // blocked redirect already in flight
                         if (data.success) { window.location.href = data.redirect; }
                         else { alert("Google sign-in failed: " + (data.error || "Unknown error")); }
                     })

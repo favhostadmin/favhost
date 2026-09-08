@@ -536,6 +536,41 @@ def properties_list(request):
 
 
 @section_required('properties')
+@require_POST
+def property_action(request, pk):
+    prop = get_object_or_404(Property, pk=pk)
+    action = request.POST.get('action')
+    today = timezone.now().date()
+    has_active_reservations = Booking.objects.filter(
+        property=prop, check_out_date__gte=today,
+    ).exclude(status='cancelled').exists()
+
+    if action == 'deactivate':
+        if has_active_reservations:
+            messages.error(request, 'This listing cannot be deactivated because it has active or future reservations.')
+        else:
+            prop.status = 'Inactive'
+            prop.save(update_fields=['status'])
+            messages.success(request, f'"{prop.title}" is now Inactive and no longer visible to guests.')
+    elif action == 'activate':
+        prop.status = 'Active'
+        prop.save(update_fields=['status'])
+        messages.success(request, f'"{prop.title}" is now Active.')
+    elif action == 'delete':
+        if has_active_reservations:
+            messages.error(request, 'This listing cannot be deleted because it has active or future reservations.')
+            return redirect('controlpanel:property_detail', pk=pk)
+        title = prop.title
+        prop.delete()
+        messages.success(request, f'Listing "{title}" was permanently deleted.')
+        return redirect('controlpanel:properties')
+    else:
+        messages.error(request, 'Unknown action.')
+
+    return redirect('controlpanel:property_detail', pk=pk)
+
+
+@section_required('properties')
 def property_detail(request, pk):
     """A listing and everything about it — including ALL of its bookings.
 

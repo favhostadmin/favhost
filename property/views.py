@@ -906,8 +906,9 @@ class ListingPageView(ListView):
         guests = self.request.GET.get('guests')
         
         if short_code:
-            # Public access via host's alphanumeric short_code
-            queryset = public_property_qs().filter(created_by__short_code=short_code)
+            # Public access via host's alphanumeric short_code. A host blocked
+            # from the control panel must vanish from public pages too.
+            queryset = Property.objects.filter(created_by__short_code=short_code, created_by__is_active=True, status='Active')
         elif self.request.user.is_authenticated:
             # Authenticated user viewing their own listings
             queryset = Property.objects.filter(created_by__in=get_visible_user_ids(self.request.user), status='Active')
@@ -1039,8 +1040,8 @@ class ListingDetailView(DetailView):
     context_object_name = 'property'
 
     def get_queryset(self):
-        # A blocked host's listing 404s here rather than rendering for anyone
-        # holding the direct link.
+        # A host blocked from the control panel must not be reachable by
+        # guests via a direct listing URL either.
         return Property.objects.filter(created_by__is_active=True)
 
     def get_object(self, queryset=None):
@@ -1082,7 +1083,8 @@ class RequestBokPageView(DetailView):
     context_object_name = 'property'
 
     def get_queryset(self):
-        # No taking a booking request for a blocked host.
+        # A host blocked from the control panel must not be reachable by
+        # guests via a direct request-to-book URL either.
         return Property.objects.filter(created_by__is_active=True)
 
     def get_object(self, queryset=None):

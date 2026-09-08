@@ -22,6 +22,7 @@ urlpatterns = [
     # Properties
     path('properties/', views.properties_list, name='properties'),
     path('properties/<uuid:pk>/', views.property_detail, name='property_detail'),
+    path('properties/<uuid:pk>/action/', views.property_action, name='property_action'),
 
     # Bookings
     path('bookings/', views.bookings_list, name='bookings'),

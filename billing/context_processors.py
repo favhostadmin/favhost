@@ -74,7 +74,15 @@ def subscription_status(request):
     show_wall = not is_premium and not user.is_subscription_free and trial_expired
 
     wall_reason = ''
-    if show_wall:
+    if user.is_subscription_free:
+        pass
+    elif sub_status == 'past_due':
+        # A failed/overdue payment locks the platform immediately — unlike
+        # a plain trial expiry, this doesn't wait on the trial window at all,
+        # since the host already had (and lost) a paid subscription.
+        show_wall = True
+        wall_reason = 'past_due'
+    elif show_wall:
         # Distinguish the message: someone who once subscribed sees "subscription
         # ended"; someone who never subscribed sees "trial expired".
         if sub_status == 'canceled':

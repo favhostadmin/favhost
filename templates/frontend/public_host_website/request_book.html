@@ -100,6 +100,66 @@
     .rb-warning-modal-btn-cancel.is-hidden {
         display: none;
     }
+    .rb-otp-modal {
+        width: min(420px, 100%);
+    }
+    .rb-otp-modal-body p {
+        margin: 0 0 18px;
+        font-size: 14px;
+        line-height: 1.55;
+        color: #4b4b4b;
+    }
+    .rb-otp-modal-input {
+        width: 100%;
+        box-sizing: border-box;
+        text-align: center;
+        font-family: 'Courier New', Courier, monospace;
+        font-size: 26px;
+        font-weight: 700;
+        letter-spacing: 12px;
+        padding: 12px 10px 12px 22px;
+        border: 1.5px solid #cfcfcf;
+        border-radius: 8px;
+        color: #202124;
+    }
+    .rb-otp-modal-input:focus {
+        outline: none;
+        border-color: #e05c2a;
+        box-shadow: 0 0 0 3px rgba(224, 92, 42, 0.12);
+    }
+    .rb-otp-modal-status {
+        min-height: 18px;
+        margin-top: 12px;
+        font-size: 13px;
+        font-weight: 600;
+    }
+    .rb-otp-modal-status.is-ok { color: #1a9c4c; }
+    .rb-otp-modal-status.is-err { color: #e11d48; }
+    .rb-otp-modal-resend {
+        display: inline-block;
+        background: none;
+        border: none;
+        padding: 0;
+        margin-top: 14px;
+        font-size: 13px;
+        font-weight: 600;
+        color: #0b46fa;
+        cursor: pointer;
+    }
+    .rb-otp-modal-resend:disabled {
+        color: #9ca3af;
+        cursor: not-allowed;
+    }
+    #rb-otp-modal-verify {
+        background: #e05c2a;
+    }
+    #rb-otp-modal-verify:hover {
+        background: #c94e22;
+    }
+    #rb-otp-modal-verify:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
     .rb-policies-modal-overlay {
         position: fixed;
         inset: 0;
@@ -258,7 +318,7 @@
                     </div>
                     <div class="rb-field">
                         <label>Email*</label>
-                        <input class="rb-input" type="email" name="email" required>
+                        <input class="rb-input" type="email" name="email" id="rb-email" required>
                     </div>
                     <div class="rb-field">
                         <label>Phone*</label>
@@ -431,6 +491,25 @@
         </div>
         <p>You can also directly contact the host through email, phone, whatsapp</p>
         <a class="rb-modal-btn mb-5" id="rb-modal-continue" href="{{ property.get_public_listing_url }}">Continue to the listing Page</a>
+    </div>
+</div>
+<!-- Email OTP Modal -->
+<div class="rb-warning-modal-overlay" id="rb-otp-modal" role="dialog" aria-modal="true" aria-labelledby="rb-otp-modal-title" aria-hidden="true">
+    <div class="rb-warning-modal rb-otp-modal">
+        <div class="rb-warning-modal-header">
+            <h3 class="rb-warning-modal-title" id="rb-otp-modal-title">Verify your email</h3>
+            <button type="button" class="rb-warning-modal-close" id="rb-otp-modal-close" aria-label="Close">×</button>
+        </div>
+        <div class="rb-warning-modal-body rb-otp-modal-body">
+            <p>We've sent a 4-digit code to <strong id="rb-otp-modal-email"></strong>. Enter it below to send your inquiry.</p>
+            <input type="text" id="rb-otp-modal-input" class="rb-otp-modal-input" inputmode="numeric" maxlength="4" placeholder="••••" autocomplete="one-time-code">
+            <div class="rb-otp-modal-status" id="rb-otp-modal-status"></div>
+            <button type="button" class="rb-otp-modal-resend" id="rb-otp-modal-resend">Didn't get a code? Resend</button>
+        </div>
+        <div class="rb-warning-modal-actions">
+            <button type="button" class="rb-warning-modal-btn-cancel" id="rb-otp-modal-cancel">Cancel</button>
+            <button type="button" class="rb-warning-modal-btn-confirm" id="rb-otp-modal-verify">Verify &amp; Send</button>
+        </div>
     </div>
 </div>
 <div class="rb-warning-modal-overlay" id="rb-warning-modal" role="dialog" aria-modal="true" aria-labelledby="rb-warning-modal-title" aria-hidden="true">
@@ -902,8 +981,189 @@
             refreshCaptcha(); // initial draw; leaves the submit button disabled
         }
 
+        // ---- Email OTP verification (guest must prove they own the inbox before sending) ----
+        // Submitting the form opens this modal (instead of blocking inline) the
+        // first time for a given email; once verified, later submits in the same
+        // session skip straight through as long as the email hasn't changed.
+        const rbEmailInput = document.getElementById('rb-email');
+        const otpModal = document.getElementById('rb-otp-modal');
+        const otpModalEmail = document.getElementById('rb-otp-modal-email');
+        const otpModalInput = document.getElementById('rb-otp-modal-input');
+        const otpModalStatus = document.getElementById('rb-otp-modal-status');
+        const otpModalVerifyBtn = document.getElementById('rb-otp-modal-verify');
+        const otpModalResendBtn = document.getElementById('rb-otp-modal-resend');
+        const otpModalCancelBtn = document.getElementById('rb-otp-modal-cancel');
+        const otpModalCloseBtn = document.getElementById('rb-otp-modal-close');
+        let verifiedEmail = '';
+        let pendingSubmit = null; // { formData, submitBtn } — set while the OTP modal is open
+
+        function isEmailVerified() {
+            return !!verifiedEmail && rbEmailInput && rbEmailInput.value.trim().toLowerCase() === verifiedEmail;
+        }
+
+        function resetEmailVerification() {
+            verifiedEmail = '';
+        }
+
+        function csrfTokenValue() {
+            return document.querySelector('#rb-form input[name="csrfmiddlewaretoken"]').value;
+        }
+
+        function setOtpModalStatus(text, isError) {
+            otpModalStatus.textContent = text || '';
+            otpModalStatus.className = 'rb-otp-modal-status' + (text ? (isError ? ' is-err' : ' is-ok') : '');
+        }
+
+        function closeOtpModal() {
+            otpModal.classList.remove('is-open');
+            otpModal.setAttribute('aria-hidden', 'true');
+            document.body.style.overflow = '';
+            pendingSubmit = null;
+        }
+
+        function requestInquiryOtp(email, isResend) {
+            const firstNameInput = form.querySelector('[name="first_name"]');
+            const btn = isResend ? otpModalResendBtn : otpModalVerifyBtn;
+            return fetch("{% url 'booking:enquiry-send-otp' %}", {
+                method: 'POST',
+                body: new URLSearchParams({
+                    email: email,
+                    first_name: firstNameInput ? firstNameInput.value.trim() : '',
+                    csrfmiddlewaretoken: csrfTokenValue(),
+                }),
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        setOtpModalStatus(isResend ? 'A new code is on its way.' : '', false);
+                    } else {
+                        setOtpModalStatus(data.error || 'Could not send the code. Please try again.', true);
+                    }
+                    return data.success;
+                })
+                .catch(() => {
+                    setOtpModalStatus('An error occurred while sending the code.', true);
+                    return false;
+                });
+        }
+
+        function openOtpModal(email, formData, submitBtn) {
+            pendingSubmit = { formData, submitBtn };
+            otpModalEmail.textContent = email;
+            otpModalInput.value = '';
+            setOtpModalStatus('Sending code...', false);
+            otpModalVerifyBtn.disabled = true;
+            otpModal.classList.add('is-open');
+            otpModal.setAttribute('aria-hidden', 'false');
+            document.body.style.overflow = 'hidden';
+
+            requestInquiryOtp(email, false).then(ok => {
+                otpModalVerifyBtn.disabled = false;
+                setOtpModalStatus(ok ? '' : (otpModalStatus.textContent || 'Could not send the code.'), !ok);
+                if (ok) otpModalInput.focus();
+            });
+        }
+
+        function verifyOtpAndContinue() {
+            if (!pendingSubmit) return;
+            const email = otpModalEmail.textContent;
+            const code = otpModalInput.value.trim();
+            if (!code) {
+                setOtpModalStatus('Please enter the code sent to your email.', true);
+                return;
+            }
+            otpModalVerifyBtn.disabled = true;
+            otpModalVerifyBtn.textContent = 'Verifying...';
+
+            fetch("{% url 'booking:enquiry-verify-otp' %}", {
+                method: 'POST',
+                body: new URLSearchParams({
+                    email: email,
+                    otp_code: code,
+                    csrfmiddlewaretoken: csrfTokenValue(),
+                }),
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        verifiedEmail = email.toLowerCase();
+                        const submit = pendingSubmit;
+                        closeOtpModal();
+                        submitEnquiry(submit.formData, submit.submitBtn);
+                    } else {
+                        setOtpModalStatus(data.error || 'Invalid code.', true);
+                    }
+                })
+                .catch(() => setOtpModalStatus('An error occurred. Please try again.', true))
+                .finally(() => {
+                    otpModalVerifyBtn.disabled = false;
+                    otpModalVerifyBtn.textContent = 'Verify & Send';
+                });
+        }
+
+        otpModalVerifyBtn.addEventListener('click', verifyOtpAndContinue);
+        otpModalInput.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter') { e.preventDefault(); verifyOtpAndContinue(); }
+        });
+        otpModalResendBtn.addEventListener('click', function () {
+            requestInquiryOtp(otpModalEmail.textContent, true);
+        });
+        otpModalCancelBtn.addEventListener('click', closeOtpModal);
+        otpModalCloseBtn.addEventListener('click', closeOtpModal);
+        otpModal.addEventListener('click', function (e) {
+            if (e.target === otpModal) closeOtpModal();
+        });
+        // Changing the email after verifying invalidates it — the session flag is
+        // tied to the exact address that was verified.
+        rbEmailInput.addEventListener('input', function () {
+            if (verifiedEmail && rbEmailInput.value.trim().toLowerCase() !== verifiedEmail) {
+                resetEmailVerification();
+            }
+        });
+
         const form = document.getElementById('rb-form');
         const modal = document.getElementById('rb-success-modal');
+
+        function submitEnquiry(formData, submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Sending...';
+
+            fetch("{% url 'booking:enquiry-create' %}", {
+                method: "POST",
+                body: formData,
+                headers: {
+                    "X-Requested-With": "XMLHttpRequest",
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    modal.classList.add('is-open');
+                    modal.setAttribute('aria-hidden', 'false');
+                    document.body.style.overflow = 'hidden';
+
+                    // Reset the form and clear custom UI file name displays
+                    form.reset();
+                    if (guestPhotoChip) guestPhotoChip.clear();
+                    if (attachmentChips) attachmentChips.clear();
+                    resetEmailVerification(); // next inquiry needs a fresh code too
+                    refreshCaptcha(); // new code + re-disable submit until re-verified
+                } else {
+                    showAlertModal("Error: " + (data.error || "Something went wrong"));
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Agree and Send booking Request';
+                }
+            })
+            .catch(error => {
+                console.error("Error:", error);
+                showAlertModal("An error occurred while sending your request.");
+            })
+            .finally(() => {
+                // Restore label; re-enable only if the captcha is still valid
+                submitBtn.textContent = 'Agree and Send booking Request';
+                updateSubmitState();
+            });
+        }
 
         if (form && modal) {
             form.addEventListener('submit', function(e) {
@@ -959,11 +1219,8 @@
                 }
                 
                 const submitBtn = form.querySelector('button[type="submit"]');
-                submitBtn.disabled = true;
-                submitBtn.textContent = 'Sending...';
-
                 const formData = new FormData(form);
-                
+
                 // Set phone number (either international format or as entered)
                 if (phoneIntl && phoneIntl.getNumber()) {
                     formData.set("phone", phoneIntl.getNumber());
@@ -971,40 +1228,11 @@
                     formData.set("phone", phoneInput.value.trim());
                 }
 
-                fetch("{% url 'booking:enquiry-create' %}", {
-                    method: "POST",
-                    body: formData,
-                    headers: {
-                        "X-Requested-With": "XMLHttpRequest",
-                    }
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        modal.classList.add('is-open');
-                        modal.setAttribute('aria-hidden', 'false');
-                        document.body.style.overflow = 'hidden';
-
-                        // Reset the form and clear custom UI file name displays
-                        form.reset();
-                        if (guestPhotoChip) guestPhotoChip.clear();
-                        if (attachmentChips) attachmentChips.clear();
-                        refreshCaptcha(); // new code + re-disable submit until re-verified
-                    } else {
-                        showAlertModal("Error: " + (data.error || "Something went wrong"));
-                        submitBtn.disabled = false;
-                        submitBtn.textContent = 'Agree and Send booking Request';
-                    }
-                })
-                .catch(error => {
-                    console.error("Error:", error);
-                    showAlertModal("An error occurred while sending your request.");
-                })
-                .finally(() => {
-                    // Restore label; re-enable only if the captcha is still valid
-                    submitBtn.textContent = 'Agree and Send booking Request';
-                    updateSubmitState();
-                });
+                if (isEmailVerified()) {
+                    submitEnquiry(formData, submitBtn);
+                } else {
+                    openOtpModal(rbEmailInput.value.trim(), formData, submitBtn);
+                }
             });
             modal.addEventListener('click', function(e) {
                 if (e.target === modal) {
