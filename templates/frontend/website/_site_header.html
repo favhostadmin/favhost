@@ -19,6 +19,13 @@
   that hides #preloader, un-fixes <body>, moves `.to-go-to-sidebar-in-mobile`
   into the sidebar below 992px, and toggles `.sticky` on `.to-be-sticky`
   (website/js/main.js does all four on the landing pages).
+
+  Pass `hide_nav=True` on pages (e.g. the Explore page) that should drop the
+  navbar entirely but keep the logo, login and get-started actions. Pass
+  `hide_auth=True` as well to also hide those login / sign-up / get-started
+  buttons, `hide_opener=True` to drop the mobile sidebar (☰) button, and
+  `show_currency_switcher=True` to instead render the guest-currency selector
+  in the header actions.
 {% endcomment %}
 {% load static %}
 
@@ -106,6 +113,7 @@
             {% endif %}
 
             <!-- header nav -->
+            {% if not hide_nav %}
             <div class="ul-header-nav-wrapper">
                 <div class="to-go-to-sidebar-in-mobile">
                     <nav class="ul-header-nav">
@@ -124,9 +132,28 @@
                     </nav>
                 </div>
             </div>
+            {% endif %}
 
             <!-- actions -->
             <div class="ul-header-actions">
+                {% if show_currency_switcher %}
+                {% include 'frontend/public_host_website/_currency_switcher.html' %}
+                {% endif %}
+                {% if show_header_add_listing %}
+                {% if request.user.is_authenticated %}
+                <a class="ul-header-add-link" href="{% url 'property:property-create' %}">Add your listing</a>
+                {% else %}
+                <a class="ul-header-add-link" href="{% url 'accounts:login' %}?next={% url 'property:property-create' %}">Add your listing</a>
+                {% endif %}
+                {% endif %}
+                {% if auth_desktop_only %}
+                <!-- desktop-only: below 992px the explore page's mobile ☰ menu /
+                     bottom bar covers these instead -->
+                <button onclick="window.location.href='{% url 'accounts:login' %}';"
+                    class="btn-login d-none d-lg-inline-flex">Log In</button>
+                <a href="{% url 'register' %}" class="ul-btn d-none d-lg-inline-flex"><i
+                        class="flaticon-fast-forward-double-right-arrows-symbol"></i> Get started</a>
+                {% elif not hide_auth %}
                 <!-- desktop: login button -->
                 <button onclick="window.location.href='{% url 'accounts:login' %}';"
                     class="btn-login d-none d-lg-inline-flex">Log In</button>
@@ -134,10 +161,51 @@
                         class="flaticon-fast-forward-double-right-arrows-symbol"></i> Get started</a>
                 <!-- phone: compact sign up button -->
                 <a href="{% url 'register' %}" class="ul-btn btn-signup-mobile d-inline-flex d-sm-none">Sign up</a>
+                {% endif %}
+                {% if show_header_menu %}
+                <button type="button" class="ul-header-menu-btn d-none d-lg-inline-flex" id="ul-header-menu-btn"
+                        aria-label="Menu" aria-expanded="false" aria-controls="ul-header-menu-pop">
+                    <i class="flaticon-menu"></i>
+                </button>
+                <div class="ul-header-menu-pop" id="ul-header-menu-pop" hidden>
+                    {% if request.user.is_authenticated %}
+                    <a href="{% url 'accounts:profile' %}">Profile</a>
+                    {% else %}
+                    <a href="{% url 'accounts:login' %}">Login / Signup</a>
+                    {% endif %}
+                </div>
+                {% endif %}
+                {% if not hide_opener %}
                 <button class="ul-header-sidebar-opener d-lg-none d-inline-flex"><i
                         class="flaticon-menu"></i></button>
+                {% endif %}
             </div>
         </div>
     </div>
 </header>
 <!-- HEADER SECTION END -->
+
+{% if show_header_menu %}
+<script>
+  (function () {
+    var btn = document.getElementById('ul-header-menu-btn');
+    var pop = document.getElementById('ul-header-menu-pop');
+    if (!btn || !pop) return;
+    btn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      pop.hidden = !pop.hidden;
+      btn.setAttribute('aria-expanded', pop.hidden ? 'false' : 'true');
+    });
+    document.addEventListener('click', function () {
+      pop.hidden = true;
+      btn.setAttribute('aria-expanded', 'false');
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') {
+        pop.hidden = true;
+        btn.setAttribute('aria-expanded', 'false');
+      }
+    });
+  })();
+</script>
+{% endif %}
