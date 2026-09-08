@@ -9,11 +9,30 @@
 <article class="ex-card">
   <a href="{{ item.get_absolute_url }}" aria-label="{{ item.title }}">
     <div class="ex-card-img">
-      <img src="{{ item.get_primary_image_url }}"
-           alt="{{ item.title }} in {{ item.city }}, {{ item.state }}"
-           loading="lazy"
-           {# get_primary_image_url()'s placeholder isn't in static/, so swap on 404. #}
-           onerror="this.src='{% static 'img/not-found/no_property.jpg' %}';this.onerror=null;">
+      {% with images=item.images.all|slice:":8" %}
+        {% if images %}
+          {% for photo in images %}
+            <img class="ex-card-slide{% if forloop.first %} is-active{% endif %}"
+                 src="{{ photo.image.url }}"
+                 alt="{{ item.title }} in {{ item.city }}, {{ item.state }}"
+                 {% if not forloop.first %}loading="lazy"{% endif %}
+                 onerror="this.src='{% static 'img/not-found/no_property.jpg' %}';this.onerror=null;">
+          {% endfor %}
+          {% if images|length > 1 %}
+            <span class="ex-card-nav prev" role="button" tabindex="0" aria-label="Previous photo">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5.5 8.5 12l6.5 6.5"/></svg>
+            </span>
+            <span class="ex-card-nav next" role="button" tabindex="0" aria-label="Next photo">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5.5 15.5 12 9 18.5"/></svg>
+            </span>
+          {% endif %}
+        {% else %}
+          <img class="ex-card-slide is-active"
+               src="{{ item.get_primary_image_url }}"
+               alt="{{ item.title }} in {{ item.city }}, {{ item.state }}"
+               onerror="this.src='{% static 'img/not-found/no_property.jpg' %}';this.onerror=null;">
+        {% endif %}
+      {% endwith %}
     </div>
   </a>
   <a href="{{ item.get_absolute_url }}">
@@ -21,7 +40,6 @@
     <div class="ex-card-info">{{ item.city }}{% if item.state %}, {{ item.state }}{% endif %}</div>
     <div class="ex-card-info">
       <span class="ex-price">{% money item.price_per_night %}</span> / night
-      &middot; {{ item.guest }} guest{{ item.guest|pluralize }}
     </div>
   </a>
 </article>
