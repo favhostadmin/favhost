@@ -9,8 +9,6 @@ from django.http import JsonResponse, Http404
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 import json
-import math
-from decimal import Decimal, InvalidOperation
 from django.utils import timezone
 from datetime import datetime, timedelta
 
@@ -72,22 +70,6 @@ def get_unavailable_date_ranges(property_obj):
             'end': block.end_date.isoformat(),
         })
     return ranges
-
-
-def public_property_qs():
-    """Listings the public is allowed to see.
-
-    Two conditions, not one: the listing is published *and* its host is in good
-    standing. Blocking a host from the console sets `MyUser.is_active = False`,
-    which until now only stopped them signing in -- their listings stayed live
-    on browse, on their own host site and on every detail page. Routing all
-    public reads through here means blocking hides them everywhere at once, and
-    unblocking brings them straight back; nothing is copied or deleted.
-
-    Console views stay on their own `created_by__in=get_visible_user_ids(...)`
-    querysets: a host must still see their own listings while blocked.
-    """
-    return Property.objects.filter(status='Active', created_by__is_active=True)
 
 
 class PropertyCreateView(LoginRequiredMixin, CreateView):
