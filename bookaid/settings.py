@@ -15,7 +15,7 @@ import os
 import json
 import boto3
 from celery.schedules import crontab
-from dotenv import load_dotenv
+from dotenv import load_dotenv 
 
 
 def load_secrets(secret_name=None, region="us-east-1"):
