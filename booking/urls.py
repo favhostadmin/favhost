@@ -24,6 +24,8 @@ urlpatterns = [
 
 
     # Enquiry API endpoint
+    path('enquiry/send-otp/', views.enquiry_send_otp_api, name='enquiry-send-otp'),
+    path('enquiry/verify-otp/', views.enquiry_verify_otp_api, name='enquiry-verify-otp'),
     path('enquiry/create/', views.enquiry_create_api, name='enquiry-create'),
     path('enquiry/list/', views.EnquiryListView.as_view(), name='enquiry-list'),
     path('enquiry/detail/<uuid:unique_id>/', views.EnquiryDetailView.as_view(), name='enquiry-detail'),
