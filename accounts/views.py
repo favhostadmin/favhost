@@ -1028,6 +1028,11 @@ def profile_edit_view(request):
             field_errors['country'] = 'Please select a country.'
         if not user.state:
             field_errors['state'] = 'Please select a state.'
+        # Government ID is mandatory for first-time profile setup; users who
+        # already have one uploaded are not required to re-submit.
+        has_govt_id = user.documents.filter(doc_type='govt_id').exists()
+        if not has_govt_id and 'govt_id_document' not in request.FILES:
+            field_errors['govt_id'] = 'Please upload a government-issued ID card.'
         if field_errors:
             context = {
                 'user': user,
@@ -1035,6 +1040,7 @@ def profile_edit_view(request):
                 'govt_id_docs': user.documents.filter(doc_type='govt_id'),
                 'permission_count': user.documents.filter(doc_type='permission').count(),
                 'govt_id_count': user.documents.filter(doc_type='govt_id').count(),
+                'has_govt_id': has_govt_id,
                 'phone_code': phone_code or '+1',
                 'phone_number': phone_number,
                 'countries': CountryAndState.objects.order_by('country_name').values_list('country_name', flat=True).distinct(),
@@ -1115,6 +1121,7 @@ def profile_edit_view(request):
         'govt_id_docs': govt_id_docs,
         'permission_count': permission_docs.count(),
         'govt_id_count': govt_id_docs.count(),
+        'has_govt_id': govt_id_docs.exists(),
         'phone_code': phone_code,
         'phone_number': phone_number,
         'countries': CountryAndState.objects.order_by('country_name').values_list('country_name', flat=True).distinct(),
