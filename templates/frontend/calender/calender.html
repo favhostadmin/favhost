@@ -4087,6 +4087,15 @@
     }
     initialFilter = urlParams.get('filter') || null;
 
+    /* Arriving from the timeline, where clicking a listing opens the month on
+       that listing. Only honoured when the id is one this user can actually
+       see, so a stale or hand-typed link falls back to the first listing
+       rather than rendering an empty calendar. */
+    const propertyParam = urlParams.get('property_id');
+    if (propertyParam && properties.some(p => String(p.id) === String(propertyParam))) {
+      activePropertyId = String(propertyParam);
+    }
+
     // Bind view switcher
     const viewSwitcher = document.getElementById('calendarViewSwitcher');
     const viewDropdownBtn = document.getElementById('viewDropdownBtn');

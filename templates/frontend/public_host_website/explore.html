@@ -327,7 +327,10 @@
 
             <div class="ex-fgroup-foot">
               <a href="{% url 'property:explore-listings' %}?search={{ search }}&check_in={{ check_in }}&check_out={{ check_out }}&guests={{ guests }}" class="ex-fgroup-clear">Clear all</a>
-              <button type="submit" class="ex-fgroup-show">Show stays</button>
+              <button type="submit" class="ex-fgroup-show" id="ex-fgroup-show"
+                      data-count-url="{% url 'property:explore-count' %}">
+                <span id="ex-fgroup-show-text">{% if paginator.count %}Show {{ paginator.count }} stay{{ paginator.count|pluralize }}{% else %}No stays match{% endif %}</span>
+              </button>
             </div>
           </form>
         </div>
@@ -590,7 +593,11 @@
       [document.getElementById('ex-where'),        'Search destinations', 'Where'],
       [wrap.querySelector('input[name="guests"]'), 'Add guests',          'Who']
     ];
-    var THRESHOLD = 80;   /* px scrolled before it collapses */
+    /* Two thresholds, not one: collapsing shortens the layout above the cards,
+       so with a single cut-off the bar could flip open and shut on every
+       frame while the scroll position hovers around it. */
+    var COLLAPSE_AT = 80;   /* px scrolled before it collapses */
+    var EXPAND_AT   = 24;   /* px scrolled back up before it re-opens */
     var held = false;     /* user opened it deliberately - leave it alone */
 
     /* The navbar wraps at some widths, so its height is measured rather than
@@ -610,6 +617,11 @@
       wrap.classList.add('is-compact');
       var compactH = wrap.getBoundingClientRect().height;
       if (!wasCompact) wrap.classList.remove('is-compact');
+      /* Commit the reverted state while transitions are still off. Without
+         this the browser sees compact -> expanded as a real change once
+         `is-measuring` comes off, and animates it: the grid slid ~60px on
+         load and again on every resize. */
+      void wrap.offsetHeight;
       wrap.classList.remove('is-measuring');
 
       /* The mobile shortcut bar sits under the navbar, and its popups hang
@@ -630,7 +642,10 @@
          that is about to change size). */
       if (held || wrap.contains(document.activeElement)) return;
       if (drp && !drp.hidden) return;
-      setCompact(window.scrollY > THRESHOLD);
+      var y = window.scrollY;
+      if (y > COLLAPSE_AT)     setCompact(true);
+      else if (y < EXPAND_AT)  setCompact(false);
+      /* between the two: leave it as it is */
     }
 
     function setCompact(on) {
@@ -670,6 +685,11 @@
 
     window.addEventListener('scroll', onScroll, { passive: true });
     window.addEventListener('resize', function () { measure(); update(); });
+    /* The navbar's height settles once the logo image and web fonts are in;
+       measuring only at parse time left --ex-header-h short, so the bar
+       stuck a few px too high and clipped the first row of cards. */
+    window.addEventListener('load', measure);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(measure);
     measure();
     update();
   })();
@@ -1082,8 +1102,45 @@
       set(panel.hidden);
     });
     if (backdrop) backdrop.addEventListener('click', function () { set(false); });
+    /* "Show N stays": the count for whatever is currently ticked, fetched
+       from the same queryset the results page uses. Debounced so dragging
+       the price slider doesn't fire a request per pixel; a stale response
+       is ignored if a newer one is already in flight. */
+    var showBtn  = document.getElementById('ex-fgroup-show');
+    var showText = document.getElementById('ex-fgroup-show-text');
+    var countUrl = showBtn && showBtn.dataset.countUrl;
+    var countTimer = null, countSeq = 0;
+
+    function refreshCount() {
+      if (!countUrl || !showText) return;
+      var f = panel.querySelector('form');
+      if (!f) return;
+      var params = new URLSearchParams();
+      new FormData(f).forEach(function (v, k) { if (v !== '') params.append(k, v); });
+      var seq = ++countSeq;
+      showBtn.classList.add('is-counting');
+      fetch(countUrl + '?' + params.toString(), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (d) {
+          if (seq !== countSeq || !d) return;          /* superseded */
+          var c = d.count;
+          showText.textContent = c === 0 ? 'No stays match'
+                               : 'Show ' + c + (c === 1 ? ' stay' : ' stays');
+        })
+        .catch(function () { /* leave the last good label in place */ })
+        .finally(function () { if (seq === countSeq) showBtn.classList.remove('is-counting'); });
+    }
+    function scheduleCount() {
+      clearTimeout(countTimer);
+      countTimer = setTimeout(refreshCount, 250);
+    }
+
     /* Drop empty hidden inputs / "Any" radios so the URL stays tidy. */
     var form = panel.querySelector('form');
+    if (form) {
+      form.addEventListener('change', scheduleCount);
+      form.addEventListener('input', scheduleCount);   /* the price sliders */
+    }
     if (form) form.addEventListener('submit', function () {
       form.querySelectorAll('input').forEach(function (inp) {
         if (!inp.value) inp.remove();

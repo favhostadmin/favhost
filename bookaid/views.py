@@ -2451,3 +2451,14 @@ def tutorial_article(request, article):
     if article not in TUTORIAL_ARTICLES:
         return HttpResponseNotFound('Tutorial article not found.')
     return render(request, f'frontend/tutorials/{article}.html')
+
+class MobileMenuView(LoginRequiredMixin, TemplateView):
+    """The phone home screen: every navbar destination as a tile.
+
+    The navbar collapses into a hamburger on a phone, which buries the eight
+    sections behind two taps. This is where signing in lands on a small screen
+    instead -- one tap to anywhere. Desktop is unaffected: the template bounces
+    straight to Frontdesk above the mobile breakpoint, so the wide layout keeps
+    the behaviour it has always had.
+    """
+    template_name = 'frontend/base/mobile_menu.html'

@@ -27,6 +27,8 @@ urlpatterns = [
     # Public URLs
     # Airbnb-style public browse page, linked from the landing page navbar.
     path('explore/', ExploreListingView.as_view(), name='explore-listings'),
+    # Live count behind the filter panel's "Show N stays" button.
+    path('ajax/explore-count/', explore_stay_count, name='explore-count'),
     path('listing/', ListingPageView.as_view(), name='listing-page'),
     path('listing/<str:short_code>/', ListingPageView.as_view(), name='listing-page-public'),
     # Updated public detail URL for a cleaner API structure

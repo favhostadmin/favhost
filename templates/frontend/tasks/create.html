@@ -333,11 +333,9 @@ document.addEventListener('DOMContentLoaded', function () {
     taskDateInput.addEventListener('change', updateRepeatTillMin);
     updateRepeatTillMin();
 
-    /* ── Edit: disable time toggle for repeating tasks ── */
-    {% if is_edit %}
-        const timeToggle = document.querySelector('#taskTimeDropdown .time_dropdown-toggle');
-        if (timeToggle && '{{ task.repeat }}' !== 'None') timeToggle.style.pointerEvents = 'none';
-    {% endif %}
+    /* The time picker used to be frozen on repeating tasks. `time` is not in
+       the form's disabled-field list and the view stores a changed time, so
+       the block only stopped an edit the backend already supported. */
 
     /* ── Listing cards ── */
     const propertySelect   = document.getElementById('id_property');
@@ -620,7 +618,9 @@ document.addEventListener('DOMContentLoaded', function () {
             return `${String(hour12).padStart(2,'0')}:${mm} ${h24 >= 12 ? 'PM' : 'AM'}`;
         }
 
-        let currentValue = hiddenInput.value || defaultTime;
+        /* Trim the seconds Django renders (09:00:00 -> 09:00) so fmt24() and
+           the option lookup below, which both work in HH:MM, can match it. */
+        let currentValue = (hiddenInput.value || defaultTime).slice(0, 5);
         hiddenInput.value = currentValue;
         const textNode = document.createTextNode(fmt24(currentValue));
         toggle.insertBefore(textNode, toggle.firstChild);

@@ -1260,6 +1260,20 @@ def property_policy(request, pk, kind):
 # Public "Explore" browse page (linked from the marketing site's navbar).
 # ---------------------------------------------------------------------------
 
+def explore_stay_count(request):
+    """How many stays the filter panel's current selection would return.
+
+    Drives the "Show N stays" button, so the count has to be the one the
+    results page would produce. Rather than restate the filtering, this runs
+    ExploreListingView.get_queryset() over the same GET params -- the two can
+    then never drift apart.
+    """
+    view = ExploreListingView()
+    view.request = request
+    view.args, view.kwargs = (), {}
+    return JsonResponse({'count': view.get_queryset().count()})
+
+
 class ExploreListingView(ListView):
     """Airbnb-style public browse page over every *active* listing.
 

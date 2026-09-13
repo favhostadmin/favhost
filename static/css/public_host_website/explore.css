@@ -109,6 +109,13 @@
 .explore-page .ul-header-menu-pop a:first-child{ color:var(--ex-accent); }
 
 /* ---------------- Search bar ---------------- */
+/* The compact search bar reclaims ~96px of layout above the cards, and it
+   does so over a .28s animation. Chrome's scroll anchoring reacts to every
+   frame of that by nudging scrollY to keep a card pinned in place, so the
+   scroll position fought the transition and the whole page wobbled. The
+   reclaim is the intended effect, so anchoring is switched off here. */
+.explore-page{ overflow-anchor:none; }
+
 /* Sticks directly under the sticky navbar so it survives the scroll, then
    shrinks into a compact pill. --ex-header-h is measured in explore.html,
    because the navbar's height depends on how its own nav wraps. */
@@ -116,8 +123,11 @@
   display:flex; justify-content:center; padding:8px 0 18px;
   position:sticky; top:var(--ex-header-h,0px); z-index:60;
   background:#fff;
-  transition:padding .28s ease, transform .28s ease,
-             margin-bottom .28s ease, background-color .28s ease;
+  /* background-color is deliberately not animated: on wide screens the wrap
+     goes transparent as it lifts into the navbar, and fading it dragged a
+     half-white band across the tops of the cards for the whole .28s. */
+  transition:padding .28s ease, transform .28s ease, margin-bottom .28s ease;
+  will-change:transform;
 }
 .ex-searchbar{
   display:flex; align-items:center;
@@ -474,6 +484,8 @@
   font-size:.82rem; font-weight:600; color:var(--ex-ink);
   text-decoration:underline;
 }
+/* Dimmed for the moment between a change and the count coming back. */
+.ex-page .ex-fgroup-show.is-counting{ opacity:.7; }
 .ex-page .ex-fgroup-show{
   font-size:.85rem; font-weight:600; color:#fff;
   background:var(--ex-accent);
@@ -766,7 +778,10 @@
 .ex-footer-inner{
   display:flex; align-items:center; justify-content:space-between;
   gap:16px; flex-wrap:wrap;
-  padding:26px 0;
+  /* padding-block only: the `padding:26px 0` shorthand this replaced also
+     zeroed the sides, overriding .ex-container's inline padding and
+     pushing the text hard against both edges of the page. */
+  padding-block:26px;
   font-size:.85rem; color:var(--ex-muted);
 }
 .ex-footer-links{ display:flex; gap:18px; flex-wrap:wrap; }
@@ -907,5 +922,7 @@
   .ex-search-btn{ width:44px; height:44px; }
   .ex-carousel-nav{ display:none; }
   .ex-section-head h2{ font-size:1.15rem; }
-  .ex-grid{ grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:20px 14px; }
+  /* Phones: one listing per row, full width, like a feed. Two 160px
+     columns fit on a 430px screen, which is what this used to give. */
+  .ex-grid{ grid-template-columns:1fr; gap:28px; }
 }

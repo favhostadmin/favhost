@@ -412,7 +412,8 @@ JAZZMIN_SETTINGS = {
 }
 
 LOGIN_URL = 'login'
-LOGIN_REDIRECT_URL = 'frontdesk:index'
+# Phone home screen; it forwards desktop viewports on to Frontdesk.
+LOGIN_REDIRECT_URL = 'mobile-menu'
 LOGOUT_REDIRECT_URL = 'login'
 
 # ── Hidden platform-owner admin console (controlpanel app) ──

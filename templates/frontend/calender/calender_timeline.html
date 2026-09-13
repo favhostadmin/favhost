@@ -894,8 +894,6 @@
     propertiesToRender.forEach(property => {
       const row = propertiesList.querySelector(`.property-row[data-id="${property.id}"]`);
       if (!row) return;
-      const detailUrl = row.dataset.detail;
-
       row.addEventListener('click', (event) => {
         if (event.target.closest('.property-actions')) return;
         if (currentViewMode !== 'timeline') {
@@ -904,9 +902,21 @@
           renderProperties(propertiesToRender);
           renderCurrentView();
         } else {
-          const shouldProceed = togglePropertyPreview(event, property.id);
-          if (!shouldProceed) return;
-          if (detailUrl && detailUrl !== '#') window.open(detailUrl, '_blank', 'noopener,noreferrer');
+          /* Clicking a listing opens the month for that listing, rather than
+             leaving the calendar for the listing's detail page in a new tab.
+             The month grid filters on `property_id`, and carrying the month
+             and year across means it opens on the period being looked at
+             instead of jumping back to today. `Listing Details` in the row's
+             menu is still how you reach the detail page. */
+          event.preventDefault();
+          hidePropertyPreview();
+          const params = new URLSearchParams({
+            view: 'month',
+            property_id: String(property.id),
+            month: String(currentDisplayDate.getMonth() + 1),
+            year: String(currentDisplayDate.getFullYear())
+          });
+          window.location.href = "{% url 'calendar-grid-view' %}?" + params.toString();
         }
       });
     });

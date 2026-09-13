@@ -120,7 +120,12 @@ class TaskForm(forms.ModelForm):
         # onto a day the series already covers leaves two identical tasks on
         # that day and an empty slot on the old one - which reads as the edit
         # having duplicated the task rather than moved it.
-        if date and self.instance and self.instance.pk and self.instance.recurrence_id:
+        # `date != self.instance.date` matters: without it a task that is
+        # already sharing a day with a sibling can never be saved at all, so
+        # its title or assignee become uneditable. The check is about not
+        # *creating* a collision, not about policing one that already exists.
+        if (date and self.instance and self.instance.pk
+                and self.instance.recurrence_id and date != self.instance.date):
             clash = (
                 Task.objects
                 .filter(recurrence_id=self.instance.recurrence_id, date=date)

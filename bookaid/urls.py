@@ -51,6 +51,8 @@ urlpatterns = [
     path('accounts/', include(('accounts.urls', 'accounts'), namespace='accounts')),
     path('accounts/', include('accounts.urls')),
 
+    # Phone home screen; where sign-in lands on a small viewport.
+    path('menu/', MobileMenuView.as_view(), name='mobile-menu'),
     path('dashboard/',HostDashboardAPIView.as_view(), name='dashboard'),
     path('revenue/',RevenueByListingView.as_view(), name='revenue-by-listing'),
     path('accounting/', AccountingView.as_view(), name='accounting'),
