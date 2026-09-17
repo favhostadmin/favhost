@@ -97,6 +97,91 @@
         opacity: 0.65;
     }
 
+    /* ===== Mini month calendar (booking card) =====
+       Mirrors the main Calendar's month view in miniature: a dark weekday
+       strip, a 7-column grid, and reservations drawn as continuous bars that
+       span their nights and carry the guest's name. */
+    .mini-cal {
+        margin-top: 16px;
+        border: 1px solid #e6e6e6;
+        border-radius: 10px;
+        background: #fff;
+        overflow: hidden;
+    }
+    .mini-cal-head {
+        display: flex; align-items: center; justify-content: space-between;
+        gap: 8px; padding: 10px 12px;
+    }
+    .mini-cal-title { font-size: 13px; font-weight: 700; color: #1f2937; }
+    .mini-cal-nav {
+        width: 26px; height: 26px;
+        display: grid; place-items: center;
+        border: 1px solid #e0e0e0; border-radius: 50%;
+        background: #fff; color: #374151;
+        font-size: 16px; line-height: 1; cursor: pointer;
+        transition: background .15s, border-color .15s;
+    }
+    .mini-cal-nav:hover { background: #f4f4f4; border-color: #c9c9c9; }
+    .mini-cal-nav:disabled { opacity: .35; cursor: not-allowed; }
+
+    .mini-cal-weekdays {
+        display: grid; grid-template-columns: repeat(7, 1fr);
+        background: #2b3245;
+    }
+    .mini-cal-weekdays span {
+        text-align: center; padding: 5px 0;
+        font-size: 8.5px; font-weight: 700; letter-spacing: .04em; color: #fff;
+    }
+
+    .mini-cal-week {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        /* Every week row gets the same template -- the day-number row plus a
+           fixed number of reservation lanes -- so a week with no bars is
+           exactly as tall as the busiest one. The lane count is set per month
+           in script, from whichever week stacks the most reservations. */
+        grid-template-rows: 20px repeat(var(--mini-cal-lanes, 1), 15px);
+        column-gap: 0; row-gap: 2px;
+        border-bottom: 1px solid #eef0f3;
+        padding-bottom: 3px;
+    }
+    /* Keep the border box, just hide the line: removing it outright made the
+       last row 1px shorter than the rest. */
+    .mini-cal-week:last-child { border-bottom-color: transparent; }
+    .mini-cal-daynum {
+        grid-row: 1;
+        height: 20px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 10.5px; font-weight: 600; color: #374151;
+        border-right: 1px solid #f2f3f5;
+    }
+    .mini-cal-daynum:last-child { border-right: 0; }
+    .mini-cal-daynum.is-other { color: #c8ccd2; }
+    .mini-cal-daynum.is-today span {
+        background: #1d74b2; color: #fff;
+        width: 17px; height: 17px; border-radius: 50%;
+        display: grid; place-items: center;
+    }
+
+    /* A reservation, spanning grid columns for the nights it covers. */
+    .mini-cal-bar {
+        height: 13px;
+        display: flex; align-items: center;
+        padding: 0 5px;
+        font-size: 9px; font-weight: 600; color: #fff;
+        background: #6b5b95;            /* replaced per channel in script */
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .mini-cal-bar.starts { border-top-left-radius: 7px; border-bottom-left-radius: 7px; }
+    .mini-cal-bar.ends   { border-top-right-radius: 7px; border-bottom-right-radius: 7px; }
+    .mini-cal-bar.is-blocked {
+        background: repeating-linear-gradient(45deg, #9aa0a6, #9aa0a6 4px, #b0b5ba 4px, #b0b5ba 8px);
+    }
+    .mini-cal-empty {
+        padding: 10px 12px; text-align: center;
+        font-size: 10.5px; color: #9ca3af;
+    }
+
     /* Other Fees Popover */
     .other-fees-popover {
         background-color: #fff;
@@ -1964,6 +2049,25 @@
                             </div>
                         </div>
 
+                        {% comment %}
+                          Month-at-a-glance for this listing. Reads the same
+                          `unavailable-date-ranges` payload the date picker uses, so it
+                          can never disagree with what the picker will let you select.
+                        {% endcomment %}
+                        <div class="mini-cal" id="mini-cal">
+                            <div class="mini-cal-head">
+                                <button type="button" class="mini-cal-nav" id="mini-cal-prev" aria-label="Previous month">&#8249;</button>
+                                <span class="mini-cal-title" id="mini-cal-title" aria-live="polite"></span>
+                                <button type="button" class="mini-cal-nav" id="mini-cal-next" aria-label="Next month">&#8250;</button>
+                            </div>
+                            <div class="mini-cal-weekdays" aria-hidden="true">
+                                <span>SUN</span><span>MON</span><span>TUE</span><span>WED</span><span>THU</span><span>FRI</span><span>SAT</span>
+                            </div>
+                            <div class="mini-cal-body" id="mini-cal-body"></div>
+                            <div class="mini-cal-empty" id="mini-cal-empty" hidden>No reservations this month.</div>
+                            {{ reservation_events|json_script:"reservation-events" }}
+                        </div>
+
                         <button class="reserve-btn" id="create-reservation-btn" style="display: none;">Create Reservation</button>
                         <button class="reserve-btn" id="create-availability-btn" style="display: none;" {% if property.status != 'Active' %}disabled{% endif %}>Check Availability</button>
                         <div id="availability-status" class="availability-text" style="display: none;"></div>
@@ -2981,6 +3085,154 @@
         e.stopPropagation();
         window.parent.postMessage({ type: 'preview-navigate', url: targetUrl }, '*');
     }, true);
+})();
+</script>
+
+<script>
+/* ===== Mini month calendar (booking card) ==============================
+   The main Calendar's month view, in miniature and scoped to this one
+   listing: a 7-column grid with reservations drawn as continuous bars that
+   span their nights and carry the guest's name, coloured by booking channel
+   using the same palette as the big calendar.
+
+   Ranges are half-open [start, end) -- the checkout day belongs to the next
+   guest -- so a stay of Sep 16-24 paints 16..23. */
+(function () {
+    var root  = document.getElementById('mini-cal');
+    var body  = document.getElementById('mini-cal-body');
+    var title = document.getElementById('mini-cal-title');
+    var empty = document.getElementById('mini-cal-empty');
+    var prev  = document.getElementById('mini-cal-prev');
+    var next  = document.getElementById('mini-cal-next');
+    if (!root || !body || !title) return;
+
+    /* Same map the main calendar uses, so a bar is the same colour in both. */
+    var CHANNEL_COLORS = {
+        'airbnb': '#ff5a5f', 'booking.com': '#003580', 'vrbo': '#328eee',
+        'google vacation rentals': '#4285f4', 'furnished finder': '#034499',
+        'expedia': '#000099', 'tripadvisor': '#34e0a1', 'agoda': '#af38b0',
+        'personal website': '#6b5b95', 'others': '#f48fb1'
+    };
+    function channelColor(name) {
+        if (!name) return '#6b5b95';
+        return CHANNEL_COLORS[String(name).trim().toLowerCase()] || '#6b5b95';
+    }
+
+    var events = [];
+    var payload = document.getElementById('reservation-events');
+    if (payload) {
+        try { events = JSON.parse(payload.textContent) || []; } catch (e) { events = []; }
+    }
+
+    function toDate(iso) {
+        var p = String(iso).split('-').map(Number);
+        return new Date(p[0], p[1] - 1, p[2]);
+    }
+    function addDays(d, n) { return new Date(d.getFullYear(), d.getMonth(), d.getDate() + n); }
+    function sameDay(a, b) { return a.getTime() === b.getTime(); }
+
+    var spans = events.map(function (e) {
+        return {
+            start: toDate(e.start),
+            /* exclusive end -> last night actually occupied */
+            last:  addDays(toDate(e.end), -1),
+            kind:  e.kind || 'booked',
+            label: e.label || 'Guest',
+            color: channelColor(e.channel)
+        };
+    }).filter(function (e) { return e.start && e.last && e.last >= e.start; });
+
+    var today = new Date(); today.setHours(0, 0, 0, 0);
+    var view = new Date(today.getFullYear(), today.getMonth(), 1);
+    var floorMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+    var MONTHS = ['January','February','March','April','May','June',
+                  'July','August','September','October','November','December'];
+
+    function render() {
+        title.textContent = MONTHS[view.getMonth()] + ' ' + view.getFullYear();
+        if (prev) prev.disabled = (view <= floorMonth);
+        body.innerHTML = '';
+
+        var first = new Date(view.getFullYear(), view.getMonth(), 1);
+        var gridStart = addDays(first, -first.getDay());        /* back to Sunday */
+        var monthEnd = new Date(view.getFullYear(), view.getMonth() + 1, 0);
+        var weeks = Math.ceil((first.getDay() + monthEnd.getDate()) / 7);
+        var shown = 0;
+
+        for (var w = 0; w < weeks; w++) {
+            var weekStart = addDays(gridStart, w * 7);
+            var weekEnd = addDays(weekStart, 6);
+
+            var row = document.createElement('div');
+            row.className = 'mini-cal-week';
+
+            for (var i = 0; i < 7; i++) {
+                var day = addDays(weekStart, i);
+                var cell = document.createElement('div');
+                cell.className = 'mini-cal-daynum'
+                    + (day.getMonth() !== view.getMonth() ? ' is-other' : '')
+                    + (sameDay(day, today) ? ' is-today' : '');
+                cell.innerHTML = '<span>' + day.getDate() + '</span>';
+                row.appendChild(cell);
+            }
+
+            /* Reservations touching this week, packed into lanes so two that
+               overlap never land on the same line. */
+            var inWeek = spans.filter(function (e) {
+                return e.start <= weekEnd && e.last >= weekStart;
+            }).sort(function (a, b) { return a.start - b.start; });
+
+            var lanes = [];
+            inWeek.forEach(function (e) {
+                var from = e.start < weekStart ? weekStart : e.start;
+                var to   = e.last  > weekEnd   ? weekEnd   : e.last;
+                var col  = Math.round((from - weekStart) / 86400000);
+                var span = Math.round((to - from) / 86400000) + 1;
+
+                var lane = 0;
+                while (lanes[lane] !== undefined && lanes[lane] > col) lane++;
+                lanes[lane] = col + span;
+
+                var bar = document.createElement('div');
+                bar.className = 'mini-cal-bar'
+                    + (e.kind === 'blocked' ? ' is-blocked' : '')
+                    + (sameDay(from, e.start) ? ' starts' : '')
+                    + (sameDay(to, e.last) ? ' ends' : '');
+                bar.style.gridColumn = (col + 1) + ' / span ' + span;
+                bar.style.gridRow = (lane + 2);
+                if (e.kind !== 'blocked') bar.style.background = e.color;
+                bar.textContent = sameDay(from, e.start) ? e.label : '';
+                bar.title = e.label + ' · ' + e.start.toLocaleDateString('en-US',
+                    { month: 'short', day: 'numeric' }) + ' - ' + e.last.toLocaleDateString('en-US',
+                    { month: 'short', day: 'numeric' });
+                row.appendChild(bar);
+                shown++;
+            });
+
+            row.dataset.lanes = lanes.length;
+            body.appendChild(row);
+        }
+
+        /* Uniform row heights: give every week the tallest week's lane count,
+           so the first and last rows aren't squashed next to a busy middle. */
+        var rows = body.querySelectorAll('.mini-cal-week');
+        var maxLanes = 1;
+        rows.forEach(function (r) {
+            maxLanes = Math.max(maxLanes, parseInt(r.dataset.lanes, 10) || 0);
+        });
+        rows.forEach(function (r) { r.style.setProperty('--mini-cal-lanes', maxLanes); });
+
+        if (empty) empty.hidden = shown > 0;
+    }
+
+    function step(months) {
+        view = new Date(view.getFullYear(), view.getMonth() + months, 1);
+        if (view < floorMonth) view = new Date(floorMonth.getTime());
+        render();
+    }
+    if (prev) prev.addEventListener('click', function () { step(-1); });
+    if (next) next.addEventListener('click', function () { step(1); });
+    render();
 })();
 </script>
 

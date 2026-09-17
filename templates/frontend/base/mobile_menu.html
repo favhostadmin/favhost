@@ -19,7 +19,9 @@
     --mm-ink:#1f2937;
     --mm-muted:#6b7280;
     --mm-line:#e9eaee;
-    padding:14px 14px 20px;
+    /* Bottom padding clears the floating (+) button, which is fixed to the
+       bottom of the viewport and would otherwise cover the last tile row. */
+    padding:14px 14px calc(var(--mm-fab-clear, 128px) + env(safe-area-inset-bottom, 0px));
     max-width:640px;
     margin:0 auto;
     /* Fill the screen under the header rather than stopping half way. The
@@ -108,7 +110,22 @@
     color:var(--mm-accent);
   }
   .mm-tile-icon i{ font-size:29px; line-height:1; }
-  .mm-tile-icon img{ width:28px; height:28px; object-fit:contain; }
+  /* Frontdesk keeps its own bell artwork rather than an icon-font glyph.
+     The PNG is a black silhouette on transparency, so painting it through
+     a mask recolours it to the tile accent without touching the shape.
+     The background-image below is the fallback: browsers without mask
+     support just show the original black icon, as before. */
+  .mm-tile-icon .mm-ico-img{
+    width:28px; height:28px;
+    background:url("{% static 'img/header/bell.png' %}") center/contain no-repeat;
+  }
+  @supports ((-webkit-mask-image:url("")) or (mask-image:url(""))){
+    .mm-tile-icon .mm-ico-img{
+      background:currentColor;
+      -webkit-mask:url("{% static 'img/header/bell.png' %}") center/contain no-repeat;
+      mask:url("{% static 'img/header/bell.png' %}") center/contain no-repeat;
+    }
+  }
   .mm-tile-label{
     font-size:.85rem; font-weight:600; color:var(--mm-ink);
     text-align:center; line-height:1.25;
@@ -146,7 +163,14 @@
 
   /* Very narrow phones: two across reads better than three cramped ones. */
   @media (max-width:359px){
-    .mm-grid{ grid-template-columns:repeat(2,minmax(0,1fr)); }
+    /* Two across means nine tiles need five rows, but the template above
+       only declares three at a 96px floor -- rows 4 and 5 came from
+       grid-auto-rows and pushed the last row down past the floating (+).
+       Declaring all five with a lower floor keeps them inside the cap. */
+    .mm-grid{
+      grid-template-columns:repeat(2,minmax(0,1fr));
+      grid-template-rows:repeat(5,minmax(76px,1fr));
+    }
     .mm-hello{ min-height:145px; }
     .mm-hello-title{ font-size:1.5rem; }
   }
@@ -175,7 +199,7 @@
   <nav class="mm-grid" aria-label="Sections">
 
     <a class="mm-tile" href="{% url 'frontdesk:index' %}">
-      <span class="mm-tile-icon"><img src="{% static 'img/header/bell.png' %}" alt="" aria-hidden="true"></span>
+      <span class="mm-tile-icon"><span class="mm-ico-img" aria-hidden="true"></span></span>
       <span class="mm-tile-label">Frontdesk</span>
     </a>
 

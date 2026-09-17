@@ -66,14 +66,54 @@ def get_unavailable_date_ranges(property_obj):
         ranges.append({
             'start': booking.check_in_date.isoformat(),
             'end': booking.check_out_date.isoformat(),
+            # `kind` lets the booking card's mini month calendar tell a guest
+            # reservation from a host block. Date-range pickers read only
+            # start/end, so the extra key is inert for them.
+            'kind': 'booked',
         })
     for block in PropertyBlockDate.objects.filter(property=property_obj, is_active=True):
         ranges.append({
             'start': block.start_date.isoformat(),
             'end': block.end_date.isoformat(),
+            'kind': 'blocked',
         })
     return ranges
 
+
+def get_property_reservation_events(property_obj):
+    """Confirmed reservations and host blocks for a property, labelled.
+
+    Deliberately NOT part of `get_unavailable_date_ranges`: that one also feeds
+    the public listing page, and guest names must not go out there. This is only
+    ever put in the context of the host-facing detail view.
+
+    Ranges stay half-open [start, end) -- the checkout day belongs to the next
+    guest -- so the consumer can paint them without adjusting.
+    """
+    events = []
+    bookings = (Booking.objects
+                .filter(property=property_obj, status='confirmed')
+                .select_related('channel')
+                .order_by('check_in_date'))
+    for b in bookings:
+        name = ' '.join(filter(None, [b.first_name, b.last_name])).strip()
+        events.append({
+            'start': b.check_in_date.isoformat(),
+            'end': b.check_out_date.isoformat(),
+            'kind': 'booked',
+            'label': name or 'Guest',
+            'channel': b.channel.name if b.channel else '',
+        })
+    for block in PropertyBlockDate.objects.filter(
+            property=property_obj, is_active=True).order_by('start_date'):
+        events.append({
+            'start': block.start_date.isoformat(),
+            'end': block.end_date.isoformat(),
+            'kind': 'blocked',
+            'label': block.reason or 'Blocked',
+            'channel': '',
+        })
+    return events
 
 def public_property_qs():
     """Listings the public is allowed to see.
@@ -576,6 +616,8 @@ class PropertyDetailView(LoginRequiredMixin, DetailView):
         context['check_in_docs'] = all_documents.filter(document_type='check_in')
         context['check_out_docs'] = all_documents.filter(document_type='check_out')
         context['unavailable_date_ranges'] = get_unavailable_date_ranges(self.object)
+        # Labelled events for the booking card's month calendar (host-only view).
+        context['reservation_events'] = get_property_reservation_events(self.object)
         return context
 
 # AJAX Views for file management
