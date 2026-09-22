@@ -23,6 +23,11 @@ urlpatterns = [
     path('no-show/<uuid:pk>/', views.MarkNoShowView.as_view(), name='mark-no-show'),
 
 
+    # Notifications: channel reservations + guest enquiries
+    path('notifications/feed/', views.NotificationFeedView.as_view(), name='notification-feed'),
+    path('notifications/<uuid:pk>/open/', views.NotificationOpenView.as_view(), name='notification-open'),
+    path('notifications/read-all/', views.NotificationMarkAllReadView.as_view(), name='notification-read-all'),
+
     # Enquiry API endpoint
     path('enquiry/send-otp/', views.enquiry_send_otp_api, name='enquiry-send-otp'),
     path('enquiry/verify-otp/', views.enquiry_verify_otp_api, name='enquiry-verify-otp'),

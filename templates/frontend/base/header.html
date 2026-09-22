@@ -213,6 +213,54 @@
         gap: 10px;
     }
 
+    /* Notification bell — sits beside Create in the desktop header, and next
+       to the profile avatar on mobile where the desktop actions are hidden. */
+    .header-bell {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 38px;
+        height: 38px;
+        padding: 0;
+        /* It became a <button> when the panel replaced the page: without these
+           the UA's default button chrome painted a white pill on the dark bar. */
+        background: transparent;
+        border: 0;
+        outline: 0;
+        -webkit-appearance: none;
+        appearance: none;
+        box-shadow: none;
+        border-radius: 50%;
+        color: #d7d7d7;
+        text-decoration: none;
+        cursor: pointer;
+        transition: background 0.15s, color 0.15s;
+    }
+    .header-bell:focus,
+    .header-bell:active,
+    .header-bell[aria-expanded="true"] {
+        background: #2a2a2a;
+        color: #fff;
+        box-shadow: none;
+        outline: 0;
+    }
+    .header-bell:focus-visible { box-shadow: 0 0 0 2px rgba(224,92,42,.55); }
+    .header-bell:hover { background: #2a2a2a; color: #fff; }
+    .header-bell svg { width: 20px; height: 20px; }
+    .header-bell-badge {
+        position: absolute;
+        top: 2px; right: 1px;
+        min-width: 16px; height: 16px;
+        padding: 0 4px;
+        display: grid; place-items: center;
+        border-radius: 999px;
+        background: #e05c2a;
+        color: #fff;
+        font-size: 9.5px; font-weight: 700; line-height: 1;
+    }
+    .mobile-header-actions .header-bell { color: #d7d7d7; }
+
     /* Create button */
     .custom-header .new-btn-header {
         display: inline-flex;
@@ -967,6 +1015,8 @@
             </div>
             {% endif %}
 
+            {% include './_notification_bell.html' %}
+
             <!-- TOGGLER -->
             <button class="navbar-toggler" type="button"
                 data-bs-toggle="collapse" data-bs-target="#navbarContent">
@@ -1166,6 +1216,13 @@
 
             <!-- ===== DESKTOP RIGHT ACTIONS (UNCHANGED) ===== -->
              <div class="desktop-actions d-none d-xl-flex align-items-center gap-4">
+
+                {% comment %}
+                  Inbox for things that arrive on their own: channel reservations and
+                  guest enquiries. A panel rather than a page -- the list is fetched
+                  from booking:notification-feed the first time it is opened.
+                {% endcomment %}
+                {% include './_notification_bell.html' %}
 
                 <div class="dropdown">
                     <button class="new-btn-header dropdown-toggle" data-bs-toggle="dropdown">
@@ -1636,3 +1693,5 @@
         showHeaderProfileModal();
     }, true);  // capture phase so we win before the link's own navigation/handlers
 </script>
+
+{% include './_notification_bell_assets.html' %}

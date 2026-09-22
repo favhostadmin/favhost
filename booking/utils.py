@@ -5,7 +5,7 @@ from icalendar import Calendar
 from celery import shared_task
 from django.utils import timezone
 from property.models import PropertyChannel, PropertyBlockDate
-from booking.models import Booking, Payment
+from booking.models import Booking, Notification, Payment
 import logging
 from datetime import datetime, timedelta
 
@@ -326,6 +326,7 @@ def sync_property_channel(self, channel_id):
             )
             logger.info(f"Created booking {booking.id} for {channel}")
             generate_booking_payments(booking)
+            notify_new_reservation(booking, channel.channel_type)
 
     # Cancel missing future bookings for this specific channel
     today = timezone.now().date()
@@ -355,6 +356,33 @@ def sync_property_channel(self, channel_id):
         logger.info(f"Deleted {count} missing blocked dates for {channel}")
 
     logger.info(f"Successfully synced {channel}")
+
+
+def notify_new_reservation(booking, channel_type):
+    """Drop an inbox entry for a reservation that arrived from a channel.
+
+    Best-effort on purpose: a failure here must not roll back or abort the
+    sync, which is the job that actually matters.
+    """
+    host = getattr(booking.property, 'created_by', None)
+    if host is None:
+        return
+    guest = ' '.join(filter(None, [booking.first_name, booking.last_name])).strip() or 'Guest'
+    source = getattr(channel_type, 'name', '') or 'a connected channel'
+    try:
+        Notification.objects.create(
+            recipient=host,
+            kind=Notification.KIND_RESERVATION,
+            title=f"New reservation from {source}",
+            message=(f"{guest} booked {booking.property.title} for "
+                     f"{booking.check_in_date:%d %b %Y} to {booking.check_out_date:%d %b %Y}."),
+            property=booking.property,
+            booking=booking,
+            channel_name=source,
+        )
+    except Exception:
+        logger.exception("Could not create reservation notification for booking %s", booking.id)
+
 
 @shared_task
 def trigger_sync_all_channels():

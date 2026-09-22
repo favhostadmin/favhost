@@ -1,5 +1,5 @@
 from django.conf import settings
-from booking.models import Enquiry, Expense
+from booking.models import Enquiry, Expense, Notification
 from property.models import Property
 from django.db.models import Q
 from accounts.utils import get_visible_user_ids, get_effective_user
@@ -45,8 +45,15 @@ def enquiry_counts(request):
         # tells them to ask the host) would just be a dead end.
         just_logged_in = request.session.pop('show_profile_complete_modal', False)
         auto_show_profile_modal = just_logged_in and not header_profile_complete and not is_cohost
+        # Drives the header bell's badge. Recipients are hosts, and a co-host
+        # reads the host's inbox, so the filter matches the notification views.
+        unread_notification_count = Notification.objects.filter(
+            recipient__in=visible_ids, is_read=False,
+        ).count()
+
         return {
             'new_enquiry_count': new_enquiry_count,
+            'unread_notification_count': unread_notification_count,
             'is_cohost': is_cohost,
             # Effective-user (host) profile completeness — drives the header's
             # "Complete Your Profile" gate on every Create action so co-hosts
@@ -58,4 +65,4 @@ def enquiry_counts(request):
                 created_by__in=visible_ids
             ).only('id', 'title'),
         }
-    return {'new_enquiry_count': 0, 'is_cohost': False}
+    return {'new_enquiry_count': 0, 'unread_notification_count': 0, 'is_cohost': False}

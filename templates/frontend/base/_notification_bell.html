@@ -1,0 +1,31 @@
+{% comment %}
+  Header bell + its dropdown panel.
+
+  Included twice (desktop actions and the mobile header), so everything is
+  scoped by class and the script guards against binding twice. The list is
+  fetched from booking:notification-feed the first time a panel is opened, so
+  an ordinary page load only pays for the unread count in the context
+  processor, not for the notifications themselves.
+{% endcomment %}
+<div class="header-bell-wrap">
+  <button type="button" class="header-bell js-bell-toggle" aria-expanded="false" aria-haspopup="true"
+          aria-label="Notifications{% if unread_notification_count %} ({{ unread_notification_count }} unread){% endif %}">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"
+         stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+      <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+    </svg>
+    <span class="header-bell-badge js-bell-badge" {% if not unread_notification_count %}hidden{% endif %}>{{ unread_notification_count }}</span>
+  </button>
+
+  <div class="nt-pop js-bell-pop" hidden role="dialog" aria-label="Notifications">
+    <div class="nt-pop__head">
+      <span class="nt-pop__title">Notifications</span>
+      <span class="nt-pop__count js-bell-popcount" {% if not unread_notification_count %}hidden{% endif %}>{{ unread_notification_count }} new</span>
+      <button type="button" class="nt-pop__readall js-bell-readall" hidden>Mark all read</button>
+    </div>
+    <div class="nt-pop__body js-bell-body">
+      <div class="nt-pop__loading">Loading&hellip;</div>
+    </div>
+  </div>
+</div>

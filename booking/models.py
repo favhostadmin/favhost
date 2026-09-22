@@ -263,3 +263,70 @@ class EnquiryDocument(models.Model):
     name = models.CharField(max_length=255)
     file_type = models.CharField(max_length=50)
     created_at = models.DateTimeField(auto_now_add=True)
+
+
+class Notification(models.Model):
+    """An inbox entry for something that arrived on its own.
+
+    Reservations imported from a connected channel (Airbnb, Vrbo, ...) and
+    guest enquiries both land here, so a host sees them without having to go
+    looking. `recipient` is always the *host* who owns the listing -- co-hosts
+    read the host's notifications via get_visible_user_ids(), the same way they
+    see the host's bookings.
+    """
+    KIND_RESERVATION = 'reservation'
+    KIND_ENQUIRY = 'enquiry'
+    KIND_CHOICES = (
+        (KIND_RESERVATION, 'Reservation'),
+        (KIND_ENQUIRY, 'Enquiry'),
+    )
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    recipient = models.ForeignKey('accounts.MyUser', on_delete=models.CASCADE,
+                                  related_name='notifications')
+    kind = models.CharField(max_length=20, choices=KIND_CHOICES)
+    title = models.CharField(max_length=200)
+    message = models.CharField(max_length=400, blank=True)
+
+    property = models.ForeignKey('property.Property', on_delete=models.CASCADE,
+                                 null=True, blank=True, related_name='notifications')
+    # SET_NULL, not CASCADE: a cancelled reservation should leave its
+    # notification behind rather than silently erasing the history.
+    booking = models.ForeignKey('booking.Booking', on_delete=models.SET_NULL,
+                                null=True, blank=True, related_name='notifications')
+    enquiry = models.ForeignKey('booking.Enquiry', on_delete=models.SET_NULL,
+                                null=True, blank=True, related_name='notifications')
+    channel_name = models.CharField(max_length=100, blank=True)
+
+    is_read = models.BooleanField(default=False)
+    read_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['recipient', 'is_read', '-created_at']),
+        ]
+
+    def __str__(self):
+        return f"{self.get_kind_display()}: {self.title}"
+
+    def get_target_url(self):
+        """Where clicking this notification should land.
+
+        A reservation opens its detail page -- the same one the reservations
+        list reaches via "Reservation details" -- and an enquiry opens its own
+        detail page. Each falls back to the relevant list when the linked
+        record has since been deleted.
+        """
+        from django.urls import reverse
+
+        if self.kind == self.KIND_ENQUIRY:
+            if self.enquiry_id:
+                return reverse('booking:enquiry-detail',
+                               kwargs={'unique_id': self.enquiry.unique_id})
+            return reverse('booking:enquiry-list')
+
+        if self.booking_id:
+            return reverse('booking:payment-details', kwargs={'pk': self.booking_id})
+        return reverse('booking:booking-list')

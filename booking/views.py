@@ -1,4 +1,5 @@
 
+import logging
 import os
 import re
 from django.core.files import File
@@ -6,13 +7,14 @@ from django.views.generic import ListView, View
 from .models import *
 from property.models import Property, PropertyBlockDate
 from shared.models import CountryAndState
-from django.urls import reverse_lazy
+from django.urls import reverse, reverse_lazy
 from django.db import transaction
 from django.contrib import messages
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse, HttpResponse
 from django.utils import timezone, dateparse
 from django.db.models import Q, Value
+from django.utils.timesince import timesince
 from django.db.models.functions import Concat
 from calendar import monthrange
 from datetime import datetime, timedelta
@@ -1086,7 +1088,93 @@ class MarkNoShowView(LoginRequiredMixin, View):
             return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 
+logger = logging.getLogger(__name__)
+
+
+# ─────────────────────────── Notifications ───────────────────────────
+
+def visible_notifications(user):
+    """Notifications for this user -- a co-host sees the host's, same as bookings."""
+    return (Notification.objects
+            .filter(recipient__in=get_visible_user_ids(user))
+            .select_related('property', 'booking', 'enquiry'))
+
+
+class NotificationFeedView(LoginRequiredMixin, View):
+    """JSON for the header bell's dropdown.
+
+    Fetched when the panel opens rather than rendered into every page, so a
+    page load only pays for the unread count, not the list itself.
+    """
+    LIMIT = 12
+
+    def get(self, request, *args, **kwargs):
+        qs = visible_notifications(request.user)
+        items = [{
+            'id': str(n.id),
+            'kind': n.kind,
+            'kind_label': n.get_kind_display(),
+            'title': n.title,
+            'message': n.message,
+            'property': n.property.title if n.property else '',
+            'channel': n.channel_name,
+            'is_read': n.is_read,
+            'ago': timesince(n.created_at) + ' ago',
+            'url': reverse('booking:notification-open', kwargs={'pk': n.id}),
+        } for n in qs[:self.LIMIT]]
+        return JsonResponse({
+            'items': items,
+            'unread': qs.filter(is_read=False).count(),
+            'total': qs.count(),
+        })
+
+
+class NotificationOpenView(LoginRequiredMixin, View):
+    """Mark one as read, then hand off to whatever it points at."""
+
+    def get(self, request, pk, *args, **kwargs):
+        note = get_object_or_404(visible_notifications(request.user), pk=pk)
+        if not note.is_read:
+            note.is_read = True
+            note.read_at = timezone.now()
+            note.save(update_fields=['is_read', 'read_at'])
+        return redirect(note.get_target_url())
+
+
+class NotificationMarkAllReadView(LoginRequiredMixin, View):
+    def post(self, request, *args, **kwargs):
+        updated = (visible_notifications(request.user)
+                   .filter(is_read=False)
+                   .update(is_read=True, read_at=timezone.now()))
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+            return JsonResponse({'success': True, 'marked': updated})
+        # No standalone inbox page any more -- the bell panel is the only view,
+        # so a non-AJAX post just returns to wherever it came from.
+        return redirect(request.META.get('HTTP_REFERER', '/'))
+
+
+
 #Enquiry API Views
+def notify_new_enquiry(enquiry):
+    """Inbox entry for a guest enquiry. Best-effort: never fail the enquiry."""
+    host = getattr(enquiry.property, 'created_by', None)
+    if host is None:
+        return
+    guest = ' '.join(filter(None, [enquiry.first_name, enquiry.last_name])).strip() or 'A guest'
+    try:
+        Notification.objects.create(
+            recipient=host,
+            kind=Notification.KIND_ENQUIRY,
+            title=f"New enquiry for {enquiry.property.title}",
+            message=(f"{guest} asked about {enquiry.check_in_date:%d %b %Y} to "
+                     f"{enquiry.check_out_date:%d %b %Y}."),
+            property=enquiry.property,
+            enquiry=enquiry,
+        )
+    except Exception:
+        logger.exception("Could not create enquiry notification for enquiry %s", enquiry.id)
+
+
 
 # Reuse the signup OTP machinery (session-based, not tied to a logged-in
 # user) instead of building a second implementation for guest inquiries.
@@ -1191,6 +1279,8 @@ def enquiry_create_api(request):
                     name=attachment.name,
                     file_type=attachment.content_type
                 )
+
+        notify_new_enquiry(enquiry)
 
         # One-shot: the next inquiry (even from the same visitor) needs a fresh code.
         request.session.pop('inquiry_verified_email', None)
