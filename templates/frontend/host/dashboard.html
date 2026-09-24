@@ -192,10 +192,10 @@
                     </div>
 
                     <div class="position-relative flex-fill upcoming-container-wrapper">
-                        <div class="position-absolute w-100 h-100 upcoming-scroll-content upcoming-timeline" style="overflow-y: auto; overflow-x: hidden; top: 0; left: 0; padding-right: 8px;">
+                        <div class="position-absolute w-100 h-100 upcoming-scroll-content upcoming-timeline" data-today="{{ upcoming_today|date:'Y-m-d' }}" style="overflow-y: auto; overflow-x: hidden; top: 0; left: 0; padding-right: 8px;">
                             {% if upcoming_groups %}
                                 {% for group in upcoming_groups %}
-                                <div class="ut-day{% if forloop.last %} is-last{% endif %}">
+                                <div class="ut-day{% if forloop.last %} is-last{% endif %}" data-date="{{ group.date|date:'Y-m-d' }}">
                                     <div class="ut-rail"><div class="ut-node"><span class="ut-node__day">{{ group.date|date:"d" }}</span><span class="ut-node__mon">{{ group.date|date:"M"|upper }}</span></div></div>
                                     <div class="ut-day__main">
                                         <div class="ut-day__head">
@@ -842,4 +842,59 @@
             }
         });
     </script>
+
+<script>
+/* Events panel opens on today rather than at the top of the month, so the
+   first thing a host sees is what is happening now. Earlier days stay above
+   and are reached by scrolling up. */
+(function () {
+    var box = document.querySelector('.upcoming-scroll-content');
+    if (!box) return;
+
+    function scrollToToday() {
+        var today = box.dataset.today || '';
+        var days = box.querySelectorAll('.ut-day[data-date]');
+        if (!today || !days.length) return;
+
+        /* Today if it has events, otherwise the next day that does -- so the
+           panel never opens on a date that is already past. */
+        var target = null;
+        for (var i = 0; i < days.length; i++) {
+            if (days[i].dataset.date >= today) { target = days[i]; break; }
+        }
+
+        /* Zero any previous spacer before measuring, or it inflates scrollHeight. */
+        var spacer = box.querySelector('.ut-scroll-spacer');
+        if (spacer) spacer.style.height = '0px';
+
+        /* Everything in this month is behind us: show the end of the list. */
+        if (!target) { box.scrollTop = box.scrollHeight; return; }
+
+        /* Distance from the top of the content to the target. */
+        var offset = box.scrollTop
+                   + target.getBoundingClientRect().top
+                   - box.getBoundingClientRect().top;
+
+        /* Near the end of a month there isn't enough below the target to lift it
+           to the top, so the list stops short. Pad the bottom by exactly the
+           shortfall -- no more -- so today lands flush at the top. */
+        var deficit = offset - (box.scrollHeight - box.clientHeight);
+        if (deficit > 0) {
+            if (!spacer) {
+                spacer = document.createElement('div');
+                spacer.className = 'ut-scroll-spacer';
+                spacer.setAttribute('aria-hidden', 'true');
+                box.appendChild(spacer);
+            }
+            spacer.style.height = Math.ceil(deficit) + 'px';
+        }
+
+        box.scrollTop = offset;
+    }
+
+    scrollToToday();
+    /* Images above the target settle after load and shift it, so run once more. */
+    window.addEventListener('load', scrollToToday);
+})();
+</script>
 {% endblock extra_script %}

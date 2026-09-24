@@ -446,6 +446,10 @@ class HostDashboardAPIView(LoginRequiredMixin, TemplateView):
         context["upcoming_month"] = upcoming_month
         context["upcoming_year"] = upcoming_year
         context["upcoming_groups"] = upcoming_groups
+        # The Events panel opens scrolled to this date rather than to the top of
+        # the month. Taken from the server so it matches the host's own timezone,
+        # which is what status_for() above already compares against.
+        context["upcoming_today"] = today
         return context
 
 
