@@ -275,10 +275,14 @@ class TaskEditView(LoginRequiredMixin, View):
         if task.repeat != 'None':
             disabled_fields_map = {
                 'property': task.property.id,
-                'date': task.date.strftime('%Y-%m-%d') if task.date else '',
                 'repeat': task.repeat,
                 'task_type': task.task_type,
             }
+
+            # The date input is only disabled for occurrences that have already
+            # passed; a task due today or later is rescheduled from the form.
+            if not (task.date and task.date >= datetime.date.today()):
+                disabled_fields_map['date'] = task.date.strftime('%Y-%m-%d') if task.date else ''
 
             for field_name, field_value in disabled_fields_map.items():
                 if field_name not in post_data:

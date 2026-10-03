@@ -9,6 +9,8 @@ from django.http import JsonResponse, Http404
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 import json
+import math
+from decimal import Decimal, InvalidOperation
 from django.utils import timezone
 from datetime import datetime, timedelta
 
@@ -21,7 +23,9 @@ from django.http import HttpResponse
 
 from .forms import PropertyForm
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import Q, Count
+from .enums import BATHROOM_TYPES, PROPERTY_TYPES, BED_TYPES
+from django.utils.http import urlencode
 from django.core.files import File
 from django.contrib.auth.mixins import LoginRequiredMixin
 from accounts.utils import get_visible_user_ids, get_effective_user
@@ -69,6 +73,22 @@ def get_unavailable_date_ranges(property_obj):
             'end': block.end_date.isoformat(),
         })
     return ranges
+
+
+def public_property_qs():
+    """Listings the public is allowed to see.
+
+    Two conditions, not one: the listing is published *and* its host is in good
+    standing. Blocking a host from the console sets `MyUser.is_active = False`,
+    which until now only stopped them signing in -- their listings stayed live
+    on browse, on their own host site and on every detail page. Routing all
+    public reads through here means blocking hides them everywhere at once, and
+    unblocking brings them straight back; nothing is copied or deleted.
+
+    Console views stay on their own `created_by__in=get_visible_user_ids(...)`
+    querysets: a host must still see their own listings while blocked.
+    """
+    return Property.objects.filter(status='Active', created_by__is_active=True)
 
 
 class PropertyCreateView(LoginRequiredMixin, CreateView):
@@ -1098,16 +1118,29 @@ class RequestBokPageView(DetailView):
 
 # ── Google Places proxy views (keep API key server-side) ──────────────────────
 
+# Place-types the autocomplete proxy will forward to Google. Allowlisted so a
+# caller can't turn the endpoint into an arbitrary passthrough.
+PLACES_AUTOCOMPLETE_TYPES = {'address', '(cities)', '(regions)', 'geocode'}
+
+
 def places_autocomplete_proxy(request):
-    """Return address predictions for a given query string."""
+    """Return place predictions for a given query string.
+
+    `types` selects what Google suggests; it defaults to street addresses (what
+    the listing form needs). The public Explore search passes `(cities)` so the
+    "Where" box suggests destinations rather than house numbers.
+    """
     q = request.GET.get('q', '').strip()
+    place_types = request.GET.get('types', 'address').strip()
+    if place_types not in PLACES_AUTOCOMPLETE_TYPES:
+        place_types = 'address'
     api_key = settings.GOOGLE_MAPS_API_KEY
     if not q or not api_key:
         return JsonResponse({'predictions': []})
     try:
         resp = http_requests.get(
             'https://maps.googleapis.com/maps/api/place/autocomplete/json',
-            params={'input': q, 'types': 'address', 'key': api_key},
+            params={'input': q, 'types': place_types, 'key': api_key},
             timeout=5,
         )
         data = resp.json()
@@ -1221,3 +1254,329 @@ def property_policy(request, pk, kind):
             if k != kind and has_policy(property_obj, k)
         ],
     })
+
+
+# ---------------------------------------------------------------------------
+# Public "Explore" browse page (linked from the marketing site's navbar).
+# ---------------------------------------------------------------------------
+
+class ExploreListingView(ListView):
+    """Airbnb-style public browse page over every *active* listing.
+
+    It runs the same filters as the host-facing list at /property/list/
+    (search, check-in/check-out availability, guest count) but is open to
+    guests rather than scoped to the signed-in host's own properties -- the
+    link lives in the public landing page navbar.
+    """
+    model = Property
+    template_name = 'frontend/public_host_website/explore.html'
+    context_object_name = 'properties'
+    paginate_by = 24
+
+    def _filters(self):
+        """The GET params that turn the page from 'browse' into 'results'."""
+        get = self.request.GET
+        return {
+            'search': get.get('search', '').strip(),
+            'check_in': get.get('check_in', '').strip(),
+            'check_out': get.get('check_out', '').strip(),
+            'guests': get.get('guests', '').strip(),
+            'bathroom': get.get('bathroom', '').strip(),
+            'property_type': get.get('property_type', '').strip(),
+            'bed': get.get('bed', '').strip(),
+            'amenities': get.get('amenities', '').strip(),
+            'min_price': get.get('min_price', '').strip(),
+            'max_price': get.get('max_price', '').strip(),
+        }
+
+    # GET params that survive facet navigation; anything else is dropped.
+    _FACET_KEEP = ('search', 'check_in', 'check_out', 'guests',
+                   'bathroom', 'property_type', 'bed', 'amenities',
+                   'min_price', 'max_price')
+
+    def _facet_url(self, replace=None, toggle=None):
+        """A results URL preserving the active search/filters.
+
+        `replace` sets param -> value ('' removes it); `toggle` toggles a value
+        inside a comma-separated param (used by the amenity chips). Pagination
+        always resets to page 1 so the new facet set is seen from the top.
+        """
+        get = self.request.GET
+        params = {k: get.get(k, '').strip() for k in self._FACET_KEEP}
+        params = {k: v for k, v in params.items() if v}
+
+        if replace:
+            for k, v in replace.items():
+                v = (v or '').strip()
+                if v:
+                    params[k] = v
+                else:
+                    params.pop(k, None)
+
+        if toggle:
+            for k, v in toggle.items():
+                v = (v or '').strip()
+                if not v:
+                    continue
+                current = [x for x in params.get(k, '').split(',') if x]
+                if v in current:
+                    current = [x for x in current if x != v]
+                else:
+                    current.append(v)
+                if current:
+                    params[k] = ','.join(current)
+                else:
+                    params.pop(k, None)
+
+        return '?' + urlencode(params)
+
+    _PRICE_BUCKETS = 30
+
+    def _display_code(self):
+        """The currency this guest views prices in (cookie, else user, else USD)."""
+        return currency.resolve_display_currency(
+            self.request.COOKIES.get('guest_currency'),
+            getattr(self.request.user, 'currency', None)
+            if self.request.user.is_authenticated else None,
+        )
+
+    def _price_buckets(self, code):
+        """Histogram buckets for the popup's price graph, in display currency.
+
+        Each bucket carries {lo, hi, count, pct, label}; bar heights are the
+        count relative to the busiest bucket, so the graph rescales whenever
+        the guest switches currency.
+        """
+        prices = [
+            float(currency.convert(p, code))
+            for p in public_property_qs().filter(
+                price_per_night__gt=0
+            ).values_list('price_per_night', flat=True)
+        ]
+        if not prices:
+            return []
+        low, high = min(prices), max(prices)
+        if high - low < 1:
+            high = low + 1
+        step = (high - low) / self._PRICE_BUCKETS
+        counts = [0] * self._PRICE_BUCKETS
+        for p in prices:
+            idx = int((p - low) / step)
+            if idx >= self._PRICE_BUCKETS:
+                idx = self._PRICE_BUCKETS - 1
+            elif idx < 0:
+                idx = 0
+            counts[idx] += 1
+        max_c = max(counts) or 1
+        sym = currency.symbol_for(code)
+        buckets = []
+        for i, c in enumerate(counts):
+            lo = low + i * step
+            hi = lo + step
+            buckets.append({
+                'lo': lo, 'hi': hi, 'count': c,
+                'pct': round(c / max_c * 100, 1),
+                'label': f"{sym}{int(round(lo))} \u2013 {sym}{int(round(hi))}",
+            })
+        return buckets
+
+    def _active(self):
+        """Every active listing, with no joins attached.
+
+        Kept separate from `_base_queryset`, which adds the joins the card
+        template needs; a plain count has no use for them.
+        """
+        return public_property_qs()
+
+    def _base_queryset(self):
+        """Active listings, ready for the card template."""
+        return (
+            self._active()
+            .select_related('created_by')
+            .prefetch_related('images')
+        )
+
+    def get_queryset(self):
+        f = self._filters()
+        queryset = self._base_queryset()
+
+        if f['search']:
+            queryset = queryset.filter(
+                Q(title__icontains=f['search']) |
+                Q(description__icontains=f['search']) |
+                Q(city__icontains=f['search']) |
+                Q(state__icontains=f['search']) |
+                Q(country__icontains=f['search'])
+            )
+
+        if f['check_in'] and f['check_out']:
+            try:
+                check_in_date = datetime.strptime(f['check_in'], '%Y-%m-%d').date()
+                check_out_date = datetime.strptime(f['check_out'], '%Y-%m-%d').date()
+            except (ValueError, TypeError):
+                check_in_date = check_out_date = None
+
+            if check_in_date and check_out_date and check_out_date > check_in_date:
+                nights = (check_out_date - check_in_date).days
+                queryset = queryset.filter(minimum_booking__lte=nights)
+
+                # Drop anything already reserved or host-blocked over the stay.
+                overlapping_bookings = Booking.objects.filter(
+                    check_in_date__lt=check_out_date,
+                    check_out_date__gt=check_in_date,
+                    status='confirmed',
+                )
+                queryset = queryset.exclude(
+                    id__in=overlapping_bookings.values_list('property_id', flat=True)
+                )
+
+                overlapping_blocks = PropertyBlockDate.objects.filter(
+                    is_active=True,
+                    start_date__lt=check_out_date,
+                    end_date__gt=check_in_date,
+                )
+                queryset = queryset.exclude(
+                    id__in=overlapping_blocks.values_list('property_id', flat=True)
+                )
+
+        if f['guests']:
+            try:
+                queryset = queryset.filter(guest__gte=int(f['guests']))
+            except (ValueError, TypeError):
+                pass
+
+        if f['bathroom']:
+            queryset = queryset.filter(bathroom_type=f['bathroom'])
+
+        if f['property_type']:
+            queryset = queryset.filter(property_type=f['property_type'])
+
+        if f['bed']:
+            queryset = queryset.filter(bed_type=f['bed'])
+
+        if f['amenities']:
+            amenity_ids = [x for x in f['amenities'].split(',') if x.isdigit()]
+            for aid in amenity_ids:
+                # Every selected amenity must be present ("AND" semantics).
+                queryset = queryset.filter(amenities__id=aid)
+            if amenity_ids:
+                queryset = queryset.distinct()
+
+        # min_price / max_price arrive in the guest's display currency (that's
+        # what the popup graph shows); convert back to the USD base to filter.
+        if f['min_price'] or f['max_price']:
+            try:
+                code = self._display_code()
+                if f['min_price']:
+                    queryset = queryset.filter(
+                        price_per_night__gte=currency.to_usd(Decimal(f['min_price']), code))
+                if f['max_price']:
+                    queryset = queryset.filter(
+                        price_per_night__lte=currency.to_usd(Decimal(f['max_price']), code))
+            except (InvalidOperation, ValueError, TypeError):
+                pass
+
+        return queryset.order_by('-created_at', '-id')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        f = self._filters()
+
+        context.update(f)
+        context['guests_count'] = f['guests'] or ''
+        context['has_filters'] = any(f.values())
+        context['total_listing'] = self._active().count()
+
+        # --- Facet chips & popup options ------------------------------------
+        active_amenity_ids = {x for x in f['amenities'].split(',') if x.isdigit()}
+        context['active_amenity_ids'] = active_amenity_ids
+
+        def _radio_opts(choices):
+            return [{'value': v, 'label': l} for v, l in choices if v]
+
+        context['bathroom_opts'] = _radio_opts(BATHROOM_TYPES)
+        context['property_type_opts'] = _radio_opts(PROPERTY_TYPES)
+        context['bed_opts'] = _radio_opts(BED_TYPES)
+        context['amenity_opts'] = [
+            {'id': am.id, 'name': am.name,
+             'active': str(am.id) in active_amenity_ids}
+            for am in Amenities.objects.all().order_by('name')
+        ]
+        # Show fewer than half of the amenities in the popup; reveal the rest
+        # behind a "Show more" toggle so the grid stays compact.
+        context['amenity_visible'] = max(1, (len(context['amenity_opts']) - 1) // 2)
+        context['amenity_reveal'] = len(context['amenity_opts']) - context['amenity_visible']
+
+        # Quick-filter chips: bathroom type, then just the first 5 amenities to
+        # keep the row short; the filter modal still lists every amenity.
+        used_amenity_ids = set(
+            Amenities.objects.filter(
+                properties__status='Active', properties__created_by__is_active=True
+            ).values_list('id', flat=True).distinct()
+        )
+        chips = [
+            {'label': label, 'active': f['bathroom'] == value,
+             'href': self._facet_url(replace={'bathroom': '' if f['bathroom'] == value else value})}
+            for value, label in BATHROOM_TYPES if value
+        ]
+        chips += [
+            {'label': am.name, 'active': str(am.id) in active_amenity_ids,
+             'href': self._facet_url(toggle={'amenities': str(am.id)})}
+            for am in Amenities.objects.filter(id__in=used_amenity_ids).order_by('name')[:5]
+        ]
+        context['chips'] = chips
+
+        # Guests pick their own display currency (cookie), defaulting to USD.
+        context.update(currency.display_context(currency.resolve_display_currency(
+            self.request.COOKIES.get('guest_currency'),
+            getattr(self.request.user, 'currency', None)
+            if self.request.user.is_authenticated else None,
+        )))
+
+        # --- Price histogram (display currency) for the popup graph ----------
+        code = context['display_currency']
+        buckets = self._price_buckets(code)
+        selected_min = selected_max = None
+        if buckets:
+            low = int(math.floor(buckets[0]['lo']))
+            high = int(math.ceil(max(b['hi'] for b in buckets)))
+            def _parse_price(val, default):
+                try:
+                    return int(float(val))
+                except (ValueError, TypeError):
+                    return default
+            sel_min = max(low, _parse_price(f['min_price'], low))
+            sel_max = min(high, _parse_price(f['max_price'], high))
+            if sel_max < sel_min:
+                sel_max = sel_min
+            selected_min, selected_max = sel_min, sel_max
+            for b in buckets:
+                # A bucket overlaps the selection when its range intersects it.
+                b['selected'] = not (b['hi'] <= sel_min or b['lo'] >= sel_max)
+            context.update({
+                'price_buckets': buckets,
+                'price_min': low,
+                'price_max': high,
+                'selected_min': sel_min,
+                'selected_max': sel_max,
+            })
+
+        # Number shown on the Filter button (one per active facet group).
+        context['filter_count'] = sum([
+            bool(f['bathroom']), bool(f['property_type']), bool(f['bed']),
+            bool(active_amenity_ids),
+            bool(selected_min is not None and (f['min_price'] or f['max_price'])),
+        ])
+
+        context['nights'] = 0
+        if f['check_in'] and f['check_out']:
+            try:
+                nights = (
+                    datetime.strptime(f['check_out'], '%Y-%m-%d').date()
+                    - datetime.strptime(f['check_in'], '%Y-%m-%d').date()
+                ).days
+                context['nights'] = max(nights, 0)
+            except (ValueError, TypeError):
+                pass
+
+        return context

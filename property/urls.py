@@ -25,6 +25,8 @@ urlpatterns = [
 
 
     # Public URLs
+    # Airbnb-style public browse page, linked from the landing page navbar.
+    path('explore/', ExploreListingView.as_view(), name='explore-listings'),
     path('listing/', ListingPageView.as_view(), name='listing-page'),
     path('listing/<str:short_code>/', ListingPageView.as_view(), name='listing-page-public'),
     # Updated public detail URL for a cleaner API structure
