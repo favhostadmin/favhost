@@ -11,6 +11,7 @@ from django.http import JsonResponse, HttpResponse, StreamingHttpResponse, HttpR
 from django.utils.http import http_date
 import datetime
 import calendar
+import logging
 import os
 import re
 from collections import defaultdict
@@ -34,6 +35,9 @@ from .utils import calculateTotalPayment
 from accounts.utils import get_visible_user_ids, get_effective_user
 from accounts.models import CoHost
 from django.contrib.staticfiles.storage import staticfiles_storage
+
+
+logger = logging.getLogger(__name__)
 
 class HostDashboardAPIView(LoginRequiredMixin, TemplateView):
     template_name = 'frontend/host/dashboard.html'
@@ -1597,6 +1601,15 @@ def toggle_channel_status(request, property_id, channel_id):
             channel.is_connected = not channel.is_connected
             channel.save(update_fields=['is_connected'])
 
+            # Disconnecting has to take the imported data with it. The scheduler
+            # only visits connected channels, so anything left behind would never
+            # be reconciled again -- it would sit on the calendar as a phantom
+            # booking for good. Reconnecting re-imports it on the next sync, so
+            # nothing is permanently lost.
+            if not channel.is_connected:
+                from booking.utils import purge_channel_imports
+                purge_channel_imports(channel.property, channel.channel_type)
+
             status_text = "Connected" if channel.is_connected else "Disconnected"
             message = f"Channel '{channel.channel_type.name}' status updated to {status_text}."
             
@@ -1653,17 +1666,50 @@ class ManualSyncAPIView(LoginRequiredMixin, View):
     """
     def post(self, request, *args, **kwargs):
         from booking.utils import sync_property_channel
-        
+
         # Filter for connected channels on properties owned by the current user
         channels = PropertyChannel.objects.filter(
-            property__created_by__in=get_visible_user_ids(request.user), 
+            property__created_by__in=get_visible_user_ids(request.user),
             is_connected=True
         )
         count = channels.count()
+        if not count:
+            return JsonResponse({'success': True, 'queued': 0, 'ran_inline': 0,
+                                 'message': 'No connected channels to sync.'})
+
+        # `.delay()` only puts the job on the queue. With no broker or no worker
+        # running it is dropped silently, and this used to answer "Sync started"
+        # regardless -- so a host saw a success message and no new reservations,
+        # with nothing anywhere to say why. Fall back to running it here instead,
+        # and report which actually happened.
+        queued, inline, failed = 0, 0, []
         for channel in channels:
-            sync_property_channel.delay(channel.id)
-            
-        return JsonResponse({'success': True, 'message': f'Sync started for {count} channels.'})
+            try:
+                sync_property_channel.delay(channel.id)
+                queued += 1
+            except Exception as exc:
+                logger.warning("Could not queue sync for channel %s (%s); running inline.",
+                               channel.id, exc)
+                try:
+                    sync_property_channel.run(channel.id)
+                    inline += 1
+                except Exception:
+                    logger.exception("Inline sync failed for channel %s", channel.id)
+                    failed.append(str(channel))
+
+        if failed:
+            return JsonResponse({
+                'success': False, 'queued': queued, 'ran_inline': inline,
+                'error': f"{len(failed)} of {count} channels failed to sync.",
+            }, status=502)
+
+        if inline:
+            message = (f'Synced {inline} channel(s) directly '
+                       f'(the background worker is not running).')
+        else:
+            message = f'Sync started for {queued} channels.'
+        return JsonResponse({'success': True, 'queued': queued,
+                             'ran_inline': inline, 'message': message})
 
 @login_required
 def delete_channel(request, property_id, channel_id):
@@ -1675,9 +1721,22 @@ def delete_channel(request, property_id, channel_id):
             # Ensure the channel belongs to the user and property
             channel = get_object_or_404(PropertyChannel, pk=channel_id, property_id=property_id, property__created_by__in=get_visible_user_ids(request.user))
             channel_name = channel.channel_type.name
+
+            # Take the imported data out with the channel. Deleting the row on its
+            # own used to strand every reservation and block that channel had
+            # created: nothing cascades to them, and with the channel gone no sync
+            # could ever run to clean them up, so they sat on the calendar for good.
+            from booking.utils import purge_channel_imports
+            cancelled, removed = purge_channel_imports(channel.property, channel.channel_type)
+
             channel.delete()
-            
-            return JsonResponse({'success': True, 'message': f"Channel '{channel_name}' deleted successfully."})
+
+            detail = ''
+            if cancelled or removed:
+                detail = (f" {cancelled} reservation{'' if cancelled == 1 else 's'} cancelled"
+                          f" and {removed} blocked date{'' if removed == 1 else 's'} removed.")
+            return JsonResponse({'success': True,
+                                 'message': f"Channel '{channel_name}' deleted successfully.{detail}"})
         except PropertyChannel.DoesNotExist:
             return JsonResponse({'success': False, 'error': 'Channel not found.'}, status=404)
     return JsonResponse({'success': False, 'error': 'Invalid request method.'}, status=400)

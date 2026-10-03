@@ -204,6 +204,11 @@ class PropertyBlockDate(models.Model):
     reason = models.CharField(max_length=255, blank=True, null=True)
     is_active = models.BooleanField(default=True)
     external_uid = models.CharField(max_length=255, null=True, blank=True, db_index=True)
+    # Which channel imported this block. Null for blocks a host added by hand.
+    # Without it the sync could only clean up "every imported block on this
+    # property", so each channel deleted the others' blocks on every run.
+    channel = models.ForeignKey('booking.BookingChannel', on_delete=models.SET_NULL,
+                                null=True, blank=True, related_name='blocked_dates')
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

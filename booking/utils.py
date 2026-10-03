@@ -3,6 +3,7 @@ import requests
 import re
 from icalendar import Calendar
 from celery import shared_task
+from django.db.models import Q
 from django.utils import timezone
 from property.models import PropertyChannel, PropertyBlockDate
 from booking.models import Booking, Notification, Payment
@@ -30,6 +31,41 @@ def fetch_ical_events(calendar_url):
 
 logger = logging.getLogger(__name__)
 
+
+def purge_channel_imports(property_obj, channel_type):
+    """Undo what one channel imported onto a listing.
+
+    Called when a host removes the integration -- deleting the channel, or
+    clearing its calendar link. Until now neither did anything to the data, so
+    the reservations and blocks that channel had created stayed on the calendar
+    for good: with the channel gone no sync could ever run for it again, and the
+    cleanup only happens inside a sync.
+
+    Bookings are cancelled rather than deleted, so the history and any payments
+    attached to them survive. Blocks are derived data and simply go.
+    """
+    today = timezone.now().date()
+
+    cancelled = Booking.objects.filter(
+        property=property_obj,
+        channel=channel_type,
+        status='confirmed',
+        check_out_date__gte=today,
+        external_uid__isnull=False,
+    ).update(status='cancelled', last_synced_at=timezone.now())
+
+    blocks = PropertyBlockDate.objects.filter(
+        property=property_obj,
+        external_uid__isnull=False,
+    ).filter(Q(channel=channel_type) | Q(channel__isnull=True))
+    removed = blocks.count()
+    blocks.delete()
+
+    logger.info("Purged %s imports from %s: cancelled %s booking(s), removed %s block(s)",
+                getattr(channel_type, 'name', channel_type), property_obj, cancelled, removed)
+    return cancelled, removed
+
+
 @shared_task(bind=True, max_retries=3, default_retry_delay=60)
 def sync_property_channel(self, channel_id):
     """
@@ -47,6 +83,14 @@ def sync_property_channel(self, channel_id):
     logger.info(f"Starting sync for {channel}")
 
 
+    # A blank calendar link means the host has removed the integration. Treat it
+    # as such and take the imported data back out, rather than letting an empty
+    # fetch fall through to the reconciliation below.
+    if not (channel.calendar_link or '').strip():
+        logger.info("No calendar link on %s - purging what it imported.", channel)
+        purge_channel_imports(channel.property, channel.channel_type)
+        return
+
     try:
         events = fetch_ical_events(channel.calendar_link)
     except requests.exceptions.HTTPError as e:
@@ -60,6 +104,16 @@ def sync_property_channel(self, channel_id):
         raise self.retry(exc=e)
 
     logger.info(f"Fetched {len(events)} events for {channel}")
+
+    # An empty feed is almost always the channel having a bad day -- an outage,
+    # an unpublished listing, a revoked link -- not the host clearing their whole
+    # calendar. Reconciling against it would cancel every future booking and
+    # delete every block in a single pass, so stop before the destructive half.
+    if not events:
+        logger.warning(
+            "Empty feed for %s - skipping reconciliation so nothing is cancelled "
+            "or deleted on the strength of it.", channel)
+        return
 
     synced_booking_uids = []
     synced_block_uids = []
@@ -130,6 +184,7 @@ def sync_property_channel(self, channel_id):
                     block_segments.append(PropertyBlockDate(
                         external_uid=uid,
                         property=channel.property,
+                        channel=channel.channel_type,
                         start_date=current_ptr,
                         end_date=booking.check_in_date,
                         reason=description or f"Imported block from {channel.channel_type.name}",
@@ -143,6 +198,7 @@ def sync_property_channel(self, channel_id):
                 block_segments.append(PropertyBlockDate(
                     external_uid=uid,
                     property=channel.property,
+                    channel=channel.channel_type,
                     start_date=current_ptr,
                     end_date=end_date,
                     reason=description or f"Imported block from {channel.channel_type.name}",
@@ -276,6 +332,7 @@ def sync_property_channel(self, channel_id):
                         block_segments.append(PropertyBlockDate(
                             external_uid=uid,
                             property=channel.property,
+                            channel=channel.channel_type,
                             start_date=current_ptr,
                             end_date=booking.check_in_date,
                             reason=f"Reservation {summary} (Conflict with local booking)",
@@ -287,6 +344,7 @@ def sync_property_channel(self, channel_id):
                     block_segments.append(PropertyBlockDate(
                         external_uid=uid,
                         property=channel.property,
+                        channel=channel.channel_type,
                         start_date=current_ptr,
                         end_date=end_date,
                         reason=f"Reservation {summary} (Conflict with local booking)",
@@ -328,26 +386,40 @@ def sync_property_channel(self, channel_id):
             generate_booking_payments(booking)
             notify_new_reservation(booking, channel.channel_type)
 
-    # Cancel missing future bookings for this specific channel
+    # Cancel bookings this channel no longer lists.
     today = timezone.now().date()
-    
+
+    # `check_out_date`, not `check_in_date`: a stay that began before today but
+    # runs past it is still live, and if the channel has dropped it the guest has
+    # cancelled. Keying on check-in let those sit as 'confirmed' forever, holding
+    # dates that were long since freed.
     missing_bookings = Booking.objects.filter(
         property=channel.property,
         channel=channel.channel_type,
         status='confirmed',
-        check_in_date__gte=today,
+        check_out_date__gte=today,
         external_uid__isnull=False
     ).exclude(external_uid__in=synced_booking_uids)
-    
+
     if missing_bookings.exists():
         count = missing_bookings.update(status='cancelled', last_synced_at=timezone.now())
         logger.info(f"Cancelled {count} missing bookings for {channel}")
 
-    # Delete missing future blocked dates
+    # Delete blocks this channel no longer lists.
+    #
+    # Scoped by `channel`: the kept-UID list only holds UIDs from the channel being
+    # synced, so without this filter the delete reached every channel's blocks on
+    # the property. Two channels on one listing therefore deleted each other's
+    # blocks on every run -- and since all channels are dispatched together each
+    # minute, whichever finished last won. Legacy rows imported before the column
+    # existed have channel=NULL and are matched by UID instead, so they are still
+    # cleaned up by whichever channel owns them.
     missing_blocks = PropertyBlockDate.objects.filter(
         property=channel.property,
         external_uid__isnull=False,
         end_date__gte=today
+    ).filter(
+        Q(channel=channel.channel_type) | Q(channel__isnull=True)
     ).exclude(external_uid__in=synced_block_uids)
 
     if missing_blocks.exists():
