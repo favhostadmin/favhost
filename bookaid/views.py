@@ -1517,9 +1517,17 @@ def channel_integration(request, property_id):
 
     if request.method == 'POST':
         # --- Handle updates for existing channels ---
+        from booking.utils import normalize_calendar_link
+
         existing_channels = PropertyChannel.objects.filter(property=property_obj)
         for channel in existing_channels:
             calendar_link = request.POST.get(f'calendar_link_{channel.id}')
+            if calendar_link is not None:
+                try:
+                    calendar_link = normalize_calendar_link(calendar_link)
+                except ValueError as exc:
+                    messages.error(request, f"{channel.channel_type.name}: {exc}")
+                    return redirect('channel_integration', property_id=property_id)
             is_connected = request.POST.get(f'is_connected_{channel.id}') == 'on'
 
             # NEW: allow channel type to change when editing
@@ -1554,6 +1562,12 @@ def channel_integration(request, property_id):
             channel_type_id = request.POST.get(key)
             calendar_link = request.POST.get(f'new_calendar_link_{timestamp}')
             is_connected = request.POST.get(f'new_is_connected_{timestamp}') == 'on'
+
+            try:
+                calendar_link = normalize_calendar_link(calendar_link)
+            except ValueError as exc:
+                messages.error(request, f"New integration: {exc}")
+                return redirect('channel_integration', property_id=property_id)
 
             if channel_type_id and calendar_link:
                 PropertyChannel.objects.update_or_create(

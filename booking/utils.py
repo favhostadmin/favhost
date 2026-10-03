@@ -32,6 +32,36 @@ def fetch_ical_events(calendar_url):
 logger = logging.getLogger(__name__)
 
 
+# Hosts copy the feed URL out of Airbnb, an email or a chat message, and the
+# label in front of it ("Link for 01: https://...") comes along with it. The
+# model field is a URLField, but validators only run on full_clean(), so an
+# unusable value used to save silently and then fail on every sync forever.
+_URL_IN_TEXT = re.compile(r'(?:https?://|webcal://)\S+', re.IGNORECASE)
+
+
+def normalize_calendar_link(raw):
+    """Pull a usable iCal URL out of whatever was pasted into the form.
+
+    Returns the cleaned URL, or '' if the field was left empty. Raises
+    ValueError when there is text but no URL in it, so the caller can tell the
+    host instead of saving something no sync will ever be able to fetch.
+    """
+    text = (raw or '').strip()
+    if not text:
+        return ''
+
+    match = _URL_IN_TEXT.search(text)
+    if not match:
+        raise ValueError("that does not look like a calendar link - it should "
+                         "start with https://")
+
+    # webcal:// is what the "Subscribe" buttons hand out; it is plain https.
+    url = match.group(0).rstrip('.,;)>"\'')
+    if url.lower().startswith('webcal://'):
+        url = 'https://' + url[len('webcal://'):]
+    return url
+
+
 def purge_channel_imports(property_obj, channel_type):
     """Undo what one channel imported onto a listing.
 
@@ -98,6 +128,14 @@ def sync_property_channel(self, channel_id):
         if 400 <= e.response.status_code < 500:
             return  # Do not retry client errors (400 Bad Request, 404 Not Found, etc.)
         raise self.retry(exc=e)
+    except (requests.exceptions.MissingSchema,
+            requests.exceptions.InvalidSchema,
+            requests.exceptions.InvalidURL) as e:
+        # The saved link is malformed, so no number of retries will fix it.
+        # Retrying anyway left three doomed copies of every bad channel in the
+        # queue each minute, which is noise the real feeds have to queue behind.
+        logger.error("Unusable calendar link on %s: %s", channel, e)
+        return
     except Exception as e:
         logger.error(f"Failed to fetch iCal for {channel}: {e}")
         # Retry on network failure
