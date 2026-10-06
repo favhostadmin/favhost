@@ -1,0 +1,361 @@
+{% extends base_template %}
+
+{% block extra_head %}
+<style>
+  /* Scoped under .ab-page; everything else is the project's existing Bootstrap styling. */
+  .ab-page { background: #FAFAFA; color: #1a1a1a; font-size: 14px; flex: 1 0 auto; padding-bottom: 40px; }
+  .ab-page *, .ab-page *::before, .ab-page *::after { box-sizing: border-box; }
+  .ab-header { background: #E7E7E9; min-height: 52px; padding: 8px 32px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .ab-title { font-size: 16px; font-weight: 600; color: #111827; margin: 0; }
+  .ab-quota { font-size: 13px; color: #6b7280; }
+  .ab-wrap { max-width: 1100px; margin: 24px auto; padding: 0 16px; }
+  .ab-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 10px; padding: 20px; margin-bottom: 20px; }
+  .ab-card h2 { font-size: 15px; font-weight: 600; margin: 0 0 4px; }
+  .ab-muted { color: #6b7280; font-size: 13px; }
+  .ab-or { text-align: center; color: #9ca3af; font-size: 12px; margin: 14px 0; text-transform: uppercase; letter-spacing: .08em; }
+  .ab-drop { border: 2px dashed #d1d5db; border-radius: 10px; padding: 22px; text-align: center; cursor: pointer; background: #fafafa; }
+  .ab-drop.ab-over { border-color: #EB5310; background: #fff7f3; }
+  .ab-drop strong { color: #EB5310; }
+  .ab-files { margin-top: 8px; font-size: 13px; color: #374151; }
+  .ab-btn { background: #EB5310; border: none; color: #fff; padding: 9px 18px; border-radius: 8px; font-weight: 600; }
+  .ab-btn:hover { background: #d44a0e; color: #fff; }
+  .ab-btn:disabled { opacity: .6; }
+  .ab-notice { display: none; margin-bottom: 16px; }
+  .ab-result { display: none; max-width: 720px; margin: 0 auto; }
+  .ab-job { background: #fff; border: 1px solid #e5e7eb; border-radius: 10px; padding: 12px; }
+  .ab-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .ab-pane { position: relative; background: #f3f4f6; border-radius: 8px; aspect-ratio: 3 / 2; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+  .ab-pane img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .ab-tag { position: absolute; top: 6px; left: 6px; background: rgba(17,24,39,.75); color: #fff; font-size: 11px; padding: 2px 8px; border-radius: 999px; z-index: 1; }
+  .ab-state { font-size: 13px; color: #6b7280; text-align: center; padding: 8px; }
+  .ab-state.ab-bad { color: #b91c1c; }
+  .ab-spin { width: 22px; height: 22px; border: 3px solid #e5e7eb; border-top-color: #EB5310; border-radius: 50%; animation: ab-rot .8s linear infinite; margin: 0 auto 6px; }
+  @keyframes ab-rot { to { transform: rotate(360deg); } }
+  .ab-foot { display: flex; justify-content: flex-end; margin-top: 10px; }
+  .ab-consent { font-size: 12px; color: #6b7280; }
+    .ab-summary { margin-top: 10px; font-size: 13px; color: #374151; }
+  @media (max-width: 560px) { .ab-header { padding: 8px 16px; } }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="ab-page">
+  <div class="ab-header">
+    <h1 class="ab-title">Image Booster</h1>
+    <span class="ab-quota"><span id="abRemaining">{{ remaining }}</span> of {{ daily_limit }} images left today</span>
+  </div>
+
+  <div class="ab-wrap">
+    <div class="ab-card">
+      <h2>Make your listing photos shine</h2>
+      <p class="ab-muted mb-3">Paste your listing link, or upload photos directly. Upload one photo or up to {{ max_per_submit }} at a time — you’ll see a preview of one.</p>
+
+      <div id="abNotice" class="alert alert-warning ab-notice" role="alert"></div>
+
+      <form id="abForm" novalidate>
+        <label class="form-label" for="abUrl">Listing URL</label>
+        <input type="url" class="form-control" id="abUrl" name="listing_url" placeholder="https://www.airbnb.com/rooms/…">
+
+        <div class="ab-or">or</div>
+
+        <div class="ab-drop" id="abDrop" tabindex="0" role="button" aria-label="Upload photos">
+          <div><strong>Click to choose photos</strong> or drag &amp; drop them here</div>
+          <div class="ab-muted">JPG, PNG or WebP · up to 5 MB each</div>
+          <input type="file" id="abFiles" name="images" accept="image/*" multiple hidden>
+          <div class="ab-files" id="abFileNames"></div>
+        </div>
+
+        <div class="mt-3 d-flex justify-content-end">
+          <button type="submit" class="ab-btn" id="abSubmit">Enhance photos</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="ab-job ab-result" id="abResult">
+      <div class="ab-pair">
+        <div class="ab-pane"><span class="ab-tag">BEFORE</span><img id="abBefore" alt="Original photo"></div>
+        <div class="ab-pane" id="abAfter"><span class="ab-tag">AFTER</span></div>
+      </div>
+      <div class="ab-summary" id="abSummary"></div>
+      <div class="ab-foot"><button type="button" class="ab-btn" id="abDownload" style="display:none"></button></div>
+    </div>
+  </div>
+</div>
+
+<!-- Download gate -->
+<div class="modal fade" id="abModal" tabindex="-1" aria-labelledby="abModalTitle" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <form class="modal-content" id="abLeadForm" novalidate>
+      <div class="modal-header">
+        <h5 class="modal-title" id="abModalTitle">Download your enhanced photos</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p class="ab-muted">Tell us where to send it and we’ll unlock the full-resolution, watermark-free photos.</p>
+        <div class="mb-3">
+          <label class="form-label" for="abName">Name</label>
+          <input type="text" class="form-control" id="abName" maxlength="120" required autocomplete="name">
+          <div class="text-danger small" id="abNameErr"></div>
+        </div>
+        <div class="mb-3">
+          <label class="form-label" for="abEmail">Email</label>
+          <input type="email" class="form-control" id="abEmail" required autocomplete="email">
+          <div class="text-danger small" id="abEmailErr"></div>
+        </div>
+        <p class="ab-consent mb-0">By continuing, you agree that FavHost may store your name and email to follow up with you (see our <a href="{% url 'privacy' %}" target="_blank" rel="noopener noreferrer">Privacy Policy</a>).</p>
+        <div class="text-danger small mt-2" id="abLeadErr"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+        <button type="submit" class="ab-btn" id="abLeadSubmit">Unlock &amp; download</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{{ jobs_json|json_script:"abInitialJobs" }}
+{% endblock content %}
+
+{% block extra_script %}
+<script>
+(function () {
+  var CSRF = "{{ csrf_token }}";
+  var URLS = {
+    start: "{% url 'aibooster:image-start' %}",
+    status: "{% url 'aibooster:image-status' %}",
+    unlock: "{% url 'aibooster:image-unlock' %}"
+  };
+  var FRIENDLY = "Something went wrong on our side. Please try again, or upload your photos directly.";
+  var order = [];         // job ids of the current batch, in submission order
+  var jobs = {};          // id -> latest payload
+  var previewId = null;   // the one job whose before/after we show
+  var pollTimer = null;
+  var MAX = {{ max_per_submit }};
+
+  var $ = function (id) { return document.getElementById(id); };
+  var notice = $('abNotice'), fileInput = $('abFiles'), drop = $('abDrop');
+
+  // XHR (not fetch) on purpose: base.html wraps fetch() in a full-page loader overlay,
+  // which would flash on every poll.
+  function xhr(method, url, body, headers, cb) {
+    var r = new XMLHttpRequest();
+    r.open(method, url);
+    r.setRequestHeader('X-CSRFToken', CSRF);
+    r.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+    Object.keys(headers || {}).forEach(function (k) { r.setRequestHeader(k, headers[k]); });
+    r.onload = function () {
+      var data = null;
+      try { data = JSON.parse(r.responseText); } catch (e) {}
+      cb(r.status, data);
+    };
+    r.onerror = function () { cb(0, null); };
+    r.send(body);
+  }
+
+  function showNotice(msg, kind) {
+    notice.className = 'alert ab-notice alert-' + (kind || 'warning');
+    notice.textContent = msg || '';
+    notice.style.display = msg ? 'block' : 'none';
+  }
+
+  function el(tag, cls, text) {
+    var n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (text) n.textContent = text;
+    return n;
+  }
+
+  function setBatch(list) {
+    order = []; jobs = {}; previewId = null;
+    $('abBefore').removeAttribute('src');
+    list.forEach(function (j) { order.push(j.id); jobs[j.id] = j; });
+    refresh();
+  }
+
+  function counts() {
+    var c = { total: order.length, done: 0, failed: 0, busy: 0 };
+    order.forEach(function (id) {
+      var st = jobs[id].status;
+      if (st === 'done') c.done++; else if (st === 'failed') c.failed++; else c.busy++;
+    });
+    return c;
+  }
+
+  // Only ONE preview is ever shown: the first photo to finish. The rest are
+  // processed too, but only reachable through the (gated) download.
+  function refresh() {
+    var result = $('abResult');
+    if (!order.length) { result.style.display = 'none'; return; }
+    result.style.display = 'block';
+    var c = counts();
+
+    if (!previewId) {
+      for (var i = 0; i < order.length; i++) {
+        if (jobs[order[i]].status === 'done') { previewId = order[i]; break; }
+      }
+    }
+    var shown = jobs[previewId || order[0]];
+    var before = $('abBefore');
+    if (before.getAttribute('data-id') !== shown.id) {
+      before.setAttribute('data-id', shown.id);
+      before.src = shown.before_url;
+    }
+
+    var after = $('abAfter');
+    after.querySelectorAll('.ab-state, img').forEach(function (n) { n.remove(); });
+    if (previewId && jobs[previewId].after_url) {
+      var img = el('img'); img.alt = 'Enhanced photo (preview)'; img.src = jobs[previewId].after_url;
+      after.appendChild(img);
+    } else if (c.busy === 0) {
+      var firstFail = jobs[order[0]];
+      after.appendChild(el('div', 'ab-state ab-bad', (firstFail && firstFail.error) || FRIENDLY));
+    } else {
+      var s = el('div', 'ab-state');
+      s.appendChild(el('div', 'ab-spin'));
+      s.appendChild(document.createTextNode('Enhancing…'));
+      s.appendChild(el('div', 'ab-muted', 'This can take a minute or two.'));
+      after.appendChild(s);
+    }
+
+    var summary = $('abSummary');
+    var dl = $('abDownload');
+    if (c.busy > 0) {
+      summary.textContent = 'Enhanced ' + (c.done + c.failed) + ' of ' + c.total + ' photos…';
+      dl.style.display = 'none';
+    } else {
+      var msg = c.done + ' of ' + c.total + ' photo' + (c.total > 1 ? 's' : '') + ' enhanced.';
+      if (c.failed && c.done) msg += ' ' + c.failed + ' couldn’t be enhanced.';
+      if (c.done > 1) msg += ' This is a preview of one — download to get all ' + c.done + ' in full resolution.';
+      summary.textContent = msg;
+      if (c.done > 0) {
+        dl.textContent = c.done > 1 ? 'Download all (' + c.done + ')' : 'Download';
+        dl.style.display = '';
+      } else {
+        dl.style.display = 'none';
+      }
+    }
+  }
+
+  function render(job) {
+    if (!jobs[job.id]) return;
+    jobs[job.id] = job;
+    refresh();
+  }
+
+  function pendingIds() {
+    return order.filter(function (id) {
+      return jobs[id].status === 'pending' || jobs[id].status === 'processing';
+    });
+  }
+
+  function poll() {
+    var ids = pendingIds();
+    if (!ids.length) { clearInterval(pollTimer); pollTimer = null; return; }
+    xhr('GET', URLS.status + '?ids=' + ids.join(','), null, {}, function (status, data) {
+      if (status === 200 && data) data.jobs.forEach(render);
+    });
+  }
+
+  function ensurePolling() {
+    if (!pollTimer && pendingIds().length) pollTimer = setInterval(poll, 2000);
+  }
+
+  // ---- submit ----
+  $('abForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var url = $('abUrl').value.trim();
+    var files = fileInput.files;
+    if (!url && !files.length) { showNotice('Paste a listing URL or choose some photos to upload.'); return; }
+    if (files.length > MAX) { showNotice('You selected ' + files.length + ' photos — only the first ' + MAX + ' will be enhanced.'); }
+
+    var fd = new FormData();
+    fd.append('listing_url', url);
+    Array.prototype.forEach.call(files, function (f) { fd.append('images', f); });
+
+    var btn = $('abSubmit');
+    btn.disabled = true; btn.textContent = 'Working…';
+    showNotice('');
+    xhr('POST', URLS.start, fd, {}, function (status, data) {
+      btn.disabled = false; btn.textContent = 'Enhance photos';
+      if (status !== 200 || !data) { showNotice(FRIENDLY); return; }
+      if (data.message) showNotice(data.message);
+      if (data.fallback) {
+        // Scraping failed: point the user at the upload box.
+        drop.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        drop.classList.add('ab-over');
+        setTimeout(function () { drop.classList.remove('ab-over'); }, 2500);
+      }
+      if (!data.ok) return;
+      setBatch(data.jobs);
+      if (typeof data.remaining === 'number') $('abRemaining').textContent = data.remaining;
+      fileInput.value = ''; $('abFileNames').textContent = '';
+      ensurePolling();
+    });
+  });
+
+  // ---- upload box ----
+  drop.addEventListener('click', function () { fileInput.click(); });
+  drop.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileInput.click(); } });
+  ['dragenter', 'dragover'].forEach(function (t) {
+    drop.addEventListener(t, function (e) { e.preventDefault(); drop.classList.add('ab-over'); });
+  });
+  ['dragleave', 'drop'].forEach(function (t) {
+    drop.addEventListener(t, function (e) { e.preventDefault(); drop.classList.remove('ab-over'); });
+  });
+  drop.addEventListener('drop', function (e) {
+    if (e.dataTransfer && e.dataTransfer.files.length) { fileInput.files = e.dataTransfer.files; showNames(); }
+  });
+  fileInput.addEventListener('click', function (e) { e.stopPropagation(); });
+  fileInput.addEventListener('change', showNames);
+  function showNames() {
+    var n = fileInput.files.length;
+    $('abFileNames').textContent = n ? n + ' photo' + (n > 1 ? 's' : '') + ' selected' : '';
+  }
+
+  // ---- download gate ----
+  var modal = new bootstrap.Modal($('abModal'));
+
+  function startDownload(url) { window.location.href = url; }
+
+  function openModal() {
+    ['abNameErr', 'abEmailErr', 'abLeadErr'].forEach(function (i) { $(i).textContent = ''; });
+    modal.show();
+  }
+
+  $('abDownload').addEventListener('click', function () {
+    // Already gave details this session: the server just issues a fresh short-lived link.
+    xhr('POST', URLS.unlock, '{}', { 'Content-Type': 'application/json' }, function (status, data) {
+      if (status === 200 && data && data.ok) startDownload(data.url); else openModal();
+    });
+  });
+
+  $('abLeadForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var name = $('abName').value.trim(), email = $('abEmail').value.trim();
+    $('abNameErr').textContent = name ? '' : 'Please enter your name.';
+    $('abEmailErr').textContent = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? '' : 'Please enter a valid email address.';
+    $('abLeadErr').textContent = '';
+    if (!name || $('abEmailErr').textContent) return;
+
+    var btn = $('abLeadSubmit'); btn.disabled = true;
+    xhr('POST', URLS.unlock, JSON.stringify({ name: name, email: email }), { 'Content-Type': 'application/json' },
+      function (status, data) {
+        btn.disabled = false;
+        if (status === 200 && data && data.ok) {
+          modal.hide();
+          startDownload(data.url);
+        } else if (data && data.errors) {
+          $('abNameErr').textContent = data.errors.name || '';
+          $('abEmailErr').textContent = data.errors.email || '';
+        } else {
+          $('abLeadErr').textContent = (data && data.message) || FRIENDLY;
+        }
+      });
+  });
+
+  // ---- initial state (this session's latest batch, if any) ----
+  setBatch(JSON.parse($('abInitialJobs').textContent));
+  ensurePolling();
+})();
+</script>
+{% endblock extra_script %}

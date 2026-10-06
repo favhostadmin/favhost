@@ -76,6 +76,8 @@ urlpatterns = [
     path('api/manual-sync/', ManualSyncAPIView.as_view(), name='manual-sync'),
     path('contact-host/', contact_host, name='contact-host'),
 
+    path('ai-booster/', include('aibooster.urls')),
+
 
 
 ]
