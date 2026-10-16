@@ -1,84 +1,232 @@
 {% extends base_template %}
+{% load static %}
+
+{% block title %}Image Booster – AI photo enhancement for rental listings | Favhost{% endblock %}
 
 {% block extra_head %}
-<style>
-  /* Scoped under .ab-page; everything else is the project's existing Bootstrap styling. */
-  .ab-page { background: #FAFAFA; color: #1a1a1a; font-size: 14px; flex: 1 0 auto; padding-bottom: 40px; }
-  .ab-page *, .ab-page *::before, .ab-page *::after { box-sizing: border-box; }
-  .ab-header { background: #E7E7E9; min-height: 52px; padding: 8px 32px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-  .ab-title { font-size: 16px; font-weight: 600; color: #111827; margin: 0; }
-  .ab-quota { font-size: 13px; color: #6b7280; }
-  .ab-wrap { max-width: 1100px; margin: 24px auto; padding: 0 16px; }
-  .ab-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 10px; padding: 20px; margin-bottom: 20px; }
-  .ab-card h2 { font-size: 15px; font-weight: 600; margin: 0 0 4px; }
-  .ab-muted { color: #6b7280; font-size: 13px; }
-  .ab-or { text-align: center; color: #9ca3af; font-size: 12px; margin: 14px 0; text-transform: uppercase; letter-spacing: .08em; }
-  .ab-drop { border: 2px dashed #d1d5db; border-radius: 10px; padding: 22px; text-align: center; cursor: pointer; background: #fafafa; }
-  .ab-drop.ab-over { border-color: #EB5310; background: #fff7f3; }
-  .ab-drop strong { color: #EB5310; }
-  .ab-files { margin-top: 8px; font-size: 13px; color: #374151; }
-  .ab-btn { background: #EB5310; border: none; color: #fff; padding: 9px 18px; border-radius: 8px; font-weight: 600; }
-  .ab-btn:hover { background: #d44a0e; color: #fff; }
-  .ab-btn:disabled { opacity: .6; }
-  .ab-notice { display: none; margin-bottom: 16px; }
-  .ab-result { display: none; max-width: 720px; margin: 0 auto; }
-  .ab-job { background: #fff; border: 1px solid #e5e7eb; border-radius: 10px; padding: 12px; }
-  .ab-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-  .ab-pane { position: relative; background: #f3f4f6; border-radius: 8px; aspect-ratio: 3 / 2; overflow: hidden; display: flex; align-items: center; justify-content: center; }
-  .ab-pane img { width: 100%; height: 100%; object-fit: cover; display: block; }
-  .ab-tag { position: absolute; top: 6px; left: 6px; background: rgba(17,24,39,.75); color: #fff; font-size: 11px; padding: 2px 8px; border-radius: 999px; z-index: 1; }
-  .ab-state { font-size: 13px; color: #6b7280; text-align: center; padding: 8px; }
-  .ab-state.ab-bad { color: #b91c1c; }
-  .ab-spin { width: 22px; height: 22px; border: 3px solid #e5e7eb; border-top-color: #EB5310; border-radius: 50%; animation: ab-rot .8s linear infinite; margin: 0 auto 6px; }
-  @keyframes ab-rot { to { transform: rotate(360deg); } }
-  .ab-foot { display: flex; justify-content: flex-end; margin-top: 10px; }
-  .ab-consent { font-size: 12px; color: #6b7280; }
-    .ab-summary { margin-top: 10px; font-size: 13px; color: #374151; }
-  @media (max-width: 560px) { .ab-header { padding: 8px 16px; } }
-</style>
+{% include 'aibooster/_ab_design.html' %}
 {% endblock %}
+
+{% block breadcrumb %}{% endblock %}
 
 {% block content %}
 <div class="ab-page">
-  <div class="ab-header">
-    <h1 class="ab-title">Image Booster</h1>
-    <span class="ab-quota"><span id="abRemaining">{{ remaining }}</span> of {{ daily_limit }} images left today</span>
-  </div>
+  {% if base_template == 'aibooster/public_base.html' %}<div class="ab-topband"></div>{% endif %}
 
-  <div class="ab-wrap">
-    <div class="ab-card">
-      <h2>Make your listing photos shine</h2>
-      <p class="ab-muted mb-3">Paste your listing link, or upload photos directly. Upload one photo or up to {{ max_per_submit }} at a time — you’ll see a preview of one.</p>
+  <!-- ============ HERO + TOOL ============ -->
+  <section class="ab-hero" id="abHero">
+    <div class="ab-container ab-hero-grid">
+      <div>
+        <h1 class="ab-h1">Your Photos.<em>Enhanced in a Minute.</em></h1>
+        <p class="ab-lead">Paste your listing link and watch our AI straighten, brighten and colour-correct your photos — so your listing stands out and your calendar fills faster.</p>
 
-      <div id="abNotice" class="alert alert-warning ab-notice" role="alert"></div>
+        <form id="abForm" novalidate>
+          <div class="ab-urlrow">
+            <label class="ab-urlfield" for="abUrl">
+              <svg class="ab-svg" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+              <input type="url" id="abUrl" name="listing_url" placeholder="Paste your listing URL…" autocomplete="off">
+            </label>
+            <button type="submit" class="ab-btn" id="abSubmit"><svg class="ab-svg" viewBox="0 0 24 24"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg> Enhance for Free</button>
+          </div>
 
-      <form id="abForm" novalidate>
-        <label class="form-label" for="abUrl">Listing URL</label>
-        <input type="url" class="form-control" id="abUrl" name="listing_url" placeholder="https://www.airbnb.com/rooms/…">
+          <div class="ab-below">
+            <span>Don’t have a listing link?</span>
+            <button type="button" class="ab-link" id="abToggleUpload" aria-expanded="false" aria-controls="abDropWrap"><svg class="ab-svg" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Attach images manually</button>
+          </div>
 
-        <div class="ab-or">or</div>
+          <div class="ab-dropwrap" id="abDropWrap" hidden>
+            <div class="ab-drop" id="abDrop" tabindex="0" role="button" aria-label="Upload photos">
+              <div><strong>Click to choose photos</strong> or drag &amp; drop them here</div>
+              <div class="ab-muted">JPG, PNG or WebP · up to 5 MB each · up to {{ max_per_submit }} at a time</div>
+              <input type="file" id="abFiles" name="images" accept="image/*" multiple hidden>
+              <div class="ab-files" id="abFileNames"></div>
+            </div>
+          </div>
+        </form>
 
-        <div class="ab-drop" id="abDrop" tabindex="0" role="button" aria-label="Upload photos">
-          <div><strong>Click to choose photos</strong> or drag &amp; drop them here</div>
-          <div class="ab-muted">JPG, PNG or WebP · up to 5 MB each</div>
-          <input type="file" id="abFiles" name="images" accept="image/*" multiple hidden>
-          <div class="ab-files" id="abFileNames"></div>
+        <div id="abNotice" class="alert alert-warning ab-notice" role="alert"></div>
+
+        <div class="ab-trust">
+          <span><svg class="ab-svg" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> Free preview</span>
+          <span><svg class="ab-svg" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> No sign-up to try</span>
+          <span><svg class="ab-svg" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> Rooms stay true to life</span>
         </div>
-
-        <div class="mt-3 d-flex justify-content-end">
-          <button type="submit" class="ab-btn" id="abSubmit">Enhance photos</button>
-        </div>
-      </form>
-    </div>
-
-    <div class="ab-job ab-result" id="abResult">
-      <div class="ab-pair">
-        <div class="ab-pane"><span class="ab-tag">BEFORE</span><img id="abBefore" alt="Original photo"></div>
-        <div class="ab-pane" id="abAfter"><span class="ab-tag">AFTER</span></div>
+        <p class="ab-quota"><span id="abRemaining">{{ remaining }}</span> of {{ daily_limit }} images left today</p>
       </div>
-      <div class="ab-summary" id="abSummary"></div>
-      <div class="ab-foot"><button type="button" class="ab-btn" id="abDownload" style="display:none"></button></div>
+
+      <div>
+        {% if samples %}
+        {% with s=samples.0 %}
+        <div class="ab-ba" role="group" aria-label="Before and after: {{ s.label }}">
+          <div class="ab-ba-stage">
+            <img class="ab-ba-after" src="{% static s.after %}" alt="{{ s.label }} after enhancement" decoding="async" fetchpriority="high">
+            <img class="ab-ba-before" src="{% static s.before %}" alt="{{ s.label }} before enhancement" decoding="async" fetchpriority="high">
+            <span class="ab-ba-line"></span><span class="ab-ba-knob">&harr;</span>
+            <span class="ab-ba-tag b">Before</span><span class="ab-ba-tag a">After</span>
+            <input class="ab-ba-range" type="range" min="0" max="100" step="0.5" value="50" aria-label="Drag to compare before and after">
+          </div>
+        </div>
+        <p class="ab-ba-note">Sample photo &middot; drag the handle to compare</p>
+        {% endwith %}
+        {% else %}
+        <div class="ab-visual">
+          <div class="ab-phold"><div>Your photo</div><div>Enhanced result</div></div>
+          <h3>What your photos get</h3>
+          <ul class="ab-checks">
+            <li><svg class="ab-svg" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg><span><b>Straight, level lines</b>Lens distortion and leaning walls corrected.</span></li>
+            <li><svg class="ab-svg" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg><span><b>Balanced light</b>Bright windows and dark corners both recovered.</span></li>
+            <li><svg class="ab-svg" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg><span><b>True-to-life colour</b>Neutral whites, no orange indoor-light cast.</span></li>
+            <li><svg class="ab-svg" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg><span><b>3000px, ready to publish</b>High resolution for Airbnb, Booking.com and your own site.</span></li>
+          </ul>
+        </div>
+        {% endif %}
+      </div>
     </div>
+  </section>
+
+  <!-- ============ YOUR RESULT ============ -->
+  <section class="ab-result-sec" id="abResultSec">
+    <div class="ab-container">
+      <h2>Your enhanced photo</h2>
+      <div class="ab-job ab-result" id="abResult">
+        <div class="ab-pair">
+          <div class="ab-pane"><span class="ab-tag">BEFORE</span><img id="abBefore" alt="Original photo"></div>
+          <div class="ab-pane" id="abAfter"><span class="ab-tag">AFTER</span></div>
+        </div>
+        <div class="ab-summary" id="abSummary"></div>
+        <div class="ab-foot"><button type="button" class="ab-btn" id="abDownload" style="display:none"></button></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ WHY ============ -->
+  <section class="ab-sec">
+    <div class="ab-container">
+      <div class="ab-sec-head">
+        <h2>Why Hosts Use <em>Image Booster</em></h2>
+        <p>Professional-quality photos without the professional price tag</p>
+      </div>
+      <div class="ab-grid3">
+        <div class="ab-feat"><div class="ab-ico round y"><svg class="ab-svg" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></div><h3>Fast Enhancement</h3><p>Paste your listing link or upload photos and get an AI-enhanced version in about a minute. No editing skills needed.</p></div>
+        <div class="ab-feat"><div class="ab-ico round gr"><svg class="ab-svg" viewBox="0 0 24 24"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></div><h3>Realistic Results</h3><p>Better light, colour and perspective — with your rooms, furniture and views kept true to life.</p></div>
+        <div class="ab-feat"><div class="ab-ico round bl"><svg class="ab-svg" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div><h3>Private by Default</h3><p>Your photos are stored privately, and only your own browsing session can open them.</p></div>
+      </div>
+    </div>
+  </section>
+
+  {% if samples|length > 1 %}
+  <!-- ============ TRANSFORMATIONS ============ -->
+  <section class="ab-sec ab-soft">
+    <div class="ab-container">
+      <div class="ab-sec-head">
+        <span class="ab-pill"><svg class="ab-svg" viewBox="0 0 24 24"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg> Real Results</span>
+        <h2>See The <em>Transformations</em></h2>
+        <p>Hover to reveal the AI-enhanced version</p>
+      </div>
+      {% with n=samples|length %}
+      <div class="ab-bento n{% if n > 6 %}6{% else %}{{ n }}{% endif %}">
+        {% for s in samples|slice:":6" %}
+        <figure class="ab-tile" tabindex="0">
+          <img class="ab-t-before" src="{% static s.before %}" alt="{{ s.label }} before enhancement" loading="lazy">
+          <img class="ab-t-after" src="{% static s.after %}" alt="{{ s.label }} after enhancement" loading="lazy">
+          <span class="ab-t-badge"><span class="b">Before</span><span class="a">After</span></span>
+          <figcaption class="ab-t-cap">
+            <div><b>{{ s.label }}</b><span class="h">Hover to see transformation</span><span class="e">AI Enhanced</span></div>
+            <span class="ab-t-go"><svg class="ab-svg" viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></span>
+          </figcaption>
+        </figure>
+        {% endfor %}
+      </div>
+      {% endwith %}
+      <div class="ab-center"><a class="ab-btn" href="#abHero" data-scroll-top="abUrl"><svg class="ab-svg" viewBox="0 0 24 24"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg> Try It With Your Listing</a></div>
+    </div>
+  </section>
+  {% endif %}
+
+  <!-- ============ WHAT WE IMPROVE ============ -->
+  <section class="ab-sec">
+    <div class="ab-container">
+      <div class="ab-sec-head">
+        <span class="ab-pill"><svg class="ab-svg" viewBox="0 0 24 24"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg> What we improve</span>
+        <h2>Everything in your <em>free enhancement</em></h2>
+        <p>Everything a real-estate photo editor would fix — done automatically.</p>
+      </div>
+      <div class="ab-grid3">
+        <div class="ab-feat"><div class="ab-ico g"><svg class="ab-svg" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg></div><h3>Straight, Level Lines</h3><p>Fixes lens distortion and leaning walls, door frames and windows so rooms look properly square.</p></div>
+        <div class="ab-feat"><div class="ab-ico o"><svg class="ab-svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg></div><h3>Balanced Light</h3><p>Recovers blown-out windows and dark corners for a bright, open, inviting feel — never an over-baked HDR look.</p></div>
+        <div class="ab-feat"><div class="ab-ico b"><svg class="ab-svg" viewBox="0 0 24 24"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg></div><h3>True-to-Life Colour</h3><p>Neutral whites and a touch of warmth. Yellow indoor-light and blue shade casts are removed.</p></div>
+        <div class="ab-feat"><div class="ab-ico v"><svg class="ab-svg" viewBox="0 0 24 24"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg></div><h3>Sharp, Clean Detail</h3><p>Less noise in the shadows and naturally crisp trim, textures and fixtures — no plastic, over-smoothed look.</p></div>
+        <div class="ab-feat"><div class="ab-ico a"><svg class="ab-svg" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></div><h3>A Natural Finish</h3><p>Window views and skies stay natural — no obviously swapped-in sky, no changed furniture.</p></div>
+        <div class="ab-feat"><div class="ab-ico t"><svg class="ab-svg" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></div><h3>3000px Resolution</h3><p>Delivered at 3000 pixels on the long edge — plenty for Airbnb, Booking.com, Vrbo and your own website.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ HOW IT WORKS ============ -->
+  <section class="ab-sec ab-soft">
+    <div class="ab-container">
+      <div class="ab-sec-head">
+        <span class="ab-pill"><svg class="ab-svg" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> How it works</span>
+        <h2>From dull to <em>listing-ready</em></h2>
+        <p>No editing skills, no software, no waiting on a photographer.</p>
+      </div>
+      <div class="ab-grid3">
+        <div class="ab-feat"><div class="ab-step-n">01</div><h3>Add your photos</h3><p>Paste your listing link and we’ll find the photos, or upload your own — one or up to {{ max_per_submit }} at a time.</p></div>
+        <div class="ab-feat"><div class="ab-step-n">02</div><h3>AI enhances them</h3><p>Perspective, light, colour and sharpness are corrected, while the furniture and the room stay exactly as they are.</p></div>
+        <div class="ab-feat"><div class="ab-step-n">03</div><h3>Preview &amp; download</h3><p>Compare before and after for free, then unlock the full-resolution, watermark-free photos with your name and email.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ PROMISE ============ -->
+  <section class="ab-promise">
+    <div class="ab-container">
+      <div class="ab-badge"><svg class="ab-svg" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+      <span class="ab-pill green"><svg class="ab-svg" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> Our promise to you</span>
+      <h2>Enhanced, Never <em>Made Up</em></h2>
+      <p class="ab-sub">Guests should get exactly what they see. Image Booster is built to improve light, colour and perspective only.</p>
+      <div class="ab-grid3 tight">
+        <div class="ab-feat"><div class="ab-ico"><svg class="ab-svg" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></div><h3>Your space, as it is</h3><p>It doesn’t add, remove or alter furniture, fixtures or the structure of your property.</p></div>
+        <div class="ab-feat"><div class="ab-ico"><svg class="ab-svg" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div><h3>You stay in control</h3><p>Always review each result before you publish it. Nothing goes on your listing automatically.</p></div>
+        <div class="ab-feat"><div class="ab-ico"><svg class="ab-svg" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div><h3>Private by default</h3><p>Photos are stored privately and only your own session can open them.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ FAQ ============ -->
+  <section class="ab-sec">
+    <div class="ab-container">
+      <div class="ab-sec-head"><h2>Frequently asked <em>questions</em></h2></div>
+      <div class="ab-faq-list">
+        <details class="ab-faq"><summary>How long does it take?</summary><p>Usually around a minute per photo. When you submit several, they’re enhanced in parallel and you’ll see the preview as soon as the first one is ready.</p></details>
+        <details class="ab-faq"><summary>Is it free?</summary><p>Yes — you can enhance photos and see the before/after preview for free. To download the full-resolution, watermark-free files you just enter your name and email.</p></details>
+        <details class="ab-faq"><summary>How many photos can I add?</summary><p>One, or up to {{ max_per_submit }} at a time — JPG, PNG or WebP, up to 5&nbsp;MB each. There’s a daily limit of {{ daily_limit }} images per visitor.</p></details>
+        <details class="ab-faq"><summary>Will it change what my rooms look like?</summary><p>No. It corrects perspective, light and colour. It isn’t meant to add, remove or alter furniture or fixtures. As with any AI tool, please check each result before publishing it.</p></details>
+        <details class="ab-faq"><summary>What happens to my photos?</summary><p>Your photos are sent to an AI provider to be enhanced and stored privately — only your own browsing session can open them. See our <a href="{% url 'privacy' %}" style="color:var(--ab-orange);font-weight:600">Privacy Policy</a> for details.</p></details>
+        <details class="ab-faq"><summary>My link didn’t work — what now?</summary><p>Some sites block automated access. Choose “Attach images manually” and add your photos directly.</p></details>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ DARK CTA ============ -->
+  <section class="ab-dark">
+    <div class="ab-container">
+      <span class="ab-pill"><svg class="ab-svg" viewBox="0 0 24 24"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg> Free listing report</span>
+      <h2>Not ready to dive in? Get a free report on your listing</h2>
+      <p>Paste your link and we’ll score your listing and write ready-to-paste improvements for your title and description.</p>
+      <div class="ab-cta-row">
+        <a class="ab-btn" href="{% url 'aibooster:report' %}"><svg class="ab-svg" viewBox="0 0 24 24"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg> Get My Free Report</a>
+        <a class="ab-btn alt" href="#abHero" data-scroll-top="abUrl">Enhance my photos</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- floating paste-your-link bar -->
+  <div class="ab-sticky" id="abSticky" data-form="abForm" data-input="abUrl">
+    <form novalidate>
+      <label class="ab-urlfield"><svg class="ab-svg" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg><input type="url" placeholder="Paste your listing URL…" aria-label="Listing URL"></label>
+      <button type="submit" class="ab-btn">Enhance for Free</button>
+    </form>
   </div>
 </div>
 
@@ -134,6 +282,13 @@
 
   var $ = function (id) { return document.getElementById(id); };
   var notice = $('abNotice'), fileInput = $('abFiles'), drop = $('abDrop');
+  var dropWrap = $('abDropWrap'), toggleBtn = $('abToggleUpload'), resultSec = $('abResultSec');
+
+  function showUpload(open) {
+    dropWrap.hidden = !open;
+    toggleBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+  toggleBtn.addEventListener('click', function () { showUpload(dropWrap.hidden); });
 
   // XHR (not fetch) on purpose: base.html wraps fetch() in a full-page loader overlay,
   // which would flash on every poll.
@@ -185,8 +340,9 @@
   // processed too, but only reachable through the (gated) download.
   function refresh() {
     var result = $('abResult');
-    if (!order.length) { result.style.display = 'none'; return; }
+    if (!order.length) { result.style.display = 'none'; resultSec.style.display = 'none'; return; }
     result.style.display = 'block';
+    resultSec.style.display = 'block';
     var c = counts();
 
     if (!previewId) {
@@ -273,20 +429,23 @@
     Array.prototype.forEach.call(files, function (f) { fd.append('images', f); });
 
     var btn = $('abSubmit');
+    var btnHtml = btn.innerHTML;
     btn.disabled = true; btn.textContent = 'Working…';
     showNotice('');
     xhr('POST', URLS.start, fd, {}, function (status, data) {
-      btn.disabled = false; btn.textContent = 'Enhance photos';
+      btn.disabled = false; btn.innerHTML = btnHtml;
       if (status !== 200 || !data) { showNotice(FRIENDLY); return; }
       if (data.message) showNotice(data.message);
       if (data.fallback) {
-        // Scraping failed: point the user at the upload box.
+        // Scraping failed: open the upload box and point the user at it.
+        showUpload(true);
         drop.scrollIntoView({ behavior: 'smooth', block: 'center' });
         drop.classList.add('ab-over');
         setTimeout(function () { drop.classList.remove('ab-over'); }, 2500);
       }
       if (!data.ok) return;
       setBatch(data.jobs);
+      resultSec.scrollIntoView({ behavior: 'smooth', block: 'start' });
       if (typeof data.remaining === 'number') $('abRemaining').textContent = data.remaining;
       fileInput.value = ''; $('abFileNames').textContent = '';
       ensurePolling();
@@ -358,4 +517,5 @@
   ensurePolling();
 })();
 </script>
+{% include 'aibooster/_ab_ui_js.html' %}
 {% endblock extra_script %}

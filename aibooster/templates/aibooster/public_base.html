@@ -138,6 +138,30 @@
             }
         }
     </style>
+    <style>
+        /* AI Booster pages: keep the header solid dark (like the logged-in app header) while scrolling.
+           The theme's default sticky state is white, which hides the white logo and nav text. */
+        .ul-header-bottom.to-be-sticky,
+        .ul-header-bottom.to-be-sticky.sticky,
+        .ul-header-bottom.to-be-sticky.scrolled {
+            position: fixed !important;
+            top: 0;
+            width: 100%;
+            background: #1e1e1e !important;
+            backdrop-filter: none !important;
+            -webkit-backdrop-filter: none !important;
+            border-bottom: 0 !important;
+            box-shadow: none !important;
+        }
+        .ul-header-bottom.to-be-sticky.sticky,
+        .ul-header-bottom.to-be-sticky.scrolled { box-shadow: 0 2px 14px rgba(0, 0, 0, .28) !important; }
+        .ul-header-bottom.to-be-sticky .ul-header-nav > a,
+        .ul-header-bottom.to-be-sticky .ul-header-nav > .has-sub-menu > a,
+        .ul-header-bottom.to-be-sticky .ul-header-actions button,
+        .ul-header-bottom.to-be-sticky .btn-login { color: #fff !important; }
+        .ul-header-bottom.to-be-sticky .ul-header-nav > a:hover,
+        .ul-header-bottom.to-be-sticky .ul-header-nav > .has-sub-menu > a:hover { color: var(--ul-primary) !important; }
+    </style>
     {% block extra_head %}{% endblock %}
 </head>
 
@@ -147,29 +171,18 @@
     {% include 'frontend/website/_site_header.html' with nav_home=home_url %}
 
     <main>
+        {% block breadcrumb %}
         <section class="ul-breadcrumb ul-section-spacing">
             <div class="ul-container">
                 <h1 class="ul-breadcrumb-title">{% block page_title %}AI Booster{% endblock %}</h1>
             </div>
         </section>
+        {% endblock breadcrumb %}
 
         {% block content %}{% endblock content %}
     </main>
 
-    <footer class="ul-footer">
-        <div class="ul-footer-bottom">
-            <div class="ul-footer-container">
-                <div class="ul-footer-bottom-wrapper">
-                    <p class="copyright-txt">&copy; {% now "Y" %} Favhost.LLC. All rights reserved.</p>
-                    <div class="ul-footer-bottom-links">
-                        <a href="{% url 'terms' %}">Terms &amp; Conditions</a>
-                        <a href="{% url 'privacy' %}">Privacy Policy</a>
-                        <a href="{% url 'contact' %}">Contact us</a>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </footer>
+    {% include 'aibooster/_site_footer.html' %}
 
     <script src="{% static 'website/vendor/bootstrap/bootstrap.bundle.min.js' %}"></script>
     <script src="{% static 'website/js/main.js' %}"></script>

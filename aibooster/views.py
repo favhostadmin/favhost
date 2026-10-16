@@ -3,6 +3,7 @@ import logging
 import tempfile
 import zipfile
 from datetime import timedelta
+from pathlib import Path
 from urllib.parse import urlparse
 
 from django.conf import settings
@@ -45,6 +46,32 @@ def _session_key(request):
 def _used_today(session_key):
     since = timezone.now() - timedelta(days=1)
     return ImageJob.objects.filter(session_key=session_key, created_at__gte=since).count()
+
+
+SAMPLES_DIR = Path(__file__).resolve().parent / 'static' / 'aibooster' / 'samples'
+
+
+def _samples():
+    """Before/after showcase pairs found in static/aibooster/samples/.
+
+    Drop in `<name>-before.jpg` + `<name>-after.jpg` (optionally prefixed `01-` to
+    set the order) and they appear in the hero slider and the gallery. The page
+    shows nothing fake when the folder is empty.
+    """
+    pairs = []
+    if SAMPLES_DIR.is_dir():
+        for before in sorted(SAMPLES_DIR.glob('*-before.*')):
+            stem = before.name.rsplit('-before', 1)[0]
+            after = next(iter(sorted(SAMPLES_DIR.glob(f'{stem}-after.*'))), None)
+            if not after:
+                continue
+            label = stem.lstrip('0123456789').lstrip('-_ ') or stem
+            pairs.append({
+                'label': label.replace('-', ' ').replace('_', ' ').title(),
+                'before': f'aibooster/samples/{before.name}',
+                'after': f'aibooster/samples/{after.name}',
+            })
+    return pairs
 
 
 def _base_template(request):
@@ -133,6 +160,7 @@ def image_page(request):
     return render(request, 'aibooster/image_booster.html', {
         'jobs_json': [_payload(j, unlocked) for j in jobs],
         'base_template': _base_template(request),
+        'samples': _samples(),
         'daily_limit': DAILY_LIMIT,
         'remaining': max(DAILY_LIMIT - _used_today(key), 0),
         'max_per_submit': MAX_PER_SUBMIT,

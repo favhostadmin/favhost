@@ -44,11 +44,10 @@ def _check_public(url):
             raise UnsafeURL('Host is not a public address.')
 
 
-def safe_get(url, max_bytes):
-    """GET `url` (streamed, size-capped), following redirects manually.
+def _follow(url):
+    """Open `url` as a stream, following redirects manually (re-checking every hop).
 
-    Returns (body bytes, content-type, encoding). Raises UnsafeURL /
-    requests exceptions / ValueError on any problem.
+    Returns (response, final_url); the caller reads or closes the response.
     """
     headers = {'User-Agent': USER_AGENT, 'Accept': 'text/html,image/*;q=0.9,*/*;q=0.5'}
     for _ in range(MAX_REDIRECTS + 1):
@@ -59,15 +58,29 @@ def safe_get(url, max_bytes):
             resp.close()
             continue
         resp.raise_for_status()
-        chunks, size = [], 0
-        for chunk in resp.iter_content(64 * 1024):
-            size += len(chunk)
-            if size > max_bytes:
-                resp.close()
-                raise ValueError('Response too large.')
-            chunks.append(chunk)
-        return b''.join(chunks), resp.headers.get('Content-Type', ''), resp.encoding
+        return resp, url
     raise ValueError('Too many redirects.')
+
+
+def _read(resp, max_bytes):
+    chunks, size = [], 0
+    for chunk in resp.iter_content(64 * 1024):
+        size += len(chunk)
+        if size > max_bytes:
+            resp.close()
+            raise ValueError('Response too large.')
+        chunks.append(chunk)
+    return b''.join(chunks)
+
+
+def safe_get(url, max_bytes):
+    """GET `url` (streamed, size-capped), following redirects manually.
+
+    Returns (body bytes, content-type, encoding). Raises UnsafeURL /
+    requests exceptions / ValueError on any problem.
+    """
+    resp, _final = _follow(url)
+    return _read(resp, max_bytes), resp.headers.get('Content-Type', ''), resp.encoding
 
 
 def _largest_from_srcset(srcset):
@@ -93,9 +106,15 @@ def _looks_like_photo(url):
 
 
 def scrape_images(page_url):
-    """Return up to MAX_IMAGES photo URLs from `page_url`, or [] on any failure."""
+    """Return up to MAX_IMAGES photo URLs from `page_url` (or the URL itself if it is a
+    direct image link), or [] on any failure."""
     try:
-        body, _ctype, encoding = safe_get(page_url, MAX_PAGE_BYTES)
+        resp, final_url = _follow(page_url)
+        if (resp.headers.get('Content-Type') or '').lower().startswith('image/'):
+            # The link IS a photo (e.g. a direct image address copied from a listing): use it as-is.
+            resp.close()
+            return [final_url]
+        body, encoding = _read(resp, MAX_PAGE_BYTES), resp.encoding
         soup = BeautifulSoup(body.decode(encoding or 'utf-8', errors='replace'), 'html.parser')
         candidates = []
         for meta in soup.find_all('meta'):

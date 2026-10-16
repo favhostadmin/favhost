@@ -1,0 +1,55 @@
+<script>
+// Shared UI behaviour: before/after sliders + the floating "paste your link" bar.
+(function () {
+  document.querySelectorAll('.ab-ba').forEach(function (ba) {
+    var range = ba.querySelector('.ab-ba-range');
+    if (!range) return;
+    var raf = 0;
+    function set() { raf = 0; ba.style.setProperty('--pos', range.value + '%'); }
+    // Coalesce rapid input events into a single style update per frame.
+    function schedule() { if (!raf) raf = requestAnimationFrame(set); }
+    range.addEventListener('input', schedule);
+    range.addEventListener('change', set);
+    set();
+  });
+
+  // Gallery tiles: hover reveals on desktop; tap / Enter toggles on touch + keyboard.
+  document.querySelectorAll('.ab-tile').forEach(function (t) {
+    t.addEventListener('click', function () { t.classList.toggle('on'); });
+    t.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); t.classList.toggle('on'); } });
+  });
+
+  // Buttons that should take the visitor back to the link box.
+  document.querySelectorAll('[data-scroll-top]').forEach(function (a) {
+    a.addEventListener('click', function (e) {
+      e.preventDefault();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      var input = document.getElementById(a.getAttribute('data-scroll-top'));
+      if (input) setTimeout(function () { input.focus({ preventScroll: true }); }, 400);
+    });
+  });
+
+  var bar = document.getElementById('abSticky');
+  var hero = document.getElementById('abHero');
+  if (!bar || !hero) return;
+  var form = document.getElementById(bar.getAttribute('data-form'));
+  var heroInput = document.getElementById(bar.getAttribute('data-input'));
+  var barInput = bar.querySelector('input');
+
+  // Show the bar only once the hero form has scrolled out of view.
+  if ('IntersectionObserver' in window) {
+    new IntersectionObserver(function (entries) {
+      bar.classList.toggle('show', !entries[0].isIntersecting);
+    }, { threshold: 0 }).observe(hero);
+  }
+
+  bar.querySelector('form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var value = barInput.value.trim();
+    if (!value) { hero.scrollIntoView({ behavior: 'smooth' }); heroInput.focus(); return; }
+    heroInput.value = value;
+    if (form.requestSubmit) form.requestSubmit();
+    else form.dispatchEvent(new Event('submit', { cancelable: true }));
+  });
+})();
+</script>

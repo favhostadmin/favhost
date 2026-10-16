@@ -1,26 +1,13 @@
 {% extends base_template %}
+{% load static %}
+
+{% block title %}Boost Report – free listing score &amp; ready-to-paste improvements | Favhost{% endblock %}
 
 {% block extra_head %}
+{% include 'aibooster/_ab_design.html' %}
 <style>
-  /* Same look as the Image Booster page (.ab-*); only the report-specific bits are .rb-*. */
-  .ab-page { background: #FAFAFA; color: #1a1a1a; font-size: 14px; flex: 1 0 auto; padding-bottom: 40px; }
-  .ab-page *, .ab-page *::before, .ab-page *::after { box-sizing: border-box; }
-  .ab-header { background: #E7E7E9; min-height: 52px; padding: 8px 32px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-  .ab-title { font-size: 16px; font-weight: 600; color: #111827; margin: 0; }
-  .ab-quota { font-size: 13px; color: #6b7280; }
-  .ab-wrap { max-width: 1100px; margin: 24px auto; padding: 0 16px; }
-  .ab-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 10px; padding: 20px; margin-bottom: 20px; }
-  .ab-card h2 { font-size: 15px; font-weight: 600; margin: 0 0 4px; }
-  .ab-muted { color: #6b7280; font-size: 13px; }
-  .ab-or { text-align: center; color: #9ca3af; font-size: 12px; margin: 14px 0; text-transform: uppercase; letter-spacing: .08em; }
-  .ab-btn { background: #EB5310; border: none; color: #fff; padding: 9px 18px; border-radius: 8px; font-weight: 600; }
-  .ab-btn:hover { background: #d44a0e; color: #fff; }
-  .ab-btn:disabled { opacity: .6; }
-  .ab-notice { display: none; margin-bottom: 16px; }
-  .ab-state { font-size: 13px; color: #6b7280; text-align: center; padding: 24px 8px; }
-  .ab-spin { width: 22px; height: 22px; border: 3px solid #e5e7eb; border-top-color: #EB5310; border-radius: 50%; animation: ab-rot .8s linear infinite; margin: 0 auto 6px; }
-  @keyframes ab-rot { to { transform: rotate(360deg); } }
-
+  .ab-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 14px; padding: 20px; margin-bottom: 20px; }
+  .ab-wrap { max-width: 1100px; margin: 0 auto; padding: 0 16px; }
   .rb-result { display: none; }
   .rb-top { display: grid; grid-template-columns: 150px 1fr; gap: 20px; align-items: center; }
   .rb-score { text-align: center; }
@@ -57,7 +44,6 @@
   .rb-copy.rb-copied { background: #EB5310; color: #fff; }
 
   @media (max-width: 720px) {
-    .ab-header { padding: 8px 16px; }
     .rb-top { grid-template-columns: 1fr; }
     .rb-cols { display: none; }
     .rb-row { grid-template-columns: 1fr; gap: 10px; }
@@ -71,66 +57,198 @@
 </style>
 {% endblock %}
 
+{% block breadcrumb %}{% endblock %}
+
 {% block content %}
 <div class="ab-page">
-  <div class="ab-header">
-    <h1 class="ab-title">Boost Report</h1>
-    <span class="ab-quota"><span id="rbRemaining">{{ report_remaining }}</span> of {{ report_daily_limit }} reports left today</span>
-  </div>
+  {% if base_template == 'aibooster/public_base.html' %}<div class="ab-topband"></div>{% endif %}
 
-  <div class="ab-wrap">
-    <div class="ab-card">
-      <h2>See how to get more bookings from your listing</h2>
-      <p class="ab-muted mb-3">Paste a link to your listing on Airbnb, Booking.com, another travel site or FavHost — or paste the details yourself. We’ll score it and write ready-to-paste improvements.</p>
+  <!-- ============ HERO + TOOL ============ -->
+  <section class="ab-hero" id="abHero">
+    <div class="ab-container ab-hero-grid">
+      <div>
+        <h1 class="ab-h1">Your Listing.<em>Analyzed in a Minute.</em></h1>
+        <p class="ab-lead">Paste your listing link and see what’s costing you bookings — plus ready-to-paste rewrites of your title and description, so you can climb search results and fill your calendar faster.</p>
 
-      <div id="rbNotice" class="alert alert-warning ab-notice" role="alert"></div>
+        <form id="rbForm" novalidate>
+          <div class="ab-urlrow">
+            <label class="ab-urlfield" for="rbUrl">
+              <svg class="ab-svg" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+              <input type="url" id="rbUrl" name="listing_url" placeholder="Paste your listing URL…" autocomplete="off">
+            </label>
+            <button type="submit" class="ab-btn" id="rbSubmit"><svg class="ab-svg" viewBox="0 0 24 24"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg> Analyze for Free</button>
+          </div>
 
-      <form id="rbForm" novalidate>
-        <label class="form-label" for="rbUrl">Listing URL</label>
-        <input type="url" class="form-control" id="rbUrl" name="listing_url" placeholder="https://www.airbnb.com/rooms/…">
+          <div class="ab-below">
+            <span>Can’t share a link?</span>
+            <button type="button" class="ab-link" id="rbToggleManual" aria-expanded="false" aria-controls="rbManualWrap"><svg class="ab-svg" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg> Paste listing details manually</button>
+          </div>
 
-        <div class="ab-or">or</div>
+          <div class="ab-dropwrap" id="rbManualWrap" hidden>
+            <textarea class="ab-textarea" id="rbManual" name="manual_text" rows="6" maxlength="12000"
+                      placeholder="Title, description, amenities, house rules, price, guests, bedrooms… whatever you have."></textarea>
+            <div class="ab-muted" style="margin-top:6px">If you fill this in, we analyse your text and don’t need the link.</div>
+          </div>
+        </form>
 
-        <label class="form-label" for="rbManual">Paste listing details manually</label>
-        <textarea class="form-control" id="rbManual" name="manual_text" rows="6" maxlength="12000"
-                  placeholder="Title, description, amenities, house rules, price, guests, bedrooms… whatever you have."></textarea>
-        <div class="ab-muted mt-1">If you fill this in, we analyse your text and don’t need the link.</div>
+        <div id="rbNotice" class="alert alert-warning ab-notice" role="alert"></div>
 
-        <div class="mt-3 d-flex justify-content-end">
-          <button type="submit" class="ab-btn" id="rbSubmit">Create report</button>
+        <div class="ab-trust">
+          <span><svg class="ab-svg" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> Free</span>
+          <span><svg class="ab-svg" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> No sign-up to try</span>
+          <span><svg class="ab-svg" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> Never guesses missing details</span>
         </div>
-      </form>
-    </div>
+        <p class="ab-quota"><span id="rbRemaining">{{ report_remaining }}</span> of {{ report_daily_limit }} reports left today</p>
+      </div>
 
-    <div id="rbWait" class="ab-card" style="display:none">
-      <div class="ab-state"><div class="ab-spin"></div>Analysing your listing…<div class="ab-muted">This usually takes under a minute.</div></div>
+      <div>
+        <div class="ab-visual">
+          <h3>What’s in your report</h3>
+          <ul class="ab-checks">
+            <li><svg class="ab-svg" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg><span><b>An overall score out of 100</b>See at a glance how strong your listing is.</span></li>
+            <li><svg class="ab-svg" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg><span><b>Your biggest issue</b>The one thing most worth fixing first.</span></li>
+            <li><svg class="ab-svg" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg><span><b>A scorecard by category</b>What’s wrong in each area, and how to fix it.</span></li>
+            <li><svg class="ab-svg" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg><span><b>Ready-to-paste rewrites</b>Your current text next to a better version, with a Copy button.</span></li>
+          </ul>
+        </div>
+      </div>
     </div>
+  </section>
 
-    <div class="rb-result" id="rbResult">
-      <div class="ab-card">
-        <div class="rb-top">
-          <div class="rb-score"><div class="rb-score-num" id="rbScore">–</div><div class="rb-score-of">out of 100</div></div>
-          <div>
-            <div class="rb-issue-label">Biggest issue</div>
-            <div class="rb-issue" id="rbIssue"></div>
+  <!-- ============ YOUR REPORT ============ -->
+  <section class="ab-sec ab-soft" id="rbResultSec" style="display:none;padding:56px 0">
+    <div class="ab-wrap">
+      <div id="rbWait" class="ab-card" style="display:none">
+        <div class="ab-state"><div class="ab-spin"></div>Analysing your listing…<div class="ab-muted">This usually takes under a minute.</div></div>
+      </div>
+
+      <div class="rb-result" id="rbResult">
+        <div class="ab-card">
+          <div class="rb-top">
+            <div class="rb-score"><div class="rb-score-num" id="rbScore">–</div><div class="rb-score-of">out of 100</div></div>
+            <div>
+              <div class="rb-issue-label">Biggest issue</div>
+              <div class="rb-issue" id="rbIssue"></div>
+            </div>
+          </div>
+          <div class="rb-table-wrap" id="rbScoreWrap">
+            <table class="rb-table">
+              <thead><tr><th>Category</th><th>Score</th><th>Issue</th><th>Fix</th></tr></thead>
+              <tbody id="rbScoreBody"></tbody>
+            </table>
           </div>
         </div>
-        <div class="rb-table-wrap" id="rbScoreWrap">
-          <table class="rb-table">
-            <thead><tr><th>Category</th><th>Score</th><th>Issue</th><th>Fix</th></tr></thead>
-            <tbody id="rbScoreBody"></tbody>
-          </table>
+
+        <div class="rb-missing" id="rbMissing" style="display:none" role="note">
+          <strong>Some parts couldn’t be analysed</strong> — we didn’t have this information, so we haven’t guessed:
+          <ul id="rbMissingList"></ul>
         </div>
-      </div>
 
-      <div class="rb-missing" id="rbMissing" style="display:none" role="note">
-        <strong>Some parts couldn’t be analysed</strong> — we didn’t have this information, so we haven’t guessed:
-        <ul id="rbMissingList"></ul>
+        <div class="rb-cols"><div class="rb-cols-head">Current</div><div class="rb-cols-head">Recommended</div></div>
+        <div id="rbRows"></div>
       </div>
-
-      <div class="rb-cols"><div class="rb-cols-head">Current</div><div class="rb-cols-head">Recommended</div></div>
-      <div id="rbRows"></div>
     </div>
+  </section>
+
+  <!-- ============ WHY ============ -->
+  <section class="ab-sec">
+    <div class="ab-container">
+      <div class="ab-sec-head">
+        <h2>Why Hosts Use <em>Boost Report</em></h2>
+        <p>Expert-style feedback without the consultant’s fee</p>
+      </div>
+      <div class="ab-grid3">
+        <div class="ab-feat"><div class="ab-ico round y"><svg class="ab-svg" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></div><h3>Instant Analysis</h3><p>Paste your listing link and get your score and recommendations in about a minute — no forms, no waiting on anyone.</p></div>
+        <div class="ab-feat"><div class="ab-ico round gr"><svg class="ab-svg" viewBox="0 0 24 24"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></div><h3>Specific Fixes</h3><p>Not vague tips: every weak spot comes with what to change and improved wording you can copy straight in.</p></div>
+        <div class="ab-feat"><div class="ab-ico round bl"><svg class="ab-svg" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div><h3>Honest About Gaps</h3><p>If we can’t read part of your listing, we tell you and leave it out — we never invent details about your property.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ WHAT'S INSIDE ============ -->
+  <section class="ab-sec ab-soft">
+    <div class="ab-container">
+      <div class="ab-sec-head">
+        <span class="ab-pill"><svg class="ab-svg" viewBox="0 0 24 24"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg> What’s inside</span>
+        <h2>Everything in your <em>free report</em></h2>
+        <p>Clear scores, clear fixes, and wording you can use right away.</p>
+      </div>
+      <div class="ab-grid3">
+        <div class="ab-feat"><div class="ab-ico g"><svg class="ab-svg" viewBox="0 0 24 24"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></div><h3>Overall Score</h3><p>One number out of 100 that tells you how well your listing is set up to win bookings.</p></div>
+        <div class="ab-feat"><div class="ab-ico o"><svg class="ab-svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div><h3>Your Biggest Issue</h3><p>We point to the single problem most likely holding your listing back, so you know where to start.</p></div>
+        <div class="ab-feat"><div class="ab-ico b"><svg class="ab-svg" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg></div><h3>Category Scorecard</h3><p>Each area scored on its own, with what’s wrong and exactly how to fix it.</p></div>
+        <div class="ab-feat"><div class="ab-ico v"><svg class="ab-svg" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div><h3>Current vs Recommended</h3><p>Your text side by side with an improved version — copy it in one click.</p></div>
+        <div class="ab-feat"><div class="ab-ico a"><svg class="ab-svg" viewBox="0 0 24 24"><line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/><line x1="10" y1="3" x2="8" y2="21"/><line x1="16" y1="3" x2="14" y2="21"/></svg></div><h3>Character-Limit Aware</h3><p>See how many characters each suggestion uses against the platform’s limit, so nothing gets cut off.</p></div>
+        <div class="ab-feat"><div class="ab-ico t"><svg class="ab-svg" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></div><h3>Nothing Made Up</h3><p>Anything we couldn’t read is flagged as missing instead of guessed.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ HOW IT WORKS ============ -->
+  <section class="ab-sec">
+    <div class="ab-container">
+      <div class="ab-sec-head">
+        <span class="ab-pill"><svg class="ab-svg" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> How it works</span>
+        <h2>From link to <em>action plan</em></h2>
+        <p>No account, no forms, no consultants.</p>
+      </div>
+      <div class="ab-grid3">
+        <div class="ab-feat"><div class="ab-step-n">01</div><h3>Paste your link</h3><p>Airbnb, Booking.com, another travel site or a FavHost listing. If a site blocks us, paste your details instead.</p></div>
+        <div class="ab-feat"><div class="ab-step-n">02</div><h3>We read &amp; analyse it</h3><p>We pull out your title, description, amenities, rules and more — and tell you honestly if something couldn’t be read.</p></div>
+        <div class="ab-feat"><div class="ab-step-n">03</div><h3>Get your report</h3><p>A score, your biggest issue, a category scorecard and improved text you can copy into your listing.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ PROMISE ============ -->
+  <section class="ab-promise">
+    <div class="ab-container">
+      <div class="ab-badge"><svg class="ab-svg" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+      <span class="ab-pill green"><svg class="ab-svg" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> Our promise to you</span>
+      <h2>Honest By <em>Design</em></h2>
+      <p class="ab-sub">A report you can trust is one that only says what it can back up.</p>
+      <div class="ab-grid3 tight">
+        <div class="ab-feat"><div class="ab-ico"><svg class="ab-svg" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></div><h3>Never guesses</h3><p>Missing details are flagged as “not available”, never filled in with assumptions.</p></div>
+        <div class="ab-feat"><div class="ab-ico"><svg class="ab-svg" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div><h3>Suggestions only</h3><p>The report never touches your listing. You decide what to copy in.</p></div>
+        <div class="ab-feat"><div class="ab-ico"><svg class="ab-svg" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div><h3>Free to use</h3><p>Run up to {{ report_daily_limit }} reports a day with no sign-up.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ FAQ ============ -->
+  <section class="ab-sec ab-soft">
+    <div class="ab-container">
+      <div class="ab-sec-head"><h2>Frequently asked <em>questions</em></h2></div>
+      <div class="ab-faq-list">
+        <details class="ab-faq"><summary>Is the report really free?</summary><p>Yes. You can run up to {{ report_daily_limit }} reports a day for free, with no sign-up.</p></details>
+        <details class="ab-faq"><summary>Which sites does it work with?</summary><p>Airbnb, Booking.com, other travel sites and FavHost listings. If a site blocks automated access, just paste your listing details instead.</p></details>
+        <details class="ab-faq"><summary>Will it change my listing?</summary><p>No. The report only gives you suggestions — you decide what to copy into your own listing.</p></details>
+        <details class="ab-faq"><summary>What if you can’t read part of my listing?</summary><p>We tell you which parts were missing and leave them out of the analysis. We never guess or make up details about your property.</p></details>
+        <details class="ab-faq"><summary>How long does it take?</summary><p>Usually under a minute. You can leave the page open and your report appears as soon as it’s ready.</p></details>
+        <details class="ab-faq"><summary>Where does my listing text go?</summary><p>It’s sent to an AI provider to write your report. See our <a href="{% url 'privacy' %}" style="color:var(--ab-orange);font-weight:600">Privacy Policy</a> for details.</p></details>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ DARK CTA ============ -->
+  <section class="ab-dark">
+    <div class="ab-container">
+      <span class="ab-pill"><svg class="ab-svg" viewBox="0 0 24 24"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg> Free photo enhancer</span>
+      <h2>Great copy deserves great photos</h2>
+      <p>Enhance your listing photos too — straighter lines, balanced light and true-to-life colour, in about a minute.</p>
+      <div class="ab-cta-row">
+        <a class="ab-btn" href="{% url 'aibooster:image' %}"><svg class="ab-svg" viewBox="0 0 24 24"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg> Enhance My Photos</a>
+        <a class="ab-btn alt" href="#abHero" data-scroll-top="rbUrl">Analyze my listing</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- floating paste-your-link bar -->
+  <div class="ab-sticky" id="abSticky" data-form="rbForm" data-input="rbUrl">
+    <form novalidate>
+      <label class="ab-urlfield"><svg class="ab-svg" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg><input type="url" placeholder="Paste your listing URL…" aria-label="Listing URL"></label>
+      <button type="submit" class="ab-btn">Analyze for Free</button>
+    </form>
   </div>
 </div>
 
@@ -148,6 +266,16 @@
   var pollTimer = null, polls = 0;
 
   var $ = function (id) { return document.getElementById(id); };
+
+  function showManual(open) {
+    $('rbManualWrap').hidden = !open;
+    $('rbToggleManual').setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+  $('rbToggleManual').addEventListener('click', function () { showManual($('rbManualWrap').hidden); });
+  function syncResultSection() {
+    var busy = $('rbWait').style.display === 'block', shown = $('rbResult').style.display === 'block';
+    $('rbResultSec').style.display = (busy || shown) ? 'block' : 'none';
+  }
 
   // XHR (not fetch) on purpose: base.html wraps fetch() in a full-page loader overlay.
   function xhr(method, url, body, cb) {
@@ -270,20 +398,24 @@
     var rows = $('rbRows'); rows.textContent = '';
     (res.fields || []).forEach(function (f) { rows.appendChild(renderRow(f)); });
     $('rbResult').style.display = 'block';
+    syncResultSection();
   }
 
   // ---- job flow ----
   function setBusy(busy) {
     var btn = $('rbSubmit');
-    btn.disabled = busy; btn.textContent = busy ? 'Working…' : 'Create report';
+    if (!btn.getAttribute('data-html')) btn.setAttribute('data-html', btn.innerHTML);
+    btn.disabled = busy;
+    if (busy) btn.textContent = 'Working…'; else btn.innerHTML = btn.getAttribute('data-html');
     $('rbWait').style.display = busy ? 'block' : 'none';
+    syncResultSection();
   }
 
   function handle(report) {
     if (report.status === 'done' && report.result) {
       stopPolling(); setBusy(false); showNotice('');
       renderResult(report.result);
-      $('rbResult').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      $('rbResultSec').scrollIntoView({ behavior: 'smooth', block: 'start' });
     } else if (report.status === 'failed') {
       stopPolling(); setBusy(false);
       showNotice(report.error || FRIENDLY, 'danger');
@@ -319,12 +451,13 @@
     fd.append('manual_text', manual);
     showNotice(''); $('rbResult').style.display = 'none';
     setBusy(true);
+    $('rbResultSec').scrollIntoView({ behavior: 'smooth', block: 'start' });
     xhr('POST', START_URL, fd, function (status, data) {
       if (status !== 200 || !data) { setBusy(false); showNotice(FRIENDLY); return; }
       if (typeof data.remaining === 'number') $('rbRemaining').textContent = data.remaining;
       if (!data.ok) {
         setBusy(false); showNotice(data.message || FRIENDLY);
-        if (data.needs_manual) { var m = $('rbManual'); m.scrollIntoView({ behavior: 'smooth', block: 'center' }); m.focus(); }
+        if (data.needs_manual) { showManual(true); var m = $('rbManual'); m.scrollIntoView({ behavior: 'smooth', block: 'center' }); m.focus(); }
         return;
       }
       handle(data.report);
@@ -336,4 +469,5 @@
   if (initial) handle(initial);
 })();
 </script>
+{% include 'aibooster/_ab_ui_js.html' %}
 {% endblock extra_script %}
