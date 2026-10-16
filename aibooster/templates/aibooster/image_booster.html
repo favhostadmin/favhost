@@ -99,6 +99,10 @@
             <div class="ab-ba-busy" id="abBusy"></div>
           </div>
         </div>
+        <div class="ab-thumbs" id="abThumbs" style="display:none">
+          <div class="ab-thumbs-h">Your photos (<span id="abThumbCount">0</span>) &middot; click one to preview it</div>
+          <div class="ab-thumb-grid" id="abThumbGrid"></div>
+        </div>
         <div class="ab-summary" id="abSummary"></div>
         <div class="ab-actions">
           <button type="button" class="ab-btn line" id="abContinue" style="display:none"></button>
@@ -330,11 +334,24 @@
     return n;
   }
 
-  function setBatch(list) {
-    order = []; jobs = {}; previewId = null;
+  var userPick = null;    // photo the visitor clicked in the strip
+  var thumbEls = {};      // job id -> {btn, img, st}
+  var STATUS = {
+    done: ['Ready', 'ok'], failed: ['Failed', 'bad'], held: ['Waiting', 'wait'],
+    pending: ['Queued', 'busy'], processing: ['Enhancing…', 'busy']
+  };
+
+  function clearPreviewImgs() {
     ['abBefore', 'abAfterImg'].forEach(function (id) {
       var img = $(id); img.removeAttribute('src'); img.removeAttribute('data-src'); img.alt = '';
     });
+  }
+
+  function setBatch(list) {
+    order = []; jobs = {}; previewId = null; userPick = null; thumbEls = {};
+    $('abThumbGrid').textContent = '';
+    $('abSlider').removeAttribute('data-job');
+    clearPreviewImgs();
     list.forEach(function (j) { order.push(j.id); jobs[j.id] = j; });
     refresh();
   }
@@ -351,22 +368,56 @@
 
   function setImg(id, url, alt) {
     var img = $(id);
-    if (url && img.getAttribute('data-src') !== url) { img.setAttribute('data-src', url); img.alt = alt; img.src = url; }
+    if (!url) {
+      if (img.getAttribute('data-src')) { img.removeAttribute('src'); img.removeAttribute('data-src'); img.alt = ''; }
+      return;
+    }
+    if (img.getAttribute('data-src') !== url) { img.setAttribute('data-src', url); img.alt = alt; img.src = url; }
   }
 
-  function busy(html, bad) {
+  // mode: 'bad' = error, 'idle' = nothing running (no spinner); otherwise a spinner is shown
+  function busy(text, mode) {
     var b = $('abBusy');
-    b.className = 'ab-ba-busy' + (bad ? ' bad' : '');
+    b.className = 'ab-ba-busy' + (mode === 'bad' ? ' bad' : '');
     b.textContent = '';
-    b.style.display = html ? 'flex' : 'none';
-    if (!html) return;
-    if (!bad) b.appendChild(el('div', 'ab-spin'));
-    b.appendChild(document.createTextNode(html[0]));
-    if (html[1]) b.appendChild(el('small', '', html[1]));
+    b.style.display = text ? 'flex' : 'none';
+    if (!text) return;
+    if (!mode) b.appendChild(el('div', 'ab-spin'));
+    b.appendChild(document.createTextNode(text[0]));
+    if (text[1]) b.appendChild(el('small', '', text[1]));
   }
 
-  // Only ONE photo is enhanced as the preview. The others wait ("held") until the visitor
-  // presses Continue, so nothing is spent on photos they never asked for.
+  // One small tile per photo. Tiles are created once and then only updated, so the images are not
+  // re-downloaded on every status poll.
+  function syncThumbs(selId) {
+    var grid = $('abThumbGrid');
+    order.forEach(function (id, i) {
+      var j = jobs[id], t = thumbEls[id];
+      if (!t) {
+        var btn = el('button', 'ab-thumb'); btn.type = 'button';
+        var im = el('div', 'im'), img = el('img'), st = el('span', 'st');
+        img.loading = 'lazy'; img.decoding = 'async';
+        im.appendChild(img); im.appendChild(st);
+        btn.appendChild(im); btn.appendChild(el('div', 'cap', 'Enhancement ' + (i + 1)));
+        btn.addEventListener('click', function () { userPick = id; refresh(); });
+        grid.appendChild(btn);
+        t = thumbEls[id] = { btn: btn, img: img, st: st };
+      }
+      var url = j.after_url || (j.has_before ? j.before_url : '');
+      if (url && t.img.getAttribute('data-src') !== url) {
+        t.img.setAttribute('data-src', url); t.img.alt = 'Enhancement ' + (i + 1); t.img.src = url;
+      }
+      t.btn.classList.toggle('on', id === selId);
+      t.btn.classList.toggle('dim', j.status !== 'done');
+      var s = STATUS[j.status] || ['', ''];
+      t.st.textContent = s[0]; t.st.className = 'st ' + s[1];
+    });
+    $('abThumbCount').textContent = order.length;
+    $('abThumbs').style.display = order.length ? '' : 'none';
+  }
+
+  // The big slider previews ONE photo at a time (the first by default, or the one clicked below).
+  // Photos the visitor hasn't asked us to enhance yet ("held") cost nothing until they press Continue.
   function refresh() {
     var result = $('abResult');
     if (!order.length) { result.style.display = 'none'; resultSec.style.display = 'none'; return; }
@@ -379,28 +430,35 @@
         if (jobs[order[i]].status === 'done') { previewId = order[i]; break; }
       }
     }
-    var shown = jobs[previewId || order[0]];
-    // The original only exists once the worker has saved it (scraped photos), so wait for has_before.
-    if (shown.has_before) setImg('abBefore', shown.before_url, 'Original photo');
-    var ready = !!(previewId && jobs[previewId].after_url);
-    if (ready) setImg('abAfterImg', jobs[previewId].after_url, 'Enhanced photo (preview)');
+    var selId = (userPick && jobs[userPick]) ? userPick : (previewId || order[0]);
+    var shown = jobs[selId];
 
-    var firstFailed = !ready && c.busy === 0 && jobs[order[0]].status === 'failed';
+    // Switching photos: drop the old pictures first so the slider never mixes two photos.
+    var slider = $('abSlider');
+    if (slider.getAttribute('data-job') !== selId) { clearPreviewImgs(); slider.setAttribute('data-job', selId); }
+    // The original only exists once the worker has saved it (scraped photos), so wait for has_before.
+    setImg('abBefore', shown.has_before ? shown.before_url : '', 'Original photo');
+    var ready = shown.status === 'done' && !!shown.after_url;
+    setImg('abAfterImg', ready ? shown.after_url : '', 'Enhanced photo (preview)');
+
     if (ready) busy(null);
-    else if (firstFailed) busy([jobs[order[0]].error || FRIENDLY], true);
-    else busy(['Enhancing your preview…', 'This can take a minute or two.']);
+    else if (shown.status === 'failed') busy([shown.error || FRIENDLY], 'bad');
+    else if (shown.status === 'held') busy(['Not enhanced yet', 'Press “Continue” to enhance this photo too.'], 'idle');
+    else busy(['Enhancing…', 'This can take a minute or two.']);
+
+    syncThumbs(selId);
 
     var summary = $('abSummary'), dl = $('abDownload'), more = $('abContinue');
     dl.style.display = 'none'; more.style.display = 'none';
 
-    if (c.busy > 0 && !ready) {
+    if (c.busy > 0 && c.done === 0) {
       summary.textContent = c.total > 1 ? 'Enhancing a preview of your first photo…' : 'Enhancing your photo…';
     } else if (c.busy > 0) {
       summary.textContent = 'Enhanced ' + (c.done + c.failed) + ' of ' + (c.total - c.held) + ' photos…';
     } else if (c.held > 0) {
-      summary.textContent = firstFailed
+      summary.textContent = c.done === 0
         ? 'We couldn’t enhance your first photo, but you can still try the others.'
-        : 'This is a preview of 1 of your ' + c.total + ' photos. Happy with it? Enhance the other ' + c.held + ' too.';
+        : 'Your first photo is ready. Happy with it? Enhance the other ' + c.held + ' too.';
       more.textContent = 'Continue — enhance the other ' + c.held + ' photo' + (c.held > 1 ? 's' : '');
       more.style.display = '';
     } else {
