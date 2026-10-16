@@ -7,6 +7,7 @@ app_name = 'aibooster'
 urlpatterns = [
     path('image/', views.image_page, name='image'),
     path('image/start/', views.image_start, name='image-start'),
+    path('image/continue/', views.image_continue, name='image-continue'),
     path('image/unlock/', views.image_unlock, name='image-unlock'),
     path('image/status/', views.image_status, name='image-status'),
     path('image/<uuid:job_id>/before/', views.image_before, name='image-before'),

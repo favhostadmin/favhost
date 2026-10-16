@@ -87,14 +87,23 @@
   <!-- ============ YOUR RESULT ============ -->
   <section class="ab-result-sec" id="abResultSec">
     <div class="ab-container">
-      <h2>Your enhanced photo</h2>
+      <h2>Your preview</h2>
       <div class="ab-job ab-result" id="abResult">
-        <div class="ab-pair">
-          <div class="ab-pane"><span class="ab-tag">BEFORE</span><img id="abBefore" alt="Original photo"></div>
-          <div class="ab-pane" id="abAfter"><span class="ab-tag">AFTER</span></div>
+        <div class="ab-ba ab-ba-result" id="abSlider" role="group" aria-label="Before and after preview">
+          <div class="ab-ba-stage">
+            <img class="ab-ba-after" id="abAfterImg" alt="" decoding="async">
+            <img class="ab-ba-before" id="abBefore" alt="" decoding="async">
+            <span class="ab-ba-line"></span><span class="ab-ba-knob">&harr;</span>
+            <span class="ab-ba-tag b">Before</span><span class="ab-ba-tag a">After</span>
+            <input class="ab-ba-range" type="range" min="0" max="100" step="0.5" value="50" aria-label="Drag to compare before and after">
+            <div class="ab-ba-busy" id="abBusy"></div>
+          </div>
         </div>
         <div class="ab-summary" id="abSummary"></div>
-        <div class="ab-foot"><button type="button" class="ab-btn" id="abDownload" style="display:none"></button></div>
+        <div class="ab-actions">
+          <button type="button" class="ab-btn line" id="abContinue" style="display:none"></button>
+          <button type="button" class="ab-btn" id="abDownload" style="display:none"></button>
+        </div>
       </div>
     </div>
   </section>
@@ -271,7 +280,8 @@
   var URLS = {
     start: "{% url 'aibooster:image-start' %}",
     status: "{% url 'aibooster:image-status' %}",
-    unlock: "{% url 'aibooster:image-unlock' %}"
+    unlock: "{% url 'aibooster:image-unlock' %}",
+    next: "{% url 'aibooster:image-continue' %}"
   };
   var FRIENDLY = "Something went wrong on our side. Please try again, or upload your photos directly.";
   var order = [];         // job ids of the current batch, in submission order
@@ -322,22 +332,41 @@
 
   function setBatch(list) {
     order = []; jobs = {}; previewId = null;
-    $('abBefore').removeAttribute('src');
+    ['abBefore', 'abAfterImg'].forEach(function (id) {
+      var img = $(id); img.removeAttribute('src'); img.removeAttribute('data-src'); img.alt = '';
+    });
     list.forEach(function (j) { order.push(j.id); jobs[j.id] = j; });
     refresh();
   }
 
   function counts() {
-    var c = { total: order.length, done: 0, failed: 0, busy: 0 };
+    var c = { total: order.length, done: 0, failed: 0, busy: 0, held: 0 };
     order.forEach(function (id) {
       var st = jobs[id].status;
-      if (st === 'done') c.done++; else if (st === 'failed') c.failed++; else c.busy++;
+      if (st === 'done') c.done++; else if (st === 'failed') c.failed++;
+      else if (st === 'held') c.held++; else c.busy++;
     });
     return c;
   }
 
-  // Only ONE preview is ever shown: the first photo to finish. The rest are
-  // processed too, but only reachable through the (gated) download.
+  function setImg(id, url, alt) {
+    var img = $(id);
+    if (url && img.getAttribute('data-src') !== url) { img.setAttribute('data-src', url); img.alt = alt; img.src = url; }
+  }
+
+  function busy(html, bad) {
+    var b = $('abBusy');
+    b.className = 'ab-ba-busy' + (bad ? ' bad' : '');
+    b.textContent = '';
+    b.style.display = html ? 'flex' : 'none';
+    if (!html) return;
+    if (!bad) b.appendChild(el('div', 'ab-spin'));
+    b.appendChild(document.createTextNode(html[0]));
+    if (html[1]) b.appendChild(el('small', '', html[1]));
+  }
+
+  // Only ONE photo is enhanced as the preview. The others wait ("held") until the visitor
+  // presses Continue, so nothing is spent on photos they never asked for.
   function refresh() {
     var result = $('abResult');
     if (!order.length) { result.style.display = 'none'; resultSec.style.display = 'none'; return; }
@@ -351,44 +380,38 @@
       }
     }
     var shown = jobs[previewId || order[0]];
-    var before = $('abBefore');
-    if (before.getAttribute('data-id') !== shown.id) {
-      before.setAttribute('data-id', shown.id);
-      before.src = shown.before_url;
-    }
+    // The original only exists once the worker has saved it (scraped photos), so wait for has_before.
+    if (shown.has_before) setImg('abBefore', shown.before_url, 'Original photo');
+    var ready = !!(previewId && jobs[previewId].after_url);
+    if (ready) setImg('abAfterImg', jobs[previewId].after_url, 'Enhanced photo (preview)');
 
-    var after = $('abAfter');
-    after.querySelectorAll('.ab-state, img').forEach(function (n) { n.remove(); });
-    if (previewId && jobs[previewId].after_url) {
-      var img = el('img'); img.alt = 'Enhanced photo (preview)'; img.src = jobs[previewId].after_url;
-      after.appendChild(img);
-    } else if (c.busy === 0) {
-      var firstFail = jobs[order[0]];
-      after.appendChild(el('div', 'ab-state ab-bad', (firstFail && firstFail.error) || FRIENDLY));
-    } else {
-      var s = el('div', 'ab-state');
-      s.appendChild(el('div', 'ab-spin'));
-      s.appendChild(document.createTextNode('Enhancing…'));
-      s.appendChild(el('div', 'ab-muted', 'This can take a minute or two.'));
-      after.appendChild(s);
-    }
+    var firstFailed = !ready && c.busy === 0 && jobs[order[0]].status === 'failed';
+    if (ready) busy(null);
+    else if (firstFailed) busy([jobs[order[0]].error || FRIENDLY], true);
+    else busy(['Enhancing your preview…', 'This can take a minute or two.']);
 
-    var summary = $('abSummary');
-    var dl = $('abDownload');
-    if (c.busy > 0) {
-      summary.textContent = 'Enhanced ' + (c.done + c.failed) + ' of ' + c.total + ' photos…';
-      dl.style.display = 'none';
+    var summary = $('abSummary'), dl = $('abDownload'), more = $('abContinue');
+    dl.style.display = 'none'; more.style.display = 'none';
+
+    if (c.busy > 0 && !ready) {
+      summary.textContent = c.total > 1 ? 'Enhancing a preview of your first photo…' : 'Enhancing your photo…';
+    } else if (c.busy > 0) {
+      summary.textContent = 'Enhanced ' + (c.done + c.failed) + ' of ' + (c.total - c.held) + ' photos…';
+    } else if (c.held > 0) {
+      summary.textContent = firstFailed
+        ? 'We couldn’t enhance your first photo, but you can still try the others.'
+        : 'This is a preview of 1 of your ' + c.total + ' photos. Happy with it? Enhance the other ' + c.held + ' too.';
+      more.textContent = 'Continue — enhance the other ' + c.held + ' photo' + (c.held > 1 ? 's' : '');
+      more.style.display = '';
     } else {
       var msg = c.done + ' of ' + c.total + ' photo' + (c.total > 1 ? 's' : '') + ' enhanced.';
       if (c.failed && c.done) msg += ' ' + c.failed + ' couldn’t be enhanced.';
-      if (c.done > 1) msg += ' This is a preview of one — download to get all ' + c.done + ' in full resolution.';
       summary.textContent = msg;
-      if (c.done > 0) {
-        dl.textContent = c.done > 1 ? 'Download all (' + c.done + ')' : 'Download';
-        dl.style.display = '';
-      } else {
-        dl.style.display = 'none';
-      }
+    }
+
+    if (c.busy === 0 && c.done > 0) {
+      dl.textContent = c.held > 0 ? 'Download this photo' : (c.done > 1 ? 'Download all (' + c.done + ')' : 'Download');
+      dl.style.display = '';
     }
   }
 
@@ -415,6 +438,21 @@
   function ensurePolling() {
     if (!pollTimer && pendingIds().length) pollTimer = setInterval(poll, 2000);
   }
+
+  // ---- continue: enhance the rest of the batch ----
+  $('abContinue').addEventListener('click', function () {
+    var btn = $('abContinue'); btn.disabled = true;
+    xhr('POST', URLS.next, '{}', { 'Content-Type': 'application/json' }, function (status, data) {
+      btn.disabled = false;
+      if (status !== 200 || !data) { showNotice(FRIENDLY); return; }
+      if (data.message) showNotice(data.message);
+      if (!data.ok) return;
+      data.jobs.forEach(function (j) { if (jobs[j.id]) jobs[j.id] = j; });
+      if (typeof data.remaining === 'number') $('abRemaining').textContent = data.remaining;
+      refresh();
+      ensurePolling();
+    });
+  });
 
   // ---- submit ----
   $('abForm').addEventListener('submit', function (e) {

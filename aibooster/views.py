@@ -31,6 +31,7 @@ MAX_UPLOAD_BYTES = 5 * 1024 * 1024
 DOWNLOAD_LINK_MAX_AGE = 300  # seconds
 UNLOCK_SESSION_KEY = 'aibooster_unlocked'
 BATCH_SESSION_KEY = 'aibooster_batch'  # ids of the most recent submission
+LEAD_SESSION_KEY = 'aibooster_lead_given'  # visitor already gave name+email this session
 DOWNLOAD_SALT = 'aibooster.download'
 _EXT_BY_FORMAT = {'JPEG': 'jpg', 'MPO': 'jpg', 'PNG': 'png', 'WEBP': 'webp'}
 
@@ -45,7 +46,8 @@ def _session_key(request):
 
 def _used_today(session_key):
     since = timezone.now() - timedelta(days=1)
-    return ImageJob.objects.filter(session_key=session_key, created_at__gte=since).count()
+    return (ImageJob.objects.filter(session_key=session_key, created_at__gte=since)
+            .exclude(status=ImageJob.STATUS_HELD).count())
 
 
 SAMPLES_DIR = Path(__file__).resolve().parent / 'static' / 'aibooster' / 'samples'
@@ -83,7 +85,8 @@ def _ip_used_today(ip):
     if not ip:
         return 0
     since = timezone.now() - timedelta(days=1)
-    return ImageJob.objects.filter(ip_address=ip, created_at__gte=since).count()
+    return (ImageJob.objects.filter(ip_address=ip, created_at__gte=since)
+            .exclude(status=ImageJob.STATUS_HELD).count())
 
 
 def _unlocked_ids(request):
@@ -114,6 +117,9 @@ def _payload(job, unlocked):
         'status': job.status,
         'error': job.error if job.status == ImageJob.STATUS_FAILED else '',
         'before_url': reverse('aibooster:image-before', args=[job.id]),
+        # Scraped photos are only saved once the worker starts, so the page must not ask for the
+        # original before it exists (that was the broken BEFORE image).
+        'has_before': bool(job.original_key),
         'unlocked': str(job.id) in unlocked,
     }
     if job.status == ImageJob.STATUS_DONE:
@@ -235,11 +241,12 @@ def image_start(request):
     if not jobs:
         return JsonResponse({'ok': False, 'fallback': fallback, 'message': ' '.join(notes)})
 
+    for job in jobs[1:]:
+        job.status = ImageJob.STATUS_HELD
     for job in jobs:
         job.save()
     request.session[BATCH_SESSION_KEY] = [str(j.id) for j in jobs]
-    for job in jobs:
-        dispatch(job.id)
+    dispatch(jobs[0].id)   # preview of ONE photo first; the rest wait for Continue
 
     unlocked = _unlocked_ids(request)
     return JsonResponse({
@@ -247,6 +254,36 @@ def image_start(request):
         'fallback': fallback,
         'message': ' '.join(notes),
         'jobs': [_payload(j, unlocked) for j in jobs],
+        'remaining': max(DAILY_LIMIT - _used_today(key), 0),
+    })
+
+
+@require_POST
+def image_continue(request):
+    """The visitor liked the preview: enhance the rest of the batch."""
+    key = _session_key(request)
+    held = [j for j in _batch_jobs(request) if j.status == ImageJob.STATUS_HELD]
+    if not held:
+        return JsonResponse({'ok': False, 'message': 'There are no more photos waiting.'})
+
+    remaining = DAILY_LIMIT - _used_today(key)
+    if not request.user.is_authenticated:
+        remaining = min(remaining, ANON_IP_DAILY_LIMIT - _ip_used_today(_client_ip(request)))
+    if remaining <= 0:
+        return JsonResponse({'ok': False, 'message': 'You’ve reached today’s limit. Please come back tomorrow.'})
+
+    release = held[:remaining]
+    ids = [j.id for j in release]
+    ImageJob.objects.filter(pk__in=ids, status=ImageJob.STATUS_HELD).update(status=ImageJob.STATUS_PENDING)
+    for job_id in ids:
+        dispatch(job_id)
+
+    unlocked = _unlocked_ids(request)
+    note = '' if len(release) == len(held) else f'Only {len(release)} more photo(s) fit in today’s limit.'
+    return JsonResponse({
+        'ok': True,
+        'message': note,
+        'jobs': [_payload(j, unlocked) for j in _batch_jobs(request)],
         'remaining': max(DAILY_LIMIT - _used_today(key), 0),
     })
 
@@ -301,8 +338,10 @@ def image_unlock(request):
     name = (body.get('name') or request.POST.get('name') or '').strip()
     email = (body.get('email') or request.POST.get('email') or '').strip()
     unlocked = _unlocked_ids(request)
-    if all(str(j.id) in unlocked for j in jobs) and not (name or email):
-        # Already unlocked this session: just mint a fresh short-lived link, no new lead.
+    if (request.session.get(LEAD_SESSION_KEY) or all(str(j.id) in unlocked for j in jobs)) and not (name or email):
+        # Already gave name+email this session: unlock the (newly finished) photos and just mint a link.
+        unlocked.update(str(j.id) for j in jobs)
+        request.session[UNLOCK_SESSION_KEY] = sorted(unlocked)
         return JsonResponse({'ok': True, 'url': _download_url(jobs)})
     errors = {}
     if not name:
@@ -322,6 +361,7 @@ def image_unlock(request):
     )
     unlocked.update(str(j.id) for j in jobs)
     request.session[UNLOCK_SESSION_KEY] = sorted(unlocked)
+    request.session[LEAD_SESSION_KEY] = True
     return JsonResponse({'ok': True, 'url': _download_url(jobs)})
 
 

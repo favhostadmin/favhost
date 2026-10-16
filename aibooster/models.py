@@ -14,11 +14,15 @@ class ImageJob(models.Model):
     STATUS_PROCESSING = 'processing'
     STATUS_DONE = 'done'
     STATUS_FAILED = 'failed'
+    # Uploaded/scraped but not enhanced yet: only the first photo of a batch is enhanced as a preview;
+    # the rest wait here until the visitor presses Continue (so no AI cost is spent before they opt in).
+    STATUS_HELD = 'held'
     STATUS_CHOICES = [
         (STATUS_PENDING, 'Pending'),
         (STATUS_PROCESSING, 'Processing'),
         (STATUS_DONE, 'Done'),
         (STATUS_FAILED, 'Failed'),
+        (STATUS_HELD, 'Waiting for visitor'),
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
