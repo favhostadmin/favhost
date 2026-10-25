@@ -10,13 +10,13 @@ from django.conf import settings
 from django.core import signing
 from django.core.exceptions import ValidationError
 from django.core.validators import EmailValidator
-from django.http import FileResponse, Http404, HttpResponseForbidden, JsonResponse
+from django.http import FileResponse, Http404, HttpResponse, HttpResponseForbidden, JsonResponse
 from django.shortcuts import render
 from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_GET, require_POST
 
-from . import imaging, scraper, storage
+from . import imaging, report_pdf, scraper, services, storage
 from .models import BoosterLead, ImageJob, ListingReport
 from .tasks import dispatch, dispatch_report
 
@@ -444,7 +444,8 @@ def _report_payload(report):
         'error': report.error if report.status == ListingReport.STATUS_FAILED else '',
         'platform': report.platform,
         'source_url': report.source_url,
-        'result': report.result_json if report.status == ListingReport.STATUS_DONE else None,
+        'result': services.present(report.result_json) if report.status == ListingReport.STATUS_DONE else None,
+        'download_url': reverse('aibooster:report-download', args=[report.id]) if report.status == ListingReport.STATUS_DONE else '',
         'status_url': reverse('aibooster:report-status', args=[report.id]),
     }
 
@@ -516,3 +517,17 @@ def report_status(request, report_id):
     except ListingReport.DoesNotExist:
         raise Http404
     return JsonResponse({'report': _report_payload(report)})
+
+
+@require_GET
+def report_download(request, report_id):
+    """The finished report as a PDF (only for the session that ran it)."""
+    try:
+        report = ListingReport.objects.get(pk=report_id, session_key=_session_key(request),
+                                           status=ListingReport.STATUS_DONE)
+    except ListingReport.DoesNotExist:
+        raise Http404
+    pdf = report_pdf.build(report, services.present(report.result_json))
+    response = HttpResponse(pdf, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="favhost-listing-audit-{str(report.id)[:8]}.pdf"'
+    return response

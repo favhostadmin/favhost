@@ -17,6 +17,7 @@ urlpatterns = [
     path('listing-audit/', views.report_page, name='report'),
     path('listing-audit/start/', views.report_start, name='report-start'),
     path('listing-audit/status/<uuid:report_id>/', views.report_status, name='report-status'),
+    path('listing-audit/<uuid:report_id>/download/', views.report_download, name='report-download'),
     # old addresses keep working
     path('image/', RedirectView.as_view(pattern_name='aibooster:image', permanent=True)),
     path('report/', RedirectView.as_view(pattern_name='aibooster:report', permanent=True)),

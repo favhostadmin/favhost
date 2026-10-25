@@ -29,6 +29,10 @@ INSTRUCTIONS = (
     'You cannot browse. Use ONLY the data provided above. For any field, metric, review analysis or '
     'competitor data that is not in the provided data, output the literal string DATA_NOT_AVAILABLE and '
     'list it under missing_data. Never invent reviews, ratings, prices or competitor figures. '
+    'Scores in the scorecard are integers from 0 to 100, like overall_score. Score a category only from data you were given; '
+    'if a category cannot be assessed, give it score 0 and start its issue with DATA_NOT_AVAILABLE, then say in one plain sentence '
+    'what is missing and put in fix what the host should add. Never use the literal DATA_NOT_AVAILABLE inside biggest_issue: '
+    'biggest_issue must be one or two plain sentences about the most important problem you could actually assess. '
     'Respond with ONLY valid JSON matching the schema below - no markdown, no code fences.'
 )
 SCHEMA = '''{
@@ -266,3 +270,67 @@ def _fail(report, message):
     report.status = ListingReport.STATUS_FAILED
     report.error = message
     report.save(update_fields=['status', 'error', 'input_tokens', 'output_tokens', 'cost_cents'])
+
+
+# ── Presentation: turn the raw analysis into something a host can read ──────
+
+_NA_LEAD = re.compile(r'^\s*DATA_NOT_AVAILABLE\s*[:\-–]?\s*', re.I)
+_NA_IS = re.compile(r'\s+(?:is|are|was|were)\s+DATA_NOT_AVAILABLE', re.I)
+_NA_TAIL = re.compile(r'\s*[:\-–]\s*DATA_NOT_AVAILABLE\b\.?', re.I)
+
+
+def friendly(text):
+    """Replace the machine placeholder with plain English."""
+    text = _text(text)
+    if MISSING not in text.upper():
+        return text
+    text = _NA_LEAD.sub('Some details couldn’t be checked from your listing: ', text)
+    text = _NA_IS.sub(' couldn’t be checked', text)
+    text = _NA_TAIL.sub('', text)
+    text = re.sub(r'DATA_NOT_AVAILABLE', 'not available', text, flags=re.I)
+    text = re.sub(r'supplied (?:inputs?|data)', 'listing details we could read', text, flags=re.I)
+    return text.strip()
+
+
+def grade_for(score):
+    if score >= 80:
+        return 'Excellent'
+    if score >= 65:
+        return 'Good'
+    if score >= 50:
+        return 'Fair'
+    return 'Needs work'
+
+
+def present(result):
+    """Display copy of a stored result: placeholders removed, rows flagged as assessed or not,
+    missing items de-duplicated. The stored JSON is never modified."""
+    if not isinstance(result, dict):
+        return result
+    out = dict(result)
+    out['biggest_issue'] = friendly(result.get('biggest_issue'))
+    out['grade'] = grade_for(_int(result.get('overall_score'), 0, 0, 100))
+    rows = []
+    raw_rows = [r for r in result.get('scorecard') or [] if isinstance(r, dict)]
+    # The model often scores categories out of 10 while the overall score is out of 100.
+    scale = 10 if raw_rows and max(_int(r.get('score'), 0) for r in raw_rows) <= 10 else 1
+    for row in raw_rows:
+        issue, fix = _text(row.get('issue')), _text(row.get('fix'))
+        assessed = MISSING not in (issue + fix).upper()
+        rows.append({
+            'category': _text(row.get('category')),
+            'score': _int(_int(row.get('score'), 0) * scale, 0, 0, 100),
+            'issue': friendly(issue),
+            'fix': friendly(fix),
+            'assessed': assessed,
+        })
+    out['scorecard'] = rows
+    seen, missing = set(), []
+    for item in result.get('missing_data') or []:
+        item = _NA_TAIL.sub('', _text(item)).strip(' .:')
+        item = friendly(item) if MISSING in item.upper() else item
+        if item and item.lower() not in seen:
+            seen.add(item.lower())
+            missing.append(item)
+    out['missing_data'] = missing
+    return out
