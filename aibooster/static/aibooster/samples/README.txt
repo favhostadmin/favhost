@@ -1,9 +1,9 @@
-Showcase pairs for the Image Booster page (hero slider + "See the transformations" gallery).
+Showcase pairs for the Photo Enhancer page (hero slider + "See the transformations" gallery).
 
 Add two files per example, with the same name:
 
     01-bedroom-before.jpg   <- a real, unedited photo
-    01-bedroom-after.jpg    <- the same photo run through Image Booster
+    01-bedroom-after.jpg    <- the same photo run through Photo Enhancer
 
 Rules:
   * The part after the number is the label shown on the card ("Bedroom").
@@ -13,7 +13,7 @@ Rules:
 
 The three pairs currently here are DEMOS: each "before" is a stock room photo from the site's own
 assets, deliberately degraded (underexposed, colour cast, tilted, soft, noisy), and each "after" is
-that degraded photo run through the real Image Booster pipeline. Replace them with real pairs from
+that degraded photo run through the real Photo Enhancer pipeline. Replace them with real pairs from
 your own listings whenever you have them - just overwrite or delete the files.
 
 With no pairs here, the hero shows a "what your photos get" card instead and the gallery is hidden.

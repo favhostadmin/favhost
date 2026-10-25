@@ -1,4 +1,4 @@
-"""Boost Report: send the gathered listing data to OpenAI's chat completions API and
+"""Listing Audit: send the gathered listing data to OpenAI's chat completions API and
 validate the JSON that comes back. Plain requests, like openai_client.py."""
 import json
 import logging
@@ -19,7 +19,7 @@ CHAT_URL = 'https://api.openai.com/v1/chat/completions'
 REQUEST_TIMEOUT = (10, 120)
 MAX_COMPLETION_TOKENS = 10000
 MISSING = 'DATA_NOT_AVAILABLE'
-UNAVAILABLE_MSG = 'The Boost Report is temporarily unavailable. Please try again later.'
+UNAVAILABLE_MSG = 'The Listing Audit is temporarily unavailable. Please try again later.'
 FAILED_MSG = "We couldn't generate your report this time. Please try again in a moment."
 BAD_OUTPUT_MSG = "We couldn't read the analysis we got back. Please try again, or paste the listing details manually."
 
@@ -105,11 +105,11 @@ def _post(messages, model, api_key):
             payload = resp.json()
             return payload['choices'][0]['message']['content'] or '', payload.get('usage') or {}
         except _Permanent as exc:
-            logger.error('Boost Report: OpenAI rejected request (not retrying): model=%s error=%s', model, exc)
+            logger.error('Listing Audit: OpenAI rejected request (not retrying): model=%s error=%s', model, exc)
             raise ReportError(UNAVAILABLE_MSG) from exc
         except Exception as exc:
             last = exc
-            logger.warning('Boost Report: OpenAI attempt %s failed: model=%s error=%s', attempt, model, exc)
+            logger.warning('Listing Audit: OpenAI attempt %s failed: model=%s error=%s', attempt, model, exc)
             if attempt == 1:
                 time.sleep(2)
     raise ReportError(FAILED_MSG) from last
@@ -206,7 +206,7 @@ def generate(scraped):
     """Run the analysis. Returns (result dict, usage dict, model). Retries once on unparseable JSON."""
     api_key, model = _conf('OPENAI_API_KEY'), _conf('OPENAI_REPORT_MODEL')
     if not api_key or not model or not _conf('BOOSTER_REPORT_PROMPT'):
-        logger.error('Boost Report: OPENAI_API_KEY / OPENAI_REPORT_MODEL / BOOSTER_REPORT_PROMPT not configured')
+        logger.error('Listing Audit: OPENAI_API_KEY / OPENAI_REPORT_MODEL / BOOSTER_REPORT_PROMPT not configured')
         raise ReportError(UNAVAILABLE_MSG)
 
     messages = build_messages(scraped)
@@ -216,13 +216,13 @@ def generate(scraped):
         call_in, call_out = int(usage.get('prompt_tokens') or 0), int(usage.get('completion_tokens') or 0)
         tokens_in += call_in
         tokens_out += call_out
-        logger.info('Boost Report OpenAI call %s: model=%s input_tokens=%s output_tokens=%s cost_cents=%s',
+        logger.info('Listing Audit OpenAI call %s: model=%s input_tokens=%s output_tokens=%s cost_cents=%s',
                     attempt, model, call_in, call_out, compute_cost_cents(call_in, call_out))
         try:
             result = normalize(parse_json(text))
             return result, {'input_tokens': tokens_in, 'output_tokens': tokens_out}, model
         except ValueError:
-            logger.warning('Boost Report: unparseable model output (attempt %s): %.200r', attempt, text)
+            logger.warning('Listing Audit: unparseable model output (attempt %s): %.200r', attempt, text)
             if attempt == 1:
                 messages = messages + [{'role': 'assistant', 'content': text[:4000]},
                                        {'role': 'user', 'content': STRICT_RETRY}]
@@ -248,7 +248,7 @@ def run(report_id):
         report.status = ListingReport.STATUS_DONE
         report.error = ''
         report.save()
-        logger.info('Boost Report %s done in %.1fs: model=%s input_tokens=%s output_tokens=%s cost_cents=%s',
+        logger.info('Listing Audit %s done in %.1fs: model=%s input_tokens=%s output_tokens=%s cost_cents=%s',
                     report_id, time.monotonic() - t0, model, report.input_tokens, report.output_tokens,
                     report.cost_cents)
     except ReportError as exc:
@@ -258,7 +258,7 @@ def run(report_id):
             report.cost_cents = compute_cost_cents(report.input_tokens, report.output_tokens)
         _fail(report, str(exc))
     except Exception:
-        logger.exception('Boost Report: %s crashed', report_id)
+        logger.exception('Listing Audit: %s crashed', report_id)
         _fail(report, FAILED_MSG)
 
 

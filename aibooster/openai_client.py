@@ -74,7 +74,7 @@ def edit_image(image_bytes, filename, content_type):
     api_key = getattr(settings, 'OPENAI_API_KEY', '')
     prompt = getattr(settings, 'BOOSTER_IMAGE_PROMPT', '')
     if not api_key or not prompt:
-        logger.error('Image Booster: OPENAI_API_KEY / BOOSTER_IMAGE_PROMPT not configured')
+        logger.error('Photo Enhancer: OPENAI_API_KEY / BOOSTER_IMAGE_PROMPT not configured')
         raise EnhanceError('Image enhancement is not available right now. Please try again later.')
 
     last_error = None

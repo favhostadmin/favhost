@@ -403,7 +403,7 @@ def image_download(request, token):
             try:
                 zf.writestr(f'favhost-enhanced-{n:02d}.jpg', storage.read_bytes(job.clean_key))
             except Exception:
-                logger.warning('Image Booster: clean file missing for job %s', job.id)
+                logger.warning('Photo Enhancer: clean file missing for job %s', job.id)
     archive.seek(0)
     response = FileResponse(archive, content_type='application/zip', as_attachment=True,
                             filename='favhost-enhanced-photos.zip')
@@ -411,7 +411,7 @@ def image_download(request, token):
     return response
 
 
-# ── Boost Report ───────────────────────────────────────────────────────────
+# ── Listing Audit ───────────────────────────────────────────────────────────
 
 REPORT_DAILY_LIMIT = 10
 REPORT_SESSION_KEY = 'aibooster_report'  # id of this session's most recent report
@@ -497,7 +497,7 @@ def report_start(request):
         report = ListingReport.objects.create(
             source_url=url[:2000], platform=platform, scraped_json=scraped, session_key=key)
     except Exception:
-        logger.exception('Boost Report: could not start a report')
+        logger.exception('Listing Audit: could not start a report')
         return JsonResponse({'ok': False, 'message': REPORT_FRIENDLY})
 
     request.session[REPORT_SESSION_KEY] = str(report.id)

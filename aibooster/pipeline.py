@@ -27,7 +27,7 @@ def _fetch_original(job):
         data, _ctype, _enc = scraper.safe_get(job.image_url, scraper.MAX_IMAGE_BYTES)
         fmt = imaging.image_format(data)  # also proves the bytes are a real image
     except Exception:
-        logger.warning('Image Booster: could not fetch image %s', job.image_url, exc_info=True)
+        logger.warning('Photo Enhancer: could not fetch image %s', job.image_url, exc_info=True)
         raise openai_client.EnhanceError("We couldn't download this image from the listing.")
     ext = _API_TYPES.get(fmt, ('img', None))[0]
     job.original_key = storage.save_bytes(storage.new_key(job.id, 'original', ext), data)
@@ -76,11 +76,11 @@ def run(job_id):
         job.status = ImageJob.STATUS_DONE
         job.error = ''
         job.save()
-        logger.info('Image Booster job %s done in %.1fs (prep %.1fs, openai %.1fs, finish %.1fs)',
+        logger.info('Photo Enhancer job %s done in %.1fs (prep %.1fs, openai %.1fs, finish %.1fs)',
                     job_id, time.monotonic() - t0, t_prep - t0, t_api - t_prep, time.monotonic() - t_api)
     except openai_client.EnhanceError as exc:
         _friendly(job, str(exc))
     except Exception:
-        logger.exception('Image Booster: job %s crashed', job_id)
+        logger.exception('Photo Enhancer: job %s crashed', job_id)
         _friendly(job, 'Something went wrong while enhancing this image. Please try again.')
 

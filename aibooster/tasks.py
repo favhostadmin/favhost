@@ -32,11 +32,11 @@ def dispatch(job_id):
     try:
         enhance_image_job.apply_async(args=[str(job_id)], retry=False)
     except Exception:
-        logger.warning('Image Booster: Celery broker unavailable, running job %s in a thread', job_id)
+        logger.warning('Photo Enhancer: Celery broker unavailable, running job %s in a thread', job_id)
         threading.Thread(target=_run_in_thread, args=(str(job_id),), daemon=True).start()
 
 
-# ── Boost Report ───────────────────────────────────────────────────────────
+# ── Listing Audit ───────────────────────────────────────────────────────────
 
 @shared_task(name='aibooster.tasks.run_listing_report')
 def run_listing_report(report_id):
@@ -55,5 +55,5 @@ def dispatch_report(report_id):
     try:
         run_listing_report.apply_async(args=[str(report_id)], retry=False)
     except Exception:
-        logger.warning('Boost Report: Celery broker unavailable, running report %s in a thread', report_id)
+        logger.warning('Listing Audit: Celery broker unavailable, running report %s in a thread', report_id)
         threading.Thread(target=_run_report_in_thread, args=(str(report_id),), daemon=True).start()

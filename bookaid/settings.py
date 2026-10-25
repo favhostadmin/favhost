@@ -138,7 +138,7 @@ INSTALLED_APPS = [
     # Hidden platform-owner admin console (separate from Django's /admin/).
     'controlpanel',
 
-    # AI Booster (Image Booster, Boost Report).
+    # AI Studio (Photo Enhancer, Listing Audit).
     'aibooster',
 
 ]
@@ -388,11 +388,11 @@ FIREBASE_ADMIN_CLIENT_EMAIL = get_env('FIREBASE_ADMIN_CLIENT_EMAIL', '')
 GOOGLE_OAUTH_CLIENT_ID = get_env('GOOGLE_OAUTH_CLIENT_ID', '')
 GOOGLE_MAPS_API_KEY = get_env('GOOGLE_MAPS_API_KEY', '')
 
-# --- AI Booster (aibooster app) ---
+# --- AI Studio (aibooster app) ---
 OPENAI_API_KEY = get_env('OPENAI_API_KEY', '')
 # Used verbatim as the image-edit prompt; never edited or truncated in code.
 BOOSTER_IMAGE_PROMPT = get_env('BOOSTER_IMAGE_PROMPT', '')
-# Boost Report: system prompt (used verbatim) and the text model that runs it.
+# Listing Audit: system prompt (used verbatim) and the text model that runs it.
 BOOSTER_REPORT_PROMPT = get_env('BOOSTER_REPORT_PROMPT', '')
 OPENAI_REPORT_MODEL = get_env('OPENAI_REPORT_MODEL', '')
 

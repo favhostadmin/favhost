@@ -1,4 +1,4 @@
-"""Private storage for Image Booster files.
+"""Private storage for Photo Enhancer files.
 
 On a real server this is the project's default storage — the private S3 bucket
 (no public ACL, presigned access only). On a local checkout the default storage

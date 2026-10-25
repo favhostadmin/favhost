@@ -54,8 +54,8 @@ class BoosterLead(models.Model):
     FEATURE_IMAGE = 'image'
     FEATURE_REPORT = 'report'
     FEATURE_CHOICES = [
-        (FEATURE_IMAGE, 'Image Booster'),
-        (FEATURE_REPORT, 'Boost Report'),
+        (FEATURE_IMAGE, 'Photo Enhancer'),
+        (FEATURE_REPORT, 'Listing Audit'),
     ]
 
     name = models.CharField(max_length=120)
@@ -73,7 +73,7 @@ class BoosterLead(models.Model):
 
 
 class ListingReport(models.Model):
-    """One Boost Report run: the data we gathered about a listing and the AI's analysis of it."""
+    """One Listing Audit run: the data we gathered about a listing and the AI's analysis of it."""
     PLATFORM_AIRBNB = 'airbnb'
     PLATFORM_BOOKING = 'booking'
     PLATFORM_FAVHOST = 'favhost'
