@@ -389,7 +389,7 @@ def image_download(request, token):
     return response
 
 
-# ── Listing Audit ───────────────────────────────────────────────────────────
+# ── Listing Optimize ───────────────────────────────────────────────────────────
 
 REPORT_DAILY_LIMIT = 10
 REPORT_SESSION_KEY = 'aibooster_report'  # id of this session's most recent report
@@ -477,7 +477,7 @@ def report_start(request):
         report = ListingReport.objects.create(
             source_url=url[:2000], platform=platform, scraped_json=scraped, session_key=key)
     except Exception:
-        logger.exception('Listing Audit: could not start a report')
+        logger.exception('Listing Optimize: could not start a report')
         return JsonResponse({'ok': False, 'message': REPORT_FRIENDLY})
 
     request.session[REPORT_SESSION_KEY] = str(report.id)
@@ -510,7 +510,7 @@ def report_download(request, report_id):
         return HttpResponseForbidden('Please unlock the full report to download it.')
     pdf = report_pdf.build(report, services.present(report.result_json))
     response = HttpResponse(pdf, content_type='application/pdf')
-    response['Content-Disposition'] = f'attachment; filename="favhost-listing-audit-{str(report.id)[:8]}.pdf"'
+    response['Content-Disposition'] = f'attachment; filename="favhost-listing-optimize-{str(report.id)[:8]}.pdf"'
     return response
 
 

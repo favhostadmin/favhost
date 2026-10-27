@@ -144,7 +144,7 @@ def scrape_images(page_url):
         return []
 
 
-# ── Listing Audit: listing details ──────────────────────────────────────────
+# ── Listing Optimize: listing details ──────────────────────────────────────────
 # Everything below is additive; the image functions above are unchanged.
 import json
 import re
@@ -412,7 +412,7 @@ def _from_airbnb_state(soup, data):
             if any(highlights):
                 data['highlights'] = [h for h in highlights if h]
         except Exception:
-            logger.warning('Listing Audit: Airbnb state parse failed', exc_info=True)
+            logger.warning('Listing Optimize: Airbnb state parse failed', exc_info=True)
         return
 
 
@@ -464,7 +464,7 @@ def scrape_listing(url, platform):
             html = body.decode(encoding or 'utf-8', errors='replace')
         return parse_listing(html, url, platform)
     except Exception:
-        logger.warning('Listing Audit: scraping %s failed', url, exc_info=True)
+        logger.warning('Listing Optimize: scraping %s failed', url, exc_info=True)
         return empty_listing(url, platform)
 
 
@@ -495,7 +495,7 @@ def read_own_listing(url):
         else:
             return None
     except Exception:
-        logger.warning('Listing Audit: own-listing lookup failed for %s', url, exc_info=True)
+        logger.warning('Listing Optimize: own-listing lookup failed for %s', url, exc_info=True)
         return None
     if not prop:
         return None

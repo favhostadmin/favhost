@@ -36,7 +36,7 @@ def dispatch(job_id):
         threading.Thread(target=_run_in_thread, args=(str(job_id),), daemon=True).start()
 
 
-# ── Listing Audit ───────────────────────────────────────────────────────────
+# ── Listing Optimize ───────────────────────────────────────────────────────────
 
 @shared_task(name='aibooster.tasks.run_listing_report')
 def run_listing_report(report_id):
@@ -55,5 +55,5 @@ def dispatch_report(report_id):
     try:
         run_listing_report.apply_async(args=[str(report_id)], retry=False)
     except Exception:
-        logger.warning('Listing Audit: Celery broker unavailable, running report %s in a thread', report_id)
+        logger.warning('Listing Optimize: Celery broker unavailable, running report %s in a thread', report_id)
         threading.Thread(target=_run_report_in_thread, args=(str(report_id),), daemon=True).start()

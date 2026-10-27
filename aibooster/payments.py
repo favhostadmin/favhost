@@ -1,4 +1,4 @@
-"""One-time Stripe payments for AI Studio (Photo Enhancer: per photo, Listing Audit: per report).
+"""One-time Stripe payments for AI Studio (Photo Enhancer: per photo, Listing Optimize: per report).
 
 Flow: the page asks for a checkout -> we store a pending Order and create a Stripe Checkout Session ->
 the visitor pays on Stripe -> Stripe sends them back to the page (and, separately, calls the webhook).

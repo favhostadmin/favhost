@@ -57,7 +57,7 @@ class BoosterLead(models.Model):
     FEATURE_REPORT = 'report'
     FEATURE_CHOICES = [
         (FEATURE_IMAGE, 'Photo Enhancer'),
-        (FEATURE_REPORT, 'Listing Audit'),
+        (FEATURE_REPORT, 'Listing Optimize'),
     ]
 
     name = models.CharField(max_length=120)
@@ -75,7 +75,7 @@ class BoosterLead(models.Model):
 
 
 class ListingReport(models.Model):
-    """One Listing Audit run: the data we gathered about a listing and the AI's analysis of it."""
+    """One Listing Optimize run: the data we gathered about a listing and the AI's analysis of it."""
     PLATFORM_AIRBNB = 'airbnb'
     PLATFORM_BOOKING = 'booking'
     PLATFORM_FAVHOST = 'favhost'
@@ -122,10 +122,10 @@ class ListingReport(models.Model):
 
 
 class Order(models.Model):
-    """A one-time Stripe payment: either N photos (price x N) or one Listing Audit report."""
+    """A one-time Stripe payment: either N photos (price x N) or one Listing Optimize report."""
     KIND_PHOTOS = 'photos'
     KIND_REPORT = 'report'
-    KIND_CHOICES = [(KIND_PHOTOS, 'Photo Enhancer'), (KIND_REPORT, 'Listing Audit')]
+    KIND_CHOICES = [(KIND_PHOTOS, 'Photo Enhancer'), (KIND_REPORT, 'Listing Optimize')]
     STATUS_PENDING = 'pending'
     STATUS_PAID = 'paid'
     STATUS_CHOICES = [(STATUS_PENDING, 'Awaiting payment'), (STATUS_PAID, 'Paid')]

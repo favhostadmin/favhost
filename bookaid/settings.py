@@ -138,7 +138,7 @@ INSTALLED_APPS = [
     # Hidden platform-owner admin console (separate from Django's /admin/).
     'controlpanel',
 
-    # AI Studio (Photo Enhancer, Listing Audit).
+    # AI Studio (Photo Enhancer, Listing Optimize).
     'aibooster',
 
 ]
@@ -392,7 +392,7 @@ GOOGLE_MAPS_API_KEY = get_env('GOOGLE_MAPS_API_KEY', '')
 OPENAI_API_KEY = get_env('OPENAI_API_KEY', '')
 # Used verbatim as the image-edit prompt; never edited or truncated in code.
 BOOSTER_IMAGE_PROMPT = get_env('BOOSTER_IMAGE_PROMPT', '')
-# Listing Audit: system prompt (used verbatim) and the text model that runs it.
+# Listing Optimize: system prompt (used verbatim) and the text model that runs it.
 BOOSTER_REPORT_PROMPT = get_env('BOOSTER_REPORT_PROMPT', '')
 OPENAI_REPORT_MODEL = get_env('OPENAI_REPORT_MODEL', '')
 

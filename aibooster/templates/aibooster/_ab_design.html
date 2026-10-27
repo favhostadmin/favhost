@@ -1,6 +1,6 @@
 {% load static %}
 <style>
-  /* Shared look for the AI Studio pages (Photo Enhancer + Listing Audit).
+  /* Shared look for the AI Studio pages (Photo Enhancer + Listing Optimize).
      Everything is scoped under .ab-page so it can't leak into the host layout. */
   .ab-page { --ab-orange: #EB5310; --ab-orange-dark: #d44a0e; --ab-amber: #ff8a1f; --ab-navy: #1E252F; --ab-ink: #0f172a; --ab-muted: #64748b; --ab-line: #e5e7eb;
     color: var(--ab-ink); font-size: 15px; line-height: 1.55; flex: 1 0 auto; background: #fff; overflow-x: clip; }
@@ -224,7 +224,7 @@
   .ab-btn.line:hover { background: var(--ab-orange); color: #fff; }
   .ab-hero { background: radial-gradient(760px 460px at 92% 0%, rgba(250,160,25,.20) 0%, rgba(250,160,25,0) 70%), radial-gradient(620px 420px at 0% 100%, rgba(235,83,16,.08) 0%, rgba(235,83,16,0) 70%), var(--ab-cream); }
   .ab-h1 { font-weight: 800; letter-spacing: -.04em; }
-  .ab-h1 em, .ab-sec-head h2 em, .ab-promise h2 em { background: var(--ab-grad); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; color: transparent; padding: 0; }
+  .ab-h1 em, .ab-sec-head h2 em, .ab-promise h2 em { background: var(--ab-grad); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; color: transparent; display: inline-block; padding: 0 .04em .14em; margin-bottom: -.14em; }
   .ab-lead { color: #434343; }
   .ab-urlrow { background: #fff; border: 1px solid #f3e3d8; border-radius: 999px; padding: 7px 7px 7px 10px; box-shadow: 0 4px 50px rgba(0,0,0,.06); }
   .ab-urlfield { background: transparent; border-radius: 999px; padding: 0 12px; }
@@ -339,3 +339,34 @@
     .ab-thumb-grid { grid-template-columns: repeat(2, 1fr); }
   }
 </style>
+
+<style>
+  /* Platform toast (same look as the rest of the app: dark pill, coloured icon, top centre). */
+  .ab-toasts { position: fixed; top: 30px; left: 50%; transform: translateX(-50%); z-index: 99999; min-width: 300px; max-width: min(520px, calc(100vw - 24px)); display: flex; flex-direction: column; gap: 12px; pointer-events: none; }
+  .ab-toasts .toast-message { display: flex; align-items: center; gap: 14px; background: rgba(0,0,0,.9); color: #fff; padding: 16px 20px; border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,.35); font-size: 14px; font-weight: 600; line-height: 1.4; pointer-events: auto; animation: ab-toast-in .3s ease; }
+  .ab-toasts .toast-message::before { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; min-width: 22px; border-radius: 50%; color: #fff; font-size: 12px; font-weight: 700; line-height: 1; }
+  .ab-toasts .toast-message.success { color: #4CAF50; } .ab-toasts .toast-message.success::before { content: "✓"; background: #4CAF50; }
+  .ab-toasts .toast-message.error { color: #e74c3c; } .ab-toasts .toast-message.error::before { content: "✕"; background: #e74c3c; }
+  .ab-toasts .toast-message.info { color: #0dcaf0; } .ab-toasts .toast-message.info::before { content: "ℹ"; background: #0dcaf0; }
+  .ab-toasts .toast-message.warning { color: #ffc107; } .ab-toasts .toast-message.warning::before { content: "!"; background: #ffc107; color: #1a1a1a; }
+  .ab-toasts .toast-message span.ab-toast-t { flex: 1; }
+  .ab-toasts .toast-close { cursor: pointer; color: #fff; opacity: .7; font-size: 18px; line-height: 1; }
+  @keyframes ab-toast-in { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: none; } }
+  @media (max-width: 576px) { .ab-toasts { top: 80px; } }
+</style>
+<script>
+  // abToast(message, kind): kind = success | error | info | warning (danger is treated as error).
+  window.abToast = function (message, kind) {
+    if (!message) return;
+    kind = kind === 'danger' ? 'error' : (kind || 'warning');
+    var box = document.querySelector('.ab-toasts');
+    if (!box) { box = document.createElement('div'); box.className = 'ab-toasts'; document.body.appendChild(box); }
+    var t = document.createElement('div');
+    t.className = 'toast-message ' + kind;
+    var txt = document.createElement('span'); txt.className = 'ab-toast-t'; txt.textContent = message;
+    var x = document.createElement('span'); x.className = 'toast-close'; x.innerHTML = '&times;';
+    x.addEventListener('click', function () { t.remove(); });
+    t.appendChild(txt); t.appendChild(x); box.appendChild(t);
+    setTimeout(function () { t.remove(); }, kind === 'success' ? 6000 : 5000);
+  };
+</script>
