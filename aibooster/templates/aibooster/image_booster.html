@@ -21,24 +21,38 @@
         <p class="ab-lead">Smart AI based Real estate Photo edit build for Realtors, listing agents, Airbnb, Hotel owners, Short term rentals owner. Enhance interior and exterior shots. No time consuming complex editing. Edit all photos in just one click.</p>
 
         <form id="abForm" novalidate>
-          <div class="ab-dropwrap" id="abDropWrap">
-            <div class="ab-drop" id="abDrop" tabindex="0" role="button" aria-label="Upload photos">
-              <div><strong>Click to choose photos</strong> or drag &amp; drop them here</div>
-              <div class="ab-muted">JPG, PNG or WebP · up to 5 MB each · up to {{ max_per_submit }} at a time</div>
-              <input type="file" id="abFiles" name="images" accept="image/*" multiple hidden>
-              <div class="ab-files" id="abFileNames"></div>
-            </div>
+          <div class="ab-tabs" role="tablist" aria-label="How would you like to add your photos?">
+            <button type="button" role="tab" class="ab-tab on" id="abTabUpload" aria-selected="true" aria-controls="abPanelUpload"><svg class="ab-svg" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Upload photos</button>
+            <button type="button" role="tab" class="ab-tab" id="abTabLink" aria-selected="false" aria-controls="abPanelLink"><svg class="ab-svg" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg> Paste listing link</button>
           </div>
-          <button type="button" id="abToggleUpload" hidden aria-controls="abDropWrap"></button>
 
-          <div class="ab-or"><span>or paste a listing link</span></div>
+          <!-- tab 1: upload -->
+          <div class="ab-panel" id="abPanelUpload" role="tabpanel">
+            <div class="ab-drop" id="abDrop" tabindex="0" role="button" aria-label="Choose photos to upload">
+              <div class="ab-drop-empty" id="abDropEmpty">
+                <span class="ab-drop-ico"><svg class="ab-svg" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></span>
+                <div><strong>Click to choose photos</strong> or drag &amp; drop them here</div>
+                <div class="ab-muted">JPG, PNG or WebP · up to 5 MB each · up to {{ max_per_submit }} at a time</div>
+              </div>
+              <div class="ab-drop-picked" id="abPicked" hidden>
+                <div class="ab-picks" id="abPicks"></div>
+                <div class="ab-picked-txt"><b id="abPickedCount"></b><span>Click here to change your photos</span></div>
+              </div>
+              <input type="file" id="abFiles" name="images" accept="image/*" multiple hidden>
+            </div>
+            <button type="submit" class="ab-btn ab-go" id="abSubmitFiles" disabled><svg class="ab-svg" viewBox="0 0 24 24"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg> <span>Choose photos to continue</span></button>
+          </div>
 
-          <div class="ab-urlrow">
-            <label class="ab-urlfield" for="abUrl">
-              <svg class="ab-svg" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-              <input type="url" id="abUrl" name="listing_url" placeholder="Paste your listing URL…" autocomplete="off">
-            </label>
-            <button type="submit" class="ab-btn" id="abSubmit"><svg class="ab-svg" viewBox="0 0 24 24"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg> Enhance My Photos</button>
+          <!-- tab 2: listing link -->
+          <div class="ab-panel" id="abPanelLink" role="tabpanel" hidden>
+            <div class="ab-urlrow">
+              <label class="ab-urlfield" for="abUrl">
+                <svg class="ab-svg" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                <input type="url" id="abUrl" name="listing_url" placeholder="Paste your Airbnb, Booking.com or Vrbo link…" autocomplete="off">
+              </label>
+              <button type="submit" class="ab-btn" id="abSubmit"><svg class="ab-svg" viewBox="0 0 24 24"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg> <span>Enhance My Photos</span></button>
+            </div>
+            <p class="ab-panel-hint">We’ll find the photos on your listing page and enhance them for you.</p>
           </div>
         </form>
 
@@ -251,13 +265,21 @@
 
   var $ = function (id) { return document.getElementById(id); };
   var notice = $('abNotice'), fileInput = $('abFiles'), drop = $('abDrop');
-  var dropWrap = $('abDropWrap'), toggleBtn = $('abToggleUpload'), resultSec = $('abResultSec');
+  var resultSec = $('abResultSec');
 
-  function showUpload(open) {
-    dropWrap.hidden = !open;
-    toggleBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  // ---- two ways in: upload photos, or paste a listing link ----
+  var tab = 'upload';
+  function setTab(name) {
+    tab = name;
+    var up = name === 'upload';
+    $('abPanelUpload').hidden = !up; $('abPanelLink').hidden = up;
+    $('abTabUpload').classList.toggle('on', up); $('abTabLink').classList.toggle('on', !up);
+    $('abTabUpload').setAttribute('aria-selected', up ? 'true' : 'false');
+    $('abTabLink').setAttribute('aria-selected', up ? 'false' : 'true');
   }
-  toggleBtn.addEventListener('click', function () { showUpload(dropWrap.hidden); });
+  function showUpload(open) { setTab(open ? 'upload' : 'link'); }
+  $('abTabUpload').addEventListener('click', function () { setTab('upload'); });
+  $('abTabLink').addEventListener('click', function () { setTab('link'); $('abUrl').focus(); });
 
   // XHR (not fetch) on purpose: base.html wraps fetch() in a full-page loader overlay,
   // which would flash on every poll.
@@ -459,21 +481,23 @@
   // ---- submit ----
   $('abForm').addEventListener('submit', function (e) {
     e.preventDefault();
-    var url = $('abUrl').value.trim();
-    var files = fileInput.files;
-    if (!url && !files.length) { showNotice('Paste a listing URL or choose some photos to upload.'); return; }
+    var url = tab === 'link' ? $('abUrl').value.trim() : '';
+    var files = tab === 'upload' ? fileInput.files : [];
+    if (tab === 'link' && !url) { showNotice('Paste your listing link first.'); return; }
+    if (tab === 'upload' && !files.length) { showNotice('Choose at least one photo first.'); return; }
     if (files.length > MAX) { showNotice('You selected ' + files.length + ' photos — only the first ' + MAX + ' will be enhanced.'); }
 
     var fd = new FormData();
     fd.append('listing_url', url);
     Array.prototype.forEach.call(files, function (f) { fd.append('images', f); });
 
-    var btn = $('abSubmit');
-    var btnHtml = btn.innerHTML;
-    btn.disabled = true; btn.textContent = 'Working…';
+    var btn = tab === 'upload' ? $('abSubmitFiles') : $('abSubmit');
+    var label = btn.querySelector('span');
+    var labelText = label.textContent;
+    btn.disabled = true; label.textContent = 'Working…';
     showNotice('');
     xhr('POST', URLS.start, fd, {}, function (status, data) {
-      btn.disabled = false; btn.innerHTML = btnHtml;
+      label.textContent = labelText; btn.disabled = false; updatePicked();
       if (status !== 200 || !data) { showNotice(FRIENDLY); return; }
       if (data.message) showNotice(data.message);
       if (data.fallback) {
@@ -487,7 +511,7 @@
       setBatch(data.jobs);
       resultSec.scrollIntoView({ behavior: 'smooth', block: 'start' });
       if (typeof data.remaining === 'number') $('abRemaining').textContent = data.remaining;
-      fileInput.value = ''; $('abFileNames').textContent = '';
+      fileInput.value = ''; updatePicked();
       ensurePolling();
     });
   });
@@ -502,14 +526,33 @@
     drop.addEventListener(t, function (e) { e.preventDefault(); drop.classList.remove('ab-over'); });
   });
   drop.addEventListener('drop', function (e) {
-    if (e.dataTransfer && e.dataTransfer.files.length) { fileInput.files = e.dataTransfer.files; showNames(); }
+    if (e.dataTransfer && e.dataTransfer.files.length) { fileInput.files = e.dataTransfer.files; updatePicked(); }
   });
   fileInput.addEventListener('click', function (e) { e.stopPropagation(); });
-  fileInput.addEventListener('change', showNames);
-  function showNames() {
-    var n = fileInput.files.length;
-    $('abFileNames').textContent = n ? n + ' photo' + (n > 1 ? 's' : '') + ' selected' : '';
+  fileInput.addEventListener('change', updatePicked);
+
+  // What the visitor chose: thumbnails + a clear "Enhance N photos" button.
+  var thumbUrls = [];
+  function updatePicked() {
+    thumbUrls.forEach(function (u) { URL.revokeObjectURL(u); }); thumbUrls = [];
+    var files = fileInput.files, n = files.length;
+    var picks = $('abPicks'); picks.textContent = '';
+    $('abDropEmpty').hidden = n > 0; $('abPicked').hidden = n === 0;
+    var go = $('abSubmitFiles');
+    go.disabled = n === 0 || go.dataset.busy === '1';
+    if (go.querySelector('span').textContent !== 'Working…') {
+      go.querySelector('span').textContent = n ? 'Enhance ' + Math.min(n, MAX) + ' photo' + (Math.min(n, MAX) > 1 ? 's' : '') : 'Choose photos to continue';
+    }
+    if (!n) return;
+    var SHOW = 5;
+    Array.prototype.slice.call(files, 0, SHOW).forEach(function (f) {
+      var u = URL.createObjectURL(f); thumbUrls.push(u);
+      var im = el('img'); im.src = u; im.alt = ''; picks.appendChild(im);
+    });
+    if (n > SHOW) picks.appendChild(el('span', 'ab-more', '+' + (n - SHOW)));
+    $('abPickedCount').textContent = n + ' photo' + (n > 1 ? 's' : '') + ' selected' + (n > MAX ? ' (first ' + MAX + ' will be used)' : '');
   }
+  updatePicked();
 
   // ---- payment ----
   function startCheckout() {
