@@ -217,7 +217,18 @@
   .rb-rw-body.rb-lock::after { content: none; }
   .rb-rw-cta { padding: 0 20px 18px; }
   .rb-rw-cta .ab-btn { margin-top: 0; }
-  @media (max-width: 900px) { .rb-prio { grid-template-columns: 1fr; } .rb-cat-body { grid-template-columns: 1fr; } }
+  /* quick wins: a swipeable row, three cards in view; arrows (desktop) or swipe (phone) reveal the rest */
+  .rb-prio { display: flex; gap: 16px; overflow-x: auto; scroll-snap-type: x mandatory; scroll-behavior: smooth; padding: 2px 2px 10px; margin: 0 -2px; scrollbar-width: none; outline: none; }
+  .rb-prio::-webkit-scrollbar { display: none; }
+  .rb-prio .rb-p { flex: 0 0 calc((100% - 32px) / 3); scroll-snap-align: start; min-width: 0; }
+  .rb-h-t { flex: 1; min-width: 0; }
+  .rb-arrows { display: flex; gap: 8px; flex: 0 0 auto; }
+  .rb-arrow { width: 42px; height: 42px; border-radius: 50%; border: 1px solid #f3c7ad; background: #fff; color: #EB5310; display: grid; place-items: center; cursor: pointer; padding: 0; transition: background-color .15s, color .15s, border-color .15s; }
+  .rb-arrow .ab-svg { width: 20px; height: 20px; }
+  .rb-arrow:hover:not(:disabled) { background: #EB5310; color: #fff; border-color: #EB5310; }
+  .rb-arrow:disabled { opacity: .35; cursor: default; }
+  .rb-p.rb-lock::after { content: none; }
+  @media (max-width: 900px) { .rb-prio .rb-p { flex-basis: calc((100% - 16px) / 1.15); } .rb-arrows { display: none !important; } .rb-cat-body { grid-template-columns: 1fr; } }
   @media (max-width: 720px) {
     .rb-hero { grid-template-columns: 1fr; justify-items: center; text-align: center; padding: 22px; }
     .rb-main { text-align: left; } .rb-actions { justify-content: center; }
@@ -228,6 +239,9 @@
     .ab-topband, header, footer, .ab-hero, .ab-sec:not(#rbResultSec), .ab-dark, .ab-sticky, .rb-actions, .rb-missing { display: none !important; }
     #rbResultSec { display: block !important; padding: 0 !important; }
     .rb-cat:not([open]) .rb-cat-body, .rb-rw:not([open]) .rb-rw-body { display: block; }
+    .rb-prio { flex-wrap: wrap; overflow: visible; }
+    .rb-prio .rb-p { flex-basis: calc((100% - 32px) / 3); }
+    .rb-arrows { display: none !important; }
     .rb-g-fg { transition: none; }
   }
   @media (max-width: 720px) {
@@ -340,8 +354,13 @@
 
         <!-- 2. quick wins -->
         <div id="rbPrioSec" style="display:none">
-          <div class="rb-h"><span class="rb-h-n">1</span><div><h3>Start here: your quick wins</h3><p>The biggest improvements for the least effort.</p></div></div>
-          <div class="rb-prio" id="rbPrio"></div>
+          <div class="rb-h"><span class="rb-h-n">1</span><div class="rb-h-t"><h3>Start here: your quick wins</h3><p id="rbPrioSub">The biggest improvements for the least effort.</p></div>
+            <div class="rb-arrows" id="rbArrows" style="display:none">
+              <button type="button" class="rb-arrow" id="rbPrev" aria-label="Previous"><svg class="ab-svg" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></button>
+              <button type="button" class="rb-arrow" id="rbNext" aria-label="Next"><svg class="ab-svg" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></button>
+            </div>
+          </div>
+          <div class="rb-prio" id="rbPrio" tabindex="0" aria-label="Your quick wins"></div>
         </div>
 
         <!-- 3. scorecard -->
@@ -652,9 +671,12 @@
     var assessed = cards.filter(function (c) { return c.assessed; }).sort(function (a, b) { return a.score - b.score; });
     var unscored = cards.filter(function (c) { return !c.assessed; });
 
-    // 1. quick wins = the three weakest areas we could assess
+    // 1. quick wins = every assessed area that needs work (below 75), weakest first;
+    //    if fewer than three do, pad with the next weakest so the row is never nearly empty
     var prio = $('rbPrio'); prio.textContent = '';
-    assessed.slice(0, 3).forEach(function (c) {
+    var wins = assessed.filter(function (c) { return c.score < 75; });
+    if (wins.length < 3) wins = assessed.slice(0, 3);
+    wins.forEach(function (c) {
       var box = el('div', 'rb-p'); box.style.setProperty('--rb-c', bandColor(c.score));
       var top = el('div', 'rb-p-top');
       top.appendChild(el('h4', '', c.category));
@@ -665,6 +687,9 @@
       prio.appendChild(box);
     });
     $('rbPrioSec').style.display = prio.children.length ? '' : 'none';
+    $('rbPrioSub').textContent = wins.length > 1 ? wins.length + ' improvements, biggest first. Use the arrows or swipe to see them all.' : 'The biggest improvement for the least effort.';
+    prio.scrollLeft = 0;
+    setTimeout(updateArrows, 0);
 
     // 2. scorecard: weakest first, areas we couldn't check last
     var grid = $('rbCats'); grid.textContent = '';
@@ -699,6 +724,25 @@
     $('rbResult').style.display = 'block';
     syncResultSection();
   }
+
+  // arrows for the quick-wins row
+  function updateArrows() {
+    var row = $('rbPrio'), more = row.scrollWidth > row.clientWidth + 4;
+    $('rbArrows').style.display = more ? '' : 'none';
+    $('rbPrev').disabled = row.scrollLeft <= 4;
+    $('rbNext').disabled = row.scrollLeft + row.clientWidth >= row.scrollWidth - 4;
+  }
+  function slide(dir) {
+    var row = $('rbPrio'), card = row.firstChild;
+    if (card) row.scrollBy({ left: dir * (card.offsetWidth + 16), behavior: 'smooth' });
+  }
+  $('rbPrev').addEventListener('click', function () { slide(-1); });
+  $('rbNext').addEventListener('click', function () { slide(1); });
+  $('rbPrio').addEventListener('scroll', updateArrows);
+  $('rbPrio').addEventListener('keydown', function (e) {
+    if (e.key === 'ArrowRight') { e.preventDefault(); slide(1); } else if (e.key === 'ArrowLeft') { e.preventDefault(); slide(-1); }
+  });
+  window.addEventListener('resize', updateArrows);
 
   $('rbPrint').addEventListener('click', function () {
     if (!this.dataset.paid) { startCheckout(this); return; }
