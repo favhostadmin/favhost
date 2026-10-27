@@ -26,8 +26,9 @@
             <button type="button" role="tab" class="ab-tab" id="abTabLink" aria-selected="false" aria-controls="abPanelLink"><svg class="ab-svg" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg> Paste listing link</button>
           </div>
 
+          <div class="ab-panels">
           <!-- tab 1: upload -->
-          <div class="ab-panel" id="abPanelUpload" role="tabpanel">
+          <div class="ab-panel" id="abPanelUpload" role="tabpanel" aria-hidden="false">
             <div class="ab-drop" id="abDrop" tabindex="0" role="button" aria-label="Choose photos to upload">
               <div class="ab-drop-empty" id="abDropEmpty">
                 <span class="ab-drop-ico"><svg class="ab-svg" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></span>
@@ -44,7 +45,7 @@
           </div>
 
           <!-- tab 2: listing link -->
-          <div class="ab-panel" id="abPanelLink" role="tabpanel" hidden>
+          <div class="ab-panel is-off" id="abPanelLink" role="tabpanel" aria-hidden="true">
             <div class="ab-urlrow">
               <label class="ab-urlfield" for="abUrl">
                 <svg class="ab-svg" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
@@ -53,6 +54,7 @@
               <button type="submit" class="ab-btn" id="abSubmit"><svg class="ab-svg" viewBox="0 0 24 24"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg> <span>Enhance My Photos</span></button>
             </div>
             <p class="ab-panel-hint">We’ll find the photos on your listing page and enhance them for you.</p>
+          </div>
           </div>
         </form>
 
@@ -272,7 +274,9 @@
   function setTab(name) {
     tab = name;
     var up = name === 'upload';
-    $('abPanelUpload').hidden = !up; $('abPanelLink').hidden = up;
+    // not the `hidden` attribute: Bootstrap makes that display:none, which would collapse the box and shift the page
+    $('abPanelUpload').classList.toggle('is-off', !up); $('abPanelLink').classList.toggle('is-off', up);
+    $('abPanelUpload').setAttribute('aria-hidden', up ? 'false' : 'true'); $('abPanelLink').setAttribute('aria-hidden', up ? 'true' : 'false');
     $('abTabUpload').classList.toggle('on', up); $('abTabLink').classList.toggle('on', !up);
     $('abTabUpload').setAttribute('aria-selected', up ? 'true' : 'false');
     $('abTabLink').setAttribute('aria-selected', up ? 'false' : 'true');
