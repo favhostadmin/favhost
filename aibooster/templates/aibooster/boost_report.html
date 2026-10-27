@@ -200,6 +200,23 @@
   .rb-chips li { background: #fff; border: 1px solid #f3e3d8; border-radius: 999px; padding: 5px 13px; font-size: 13px; color: #434343; }
   .rb-missing .ab-btn { height: 48px; font-size: 14.5px; }
 
+  .rb-unlock { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; margin-top: 18px; background: #1E252F; color: #fff; border-radius: 24px; padding: 20px 24px; }
+  .rb-unlock-ico { width: 48px; height: 48px; border-radius: 50%; background: #EB5310; display: grid; place-items: center; flex: 0 0 auto; }
+  .rb-unlock-txt { flex: 1 1 280px; display: flex; flex-direction: column; gap: 3px; }
+  .rb-unlock-txt b { font-size: 18px; font-weight: 800; }
+  .rb-unlock-txt span { font-size: 14.5px; color: rgba(255,255,255,.82); }
+  .rb-unlock-txt small { font-size: 12.5px; color: rgba(255,255,255,.55); }
+  .rb-unlock .ab-btn { height: 52px; }
+  .rb-paid { background: #ecfdf5; border: 1px solid #a7f3d0; color: #065f46; border-radius: 18px; padding: 14px 18px; margin-bottom: 16px; font-size: 15px; }
+  .rb-lock { position: relative; }
+  .rb-lock p, .rb-lock .rb-text { filter: blur(6px); user-select: none; pointer-events: none; }
+  .rb-lock::after { content: 'Locked'; position: absolute; top: 14px; right: 16px; font-size: 11.5px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: #fff; background: #1E252F; border-radius: 999px; padding: 3px 11px; }
+  .rb-cat.rb-lock::after { content: none; }
+  .rb-cat.rb-lock .rb-cat-body { position: relative; }
+  .rb-lockbtn { display: inline-flex; margin-top: 10px; }
+  .rb-rw-body.rb-lock::after { content: none; }
+  .rb-rw-cta { padding: 0 20px 18px; }
+  .rb-rw-cta .ab-btn { margin-top: 0; }
   @media (max-width: 900px) { .rb-prio { grid-template-columns: 1fr; } .rb-cat-body { grid-template-columns: 1fr; } }
   @media (max-width: 720px) {
     .rb-hero { grid-template-columns: 1fr; justify-items: center; text-align: center; padding: 22px; }
@@ -263,6 +280,7 @@
 
         <div id="rbNotice" class="alert alert-warning ab-notice" role="alert"></div>
 
+        {% if price %}<p class="ab-pricenote"><svg class="ab-svg" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> See half your report free &middot; <span>unlock the full report for <b>{{ price.display }}</b>, one-time</span></p>{% endif %}
         <span id="rbRemaining" hidden>{{ report_remaining }}</span>
       </div>
 
@@ -288,6 +306,7 @@
       </div>
 
       <div class="rb-result" id="rbResult">
+        <div class="rb-paid" id="rbPaidNote" style="display:none"><b>Payment received, thank you!</b> Your full report is unlocked below. You can now download the PDF or print it.</div>
         <!-- 1. verdict -->
         <div class="ab-card rb-hero">
           <div class="rb-gauge" id="rbGauge" role="img" aria-label="Overall score">
@@ -303,6 +322,17 @@
               <button type="button" class="ab-btn line" id="rbPrint">Print</button>
             </div>
           </div>
+        </div>
+
+        <!-- unlock banner (only until paid) -->
+        <div class="rb-unlock" id="rbUnlock" style="display:none">
+          <div class="rb-unlock-ico"><svg class="ab-svg" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg></div>
+          <div class="rb-unlock-txt">
+            <b>You’re seeing about half of your report</b>
+            <span id="rbUnlockSub"></span>
+            <small>One-time payment by Stripe &middot; no subscription &middot; instant access</small>
+          </div>
+          <button type="button" class="ab-btn" id="rbUnlockBtn"><span id="rbUnlockLabel">Unlock full report</span></button>
         </div>
 
         <!-- 2. quick wins -->
@@ -517,6 +547,26 @@
     [0, 'Your listing needs attention. The fixes below are the fastest way to get more bookings.']
   ];
   var lastReport = null;
+  var CHECKOUT_URL = "{% url 'aibooster:report-checkout' %}";
+  var PRICE = {% if price %}{ cents: {{ price.cents }}, currency: "{{ price.currency }}", display: "{{ price.display }}" }{% else %}null{% endif %};
+  var FLASH = "{{ flash }}";
+
+  // Send the visitor to Stripe to unlock the full report.
+  function startCheckout(btn) {
+    if (btn) btn.disabled = true;
+    xhr('POST', CHECKOUT_URL, '{}', function (status, data) {
+      if (status === 200 && data && data.ok && data.url) { window.location.href = data.url; return; }
+      if (status === 200 && data && data.paid) { window.location.reload(); return; }
+      if (btn) btn.disabled = false;
+      showNotice((data && data.message) || FRIENDLY);
+    });
+  }
+  function unlockButton(label) {
+    var b = el('button', 'ab-btn rb-lockbtn', label || ('Unlock' + (PRICE ? ' · ' + PRICE.display : '')));
+    b.type = 'button';
+    b.addEventListener('click', function () { startCheckout(b); });
+    return b;
+  }
 
   // First sentence(s), trimmed to a readable length.
   function brief(text, max) {
@@ -529,6 +579,16 @@
   function renderRow(f) {
     var suggested = (f.suggested || '').trim();
     if (!suggested || suggested === NA) return null;
+    if (f.locked) {
+      var lk = el('details', 'rb-rw');
+      var ls = el('summary'); var lt = el('span', '', f.field_name); lt.appendChild(el('small', '', 'Locked')); ls.appendChild(lt);
+      lk.appendChild(ls);
+      var lb = el('div', 'rb-rw-body rb-lock');
+      var ln = el('div', 'rb-new'); ln.appendChild(el('div', 'rb-text', suggested)); lb.appendChild(ln);
+      lk.appendChild(lb);
+      lk.appendChild(el('div', 'rb-rw-cta')).appendChild(unlockButton());
+      return lk;
+    }
     var current = (f.current || '').trim();
     var count = suggested.length, limit = f.char_limit || 0;
 
@@ -582,9 +642,20 @@
     fg.style.strokeDashoffset = 326.7;
     setTimeout(function () { fg.style.strokeDashoffset = 326.7 * (1 - score / 100); }, 60);
 
+    var paid = !!(res.paid || (lastReport && lastReport.paid));
     var dl = $('rbDownload');
-    if (lastReport && lastReport.download_url) { dl.href = lastReport.download_url; dl.style.display = ''; }
-    else { dl.style.display = 'none'; }
+    dl.style.display = '';
+    dl.dataset.paid = paid ? '1' : '';
+    dl.href = paid && lastReport && lastReport.download_url ? lastReport.download_url : '#';
+    $('rbPrint').dataset.paid = paid ? '1' : '';
+
+    // paywall banner: how much is still locked
+    var lockedCount = (res.scorecard || []).filter(function (c) { return c.locked; }).length + (res.fields || []).filter(function (f) { return f.locked; }).length;
+    $('rbUnlock').style.display = paid ? 'none' : '';
+    if (!paid) {
+      $('rbUnlockSub').textContent = (lockedCount ? 'Unlock ' + lockedCount + ' more fixes and rewrites, ' : 'Unlock ') + 'plus the PDF download and print version.';
+      $('rbUnlockLabel').textContent = PRICE ? 'Unlock full report · ' + PRICE.display : 'Unlock full report';
+    }
 
     var cards = res.scorecard || [];
     var assessed = cards.filter(function (c) { return c.assessed; }).sort(function (a, b) { return a.score - b.score; });
@@ -599,6 +670,7 @@
       top.appendChild(el('span', 'rb-badge ' + tone(c.score), label(c.score)));
       box.appendChild(top);
       box.appendChild(el('p', '', brief(c.fix, 190)));
+      if (c.locked) { box.className += ' rb-lock'; box.appendChild(unlockButton()); }
       prio.appendChild(box);
     });
     $('rbPrioSec').style.display = prio.children.length ? '' : 'none';
@@ -620,6 +692,7 @@
       var f1 = el('div'); f1.appendChild(el('b', '', c.assessed ? 'What we found' : 'Why we couldn’t score it')); f1.appendChild(el('p', '', c.issue));
       var f2 = el('div', 'fix'); f2.appendChild(el('b', '', c.assessed ? 'How to improve it' : 'What to add')); f2.appendChild(el('p', '', c.fix));
       body.appendChild(f1); body.appendChild(f2);
+      if (c.locked) { box.className += ' rb-lock'; body.appendChild(unlockButton('Unlock the fix' + (PRICE ? ' · ' + PRICE.display : ''))); }
       box.appendChild(body);
       grid.appendChild(box);
     });
@@ -642,9 +715,14 @@
   }
 
   $('rbPrint').addEventListener('click', function () {
+    if (!this.dataset.paid) { startCheckout(this); return; }
     document.querySelectorAll('#rbResult details').forEach(function (d) { d.open = true; });
     window.print();
   });
+  $('rbDownload').addEventListener('click', function (e) {
+    if (!this.dataset.paid) { e.preventDefault(); startCheckout(this); }
+  });
+  $('rbUnlockBtn').addEventListener('click', function () { startCheckout(this); });
   $('rbAddDetails').addEventListener('click', function () {
     showManual(true);
     var m = $('rbManual');
@@ -719,6 +797,9 @@
   // ---- initial state: this session's latest report, if any ----
   var initial = JSON.parse($('rbInitial').textContent);
   if (initial) handle(initial);
+  if (FLASH === 'paid') $('rbPaidNote').style.display = 'block';
+  else if (FLASH === 'canceled') showNotice('Payment cancelled. Your report is still here whenever you’d like to unlock it.', 'info');
+  else if (FLASH === 'unconfirmed') showNotice('We couldn’t confirm your payment yet. If you were charged, please refresh this page in a minute.', 'warning');
 })();
 </script>
 {% include 'aibooster/_ab_ui_js.html' %}

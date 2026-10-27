@@ -44,6 +44,7 @@
 
         <div id="abNotice" class="alert alert-warning ab-notice" role="alert"></div>
 
+        {% if price %}<p class="ab-pricenote"><svg class="ab-svg" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> <span>Free preview of your first photo &middot; then <b>{{ price.display }} per photo</b>, one-time payment</span></p>{% endif %}
         <span id="abRemaining" hidden>{{ remaining }}</span>
       </div>
 
@@ -97,8 +98,11 @@
           <div class="ab-thumb-grid" id="abThumbGrid"></div>
         </div>
         <div class="ab-summary" id="abSummary"></div>
+        <div class="ab-pay" id="abPay" style="display:none">
+          <div class="ab-pay-txt"><b id="abPayTitle"></b><span id="abPayCalc"></span><small>Secure one-time payment by Stripe &middot; no subscription</small></div>
+          <button type="button" class="ab-btn" id="abPayBtn"><svg class="ab-svg" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg> <span id="abPayLabel">Unlock &amp; download</span></button>
+        </div>
         <div class="ab-actions">
-          <button type="button" class="ab-btn line" id="abContinue" style="display:none"></button>
           <button type="button" class="ab-btn" id="abDownload" style="display:none"></button>
         </div>
       </div>
@@ -221,37 +225,6 @@
   </div>
 </div>
 
-<!-- Download gate -->
-<div class="modal fade" id="abModal" tabindex="-1" aria-labelledby="abModalTitle" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <form class="modal-content" id="abLeadForm" novalidate>
-      <div class="modal-header">
-        <h5 class="modal-title" id="abModalTitle">Download your enhanced photos</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
-        <p class="ab-muted">Tell us where to send it and we’ll unlock the full-resolution, watermark-free photos.</p>
-        <div class="mb-3">
-          <label class="form-label" for="abName">Name</label>
-          <input type="text" class="form-control" id="abName" maxlength="120" required autocomplete="name">
-          <div class="text-danger small" id="abNameErr"></div>
-        </div>
-        <div class="mb-3">
-          <label class="form-label" for="abEmail">Email</label>
-          <input type="email" class="form-control" id="abEmail" required autocomplete="email">
-          <div class="text-danger small" id="abEmailErr"></div>
-        </div>
-        <p class="ab-consent mb-0">By continuing, you agree that FavHost may store your name and email to follow up with you (see our <a href="{% url 'privacy' %}" target="_blank" rel="noopener noreferrer">Privacy Policy</a>).</p>
-        <div class="text-danger small mt-2" id="abLeadErr"></div>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
-        <button type="submit" class="ab-btn" id="abLeadSubmit">Unlock &amp; download</button>
-      </div>
-    </form>
-  </div>
-</div>
-
 {{ jobs_json|json_script:"abInitialJobs" }}
 {% endblock content %}
 
@@ -263,8 +236,14 @@
     start: "{% url 'aibooster:image-start' %}",
     status: "{% url 'aibooster:image-status' %}",
     unlock: "{% url 'aibooster:image-unlock' %}",
-    next: "{% url 'aibooster:image-continue' %}"
+    checkout: "{% url 'aibooster:image-checkout' %}"
   };
+  var PRICE = {% if price %}{ cents: {{ price.cents }}, currency: "{{ price.currency }}" }{% else %}null{% endif %};
+  var FLASH = "{{ flash }}";
+  function money(cents) {
+    var sym = { usd: '$', eur: '€', gbp: '£', inr: '₹' }[PRICE.currency] || (PRICE.currency.toUpperCase() + ' ');
+    return sym + (cents / 100).toFixed(2);
+  }
   var FRIENDLY = "Something went wrong on our side. Please try again, or upload your photos directly.";
   var order = [];         // job ids of the current batch, in submission order
   var jobs = {};          // id -> latest payload
@@ -315,7 +294,7 @@
   var userPick = null;    // photo the visitor clicked in the strip
   var thumbEls = {};      // job id -> {btn, img, st}
   var STATUS = {
-    done: ['Ready', 'ok'], failed: ['Failed', 'bad'], held: ['Waiting', 'wait'],
+    done: ['Ready', 'ok'], failed: ['Failed', 'bad'], held: ['Locked', 'wait'],
     pending: ['Queued', 'busy'], processing: ['Enhancing…', 'busy']
   };
 
@@ -421,32 +400,38 @@
 
     if (ready) busy(null);
     else if (shown.status === 'failed') busy([shown.error || FRIENDLY], 'bad');
-    else if (shown.status === 'held') busy(['Not enhanced yet', 'Press “Continue” to enhance this photo too.'], 'idle');
+    else if (shown.status === 'held') busy(['Locked', 'Unlock your photos to enhance this one too.'], 'idle');
     else busy(['Enhancing…', 'This can take a minute or two.']);
 
     syncThumbs(selId);
 
-    var summary = $('abSummary'), dl = $('abDownload'), more = $('abContinue');
-    dl.style.display = 'none'; more.style.display = 'none';
+    var summary = $('abSummary'), dl = $('abDownload'), pay = $('abPay');
+    dl.style.display = 'none'; pay.style.display = 'none';
+    var unpaid = order.filter(function (id) { return !jobs[id].paid && jobs[id].status !== 'failed'; }).length;
 
     if (c.busy > 0 && c.done === 0) {
-      summary.textContent = c.total > 1 ? 'Enhancing a preview of your first photo…' : 'Enhancing your photo…';
+      summary.textContent = c.total > 1 ? 'Enhancing a free preview of your first photo…' : 'Enhancing your photo…';
     } else if (c.busy > 0) {
       summary.textContent = 'Enhanced ' + (c.done + c.failed) + ' of ' + (c.total - c.held) + ' photos…';
-    } else if (c.held > 0) {
+    } else if (unpaid > 0) {
       summary.textContent = c.done === 0
-        ? 'We couldn’t enhance your first photo, but you can still try the others.'
-        : 'Your first photo is ready. Happy with it? Enhance the other ' + c.held + ' too.';
-      more.textContent = 'Continue — enhance the other ' + c.held + ' photo' + (c.held > 1 ? 's' : '');
-      more.style.display = '';
+        ? 'We couldn’t enhance your first photo. Please try again, or upload it directly.'
+        : (c.total > 1 ? 'Here’s a free preview of your first photo. Unlock all ' + unpaid + ' to enhance the rest and download them in full quality.'
+                       : 'Here’s your free preview. Unlock the full-resolution, watermark-free photo.');
+      if (c.done > 0) {
+        $('abPayTitle').textContent = 'Unlock ' + unpaid + ' photo' + (unpaid > 1 ? 's' : '');
+        $('abPayCalc').textContent = PRICE ? unpaid + ' × ' + money(PRICE.cents) + ' = ' + money(unpaid * PRICE.cents) : '';
+        $('abPayLabel').textContent = PRICE ? 'Pay ' + money(unpaid * PRICE.cents) + ' & download' : 'Unlock & download';
+        pay.style.display = '';
+      }
     } else {
       var msg = c.done + ' of ' + c.total + ' photo' + (c.total > 1 ? 's' : '') + ' enhanced.';
       if (c.failed && c.done) msg += ' ' + c.failed + ' couldn’t be enhanced.';
       summary.textContent = msg;
     }
 
-    if (c.busy === 0 && c.done > 0) {
-      dl.textContent = c.held > 0 ? 'Download this photo' : (c.done > 1 ? 'Download all (' + c.done + ')' : 'Download');
+    if (c.busy === 0 && c.done > 0 && unpaid === 0) {
+      dl.textContent = c.done > 1 ? 'Download all (' + c.done + ')' : 'Download';
       dl.style.display = '';
     }
   }
@@ -474,21 +459,6 @@
   function ensurePolling() {
     if (!pollTimer && pendingIds().length) pollTimer = setInterval(poll, 2000);
   }
-
-  // ---- continue: enhance the rest of the batch ----
-  $('abContinue').addEventListener('click', function () {
-    var btn = $('abContinue'); btn.disabled = true;
-    xhr('POST', URLS.next, '{}', { 'Content-Type': 'application/json' }, function (status, data) {
-      btn.disabled = false;
-      if (status !== 200 || !data) { showNotice(FRIENDLY); return; }
-      if (data.message) showNotice(data.message);
-      if (!data.ok) return;
-      data.jobs.forEach(function (j) { if (jobs[j.id]) jobs[j.id] = j; });
-      if (typeof data.remaining === 'number') $('abRemaining').textContent = data.remaining;
-      refresh();
-      ensurePolling();
-    });
-  });
 
   // ---- submit ----
   $('abForm').addEventListener('submit', function (e) {
@@ -545,50 +515,34 @@
     $('abFileNames').textContent = n ? n + ' photo' + (n > 1 ? 's' : '') + ' selected' : '';
   }
 
-  // ---- download gate ----
-  var modal = new bootstrap.Modal($('abModal'));
-
-  function startDownload(url) { window.location.href = url; }
-
-  function openModal() {
-    ['abNameErr', 'abEmailErr', 'abLeadErr'].forEach(function (i) { $(i).textContent = ''; });
-    modal.show();
+  // ---- payment ----
+  function startCheckout() {
+    var btn = $('abPayBtn'), dl = $('abDownload');
+    btn.disabled = true; dl.disabled = true;
+    xhr('POST', URLS.checkout, '{}', { 'Content-Type': 'application/json' }, function (status, data) {
+      if (status === 200 && data && data.ok && data.url) { window.location.href = data.url; return; }
+      btn.disabled = false; dl.disabled = false;
+      showNotice((data && data.message) || FRIENDLY);
+    });
   }
+  $('abPayBtn').addEventListener('click', startCheckout);
 
   $('abDownload').addEventListener('click', function () {
-    // Already gave details this session: the server just issues a fresh short-lived link.
+    // Paid: the server hands back a fresh short-lived link. Not paid: off to checkout.
     xhr('POST', URLS.unlock, '{}', { 'Content-Type': 'application/json' }, function (status, data) {
-      if (status === 200 && data && data.ok) startDownload(data.url); else openModal();
+      if (status === 200 && data && data.ok) window.location.href = data.url;
+      else if (data && data.needs_payment) startCheckout();
+      else showNotice((data && data.message) || FRIENDLY);
     });
-  });
-
-  $('abLeadForm').addEventListener('submit', function (e) {
-    e.preventDefault();
-    var name = $('abName').value.trim(), email = $('abEmail').value.trim();
-    $('abNameErr').textContent = name ? '' : 'Please enter your name.';
-    $('abEmailErr').textContent = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? '' : 'Please enter a valid email address.';
-    $('abLeadErr').textContent = '';
-    if (!name || $('abEmailErr').textContent) return;
-
-    var btn = $('abLeadSubmit'); btn.disabled = true;
-    xhr('POST', URLS.unlock, JSON.stringify({ name: name, email: email }), { 'Content-Type': 'application/json' },
-      function (status, data) {
-        btn.disabled = false;
-        if (status === 200 && data && data.ok) {
-          modal.hide();
-          startDownload(data.url);
-        } else if (data && data.errors) {
-          $('abNameErr').textContent = data.errors.name || '';
-          $('abEmailErr').textContent = data.errors.email || '';
-        } else {
-          $('abLeadErr').textContent = (data && data.message) || FRIENDLY;
-        }
-      });
   });
 
   // ---- initial state (this session's latest batch, if any) ----
   setBatch(JSON.parse($('abInitialJobs').textContent));
   ensurePolling();
+  if (FLASH === 'paid') showNotice('Payment received, thank you! We’re enhancing your photos now. You can download them here as soon as they’re ready.', 'success');
+  else if (FLASH === 'canceled') showNotice('Payment cancelled. Your photos are still here whenever you’re ready.', 'info');
+  else if (FLASH === 'unconfirmed') showNotice('We couldn’t confirm your payment yet. If you were charged, please refresh this page in a minute.', 'warning');
+  if (FLASH) resultSec.scrollIntoView({ block: 'start' });
 })();
 </script>
 {% include 'aibooster/_ab_ui_js.html' %}

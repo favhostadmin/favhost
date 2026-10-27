@@ -396,6 +396,11 @@ BOOSTER_IMAGE_PROMPT = get_env('BOOSTER_IMAGE_PROMPT', '')
 BOOSTER_REPORT_PROMPT = get_env('BOOSTER_REPORT_PROMPT', '')
 OPENAI_REPORT_MODEL = get_env('OPENAI_REPORT_MODEL', '')
 
+# One-time Stripe products for AI Studio. The product's default price is used (looked up and cached);
+# the photo price is per photo, so the checkout quantity is the number of photos.
+AI_PHOTO_PRODUCT_ID = get_env('AI_PHOTO_PRODUCT_ID', 'prod_VS8xJ9eXfWlinW')
+AI_REPORT_PRODUCT_ID = get_env('AI_REPORT_PRODUCT_ID', 'prod_VS8xCwW2sRJI9l')
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 

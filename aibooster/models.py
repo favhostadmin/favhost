@@ -39,6 +39,8 @@ class ImageJob(models.Model):
     input_tokens = models.PositiveIntegerField(default=0)
     output_tokens = models.PositiveIntegerField(default=0)
     cost_cents = models.DecimalField(max_digits=10, decimal_places=4, default=0)
+    # Set when the visitor has paid for this photo: it is then enhanced in full and may be downloaded.
+    is_paid = models.BooleanField(default=False)
     session_key = models.CharField(max_length=64, db_index=True)
     ip_address = models.GenericIPAddressField(null=True, blank=True, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -107,6 +109,8 @@ class ListingReport(models.Model):
     input_tokens = models.PositiveIntegerField(default=0)
     output_tokens = models.PositiveIntegerField(default=0)
     cost_cents = models.DecimalField(max_digits=10, decimal_places=4, default=0)
+    # Set when the visitor has paid: the full report is then shown, and can be downloaded or printed.
+    is_paid = models.BooleanField(default=False)
     session_key = models.CharField(max_length=64, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -115,3 +119,37 @@ class ListingReport(models.Model):
 
     def __str__(self):
         return f'{self.id} ({self.platform}, {self.status})'
+
+
+class Order(models.Model):
+    """A one-time Stripe payment: either N photos (price x N) or one Listing Audit report."""
+    KIND_PHOTOS = 'photos'
+    KIND_REPORT = 'report'
+    KIND_CHOICES = [(KIND_PHOTOS, 'Photo Enhancer'), (KIND_REPORT, 'Listing Audit')]
+    STATUS_PENDING = 'pending'
+    STATUS_PAID = 'paid'
+    STATUS_CHOICES = [(STATUS_PENDING, 'Awaiting payment'), (STATUS_PAID, 'Paid')]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    kind = models.CharField(max_length=10, choices=KIND_CHOICES)
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default=STATUS_PENDING, db_index=True)
+    session_key = models.CharField(max_length=64, db_index=True)
+    user_id = models.IntegerField(null=True, blank=True)
+    # Photos: the ImageJob ids being paid for. Report: the ListingReport id.
+    job_ids = models.JSONField(default=list, blank=True)
+    report = models.ForeignKey(ListingReport, null=True, blank=True, on_delete=models.SET_NULL, related_name='orders')
+    quantity = models.PositiveIntegerField(default=1)
+    unit_amount = models.PositiveIntegerField(default=0)   # in the smallest currency unit (cents)
+    amount_total = models.PositiveIntegerField(default=0)
+    currency = models.CharField(max_length=3, default='usd')
+    stripe_session_id = models.CharField(max_length=255, blank=True, db_index=True)
+    customer_email = models.EmailField(blank=True)
+    customer_name = models.CharField(max_length=200, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    paid_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'{self.get_kind_display()} x{self.quantity} ({self.status})'

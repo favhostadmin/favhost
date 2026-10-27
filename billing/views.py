@@ -297,7 +297,10 @@ def stripe_webhook(request):
 
     try:
         if event_type == 'checkout.session.completed':
-            _handle_checkout_completed(obj)
+            # AI Studio one-time purchases share this endpoint; they carry an ai_order_id in metadata.
+            from aibooster.payments import handle_webhook_session
+            if not handle_webhook_session(obj):
+                _handle_checkout_completed(obj)
         elif event_type == 'invoice.paid':
             _handle_invoice_paid(obj)
         elif event_type == 'invoice.payment_failed':

@@ -334,3 +334,50 @@ def present(result):
             missing.append(item)
     out['missing_data'] = missing
     return out
+
+
+# ── Paywall: what a visitor sees before paying ──────────────────────────────
+
+LOCKED_TEXT = ('Unlock the full report to see exactly what we found here and the step-by-step fix, '
+               'in plain language you can act on today.')
+LOCKED_REWRITE = ('Your improved wording for this part of the listing is ready. Unlock the full report to read it '
+                  'and copy it straight into your listing in one click.')
+
+
+FREE_ITEMS = 2   # how many items of each section an unpaid visitor can read
+
+
+def teaser(result, paid):
+    """The report as it is sent to the browser. Paid: everything. Unpaid: only FREE_ITEMS items per
+    section are readable (the two weakest areas, and the first two rewrites); everything else keeps
+    just its title and score. The real text of locked items is replaced with filler on the server, so
+    it never reaches the page (blurring alone could be undone in dev tools)."""
+    if not isinstance(result, dict):
+        return result
+    out = dict(result)
+    out['paid'] = bool(paid)
+    if paid:
+        return out
+    rows = result.get('scorecard') or []
+    # The same two areas are free in "quick wins" and in the scorecard, so nothing leaks between them.
+    weakest = sorted((i for i, r in enumerate(rows) if r.get('assessed')), key=lambda i: rows[i]['score'])
+    free_rows = set(weakest[:FREE_ITEMS])
+    cards = []
+    for i, row in enumerate(rows):
+        row = dict(row)
+        if row.get('assessed') and i not in free_rows:
+            row['locked'] = True
+            row['issue'] = row['fix'] = LOCKED_TEXT
+        cards.append(row)
+    out['scorecard'] = cards
+    fields = []
+    usable = [f for f in result.get('fields') or [] if f.get('suggested') and f['suggested'] != MISSING]
+    free_fields = {id(f) for f in usable[:FREE_ITEMS]}
+    for f in result.get('fields') or []:
+        if id(f) in free_fields or f not in usable:
+            fields.append(f)
+            continue
+        fields.append({'field_name': f['field_name'], 'locked': True, 'current': LOCKED_REWRITE,
+                       'suggested': LOCKED_REWRITE, 'char_count': 0, 'char_limit': 0, 'reason': ''})
+    out['fields'] = fields
+    return out

@@ -9,15 +9,14 @@ from urllib.parse import urlparse
 from django.conf import settings
 from django.core import signing
 from django.core.exceptions import ValidationError
-from django.core.validators import EmailValidator
 from django.http import FileResponse, Http404, HttpResponse, HttpResponseForbidden, JsonResponse
-from django.shortcuts import render
+from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_GET, require_POST
 
-from . import imaging, report_pdf, scraper, services, storage
-from .models import BoosterLead, ImageJob, ListingReport
+from . import imaging, payments, report_pdf, scraper, services, storage
+from .models import ImageJob, ListingReport, Order
 from .tasks import dispatch, dispatch_report
 
 logger = logging.getLogger(__name__)
@@ -29,9 +28,8 @@ ANON_IP_DAILY_LIMIT = 50
 MAX_PER_SUBMIT = 25
 MAX_UPLOAD_BYTES = 5 * 1024 * 1024
 DOWNLOAD_LINK_MAX_AGE = 300  # seconds
-UNLOCK_SESSION_KEY = 'aibooster_unlocked'
 BATCH_SESSION_KEY = 'aibooster_batch'  # ids of the most recent submission
-LEAD_SESSION_KEY = 'aibooster_lead_given'  # visitor already gave name+email this session
+FLASH_SESSION_KEY = 'aibooster_flash'  # one-shot message shown after returning from Stripe
 DOWNLOAD_SALT = 'aibooster.download'
 _EXT_BY_FORMAT = {'JPEG': 'jpg', 'MPO': 'jpg', 'PNG': 'png', 'WEBP': 'webp'}
 
@@ -89,10 +87,6 @@ def _ip_used_today(ip):
             .exclude(status=ImageJob.STATUS_HELD).count())
 
 
-def _unlocked_ids(request):
-    return set(request.session.get(UNLOCK_SESSION_KEY, []))
-
-
 def _batch_jobs(request):
     """Jobs of this session's most recent submission, in submission order."""
     ids = request.session.get(BATCH_SESSION_KEY, [])
@@ -111,7 +105,7 @@ def _client_ip(request):
     return forwarded or request.META.get('REMOTE_ADDR') or None
 
 
-def _payload(job, unlocked):
+def _payload(job):
     data = {
         'id': str(job.id),
         'status': job.status,
@@ -120,7 +114,7 @@ def _payload(job, unlocked):
         # Scraped photos are only saved once the worker starts, so the page must not ask for the
         # original before it exists (that was the broken BEFORE image).
         'has_before': bool(job.original_key),
-        'unlocked': str(job.id) in unlocked,
+        'paid': job.is_paid,
     }
     if job.status == ImageJob.STATUS_DONE:
         data['after_url'] = reverse('aibooster:image-after', args=[job.id])
@@ -159,27 +153,50 @@ def _store_upload(upload, job_id):
 
 # ── pages ──────────────────────────────────────────────────────────────────
 
+def _pay_return(request, kind, route):
+    """Back from Stripe: verify the payment with Stripe, then redirect to the clean URL with a
+    one-shot message. Returns a redirect response, or None when this isn't a Stripe return."""
+    session_id = request.GET.get('session_id')
+    if session_id:
+        order = payments.confirm_session(session_id)
+        request.session[FLASH_SESSION_KEY] = 'paid' if order and order.kind == kind else 'unconfirmed'
+        return redirect(route)
+    if request.GET.get('canceled'):
+        request.session[FLASH_SESSION_KEY] = 'canceled'
+        return redirect(route)
+    return None
+
+
 def image_page(request):
+    back = _pay_return(request, Order.KIND_PHOTOS, 'aibooster:image')
+    if back:
+        return back
     key = _session_key(request)
-    unlocked = _unlocked_ids(request)
     jobs = _batch_jobs(request)
     return render(request, 'aibooster/image_booster.html', {
-        'jobs_json': [_payload(j, unlocked) for j in jobs],
+        'jobs_json': [_payload(j) for j in jobs],
         'base_template': _base_template(request),
         'samples': _samples(),
         'daily_limit': DAILY_LIMIT,
         'remaining': max(DAILY_LIMIT - _used_today(key), 0),
         'max_per_submit': MAX_PER_SUBMIT,
+        'price': payments.price_info(Order.KIND_PHOTOS),
+        'flash': request.session.pop(FLASH_SESSION_KEY, ''),
     })
 
 
 def report_page(request):
+    back = _pay_return(request, Order.KIND_REPORT, 'aibooster:report')
+    if back:
+        return back
     key = _session_key(request)
     return render(request, 'aibooster/boost_report.html', {
         'base_template': _base_template(request),
         'report_daily_limit': REPORT_DAILY_LIMIT,
         'report_remaining': max(REPORT_DAILY_LIMIT - _reports_today(key), 0),
         'report_json': _report_payload(_latest_report(request)),
+        'price': payments.price_info(Order.KIND_REPORT),
+        'flash': request.session.pop(FLASH_SESSION_KEY, ''),
     })
 
 
@@ -246,46 +263,38 @@ def image_start(request):
     for job in jobs:
         job.save()
     request.session[BATCH_SESSION_KEY] = [str(j.id) for j in jobs]
-    dispatch(jobs[0].id)   # preview of ONE photo first; the rest wait for Continue
+    dispatch(jobs[0].id)   # preview of ONE photo first; the rest stay locked until the visitor pays
 
-    unlocked = _unlocked_ids(request)
     return JsonResponse({
         'ok': True,
         'fallback': fallback,
         'message': ' '.join(notes),
-        'jobs': [_payload(j, unlocked) for j in jobs],
+        'jobs': [_payload(j) for j in jobs],
         'remaining': max(DAILY_LIMIT - _used_today(key), 0),
     })
+
+
+def _checkout_urls(request, route):
+    base = request.build_absolute_uri(reverse(route))
+    return base + '?session_id={CHECKOUT_SESSION_ID}', base + '?canceled=1'
 
 
 @require_POST
-def image_continue(request):
-    """The visitor liked the preview: enhance the rest of the batch."""
-    key = _session_key(request)
-    held = [j for j in _batch_jobs(request) if j.status == ImageJob.STATUS_HELD]
-    if not held:
-        return JsonResponse({'ok': False, 'message': 'There are no more photos waiting.'})
-
-    remaining = DAILY_LIMIT - _used_today(key)
-    if not request.user.is_authenticated:
-        remaining = min(remaining, ANON_IP_DAILY_LIMIT - _ip_used_today(_client_ip(request)))
-    if remaining <= 0:
-        return JsonResponse({'ok': False, 'message': 'You’ve reached today’s limit. Please come back tomorrow.'})
-
-    release = held[:remaining]
-    ids = [j.id for j in release]
-    ImageJob.objects.filter(pk__in=ids, status=ImageJob.STATUS_HELD).update(status=ImageJob.STATUS_PENDING)
-    for job_id in ids:
-        dispatch(job_id)
-
-    unlocked = _unlocked_ids(request)
-    note = '' if len(release) == len(held) else f'Only {len(release)} more photo(s) fit in today’s limit.'
-    return JsonResponse({
-        'ok': True,
-        'message': note,
-        'jobs': [_payload(j, unlocked) for j in _batch_jobs(request)],
-        'remaining': max(DAILY_LIMIT - _used_today(key), 0),
-    })
+def image_checkout(request):
+    """Start the one-time payment for every photo of the current batch that isn't paid yet
+    (price per photo x number of photos). Answers JSON with the Stripe page to send the visitor to."""
+    jobs = [j for j in _batch_jobs(request) if not j.is_paid and j.status != ImageJob.STATUS_FAILED]
+    if not jobs:
+        return JsonResponse({'ok': False, 'message': 'There is nothing to pay for.'})
+    order = Order(kind=Order.KIND_PHOTOS, session_key=_session_key(request), job_ids=[str(j.id) for j in jobs],
+                  quantity=len(jobs), user_id=request.user.pk if request.user.is_authenticated else None)
+    try:
+        order.save()
+        success, cancel = _checkout_urls(request, 'aibooster:image')
+        url = payments.create_checkout(request, order, success, cancel)
+    except payments.PaymentError as exc:
+        return JsonResponse({'ok': False, 'message': str(exc)})
+    return JsonResponse({'ok': True, 'url': url})
 
 
 def _valid_http_url(value):
@@ -300,8 +309,7 @@ def image_status(request):
         jobs = ImageJob.objects.filter(pk__in=ids, session_key=_session_key(request))
     except (ValidationError, ValueError):
         return JsonResponse({'jobs': []})
-    unlocked = _unlocked_ids(request)
-    return JsonResponse({'jobs': [_payload(j, unlocked) for j in jobs]})
+    return JsonResponse({'jobs': [_payload(j) for j in jobs]})
 
 
 # ── preview: BEFORE (original) and AFTER (watermarked only) ────────────────
@@ -326,42 +334,14 @@ def image_after(request, job_id):
 
 @require_POST
 def image_unlock(request):
-    """Unlock every finished image of the current batch for download (one lead per unlock)."""
-    jobs = [j for j in _batch_jobs(request) if j.status == ImageJob.STATUS_DONE and j.clean_key]
+    """Mint a short-lived download link for the paid, finished photos of the current batch.
+    If nothing is paid yet the page sends the visitor to checkout instead."""
+    batch = _batch_jobs(request)
+    jobs = [j for j in batch if j.is_paid and j.status == ImageJob.STATUS_DONE and j.clean_key]
     if not jobs:
-        return JsonResponse({'ok': False, 'message': 'Your images are not ready yet.'}, status=400)
-
-    try:
-        body = json.loads(request.body or '{}')
-    except ValueError:
-        body = {}
-    name = (body.get('name') or request.POST.get('name') or '').strip()
-    email = (body.get('email') or request.POST.get('email') or '').strip()
-    unlocked = _unlocked_ids(request)
-    if (request.session.get(LEAD_SESSION_KEY) or all(str(j.id) in unlocked for j in jobs)) and not (name or email):
-        # Already gave name+email this session: unlock the (newly finished) photos and just mint a link.
-        unlocked.update(str(j.id) for j in jobs)
-        request.session[UNLOCK_SESSION_KEY] = sorted(unlocked)
-        return JsonResponse({'ok': True, 'url': _download_url(jobs)})
-    errors = {}
-    if not name:
-        errors['name'] = 'Please enter your name.'
-    elif len(name) > 120:
-        errors['name'] = 'Name is too long.'
-    try:
-        EmailValidator()(email)
-    except ValidationError:
-        errors['email'] = 'Please enter a valid email address.'
-    if errors:
-        return JsonResponse({'ok': False, 'errors': errors}, status=400)
-
-    BoosterLead.objects.create(
-        name=name, email=email, feature=BoosterLead.FEATURE_IMAGE,
-        source_url=jobs[0].source_url, ip_address=_client_ip(request),
-    )
-    unlocked.update(str(j.id) for j in jobs)
-    request.session[UNLOCK_SESSION_KEY] = sorted(unlocked)
-    request.session[LEAD_SESSION_KEY] = True
+        if any(j.is_paid for j in batch):
+            return JsonResponse({'ok': False, 'message': 'Your photos are not ready yet.'}, status=400)
+        return JsonResponse({'ok': False, 'needs_payment': True})
     return JsonResponse({'ok': True, 'url': _download_url(jobs)})
 
 
@@ -378,17 +358,15 @@ def image_download(request, token):
     except (signing.BadSignature, KeyError, TypeError):
         return HttpResponseForbidden('This download link has expired. Please click Download again.')
 
-    # Re-check server-side: the signed link alone is never enough. Only images this
-    # session owns AND has unlocked are served.
-    unlocked = _unlocked_ids(request)
-    allowed = [i for i in job_ids if i in unlocked]
-    if not allowed:
-        return HttpResponseForbidden('Please enter your details to unlock this download.')
+    # Re-check server-side: the signed link alone is never enough. Only photos this
+    # session owns AND has paid for are served.
     try:
-        found = {str(j.id): j for j in ImageJob.objects.filter(pk__in=allowed, session_key=_session_key(request))}
+        found = {str(j.id): j for j in ImageJob.objects.filter(pk__in=job_ids, session_key=_session_key(request), is_paid=True)}
     except (ValidationError, ValueError):
         raise Http404
-    jobs = [found[i] for i in allowed if i in found
+    if not found:
+        return HttpResponseForbidden('Please complete payment to download these photos.')
+    jobs = [found[i] for i in job_ids if i in found
             and found[i].status == ImageJob.STATUS_DONE and found[i].clean_key]
     if not jobs:
         raise Http404
@@ -444,8 +422,9 @@ def _report_payload(report):
         'error': report.error if report.status == ListingReport.STATUS_FAILED else '',
         'platform': report.platform,
         'source_url': report.source_url,
-        'result': services.present(report.result_json) if report.status == ListingReport.STATUS_DONE else None,
-        'download_url': reverse('aibooster:report-download', args=[report.id]) if report.status == ListingReport.STATUS_DONE else '',
+        'result': services.teaser(services.present(report.result_json), report.is_paid) if report.status == ListingReport.STATUS_DONE else None,
+        'paid': report.is_paid,
+        'download_url': reverse('aibooster:report-download', args=[report.id]) if report.status == ListingReport.STATUS_DONE and report.is_paid else '',
         'status_url': reverse('aibooster:report-status', args=[report.id]),
     }
 
@@ -527,7 +506,28 @@ def report_download(request, report_id):
                                            status=ListingReport.STATUS_DONE)
     except ListingReport.DoesNotExist:
         raise Http404
+    if not report.is_paid:
+        return HttpResponseForbidden('Please unlock the full report to download it.')
     pdf = report_pdf.build(report, services.present(report.result_json))
     response = HttpResponse(pdf, content_type='application/pdf')
     response['Content-Disposition'] = f'attachment; filename="favhost-listing-audit-{str(report.id)[:8]}.pdf"'
     return response
+
+
+@require_POST
+def report_checkout(request):
+    """Start the one-time payment that unlocks the full report (and its PDF / print)."""
+    report = _latest_report(request)
+    if report is None or report.status != ListingReport.STATUS_DONE:
+        return JsonResponse({'ok': False, 'message': 'Your report is not ready yet.'})
+    if report.is_paid:
+        return JsonResponse({'ok': True, 'paid': True})
+    order = Order(kind=Order.KIND_REPORT, session_key=_session_key(request), report=report, quantity=1,
+                  user_id=request.user.pk if request.user.is_authenticated else None)
+    try:
+        order.save()
+        success, cancel = _checkout_urls(request, 'aibooster:report')
+        url = payments.create_checkout(request, order, success, cancel)
+    except payments.PaymentError as exc:
+        return JsonResponse({'ok': False, 'message': str(exc)})
+    return JsonResponse({'ok': True, 'url': url})

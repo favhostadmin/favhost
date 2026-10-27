@@ -3,7 +3,7 @@ import csv
 from django.contrib import admin
 from django.http import HttpResponse
 
-from .models import BoosterLead, ImageJob, ListingReport
+from .models import BoosterLead, ImageJob, ListingReport, Order
 
 
 def _csv_safe(value):
@@ -70,4 +70,20 @@ class ListingReportAdmin(admin.ModelAdmin):
         return False
 
     def has_delete_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(Order)
+class OrderAdmin(admin.ModelAdmin):
+    list_display = ('id', 'kind', 'status', 'quantity', 'amount_display', 'customer_email', 'created_at', 'paid_at')
+    list_filter = ('kind', 'status')
+    search_fields = ('customer_email', 'stripe_session_id')
+    date_hierarchy = 'created_at'
+    readonly_fields = [f.name for f in Order._meta.fields]
+
+    @admin.display(description='Amount')
+    def amount_display(self, obj):
+        return f'{obj.amount_total / 100:.2f} {obj.currency.upper()}'
+
+    def has_add_permission(self, request):
         return False
