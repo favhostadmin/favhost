@@ -202,3 +202,50 @@ class StartOverTests(TestCase):
 
     def test_reset_needs_post(self):
         self.assertEqual(self.client.get(reverse('aibooster:image-reset')).status_code, 405)
+
+
+class AddMorePhotosTests(TestCase):
+    def setUp(self):
+        self.client.get(reverse('aibooster:image'))
+        self.key = self.client.session.session_key
+
+    def _png(self, name='a.png'):
+        import io
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from PIL import Image
+        buf = io.BytesIO()
+        Image.new('RGB', (20, 20), 'red').save(buf, 'PNG')
+        return SimpleUploadedFile(name, buf.getvalue(), content_type='image/png')
+
+    def _start(self, n, **extra):
+        data = {'images': [self._png(f'p{i}.png') for i in range(n)], 'listing_url': ''}
+        data.update(extra)
+        with mock.patch('aibooster.views.dispatch') as dispatch, \
+                mock.patch('aibooster.storage.save_bytes', side_effect=lambda key, b: key):
+            r = self.client.post(reverse('aibooster:image-start'), data).json()
+        return r, dispatch
+
+    def test_added_photos_join_the_batch_locked(self):
+        first, d1 = self._start(3)
+        self.assertEqual(len(first['jobs']), 3)
+        d1.assert_called_once()
+        more, d2 = self._start(2, append='1')
+        self.assertTrue(more['ok'])
+        self.assertEqual(len(more['jobs']), 5)
+        self.assertEqual([j['id'] for j in more['jobs'][:3]], [j['id'] for j in first['jobs']])
+        d2.assert_not_called()   # nothing new is enhanced before payment
+        self.assertEqual(ImageJob.objects.filter(status=ImageJob.STATUS_HELD).count(), 4)
+
+    def test_batch_is_capped(self):
+        self._start(24)
+        more, _ = self._start(5, append='1')
+        self.assertEqual(len(more['jobs']), 25)
+        again, _ = self._start(1, append='1')
+        self.assertFalse(again['ok'])
+
+    def test_no_adding_after_payment(self):
+        first, _ = self._start(2)
+        ImageJob.objects.filter(pk=first['jobs'][0]['id']).update(is_paid=True)
+        more, _ = self._start(1, append='1')
+        self.assertFalse(more['ok'])
+        self.assertEqual(ImageJob.objects.count(), 2)

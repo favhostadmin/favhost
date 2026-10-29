@@ -222,7 +222,16 @@ def image_start(request):
     if not listing_url and not uploads:
         return JsonResponse({'ok': False, 'message': 'Paste a listing URL or choose some photos to upload.'})
 
-    budget = min(MAX_PER_SUBMIT, remaining)
+    # "Add more photos": new photos join the current batch (always locked until paid), up to the cap,
+    # and only while nothing in the batch has been paid for.
+    existing = _batch_jobs(request) if request.POST.get('append') else []
+    if existing and any(j.is_paid for j in existing):
+        return JsonResponse({'ok': False, 'message': 'This set is already paid for, so no more photos can be added. Use “Start over” for a new set.'})
+    room = MAX_PER_SUBMIT - len(existing)
+    if existing and room <= 0:
+        return JsonResponse({'ok': False, 'message': f'You’ve reached the limit of {MAX_PER_SUBMIT} photos for one set.'})
+
+    budget = min(room if existing else MAX_PER_SUBMIT, remaining)
     notes, jobs = [], []
 
     # Uploads: the original is stored right here, so the worker only has to enhance it.
@@ -258,18 +267,20 @@ def image_start(request):
     if not jobs:
         return JsonResponse({'ok': False, 'fallback': fallback, 'message': ' '.join(notes)})
 
-    for job in jobs[1:]:
+    for job in (jobs if existing else jobs[1:]):
         job.status = ImageJob.STATUS_HELD
     for job in jobs:
         job.save()
-    request.session[BATCH_SESSION_KEY] = [str(j.id) for j in jobs]
-    dispatch(jobs[0].id)   # preview of ONE photo first; the rest stay locked until the visitor pays
+    all_jobs = existing + jobs
+    request.session[BATCH_SESSION_KEY] = [str(j.id) for j in all_jobs]
+    if not existing:
+        dispatch(jobs[0].id)   # preview of ONE photo first; the rest stay locked until the visitor pays
 
     return JsonResponse({
         'ok': True,
         'fallback': fallback,
         'message': ' '.join(notes),
-        'jobs': [_payload(j) for j in jobs],
+        'jobs': [_payload(j) for j in all_jobs],
         'remaining': max(DAILY_LIMIT - _used_today(key), 0),
     })
 

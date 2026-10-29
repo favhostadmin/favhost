@@ -113,6 +113,7 @@
         <div class="ab-thumbs" id="abThumbs" style="display:none">
           <div class="ab-thumbs-h">Your photos (<span id="abThumbCount">0</span>) &middot; click one to preview it</div>
           <div class="ab-thumb-grid" id="abThumbGrid"></div>
+          <input type="file" id="abMoreFiles" accept="image/*" multiple hidden>
         </div>
         <div class="ab-summary" id="abSummary"></div>
         <div class="ab-pay" id="abPay" style="display:none">
@@ -466,9 +467,48 @@
       var s = STATUS[j.status] || ['', ''];
       t.st.textContent = s[0]; t.st.className = 'st ' + s[1];
     });
+    syncAddTile();
     $('abThumbCount').textContent = order.length;
     $('abThumbs').style.display = order.length ? '' : 'none';
   }
+
+  // "Add photos" tile at the end of the strip: only while nothing is paid and there is room left.
+  var addTile = null, adding = false;
+  function syncAddTile() {
+    var paid = order.some(function (id) { return jobs[id] && jobs[id].paid; });
+    var room = MAX - order.length;
+    if (paid || room <= 0 || !order.length) { if (addTile && addTile.parentNode) addTile.parentNode.removeChild(addTile); return; }
+    if (!addTile) {
+      addTile = el('button', 'ab-thumb ab-add'); addTile.type = 'button';
+      addTile.innerHTML = '<svg class="ab-svg" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span>Add more photos</span><small></small>';
+      addTile.addEventListener('click', function () { if (!adding) $('abMoreFiles').click(); });
+    }
+    addTile.querySelector('small').textContent = adding ? 'Adding…' : room + ' more allowed';
+    addTile.disabled = adding;
+    $('abThumbGrid').appendChild(addTile);   // (re)appending keeps it last
+  }
+
+  $('abMoreFiles').addEventListener('change', function () {
+    var input = this, files = input.files;
+    if (!files.length || adding) return;
+    var room = MAX - order.length;
+    if (files.length > room) showNotice('You can add ' + room + ' more photo' + (room > 1 ? 's' : '') + ' — only the first ' + room + ' will be added.');
+    var fd = new FormData();
+    fd.append('append', '1'); fd.append('listing_url', '');
+    Array.prototype.slice.call(files, 0, Math.max(room, 0)).forEach(function (f) { fd.append('images', f); });
+    adding = true; syncAddTile();
+    xhr('POST', URLS.start, fd, {}, function (status, data) {
+      adding = false; input.value = '';
+      if (status !== 200 || !data) { syncAddTile(); showNotice(FRIENDLY); return; }
+      if (data.message) showNotice(data.message);
+      if (!data.ok) { syncAddTile(); return; }
+      var added = data.jobs.length - order.length;
+      // keep the visitor's current preview/selection: only append the new photos
+      data.jobs.forEach(function (j) { if (!jobs[j.id]) order.push(j.id); jobs[j.id] = j; });
+      refresh();
+      showNotice(added + ' photo' + (added === 1 ? '' : 's') + ' added. They’ll be enhanced once you unlock your photos.', 'success');
+    });
+  });
 
   // The big slider previews ONE photo at a time (the first by default, or the one clicked below).
   // Photos the visitor hasn't asked us to enhance yet ("held") cost nothing until they press Continue.
