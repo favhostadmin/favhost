@@ -9,6 +9,7 @@ handed out through the session-checked views in views.py.
 import uuid
 
 from django.conf import settings
+from django.core.exceptions import ImproperlyConfigured
 from django.core.files.base import ContentFile
 from django.core.files.storage import FileSystemStorage, default_storage
 
@@ -16,6 +17,10 @@ from django.core.files.storage import FileSystemStorage, default_storage
 def get_storage():
     if getattr(settings, 'AWS_STORAGE_BUCKET_NAME', None):
         return default_storage
+    if not settings.DEBUG:
+        # Never fall back to the project folder on a real server: it would put customers' photos
+        # next to the code (and the web and worker servers would not share them anyway).
+        raise ImproperlyConfigured('Photo Enhancer needs AWS_STORAGE_BUCKET_NAME (the private S3 bucket) in production.')
     return FileSystemStorage(location=str(settings.BASE_DIR / 'private_media'), base_url=None)
 
 
