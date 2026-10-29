@@ -251,3 +251,74 @@ class AddMorePhotosTests(TestCase):
         more, _ = self._start(1, append='1')
         self.assertFalse(more['ok'])
         self.assertEqual(ImageJob.objects.count(), 2)
+
+
+def real_session(order_id, **extra):
+    """A genuine stripe-python object (not a dict), like Stripe returns in production."""
+    import stripe
+    data = {'id': 'cs_live_x', 'object': 'checkout.session', 'payment_status': 'paid', 'amount_total': 999,
+            'metadata': {'ai_order_id': str(order_id)} if order_id else {},
+            'customer_details': {'email': 'host@example.com', 'name': 'Host'}}
+    data.update(extra)
+    return stripe.checkout.Session.construct_from(data, 'sk_test')
+
+
+@mock.patch('aibooster.payments.get_price', side_effect=fake_price)
+class RealStripeObjectTests(TestCase):
+    """Regression: a StripeObject has no .get(), which crashed the return trip from Stripe."""
+
+    def setUp(self):
+        cache.clear()
+        self.client.get(reverse('aibooster:image'))
+        self.key = self.client.session.session_key
+
+    def _return(self, route, order, **extra):
+        with mock.patch('aibooster.payments.stripe.checkout.Session.retrieve', return_value=real_session(order.id, **extra)):
+            resp = self.client.get(reverse(route) + '?session_id=cs_live_x')
+        self.assertEqual(resp.status_code, 302)       # redirected to the clean URL, no error page
+        return self.client.get(reverse(route))
+
+    def test_photo_return_trip_then_page_renders(self, _):
+        jobs = [ImageJob.objects.create(session_key=self.key, original_key='o', clean_key='c', watermarked_key='w',
+                                        status=ImageJob.STATUS_DONE),
+                ImageJob.objects.create(session_key=self.key, original_key='o2', status=ImageJob.STATUS_HELD)]
+        session = self.client.session
+        session['aibooster_batch'] = [str(j.id) for j in jobs]
+        session.save()
+        order = Order.objects.create(kind=Order.KIND_PHOTOS, session_key=self.key, job_ids=[str(j.id) for j in jobs], quantity=2)
+        with mock.patch('aibooster.tasks.dispatch'):
+            with self.captureOnCommitCallbacks(execute=True):
+                page = self._return('aibooster:image', order)
+        self.assertEqual(page.status_code, 200)
+        self.assertContains(page, 'Payment received')
+        self.assertEqual(ImageJob.objects.filter(is_paid=True).count(), 2)
+        order.refresh_from_db()
+        self.assertEqual((order.status, order.customer_email), (Order.STATUS_PAID, 'host@example.com'))
+
+    def test_report_return_trip_then_page_renders(self, _):
+        report = ListingReport.objects.create(session_key=self.key, status=ListingReport.STATUS_DONE, is_paid=False,
+                                              result_json={'overall_score': 50, 'scorecard': [], 'fields': [], 'missing_data': []})
+        session = self.client.session
+        session['aibooster_report'] = str(report.id)
+        session.save()
+        order = Order.objects.create(kind=Order.KIND_REPORT, session_key=self.key, report=report, quantity=1)
+        page = self._return('aibooster:report', order)
+        self.assertEqual(page.status_code, 200)
+        self.assertContains(page, 'Payment received')
+        report.refresh_from_db()
+        self.assertTrue(report.is_paid)
+
+    def test_webhook_with_real_object(self, _):
+        report = ListingReport.objects.create(session_key=self.key, status=ListingReport.STATUS_DONE)
+        order = Order.objects.create(kind=Order.KIND_REPORT, session_key=self.key, report=report, quantity=1)
+        self.assertTrue(payments.handle_webhook_session(real_session(order.id)))
+        report.refresh_from_db()
+        self.assertTrue(report.is_paid)
+        self.assertFalse(payments.handle_webhook_session(real_session(None)))   # a subscription checkout
+
+    def test_unpaid_real_session_does_not_unlock_and_does_not_crash(self, _):
+        report = ListingReport.objects.create(session_key=self.key, status=ListingReport.STATUS_DONE)
+        order = Order.objects.create(kind=Order.KIND_REPORT, session_key=self.key, report=report, quantity=1)
+        self._return('aibooster:report', order, payment_status='unpaid')
+        report.refresh_from_db()
+        self.assertFalse(report.is_paid)

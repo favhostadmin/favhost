@@ -55,7 +55,7 @@ def get_price(kind):
         price = {'id': obj.id, 'amount': int(obj.unit_amount), 'currency': obj.currency}
     except PaymentError:
         raise
-    except stripe.error.StripeError:
+    except stripe.StripeError:
         logger.exception('AI Studio: could not read the Stripe price for %s', kind)
         raise PaymentError('We couldn’t reach our payment provider. Please try again in a moment.')
     cache.set(cache_key, price, PRICE_CACHE_SECONDS)
@@ -91,7 +91,7 @@ def create_checkout(request, order, success_url, cancel_url):
     try:
         stripe.api_key = settings.STRIPE_SECRET_KEY
         session = stripe.checkout.Session.create(**params)
-    except stripe.error.StripeError:
+    except stripe.StripeError:
         logger.exception('AI Studio: could not create a checkout session for order %s', order.id)
         raise PaymentError('We couldn’t start the payment. Please try again in a moment.')
     order.stripe_session_id = session.id
@@ -152,6 +152,18 @@ def fulfill(order_id, session=None):
     return order
 
 
+def _order_id(session):
+    """Our order id from a Checkout Session's metadata. Newer stripe-python versions return objects
+    that are not dicts (no `.get`), older ones return dict-like objects, tests pass plain dicts."""
+    metadata = getattr(session, 'metadata', None)
+    if not metadata:
+        return None
+    try:
+        return metadata['ai_order_id']
+    except (KeyError, TypeError, AttributeError):
+        return getattr(metadata, 'ai_order_id', None)
+
+
 def confirm_session(session_id):
     """Called when the visitor lands back on the page: ask Stripe, don't trust the URL. Returns the
     paid Order, or None if the payment isn't complete."""
@@ -160,19 +172,18 @@ def confirm_session(session_id):
     try:
         stripe.api_key = settings.STRIPE_SECRET_KEY
         session = stripe.checkout.Session.retrieve(session_id)
-    except stripe.error.StripeError:
+    except stripe.StripeError:
         logger.exception('AI Studio: could not verify checkout session')
         return None
-    order_id = (session.metadata or {}).get('ai_order_id') if session.metadata else None
-    if not order_id or session.payment_status != 'paid':
+    order_id = _order_id(session)
+    if not order_id or getattr(session, 'payment_status', '') != 'paid':
         return None
     return fulfill(order_id, session)
 
 
 def handle_webhook_session(session):
     """checkout.session.completed from the shared Stripe webhook. True if it was one of ours."""
-    metadata = getattr(session, 'metadata', None) or {}
-    order_id = metadata.get('ai_order_id') if hasattr(metadata, 'get') else None
+    order_id = _order_id(session)
     if not order_id:
         return False
     if getattr(session, 'payment_status', '') == 'paid':
