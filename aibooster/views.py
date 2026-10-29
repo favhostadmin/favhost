@@ -222,7 +222,16 @@ def image_start(request):
     if not listing_url and not uploads:
         return JsonResponse({'ok': False, 'message': 'Paste a listing URL or choose some photos to upload.'})
 
-    budget = min(MAX_PER_SUBMIT, remaining)
+    # "Add more photos": new photos join the current batch (always locked until paid), up to the cap,
+    # and only while nothing in the batch has been paid for.
+    existing = _batch_jobs(request) if request.POST.get('append') else []
+    if existing and any(j.is_paid for j in existing):
+        return JsonResponse({'ok': False, 'message': 'This set is already paid for, so no more photos can be added. Use “Start over” for a new set.'})
+    room = MAX_PER_SUBMIT - len(existing)
+    if existing and room <= 0:
+        return JsonResponse({'ok': False, 'message': f'You’ve reached the limit of {MAX_PER_SUBMIT} photos for one set.'})
+
+    budget = min(room if existing else MAX_PER_SUBMIT, remaining)
     notes, jobs = [], []
 
     # Uploads: the original is stored right here, so the worker only has to enhance it.
@@ -258,18 +267,20 @@ def image_start(request):
     if not jobs:
         return JsonResponse({'ok': False, 'fallback': fallback, 'message': ' '.join(notes)})
 
-    for job in jobs[1:]:
+    for job in (jobs if existing else jobs[1:]):
         job.status = ImageJob.STATUS_HELD
     for job in jobs:
         job.save()
-    request.session[BATCH_SESSION_KEY] = [str(j.id) for j in jobs]
-    dispatch(jobs[0].id)   # preview of ONE photo first; the rest stay locked until the visitor pays
+    all_jobs = existing + jobs
+    request.session[BATCH_SESSION_KEY] = [str(j.id) for j in all_jobs]
+    if not existing:
+        dispatch(jobs[0].id)   # preview of ONE photo first; the rest stay locked until the visitor pays
 
     return JsonResponse({
         'ok': True,
         'fallback': fallback,
         'message': ' '.join(notes),
-        'jobs': [_payload(j) for j in jobs],
+        'jobs': [_payload(j) for j in all_jobs],
         'remaining': max(DAILY_LIMIT - _used_today(key), 0),
     })
 
@@ -312,7 +323,7 @@ def image_status(request):
     return JsonResponse({'jobs': [_payload(j) for j in jobs]})
 
 
-# ── preview: BEFORE (original) and AFTER (watermarked only) ────────────────
+# ── preview: BEFORE (original) and AFTER (watermarked until paid) ────────────────
 
 @require_GET
 def image_before(request, job_id):
@@ -327,7 +338,8 @@ def image_after(request, job_id):
     job = _owned_job(request, job_id)
     if job.status != ImageJob.STATUS_DONE or not job.watermarked_key:
         raise Http404
-    return _stream(job.watermarked_key)
+    # Paid photos are shown clean (no watermark); unpaid ones only ever get the watermarked copy.
+    return _stream(job.clean_key if job.is_paid and job.clean_key else job.watermarked_key)
 
 
 # ── download gate ──────────────────────────────────────────────────────────
@@ -338,6 +350,12 @@ def image_unlock(request):
     If nothing is paid yet the page sends the visitor to checkout instead."""
     batch = _batch_jobs(request)
     jobs = [j for j in batch if j.is_paid and j.status == ImageJob.STATUS_DONE and j.clean_key]
+    working = [j for j in batch if j.is_paid and j.status in (ImageJob.STATUS_PENDING, ImageJob.STATUS_PROCESSING)]
+    if working:
+        # Never hand out a half-finished ZIP: wait until every paid photo is enhanced.
+        return JsonResponse({'ok': False, 'enhancing': True, 'left': len(working),
+                             'message': f'Still enhancing {len(working)} photo{"s" if len(working) > 1 else ""}. '
+                                        'Your download will be ready in a moment.'}, status=409)
     if not jobs:
         if any(j.is_paid for j in batch):
             return JsonResponse({'ok': False, 'message': 'Your photos are not ready yet.'}, status=400)

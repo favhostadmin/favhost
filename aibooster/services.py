@@ -384,11 +384,13 @@ LOCKED_REWRITE = ('Your improved wording for this part of the listing is ready. 
 
 
 FREE_ITEMS = 2   # how many items of each section an unpaid visitor can read
+FREE_CARDS = 1     # ...and in the scorecard list only the weakest area is free
+FREE_REWRITES = 1   # ...except the copy-paste-ready rewrites, where only the first is free
 
 
 def teaser(result, paid):
     """The report as it is sent to the browser. Paid: everything. Unpaid: only FREE_ITEMS items per
-    section are readable (the two weakest areas, and the first two rewrites); everything else keeps
+    section are readable (the two weakest areas, and the first rewrite); everything else keeps
     just its title and score. The real text of locked items is replaced with filler on the server, so
     it never reaches the page (blurring alone could be undone in dev tools)."""
     if not isinstance(result, dict):
@@ -401,17 +403,21 @@ def teaser(result, paid):
     # The same two areas are free in "quick wins" and in the scorecard, so nothing leaks between them.
     weakest = sorted((i for i, r in enumerate(rows) if r.get('assessed')), key=lambda i: rows[i]['score'])
     free_rows = set(weakest[:FREE_ITEMS])
+    free_card = set(weakest[:FREE_CARDS])
     cards = []
     for i, row in enumerate(rows):
         row = dict(row)
-        if row.get('assessed') and i not in free_rows:
+        if i not in free_rows:   # also areas we couldn't score: their "what to add" advice is part of the report
             row['locked'] = True
             row['issue'] = row['fix'] = LOCKED_TEXT
+        elif row.get('assessed') and i not in free_card:
+            # readable in "Fix first" (already public there) but locked in the scorecard list
+            row['card_locked'] = True
         cards.append(row)
     out['scorecard'] = cards
     fields = []
     usable = [f for f in result.get('fields') or [] if f.get('suggested') and f['suggested'] != MISSING]
-    free_fields = {id(f) for f in usable[:FREE_ITEMS]}
+    free_fields = {id(f) for f in usable[:FREE_REWRITES]}
     for f in result.get('fields') or []:
         if id(f) in free_fields or f not in usable:
             fields.append(f)

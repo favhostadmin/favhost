@@ -2,6 +2,7 @@ from types import SimpleNamespace
 from unittest import mock
 
 from django.core.cache import cache
+from django.http import HttpResponse
 from django.test import TestCase
 from django.urls import reverse
 
@@ -66,8 +67,10 @@ class PaymentFlowTests(TestCase):
         held_now = ImageJob.objects.get(pk=jobs[1].id)
         self.assertEqual(held_now.status, ImageJob.STATUS_PENDING)
         dispatch.assert_called_once_with(jobs[1].id)
-        r = self.client.post(reverse('aibooster:image-unlock')).json()
-        self.assertTrue(r['ok'])
+        # the released photo is still being enhanced, so the download is held back until it is done
+        self.assertTrue(self.client.post(reverse('aibooster:image-unlock')).json()['enhancing'])
+        ImageJob.objects.filter(pk=jobs[1].id).update(status=ImageJob.STATUS_DONE, clean_key='c1')
+        self.assertTrue(self.client.post(reverse('aibooster:image-unlock')).json()['ok'])
 
     def test_fulfill_is_idempotent(self, _):
         jobs = self._batch(2)
@@ -109,12 +112,14 @@ class PaymentFlowTests(TestCase):
         self.assertEqual(res['download_url'], '')
         body = str(res['result'])
         # scores are Title 60, Photos 30, Pricing 40, Rules 50: the two weakest (Photos, Pricing) are free
-        for hidden in ('issue Title', 'fix Title', 'issue Rules', 'fix Rules', 'new Amenities', 'new Rules', 'old Rules'):
+        for hidden in ('issue Title', 'fix Title', 'issue Rules', 'fix Rules', 'new Description', 'new Amenities', 'new Rules', 'old Rules'):
             self.assertNotIn(hidden, body)
-        for shown in ('issue Photos', 'fix Pricing', 'new Title', 'new Description'):
+        for shown in ('issue Photos', 'fix Pricing', 'new Title'):   # only the first rewrite is free
             self.assertIn(shown, body)
         locked = [c for c in res['result']['scorecard'] if c.get('locked')]
         self.assertEqual(len(locked), 2)
+        cl = [c['category'] for c in res['result']['scorecard'] if c.get('card_locked')]
+        self.assertEqual(cl, ['Pricing'])   # 2nd weakest: readable in Fix first, locked in the scorecard list
 
     def test_pdf_blocked_until_paid_then_report_complete(self, _):
         report = self._report()
@@ -202,3 +207,152 @@ class StartOverTests(TestCase):
 
     def test_reset_needs_post(self):
         self.assertEqual(self.client.get(reverse('aibooster:image-reset')).status_code, 405)
+
+
+class AddMorePhotosTests(TestCase):
+    def setUp(self):
+        self.client.get(reverse('aibooster:image'))
+        self.key = self.client.session.session_key
+
+    def _png(self, name='a.png'):
+        import io
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from PIL import Image
+        buf = io.BytesIO()
+        Image.new('RGB', (20, 20), 'red').save(buf, 'PNG')
+        return SimpleUploadedFile(name, buf.getvalue(), content_type='image/png')
+
+    def _start(self, n, **extra):
+        data = {'images': [self._png(f'p{i}.png') for i in range(n)], 'listing_url': ''}
+        data.update(extra)
+        with mock.patch('aibooster.views.dispatch') as dispatch, \
+                mock.patch('aibooster.storage.save_bytes', side_effect=lambda key, b: key):
+            r = self.client.post(reverse('aibooster:image-start'), data).json()
+        return r, dispatch
+
+    def test_added_photos_join_the_batch_locked(self):
+        first, d1 = self._start(3)
+        self.assertEqual(len(first['jobs']), 3)
+        d1.assert_called_once()
+        more, d2 = self._start(2, append='1')
+        self.assertTrue(more['ok'])
+        self.assertEqual(len(more['jobs']), 5)
+        self.assertEqual([j['id'] for j in more['jobs'][:3]], [j['id'] for j in first['jobs']])
+        d2.assert_not_called()   # nothing new is enhanced before payment
+        self.assertEqual(ImageJob.objects.filter(status=ImageJob.STATUS_HELD).count(), 4)
+
+    def test_batch_is_capped(self):
+        self._start(24)
+        more, _ = self._start(5, append='1')
+        self.assertEqual(len(more['jobs']), 25)
+        again, _ = self._start(1, append='1')
+        self.assertFalse(again['ok'])
+
+    def test_no_adding_after_payment(self):
+        first, _ = self._start(2)
+        ImageJob.objects.filter(pk=first['jobs'][0]['id']).update(is_paid=True)
+        more, _ = self._start(1, append='1')
+        self.assertFalse(more['ok'])
+        self.assertEqual(ImageJob.objects.count(), 2)
+
+
+def real_session(order_id, **extra):
+    """A genuine stripe-python object (not a dict), like Stripe returns in production."""
+    import stripe
+    data = {'id': 'cs_live_x', 'object': 'checkout.session', 'payment_status': 'paid', 'amount_total': 999,
+            'metadata': {'ai_order_id': str(order_id)} if order_id else {},
+            'customer_details': {'email': 'host@example.com', 'name': 'Host'}}
+    data.update(extra)
+    return stripe.checkout.Session.construct_from(data, 'sk_test')
+
+
+@mock.patch('aibooster.payments.get_price', side_effect=fake_price)
+class RealStripeObjectTests(TestCase):
+    """Regression: a StripeObject has no .get(), which crashed the return trip from Stripe."""
+
+    def setUp(self):
+        cache.clear()
+        self.client.get(reverse('aibooster:image'))
+        self.key = self.client.session.session_key
+
+    def _return(self, route, order, **extra):
+        with mock.patch('aibooster.payments.stripe.checkout.Session.retrieve', return_value=real_session(order.id, **extra)):
+            resp = self.client.get(reverse(route) + '?session_id=cs_live_x')
+        self.assertEqual(resp.status_code, 302)       # redirected to the clean URL, no error page
+        return self.client.get(reverse(route))
+
+    def test_photo_return_trip_then_page_renders(self, _):
+        jobs = [ImageJob.objects.create(session_key=self.key, original_key='o', clean_key='c', watermarked_key='w',
+                                        status=ImageJob.STATUS_DONE),
+                ImageJob.objects.create(session_key=self.key, original_key='o2', status=ImageJob.STATUS_HELD)]
+        session = self.client.session
+        session['aibooster_batch'] = [str(j.id) for j in jobs]
+        session.save()
+        order = Order.objects.create(kind=Order.KIND_PHOTOS, session_key=self.key, job_ids=[str(j.id) for j in jobs], quantity=2)
+        with mock.patch('aibooster.tasks.dispatch'):
+            with self.captureOnCommitCallbacks(execute=True):
+                page = self._return('aibooster:image', order)
+        self.assertEqual(page.status_code, 200)
+        self.assertContains(page, 'Payment received')
+        self.assertEqual(ImageJob.objects.filter(is_paid=True).count(), 2)
+        order.refresh_from_db()
+        self.assertEqual((order.status, order.customer_email), (Order.STATUS_PAID, 'host@example.com'))
+
+    def test_report_return_trip_then_page_renders(self, _):
+        report = ListingReport.objects.create(session_key=self.key, status=ListingReport.STATUS_DONE, is_paid=False,
+                                              result_json={'overall_score': 50, 'scorecard': [], 'fields': [], 'missing_data': []})
+        session = self.client.session
+        session['aibooster_report'] = str(report.id)
+        session.save()
+        order = Order.objects.create(kind=Order.KIND_REPORT, session_key=self.key, report=report, quantity=1)
+        page = self._return('aibooster:report', order)
+        self.assertEqual(page.status_code, 200)
+        self.assertContains(page, 'Payment received')
+        report.refresh_from_db()
+        self.assertTrue(report.is_paid)
+
+    def test_webhook_with_real_object(self, _):
+        report = ListingReport.objects.create(session_key=self.key, status=ListingReport.STATUS_DONE)
+        order = Order.objects.create(kind=Order.KIND_REPORT, session_key=self.key, report=report, quantity=1)
+        self.assertTrue(payments.handle_webhook_session(real_session(order.id)))
+        report.refresh_from_db()
+        self.assertTrue(report.is_paid)
+        self.assertFalse(payments.handle_webhook_session(real_session(None)))   # a subscription checkout
+
+    def test_unpaid_real_session_does_not_unlock_and_does_not_crash(self, _):
+        report = ListingReport.objects.create(session_key=self.key, status=ListingReport.STATUS_DONE)
+        order = Order.objects.create(kind=Order.KIND_REPORT, session_key=self.key, report=report, quantity=1)
+        self._return('aibooster:report', order, payment_status='unpaid')
+        report.refresh_from_db()
+        self.assertFalse(report.is_paid)
+
+
+class AfterPaymentTests(TestCase):
+    def setUp(self):
+        self.client.get(reverse('aibooster:image'))
+        self.key = self.client.session.session_key
+
+    def _batch(self, *jobs):
+        session = self.client.session
+        session['aibooster_batch'] = [str(j.id) for j in jobs]
+        session.save()
+
+    def test_preview_is_watermarked_until_paid_then_clean(self):
+        job = ImageJob.objects.create(session_key=self.key, status=ImageJob.STATUS_DONE, clean_key='CLEAN', watermarked_key='MARKED')
+        with mock.patch('aibooster.views._stream', return_value=HttpResponse('x')) as stream:
+            self.client.get(reverse('aibooster:image-after', args=[job.id]))
+            stream.assert_called_with('MARKED')
+            ImageJob.objects.filter(pk=job.id).update(is_paid=True)
+            self.client.get(reverse('aibooster:image-after', args=[job.id]))
+            stream.assert_called_with('CLEAN')
+
+    def test_download_waits_until_every_paid_photo_is_enhanced(self):
+        done = ImageJob.objects.create(session_key=self.key, status=ImageJob.STATUS_DONE, clean_key='c', is_paid=True)
+        busy = ImageJob.objects.create(session_key=self.key, status=ImageJob.STATUS_PROCESSING, is_paid=True)
+        self._batch(done, busy)
+        r = self.client.post(reverse('aibooster:image-unlock'))
+        self.assertEqual(r.status_code, 409)
+        self.assertTrue(r.json()['enhancing'])
+        ImageJob.objects.filter(pk=busy.id).update(status=ImageJob.STATUS_DONE, clean_key='c2')
+        r = self.client.post(reverse('aibooster:image-unlock'))
+        self.assertTrue(r.json()['ok'])
