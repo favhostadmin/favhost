@@ -384,6 +384,7 @@ LOCKED_REWRITE = ('Your improved wording for this part of the listing is ready. 
 
 
 FREE_ITEMS = 2   # how many items of each section an unpaid visitor can read
+FREE_CARDS = 1     # ...and in the scorecard list only the weakest area is free
 FREE_REWRITES = 1   # ...except the copy-paste-ready rewrites, where only the first is free
 
 
@@ -402,12 +403,16 @@ def teaser(result, paid):
     # The same two areas are free in "quick wins" and in the scorecard, so nothing leaks between them.
     weakest = sorted((i for i, r in enumerate(rows) if r.get('assessed')), key=lambda i: rows[i]['score'])
     free_rows = set(weakest[:FREE_ITEMS])
+    free_card = set(weakest[:FREE_CARDS])
     cards = []
     for i, row in enumerate(rows):
         row = dict(row)
-        if row.get('assessed') and i not in free_rows:
+        if i not in free_rows:   # also areas we couldn't score: their "what to add" advice is part of the report
             row['locked'] = True
             row['issue'] = row['fix'] = LOCKED_TEXT
+        elif row.get('assessed') and i not in free_card:
+            # readable in "Fix first" (already public there) but locked in the scorecard list
+            row['card_locked'] = True
         cards.append(row)
     out['scorecard'] = cards
     fields = []

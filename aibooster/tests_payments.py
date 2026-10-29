@@ -115,6 +115,8 @@ class PaymentFlowTests(TestCase):
             self.assertIn(shown, body)
         locked = [c for c in res['result']['scorecard'] if c.get('locked')]
         self.assertEqual(len(locked), 2)
+        cl = [c['category'] for c in res['result']['scorecard'] if c.get('card_locked')]
+        self.assertEqual(cl, ['Pricing'])   # 2nd weakest: readable in Fix first, locked in the scorecard list
 
     def test_pdf_blocked_until_paid_then_report_complete(self, _):
         report = self._report()
