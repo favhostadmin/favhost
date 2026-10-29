@@ -160,3 +160,45 @@ class PaymentFlowTests(TestCase):
         report.refresh_from_db()
         self.assertTrue(report.is_paid)
         self.assertFalse(payments.handle_webhook_session(fake_session(metadata={})))   # a subscription checkout
+
+
+class StartOverTests(TestCase):
+    def setUp(self):
+        self.client.get(reverse('aibooster:image'))
+        self.key = self.client.session.session_key
+
+    def _session(self, **items):
+        session = self.client.session
+        session.update(items)
+        session.save()
+
+    def test_unpaid_photos_are_deleted_paid_ones_kept(self):
+        unpaid = ImageJob.objects.create(session_key=self.key, status=ImageJob.STATUS_DONE, original_key='o1')
+        paid = ImageJob.objects.create(session_key=self.key, status=ImageJob.STATUS_DONE, original_key='o2', is_paid=True)
+        self._session(aibooster_batch=[str(unpaid.id), str(paid.id)])
+        with mock.patch('aibooster.storage.get_storage') as get_storage:
+            self.assertTrue(self.client.post(reverse('aibooster:image-reset')).json()['ok'])
+        self.assertFalse(ImageJob.objects.filter(pk=unpaid.id).exists())
+        self.assertTrue(ImageJob.objects.filter(pk=paid.id).exists())
+        get_storage.return_value.delete.assert_called_once_with('o1')
+        self.assertNotIn('aibooster_batch', self.client.session)
+
+    def test_running_job_is_not_deleted_under_the_worker(self):
+        busy = ImageJob.objects.create(session_key=self.key, status=ImageJob.STATUS_PROCESSING)
+        self._session(aibooster_batch=[str(busy.id)])
+        self.client.post(reverse('aibooster:image-reset'))
+        self.assertTrue(ImageJob.objects.filter(pk=busy.id).exists())
+
+    def test_report_reset(self):
+        unpaid = ListingReport.objects.create(session_key=self.key, status=ListingReport.STATUS_DONE)
+        self._session(aibooster_report=str(unpaid.id))
+        self.assertTrue(self.client.post(reverse('aibooster:report-reset')).json()['ok'])
+        self.assertFalse(ListingReport.objects.filter(pk=unpaid.id).exists())
+        paid = ListingReport.objects.create(session_key=self.key, status=ListingReport.STATUS_DONE, is_paid=True)
+        self._session(aibooster_report=str(paid.id))
+        self.client.post(reverse('aibooster:report-reset'))
+        self.assertTrue(ListingReport.objects.filter(pk=paid.id).exists())
+        self.assertNotIn('aibooster_report', self.client.session)
+
+    def test_reset_needs_post(self):
+        self.assertEqual(self.client.get(reverse('aibooster:image-reset')).status_code, 405)

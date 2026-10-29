@@ -326,6 +326,11 @@
   <!-- ============ YOUR REPORT ============ -->
   <section class="ab-sec ab-soft" id="rbResultSec" style="display:none;padding:56px 0">
     <div class="ab-wrap">
+      <div class="ab-res-head">
+        <h2>Your report</h2>
+        <button type="button" class="ab-reset" id="rbReset"><svg class="ab-svg" viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg> Start over</button>
+      </div>
+
       <div id="rbWait" class="ab-card" style="display:none">
         <div class="ab-prog" role="status" aria-live="polite">
           <div class="ab-prog-n" id="rbPct">0%</div>
@@ -571,6 +576,7 @@
   ];
   var lastReport = null;
   var CHECKOUT_URL = "{% url 'aibooster:report-checkout' %}";
+  var RESET_URL = "{% url 'aibooster:report-reset' %}";
   var PRICE = {% if price %}{ cents: {{ price.cents }}, currency: "{{ price.currency }}", display: "{{ price.display }}" }{% else %}null{% endif %};
   var FLASH = "{{ flash }}";
 
@@ -769,6 +775,23 @@
     if (!this.dataset.paid) { e.preventDefault(); startCheckout(this); }
   });
   $('rbUnlockBtn').addEventListener('click', function () { startCheckout(this); });
+
+  // start over: clear the current report (an unpaid report is deleted on the server)
+  $('rbReset').addEventListener('click', function () {
+    var paid = !!(lastReport && lastReport.paid);
+    var msg = paid ? 'Your paid report will be removed from this page. Please download it first. Start over?'
+                   : 'This clears your current report. Start over?';
+    if (!window.confirm(msg)) return;
+    xhr('POST', RESET_URL, '{}', function (status, data) {
+      if (status !== 200 || !data || !data.ok) { showNotice(FRIENDLY); return; }
+      stopPolling(); rbReset(); lastReport = null;
+      $('rbResult').style.display = 'none';
+      setBusy(false);
+      $('rbUrl').value = ''; $('rbManual').value = '';
+      showNotice('All cleared. You can analyze a new listing.', 'success');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  });
 
   // ---- job flow ----
   // ---- progress percentage (an honest estimate: the AI gives no real progress) ----

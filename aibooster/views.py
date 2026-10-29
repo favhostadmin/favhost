@@ -531,3 +531,37 @@ def report_checkout(request):
     except payments.PaymentError as exc:
         return JsonResponse({'ok': False, 'message': str(exc)})
     return JsonResponse({'ok': True, 'url': url})
+
+
+# ── start over: let the visitor clear their data ────────────────────────────
+
+def _forget_job(job):
+    """Delete an unpaid photo's files and row. Paid photos and jobs a worker may be running are kept."""
+    if job.is_paid or job.status in (ImageJob.STATUS_PENDING, ImageJob.STATUS_PROCESSING):
+        return
+    for key in (job.original_key, job.watermarked_key, job.clean_key):
+        if key:
+            try:
+                storage.get_storage().delete(key)
+            except Exception:
+                logger.warning('Photo Enhancer: could not delete %s', key, exc_info=True)
+    job.delete()
+
+
+@require_POST
+def image_reset(request):
+    """Clear this session's current batch: unpaid photos are deleted for good; paid ones stay on file."""
+    for job in _batch_jobs(request):
+        _forget_job(job)
+    request.session.pop(BATCH_SESSION_KEY, None)
+    return JsonResponse({'ok': True})
+
+
+@require_POST
+def report_reset(request):
+    """Clear this session's current report: an unpaid report is deleted for good; a paid one stays on file."""
+    report = _latest_report(request)
+    if report and not report.is_paid and report.status in (ListingReport.STATUS_DONE, ListingReport.STATUS_FAILED):
+        report.delete()
+    request.session.pop(REPORT_SESSION_KEY, None)
+    return JsonResponse({'ok': True})
