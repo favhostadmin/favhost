@@ -512,6 +512,7 @@
 
   // The big slider previews ONE photo at a time (the first by default, or the one clicked below).
   // Photos the visitor hasn't asked us to enhance yet ("held") cost nothing until they press Continue.
+  var wasWaiting = false;
   function refresh() {
     var result = $('abResult');
     if (!order.length) { result.style.display = 'none'; resultSec.style.display = 'none'; return; }
@@ -567,7 +568,16 @@
       summary.textContent = msg;
     }
 
+    var paidBusy = unpaid === 0 && c.busy > 0;
+    dl.classList.toggle('is-wait', paidBusy);
+    if (paidBusy) {
+      wasWaiting = true;
+      dl.textContent = 'Enhancing… ' + (c.done + c.failed) + ' of ' + c.total;
+      dl.style.display = '';
+      summary.textContent = 'Payment received. Your photos are being enhanced one by one — you can watch them appear below.';
+    }
     if (c.busy === 0 && c.done > 0 && unpaid === 0) {
+      if (wasWaiting) { wasWaiting = false; showNotice('All photos are enhanced and ready to download.', 'success'); }
       dl.textContent = c.done > 1 ? 'Download all (' + c.done + ')' : 'Download';
       dl.style.display = '';
     }
@@ -702,9 +712,11 @@
   $('abPayBtn').addEventListener('click', startCheckout);
 
   $('abDownload').addEventListener('click', function () {
+    if (this.classList.contains('is-wait')) { showNotice('Your photos are still being enhanced. The download will be ready in a moment.', 'info'); return; }
     // Paid: the server hands back a fresh short-lived link. Not paid: off to checkout.
     xhr('POST', URLS.unlock, '{}', { 'Content-Type': 'application/json' }, function (status, data) {
       if (status === 200 && data && data.ok) window.location.href = data.url;
+      else if (data && data.enhancing) showNotice(data.message, 'info');
       else if (data && data.needs_payment) startCheckout();
       else showNotice((data && data.message) || FRIENDLY);
     });

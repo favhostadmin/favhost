@@ -925,7 +925,12 @@
   // ---- initial state: this session's latest report, if any ----
   var initial = JSON.parse($('rbInitial').textContent);
   if (initial) handle(initial);
-  if (FLASH === 'paid') $('rbPaidNote').style.display = 'block';
+  if (FLASH === 'paid') {
+    // back from Stripe: land on the unlocked report, not the top of the page
+    $('rbPaidNote').style.display = 'block';
+    showNotice('Payment received, thank you! Your full report is unlocked.', 'success');
+    setTimeout(function () { $('rbResultSec').scrollIntoView({ block: 'start' }); }, 50);
+  }
   else if (FLASH === 'canceled') showNotice('Payment cancelled. Your report is still here whenever you’d like to unlock it.', 'info');
   else if (FLASH === 'unconfirmed') showNotice('We couldn’t confirm your payment yet. If you were charged, please refresh this page in a minute.', 'warning');
 })();

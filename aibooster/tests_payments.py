@@ -2,6 +2,7 @@ from types import SimpleNamespace
 from unittest import mock
 
 from django.core.cache import cache
+from django.http import HttpResponse
 from django.test import TestCase
 from django.urls import reverse
 
@@ -66,8 +67,10 @@ class PaymentFlowTests(TestCase):
         held_now = ImageJob.objects.get(pk=jobs[1].id)
         self.assertEqual(held_now.status, ImageJob.STATUS_PENDING)
         dispatch.assert_called_once_with(jobs[1].id)
-        r = self.client.post(reverse('aibooster:image-unlock')).json()
-        self.assertTrue(r['ok'])
+        # the released photo is still being enhanced, so the download is held back until it is done
+        self.assertTrue(self.client.post(reverse('aibooster:image-unlock')).json()['enhancing'])
+        ImageJob.objects.filter(pk=jobs[1].id).update(status=ImageJob.STATUS_DONE, clean_key='c1')
+        self.assertTrue(self.client.post(reverse('aibooster:image-unlock')).json()['ok'])
 
     def test_fulfill_is_idempotent(self, _):
         jobs = self._batch(2)
@@ -322,3 +325,34 @@ class RealStripeObjectTests(TestCase):
         self._return('aibooster:report', order, payment_status='unpaid')
         report.refresh_from_db()
         self.assertFalse(report.is_paid)
+
+
+class AfterPaymentTests(TestCase):
+    def setUp(self):
+        self.client.get(reverse('aibooster:image'))
+        self.key = self.client.session.session_key
+
+    def _batch(self, *jobs):
+        session = self.client.session
+        session['aibooster_batch'] = [str(j.id) for j in jobs]
+        session.save()
+
+    def test_preview_is_watermarked_until_paid_then_clean(self):
+        job = ImageJob.objects.create(session_key=self.key, status=ImageJob.STATUS_DONE, clean_key='CLEAN', watermarked_key='MARKED')
+        with mock.patch('aibooster.views._stream', return_value=HttpResponse('x')) as stream:
+            self.client.get(reverse('aibooster:image-after', args=[job.id]))
+            stream.assert_called_with('MARKED')
+            ImageJob.objects.filter(pk=job.id).update(is_paid=True)
+            self.client.get(reverse('aibooster:image-after', args=[job.id]))
+            stream.assert_called_with('CLEAN')
+
+    def test_download_waits_until_every_paid_photo_is_enhanced(self):
+        done = ImageJob.objects.create(session_key=self.key, status=ImageJob.STATUS_DONE, clean_key='c', is_paid=True)
+        busy = ImageJob.objects.create(session_key=self.key, status=ImageJob.STATUS_PROCESSING, is_paid=True)
+        self._batch(done, busy)
+        r = self.client.post(reverse('aibooster:image-unlock'))
+        self.assertEqual(r.status_code, 409)
+        self.assertTrue(r.json()['enhancing'])
+        ImageJob.objects.filter(pk=busy.id).update(status=ImageJob.STATUS_DONE, clean_key='c2')
+        r = self.client.post(reverse('aibooster:image-unlock'))
+        self.assertTrue(r.json()['ok'])

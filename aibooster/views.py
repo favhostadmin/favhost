@@ -323,7 +323,7 @@ def image_status(request):
     return JsonResponse({'jobs': [_payload(j) for j in jobs]})
 
 
-# ── preview: BEFORE (original) and AFTER (watermarked only) ────────────────
+# ── preview: BEFORE (original) and AFTER (watermarked until paid) ────────────────
 
 @require_GET
 def image_before(request, job_id):
@@ -338,7 +338,8 @@ def image_after(request, job_id):
     job = _owned_job(request, job_id)
     if job.status != ImageJob.STATUS_DONE or not job.watermarked_key:
         raise Http404
-    return _stream(job.watermarked_key)
+    # Paid photos are shown clean (no watermark); unpaid ones only ever get the watermarked copy.
+    return _stream(job.clean_key if job.is_paid and job.clean_key else job.watermarked_key)
 
 
 # ── download gate ──────────────────────────────────────────────────────────
@@ -349,6 +350,12 @@ def image_unlock(request):
     If nothing is paid yet the page sends the visitor to checkout instead."""
     batch = _batch_jobs(request)
     jobs = [j for j in batch if j.is_paid and j.status == ImageJob.STATUS_DONE and j.clean_key]
+    working = [j for j in batch if j.is_paid and j.status in (ImageJob.STATUS_PENDING, ImageJob.STATUS_PROCESSING)]
+    if working:
+        # Never hand out a half-finished ZIP: wait until every paid photo is enhanced.
+        return JsonResponse({'ok': False, 'enhancing': True, 'left': len(working),
+                             'message': f'Still enhancing {len(working)} photo{"s" if len(working) > 1 else ""}. '
+                                        'Your download will be ready in a moment.'}, status=409)
     if not jobs:
         if any(j.is_paid for j in batch):
             return JsonResponse({'ok': False, 'message': 'Your photos are not ready yet.'}, status=400)
