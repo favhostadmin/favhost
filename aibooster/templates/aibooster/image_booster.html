@@ -413,7 +413,9 @@
       var id = b.getAttribute('data-job'), p = pctFor(id);
       box.querySelector('.ab-prog-n').textContent = p + '%';
       box.querySelector('.ab-prog-bar i').style.width = p + '%';
-      box.querySelector('.ab-prog-t').textContent = stage(p);
+      var slow = (Date.now() - startOf(id)) / 1000 > 240;   // 4 minutes: something is wrong or the queue is backed up
+      box.querySelector('.ab-prog-t').textContent = slow ? 'Taking longer than usual…' : stage(p);
+      box.querySelector('small').textContent = slow ? 'You can keep this page open, or come back in a few minutes.' : 'This usually takes about a minute';
     }
     // the small status chips on the thumbnails show it too
     working.forEach(function (id) {
