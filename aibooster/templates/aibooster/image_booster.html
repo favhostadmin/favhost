@@ -636,15 +636,16 @@
   // ---- start over: clear the current batch (unpaid photos are deleted on the server) ----
   $('abReset').addEventListener('click', function () {
     var paid = order.some(function (id) { return jobs[id] && jobs[id].paid; });
-    var msg = paid ? 'Your paid photos will be removed from this page. Please make sure you have downloaded them first. Start over?'
-                   : 'This clears your current photos and preview. Start over?';
-    if (!window.confirm(msg)) return;
-    xhr('POST', URLS.reset, '{}', { 'Content-Type': 'application/json' }, function (status, data) {
-      if (status !== 200 || !data || !data.ok) { showNotice(FRIENDLY); return; }
-      setBatch([]);
-      fileInput.value = ''; updatePicked(); $('abUrl').value = '';
-      showNotice('All cleared. You can add new photos.', 'success');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+    var msg = paid ? 'Your paid photos will be removed from this page. Please make sure you have downloaded them first.'
+                   : 'Your current photos and preview will be cleared, and you can start with new photos.';
+    abConfirm({ title: 'Start over?', message: msg, confirmLabel: 'Yes, start over', cancelLabel: 'Keep my photos' }, function () {
+      xhr('POST', URLS.reset, '{}', { 'Content-Type': 'application/json' }, function (status, data) {
+        if (status !== 200 || !data || !data.ok) { showNotice(FRIENDLY); return; }
+        setBatch([]);
+        fileInput.value = ''; updatePicked(); $('abUrl').value = '';
+        showNotice('All cleared. You can add new photos.', 'success');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
     });
   });
 

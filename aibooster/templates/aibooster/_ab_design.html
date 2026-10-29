@@ -411,3 +411,53 @@
     setTimeout(function () { t.remove(); }, kind === 'success' ? 6000 : 5000);
   };
 </script>
+
+<style>
+  /* Platform confirm dialog (replaces the browser's plain confirm box). */
+  .ab-dlg { position: fixed; inset: 0; z-index: 100000; display: grid; place-items: center; padding: 16px; background: rgba(15,23,42,.55); backdrop-filter: blur(3px); animation: ab-dlg-bg .2s ease; }
+  .ab-dlg-card { width: min(440px, 100%); background: #fff; border-radius: 28px; padding: 30px 28px 24px; text-align: center; box-shadow: 0 24px 80px rgba(0,0,0,.35); animation: ab-dlg-in .22s ease; font-family: inherit; }
+  .ab-dlg-ico { width: 64px; height: 64px; margin: 0 auto 16px; border-radius: 50%; background: #EB5310; color: #fff; display: grid; place-items: center; box-shadow: 0 0 0 8px #ffe9c8; }
+  .ab-dlg-ico svg { width: 30px; height: 30px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+  .ab-dlg-card h3 { margin: 0 0 8px; font-size: 22px; font-weight: 800; letter-spacing: -.02em; color: #1E252F; }
+  .ab-dlg-card p { margin: 0; font-size: 15px; line-height: 1.6; color: #434343; }
+  .ab-dlg-btns { display: flex; gap: 10px; margin-top: 24px; }
+  .ab-dlg-btns button { flex: 1; height: 48px; border-radius: 999px; font: inherit; font-weight: 800; font-size: 15px; cursor: pointer; border: 1px solid #EB5310; transition: background-color .15s, color .15s; }
+  .ab-dlg-no { background: #fff; color: #EB5310; }
+  .ab-dlg-no:hover { background: #fff1e8; }
+  .ab-dlg-yes { background: #EB5310; color: #fff; }
+  .ab-dlg-yes:hover { background: #d44a0e; border-color: #d44a0e; }
+  .ab-dlg-btns button:focus-visible { outline: 3px solid rgba(235,83,16,.35); outline-offset: 2px; }
+  @keyframes ab-dlg-bg { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes ab-dlg-in { from { opacity: 0; transform: translateY(10px) scale(.97); } to { opacity: 1; transform: none; } }
+</style>
+<script>
+  // abConfirm({title, message, confirmLabel, cancelLabel}, onConfirm): the platform-styled confirm dialog.
+  window.abConfirm = function (opts, onConfirm) {
+    var wrap = document.createElement('div');
+    wrap.className = 'ab-dlg';
+    wrap.innerHTML = '<div class="ab-dlg-card" role="alertdialog" aria-modal="true" aria-labelledby="abDlgT" aria-describedby="abDlgM">'
+      + '<div class="ab-dlg-ico"><svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg></div>'
+      + '<h3 id="abDlgT"></h3><p id="abDlgM"></p>'
+      + '<div class="ab-dlg-btns"><button type="button" class="ab-dlg-no"></button><button type="button" class="ab-dlg-yes"></button></div></div>';
+    wrap.querySelector('h3').textContent = opts.title || 'Are you sure?';
+    wrap.querySelector('p').textContent = opts.message || '';
+    var no = wrap.querySelector('.ab-dlg-no'), yes = wrap.querySelector('.ab-dlg-yes');
+    no.textContent = opts.cancelLabel || 'Cancel';
+    yes.textContent = opts.confirmLabel || 'Yes, continue';
+    var prevFocus = document.activeElement;
+    function close() { document.removeEventListener('keydown', onKey); wrap.remove(); if (prevFocus && prevFocus.focus) prevFocus.focus(); }
+    function onKey(e) {
+      if (e.key === 'Escape') close();
+      else if (e.key === 'Tab') {   // keep focus inside the dialog
+        e.preventDefault();
+        (document.activeElement === no ? yes : no).focus();
+      }
+    }
+    no.addEventListener('click', close);
+    yes.addEventListener('click', function () { close(); if (onConfirm) onConfirm(); });
+    wrap.addEventListener('mousedown', function (e) { if (e.target === wrap) close(); });
+    document.addEventListener('keydown', onKey);
+    document.body.appendChild(wrap);
+    no.focus();
+  };
+</script>

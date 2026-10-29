@@ -779,17 +779,18 @@
   // start over: clear the current report (an unpaid report is deleted on the server)
   $('rbReset').addEventListener('click', function () {
     var paid = !!(lastReport && lastReport.paid);
-    var msg = paid ? 'Your paid report will be removed from this page. Please download it first. Start over?'
-                   : 'This clears your current report. Start over?';
-    if (!window.confirm(msg)) return;
-    xhr('POST', RESET_URL, '{}', function (status, data) {
-      if (status !== 200 || !data || !data.ok) { showNotice(FRIENDLY); return; }
-      stopPolling(); rbReset(); lastReport = null;
-      $('rbResult').style.display = 'none';
-      setBusy(false);
-      $('rbUrl').value = ''; $('rbManual').value = '';
-      showNotice('All cleared. You can analyze a new listing.', 'success');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+    var msg = paid ? 'Your paid report will be removed from this page. Please download it first.'
+                   : 'Your current report will be cleared, and you can analyze a new listing.';
+    abConfirm({ title: 'Start over?', message: msg, confirmLabel: 'Yes, start over', cancelLabel: 'Keep my report' }, function () {
+      xhr('POST', RESET_URL, '{}', function (status, data) {
+        if (status !== 200 || !data || !data.ok) { showNotice(FRIENDLY); return; }
+        stopPolling(); rbReset(); lastReport = null;
+        $('rbResult').style.display = 'none';
+        setBusy(false);
+        $('rbUrl').value = ''; $('rbManual').value = '';
+        showNotice('All cleared. You can analyze a new listing.', 'success');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
     });
   });
 
