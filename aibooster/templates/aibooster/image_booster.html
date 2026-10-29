@@ -95,7 +95,10 @@
   <!-- ============ YOUR RESULT ============ -->
   <section class="ab-result-sec" id="abResultSec">
     <div class="ab-container">
-      <h2>Your preview</h2>
+      <div class="ab-res-head">
+        <h2>Your preview</h2>
+        <button type="button" class="ab-reset" id="abReset"><svg class="ab-svg" viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg> Start over</button>
+      </div>
       <div class="ab-job ab-result" id="abResult">
         <div class="ab-ba ab-ba-result" id="abSlider" role="group" aria-label="Before and after preview">
           <div class="ab-ba-stage">
@@ -250,7 +253,8 @@
     start: "{% url 'aibooster:image-start' %}",
     status: "{% url 'aibooster:image-status' %}",
     unlock: "{% url 'aibooster:image-unlock' %}",
-    checkout: "{% url 'aibooster:image-checkout' %}"
+    checkout: "{% url 'aibooster:image-checkout' %}",
+    reset: "{% url 'aibooster:image-reset' %}"
   };
   var PRICE = {% if price %}{ cents: {{ price.cents }}, currency: "{{ price.currency }}" }{% else %}null{% endif %};
   var FLASH = "{{ flash }}";
@@ -628,6 +632,21 @@
     $('abPickedCount').textContent = n + ' photo' + (n > 1 ? 's' : '') + ' selected' + (n > MAX ? ' (first ' + MAX + ' will be used)' : '');
   }
   updatePicked();
+
+  // ---- start over: clear the current batch (unpaid photos are deleted on the server) ----
+  $('abReset').addEventListener('click', function () {
+    var paid = order.some(function (id) { return jobs[id] && jobs[id].paid; });
+    var msg = paid ? 'Your paid photos will be removed from this page. Please make sure you have downloaded them first. Start over?'
+                   : 'This clears your current photos and preview. Start over?';
+    if (!window.confirm(msg)) return;
+    xhr('POST', URLS.reset, '{}', { 'Content-Type': 'application/json' }, function (status, data) {
+      if (status !== 200 || !data || !data.ok) { showNotice(FRIENDLY); return; }
+      setBatch([]);
+      fileInput.value = ''; updatePicked(); $('abUrl').value = '';
+      showNotice('All cleared. You can add new photos.', 'success');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  });
 
   // ---- payment ----
   function startCheckout() {
