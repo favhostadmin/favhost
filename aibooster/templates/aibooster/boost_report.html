@@ -9,6 +9,9 @@
   .ab-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 14px; padding: 20px; margin-bottom: 20px; }
   .ab-wrap { max-width: 1100px; margin: 0 auto; padding: 0 16px; }
   .rb-result { display: none; }
+  #rbWait .ab-prog { width: min(420px, 100%); margin: 0 auto; padding: 30px 0 26px; color: #1E252F; }
+  #rbWait .ab-prog-bar { background: #f1ece7; height: 10px; }
+  #rbWait .ab-prog small { color: #64748b; opacity: 1; }
   .rb-top { display: grid; grid-template-columns: 150px 1fr; gap: 20px; align-items: center; }
   .rb-score { text-align: center; }
   .rb-score-num { font-size: 44px; font-weight: 700; line-height: 1; color: #EB5310; }
@@ -109,6 +112,7 @@
   .rb-count.rb-over { color: #b91c1c; font-weight: 700; }
   .rb-reason { margin-top: 12px; font-size: 14px; color: #475569; line-height: 1.55; }
   .rb-reason b { color: #1E252F; }
+  .rb-todo { margin-top: 12px; background: #fffbeb; border: 1px solid #fde68a; color: #92400e; border-radius: 12px; padding: 9px 14px; font-size: 13.5px; font-weight: 600; }
   .rb-old { margin-bottom: 12px; background: #F8F8F8; border-radius: 16px; padding: 14px 18px; }
   .rb-old b { display: block; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: #94a3b8; margin-bottom: 6px; }
   .rb-old .rb-text { color: #64748b; font-size: 14.5px; }
@@ -323,7 +327,12 @@
   <section class="ab-sec ab-soft" id="rbResultSec" style="display:none;padding:56px 0">
     <div class="ab-wrap">
       <div id="rbWait" class="ab-card" style="display:none">
-        <div class="ab-state"><div class="ab-spin"></div>Analysing your listing…<div class="ab-muted">This usually takes under a minute.</div></div>
+        <div class="ab-prog" role="status" aria-live="polite">
+          <div class="ab-prog-n" id="rbPct">0%</div>
+          <div class="ab-prog-bar"><i id="rbPctBar"></i></div>
+          <div class="ab-prog-t" id="rbPctText">Reading your listing…</div>
+          <small>This usually takes about a minute</small>
+        </div>
       </div>
 
       <div class="rb-result" id="rbResult">
@@ -632,6 +641,7 @@
     nw.appendChild(meta);
     body.appendChild(nw);
 
+    if (f.todo) body.appendChild(el('div', 'rb-todo', 'Add before you paste: ' + f.todo + '.'));
     if (f.reason) {
       var why = el('div', 'rb-reason'); why.appendChild(el('b', '', 'Why this works: ')); why.appendChild(document.createTextNode(f.reason));
       body.appendChild(why);
@@ -761,22 +771,61 @@
   $('rbUnlockBtn').addEventListener('click', function () { startCheckout(this); });
 
   // ---- job flow ----
+  // ---- progress percentage (an honest estimate: the AI gives no real progress) ----
+  // Climbs quickly, slows down, never claims more than 95% until the report is really ready.
+  var RB_EASE = 32, RB_START_KEY = 'rbStart';
+  var rbStart = 0, rbPct = 0, rbTimer = null;
+  var RB_STAGES = [[0, 'Reading your listing…'], [18, 'Reviewing your title and description…'], [38, 'Checking amenities, rules and photos…'],
+                   [58, 'Scoring each part of your listing…'], [78, 'Writing your recommendations…'], [92, 'Almost there…']];
+
+  function rbClock() {
+    if (rbStart) return;
+    var v = 0;
+    try { v = parseInt(sessionStorage.getItem(RB_START_KEY), 10) || 0; } catch (e) {}
+    if (!v || Date.now() - v > 15 * 60 * 1000) { v = Date.now(); try { sessionStorage.setItem(RB_START_KEY, String(v)); } catch (e) {} }
+    rbStart = v;
+  }
+  function rbReset() { rbStart = 0; rbPct = 0; try { sessionStorage.removeItem(RB_START_KEY); } catch (e) {} }
+  function rbShow(p, text) {
+    $('rbPct').textContent = p + '%';
+    $('rbPctBar').style.width = p + '%';
+    $('rbPctText').textContent = text;
+  }
+  function rbUpdate() {
+    rbClock();
+    var t = (Date.now() - rbStart) / 1000;
+    rbPct = Math.min(Math.max(rbPct, Math.round(95 * (1 - Math.exp(-t / RB_EASE)))), 95);
+    var text = RB_STAGES[0][1];
+    RB_STAGES.forEach(function (st) { if (rbPct >= st[0]) text = st[1]; });
+    rbShow(rbPct, text);
+  }
+  function rbRun(on) {
+    if (on && !rbTimer) { rbUpdate(); rbTimer = setInterval(rbUpdate, 400); }
+    if (!on && rbTimer) { clearInterval(rbTimer); rbTimer = null; }
+  }
+
   function setBusy(busy) {
     var btn = $('rbSubmit');
     if (!btn.getAttribute('data-html')) btn.setAttribute('data-html', btn.innerHTML);
     btn.disabled = busy;
     if (busy) btn.textContent = 'Working…'; else btn.innerHTML = btn.getAttribute('data-html');
     $('rbWait').style.display = busy ? 'block' : 'none';
+    rbRun(busy);
     syncResultSection();
   }
 
   function handle(report) {
     if (report.status === 'done' && report.result) {
-      stopPolling(); setBusy(false); showNotice('');
-      renderResult(report.result, report);
-      $('rbResultSec').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      stopPolling(); showNotice('');
+      var show = function () {
+        setBusy(false); rbReset();
+        renderResult(report.result, report);
+        $('rbResultSec').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      };
+      if ($('rbWait').style.display === 'block') { rbRun(false); rbShow(100, 'Done!'); setTimeout(show, 650); }
+      else show();
     } else if (report.status === 'failed') {
-      stopPolling(); setBusy(false);
+      stopPolling(); setBusy(false); rbReset();
       showNotice(report.error || FRIENDLY, 'danger');
     } else {
       setBusy(true);
@@ -809,6 +858,7 @@
     fd.append('listing_url', url);
     fd.append('manual_text', manual);
     showNotice(''); $('rbResult').style.display = 'none';
+    rbReset(); rbPct = 0;
     setBusy(true);
     $('rbResultSec').scrollIntoView({ behavior: 'smooth', block: 'start' });
     xhr('POST', START_URL, fd, function (status, data) {

@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 CHAT_URL = 'https://api.openai.com/v1/chat/completions'
 # (connect, read). Long structured outputs take a while, but a silent 120s call is hung.
-REQUEST_TIMEOUT = (10, 120)
+REQUEST_TIMEOUT = (10, 300)   # a long structured answer can legitimately take a few minutes
 MAX_COMPLETION_TOKENS = 10000
 MISSING = 'DATA_NOT_AVAILABLE'
 UNAVAILABLE_MSG = 'The Listing Optimize is temporarily unavailable. Please try again later.'
@@ -33,6 +33,7 @@ INSTRUCTIONS = (
     'if a category cannot be assessed, give it score 0 and start its issue with DATA_NOT_AVAILABLE, then say in one plain sentence '
     'what is missing and put in fix what the host should add. Never use the literal DATA_NOT_AVAILABLE inside biggest_issue: '
     'biggest_issue must be one or two plain sentences about the most important problem you could actually assess. '
+    'In "suggested" never write DATA_NOT_AVAILABLE: simply leave out any detail you cannot verify and mention in "reason" what the host should add. '
     'Respond with ONLY valid JSON matching the schema below - no markdown, no code fences.'
 )
 SCHEMA = '''{
@@ -85,9 +86,10 @@ def build_messages(scraped):
 
 
 def _post(messages, model, api_key):
-    """One chat-completions request, retried once on a transient failure. Returns (text, usage)."""
+    """One chat-completions request, retried (with a short pause) on a transient failure such as a
+    timeout, a rate limit or a 5xx. Returns (text, usage)."""
     last = None
-    for attempt in (1, 2):
+    for attempt in (1, 2, 3):
         try:
             resp = requests.post(
                 CHAT_URL,
@@ -114,8 +116,8 @@ def _post(messages, model, api_key):
         except Exception as exc:
             last = exc
             logger.warning('Listing Optimize: OpenAI attempt %s failed: model=%s error=%s', attempt, model, exc)
-            if attempt == 1:
-                time.sleep(2)
+            if attempt < 3:
+                time.sleep(3 * attempt)
     raise ReportError(FAILED_MSG) from last
 
 
@@ -292,6 +294,30 @@ def friendly(text):
     return text.strip()
 
 
+def _clean_block(text):
+    """Remove every part of a text that is just a missing value ("Bedrooms: DATA_NOT_AVAILABLE"),
+    whether it sits on its own line or between | separators. Returns (clean text, labels removed)."""
+    text = _text(text)
+    if MISSING not in text.upper():
+        return text, []
+    dropped, lines = [], []
+    for line in text.split('\n'):
+        if MISSING not in line.upper():
+            lines.append(line)
+            continue
+        keep = []
+        for seg in (re.split(r'\s*\|\s*', line) if '|' in line else [line]):
+            if MISSING in seg.upper():
+                label = seg.split(':')[0].strip(' -•*')
+                if label and label.upper() != MISSING and len(label) < 60:
+                    dropped.append(label)
+            else:
+                keep.append(seg)
+        if keep:
+            lines.append(' | '.join(keep))
+    return '\n'.join(lines).strip(), dropped
+
+
 def grade_for(score):
     if score >= 80:
         return 'Excellent'
@@ -325,6 +351,19 @@ def present(result):
             'assessed': assessed,
         })
     out['scorecard'] = rows
+    fields = []
+    for f in result.get('fields') or []:
+        if not isinstance(f, dict):
+            continue
+        current, _ = _clean_block(f.get('current'))
+        suggested, todo = _clean_block(f.get('suggested'))
+        f = dict(f)
+        f['current'], f['suggested'] = current, suggested
+        f['char_count'] = len(suggested)
+        # What the host still has to fill in before pasting, instead of a raw placeholder in the text.
+        f['todo'] = ', '.join(dict.fromkeys(label.lower() for label in todo))
+        fields.append(f)
+    out['fields'] = fields
     seen, missing = set(), []
     for item in result.get('missing_data') or []:
         item = _NA_TAIL.sub('', _text(item)).strip(' .:')

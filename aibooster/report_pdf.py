@@ -102,9 +102,12 @@ def build(report, res):
             block += [Paragraph('RECOMMENDED', st['label']), Paragraph(_t(f['suggested']), st['body'])]
             limit = f.get('char_limit') or 0
             count = f.get('char_count') or len(f['suggested'])
+            todo = f.get('todo')
             note = f'{count}' + (f' / {limit}' if limit else '') + ' characters'
             if f.get('reason'):
                 note += '  ·  ' + f['reason']
+            if todo:
+                note += '  ·  Add before you paste: ' + todo
             block += [Spacer(1, 2), Paragraph(_t(note), st['muted']), Spacer(1, 4),
                       HRFlowable(width='100%', thickness=0.4, color=LINE), Spacer(1, 6)]
             out.append(KeepTogether(block))

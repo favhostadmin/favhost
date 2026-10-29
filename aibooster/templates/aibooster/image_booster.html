@@ -366,6 +366,75 @@
     if (text[1]) b.appendChild(el('small', '', text[1]));
   }
 
+  // ---- progress percentage ----
+  // The AI gives no real progress, so this is an honest estimate: it climbs quickly at first, slows
+  // down, never claims more than 95% until the photo is actually ready, then jumps to 100%.
+  var EASE_SECONDS = 22;
+  var startedAt = {};     // job id -> ms when we first saw it working (kept across refreshes)
+  var shownPct = {};      // job id -> last % shown (never goes backwards)
+  var tickTimer = null;
+
+  function startOf(id) {
+    if (startedAt[id]) return startedAt[id];
+    var key = 'abStart:' + id, v = 0;
+    try { v = parseInt(sessionStorage.getItem(key), 10) || 0; } catch (e) {}
+    if (!v) { v = Date.now(); try { sessionStorage.setItem(key, String(v)); } catch (e) {} }
+    return (startedAt[id] = v);
+  }
+  function pctFor(id) {
+    var t = (Date.now() - startOf(id)) / 1000;
+    var p = Math.round(95 * (1 - Math.exp(-t / EASE_SECONDS)));
+    p = Math.max(p, shownPct[id] || 0);
+    return (shownPct[id] = Math.min(p, 95));
+  }
+  function stage(p) { return p < 30 ? 'Analysing your photo…' : p < 70 ? 'Enhancing light and colour…' : p < 90 ? 'Adding the finishing touches…' : 'Almost there…'; }
+
+  // The overlay is built once and then only updated, so the bar animates smoothly between polls.
+  function showProgress(id) {
+    var b = $('abBusy');
+    if (!b.querySelector('.ab-prog')) {
+      b.className = 'ab-ba-busy'; b.textContent = ''; b.style.display = 'flex';
+      var box = el('div', 'ab-prog');
+      box.appendChild(el('div', 'ab-prog-n', '0%'));
+      var bar = el('div', 'ab-prog-bar'); bar.appendChild(el('i')); box.appendChild(bar);
+      box.appendChild(el('div', 'ab-prog-t', 'Analysing your photo…'));
+      box.appendChild(el('small', '', 'This usually takes about a minute'));
+      b.appendChild(box);
+    }
+    b.setAttribute('data-job', id);
+    tick();
+    if (!tickTimer) tickTimer = setInterval(tick, 400);
+  }
+
+  function tick() {
+    var working = order.filter(function (id) { return jobs[id] && (jobs[id].status === 'pending' || jobs[id].status === 'processing'); });
+    var b = $('abBusy'), box = b.querySelector('.ab-prog');
+    if (box) {
+      var id = b.getAttribute('data-job'), p = pctFor(id);
+      box.querySelector('.ab-prog-n').textContent = p + '%';
+      box.querySelector('.ab-prog-bar i').style.width = p + '%';
+      box.querySelector('.ab-prog-t').textContent = stage(p);
+    }
+    // the small status chips on the thumbnails show it too
+    working.forEach(function (id) {
+      var t = thumbEls[id];
+      if (t) t.st.textContent = pctFor(id) + '%';
+    });
+    if (!working.length && !box && tickTimer) { clearInterval(tickTimer); tickTimer = null; }
+  }
+
+  // The photo is ready: fill to 100%, hold a moment, then reveal it.
+  var finishing = null;
+  function finishProgress() {
+    var b = $('abBusy'), box = b.querySelector('.ab-prog');
+    if (!box) { busy(null); return; }
+    box.querySelector('.ab-prog-n').textContent = '100%';
+    box.querySelector('.ab-prog-bar i').style.width = '100%';
+    box.querySelector('.ab-prog-t').textContent = 'Done!';
+    clearTimeout(finishing);
+    finishing = setTimeout(function () { busy(null); }, 650);
+  }
+
   // One small tile per photo. Tiles are created once and then only updated, so the images are not
   // re-downloaded on every status poll.
   function syncThumbs(selId) {
@@ -420,10 +489,10 @@
     var ready = shown.status === 'done' && !!shown.after_url;
     setImg('abAfterImg', ready ? shown.after_url : '', 'Enhanced photo (preview)');
 
-    if (ready) busy(null);
-    else if (shown.status === 'failed') busy([shown.error || FRIENDLY], 'bad');
-    else if (shown.status === 'held') busy(['Locked', 'Unlock your photos to enhance this one too.'], 'idle');
-    else busy(['Enhancing…', 'This can take a minute or two.']);
+    if (ready) finishProgress();
+    else if (shown.status === 'failed') { clearTimeout(finishing); busy([shown.error || FRIENDLY], 'bad'); }
+    else if (shown.status === 'held') { clearTimeout(finishing); busy(['Locked', 'Unlock your photos to enhance this one too.'], 'idle'); }
+    else { clearTimeout(finishing); showProgress(selId); }
 
     syncThumbs(selId);
 
