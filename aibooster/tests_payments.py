@@ -109,9 +109,9 @@ class PaymentFlowTests(TestCase):
         self.assertEqual(res['download_url'], '')
         body = str(res['result'])
         # scores are Title 60, Photos 30, Pricing 40, Rules 50: the two weakest (Photos, Pricing) are free
-        for hidden in ('issue Title', 'fix Title', 'issue Rules', 'fix Rules', 'new Amenities', 'new Rules', 'old Rules'):
+        for hidden in ('issue Title', 'fix Title', 'issue Rules', 'fix Rules', 'new Description', 'new Amenities', 'new Rules', 'old Rules'):
             self.assertNotIn(hidden, body)
-        for shown in ('issue Photos', 'fix Pricing', 'new Title', 'new Description'):
+        for shown in ('issue Photos', 'fix Pricing', 'new Title'):   # only the first rewrite is free
             self.assertIn(shown, body)
         locked = [c for c in res['result']['scorecard'] if c.get('locked')]
         self.assertEqual(len(locked), 2)

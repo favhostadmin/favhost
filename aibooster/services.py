@@ -384,11 +384,12 @@ LOCKED_REWRITE = ('Your improved wording for this part of the listing is ready. 
 
 
 FREE_ITEMS = 2   # how many items of each section an unpaid visitor can read
+FREE_REWRITES = 1   # ...except the copy-paste-ready rewrites, where only the first is free
 
 
 def teaser(result, paid):
     """The report as it is sent to the browser. Paid: everything. Unpaid: only FREE_ITEMS items per
-    section are readable (the two weakest areas, and the first two rewrites); everything else keeps
+    section are readable (the two weakest areas, and the first rewrite); everything else keeps
     just its title and score. The real text of locked items is replaced with filler on the server, so
     it never reaches the page (blurring alone could be undone in dev tools)."""
     if not isinstance(result, dict):
@@ -411,7 +412,7 @@ def teaser(result, paid):
     out['scorecard'] = cards
     fields = []
     usable = [f for f in result.get('fields') or [] if f.get('suggested') and f['suggested'] != MISSING]
-    free_fields = {id(f) for f in usable[:FREE_ITEMS]}
+    free_fields = {id(f) for f in usable[:FREE_REWRITES]}
     for f in result.get('fields') or []:
         if id(f) in free_fields or f not in usable:
             fields.append(f)
