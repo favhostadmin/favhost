@@ -1,0 +1,661 @@
+{% extends base_template %}
+{% load static %}
+
+{% block title %}Photo Enhancer – AI photo enhancement for rental listings | Favhost{% endblock %}
+
+{% block extra_head %}
+{% include 'aibooster/_ab_design.html' %}
+{% endblock %}
+
+{% block breadcrumb %}{% endblock %}
+
+{% block content %}
+<div class="ab-page">
+  {% if base_template == 'aibooster/public_base.html' %}<div class="ab-topband"></div>{% endif %}
+
+  <!-- ============ HERO + TOOL ============ -->
+  <section class="ab-hero" id="abHero">
+    <div class="ab-container ab-hero-grid">
+      <div>
+        <h1 class="ab-h1">Photos that <em>book more nights.</em></h1>
+        <p class="ab-lead">Smart AI based Real estate Photo edit build for Realtors, listing agents, Airbnb, Hotel owners, Short term rentals owner. Enhance interior and exterior shots. No time consuming complex editing. Edit all photos in just one click.</p>
+
+        <form id="abForm" novalidate>
+          <div class="ab-tabs" role="tablist" aria-label="How would you like to add your photos?">
+            <button type="button" role="tab" class="ab-tab on" id="abTabUpload" aria-selected="true" aria-controls="abPanelUpload"><svg class="ab-svg" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Upload photos</button>
+            <button type="button" role="tab" class="ab-tab" id="abTabLink" aria-selected="false" aria-controls="abPanelLink"><svg class="ab-svg" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg> Paste listing link</button>
+          </div>
+
+          <div class="ab-panels">
+          <!-- tab 1: upload -->
+          <div class="ab-panel" id="abPanelUpload" role="tabpanel" aria-hidden="false">
+            <div class="ab-drop" id="abDrop" tabindex="0" role="button" aria-label="Choose photos to upload">
+              <div class="ab-drop-empty" id="abDropEmpty">
+                <span class="ab-drop-ico"><svg class="ab-svg" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></span>
+                <div><strong>Click to choose photos</strong> or drag &amp; drop them here</div>
+                <div class="ab-muted">JPG, PNG or WebP · up to 5 MB each · up to {{ max_per_submit }} at a time</div>
+              </div>
+              <div class="ab-drop-picked" id="abPicked" hidden>
+                <div class="ab-picks" id="abPicks"></div>
+                <div class="ab-picked-txt"><b id="abPickedCount"></b><span>Click here to change your photos</span></div>
+              </div>
+              <input type="file" id="abFiles" name="images" accept="image/*" multiple hidden>
+            </div>
+            <button type="submit" class="ab-btn ab-go" id="abSubmitFiles" disabled><svg class="ab-svg" viewBox="0 0 24 24"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg> <span>Choose photos to continue</span></button>
+          </div>
+
+          <!-- tab 2: listing link -->
+          <div class="ab-panel is-off" id="abPanelLink" role="tabpanel" aria-hidden="true">
+            <div class="ab-urlrow">
+              <label class="ab-urlfield" for="abUrl">
+                <svg class="ab-svg" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                <input type="url" id="abUrl" name="listing_url" placeholder="Paste your Airbnb, Booking.com or Vrbo link…" autocomplete="off">
+              </label>
+              <button type="submit" class="ab-btn" id="abSubmit"><svg class="ab-svg" viewBox="0 0 24 24"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg> <span>Enhance My Photos</span></button>
+            </div>
+            <p class="ab-panel-hint">We’ll find the photos on your listing page and enhance them for you.</p>
+          </div>
+          </div>
+        </form>
+
+        <div id="abNotice" class="alert alert-warning ab-notice" role="alert"></div>
+        <span id="abRemaining" hidden>{{ remaining }}</span>
+      </div>
+
+      <div>
+        {% if samples %}
+        {% with s=samples.0 %}
+        <div class="ab-ba" role="group" aria-label="Before and after: {{ s.label }}">
+          <div class="ab-ba-stage">
+            <img class="ab-ba-after" src="{% static s.after %}" alt="{{ s.label }} after enhancement" decoding="async" fetchpriority="high">
+            <img class="ab-ba-before" src="{% static s.before %}" alt="{{ s.label }} before enhancement" decoding="async" fetchpriority="high">
+            <span class="ab-ba-line"></span><span class="ab-ba-knob">&harr;</span>
+            <span class="ab-ba-tag b">Before</span><span class="ab-ba-tag a">After</span>
+            <input class="ab-ba-range" type="range" min="0" max="100" step="0.5" value="50" aria-label="Drag to compare before and after">
+          </div>
+        </div>
+        <p class="ab-ba-note">Sample photo &middot; drag the handle to compare</p>
+        {% endwith %}
+        {% else %}
+        <div class="ab-visual">
+          <div class="ab-phold"><div>Your photo</div><div>Enhanced result</div></div>
+          <h3>What your photos get</h3>
+          <ul class="ab-checks">
+            <li><svg class="ab-svg" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg><span><b>Straight, level lines</b>Lens distortion and leaning walls corrected.</span></li>
+            <li><svg class="ab-svg" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg><span><b>Balanced light</b>Bright windows and dark corners both recovered.</span></li>
+            <li><svg class="ab-svg" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg><span><b>True-to-life colour</b>Neutral whites, no orange indoor-light cast.</span></li>
+            <li><svg class="ab-svg" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg><span><b>3000px, ready to publish</b>High resolution for Airbnb, Booking.com and your own site.</span></li>
+          </ul>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ YOUR RESULT ============ -->
+  <section class="ab-result-sec" id="abResultSec">
+    <div class="ab-container">
+      <h2>Your preview</h2>
+      <div class="ab-job ab-result" id="abResult">
+        <div class="ab-ba ab-ba-result" id="abSlider" role="group" aria-label="Before and after preview">
+          <div class="ab-ba-stage">
+            <img class="ab-ba-after" id="abAfterImg" alt="" decoding="async">
+            <img class="ab-ba-before" id="abBefore" alt="" decoding="async">
+            <span class="ab-ba-line"></span><span class="ab-ba-knob">&harr;</span>
+            <span class="ab-ba-tag b">Before</span><span class="ab-ba-tag a">After</span>
+            <input class="ab-ba-range" type="range" min="0" max="100" step="0.5" value="50" aria-label="Drag to compare before and after">
+            <div class="ab-ba-busy" id="abBusy"></div>
+          </div>
+        </div>
+        <div class="ab-thumbs" id="abThumbs" style="display:none">
+          <div class="ab-thumbs-h">Your photos (<span id="abThumbCount">0</span>) &middot; click one to preview it</div>
+          <div class="ab-thumb-grid" id="abThumbGrid"></div>
+        </div>
+        <div class="ab-summary" id="abSummary"></div>
+        <div class="ab-pay" id="abPay" style="display:none">
+          <div class="ab-pay-txt"><b id="abPayTitle"></b><span id="abPayCalc"></span><small>Secure one-time payment by Stripe &middot; no subscription</small></div>
+          <button type="button" class="ab-btn" id="abPayBtn"><svg class="ab-svg" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg> <span id="abPayLabel">Unlock &amp; download</span></button>
+        </div>
+        <div class="ab-actions">
+          <button type="button" class="ab-btn" id="abDownload" style="display:none"></button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ WHY ============ -->
+  <section class="ab-sec">
+    <div class="ab-container">
+      <div class="ab-sec-head">
+        <h2>Built for <em>busy hosts</em></h2>
+        <p>Studio-grade photos, minus the photographer’s invoice</p>
+      </div>
+      <div class="ab-grid3">
+        <div class="ab-feat"><div class="ab-ico round y"><svg class="ab-svg" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></div><h3>Fast Enhancement</h3><p>Paste your listing link or upload photos and get an AI-enhanced version in about a minute. No editing skills needed.</p></div>
+        <div class="ab-feat"><div class="ab-ico round gr"><svg class="ab-svg" viewBox="0 0 24 24"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></div><h3>Realistic Results</h3><p>Better light, colour and perspective — with your rooms, furniture and views kept true to life.</p></div>
+        <div class="ab-feat"><div class="ab-ico round bl"><svg class="ab-svg" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div><h3>Private by Default</h3><p>Your photos are stored privately, and only your own browsing session can open them.</p></div>
+      </div>
+    </div>
+  </section>
+
+  {% if samples|length > 1 %}
+  <!-- ============ TRANSFORMATIONS ============ -->
+  <section class="ab-sec ab-soft">
+    <div class="ab-container">
+      <div class="ab-sec-head">
+        <span class="ab-pill"><svg class="ab-svg" viewBox="0 0 24 24"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg> Real Results</span>
+        <h2>See The <em>Transformations</em></h2>
+        <p>Hover to reveal the AI-enhanced version</p>
+      </div>
+      {% with n=samples|length %}
+      <div class="ab-bento n{% if n > 6 %}6{% else %}{{ n }}{% endif %}">
+        {% for s in samples|slice:":6" %}
+        <figure class="ab-tile" tabindex="0">
+          <img class="ab-t-before" src="{% static s.before %}" alt="{{ s.label }} before enhancement" loading="lazy">
+          <img class="ab-t-after" src="{% static s.after %}" alt="{{ s.label }} after enhancement" loading="lazy">
+          <span class="ab-t-badge"><span class="b">Before</span><span class="a">After</span></span>
+          <figcaption class="ab-t-cap">
+            <div><b>{{ s.label }}</b><span class="h">Hover to see transformation</span><span class="e">AI Enhanced</span></div>
+            <span class="ab-t-go"><svg class="ab-svg" viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></span>
+          </figcaption>
+        </figure>
+        {% endfor %}
+      </div>
+      {% endwith %}
+      <div class="ab-center"><a class="ab-btn" href="#abHero" data-scroll-top="abUrl"><svg class="ab-svg" viewBox="0 0 24 24"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg> Try It With Your Listing</a></div>
+    </div>
+  </section>
+  {% endif %}
+
+  <!-- ============ WHAT WE IMPROVE ============ -->
+  <section class="ab-sec">
+    <div class="ab-container">
+      <div class="ab-sec-head">
+        <span class="ab-pill"><svg class="ab-svg" viewBox="0 0 24 24"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg> What we improve</span>
+        <h2>Everything in your <em>AI enhancement</em></h2>
+        <p>Everything a real-estate photo editor would fix — done automatically.</p>
+      </div>
+      <div class="ab-grid3">
+        <div class="ab-feat"><div class="ab-ico g"><svg class="ab-svg" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg></div><h3>Straight, Level Lines</h3><p>Fixes lens distortion and leaning walls, door frames and windows so rooms look properly square.</p></div>
+        <div class="ab-feat"><div class="ab-ico o"><svg class="ab-svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg></div><h3>Balanced Light</h3><p>Recovers blown-out windows and dark corners for a bright, open, inviting feel — never an over-baked HDR look.</p></div>
+        <div class="ab-feat"><div class="ab-ico b"><svg class="ab-svg" viewBox="0 0 24 24"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg></div><h3>True-to-Life Colour</h3><p>Neutral whites and a touch of warmth. Yellow indoor-light and blue shade casts are removed.</p></div>
+        <div class="ab-feat"><div class="ab-ico v"><svg class="ab-svg" viewBox="0 0 24 24"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg></div><h3>Sharp, Clean Detail</h3><p>Less noise in the shadows and naturally crisp trim, textures and fixtures — no plastic, over-smoothed look.</p></div>
+        <div class="ab-feat"><div class="ab-ico a"><svg class="ab-svg" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></div><h3>A Natural Finish</h3><p>Window views and skies stay natural — no obviously swapped-in sky, no changed furniture.</p></div>
+        <div class="ab-feat"><div class="ab-ico t"><svg class="ab-svg" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></div><h3>3000px Resolution</h3><p>Delivered at 3000 pixels on the long edge — plenty for Airbnb, Booking.com, Vrbo and your own website.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ HOW IT WORKS ============ -->
+  <section class="ab-sec ab-soft">
+    <div class="ab-container">
+      <div class="ab-sec-head">
+        <span class="ab-pill"><svg class="ab-svg" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> How it works</span>
+        <h2>Three steps to <em>listing-ready</em></h2>
+        <p>No editing skills, no software, no waiting around.</p>
+      </div>
+      <div class="ab-grid3">
+        <div class="ab-feat"><div class="ab-step-n">01</div><h3>Add your photos</h3><p>Paste your listing link and we’ll find the photos, or upload your own — one or up to {{ max_per_submit }} at a time.</p></div>
+        <div class="ab-feat"><div class="ab-step-n">02</div><h3>AI enhances them</h3><p>Perspective, light, colour and sharpness are corrected, while the furniture and the room stay exactly as they are.</p></div>
+        <div class="ab-feat"><div class="ab-step-n">03</div><h3>Preview &amp; download</h3><p>Compare your before and after side by side, then get the full-resolution, watermark-free photos ready to publish.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ FAQ ============ -->
+  <section class="ab-sec">
+    <div class="ab-container">
+      <div class="ab-sec-head"><h2>Frequently asked <em>questions</em></h2></div>
+      <div class="ab-faq-list">
+        <details class="ab-faq"><summary>How long does it take?</summary><p>Usually around a minute per photo. When you submit several, they’re enhanced in parallel and you’ll see the preview as soon as the first one is ready.</p></details>
+        <details class="ab-faq"><summary>Do I need an account?</summary><p>No. Upload your photos or paste your listing link and you’ll see your enhanced preview in about a minute.</p></details>
+        <details class="ab-faq"><summary>How many photos can I add?</summary><p>One, or up to {{ max_per_submit }} at a time — JPG, PNG or WebP, up to 5&nbsp;MB each. There’s a daily limit of {{ daily_limit }} images per visitor.</p></details>
+        <details class="ab-faq"><summary>Will it change what my rooms look like?</summary><p>No. It corrects perspective, light and colour. It isn’t meant to add, remove or alter furniture or fixtures. As with any AI tool, please check each result before publishing it.</p></details>
+        <details class="ab-faq"><summary>What happens to my photos?</summary><p>Your photos are sent to an AI provider to be enhanced and stored privately — only your own browsing session can open them. See our <a href="{% url 'privacy' %}" style="color:var(--ab-orange);font-weight:600">Privacy Policy</a> for details.</p></details>
+        <details class="ab-faq"><summary>My link didn’t work — what now?</summary><p>Some sites block automated access. Choose “Attach images manually” and add your photos directly.</p></details>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ DARK CTA ============ -->
+  <section class="ab-dark">
+    <div class="ab-container">
+      <span class="ab-pill"><svg class="ab-svg" viewBox="0 0 24 24"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg> Listing Optimize</span>
+      <h2>Want your listing text to shine too? Get a report on your listing</h2>
+      <p>Paste your link and we’ll score your listing and write ready-to-paste improvements for your title and description.</p>
+      <div class="ab-cta-row">
+        <a class="ab-btn" href="{% url 'aibooster:report' %}"><svg class="ab-svg" viewBox="0 0 24 24"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg> Get My Listing Report</a>
+        <a class="ab-btn alt" href="#abHero" data-scroll-top="abUrl">Enhance my photos</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- floating paste-your-link bar -->
+  <div class="ab-sticky" id="abSticky" data-form="abForm" data-input="abUrl">
+    <form novalidate>
+      <label class="ab-urlfield"><svg class="ab-svg" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg><input type="url" placeholder="Paste your listing URL…" aria-label="Listing URL"></label>
+      <button type="submit" class="ab-btn">Enhance My Photos</button>
+    </form>
+  </div>
+</div>
+
+{{ jobs_json|json_script:"abInitialJobs" }}
+{% endblock content %}
+
+{% block extra_script %}
+<script>
+(function () {
+  var CSRF = "{{ csrf_token }}";
+  var URLS = {
+    start: "{% url 'aibooster:image-start' %}",
+    status: "{% url 'aibooster:image-status' %}",
+    unlock: "{% url 'aibooster:image-unlock' %}",
+    checkout: "{% url 'aibooster:image-checkout' %}"
+  };
+  var PRICE = {% if price %}{ cents: {{ price.cents }}, currency: "{{ price.currency }}" }{% else %}null{% endif %};
+  var FLASH = "{{ flash }}";
+  function money(cents) {
+    var sym = { usd: '$', eur: '€', gbp: '£', inr: '₹' }[PRICE.currency] || (PRICE.currency.toUpperCase() + ' ');
+    return sym + (cents / 100).toFixed(2);
+  }
+  var FRIENDLY = "Something went wrong on our side. Please try again, or upload your photos directly.";
+  var order = [];         // job ids of the current batch, in submission order
+  var jobs = {};          // id -> latest payload
+  var previewId = null;   // the one job whose before/after we show
+  var pollTimer = null;
+  var MAX = {{ max_per_submit }};
+
+  var $ = function (id) { return document.getElementById(id); };
+  var notice = $('abNotice'), fileInput = $('abFiles'), drop = $('abDrop');
+  var resultSec = $('abResultSec');
+
+  // ---- two ways in: upload photos, or paste a listing link ----
+  var tab = 'upload';
+  function setTab(name) {
+    tab = name;
+    var up = name === 'upload';
+    // not the `hidden` attribute: Bootstrap makes that display:none, which would collapse the box and shift the page
+    $('abPanelUpload').classList.toggle('is-off', !up); $('abPanelLink').classList.toggle('is-off', up);
+    $('abPanelUpload').setAttribute('aria-hidden', up ? 'false' : 'true'); $('abPanelLink').setAttribute('aria-hidden', up ? 'true' : 'false');
+    $('abTabUpload').classList.toggle('on', up); $('abTabLink').classList.toggle('on', !up);
+    $('abTabUpload').setAttribute('aria-selected', up ? 'true' : 'false');
+    $('abTabLink').setAttribute('aria-selected', up ? 'false' : 'true');
+  }
+  function showUpload(open) { setTab(open ? 'upload' : 'link'); }
+  $('abTabUpload').addEventListener('click', function () { setTab('upload'); });
+  $('abTabLink').addEventListener('click', function () { setTab('link'); $('abUrl').focus(); });
+
+  // XHR (not fetch) on purpose: base.html wraps fetch() in a full-page loader overlay,
+  // which would flash on every poll.
+  function xhr(method, url, body, headers, cb) {
+    var r = new XMLHttpRequest();
+    r.open(method, url);
+    r.setRequestHeader('X-CSRFToken', CSRF);
+    r.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+    Object.keys(headers || {}).forEach(function (k) { r.setRequestHeader(k, headers[k]); });
+    r.onload = function () {
+      var data = null;
+      try { data = JSON.parse(r.responseText); } catch (e) {}
+      cb(r.status, data);
+    };
+    r.onerror = function () { cb(0, null); };
+    r.send(body);
+  }
+
+  function showNotice(msg, kind) {
+    if (msg) abToast(msg, kind);
+  }
+
+  function el(tag, cls, text) {
+    var n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (text) n.textContent = text;
+    return n;
+  }
+
+  var userPick = null;    // photo the visitor clicked in the strip
+  var thumbEls = {};      // job id -> {btn, img, st}
+  var STATUS = {
+    done: ['Ready', 'ok'], failed: ['Failed', 'bad'], held: ['Locked', 'wait'],
+    pending: ['Queued', 'busy'], processing: ['Enhancing…', 'busy']
+  };
+
+  function clearPreviewImgs() {
+    ['abBefore', 'abAfterImg'].forEach(function (id) {
+      var img = $(id); img.removeAttribute('src'); img.removeAttribute('data-src'); img.alt = '';
+    });
+  }
+
+  function setBatch(list) {
+    order = []; jobs = {}; previewId = null; userPick = null; thumbEls = {};
+    $('abThumbGrid').textContent = '';
+    $('abSlider').removeAttribute('data-job');
+    clearPreviewImgs();
+    list.forEach(function (j) { order.push(j.id); jobs[j.id] = j; });
+    refresh();
+  }
+
+  function counts() {
+    var c = { total: order.length, done: 0, failed: 0, busy: 0, held: 0 };
+    order.forEach(function (id) {
+      var st = jobs[id].status;
+      if (st === 'done') c.done++; else if (st === 'failed') c.failed++;
+      else if (st === 'held') c.held++; else c.busy++;
+    });
+    return c;
+  }
+
+  function setImg(id, url, alt) {
+    var img = $(id);
+    if (!url) {
+      if (img.getAttribute('data-src')) { img.removeAttribute('src'); img.removeAttribute('data-src'); img.alt = ''; }
+      return;
+    }
+    if (img.getAttribute('data-src') !== url) { img.setAttribute('data-src', url); img.alt = alt; img.src = url; }
+  }
+
+  // mode: 'bad' = error, 'idle' = nothing running (no spinner); otherwise a spinner is shown
+  function busy(text, mode) {
+    var b = $('abBusy');
+    b.className = 'ab-ba-busy' + (mode === 'bad' ? ' bad' : '');
+    b.textContent = '';
+    b.style.display = text ? 'flex' : 'none';
+    if (!text) return;
+    if (!mode) b.appendChild(el('div', 'ab-spin'));
+    b.appendChild(document.createTextNode(text[0]));
+    if (text[1]) b.appendChild(el('small', '', text[1]));
+  }
+
+  // ---- progress percentage ----
+  // The AI gives no real progress, so this is an honest estimate: it climbs quickly at first, slows
+  // down, never claims more than 95% until the photo is actually ready, then jumps to 100%.
+  var EASE_SECONDS = 22;
+  var startedAt = {};     // job id -> ms when we first saw it working (kept across refreshes)
+  var shownPct = {};      // job id -> last % shown (never goes backwards)
+  var tickTimer = null;
+
+  function startOf(id) {
+    if (startedAt[id]) return startedAt[id];
+    var key = 'abStart:' + id, v = 0;
+    try { v = parseInt(sessionStorage.getItem(key), 10) || 0; } catch (e) {}
+    if (!v) { v = Date.now(); try { sessionStorage.setItem(key, String(v)); } catch (e) {} }
+    return (startedAt[id] = v);
+  }
+  function pctFor(id) {
+    var t = (Date.now() - startOf(id)) / 1000;
+    var p = Math.round(95 * (1 - Math.exp(-t / EASE_SECONDS)));
+    p = Math.max(p, shownPct[id] || 0);
+    return (shownPct[id] = Math.min(p, 95));
+  }
+  function stage(p) { return p < 30 ? 'Analysing your photo…' : p < 70 ? 'Enhancing light and colour…' : p < 90 ? 'Adding the finishing touches…' : 'Almost there…'; }
+
+  // The overlay is built once and then only updated, so the bar animates smoothly between polls.
+  function showProgress(id) {
+    var b = $('abBusy');
+    if (!b.querySelector('.ab-prog')) {
+      b.className = 'ab-ba-busy'; b.textContent = ''; b.style.display = 'flex';
+      var box = el('div', 'ab-prog');
+      box.appendChild(el('div', 'ab-prog-n', '0%'));
+      var bar = el('div', 'ab-prog-bar'); bar.appendChild(el('i')); box.appendChild(bar);
+      box.appendChild(el('div', 'ab-prog-t', 'Analysing your photo…'));
+      box.appendChild(el('small', '', 'This usually takes about a minute'));
+      b.appendChild(box);
+    }
+    b.setAttribute('data-job', id);
+    tick();
+    if (!tickTimer) tickTimer = setInterval(tick, 400);
+  }
+
+  function tick() {
+    var working = order.filter(function (id) { return jobs[id] && (jobs[id].status === 'pending' || jobs[id].status === 'processing'); });
+    var b = $('abBusy'), box = b.querySelector('.ab-prog');
+    if (box) {
+      var id = b.getAttribute('data-job'), p = pctFor(id);
+      box.querySelector('.ab-prog-n').textContent = p + '%';
+      box.querySelector('.ab-prog-bar i').style.width = p + '%';
+      box.querySelector('.ab-prog-t').textContent = stage(p);
+    }
+    // the small status chips on the thumbnails show it too
+    working.forEach(function (id) {
+      var t = thumbEls[id];
+      if (t) t.st.textContent = pctFor(id) + '%';
+    });
+    if (!working.length && !box && tickTimer) { clearInterval(tickTimer); tickTimer = null; }
+  }
+
+  // The photo is ready: fill to 100%, hold a moment, then reveal it.
+  var finishing = null;
+  function finishProgress() {
+    var b = $('abBusy'), box = b.querySelector('.ab-prog');
+    if (!box) { busy(null); return; }
+    box.querySelector('.ab-prog-n').textContent = '100%';
+    box.querySelector('.ab-prog-bar i').style.width = '100%';
+    box.querySelector('.ab-prog-t').textContent = 'Done!';
+    clearTimeout(finishing);
+    finishing = setTimeout(function () { busy(null); }, 650);
+  }
+
+  // One small tile per photo. Tiles are created once and then only updated, so the images are not
+  // re-downloaded on every status poll.
+  function syncThumbs(selId) {
+    var grid = $('abThumbGrid');
+    order.forEach(function (id, i) {
+      var j = jobs[id], t = thumbEls[id];
+      if (!t) {
+        var btn = el('button', 'ab-thumb'); btn.type = 'button';
+        var im = el('div', 'im'), img = el('img'), st = el('span', 'st');
+        img.loading = 'lazy'; img.decoding = 'async';
+        im.appendChild(img); im.appendChild(st);
+        btn.appendChild(im); btn.appendChild(el('div', 'cap', 'Enhancement ' + (i + 1)));
+        btn.addEventListener('click', function () { userPick = id; refresh(); });
+        grid.appendChild(btn);
+        t = thumbEls[id] = { btn: btn, img: img, st: st };
+      }
+      var url = j.after_url || (j.has_before ? j.before_url : '');
+      if (url && t.img.getAttribute('data-src') !== url) {
+        t.img.setAttribute('data-src', url); t.img.alt = 'Enhancement ' + (i + 1); t.img.src = url;
+      }
+      t.btn.classList.toggle('on', id === selId);
+      t.btn.classList.toggle('dim', j.status !== 'done');
+      var s = STATUS[j.status] || ['', ''];
+      t.st.textContent = s[0]; t.st.className = 'st ' + s[1];
+    });
+    $('abThumbCount').textContent = order.length;
+    $('abThumbs').style.display = order.length ? '' : 'none';
+  }
+
+  // The big slider previews ONE photo at a time (the first by default, or the one clicked below).
+  // Photos the visitor hasn't asked us to enhance yet ("held") cost nothing until they press Continue.
+  function refresh() {
+    var result = $('abResult');
+    if (!order.length) { result.style.display = 'none'; resultSec.style.display = 'none'; return; }
+    result.style.display = 'block';
+    resultSec.style.display = 'block';
+    var c = counts();
+
+    if (!previewId) {
+      for (var i = 0; i < order.length; i++) {
+        if (jobs[order[i]].status === 'done') { previewId = order[i]; break; }
+      }
+    }
+    var selId = (userPick && jobs[userPick]) ? userPick : (previewId || order[0]);
+    var shown = jobs[selId];
+
+    // Switching photos: drop the old pictures first so the slider never mixes two photos.
+    var slider = $('abSlider');
+    if (slider.getAttribute('data-job') !== selId) { clearPreviewImgs(); slider.setAttribute('data-job', selId); }
+    // The original only exists once the worker has saved it (scraped photos), so wait for has_before.
+    setImg('abBefore', shown.has_before ? shown.before_url : '', 'Original photo');
+    var ready = shown.status === 'done' && !!shown.after_url;
+    setImg('abAfterImg', ready ? shown.after_url : '', 'Enhanced photo (preview)');
+
+    if (ready) finishProgress();
+    else if (shown.status === 'failed') { clearTimeout(finishing); busy([shown.error || FRIENDLY], 'bad'); }
+    else if (shown.status === 'held') { clearTimeout(finishing); busy(['Locked', 'Unlock your photos to enhance this one too.'], 'idle'); }
+    else { clearTimeout(finishing); showProgress(selId); }
+
+    syncThumbs(selId);
+
+    var summary = $('abSummary'), dl = $('abDownload'), pay = $('abPay');
+    dl.style.display = 'none'; pay.style.display = 'none';
+    var unpaid = order.filter(function (id) { return !jobs[id].paid && jobs[id].status !== 'failed'; }).length;
+
+    if (c.busy > 0 && c.done === 0) {
+      summary.textContent = c.total > 1 ? 'Enhancing a preview of your first photo…' : 'Enhancing your photo…';
+    } else if (c.busy > 0) {
+      summary.textContent = 'Enhanced ' + (c.done + c.failed) + ' of ' + (c.total - c.held) + ' photos…';
+    } else if (unpaid > 0) {
+      summary.textContent = c.done === 0
+        ? 'We couldn’t enhance your first photo. Please try again, or upload it directly.'
+        : (c.total > 1 ? 'Here’s your enhanced preview. Unlock all ' + unpaid + ' to enhance the rest and download them in full quality.'
+                       : 'Here’s your enhanced preview. Unlock the full-resolution, watermark-free photo.');
+      if (c.done > 0) {
+        $('abPayTitle').textContent = 'Unlock ' + unpaid + ' photo' + (unpaid > 1 ? 's' : '');
+        $('abPayCalc').textContent = PRICE ? unpaid + ' × ' + money(PRICE.cents) + ' = ' + money(unpaid * PRICE.cents) : '';
+        $('abPayLabel').textContent = PRICE ? 'Pay ' + money(unpaid * PRICE.cents) + ' & download' : 'Unlock & download';
+        pay.style.display = '';
+      }
+    } else {
+      var msg = c.done + ' of ' + c.total + ' photo' + (c.total > 1 ? 's' : '') + ' enhanced.';
+      if (c.failed && c.done) msg += ' ' + c.failed + ' couldn’t be enhanced.';
+      summary.textContent = msg;
+    }
+
+    if (c.busy === 0 && c.done > 0 && unpaid === 0) {
+      dl.textContent = c.done > 1 ? 'Download all (' + c.done + ')' : 'Download';
+      dl.style.display = '';
+    }
+  }
+
+  function render(job) {
+    if (!jobs[job.id]) return;
+    jobs[job.id] = job;
+    refresh();
+  }
+
+  function pendingIds() {
+    return order.filter(function (id) {
+      return jobs[id].status === 'pending' || jobs[id].status === 'processing';
+    });
+  }
+
+  function poll() {
+    var ids = pendingIds();
+    if (!ids.length) { clearInterval(pollTimer); pollTimer = null; return; }
+    xhr('GET', URLS.status + '?ids=' + ids.join(','), null, {}, function (status, data) {
+      if (status === 200 && data) data.jobs.forEach(render);
+    });
+  }
+
+  function ensurePolling() {
+    if (!pollTimer && pendingIds().length) pollTimer = setInterval(poll, 2000);
+  }
+
+  // ---- submit ----
+  $('abForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var url = tab === 'link' ? $('abUrl').value.trim() : '';
+    var files = tab === 'upload' ? fileInput.files : [];
+    if (tab === 'link' && !url) { showNotice('Paste your listing link first.'); return; }
+    if (tab === 'upload' && !files.length) { showNotice('Choose at least one photo first.'); return; }
+    if (files.length > MAX) { showNotice('You selected ' + files.length + ' photos — only the first ' + MAX + ' will be enhanced.'); }
+
+    var fd = new FormData();
+    fd.append('listing_url', url);
+    Array.prototype.forEach.call(files, function (f) { fd.append('images', f); });
+
+    var btn = tab === 'upload' ? $('abSubmitFiles') : $('abSubmit');
+    var label = btn.querySelector('span');
+    var labelText = label.textContent;
+    btn.disabled = true; label.textContent = 'Working…';
+    showNotice('');
+    xhr('POST', URLS.start, fd, {}, function (status, data) {
+      label.textContent = labelText; btn.disabled = false; updatePicked();
+      if (status !== 200 || !data) { showNotice(FRIENDLY); return; }
+      if (data.message) showNotice(data.message);
+      if (data.fallback) {
+        // Scraping failed: open the upload box and point the user at it.
+        showUpload(true);
+        drop.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        drop.classList.add('ab-over');
+        setTimeout(function () { drop.classList.remove('ab-over'); }, 2500);
+      }
+      if (!data.ok) return;
+      setBatch(data.jobs);
+      resultSec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      if (typeof data.remaining === 'number') $('abRemaining').textContent = data.remaining;
+      fileInput.value = ''; updatePicked();
+      ensurePolling();
+    });
+  });
+
+  // ---- upload box ----
+  drop.addEventListener('click', function () { fileInput.click(); });
+  drop.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileInput.click(); } });
+  ['dragenter', 'dragover'].forEach(function (t) {
+    drop.addEventListener(t, function (e) { e.preventDefault(); drop.classList.add('ab-over'); });
+  });
+  ['dragleave', 'drop'].forEach(function (t) {
+    drop.addEventListener(t, function (e) { e.preventDefault(); drop.classList.remove('ab-over'); });
+  });
+  drop.addEventListener('drop', function (e) {
+    if (e.dataTransfer && e.dataTransfer.files.length) { fileInput.files = e.dataTransfer.files; updatePicked(); }
+  });
+  fileInput.addEventListener('click', function (e) { e.stopPropagation(); });
+  fileInput.addEventListener('change', updatePicked);
+
+  // What the visitor chose: thumbnails + a clear "Enhance N photos" button.
+  var thumbUrls = [];
+  function updatePicked() {
+    thumbUrls.forEach(function (u) { URL.revokeObjectURL(u); }); thumbUrls = [];
+    var files = fileInput.files, n = files.length;
+    var picks = $('abPicks'); picks.textContent = '';
+    $('abDropEmpty').hidden = n > 0; $('abPicked').hidden = n === 0;
+    var go = $('abSubmitFiles');
+    go.disabled = n === 0 || go.dataset.busy === '1';
+    if (go.querySelector('span').textContent !== 'Working…') {
+      go.querySelector('span').textContent = n ? 'Enhance ' + Math.min(n, MAX) + ' photo' + (Math.min(n, MAX) > 1 ? 's' : '') : 'Choose photos to continue';
+    }
+    if (!n) return;
+    var SHOW = 5;
+    Array.prototype.slice.call(files, 0, SHOW).forEach(function (f) {
+      var u = URL.createObjectURL(f); thumbUrls.push(u);
+      var im = el('img'); im.src = u; im.alt = ''; picks.appendChild(im);
+    });
+    if (n > SHOW) picks.appendChild(el('span', 'ab-more', '+' + (n - SHOW)));
+    $('abPickedCount').textContent = n + ' photo' + (n > 1 ? 's' : '') + ' selected' + (n > MAX ? ' (first ' + MAX + ' will be used)' : '');
+  }
+  updatePicked();
+
+  // ---- payment ----
+  function startCheckout() {
+    var btn = $('abPayBtn'), dl = $('abDownload');
+    btn.disabled = true; dl.disabled = true;
+    xhr('POST', URLS.checkout, '{}', { 'Content-Type': 'application/json' }, function (status, data) {
+      if (status === 200 && data && data.ok && data.url) { window.location.href = data.url; return; }
+      btn.disabled = false; dl.disabled = false;
+      showNotice((data && data.message) || FRIENDLY);
+    });
+  }
+  $('abPayBtn').addEventListener('click', startCheckout);
+
+  $('abDownload').addEventListener('click', function () {
+    // Paid: the server hands back a fresh short-lived link. Not paid: off to checkout.
+    xhr('POST', URLS.unlock, '{}', { 'Content-Type': 'application/json' }, function (status, data) {
+      if (status === 200 && data && data.ok) window.location.href = data.url;
+      else if (data && data.needs_payment) startCheckout();
+      else showNotice((data && data.message) || FRIENDLY);
+    });
+  });
+
+  // ---- initial state (this session's latest batch, if any) ----
+  setBatch(JSON.parse($('abInitialJobs').textContent));
+  ensurePolling();
+  if (FLASH === 'paid') showNotice('Payment received, thank you! We’re enhancing your photos now. You can download them here as soon as they’re ready.', 'success');
+  else if (FLASH === 'canceled') showNotice('Payment cancelled. Your photos are still here whenever you’re ready.', 'info');
+  else if (FLASH === 'unconfirmed') showNotice('We couldn’t confirm your payment yet. If you were charged, please refresh this page in a minute.', 'warning');
+  if (FLASH) resultSec.scrollIntoView({ block: 'start' });
+})();
+</script>
+{% include 'aibooster/_ab_ui_js.html' %}
+{% endblock extra_script %}

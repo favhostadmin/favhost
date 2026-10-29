@@ -138,6 +138,9 @@ INSTALLED_APPS = [
     # Hidden platform-owner admin console (separate from Django's /admin/).
     'controlpanel',
 
+    # AI Studio (Photo Enhancer, Listing Optimize).
+    'aibooster',
+
 ]
 
 AUTH_USER_MODEL = 'accounts.MyUser'
@@ -384,6 +387,19 @@ FIREBASE_ADMIN_CLIENT_EMAIL = get_env('FIREBASE_ADMIN_CLIENT_EMAIL', '')
 # that breaks on iOS due to WebKit storage partitioning.
 GOOGLE_OAUTH_CLIENT_ID = get_env('GOOGLE_OAUTH_CLIENT_ID', '')
 GOOGLE_MAPS_API_KEY = get_env('GOOGLE_MAPS_API_KEY', '')
+
+# --- AI Studio (aibooster app) ---
+OPENAI_API_KEY = get_env('OPENAI_API_KEY', '')
+# Used verbatim as the image-edit prompt; never edited or truncated in code.
+BOOSTER_IMAGE_PROMPT = get_env('BOOSTER_IMAGE_PROMPT', '')
+# Listing Optimize: system prompt (used verbatim) and the text model that runs it.
+BOOSTER_REPORT_PROMPT = get_env('BOOSTER_REPORT_PROMPT', '')
+OPENAI_REPORT_MODEL = get_env('OPENAI_REPORT_MODEL', '')
+
+# One-time Stripe products for AI Studio. The product's default price is used (looked up and cached);
+# the photo price is per photo, so the checkout quantity is the number of photos.
+AI_PHOTO_PRODUCT_ID = get_env('AI_PHOTO_PRODUCT_ID', 'prod_VS8xJ9eXfWlinW')
+AI_REPORT_PRODUCT_ID = get_env('AI_REPORT_PRODUCT_ID', 'prod_VS8xCwW2sRJI9l')
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field

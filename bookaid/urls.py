@@ -15,6 +15,7 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
+from django.views.generic import RedirectView
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
@@ -77,6 +78,9 @@ urlpatterns = [
     path('properties/<uuid:property_id>/channels/delete/<int:channel_id>/', delete_channel, name='delete_channel'),
     path('api/manual-sync/', ManualSyncAPIView.as_view(), name='manual-sync'),
     path('contact-host/', contact_host, name='contact-host'),
+
+    path('ai-studio/', include('aibooster.urls')),
+    path('ai-booster/<path:rest>', RedirectView.as_view(url='/ai-studio/%(rest)s', permanent=True)),
 
 
 
