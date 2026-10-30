@@ -535,6 +535,7 @@
   // The big slider previews ONE photo at a time (the first by default, or the one clicked below).
   // Photos the visitor hasn't asked us to enhance yet ("held") cost nothing until they press Continue.
   var wasWaiting = false;
+  var SECONDS_PER_PHOTO = 50;   // rough time per photo, used for the "about N minutes" message
 
   // After payment the big slider follows the enhancing by itself: photo 2 with its percentage, and when it
   // is done it stays on screen for a moment, then photo 3 takes its place, and so on.
@@ -785,7 +786,31 @@
   // ---- initial state (this session's latest batch, if any) ----
   setBatch(JSON.parse($('abInitialJobs').textContent));
   ensurePolling();
-  if (FLASH === 'paid') showNotice('Payment received, thank you! We’re enhancing your photos now. You can download them here as soon as they’re ready.', 'success');
+  if (FLASH === 'paid') {
+    // Back from Stripe. Photos still being enhanced: say what happens next and how long it takes.
+    // Nothing left to wait for (e.g. a single photo): go straight to "ready", with the download button.
+    var left = order.filter(function (id) { return isWorking(id); }).length;
+    var ready = order.filter(function (id) { return jobs[id] && jobs[id].status === 'done'; }).length;
+    var download = function () { $('abDownload').click(); };
+    if (left > 0) {
+      var mins = Math.max(1, Math.ceil(left * SECONDS_PER_PHOTO / 60));
+      abCelebrate({
+        icon: 'check',
+        title: 'Payment successful!',
+        message: 'Thank you! Your remaining ' + (left > 1 ? left + ' photos are' : 'photo is') + ' being enhanced now, about '
+               + (mins > 1 ? mins + ' minutes' : '1 minute') + (left > 1 ? ' in total' : '') + '. You can watch each one appear below.'
+      });
+    } else if (ready > 0) {
+      wasWaiting = false;
+      abCelebrate({
+        title: 'Payment successful!',
+        message: ready > 1 ? 'All ' + ready + ' photos are enhanced and ready to download in full quality.'
+                           : 'Your photo is enhanced and ready to download in full quality.',
+        actionLabel: ready > 1 ? 'Download all (' + ready + ')' : 'Download',
+        onAction: download
+      });
+    }
+  }
   else if (FLASH === 'canceled') showNotice('Payment cancelled. Your photos are still here whenever you’re ready.', 'info');
   else if (FLASH === 'unconfirmed') showNotice('We couldn’t confirm your payment yet. If you were charged, please refresh this page in a minute.', 'warning');
   if (FLASH) resultSec.scrollIntoView({ block: 'start' });

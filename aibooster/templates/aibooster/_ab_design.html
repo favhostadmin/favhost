@@ -450,7 +450,18 @@
   /* Celebration toast: same dark top-centre card as the platform toast, with a party emoji, a Download button, a close button and a 7 second countdown. */
   .ab-toasts .toast-party { position: relative; overflow: hidden; display: flex; align-items: center; gap: 16px; background: rgba(0,0,0,.92); color: #fff; padding: 18px 46px 22px 18px; border-radius: 14px; box-shadow: 0 8px 30px rgba(0,0,0,.4); pointer-events: auto; animation: ab-toast-in .3s ease; }
   .toast-party .tp-emoji { font-size: 46px; line-height: 1; flex: 0 0 auto; display: inline-block; transform-origin: 50% 80%; animation: ab-party 1.1s ease-in-out infinite; }
-  .toast-party .tp-emoji, .toast-party .tp-body { position: relative; z-index: 1; }   /* confetti falls behind the text */
+  .toast-party .tp-emoji, .toast-party .tp-check, .toast-party .tp-body { position: relative; z-index: 1; }   /* confetti falls behind the text */
+  /* animated success badge: green disc, a check that draws itself, and rings that pulse outwards */
+  .toast-party .tp-check { position: relative; width: 46px; height: 46px; flex: 0 0 auto; }
+  .toast-party .tp-check svg { position: relative; z-index: 1; width: 46px; height: 46px; animation: ab-pop .5s cubic-bezier(.2,1.4,.4,1) both; }
+  .toast-party .tp-check circle { fill: #4CAF50; }
+  .toast-party .tp-check path { fill: none; stroke: #fff; stroke-width: 3.4; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 26; stroke-dashoffset: 26; animation: ab-draw .45s .3s ease-out forwards; }
+  .toast-party .tp-check::before, .toast-party .tp-check::after { content: ""; position: absolute; inset: 0; border-radius: 50%; border: 2px solid #4CAF50; opacity: 0; animation: ab-ring 1.8s ease-out infinite; }
+  .toast-party .tp-check::after { animation-delay: .9s; }
+  @keyframes ab-pop { from { transform: scale(.3); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  @keyframes ab-draw { to { stroke-dashoffset: 0; } }
+  @keyframes ab-ring { 0% { transform: scale(1); opacity: .65; } 100% { transform: scale(1.9); opacity: 0; } }
+  @media (prefers-reduced-motion: reduce) { .toast-party .tp-check::before, .toast-party .tp-check::after { display: none; } .toast-party .tp-check path { animation: none; stroke-dashoffset: 0; } }
   .toast-party .tp-body { flex: 1; min-width: 0; }
   .toast-party .tp-title { font-size: 16px; font-weight: 800; line-height: 1.3; }
   .toast-party .tp-msg { margin-top: 3px; font-size: 13.5px; line-height: 1.45; color: rgba(255,255,255,.78); font-weight: 500; }
@@ -480,7 +491,13 @@
     var ms = (opts.seconds || 7) * 1000, timer = 0;
 
     var t = document.createElement('div'); t.className = 'toast-party'; t.setAttribute('role', 'status');
-    var emoji = document.createElement('span'); emoji.className = 'tp-emoji'; emoji.setAttribute('aria-hidden', 'true'); emoji.textContent = '\uD83E\uDD73';
+    var emoji;
+    if (opts.icon === 'check') {
+      emoji = document.createElement('span'); emoji.className = 'tp-check'; emoji.setAttribute('aria-hidden', 'true');
+      emoji.innerHTML = '<svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="22"/><path d="M14 25.5l7 7 13-15"/></svg>';
+    } else {
+      emoji = document.createElement('span'); emoji.className = 'tp-emoji'; emoji.setAttribute('aria-hidden', 'true'); emoji.textContent = '\uD83E\uDD73';
+    }
     var body = document.createElement('div'); body.className = 'tp-body';
     var title = document.createElement('div'); title.className = 'tp-title'; title.textContent = opts.title || 'All done!';
     body.appendChild(title);
