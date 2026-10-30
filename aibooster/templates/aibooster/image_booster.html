@@ -14,11 +14,11 @@
   {% if base_template == 'aibooster/public_base.html' %}<div class="ab-topband"></div>{% endif %}
 
   <!-- ============ HERO + TOOL ============ -->
-  <section class="ab-hero" id="abHero">
+  <section class="ab-hero ab-hero-big" id="abHero">
     <div class="ab-container ab-hero-grid">
       <div>
-        <h1 class="ab-h1">Photos that <em>book more nights.</em></h1>
-        <p class="ab-lead">Smart AI based Real estate Photo edit build for Realtors, listing agents, Airbnb, Hotel owners, Short term rentals owner. Enhance interior and exterior shots. No time consuming complex editing. Edit all photos in just one click.</p>
+        <h1 class="ab-h1">From ordinary photos to <em>standout listings.</em></h1>
+        <p class="ab-lead">Smart AI based Real estate Photo edit build for Realtors, listing agents, Airbnb, Hotel owners, Short term rentals owner. Enhance interior and exterior shots. No time consuming complex editing. <strong>Edit all photos in just one click.</strong></p>
 
         <form id="abForm" novalidate>
           <div class="ab-tabs" role="tablist" aria-label="How would you like to add your photos?">
@@ -238,6 +238,7 @@
   <div class="ab-sticky" id="abSticky" data-form="abForm" data-input="abUrl">
     <form novalidate>
       <label class="ab-urlfield"><svg class="ab-svg" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg><input type="url" placeholder="Paste your listing URL…" aria-label="Listing URL"></label>
+      <button type="button" class="ab-up" id="abStickyUpload" title="Upload photos from your device"><svg class="ab-svg" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg><span>Upload</span></button>
       <button type="submit" class="ab-btn">Enhance My Photos</button>
     </form>
   </div>
@@ -255,7 +256,8 @@
     status: "{% url 'aibooster:image-status' %}",
     unlock: "{% url 'aibooster:image-unlock' %}",
     checkout: "{% url 'aibooster:image-checkout' %}",
-    reset: "{% url 'aibooster:image-reset' %}"
+    reset: "{% url 'aibooster:image-reset' %}",
+    remove: "{% url 'aibooster:image-remove' %}"
   };
   var PRICE = {% if price %}{ cents: {{ price.cents }}, currency: "{{ price.currency }}" }{% else %}null{% endif %};
   var FLASH = "{{ flash }}";
@@ -332,7 +334,7 @@
   }
 
   function setBatch(list) {
-    order = []; jobs = {}; previewId = null; userPick = null; thumbEls = {};
+    order = []; jobs = {}; previewId = null; userPick = null; thumbEls = {}; follow = null; holdUntil = 0;
     $('abThumbGrid').textContent = '';
     $('abSlider').removeAttribute('data-job');
     clearPreviewImgs();
@@ -455,21 +457,42 @@
         im.appendChild(img); im.appendChild(st);
         btn.appendChild(im); btn.appendChild(el('div', 'cap', 'Enhancement ' + (i + 1)));
         btn.addEventListener('click', function () { userPick = id; refresh(); });
-        grid.appendChild(btn);
-        t = thumbEls[id] = { btn: btn, img: img, st: st };
+        var wrap = el('div', 'ab-thumb-wrap'); wrap.appendChild(btn);
+        var x = el('button', 'ab-thumb-x'); x.type = 'button'; x.title = 'Remove this photo'; x.setAttribute('aria-label', 'Remove this photo');
+        x.innerHTML = '<svg class="ab-svg" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+        x.addEventListener('click', function (e) { e.stopPropagation(); removePhoto(id); });
+        wrap.appendChild(x);
+        grid.appendChild(wrap);
+        t = thumbEls[id] = { btn: btn, img: img, st: st, wrap: wrap, x: x };
       }
       var url = j.after_url || (j.has_before ? j.before_url : '');
       if (url && t.img.getAttribute('data-src') !== url) {
         t.img.setAttribute('data-src', url); t.img.alt = 'Enhancement ' + (i + 1); t.img.src = url;
       }
+      // a photo picked by mistake can be removed, except the first (the free preview) and paid/running ones
+      t.x.style.display = (i > 0 && !j.paid && (j.status === 'held' || j.status === 'failed')) ? '' : 'none';
       t.btn.classList.toggle('on', id === selId);
       t.btn.classList.toggle('dim', j.status !== 'done');
       var s = STATUS[j.status] || ['', ''];
-      t.st.textContent = s[0]; t.st.className = 'st ' + s[1];
+      // a photo being enhanced always shows its percentage (the 400ms ticker keeps it moving), never a flash of "Queued"
+      t.st.textContent = (j.status === 'pending' || j.status === 'processing') ? pctFor(id) + '%' : s[0]; t.st.className = 'st ' + s[1];
     });
     syncAddTile();
     $('abThumbCount').textContent = order.length;
     $('abThumbs').style.display = order.length ? '' : 'none';
+  }
+
+  function removePhoto(id) {
+    var fd = new FormData(); fd.append('id', id);
+    xhr('POST', URLS.remove, fd, {}, function (status, data) {
+      if (status !== 200 || !data || !data.ok) { showNotice((data && data.message) || FRIENDLY); return; }
+      var t = thumbEls[id];
+      if (t && t.wrap.parentNode) t.wrap.parentNode.removeChild(t.wrap);
+      delete thumbEls[id]; delete jobs[id];
+      order = order.filter(function (o) { return o !== id; });
+      if (userPick === id) userPick = null;
+      refresh();
+    });
   }
 
   // "Add photos" tile at the end of the strip: only while nothing is paid and there is room left.
@@ -513,6 +536,24 @@
   // The big slider previews ONE photo at a time (the first by default, or the one clicked below).
   // Photos the visitor hasn't asked us to enhance yet ("held") cost nothing until they press Continue.
   var wasWaiting = false;
+  var SECONDS_PER_PHOTO = 50;   // rough time per photo, used for the "about N minutes" message
+
+  // After payment the big slider follows the enhancing by itself: photo 2 with its percentage, and when it
+  // is done it stays on screen for a moment, then photo 3 takes its place, and so on.
+  // Clicking a photo in the strip takes over (the visitor is in charge from then on).
+  var follow = null, holdUntil = 0, HOLD_MS = 2800;
+  function isWorking(id) { return jobs[id] && (jobs[id].status === 'pending' || jobs[id].status === 'processing'); }
+  function followTarget() {
+    if (follow && jobs[follow] && jobs[follow].status === 'done') {
+      if (!holdUntil) { holdUntil = Date.now() + HOLD_MS; setTimeout(refresh, HOLD_MS + 60); }
+      if (Date.now() < holdUntil) return follow;          // let the finished photo be admired for a moment
+    }
+    var next = null;
+    for (var i = 0; i < order.length; i++) { if (isWorking(order[i])) { next = order[i]; break; } }
+    if (next) { if (next !== follow) { follow = next; holdUntil = 0; } return follow; }
+    return follow;                                         // everything is done: stay on the last photo
+  }
+
   function refresh() {
     var result = $('abResult');
     if (!order.length) { result.style.display = 'none'; resultSec.style.display = 'none'; return; }
@@ -525,7 +566,11 @@
         if (jobs[order[i]].status === 'done') { previewId = order[i]; break; }
       }
     }
-    var selId = (userPick && jobs[userPick]) ? userPick : (previewId || order[0]);
+    var allPaid = order.every(function (id) { return jobs[id].paid || jobs[id].status === 'failed'; });
+    var selId;
+    if (userPick && jobs[userPick]) selId = userPick;
+    else if (allPaid && (c.busy > 0 || follow)) selId = followTarget() || previewId || order[0];
+    else selId = previewId || order[0];
     var shown = jobs[selId];
 
     // Switching photos: drop the old pictures first so the slider never mixes two photos.
@@ -577,7 +622,15 @@
       summary.textContent = 'Payment received. Your photos are being enhanced one by one — you can watch them appear below.';
     }
     if (c.busy === 0 && c.done > 0 && unpaid === 0) {
-      if (wasWaiting) { wasWaiting = false; showNotice('All photos are enhanced and ready to download.', 'success'); }
+      if (wasWaiting) {
+        wasWaiting = false;
+        abCelebrate({
+          title: c.done > 1 ? 'All ' + c.done + ' photos are enhanced!' : 'Your photo is enhanced!',
+          message: 'Clean and watermark-free, ready to download in full quality.',
+          actionLabel: c.done > 1 ? 'Download all (' + c.done + ')' : 'Download',
+          onAction: function () { $('abDownload').click(); }
+        });
+      }
       dl.textContent = c.done > 1 ? 'Download all (' + c.done + ')' : 'Download';
       dl.style.display = '';
     }
@@ -658,7 +711,16 @@
     if (e.dataTransfer && e.dataTransfer.files.length) { fileInput.files = e.dataTransfer.files; updatePicked(); }
   });
   fileInput.addEventListener('click', function (e) { e.stopPropagation(); });
-  fileInput.addEventListener('change', updatePicked);
+  fileInput.addEventListener('change', function () {
+    updatePicked();
+    // chosen from the floating bar: go straight to enhancing, like the link box does
+    if (fromSticky && fileInput.files.length) { fromSticky = false; setTab('upload'); $('abForm').requestSubmit ? $('abForm').requestSubmit() : $('abForm').dispatchEvent(new Event('submit', { cancelable: true })); }
+    fromSticky = false;
+  });
+  // The floating bar offers both ways in. A pasted link must switch the form to the link tab first.
+  var fromSticky = false;
+  window.abOnStickySubmit = function () { setTab('link'); };
+  $('abStickyUpload').addEventListener('click', function () { fromSticky = true; fileInput.click(); });
 
   // What the visitor chose: thumbnails + a clear "Enhance N photos" button.
   var thumbUrls = [];
@@ -725,10 +787,40 @@
   // ---- initial state (this session's latest batch, if any) ----
   setBatch(JSON.parse($('abInitialJobs').textContent));
   ensurePolling();
-  if (FLASH === 'paid') showNotice('Payment received, thank you! We’re enhancing your photos now. You can download them here as soon as they’re ready.', 'success');
+  if (FLASH === 'paid') {
+    // Back from Stripe. Photos still being enhanced: say what happens next and how long it takes.
+    // Nothing left to wait for (e.g. a single photo): go straight to "ready", with the download button.
+    var left = order.filter(function (id) { return isWorking(id); }).length;
+    var ready = order.filter(function (id) { return jobs[id] && jobs[id].status === 'done'; }).length;
+    var download = function () { $('abDownload').click(); };
+    if (left > 0) {
+      var mins = Math.max(1, Math.ceil(left * SECONDS_PER_PHOTO / 60));
+      abCelebrate({
+        icon: 'check',
+        title: 'Payment successful!',
+        message: 'Thank you! Your remaining ' + (left > 1 ? left + ' photos are' : 'photo is') + ' being enhanced now, about '
+               + (mins > 1 ? mins + ' minutes' : '1 minute') + (left > 1 ? ' in total' : '') + '. You can watch each one appear below.'
+      });
+    } else if (ready > 0) {
+      wasWaiting = false;
+      abCelebrate({
+        title: 'Payment successful!',
+        message: ready > 1 ? 'All ' + ready + ' photos are enhanced and ready to download in full quality.'
+                           : 'Your photo is enhanced and ready to download in full quality.',
+        actionLabel: ready > 1 ? 'Download all (' + ready + ')' : 'Download',
+        onAction: download
+      });
+    }
+  }
   else if (FLASH === 'canceled') showNotice('Payment cancelled. Your photos are still here whenever you’re ready.', 'info');
   else if (FLASH === 'unconfirmed') showNotice('We couldn’t confirm your payment yet. If you were charged, please refresh this page in a minute.', 'warning');
-  if (FLASH) resultSec.scrollIntoView({ block: 'start' });
+  if (FLASH) {
+    // The site's own start-up script resets the page position right after ours, so scroll a moment later
+    // (and once more when everything has loaded, if the page is still at the top).
+    var toResults = function () { window.scrollTo(0, Math.max(0, resultSec.getBoundingClientRect().top + window.pageYOffset - 96)); };   // 96px: clear of the fixed header
+    setTimeout(toResults, 150);
+    window.addEventListener('load', function () { setTimeout(function () { if (window.scrollY < 50) toResults(); }, 100); });
+  }
 })();
 </script>
 {% include 'aibooster/_ab_ui_js.html' %}

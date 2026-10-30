@@ -8,7 +8,7 @@ CLEAN_LONG_EDGE = 3000
 PREVIEW_LONG_EDGE = 1600
 API_LONG_EDGE = 1536
 WATERMARK_TEXT = 'FavHost'
-WATERMARK_OPACITY = 0.35
+WATERMARK_OPACITY = 0.30
 _FONT_CANDIDATES = ('arialbd.ttf', 'Arial Bold.ttf', 'DejaVuSans-Bold.ttf', 'LiberationSans-Bold.ttf')
 
 
@@ -73,19 +73,20 @@ def _font(size):
 
 
 def watermark(img):
-    """Diagonal repeating white 'FavHost' text with a dark outline at ~35% opacity."""
+    """Small, light, diagonal repeating white 'FavHost' text: visible enough to deter reuse, subtle enough
+    that the photo is still clearly judged."""
     base = _to_rgb(img)
     if max(base.size) > PREVIEW_LONG_EDGE:  # preview never needs to be bigger than this
         base = resize_long_edge(base, PREVIEW_LONG_EDGE)
     base = base.convert('RGBA')
     w, h = base.size
-    size = max(24, round(min(w, h) * 0.07))
+    size = max(14, round(min(w, h) * 0.035))
     font = _font(size)
     alpha = round(255 * WATERMARK_OPACITY)
-    stroke = max(2, size // 14)
+    stroke = 1   # hairline edge so the white text stays readable on bright walls
 
     left, top, right, bottom = font.getbbox(WATERMARK_TEXT, stroke_width=stroke)
-    step_x, step_y = (right - left) * 2, (bottom - top) * 4
+    step_x, step_y = round((right - left) * 3.0), round((bottom - top) * 6.0)   # wide gaps: the photo stays easy to see
 
     # Draw on a square layer big enough that, once rotated, it still covers the photo.
     side = math.ceil(math.hypot(w, h))
@@ -95,7 +96,7 @@ def watermark(img):
         offset = (step_x // 2) if row % 2 else 0
         for x in range(-step_x, side, step_x):
             draw.text((x + offset, y), WATERMARK_TEXT, font=font,
-                      fill=(255, 255, 255, alpha), stroke_width=stroke, stroke_fill=(30, 30, 30, alpha))
+                      fill=(255, 255, 255, alpha), stroke_width=stroke, stroke_fill=(30, 30, 30, round(alpha * 0.45)))
     layer = layer.rotate(30, resample=Image.BICUBIC)
     crop_left, crop_top = (side - w) // 2, (side - h) // 2
     layer = layer.crop((crop_left, crop_top, crop_left + w, crop_top + h))

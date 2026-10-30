@@ -12,6 +12,7 @@ urlpatterns = [
     path('photo-enhancer/unlock/', views.image_unlock, name='image-unlock'),
     path('photo-enhancer/status/', views.image_status, name='image-status'),
     path('photo-enhancer/reset/', views.image_reset, name='image-reset'),
+    path('photo-enhancer/remove/', views.image_remove, name='image-remove'),
     path('photo-enhancer/<uuid:job_id>/before/', views.image_before, name='image-before'),
     path('photo-enhancer/<uuid:job_id>/after/', views.image_after, name='image-after'),
     path('download/<str:token>/', views.image_download, name='image-download'),
