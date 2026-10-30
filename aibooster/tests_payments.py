@@ -384,3 +384,31 @@ class RemovePhotoTests(TestCase):
         ImageJob.objects.filter(pk=self.jobs[1].id).update(status=ImageJob.STATUS_PROCESSING)
         self.assertEqual(self._remove(self.jobs[1]).status_code, 400)
         self.assertEqual(ImageJob.objects.count(), 3)
+
+
+class WatermarkUpgradeTests(TestCase):
+    def setUp(self):
+        self.client.get(reverse('aibooster:image'))
+        self.key = self.client.session.session_key
+
+    def test_an_old_preview_is_redrawn_once_from_the_clean_photo(self):
+        import io
+        from PIL import Image
+        from . import storage as st
+        buf = io.BytesIO()
+        Image.new('RGB', (800, 600), 'gray').save(buf, 'JPEG')
+        job = ImageJob.objects.create(session_key=self.key, status=ImageJob.STATUS_DONE, clean_key='CLEAN',
+                                      watermarked_key='aibooster/x/preview-oldstyle.jpg')
+        saved = {}
+        with mock.patch('aibooster.storage.read_bytes', return_value=buf.getvalue()) as read, \
+                mock.patch('aibooster.storage.save_bytes', side_effect=lambda k, d: saved.setdefault('key', k)), \
+                mock.patch('aibooster.storage.get_storage') as get_storage, \
+                mock.patch('aibooster.views._stream', return_value=HttpResponse('x')) as stream:
+            self.client.get(reverse('aibooster:image-after', args=[job.id]))
+            job.refresh_from_db()
+            self.assertIn('preview-w2-', job.watermarked_key)
+            stream.assert_called_with(job.watermarked_key)
+            get_storage.return_value.delete.assert_called_once_with('aibooster/x/preview-oldstyle.jpg')
+            reads = read.call_count
+            self.client.get(reverse('aibooster:image-after', args=[job.id]))   # already current: no second redraw
+            self.assertEqual(read.call_count, reads)
