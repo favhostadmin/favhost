@@ -356,3 +356,31 @@ class AfterPaymentTests(TestCase):
         ImageJob.objects.filter(pk=busy.id).update(status=ImageJob.STATUS_DONE, clean_key='c2')
         r = self.client.post(reverse('aibooster:image-unlock'))
         self.assertTrue(r.json()['ok'])
+
+
+class RemovePhotoTests(TestCase):
+    def setUp(self):
+        self.client.get(reverse('aibooster:image'))
+        self.key = self.client.session.session_key
+        self.jobs = [ImageJob.objects.create(session_key=self.key, original_key=f'o{i}',
+                                             status=ImageJob.STATUS_DONE if i == 0 else ImageJob.STATUS_HELD) for i in range(3)]
+        session = self.client.session
+        session['aibooster_batch'] = [str(j.id) for j in self.jobs]
+        session.save()
+
+    def _remove(self, job):
+        with mock.patch('aibooster.storage.get_storage'):
+            return self.client.post(reverse('aibooster:image-remove'), {'id': str(job.id)})
+
+    def test_a_locked_photo_can_be_removed(self):
+        self.assertTrue(self._remove(self.jobs[1]).json()['ok'])
+        self.assertFalse(ImageJob.objects.filter(pk=self.jobs[1].id).exists())
+        self.assertEqual(self.client.session['aibooster_batch'], [str(self.jobs[0].id), str(self.jobs[2].id)])
+
+    def test_first_paid_or_running_photos_stay(self):
+        self.assertEqual(self._remove(self.jobs[0]).status_code, 400)
+        ImageJob.objects.filter(pk=self.jobs[2].id).update(is_paid=True)
+        self.assertEqual(self._remove(self.jobs[2]).status_code, 400)
+        ImageJob.objects.filter(pk=self.jobs[1].id).update(status=ImageJob.STATUS_PROCESSING)
+        self.assertEqual(self._remove(self.jobs[1]).status_code, 400)
+        self.assertEqual(ImageJob.objects.count(), 3)

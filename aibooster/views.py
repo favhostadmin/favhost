@@ -576,6 +576,20 @@ def image_reset(request):
 
 
 @require_POST
+def image_remove(request):
+    """Take one locked, unpaid photo out of the current batch (picked by mistake). The first photo,
+    which carries the free preview, and anything paid or being enhanced cannot be removed."""
+    job_id = request.POST.get('id') or ''
+    batch = _batch_jobs(request)
+    job = next((j for j in batch if str(j.id) == job_id), None)
+    if not job or batch[0].id == job.id or job.is_paid or job.status not in (ImageJob.STATUS_HELD, ImageJob.STATUS_FAILED):
+        return JsonResponse({'ok': False, 'message': 'This photo can’t be removed.'}, status=400)
+    _forget_job(job)
+    request.session[BATCH_SESSION_KEY] = [str(j.id) for j in batch if j.id != job.id]
+    return JsonResponse({'ok': True})
+
+
+@require_POST
 def report_reset(request):
     """Clear this session's current report: an unpaid report is deleted for good; a paid one stays on file."""
     report = _latest_report(request)

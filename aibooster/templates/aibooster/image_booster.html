@@ -255,7 +255,8 @@
     status: "{% url 'aibooster:image-status' %}",
     unlock: "{% url 'aibooster:image-unlock' %}",
     checkout: "{% url 'aibooster:image-checkout' %}",
-    reset: "{% url 'aibooster:image-reset' %}"
+    reset: "{% url 'aibooster:image-reset' %}",
+    remove: "{% url 'aibooster:image-remove' %}"
   };
   var PRICE = {% if price %}{ cents: {{ price.cents }}, currency: "{{ price.currency }}" }{% else %}null{% endif %};
   var FLASH = "{{ flash }}";
@@ -455,13 +456,20 @@
         im.appendChild(img); im.appendChild(st);
         btn.appendChild(im); btn.appendChild(el('div', 'cap', 'Enhancement ' + (i + 1)));
         btn.addEventListener('click', function () { userPick = id; refresh(); });
-        grid.appendChild(btn);
-        t = thumbEls[id] = { btn: btn, img: img, st: st };
+        var wrap = el('div', 'ab-thumb-wrap'); wrap.appendChild(btn);
+        var x = el('button', 'ab-thumb-x'); x.type = 'button'; x.title = 'Remove this photo'; x.setAttribute('aria-label', 'Remove this photo');
+        x.innerHTML = '<svg class="ab-svg" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+        x.addEventListener('click', function (e) { e.stopPropagation(); removePhoto(id); });
+        wrap.appendChild(x);
+        grid.appendChild(wrap);
+        t = thumbEls[id] = { btn: btn, img: img, st: st, wrap: wrap, x: x };
       }
       var url = j.after_url || (j.has_before ? j.before_url : '');
       if (url && t.img.getAttribute('data-src') !== url) {
         t.img.setAttribute('data-src', url); t.img.alt = 'Enhancement ' + (i + 1); t.img.src = url;
       }
+      // a photo picked by mistake can be removed, except the first (the free preview) and paid/running ones
+      t.x.style.display = (i > 0 && !j.paid && (j.status === 'held' || j.status === 'failed')) ? '' : 'none';
       t.btn.classList.toggle('on', id === selId);
       t.btn.classList.toggle('dim', j.status !== 'done');
       var s = STATUS[j.status] || ['', ''];
@@ -470,6 +478,19 @@
     syncAddTile();
     $('abThumbCount').textContent = order.length;
     $('abThumbs').style.display = order.length ? '' : 'none';
+  }
+
+  function removePhoto(id) {
+    var fd = new FormData(); fd.append('id', id);
+    xhr('POST', URLS.remove, fd, {}, function (status, data) {
+      if (status !== 200 || !data || !data.ok) { showNotice((data && data.message) || FRIENDLY); return; }
+      var t = thumbEls[id];
+      if (t && t.wrap.parentNode) t.wrap.parentNode.removeChild(t.wrap);
+      delete thumbEls[id]; delete jobs[id];
+      order = order.filter(function (o) { return o !== id; });
+      if (userPick === id) userPick = null;
+      refresh();
+    });
   }
 
   // "Add photos" tile at the end of the strip: only while nothing is paid and there is room left.
