@@ -5,7 +5,9 @@ safe_get(), which refuses anything that resolves to a private / loopback /
 link-local address (SSRF) and re-checks each redirect hop.
 """
 import ipaddress
+import json
 import logging
+import re
 import socket
 from urllib.parse import urljoin, urlparse
 
@@ -15,7 +17,8 @@ from bs4 import BeautifulSoup
 logger = logging.getLogger(__name__)
 
 TIMEOUT = 10
-MAX_IMAGES = 10
+MAX_IMAGES = 10      # photos kept for a Listing Optimize report
+MAX_PHOTOS = 25      # photos pulled from a listing link for the Photo Enhancer (one set holds 25)
 MAX_REDIRECTS = 5
 MAX_PAGE_BYTES = 5 * 1024 * 1024
 MAX_IMAGE_BYTES = 15 * 1024 * 1024
@@ -23,7 +26,8 @@ USER_AGENT = (
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
     '(KHTML, like Gecko) Chrome/124.0 Safari/537.36'
 )
-_SKIP_HINTS = ('logo', 'icon', 'sprite', 'avatar', 'favicon', 'placeholder', 'pixel', 'badge', 'flag')
+_SKIP_HINTS = ('logo', 'icon', 'sprite', 'avatar', 'favicon', 'placeholder', 'pixel', 'badge', 'flag',
+               '/user/', 'userprofile', 'profile_pic', 'platformassets', '/maps/', 'staticmap')
 _SKIP_EXT = ('.svg', '.gif', '.ico')
 
 
@@ -105,8 +109,30 @@ def _looks_like_photo(url):
     return not any(hint in low for hint in _SKIP_HINTS)
 
 
+# Listing sites keep most of their gallery inside embedded JSON (not in <img> tags), so every image address
+# on the page is collected, then thumbnails and size variants of the same picture are collapsed into one.
+_IMG_URL = re.compile(r'https?://[^\s"\'\\<>)(]+?\.(?:jpe?g|png|webp)(?:\?[^\s"\'\\<>)(]*)?', re.I)
+_BOOKING_SIZE = re.compile(r'/(?:max\d+(?:x\d+)?|square\d+|max\d+x\d+)/')
+
+
+def _photo_key(url):
+    """What makes two addresses the same picture: the address without its size/query variations."""
+    base = url.split('?')[0]
+    return _BOOKING_SIZE.sub('/SIZE/', base)
+
+
+def _best_variant(url):
+    """Ask the site for a large version of the picture (it serves resized copies from the same address)."""
+    host = (urlparse(url).hostname or '').lower()
+    if host.endswith('muscache.com'):
+        return url.split('?')[0] + '?im_w=1200'
+    if host.endswith('bstatic.com'):
+        return _BOOKING_SIZE.sub('/max1024x768/', url.split('?')[0])
+    return url
+
+
 def scrape_images(page_url):
-    """Return up to MAX_IMAGES photo URLs from `page_url` (or the URL itself if it is a
+    """Return up to MAX_PHOTOS photo URLs from `page_url` (or the URL itself if it is a
     direct image link), or [] on any failure."""
     try:
         resp, final_url = _follow(page_url)
@@ -115,7 +141,8 @@ def scrape_images(page_url):
             resp.close()
             return [final_url]
         body, encoding = _read(resp, MAX_PAGE_BYTES), resp.encoding
-        soup = BeautifulSoup(body.decode(encoding or 'utf-8', errors='replace'), 'html.parser')
+        html = body.decode(encoding or 'utf-8', errors='replace')
+        soup = BeautifulSoup(html, 'html.parser')
         candidates = []
         for meta in soup.find_all('meta'):
             if meta.get('property') in ('og:image', 'og:image:url') or meta.get('name') == 'twitter:image':
@@ -126,17 +153,29 @@ def scrape_images(page_url):
                 _largest_from_srcset(srcset) if srcset
                 else img.get('src') or img.get('data-src') or img.get('data-lazy-src') or ''
             )
+        # The rest of the gallery: structured data, then any image address anywhere in the page's text
+        # (scripts included, with JSON's escaped slashes undone).
+        for block in _jsonld_blocks(soup):
+            images = block.get('image')
+            for img in images if isinstance(images, list) else [images]:
+                candidates.append(img.get('url') if isinstance(img, dict) else img)
+        text = html.replace('\\u002F', '/').replace('\\u002f', '/').replace('\\/', '/')
+        candidates.extend(_IMG_URL.findall(text))
+
         found, seen = [], set()
         for raw in candidates:
             raw = (raw or '').strip()
-            if not raw:
+            if not raw or not isinstance(raw, str):
                 continue
             absolute = urljoin(page_url, raw)
-            if absolute in seen or not _looks_like_photo(absolute):
+            if not _looks_like_photo(absolute):
                 continue
-            seen.add(absolute)
-            found.append(absolute)
-            if len(found) >= MAX_IMAGES:
+            key = _photo_key(absolute)
+            if key in seen:
+                continue
+            seen.add(key)
+            found.append(_best_variant(absolute))
+            if len(found) >= MAX_PHOTOS:
                 break
         return found
     except Exception:
