@@ -334,7 +334,7 @@
   }
 
   function setBatch(list) {
-    order = []; jobs = {}; previewId = null; userPick = null; thumbEls = {};
+    order = []; jobs = {}; previewId = null; userPick = null; thumbEls = {}; follow = null; holdUntil = 0;
     $('abThumbGrid').textContent = '';
     $('abSlider').removeAttribute('data-job');
     clearPreviewImgs();
@@ -535,6 +535,23 @@
   // The big slider previews ONE photo at a time (the first by default, or the one clicked below).
   // Photos the visitor hasn't asked us to enhance yet ("held") cost nothing until they press Continue.
   var wasWaiting = false;
+
+  // After payment the big slider follows the enhancing by itself: photo 2 with its percentage, and when it
+  // is done it stays on screen for a moment, then photo 3 takes its place, and so on.
+  // Clicking a photo in the strip takes over (the visitor is in charge from then on).
+  var follow = null, holdUntil = 0, HOLD_MS = 2800;
+  function isWorking(id) { return jobs[id] && (jobs[id].status === 'pending' || jobs[id].status === 'processing'); }
+  function followTarget() {
+    if (follow && jobs[follow] && jobs[follow].status === 'done') {
+      if (!holdUntil) { holdUntil = Date.now() + HOLD_MS; setTimeout(refresh, HOLD_MS + 60); }
+      if (Date.now() < holdUntil) return follow;          // let the finished photo be admired for a moment
+    }
+    var next = null;
+    for (var i = 0; i < order.length; i++) { if (isWorking(order[i])) { next = order[i]; break; } }
+    if (next) { if (next !== follow) { follow = next; holdUntil = 0; } return follow; }
+    return follow;                                         // everything is done: stay on the last photo
+  }
+
   function refresh() {
     var result = $('abResult');
     if (!order.length) { result.style.display = 'none'; resultSec.style.display = 'none'; return; }
@@ -547,7 +564,11 @@
         if (jobs[order[i]].status === 'done') { previewId = order[i]; break; }
       }
     }
-    var selId = (userPick && jobs[userPick]) ? userPick : (previewId || order[0]);
+    var allPaid = order.every(function (id) { return jobs[id].paid || jobs[id].status === 'failed'; });
+    var selId;
+    if (userPick && jobs[userPick]) selId = userPick;
+    else if (allPaid && (c.busy > 0 || follow)) selId = followTarget() || previewId || order[0];
+    else selId = previewId || order[0];
     var shown = jobs[selId];
 
     // Switching photos: drop the old pictures first so the slider never mixes two photos.
