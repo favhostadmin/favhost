@@ -173,10 +173,13 @@ def image_page(request):
         return back
     key = _session_key(request)
     jobs = _batch_jobs(request)
+    samples = _samples()
     return render(request, 'aibooster/image_booster.html', {
         'jobs_json': [_payload(j) for j in jobs],
         'base_template': _base_template(request),
-        'samples': _samples(),
+        'samples': samples,
+        # the first pair is the hero's; the gallery shows the next six so no photo appears twice
+        'gallery': samples[1:7] or samples,
         'daily_limit': DAILY_LIMIT,
         'remaining': max(DAILY_LIMIT - _used_today(key), 0),
         'max_per_submit': MAX_PER_SUBMIT,
