@@ -17,7 +17,7 @@
   <section class="ab-hero" id="abHero">
     <div class="ab-container ab-hero-grid">
       <div>
-        <h1 class="ab-h1">Photos that <em>book more nights.</em></h1>
+        <h1 class="ab-h1">From ordinary photos to <em>standout listings.</em></h1>
         <p class="ab-lead">Smart AI based Real estate Photo edit build for Realtors, listing agents, Airbnb, Hotel owners, Short term rentals owner. Enhance interior and exterior shots. No time consuming complex editing. Edit all photos in just one click.</p>
 
         <form id="abForm" novalidate>
@@ -238,6 +238,7 @@
   <div class="ab-sticky" id="abSticky" data-form="abForm" data-input="abUrl">
     <form novalidate>
       <label class="ab-urlfield"><svg class="ab-svg" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg><input type="url" placeholder="Paste your listing URL…" aria-label="Listing URL"></label>
+      <button type="button" class="ab-up" id="abStickyUpload" title="Upload photos from your device"><svg class="ab-svg" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg><span>Upload</span></button>
       <button type="submit" class="ab-btn">Enhance My Photos</button>
     </form>
   </div>
@@ -679,7 +680,16 @@
     if (e.dataTransfer && e.dataTransfer.files.length) { fileInput.files = e.dataTransfer.files; updatePicked(); }
   });
   fileInput.addEventListener('click', function (e) { e.stopPropagation(); });
-  fileInput.addEventListener('change', updatePicked);
+  fileInput.addEventListener('change', function () {
+    updatePicked();
+    // chosen from the floating bar: go straight to enhancing, like the link box does
+    if (fromSticky && fileInput.files.length) { fromSticky = false; setTab('upload'); $('abForm').requestSubmit ? $('abForm').requestSubmit() : $('abForm').dispatchEvent(new Event('submit', { cancelable: true })); }
+    fromSticky = false;
+  });
+  // The floating bar offers both ways in. A pasted link must switch the form to the link tab first.
+  var fromSticky = false;
+  window.abOnStickySubmit = function () { setTab('link'); };
+  $('abStickyUpload').addEventListener('click', function () { fromSticky = true; fileInput.click(); });
 
   // What the visitor chose: thumbnails + a clear "Enhance N photos" button.
   var thumbUrls = [];
