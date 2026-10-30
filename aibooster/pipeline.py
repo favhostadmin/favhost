@@ -66,7 +66,7 @@ def run(job_id):
 
         # 4. Separate watermarked copy.
         marked = imaging.watermark(enhanced)
-        job.watermarked_key = storage.save_bytes(storage.new_key(job.id, 'preview', 'jpg'),
+        job.watermarked_key = storage.save_bytes(storage.new_key(job.id, f'preview-{imaging.WATERMARK_VERSION}', 'jpg'),
                                                  imaging.to_jpeg_bytes(marked, 82))
 
         # 5. Usage + cost.

@@ -339,7 +339,30 @@ def image_after(request, job_id):
     if job.status != ImageJob.STATUS_DONE or not job.watermarked_key:
         raise Http404
     # Paid photos are shown clean (no watermark); unpaid ones only ever get the watermarked copy.
-    return _stream(job.clean_key if job.is_paid and job.clean_key else job.watermarked_key)
+    return _stream(job.clean_key if job.is_paid and job.clean_key else _current_preview_key(job))
+
+
+def _current_preview_key(job):
+    """The watermarked preview, redrawn first if it was made with an older watermark design, so a change
+    to the watermark reaches photos that were enhanced before it (not only new ones)."""
+    marker = f'preview-{imaging.WATERMARK_VERSION}-'
+    if marker in job.watermarked_key or not job.clean_key:
+        return job.watermarked_key
+    try:
+        marked = imaging.watermark(imaging.open_image(storage.read_bytes(job.clean_key)))
+        new_key = storage.save_bytes(storage.new_key(job.id, f'preview-{imaging.WATERMARK_VERSION}', 'jpg'),
+                                     imaging.to_jpeg_bytes(marked, 82))
+    except Exception:
+        logger.warning('Photo Enhancer: could not redraw the preview of job %s', job.id, exc_info=True)
+        return job.watermarked_key
+    old_key = job.watermarked_key
+    ImageJob.objects.filter(pk=job.pk).update(watermarked_key=new_key)
+    job.watermarked_key = new_key
+    try:
+        storage.get_storage().delete(old_key)
+    except Exception:
+        logger.warning('Photo Enhancer: could not delete the old preview %s', old_key, exc_info=True)
+    return new_key
 
 
 # ── download gate ──────────────────────────────────────────────────────────

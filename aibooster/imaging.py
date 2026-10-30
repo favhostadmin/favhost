@@ -9,6 +9,9 @@ PREVIEW_LONG_EDGE = 1600
 API_LONG_EDGE = 1536
 WATERMARK_TEXT = 'FavHost'
 WATERMARK_OPACITY = 0.30
+# Bump this whenever the watermark's look changes: stored previews carrying an older version are redrawn
+# from the clean photo the next time they are shown (see views._current_preview_key).
+WATERMARK_VERSION = 'w2'
 _FONT_CANDIDATES = ('arialbd.ttf', 'Arial Bold.ttf', 'DejaVuSans-Bold.ttf', 'LiberationSans-Bold.ttf')
 
 
