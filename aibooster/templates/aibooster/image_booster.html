@@ -474,7 +474,8 @@
       t.btn.classList.toggle('on', id === selId);
       t.btn.classList.toggle('dim', j.status !== 'done');
       var s = STATUS[j.status] || ['', ''];
-      t.st.textContent = s[0]; t.st.className = 'st ' + s[1];
+      // a photo being enhanced always shows its percentage (the 400ms ticker keeps it moving), never a flash of "Queued"
+      t.st.textContent = (j.status === 'pending' || j.status === 'processing') ? pctFor(id) + '%' : s[0]; t.st.className = 'st ' + s[1];
     });
     syncAddTile();
     $('abThumbCount').textContent = order.length;
@@ -813,7 +814,13 @@
   }
   else if (FLASH === 'canceled') showNotice('Payment cancelled. Your photos are still here whenever you’re ready.', 'info');
   else if (FLASH === 'unconfirmed') showNotice('We couldn’t confirm your payment yet. If you were charged, please refresh this page in a minute.', 'warning');
-  if (FLASH) resultSec.scrollIntoView({ block: 'start' });
+  if (FLASH) {
+    // The site's own start-up script resets the page position right after ours, so scroll a moment later
+    // (and once more when everything has loaded, if the page is still at the top).
+    var toResults = function () { window.scrollTo(0, Math.max(0, resultSec.getBoundingClientRect().top + window.pageYOffset - 96)); };   // 96px: clear of the fixed header
+    setTimeout(toResults, 150);
+    window.addEventListener('load', function () { setTimeout(function () { if (window.scrollY < 50) toResults(); }, 100); });
+  }
 })();
 </script>
 {% include 'aibooster/_ab_ui_js.html' %}
