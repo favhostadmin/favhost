@@ -471,7 +471,7 @@
   .toast-party .tp-x { position: absolute; top: 8px; right: 10px; width: 28px; height: 28px; display: grid; place-items: center; border: 0; border-radius: 50%; background: transparent; color: #fff; opacity: .7; font-size: 22px; line-height: 1; cursor: pointer; transition: background-color .15s, opacity .15s; }
   .toast-party .tp-x:hover { opacity: 1; background: rgba(255,255,255,.14); }
   .toast-party .tp-bar { position: absolute; left: 0; bottom: 0; height: 4px; width: 100%; background: linear-gradient(90deg, #EB5310, #FAA019); transform-origin: left; animation: ab-party-bar 7s linear forwards; }
-  .toast-party:hover .tp-bar { animation-play-state: paused; }
+  @media (hover: hover) { .toast-party:hover .tp-bar { animation-play-state: paused; } }
   .toast-party .tp-bit { position: absolute; top: -10px; width: 7px; height: 11px; border-radius: 2px; opacity: 0; animation: ab-party-fall 2.4s ease-out forwards; pointer-events: none; }
   @keyframes ab-party { 0%, 100% { transform: rotate(-8deg) scale(1); } 50% { transform: rotate(8deg) scale(1.12); } }
   @keyframes ab-party-bar { from { transform: scaleX(1); } to { transform: scaleX(0); } }
@@ -513,7 +513,7 @@
     }
     var x = document.createElement('button'); x.type = 'button'; x.className = 'tp-x'; x.setAttribute('aria-label', 'Close'); x.innerHTML = '&times;';
     x.addEventListener('click', close);
-    var bar = document.createElement('div'); bar.className = 'tp-bar';
+    var bar = document.createElement('div'); bar.className = 'tp-bar'; bar.style.animationDuration = ms + 'ms';   // the bar always matches the real countdown
     t.appendChild(emoji); t.appendChild(body); t.appendChild(x); t.appendChild(bar);
 
     var colors = ['#EB5310', '#FAA019', '#ffffff', '#4CAF50', '#0dcaf0', '#ffc107'];
@@ -529,8 +529,15 @@
     // the countdown (bar + timer) pauses while the pointer is over the card
     var startedAt = Date.now(), left = ms;
     timer = setTimeout(close, ms);
-    t.addEventListener('mouseenter', function () { clearTimeout(timer); left -= Date.now() - startedAt; });
-    t.addEventListener('mouseleave', function () { startedAt = Date.now(); timer = setTimeout(close, Math.max(left, 800)); });
+    // (mouse only: on a touch screen a tap would "hover" and the card would never close by itself)
+    t.addEventListener('mouseenter', function () {
+      if (!window.matchMedia('(hover: hover)').matches) return;
+      clearTimeout(timer); left -= Date.now() - startedAt;
+    });
+    t.addEventListener('mouseleave', function () {
+      if (!window.matchMedia('(hover: hover)').matches) return;
+      startedAt = Date.now(); timer = setTimeout(close, Math.max(left, 800));
+    });
     return close;
   };
 </script>
